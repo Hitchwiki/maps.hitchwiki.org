@@ -14,7 +14,23 @@ require_once "../config.php";
  * Strings to be translated
  */
 $strings = array(
-	_("Toggle log")
+	"Toggle log",
+	"Please type in your email and password",
+	"Login failed",
+	"Incorrect email or password.",
+	"Lost your password?",
+	"Mystical error with login, please try again.",
+	"places",
+	"Zoom closer to see them.",
+	"Searching...",
+	"Your search did not match any places.",
+	"Try searching in English and add a country name in to your search.",
+	"Example:",
+	"Not found",
+	"Your search did not match any places.",
+	"Try searching by english city names or/and add a country name with cities.",
+	"Are you sure you want to remove this comment?",
+	"Error"
 );
 
 $translated_strings = array();

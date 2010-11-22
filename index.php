@@ -197,6 +197,7 @@ $title .= 'Hitchwiki '.gettext("Maps");
 		<script src="static/js/jquery-ui-1.8.5.custom.min.js" type="text/javascript"></script>
 		<script src="static/js/jquery.cookie.js" type="text/javascript"></script>
 		<script src="static/js/jquery.json-2.2.min.js" type="text/javascript"></script>
+		<script src="static/js/jquery.gettext.js" type="text/javascript"></script>
 		<script src="static/js/main.js<?php if($settings["debug"]==true) echo '?cache='.date("jnYHis"); ?>" type="text/javascript"></script>
 		
 		<!-- Keep main stylesheet after main.js -->

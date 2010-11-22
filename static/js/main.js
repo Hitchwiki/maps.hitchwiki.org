@@ -38,7 +38,7 @@ $(document).ready(function() {
 		$("#log ul").resizable({alsoResize: '#log'});
 		
 		// Create a toggle button for log
-		$("#developers").append(' &bull; <a href="#" id="toggle_log">Toggle log</a>');
+		$("#developers").append(' &bull; <a href="#" id="toggle_log">'+_("Toggle log")+'</a>');
 		$("#toggle_log").click(function(e){
 			e.preventDefault();
 			log.toggle();
@@ -165,7 +165,7 @@ $(document).ready(function() {
 			var p_remember = $("#Login #remember_me").val();
 		
 			if(p_email == "" || p_password == "") {
-				info_dialog("Please type in your email and password", "Login failed",true);
+				info_dialog(_("Please type in your email and password"), _("Login failed"),true);
 			} else {
 		
 				// Send it as a post-requeset
@@ -185,12 +185,12 @@ $(document).ready(function() {
 					else if(data.login == false) {
    						$("#loginPanel .loading").hide();
    						$("#login_form").show();
-    	 				info_dialog('<p><strong>Incorrect email or password.</strong></p><p><a href="./?page=lost_password">Lost your password?</a></p>', 'Login failed',true);
+    	 				info_dialog('<p><strong>'+_("Incorrect email or password.")+'</strong></p><p><a href="./?page=lost_password">'+_("Lost your password?")+'</a></p>', _('Login failed'),true);
     	 			}
     	 			else {
    						$("#loginPanel .loading").hide();
    						$("#login_form").show();
-    	 				info_dialog("Mystical error with login, please try again.", "Login failed",true);
+    	 				info_dialog(_("Mystical error with login, please try again."), _("Login failed"),true);
     	 			}
     	 			
     	 			
@@ -722,29 +722,29 @@ function init_map() {
 	 * Map selecting from the map selector
 	 */
 	// osm
-	$("#map_selector #maplist li a[name='mapnik']").click(function(e){ e.preventDefault(); map.setBaseLayer(mapnik); });
-	$("#map_selector #maplist li a[name='osmarender']").click(function(e){ e.preventDefault(); map.setBaseLayer(osmarender); });
+	$("#map_selector #maplist li a[name='mapnik']").click(function(e){ e.preventDefault(); map.setBaseLayer(mapnik); stats("map_layer/osm/mapnik"); });
+	$("#map_selector #maplist li a[name='osmarender']").click(function(e){ e.preventDefault(); map.setBaseLayer(osmarender); stats("map_layer/osm/osmarender"); });
 	
 	// google
 	if(layer_google == true) {
-		$("#map_selector #maplist li a[name='gphy']").click(function(e){ e.preventDefault(); map.setBaseLayer(gphy); });
-		$("#map_selector #maplist li a[name='gmap']").click(function(e){ e.preventDefault(); map.setBaseLayer(gmap); });
-		$("#map_selector #maplist li a[name='ghyb']").click(function(e){ e.preventDefault(); map.setBaseLayer(ghyb); });
-		$("#map_selector #maplist li a[name='gsat']").click(function(e){ e.preventDefault(); map.setBaseLayer(gsat); });
+		$("#map_selector #maplist li a[name='gphy']").click(function(e){ e.preventDefault(); map.setBaseLayer(gphy); stats("map_layer/google/gphy"); });
+		$("#map_selector #maplist li a[name='gmap']").click(function(e){ e.preventDefault(); map.setBaseLayer(gmap); stats("map_layer/google/gmap"); });
+		$("#map_selector #maplist li a[name='ghyb']").click(function(e){ e.preventDefault(); map.setBaseLayer(ghyb); stats("map_layer/google/ghyb"); });
+		$("#map_selector #maplist li a[name='gsat']").click(function(e){ e.preventDefault(); map.setBaseLayer(gsat); stats("map_layer/google/gsat"); });
 	}
 	
 	// yahoo
 	if(layer_yahoo == true) {
-		$("#map_selector #maplist li a[name='yahoo']").click(function(e){ e.preventDefault(); map.setBaseLayer(yahoo); });
-		$("#map_selector #maplist li a[name='yahoosat']").click(function(e){ e.preventDefault(); map.setBaseLayer(yahoosat); });
-		$("#map_selector #maplist li a[name='yahoohyb']").click(function(e){ e.preventDefault(); map.setBaseLayer(yahoohyb); });
+		$("#map_selector #maplist li a[name='yahoo']").click(function(e){ e.preventDefault(); map.setBaseLayer(yahoo); stats("map_layer/yahoo/yahoo"); });
+		$("#map_selector #maplist li a[name='yahoosat']").click(function(e){ e.preventDefault(); map.setBaseLayer(yahoosat); stats("map_layer/yahoo/yahoosat"); });
+		$("#map_selector #maplist li a[name='yahoohyb']").click(function(e){ e.preventDefault(); map.setBaseLayer(yahoohyb); stats("map_layer/yahoo/yahoohyb"); });
 	}
 	
 	// virtual earth
 	if(layer_vearth == true) {
-		$("#map_selector #maplist li a[name='veroad']").click(function(e){ e.preventDefault(); map.setBaseLayer(veroad); });
-		$("#map_selector #maplist li a[name='veaer']").click(function(e){ e.preventDefault(); map.setBaseLayer(veaer); });
-		$("#map_selector #maplist li a[name='vehyb']").click(function(e){ e.preventDefault(); map.setBaseLayer(vehyb); });
+		$("#map_selector #maplist li a[name='veroad']").click(function(e){ e.preventDefault(); map.setBaseLayer(veroad); stats("map_layer/vearth/veroad"); });
+		$("#map_selector #maplist li a[name='veaer']").click(function(e){ e.preventDefault(); map.setBaseLayer(veaer); stats("map_layer/vearth/veaer"); });
+		$("#map_selector #maplist li a[name='vehyb']").click(function(e){ e.preventDefault(); map.setBaseLayer(vehyb); stats("map_layer/vearth/vehyb"); });
 	}
 	
 	
@@ -857,7 +857,7 @@ function onCountrydotSelect(feature) {
     popup = new OpenLayers.Popup.FramedCloud("Country", 
 		point,
 		null,
-		'<div style="color: #111;"><h4 style="margin:0; padding: 0 0 3px 21px; background: url(static/gfx/flags/'+feature.attributes.iso.toLowerCase()+'.png) no-repeat 0 3px;">' + feature.attributes.name +'</h4><small class="grey">' + feature.attributes.places +' places.<br /><i>Zoom closer to see them.</i></small></div>',
+		'<div style="color: #111;"><h4 style="margin:0; padding: 0 0 3px 21px; background: url(static/gfx/flags/'+feature.attributes.iso.toLowerCase()+'.png) no-repeat 0 3px;">' + feature.attributes.name +'</h4><small class="grey">' + feature.attributes.places +' '+_("places")+'.<br /><i>'+_("Zoom closer to see them.")+'</i></small></div>',
 		{
 			'size': new OpenLayers.Size(15,15), 
 			'offset': new OpenLayers.Pixel(lon_offset,lat_offset)
@@ -1602,7 +1602,7 @@ function search(q) {
 	close_cards();
 	close_page();
 
-	show_loading_bar("Searching...");
+	show_loading_bar(_("Searching..."));
 
 	// Geocode
 	//$.getJSON('ajax/geocoder.php?q=' + q, function(data) {
@@ -1647,7 +1647,7 @@ function search(q) {
 			// We got a result, but nada...
 			else {
 				maps_debug("Search didn't find anything.");
-				info_dialog('<p>Your search did not match any places.</p><p>Try searching in English and add a country name in to your search.</p><p>Example: Vilnius, Lithuania.</p>', 'Not found', false);
+				info_dialog('<p>'+_("Your search did not match any places.")+'</p><p>'+_("Try searching in English and add a country name in to your search.")+'</p><p>'+_("Example:")+' Vilnius, Lithuania.</p>', _('Not found'), false);
 			}
 		},
 	 
@@ -1659,7 +1659,7 @@ function search(q) {
 			// Hide "searching"
 			hide_loading_bar();
 			
-			info_dialog('<p>Your search did not match any places.</p><p>Try searching by english city names or/and add a country name with cities.', 'Not found', false);
+			info_dialog('<p>'+_("Your search did not match any places.")+'</p><p>'+_("Try searching by english city names or/and add a country name with cities."), _('Not found'), false);
 		}
 	});
 	
@@ -1821,7 +1821,7 @@ function removeComment(remove_id) {
     maps_debug("Asked to remove a comment "+remove_id);
 	stats("comment/remove/");
 
-	var confirm_remove = confirm("Are you sure you want to remove this comment?")
+	var confirm_remove = confirm(_("Are you sure you want to remove this comment?"));
 
 	if(confirm_remove) {
 		// Call API
@@ -1839,7 +1839,7 @@ function removeComment(remove_id) {
     			$("#comments #comment_counter").text(parseInt(current_comment_count)-1);
     			
 			} else {
-				info_dialog("Could not remove comment due error. Please try again!", "Error", true);
+				info_dialog(_8"Could not remove comment due error. Please try again!"), _("Error"), true);
     			maps_debug("Could note remove comment. Error: "+data.error);
 			}
 		
