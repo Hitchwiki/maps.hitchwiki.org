@@ -226,7 +226,6 @@ $(document).ready(function() {
 		$("#map_selector #selected_map .map_name").text(thisLink.text());
 		$("#map_selector #maplist li a").removeClass("selected");
 		thisLink.addClass("selected");
-		change_map_layer(thisLink.attr('name'));
 	});
 	
 		
@@ -829,40 +828,6 @@ function init_map() {
 
 } // init_map end
 
-
-
-/*
- * Change map layer
- */
-function change_map_layer(layer_name) {
-
-	maps_debug("Change map layer: "+layer_name);
-
-	// OSM
-	//if(layer_name == "mapnik") { map.setBaseLayer(mapnik); }
-	/*
-	else if(layer_name == "osmarender") { map.setBaseLayer(osmarender); }
-	
-	// Google
-	else if(layer_name == "gphy" && layer_google == true) { map.setBaseLayer(gphy); }
-	else if(layer_name == "gmap" && layer_google == true) { map.setBaseLayer(gmap); }
-	else if(layer_name == "ghyb" && layer_google == true) { map.setBaseLayer(ghyb); }
-	else if(layer_name == "gsat" && layer_google == true) { map.setBaseLayer(gsat); }
-	
-	// Yahoo
-	else if(layer_name == "yahoo" && layer_yahoo == true) { map.setBaseLayer(yahoo); }
-	else if(layer_name == "yahoosat" && layer_yahoo == true) { map.setBaseLayer(yahoosat); }
-	else if(layer_name == "yahoohyb" && layer_yahoo == true) { map.setBaseLayer(yahoohyb); }
-	
-	// Virtual Earth
-	else if(layer_name == "veroad" && layer_vearth == true) { map.setBaseLayer(veroad); }
-	else if(layer_name == "veaer" && layer_vearth == true) { map.setBaseLayer(veaer); }
-	else if(layer_name == "vehyb" && layer_vearth == true) { map.setBaseLayer(vehyb); }
-	
-	// Default
-	else { map.setBaseLayer(mapnik); }
-	*/
-}
 
 
 /*
