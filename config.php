@@ -82,4 +82,32 @@ require_once "lib/functions.php";
 require_once("lib/api.php");
 require_once "lib/markdown.php";
 
+
+/*
+ * Map layer translated names
+ * You cannot add/remove used layers from here, but you need also edit static/js/main.js
+ */
+$map_layers = array(
+    "osm" => array(
+    		"mapnik" => "Open Street map",
+    		"osmarender" => "Open Street map - Tiles@Home"
+    ),
+    "google" => array(
+    		"gsat" => "Google "._("Satellite"),
+    		"ghyb" => "Google "._("Hybrid"),
+    		"gmap" => "Google "._("Streets"),
+    		"gphy" => "Google "._("Physical")
+    ),
+    "yahoo" => array(
+    		"yahoohyb" => "Yahoo "._("Hybrid"),
+    		"yahoosat" => "Yahoo "._("Satellite"),
+    		"yahoo" => "Yahoo "._("Street")
+    ),
+    "vearth" => array(
+    		"vehyb" => "Virtual Earth "._("Hybrid"),
+    		"veaer" => "Virtual Earth "._("Aerial"),
+    		"veroad" => "Virtual Earth "._("Roads")
+    )
+);
+
 ?>
