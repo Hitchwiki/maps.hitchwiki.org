@@ -59,12 +59,10 @@ else $profile_form = "register";
 	<label><?php echo _("Used map services"); ?></label><br />
 	
 	<input type="checkbox" name="map_osm" id="map_osm" disabled="disabled" checked="checked" value="true" /><label for="map_osm" class="icon icon-osm">Open Street Maps</label><br />
-	<input type="checkbox" name="map_ww" id="map_ww" disabled="disabled" checked="checked" value="true" /><label for="map_ww" class="icon icon-ww">NASA World Wind</label><br />
-	<input type="checkbox" name="map_google" id="map_google" value="true" <?php if($user["map_google"]=='1') echo 'checked="checked" '; ?>/><label for="map_google" class="icon icon-google">Google Maps</label><br />
-	<input type="checkbox" name="map_yahoo" id="map_yahoo" value="true" <?php if($user["map_yahoo"]=='1') echo 'checked="checked" '; ?>/><label for="map_yahoo" class="icon icon-yahoo">Yahoo Maps</label><br />
-	<input type="checkbox" name="map_vearth" id="map_vearth" value="true" <?php if($user["map_vearth"]=='1') echo 'checked="checked" '; ?>/><label for="map_vearth" class="icon icon-bing">Microsoft Virtual Earth</label>
-
-	<br /><br />
+	<?php if(!empty($settings["google_maps_api_key"])): ?><input type="checkbox" name="map_google" id="map_google" value="true" <?php if($user["map_google"]=='1') echo 'checked="checked" '; ?>/><label for="map_google" class="icon icon-google">Google Maps</label><br /><?php endif; ?>
+	<?php if(!empty($settings["yahoo_maps_appid"])): ?><input type="checkbox" name="map_yahoo" id="map_yahoo" value="true" <?php if($user["map_yahoo"]=='1') echo 'checked="checked" '; ?>/><label for="map_yahoo" class="icon icon-yahoo">Yahoo Maps</label><br /><?php endif; ?>
+	<?php if($settings["ms_virtualearth"]===true): ?><input type="checkbox" name="map_vearth" id="map_vearth" value="true" <?php if($user["map_vearth"]=='1') echo 'checked="checked" '; ?>/><label for="map_vearth" class="icon icon-bing">Microsoft Virtual Earth</label><br /><?php endif; ?>
+	<br />
 	
 	<label for="map_default_layer"><?php echo _("Default map layer"); ?></label><br />
 	<select id="map_default_layer" name="country">
