@@ -1839,7 +1839,7 @@ function removeComment(remove_id) {
     			$("#comments #comment_counter").text(parseInt(current_comment_count)-1);
     			
 			} else {
-				info_dialog(_8"Could not remove comment due error. Please try again!"), _("Error"), true);
+				info_dialog(_("Could not remove comment due error. Please try again!"), _("Error"), true);
     			maps_debug("Could note remove comment. Error: "+data.error);
 			}
 		
