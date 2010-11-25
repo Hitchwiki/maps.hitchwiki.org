@@ -332,7 +332,7 @@ function get_comments($id=false, $limit=false) {
  * world: true | false (default) (list's all the countries, even without any markers)
  * coordinates: true | false (default)
  */
-function list_countries($type="array", $order="markers", $limit=false, $count=true, $world=false, $coordinates=false) {
+function list_countries($type="array", $order="markers", $limit=false, $count=true, $world=false, $coordinates=false, $selected_country=false) {
 	start_sql();
 	
 	// Get all country iso-codes
@@ -412,7 +412,9 @@ function list_countries($type="array", $order="markers", $limit=false, $count=tr
 	
 		// print a selection option
 		if($type=="option") {
-			echo '<option value="'.$country["iso"].'" class="'.strtolower($country["iso"]).'">'.$country["name"];
+			echo '<option ';
+			if($selected_country == $country["iso"]) echo 'selected="selected" ';
+			echo 'value="'.$country["iso"].'" class="'.strtolower($country["iso"]).'">'.$country["name"];
 			if($count==true) echo ' <small class="grey">('.$country["places"].')</small>';
 			echo '</option>';
 		}
@@ -1126,6 +1128,7 @@ function available_nick($nick=false) {
  * or if user isn't logged in
  */
 function current_user($get_password=false) {
+	/*
 	global $_COOKIE,$settings;
 	
 	$cookie_email = $settings["cookie_prefix"]."email";
@@ -1139,6 +1142,11 @@ function current_user($get_password=false) {
 		return $user;
 	}
 	else return false;
+	*/
+	global $_SESSION;
+	
+	if(isset($_SESSION["wsUserID"]) && !empty($_SESSION["wsUserID"])) return get_user($_SESSION);
+	else return false;
 }
 
 
@@ -1148,14 +1156,14 @@ function current_user($get_password=false) {
  * email = t_user.email
  * password = md5(t_user.password)
  */
-function check_login($email=false, $password=false, $get_password=false) {
+function get_user($session=false) {
 	start_sql();
 
 	// Validate as a boolean
     if(is_bool($get_password) === false) $get_password = false;
    
    
-	$res = mysql_query("SELECT * FROM `t_users` WHERE `email` = '".mysql_real_escape_string($email)."' AND `password` = '".mysql_real_escape_string($password)."' LIMIT 1");
+	$res = mysql_query("SELECT * FROM `t_users` WHERE `id` = '".mysql_real_escape_string($session["wsUserID"])."' LIMIT 1");
    	
    	if(!$res) return false;
 			
@@ -1165,9 +1173,8 @@ function check_login($email=false, $password=false, $get_password=false) {
 		while($r = mysql_fetch_array($res, MYSQL_ASSOC)) {
 
 			$user["logged_in"] = true;
-			$user["id"] = $r["id"];
-			$user["name"] = $r["name"];
-			$user["email"] = $r["email"];
+			$user["id"] = $session["wsUserID"];
+			$user["name"] = $session["wsUserName"];
 			$user["location"] = $r["location"];
 			$user["country"] = $r["country"];
 			$user["language"] = $r["language"];
@@ -1184,13 +1191,33 @@ function check_login($email=false, $password=false, $get_password=false) {
 			if($r["admin"]=="1") $user["admin"] = true;
 			else $user["admin"] = false;
 			
-			// Include password to the array
-			if($get_password===true) $user["password"] = $r["password"];
+			// If the name in the session was different than the one in DB, update DB
+			if($r["name"] != $session["wsUserName"]) {
+				$res = mysql_query("UPDATE `t_users` SET `name` = '".mysql_real_escape_string($session["wsUserName"])."' WHERE `id` = ".mysql_real_escape_string($session["wsUserID"])." LIMIT 1");
+			}
 			
 			return $user;
 		}
-	} 
-	else return false;
+	}
+	// If user by that ID didn't exist, create a new row for the user 
+	else {
+		
+		$query = "INSERT INTO `t_users` (
+					`id`,
+					`name`,
+					`registered`
+				) VALUES (
+					".mysql_real_escape_string($session["wsUserID"]).", 
+					'".mysql_real_escape_string(htmlspecialchars($session["wsUserID"]))."', 
+					NOW()
+				);";
+				
+		$res = mysql_query($query);
+		   
+		if(!$res) return false;
+		else return get_user($session);
+	
+	}
 
 }
 

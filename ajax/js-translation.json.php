@@ -15,11 +15,6 @@ require_once "../config.php";
  */
 $strings = array(
 	"Toggle log",
-	"Please type in your email and password",
-	"Login failed",
-	"Incorrect email or password.",
-	"Lost your password?",
-	"Mystical error with login, please try again.",
 	"places",
 	"Zoom closer to see them.",
 	"Searching...",

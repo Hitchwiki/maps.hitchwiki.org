@@ -134,6 +134,7 @@ $(document).ready(function() {
     
     
     // Login panel
+    /*
     if($("#LoginNavi").hasClass("logged_out")) {
 		maps_debug("Initialize the login form");
 		
@@ -202,6 +203,7 @@ $(document).ready(function() {
     	    return false; 
     	});
     }// logged_out?
+    */
     
     
     // Initialize page content area

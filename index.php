@@ -225,7 +225,6 @@ $title .= 'Hitchwiki '.gettext("Maps");
 				"api", 
 				"news", 
 				"settings", 
-				"register", 
 				"profile",
 				"users",
 				"beta"
@@ -369,7 +368,7 @@ $title .= 'Hitchwiki '.gettext("Maps");
 					<ul class="align_right" id="loginSidemenu">
 						<li><a href="./?page=profile" id="profile" class="pagelink"><?php echo _("Profile"); ?></a></li>
 						<li><a href="./?page=settings" id="settings" class="pagelink"><?php echo _("Settings"); ?></a></li>
-						<li><a href="./logout/" id="logout"><?php echo _("Logout"); ?></a></li>
+						<li><a href="http://hitchwiki.org/en/index.php?title=Special:UserLogout&returnto=Maps.hitchwiki.org" id="logout"><?php echo _("Logout"); ?></a></li>
 					</ul>
 					<span id="Hello"><span class="icon <?php
 					
@@ -425,10 +424,10 @@ $title .= 'Hitchwiki '.gettext("Maps");
 				
 					<ul class="align_right" id="loginSidemenu">
 						<li><a href="./?page=why_to_register" id="why_to_register" class="pagelink"><?php echo _("Why to register?"); ?></a></li>
-						<li><a href="./?page=register" id="register" class="pagelink"><?php echo _("Register!"); ?></a></li>
+						<li><a href="http://hitchwiki.org/en/index.php?title=Special:UserLogin&amp;type=signup&amp;returnto=Maps.hitchwiki.org" id="register"><?php echo _("Register!"); ?></a></li>
 					</ul>
 
-					<a href="#" id="loginOpener" class="icon lock align_right"><?php echo _("Login"); ?></a>
+					<a href="http://hitchwiki.org/en/index.php?title=Special:UserLogin&amp;returnto=Maps.hitchwiki.org" id="loginOpener" class="icon lock align_right"><?php echo _("Login"); ?></a>
 				
 				<?php endif; ?>
 			<!-- /Login -->
@@ -441,31 +440,6 @@ $title .= 'Hitchwiki '.gettext("Maps");
 				<form method="post" action="./" id="reloadPage" class="hidden">
 				    <input type="submit" />
 				</form>
-				<?php 
-				// User is logged in:
-				if($user===false): ?>
-					<div id="loginPanel">
-						<div class="loading"></div>
-						<form action="#" method="post" name="login" id="login_form">
-							<label for="email"><?php echo _("Email"); ?></label><br />
-							<input tabindex="2" type="text" value="" name="email" id="email" /><br />
-							<br />
-							<label for="password"><?php echo _("Password"); ?></label><br />
-							<input tabindex="3" type="password" value="" name="password" id="password" /><br />
-							<br />
-							<button type="submit" tabindex="5" class="button align_right"><span class="icon lock"><?php echo _("Login"); ?></span></button>
-							<div id="rememberMeRow" class="align_left"><input type="checkbox" value="1" name="remember_me" id="remember_me" tabindex="4" /> <label for="remember_me"><?php echo _("Remember me"); ?></label></div>
-							<br />
-							<small id="login_meta">
-								
-								<a href="./?page=lost_password" id="lost_password" class="pagelink"><?php echo _("Lost password?"); ?></a>
-								
-							</small>
-							
-							
-						</form>
-					</div>
-				<?php endif; ?>
 
 </div>
 			
@@ -512,10 +486,10 @@ $title .= 'Hitchwiki '.gettext("Maps");
 							*/ ?>
 							<li><a href="./?page=public_transport" id="public_transport" class="icon pagelink underground"><?php echo _("Public transport"); ?></a></li>
 							<li><a href="./?page=countries" id="countries" class="icon world pagelink"><?php echo _("Countries"); ?></a></li>
-							<li><a href="#" id="link_here" class="icon link cardlink"><?php echo _("Link here"); ?></a></li>
-							<li><a href="#" id="download" class="icon page_white_put cardlink"><?php echo _("Download"); ?></a></li>
+							<?php /*<li><a href="#" id="link_here" class="icon link cardlink"><?php echo _("Link here"); ?></a></li>
+							<li><a href="#" id="download" class="icon page_white_put cardlink"><?php echo _("Download"); ?></a></li>*/ ?>
 							<?php if($user["logged_in"]===true): ?>
-							<li><a href="./?page=users" id="users" class="icon user pagelink"><?php echo _("Users"); ?></a></li>
+							<li><a href="./?page=users" id="users" class="icon user pagelink"><?php echo _("Members"); ?></a></li>
 							<?php endif; ?>
 							<li><a href="./?page=help" id="help" class="icon help pagelink"><?php echo htmlspecialchars(_("Help & About")); ?></a></li>
 							<li><a href="./?page=statistics" id="statistics" class="icon chart_bar pagelink"><?php echo _("Statistics"); ?></a></li>
