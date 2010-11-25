@@ -52,7 +52,7 @@ else:
     
     <title><?php echo 'Hitchwiki '._("Maps").' - '._("Admin"); ?></title>
     
-        <link rel="stylesheet" type="text/css" href="../static/css/ui-lightness/jquery-ui-1.8.5.custom.css" media="all" />
+        <link rel="stylesheet" type="text/css" href="../static/css/ui-lightness/jquery-ui.css" media="all" />
 
     	<!-- Scripts -->
         <script type="text/javascript">
@@ -63,8 +63,8 @@ else:
 		//]]>
         </script>
         
-        <script src="../static/js/jquery-1.4.2.min.js" type="text/javascript"></script>
-		<script src="../static/js/jquery-ui-1.8.5.custom.min.js" type="text/javascript"></script>
+        <script src="../static/js/jquery.min.js" type="text/javascript"></script>
+		<script src="../static/js/jquery-ui.min.js" type="text/javascript"></script>
         <script src="../static/js/admin.js<?php if($settings["debug"]==true) echo '?cache='.date("jnYHis"); ?>" type="text/javascript"></script>
         
         <!-- Keep main stylesheet after main.js -->
@@ -109,6 +109,7 @@ else:
     		<li><a href="./">Dashboard</a></li>
     		<li><a href="./?page=places">Places</a></li>
     		<li><a href="./?page=users">Users</a></li>
+    		<li><a href="./?page=js_minify">Minify JavaScript</a></li>
     		<li><a href="./?page=new_language">Add new language</a></li>
     		<li><a href="./?page=translate_countrynames">Translate countries</a></li>
     		<li><a href="http://github.com/MrTweek/maps.hitchwiki.org/">@GitHub</a></li>

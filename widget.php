@@ -21,34 +21,54 @@ if($settings["maintenance_page"]===true && !in_array($_SERVER['REMOTE_ADDR'], $s
 /*
  * Map settings
  */
- 
+
+// Defaults
+$d_zoom = '5';
+$d_lat = '51';
+$d_lon = '9';
+
 // Show a country
 if(isset($_GET["country"]) && !empty($_GET["country"]) && strlen($_GET["country"]) == 2) {
-	$zoom = '9';
-	$lat = '51';
-	$lon = '9';
+
+		start_sql(); // from lib/functions.php
+		
+    	$query = "SELECT `iso`,`lat`,`lon`,`zoom` FROM `t_countries` WHERE `iso` = '".mysql_real_escape_string($_GET["country"])."'";
+
+	    // Build an array
+   		$res = mysql_query($query);
+   		if(!$res OR mysql_num_rows($res)==0) {
+   			$zoom = $d_zoom;
+   			$lat = $d_lat;
+   			$lon = $d_lon;
+			$alert = true;
+   		}
+   		else {
+			while($r = mysql_fetch_array($res, MYSQL_ASSOC)) {
+   			    $zoom = $r["zoom"];
+   			    $lat = $r["lat"];
+   			    $lon = $r["lon"];
+   			}
+   		}
+   		
 }
 // Show free spot
 else { 
 	// Zoom, lat, lon, layers
-	$zoom = (isset($_GET["zoom"]) && ctype_digit($_GET["zoom"])) ? $_GET["zoom"] : '9';
+	$zoom = (isset($_GET["zoom"]) && ctype_digit($_GET["zoom"])) ? $_GET["zoom"] : $d_zoom;
 	
 	// Centered to Germany (51,9). Projection center would be '49','8.3'
-	$lat = (isset($_GET["lat"]) && is_numeric($_GET["lat"])) ? $_GET["lat"] : '51';
-	$lon = (isset($_GET["lon"]) && is_numeric($_GET["lon"])) ? $_GET["lon"] : '9';
+	$lat = (isset($_GET["lat"]) && is_numeric($_GET["lat"])) ? $_GET["lat"] : $d_lat;
+	$lon = (isset($_GET["lon"]) && is_numeric($_GET["lon"])) ? $_GET["lon"] : $d_lon;
 }
 
 ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" dir="ltr" lang="<?php echo shortlang(); ?>">
 	<head profile="http://gmpg.org/xfn/11">
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    
 		<title>Hitchwiki - <?php echo _("Maps"); ?></title>
-
         <link rel="stylesheet" type="text/css" href="static/css/widget.css<?php if($settings["debug"]==true) echo '?cache='.date("jnYHis"); ?>" media="all" />
-
-        <script src="static/js/jquery-1.4.2.min.js" type="text/javascript"></script>
-        <script src="http://openlayers.org/api/OpenLayers.js" type="text/javascript" type="text/javascript"></script>
+        <script src="static/js/jquery.min.js" type="text/javascript"></script>
+        <script src="http://openlayers.org/api/OpenLayers.js" type="text/javascript"></script>
         <script type="text/javascript">
 		//<![CDATA[
 
@@ -58,16 +78,15 @@ else {
 			var lat = <?php echo $lat; ?>;
 			var lon = <?php echo $lon; ?>;
 			var zoom = <?php echo $zoom; ?>;
-
+			
+			var language = '<?php echo $settings["language"]; ?>';
 			var read_more_txt = '<?php echo _("Read more..."); ?>';
-
+			
+			<?php if($alert) echo 'alert("Hitchwiki - '._("Maps").': '._("Requested country could not be found!").'");' ?>
 		//]]>
         </script>
 		<script src="static/js/widget.js<?php if($settings["debug"]==true) echo '?cache='.date("jnYHis"); ?>" type="text/javascript"></script>
-		<link rel="shortcut icon" href="<?php echo $settings["base_url"]; ?>/favicon.png" type="image/png" />
-		<link rel="bookmark icon" href="<?php echo $settings["base_url"]; ?>/favicon.png" type="image/png" />
-
-		<meta name="description" content="<?php printf(_("This is just a preview map. Go to %s for actual service."), $settings["base_url"]."/"); ?>" />
+		<meta name="description" content="<?php printf(_("This is just a preview map. Go to %s for the actual service."), $settings["base_url"]."/"); ?>" />
 	</head>
 	<body>
 

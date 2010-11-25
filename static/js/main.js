@@ -1773,15 +1773,8 @@ function open_card(name, title) { //, x_coord, y_coord, width
 						width: 390,
 	    				maxHeight: 600,
 	    				maxWidth: 650,
-	    				show: 'slide',
-	    				/*
-	    				buttons: {
-							Cancel: function() {
-								$(this).dialog('close');
-							}
-						}
-						*/
-	    			});
+	    				show: 'slide'
+			});
 	    	
 	    	// If pages not opened yet
 	    	/*
@@ -1931,9 +1924,8 @@ function hide_loading_bar() {
  */
 function maps_debug(str) {
 	if(debug==true) {
-		$("#log ul")
-			.append("<li>"+str+"</li>")
-			.attr({ scrollTop: $("#log ul").attr("scrollHeight") });
+		 $("#log ul").append("<li>"+str+"</li>").attr({ scrollTop: $("#log ul").attr("scrollHeight") });
+		return true;
 	}
 }
 
