@@ -54,7 +54,7 @@ $settings["languages_in_english"] = 	array(
 
 
 // Usually you don't need to edit this, but you can set it manually, too. No ending "/".
-$settings["base_url"] = "http://yoshi.mega2000.de/~simison/maps.hitchwiki.org";
+$settings["base_url"] = "http://hitchwiki.org/maps";
 #TODO, automate this. "http" . ((!empty($_SERVER['HTTPS'])) ? "s" : "") . "://".$_SERVER['SERVER_NAME'].dirname($_SERVER['REQUEST_URI']);
 
 /*
@@ -70,6 +70,9 @@ $mysql_conf = array(
 
 
 /**** DO NOT EDIT FROM HERE ****/
+
+session_name('pg_hitchwiki_en_session');
+session_start();
 
 /*
  * Select language (sets $settings["language"])
