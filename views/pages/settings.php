@@ -104,6 +104,11 @@ if($user["logged_in"]===true): ?>
 	</select>
 
 	<br /><br />
+	
+	<input type="checkbox" name="private_location" id="private_location" value="true" <?php if(isset($user["private_location"]) && $user["private_location"] == "1") echo 'checked="checked" '; ?>/> <label for="private_location"><?php echo _("Don't try to recognize my location"); ?></label><br />
+	<small>No "Nearby places from" for you, then.</small><br />	
+	
+	<br /><br />
 </div>
 <div style="float: left; width: 360px;">
 
@@ -130,11 +135,12 @@ if($user["logged_in"]===true): ?>
 	<label for="google_latitude"><?php echo _("Google Latitude user ID"); ?></label><br />
 	<input type="text" name="google_latitude" id="google_latitude" size="25" maxlength="80" value="<?php if(isset($user["google_latitude"])) echo htmlspecialchars($user["google_latitude"]); ?>" />
 	<br />
-	<!--<img src="static/gfx/icons/latitude-icon-small.png" alt="Google Latitude" class="align_left" style="margin: 5px 5px 5px 0;" />--><small><?php printf(_('<a href="%s" target="_blank">Enable Google Latitude</a> first and copy here your 20-digit user ID from the bottom of the page, visible in a textbox.'), 'https://www.google.com/latitude/b/0/apps'); echo " "._("It will be published on your profile page."); ?></small>
+	<!--<img src="static/gfx/icons/latitude-icon-small.png" alt="Google Latitude" class="align_left" style="margin: 5px 5px 5px 0;" />--><small><?php printf(_('<a href="%s" target="_blank">Enable Google Latitude</a> first and copy here your 20-digit user ID from the bottom of the page, visible in a textbox.'), 'https://www.google.com/latitude/b/0/apps'); echo " "._("Your location will be published also on your profile page."); ?></small>
 	
 	<br /><br />
 	
 	<input type="checkbox" name="centered_glatitude" id="centered_glatitude" value="true" <?php if(isset($user["centered_glatitude"]) && $user["centered_glatitude"] == "1") echo 'checked="checked" '; ?>/> <label for="centered_glatitude"><?php echo _("Center Maps always to your Google Latitude location"); ?></label><br />
+	<small>Does not work currently, but soon. You can set this to be ready.</small><br />	
 	
 	<br /><br />
 
@@ -149,7 +155,7 @@ if($user["logged_in"]===true): ?>
 	<button id="btn_profile_form_cancel"><?php echo _("Cancel"); ?></button>
 	
 	<!-- delete profile -->
-	<a href="#" id="btn_delete_profile" class="align_right"><span class="ui-icon ui-icon-trash align_left"> </span> &nbsp;<small><?php echo _("Delete your profile"); ?></small></a>
+	<a href="#" id="btn_delete_profile" class="align_right"><span class="ui-icon ui-icon-trash align_left"> </span> &nbsp;<small><?php echo _("Reset your profile"); ?></small></a>
 	
 </div>
 
@@ -312,6 +318,12 @@ $(function() {
 				var p_centered_glatitude = "false";
 			}
 			
+			if($("#profile_form #private_location").is(":checked")) {
+				var p_private_location = "true";
+			} else {
+				var p_private_location = "false";
+			}
+			
 			if($("#profile_form #allow_gravatar").is(":checked")) {
 				var p_allow_gravatar = "true";
 			} else {
@@ -325,6 +337,7 @@ $(function() {
 																			password2: p_password2, 
 																			language: p_language, 
 																			location: p_location, 
+																			private_location: p_private_location,
 																			google_latitude: p_google_latitude,
 																			allow_gravatar: p_allow_gravatar,
 																			<?php if(!empty($settings["google_maps_api_key"])): ?>map_google: p_map_google,<?php endif; ?>
@@ -346,7 +359,7 @@ $(function() {
 					    						
 							maps_debug("Updating settings complete.");
 							$("#profile_form").show();
-							$("#profile_info .info_text").text("Settings updated!");				
+							$("#profile_info .info_text").text("<?php echo _("Settings updated!"); ?> <?php echo _("Some settings might require refreshing the page."); ?>");				
 							$("#profile_info").fadeIn(300).delay(5000).fadeOut(300);
 							
 							// Login information was changed, so ask them to login again
@@ -373,7 +386,7 @@ $(function() {
     $("#btn_delete_profile").click(function(e) {
     	e.preventDefault();
     	
-    	var really_delete = confirm("<?php echo _("Are you sure you want to delete your profile? You cannot undo this action!"); ?>");
+    	var really_delete = confirm("<?php echo _("Are you sure you want to reset your profile? You cannot undo this action!"); ?>");
     	if(really_delete) {
     		close_page();
     		close_cards();
@@ -383,10 +396,10 @@ $(function() {
 
 				if(data.success==true) {
 					maps_debug("Profile deleted.");
-					info_dialog('<?php echo _("Your profile was deleted permanently."); ?>', '<?php echo _("Profile deleted"); ?>', false, true);
+					info_dialog('<?php echo _("Your profile was reset permanently."); ?>', '<?php echo _("Profile reset"); ?>', false, true);
 				} else {
 					maps_debug("Profile was NOT deleted due error: "+data.error);
-    				info_dialog('<?php echo _("Error while deleting your profile. Please try again!"); ?>', '<?php echo _("Profile was NOT deleted"); ?>', true);
+    				info_dialog('<?php echo _("Error while trying to reset your profile. Please try again!"); ?>', '<?php echo _("Profile was NOT reset"); ?>', true);
     			}
     		});
     		
@@ -394,7 +407,7 @@ $(function() {
     		close_page();
     		close_cards();
 			maps_debug("Profile deletion cancelled.");
-    		info_dialog('<?php echo _("You cancelled your profile deletion."); ?>', '<?php echo _("Deletion cancelled"); ?>', true);
+    		info_dialog('<?php echo _("You cancelled your profile reset."); ?>', '<?php echo _("Reset cancelled"); ?>', true);
     	}
     });
     

@@ -412,13 +412,13 @@ class maps_api
 		}
 	
 		// Build a query
-		$query = "	INSERT INTO `t_comments` (`id`, `fk_place`, `fk_user`, `nick`, `comment`, `datetime`) 
+		$query = "	INSERT INTO `t_comments` (`id`, `fk_place`, `fk_user`, `nick`, `comment`, `datetime`, `ip`) 
 						VALUES (NULL, 
 								'".mysql_real_escape_string($comment["place_id"])."', 
 								".mysql_real_escape_string($user_id).", 
 								".$nick.", 
 								'".mysql_real_escape_string($comment["comment"])."', 
-								NOW())";
+								NOW(), '".$_SERVER['REMOTE_ADDR']."')";
 	
 	    // Build an array
    		$res = mysql_query($query);
@@ -537,7 +537,7 @@ class maps_api
 		}
 		
 		// Waitingtime + waitingtime count
-		if(isset($place["waitingtime"])) {
+		if(isset($place["waitingtime"]) && $place["waitingtime"] != "") {
 		
 			if(!is_numeric($place["waitingtime"]) OR $place["waitingtime"] < 0) return $this->API_error("Invalid waiting time.");
 			else {

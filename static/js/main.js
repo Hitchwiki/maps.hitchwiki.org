@@ -55,7 +55,7 @@ $(document).ready(function() {
 	}
 
 	// getUserLocation:
-	fetchlocation();
+	if(private_location==false) { fetchlocation(); }
 
 
 	// Remove JS-required alert	

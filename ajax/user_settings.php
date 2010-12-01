@@ -52,6 +52,10 @@ start_sql();
 	else $country = 'NULL';
 	
 	
+	// Private location
+	if($_POST["private_location"] == "true") $private_location = '1';
+	else $private_location = 'NULL';
+	
 	// Google Latitude
 	if(!empty($_POST["google_latitude"])) $google_latitude = "'".mysql_real_escape_string($_POST["google_latitude"])."'";
 	else $google_latitude = 'NULL';
@@ -60,11 +64,9 @@ start_sql();
 	if($_POST["centered_glatitude"] == "true") $centered_glatitude = '1';
 	else $centered_glatitude = 'NULL';
 	
-	
 	// Allow Gravatar
 	if($_POST["allow_gravatar"] == "true") $allow_gravatar = '1';
 	else $allow_gravatar = 'NULL';
-	
 	
 	// Map layer: google
 	if($_POST["map_google"] == "true") $map_google = '1';
@@ -96,6 +98,7 @@ start_sql();
 	    		`location` = ".$location.",
 	    		`country` = ".$country.",
 	    		`language` = ".$language.", 
+	    		`private_location` = ".$private_location.",
 	    		`google_latitude` = ".$google_latitude.",
 	    		`centered_glatitude` = ".$centered_glatitude.",
 	    		`allow_gravatar` = ".$allow_gravatar.",

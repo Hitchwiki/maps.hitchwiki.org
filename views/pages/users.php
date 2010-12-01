@@ -5,7 +5,7 @@
 <?php
 
 	// Built up a query
-	$query = "SELECT `id`,`admin`,`name`,`registered`,`location`,`country` FROM `t_users` ORDER BY `name`,`registered` ASC";
+	$query = "SELECT `id`,`admin`,`name`,`registered`,`last_seen`,`location`,`country` FROM `t_users` ORDER BY `name`,`registered` ASC";
 	
 	// Gather data
 	start_sql();
@@ -20,17 +20,19 @@
 	if($usercount >= 1) {
 ?>
 
-	<p><?php printf(_("We have %s registered hitchhikers!"), $usercount); ?></p>
+	<p><?php printf(_("We have %s registered hitchhikers using Maps!"), $usercount); ?></p>
 	
 	<table class="infotable" id="users_list" cellspacing="0" cellpadding="0">
 	    <thead>
 	    	<tr>
 	    		<th><?php echo _("User"); ?></th>
-	    		<th><?php echo _("Member since"); ?></th>
+	    		<th><?php echo _("Using Maps since"); ?></th>
+	    		<th><?php echo _("Last seen"); ?></th>
 	    		<th><?php echo _("Location"); ?></th>
+	    		<th><?php echo _("Country"); ?></th>
+	    		
 	    		<?php if($user["admin"]===true): ?>
-	    		<th><?php echo _("Admin"); ?></th>
-	    		<th><?php echo _("Manage"); ?></th>
+	    			<th title="<?php echo _("Visible only for admins"); ?>"><?php echo _("Admins"); ?></th> 
 	    		<?php endif; ?>
 	    	</tr>
 	    </thead>
@@ -47,36 +49,33 @@
 	    		// Registered
 	    		echo '<td style="text-align: right;">'.date("j.n.Y", strtotime($row["registered"])).'</td>';
 	    		
+	    		// Last time seen
+	    		if(!empty($row["last_seen"])) echo '<td style="text-align: right;">'.date("j.n.Y", strtotime($row["last_seen"])).'</td>';
+	    		else echo '<td> </td>';
+	    		
 	    		// Location
-	    		if(!empty($row["location"]) OR !empty($row["country"])) {
-	    			echo '<td><a href="#" class="search_this">';
-	    			
-	    			if(!empty($row["location"])) echo htmlspecialchars($row["location"]);
-	    			
-	    			if(!empty($row["location"]) && !empty($row["country"])) echo ', ';
-	    			
-	    			if(!empty($row["country"])) echo ISO_to_country($row["country"]); 
-	    			
-	    			echo '</a>';
-	    			
-	    			if(!empty($row["country"])) echo' <img class="flag" alt="" src="static/gfx/flags/'.strtolower($row["country"]).'.png" />';
-	    			
-	    			echo '</td>';
+	    		if(!empty($row["location"])) {
+	    			echo '<td><a href="#" class="search_this">'.htmlspecialchars($row["location"]).'</td>';
 	    		}
 	    		else echo '<td> </td>';
+	    		
+	    		
+	    		// Country
+	    		if(!empty($row["country"])) {
+	    			echo '<td><a href="#" class="search_this">'.ISO_to_country($row["country"]).'</a> <img class="flag" alt="" src="static/gfx/flags/'.strtolower($row["country"]).'.png" /></td>';
+	    		}
+	    		else echo '<td> </td>';
+	    		
 	    		
 	    		// Tools for admins
 	    		if($user["admin"]===true) {
 	    			
 	    			// Is admin?
-	    			if($row["admin"] == '1') echo '<td class="icon tux"> </td>';
-	    			else echo '<td> </td>';
-	    			
-	    			// Tools
+	    			if($row["admin"] == '1') echo '<td class="icon tux">';
+	    			else echo '<td>';
 					?>
-					<td>
-					<a href="admin/?page=users&amp;remove=<?php echo $row["id"]; ?>" class="remove_user ui-icon ui-icon-trash align_right" title="<?php echo _("Remove user permanently"); ?>"></a>
-					<a href="admin/?page=users&amp;edit=<?php echo $row["id"]; ?>" class="ui-icon ui-icon-pencil align_right" title="<?php echo _("Edit user"); ?>"></a>
+						<a href="admin/?page=users&amp;remove=<?php echo $row["id"]; ?>" class="remove_user ui-icon ui-icon-trash align_right" title="<?php echo _("Remove user permanently"); ?>"></a>
+						<a href="admin/?page=users&amp;edit=<?php echo $row["id"]; ?>" class="ui-icon ui-icon-pencil align_right" title="<?php echo _("Edit user"); ?>"></a>
 					</td>
 					<?php
 	    		} // only for admins

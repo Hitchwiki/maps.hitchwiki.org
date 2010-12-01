@@ -22,6 +22,13 @@ if(!empty($profile)): ?>
     	<?php endif; ?>
     	
     	
+    	<?php if(!empty($profile["last_seen"])): ?>
+    	<tr>
+    		<td><b><?php echo _("Last seen"); ?></b></td>
+    		<td><?php echo date("j.n.Y", strtotime($profile["last_seen"])); ?></td>
+    	</tr>
+    	<?php endif; ?>
+    	
     	<?php if(!empty($profile["location"])): ?>
     	<tr>
     		<td><b><?php echo _("Location"); ?></b></td>
@@ -46,7 +53,7 @@ if(!empty($profile)): ?>
 		</script>
     	<?php endif; ?>
     	
-    	<?php if(!empty($profile["language"])): ?>
+    	<?php if(!empty($profile["language"]) && isset($settings["languages_in_english"][$profile["language"]])): ?>
     	<tr>
     		<td><b><?php echo _("Language"); ?></b></td>
     		<td><?php echo _($settings["languages_in_english"][$profile["language"]]); ?></td>

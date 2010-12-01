@@ -133,9 +133,9 @@ if($place["error"] !== true):
 				    	
 				    	if(!empty($place["description"][$code])) {
 				    		echo Markdown($place["description"][$code]);
-				    		?><small><a href="#" onclick="info_dialog('Editing is not in use yet, sorry.', 'TODO'); return false;"><?php echo _("Edit"); ?></a></small><?php
+				    		?><small class="hidden"><a href="#" onclick="info_dialog('Editing is not in use yet, sorry.', 'TODO'); return false;"><?php echo _("Edit"); ?></a></small><?php
 				    	} else {
-				    		echo '<em>'._("No description available in this language.").'</em> &mdash; <small><a href="#" onclick="writeDescription(\''.$code.'\'); return false;">'._("Write one?").'</a></small>';
+				    		echo '<em>'._("No description available in this language.").'</em> &mdash; <small class="hidden"><a href="#" onclick="writeDescription(\''.$code.'\'); return false;">'._("Write one?").'</a></small>';
 				        }
 				        echo '</p></div>';
 				    }
@@ -359,7 +359,7 @@ if($place["error"] !== true):
 						 * Save timing
 						 */
 						 
-						// Regognice selection of "other"
+						// Regognice "other" selection of the waitingtime
 				    	$("select#waitingtime").change( function () { 
 				    		if($(this).val()=="other") {
 				    			$(this).hide();

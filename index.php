@@ -5,6 +5,7 @@
  *
  */
  
+ 
 /*
  * Initialize Maps
  */
@@ -21,6 +22,16 @@ if($settings["maintenance_page"]===true && !in_array($_SERVER['REMOTE_ADDR'], $s
 	@include("maintenance_page.php");
 	exit;
 }
+
+
+/*
+ * Redirect to clean "rdfrom" away
+ */
+if(isset($_GET["rdfrom"])) {
+	header("Location: ".$settings["base_url"]);
+	exit;
+}
+
 
 
 /*
@@ -114,7 +125,7 @@ $title .= 'Hitchwiki '.gettext("Maps");
 	lang="<?php echo shortlang(); ?>">
 	<head profile="http://gmpg.org/xfn/11">
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-		<title><?php echo $title; ?> (BETA)</title>
+		<title><?php echo $title; ?></title>
 		<link href="static/css/ui-lightness/jquery-ui.css" media="all" rel="stylesheet" type="text/css" />
 		<?php
 		
@@ -164,6 +175,7 @@ $title .= 'Hitchwiki '.gettext("Maps");
 			var geolocation_cookieoptions = { path: '/', expires: 6 }; // expires: hours
 			var locale = "<?php echo $settings["language"]; ?>";
 			var google_analytics = <?php echo (!empty($settings["google_analytics_id"]) ? 'true' : 'false'); ?>;
+			var private_location = <?php echo (!empty($user["private_location"]) ? 'true' : 'false'); ?>;
 
 			/*
 			 * Loaded Map layers
@@ -185,7 +197,7 @@ $title .= 'Hitchwiki '.gettext("Maps");
 		//]]>
 		</script>
 		
-		<?php if($settings["debug"]==true): ?>
+		<?php /*$settings["debug"]==true*/if(!isset($_GET["min.js"])): ?>
 		<!-- in production, these are combined (combined.js.php) -->
 		<script src="static/js/jquery.min.js" type="text/javascript"></script>
 		<script src="static/js/jquery-ui.min.js" type="text/javascript"></script>
@@ -263,7 +275,7 @@ $title .= 'Hitchwiki '.gettext("Maps");
 		<meta name="description" content="<?php echo _("Find good places for hitchhiking and add your own."); ?>" />
 		
 		<!-- The Open Graph Protocol - http://opengraphprotocol.org/ -->
-		<meta property="og:title" content="<?php echo $title; ?> (BETA)" />
+		<meta property="og:title" content="<?php echo $title; ?>" />
 		<meta property="og:site_name" content="Hitchwiki.org" />
 		<meta property="og:description" content="<?php echo _("Find good places for hitchhiking and add your own."); ?>" />
 		<meta property="og:image" content="<?php echo $settings["base_url"]; ?>/badge.png" />
@@ -344,11 +356,7 @@ $title .= 'Hitchwiki '.gettext("Maps");
 				<h2><?php echo _("Maps"); ?></h2>
 
 				<div class="Navigation">
-					<!--
-					<a href="http://hitchwiki.org/en/Main_Page"><?php echo _("Wiki"); ?></a> | <a href="http://blogs.hitchwiki.org/"><?php echo _("Blogs"); ?></a> | <a href="http://hitchwiki.org/planet/"><?php echo _("Planet"); ?></a>
-					-->
-				 	<b><a href="http://maps.hitchwiki.org/">This is under development! See current working version.</a></b>
-				
+					<a href="http://hitchwiki.org/en/Main_Page"><?php echo _("Wiki"); ?></a> | <a href="http://hitchwiki.org/community/"><?php echo _("Community"); ?></a> | <a href="http://hitchwiki.org/planet/"><?php echo _("Planet"); ?></a>
 				</div>
 
 				<h3><?php echo _("Find good places for hitchhiking and add your favorites"); ?></h3>
@@ -479,13 +487,13 @@ $title .= 'Hitchwiki '.gettext("Maps");
 							<li><a href="#" id="news" class="icon new pagelink"><b><?php echo _("Ooh! New Maps!"); ?></b></a></li>
 							
 							<li><a href="#" id="add_place" class="icon add"><?php echo _("Add place"); ?></a></li>
-							<li><a href="#" id="tools" class="icon lorry"><?php echo _("Tools"); ?></a></li>
 							<?php /*
 							<li><a href="#" id="my_points" class="icon table pagelink"><?php echo _("My points"); ?></a></li>
 							<li><a href="#" id="new_collection" class="icon table_add pagelink"><?php echo _("New collection"); ?></a></li>
 							*/ ?>
 							<li><a href="./?page=public_transport" id="public_transport" class="icon pagelink underground"><?php echo _("Public transport"); ?></a></li>
 							<li><a href="./?page=countries" id="countries" class="icon world pagelink"><?php echo _("Countries"); ?></a></li>
+							<li><a href="#" id="tools" class="icon lorry"><?php echo _("Tools"); ?></a></li>
 							<?php /*<li><a href="#" id="link_here" class="icon link cardlink"><?php echo _("Link here"); ?></a></li>
 							<li><a href="#" id="download" class="icon page_white_put cardlink"><?php echo _("Download"); ?></a></li>*/ ?>
 							<?php if($user["logged_in"]===true): ?>

@@ -225,11 +225,17 @@ $user = current_user();
 
 		</ul>
 	</li>
-	
+	<?php /*<!-- TODO! -->
 	<li id="waitingtime_question">
 		<ul>
 			<li>
 				<label for="waitingtime"><?php echo _("Waiting time"); ?></label><br />
+
+				<span class="waitingtime_free smaller hidden">
+					<input type="text" value="" name="waitingtime_hours" id="waitingtime_hours" size="2" maxlength="2" class="smaller" style="text-align:right;" /> <label for="waitingtime_hours"><?php echo _("hours"); ?></label>&nbsp; 
+					<input type="text" value="" name="waitingtime_minutes" id="waitingtime_minutes" size="3" maxlength="3" class="smaller" style="text-align:right;" /> <label for="waitingtime_minutes"><?php echo _("minutes"); ?></label> 
+				</span>
+				
 				<select id="waitingtime" name="waitingtime">
 					<option value="" selected="selected"><?php echo _("I don't know"); ?></option>
 					<option value="5"><?php echo nicetime(5); ?></option>
@@ -239,19 +245,16 @@ $user = current_user();
 					<option value="30"><?php echo nicetime(30); ?></option>
 					<option value="45"><?php echo nicetime(45); ?></option>
 					<option value="60"><?php echo nicetime(60); ?></option>
-					<option value="90"><?php echo nicetime(90); ?></option>
-					<option value="120"><?php echo nicetime(120); ?></option>
-					<option value="150"><?php echo nicetime(150); ?></option>
-					<option value="180"><?php echo nicetime(180); ?></option>
-					<option value="210"><?php echo nicetime(210); ?></option>
-					<option value="240"><?php echo nicetime(240); ?></option>
-				</select><br />
+					<option value="other"><?php echo _("Other..."); ?></option>
+				</select>
+				<br />
 				<small class="light"><?php echo _("Just add what you've experienced. You can add multiple timings after saving and we will calculate an average out of them."); ?></small>
 			</li>
 
 		</ul>
 	</li>
-
+	*/ ?><input type="hidden" value="" name="waitingtime" id="waitingtime" />
+	
 	<li>
 		<ul>
 			<li>
@@ -272,6 +275,15 @@ $user = current_user();
 			    <script type="text/javascript">
 			    $(function() {
 			    	
+					// Regognice "other" selection of the waitingtime
+				    $("select#waitingtime").change( function () { 
+				        if($(this).val()=="other") {
+				        	$(this).hide();
+				        	$(".waitingtime_free").show();
+				        	maps_debug("Use free inputs for waitingtime instead.");
+				        }				    		
+				    });
+			    	
 			    	// add place
 			    	$("#btn_add_place").button({
 			            icons: {
@@ -291,7 +303,6 @@ $user = current_user();
 						var post_lat = $("#add_new_place_form input#lat").val();
 						var post_lon = $("#add_new_place_form input#lon").val();
 						var post_type = $("#add_new_place_form #marker_type").val();
-						var post_waitingtime = $("#add_new_place_form #waitingtime").val();
 						var post_locality = $("#add_new_place_form input#locality").val();
 						var post_country = $("#add_new_place_form #country_iso").val();
 						var post_manual_country = $("#add_new_place_form #manual_country").val();
@@ -304,6 +315,36 @@ $user = current_user();
 						<?php
 						}
 						?>
+						
+						
+						// Are we getting timing from free-inputs or from the select-input?
+						if($(".waitingtime_free").is(":visible")) {
+						    
+						    maps_debug("Getting timing from free timing inputs.");
+						
+						    var waitingtime_hours = $(".waitingtime_free input#waitingtime_hours").val();
+						    var waitingtime_minutes = $(".waitingtime_free input#waitingtime_minutes").val();
+						    
+						    if(waitingtime_hours=="") { waitingtime_hours = '0'; }
+						    if(waitingtime_minutes=="") { waitingtime_minutes = '0'; }
+						    
+						    maps_debug("Timing: "+waitingtime_hours+"h "+waitingtime_minutes+"m");
+						    
+						    // Validate inputs
+						    if(waitingtime_hours >= 0 && waitingtime_minutes >= 0 && is_numeric(waitingtime_hours)==true && is_numeric(waitingtime_minutes)==true) {
+						    
+						    	var post_waitingtime = parseFloat(waitingtime_minutes) + (parseFloat(waitingtime_hours)*60);						
+
+						    }
+						    else {
+						    	maps_debug("Free timing inputs didn't pass validation.");
+						    	var post_waitingtime = "";
+						    }
+						    
+						} else {
+					        var post_waitingtime = $("#waitingtime").val();
+					    }
+						
 						
 						maps_debug("Sending a request to the API.");
 						// Call API

@@ -1159,10 +1159,6 @@ function current_user($get_password=false) {
 function get_user($session=false) {
 	start_sql();
 
-	// Validate as a boolean
-    if(is_bool($get_password) === false) $get_password = false;
-   
-   
 	$res = mysql_query("SELECT * FROM `t_users` WHERE `id` = '".mysql_real_escape_string($session["wsUserID"])."' LIMIT 1");
    	
    	if(!$res) return false;
@@ -1170,6 +1166,8 @@ function get_user($session=false) {
 	// If we have a result, continue gathering user array
 	if(mysql_num_rows($res) > 0) {
 
+		$last_seen = mysql_query("UPDATE `t_users` SET `last_seen` = NOW() WHERE `id` = ".mysql_real_escape_string($session["wsUserID"])." LIMIT 1");
+				
 		while($r = mysql_fetch_array($res, MYSQL_ASSOC)) {
 
 			$user["logged_in"] = true;
@@ -1179,6 +1177,8 @@ function get_user($session=false) {
 			$user["country"] = $r["country"];
 			$user["language"] = $r["language"];
 			$user["registered"] = $r["registered"];
+			$user["last_seen"] = $r["last_seen"];
+			$user["private_location"] = $r["private_location"];
 			$user["google_latitude"] = $r["google_latitude"];
 			$user["centered_glatitude"] = $r["centered_glatitude"];
 			$user["allow_gravatar"] = $r["allow_gravatar"];
@@ -1201,14 +1201,39 @@ function get_user($session=false) {
 	}
 	// If user by that ID didn't exist, create a new row for the user 
 	else {
+		global $mysql_conf;
+	
+		/*
+		 * Copy user email from the mediawiki DB
+		 */ 
+		$mw_link = @mysql_connect($mysql_conf['host'], $mysql_conf['user'], $mysql_conf['password']);
+		@mysql_select_db($mysql_conf["mediawiki_db"], $mw_link);
+
+		$mw_res = mysql_query("SELECT `user_id`,`user_name`,`user_email`,`user_email` FROM `".$mysql_conf["mediawiki_db"]."`.`user` WHERE user_id = ".mysql_real_escape_string($session["wsUserID"])." LIMIT 1");
+
+		if(mysql_num_rows($mw_res) > 0) {
+			while($mw_r = mysql_fetch_array($mw_res, MYSQL_ASSOC)) {
+			    $email = "'".$mw_r["user_email"]."'";
+			}
+		}
+		else $email = "NULL";
 		
-		$query = "INSERT INTO `t_users` (
+	
+		/*
+		 * Add new user to the Maps DB
+		 */
+		start_sql();
+		$query = "INSERT INTO `".$mysql_conf['database']."`.`t_users` (
 					`id`,
 					`name`,
-					`registered`
+					`email`,
+					`registered`,
+					`last_seen`
 				) VALUES (
 					".mysql_real_escape_string($session["wsUserID"]).", 
-					'".mysql_real_escape_string(htmlspecialchars($session["wsUserID"]))."', 
+					'".mysql_real_escape_string(htmlspecialchars($session["wsUserName"]))."', 
+					".$email.",
+					NOW(),
 					NOW()
 				);";
 				
