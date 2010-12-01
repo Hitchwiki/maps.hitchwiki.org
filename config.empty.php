@@ -9,8 +9,8 @@
  */
 // Tools for devs:
 $settings["debug"] = 					true;
-$settings["maintenance_page"] = 		false; // Set true to close down visible page
-$settings["maintenance_api"] = 			false; // Set true to close down API
+$settings["maintenance_page"] = 		true; // Set true to close down visible page
+$settings["maintenance_api"] = 			true; // Set true to close down API
 $settings["non_maintenance_ip"] = 		array(); // Add IP addresses to whom show a normal page while in maintenance mode.
 
 // API-keys:
@@ -28,7 +28,7 @@ $settings["fb"]["app"]["id"] = 			"";
 $settings["fb"]["app"]["api"] = 		"";
 $settings["fb"]["app"]["secret"] = 		"";
 
-$settings["email"] = 					"help@liftershalte.info";
+$settings["email"] = 					"maps@hitchwiki.org";
 $settings["cookie_prefix"] = 			"hitchwiki_maps_";
 
 // Languages
@@ -64,7 +64,8 @@ $mysql_conf = array(
 	"user"		=> 		'', 
 	"password"	=> 		'',
 	"host"		=> 		'',
-	"database"	=> 		''
+	"database"	=> 		'',
+	"mediawiki_db" => 	'' // the DB where Maps will look for the users info, eg. email
 );
 
 
