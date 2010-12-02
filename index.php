@@ -24,6 +24,7 @@ if($settings["maintenance_page"]===true && !in_array($_SERVER['REMOTE_ADDR'], $s
 }
 
 
+
 /*
  * Redirect to clean "rdfrom" away
  */

@@ -107,12 +107,13 @@ else:
     	
     	<ul class="AdminNavigation">
     		<li><a href="./">Dashboard</a></li>
+    		<li><a href="../stats/">Stats</a></li>
     		<li><a href="./?page=places">Places</a></li>
     		<li><a href="./?page=users">Users</a></li>
     		<li><a href="./?page=js_minify">Minify JavaScript</a></li>
     		<li><a href="./?page=new_language">Add new language</a></li>
     		<li><a href="./?page=translate_countrynames">Translate countries</a></li>
-    		<li><a href="http://github.com/MrTweek/maps.hitchwiki.org/">@GitHub</a></li>
+    		<li><a href="http://github.com/Hitchwiki/maps.hitchwiki.org/">@GitHub</a></li>
     		<li><a href="http://maps.hitchwiki.org">maps.hitchwiki.org</a></li>
     	</ul>
     	
