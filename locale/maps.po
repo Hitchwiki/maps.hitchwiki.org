@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Maps\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-12-11 22:02+0100\n"
-"PO-Revision-Date: 2010-12-11 22:04+0100\n"
+"POT-Creation-Date: 2010-12-11 22:19+0100\n"
+"PO-Revision-Date: 2010-12-11 22:19+0100\n"
 "Last-Translator: Mikael Korpela <mikael@ihminen.org>\n"
 "Language-Team:  <maps@hitchwiki.org>\n"
 "MIME-Version: 1.0\n"
@@ -817,7 +817,7 @@ msgid "I haven't been everywhere, but it's on my list."
 msgstr ""
 
 #: views/pages/help.php:1
-msgid "Help"
+msgid "Help & About"
 msgstr ""
 
 #: views/pages/help.php:7
@@ -892,7 +892,47 @@ msgstr ""
 msgid "Finnish"
 msgstr ""
 
+#: views/pages/help.php:74
+msgid "German"
+msgstr ""
+
+#: views/pages/help.php:75
+msgid "Dutch"
+msgstr ""
+
 #: views/pages/help.php:76
+msgid "Russian"
+msgstr ""
+
+#: views/pages/help.php:77
+msgid "Romanian"
+msgstr ""
+
+#: views/pages/help.php:78
+msgid "Portuguese"
+msgstr ""
+
+#: views/pages/help.php:79
+msgid "Spanish"
+msgstr ""
+
+#: views/pages/help.php:81
+msgid "Swedish"
+msgstr ""
+
+#: views/pages/help.php:82
+msgid "Lithuanian"
+msgstr ""
+
+#: views/pages/help.php:83
+msgid "French"
+msgstr ""
+
+#: views/pages/help.php:84
+msgid "Polish"
+msgstr ""
+
+#: views/pages/help.php:88
 msgid "Contact us"
 msgstr ""
 
@@ -1204,11 +1244,6 @@ msgstr ""
 #: index.php:277
 #: index.php:282
 msgid "Find good places for hitchhiking and add your own."
-msgstr ""
-
-#: index.php:303
-#: index.php:508
-msgid "Help & About"
 msgstr ""
 
 #: index.php:361
