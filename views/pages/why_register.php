@@ -20,9 +20,7 @@
 </div>
 
 <div class="align_left" style="width: 200px; margin: 0 0 20px 0;">
-
-	<img src="badge.png" alt="" class="align_right" style="margin: 0 0 20px 20px;" />
-	
+	<img src="badge.png" alt="Hitchwiki Maps" class="align_right" style="margin: 0 0 20px 20px;" />
 </div>
 
 <div class="clear"></div>
