@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Maps\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-12-11 21:04+0100\n"
-"PO-Revision-Date: 2010-12-11 21:05+0100\n"
+"POT-Creation-Date: 2010-12-11 21:52+0100\n"
+"PO-Revision-Date: 2010-12-11 21:52+0100\n"
 "Last-Translator: Mikael Korpela <mikael@ihminen.org>\n"
 "Language-Team:  <maps@hitchwiki.org>\n"
 "MIME-Version: 1.0\n"
@@ -922,8 +922,8 @@ msgstr ""
 
 #: views/pages/settings.php:29
 #: views/pages/translate.php:9
-#: index.php:516
-#: index.php:518
+#: index.php:521
+#: index.php:523
 msgid "Choose language"
 msgstr ""
 
@@ -940,7 +940,7 @@ msgid "Default map layer"
 msgstr ""
 
 #: views/pages/settings.php:65
-#: index.php:649
+#: index.php:654
 msgid "Default"
 msgstr ""
 
@@ -1035,7 +1035,7 @@ msgid "You must be logged in to edit settings."
 msgstr ""
 
 #: views/pages/statistics.php:1
-#: index.php:504
+#: index.php:509
 msgid "Statistics"
 msgstr ""
 
@@ -1068,7 +1068,7 @@ msgid "Hitchwiki Maps is currently available in %s languages"
 msgstr ""
 
 #: views/pages/translate.php:16
-#: index.php:532
+#: index.php:537
 msgid "Help us with translating!"
 msgstr ""
 
@@ -1077,7 +1077,8 @@ msgid "If you would like to add content in your own language, or translate all v
 msgstr ""
 
 #: views/pages/translate.php:22
-msgid "You can see current status of translations from"
+#, php-format
+msgid "You can see the current status of translations from %s"
 msgstr ""
 
 #: views/pages/users.php:1
@@ -1098,7 +1099,7 @@ msgid "Visible only for admins"
 msgstr ""
 
 #: views/pages/users.php:35
-#: index.php:507
+#: index.php:512
 msgid "Admins"
 msgstr ""
 
@@ -1112,39 +1113,6 @@ msgstr ""
 
 #: views/pages/users.php:121
 msgid "You must be logged in to view users."
-msgstr ""
-
-#: views/pages/why_register.php:1
-#: index.php:436
-msgid "Why register?"
-msgstr ""
-
-#: views/pages/why_register.php:7
-msgid "Hitcwiki Maps works with your Hitchwiki-account, so with one login you can access <a href=\"http://hitchwiki.org/\">Wiki</a>, <a href=\"http://hitchwiki.org/community/\">Community</a> and Maps."
-msgstr ""
-
-#: views/pages/why_register.php:9
-msgid "When logged in, you will have some more features on this site:"
-msgstr ""
-
-#: views/pages/why_register.php:12
-msgid "Edit places and see all the places you added"
-msgstr ""
-
-#: views/pages/why_register.php:13
-msgid "Set up a new center point, so that Maps will be centered to there every time you log in"
-msgstr ""
-
-#: views/pages/why_register.php:14
-msgid "Enable/disable additional map layers and choose your default"
-msgstr ""
-
-#: views/pages/why_register.php:15
-msgid "Connect Maps with your <a href=\"http://latitude.google.com/\">Google Latitude</a> account to keep it centered while you travel"
-msgstr ""
-
-#: views/pages/why_register.php:16
-msgid "...and more!"
 msgstr ""
 
 #: config.empty.php:100
@@ -1196,7 +1164,7 @@ msgid "Find good places for hitchhiking and add your own."
 msgstr ""
 
 #: index.php:303
-#: index.php:503
+#: index.php:508
 msgid "Help & About"
 msgstr ""
 
@@ -1216,125 +1184,129 @@ msgstr ""
 msgid "Logout"
 msgstr ""
 
-#: index.php:429
+#: index.php:434
 #, php-format
 msgid "Hello from %s"
 msgstr ""
 
-#: index.php:437
+#: index.php:441
+msgid "Why register?"
+msgstr ""
+
+#: index.php:442
 msgid "Register!"
 msgstr ""
 
-#: index.php:440
+#: index.php:445
 msgid "Login"
 msgstr ""
 
-#: index.php:463
+#: index.php:468
 msgid "Find places"
 msgstr ""
 
-#: index.php:468
+#: index.php:473
 msgid "Search"
 msgstr ""
 
-#: index.php:476
+#: index.php:481
 msgid "Nearby places from"
 msgstr ""
 
-#: index.php:478
+#: index.php:483
 msgid "Show the city on the map"
 msgstr ""
 
-#: index.php:479
+#: index.php:484
 msgid "Show the state on the map"
 msgstr ""
 
-#: index.php:480
+#: index.php:485
 msgid "Show the country on the map"
 msgstr ""
 
-#: index.php:489
+#: index.php:494
 msgid "Ooh! New Maps!"
 msgstr ""
 
-#: index.php:495
-#: index.php:611
+#: index.php:500
+#: index.php:616
 msgid "Tools"
 msgstr ""
 
-#: index.php:497
+#: index.php:502
 msgid "Link here"
 msgstr ""
 
-#: index.php:498
+#: index.php:503
 msgid "Download"
 msgstr ""
 
-#: index.php:501
+#: index.php:506
 msgid "Members"
 msgstr ""
 
-#: index.php:543
+#: index.php:548
 msgid "http://creativecommons.org/licenses/by-sa/3.0/"
 msgstr ""
 
-#: index.php:543
+#: index.php:548
 msgid "Licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License"
 msgstr ""
 
-#: index.php:549
+#: index.php:554
 msgid "Contact us!"
 msgstr ""
 
-#: index.php:553
+#: index.php:558
 msgid "Developers"
 msgstr ""
 
-#: index.php:557
+#: index.php:562
 msgid "API"
 msgstr ""
 
-#: index.php:598
+#: index.php:603
 msgid "Turn JavaScript on from your browser."
 msgstr ""
 
-#: index.php:618
+#: index.php:623
 msgid "Navigate"
 msgstr ""
 
-#: index.php:623
+#: index.php:628
 msgid "Measure distance"
 msgstr ""
 
-#: index.php:628
+#: index.php:633
 msgid "Measure area"
 msgstr ""
 
-#: index.php:642
+#: index.php:647
 msgid "Measure"
 msgstr ""
 
-#: index.php:646
+#: index.php:651
 msgid "Show markers after zoom level"
 msgstr ""
 
-#: index.php:652
+#: index.php:657
 msgid "Continent level"
 msgstr ""
 
-#: index.php:653
+#: index.php:658
 msgid "Country level"
 msgstr ""
 
-#: index.php:654
+#: index.php:659
 msgid "City level"
 msgstr ""
 
-#: index.php:655
+#: index.php:660
 msgid "Street level"
 msgstr ""
 
-#: index.php:673
+#: index.php:678
 msgid "Map"
 msgstr ""
 
