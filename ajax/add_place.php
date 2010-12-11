@@ -267,7 +267,7 @@ $user = current_user();
 			    if($user["logged_in"]===true) { 
 			    	echo '</li><li>';
 			    	echo '<small class="light">';
-			    	printf(_('Your name <i>"%s"</i> will be visible with this place.'), htmlspecialchars($user["name"]));
+			    	printf(_('Your name <i>"%s"</i> will be visible for this place.'), htmlspecialchars($user["name"]));
 			    	echo '</small>'; 
 			    } 
 			    ?>
@@ -294,7 +294,7 @@ $user = current_user();
 						
 						maps_debug("Ask to add a place.");
 												
-						show_loading_bar("Adding...");
+						show_loading_bar("<?php echo _("Adding..."); ?>");
 						
 						// Disable all form elements from editing
 						$("#add_new_place_form input, #add_new_place_form textarea").attr('disabled', true);
@@ -371,7 +371,7 @@ $user = current_user();
 							if(data.success == true) {
 								maps_debug("Place added successfully.");
 			    				close_add_place();
-			    				info_dialog("<?php echo _("Thank you!"); ?><br /><br /><?php echo _("Place successfully added to the Maps."); ?>","<?php echo _("Place added successfully"); ?>");
+			    				info_dialog("<?php echo _("Thank you!"); ?><br /><br /><?php echo _("Place successfully added to the map."); ?>","<?php echo _("Place added successfully"); ?>");
 			    				showPlacePanel(data.id, true);
 							} else {
 								maps_debug("Could not add place. Error: "+data.error);
@@ -380,7 +380,7 @@ $user = current_user();
 								$("#add_new_place_form input, #add_new_place_form textarea").removeAttr('disabled');
 								
 								// Show error
-								info_dialog("<?php echo _("Could not add place due error."); ?><br /><br /><?php _("Please try again!"); ?>", "<?php echo _("Error"); ?>", true);
+								info_dialog("<?php echo _("Could not add place due to an error."); ?><br /><br /><?php _("Please try again!"); ?>", "<?php echo _("Error"); ?>", true);
 							}
 
 						}, "json"

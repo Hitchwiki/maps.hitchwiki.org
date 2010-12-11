@@ -16,8 +16,8 @@
 	<h3><?php echo _("Why should I sign up?"); ?></h3>
 	<p><?php echo _("If you are logged in, you will have some more features on this site. I.e. you will be able to modify your places later, and your nickname will be shown on each of your places and comments."); ?></p>
 	
-	<h3><?php echo _("Why is the map always centered to Europe?"); ?></h3>
-	<p><?php echo _("Most of this maps hitchhiking places are in Europe. If you have registered, you can set a point of your current country from settings. The map will center there whenever you log in. You can also login and register with Facebook, since it might be quicker."); ?></p>
+	<h3><?php echo _("Why is the map always centered on Europe?"); ?></h3>
+	<p><?php echo _("Most of this maps hitchhiking places are in Europe. If you have registered, you can set a point of your current country from settings. The map will center there whenever you log in."); ?></p>
 	
 	<br />
 	

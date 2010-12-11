@@ -111,7 +111,7 @@ if(mysql_affected_rows() >= 1):
 	    		maps_debug("Asked to remove timing "+remove_id);
 				stats("waitingtime/remove/");
 				
-				var confirm_remove = confirm("Are you sure you want to remove this timing?")
+				var confirm_remove = confirm("<?php echo _("Are you sure you want to remove this record?"); ?>")
 				
 				if(confirm_remove) {
 					// Call API
@@ -128,7 +128,7 @@ if(mysql_affected_rows() >= 1):
 	    					
 	    				// Produces an error popup if current logged in user doesn't have permissions or some other error happened
 						} else {
-							info_dialog("Could not remove timing due error. Please try again!", "Error", true);
+							info_dialog("<?php echo _("Could not remove a record due to an error. Please try again!"); ?>", "<?php echo _("Error"); ?>", true);
 	    					maps_debug("Could note remove timing. Error: "+data.error);
 						}
 					
@@ -141,5 +141,5 @@ if(mysql_affected_rows() >= 1):
 	</script>
 
 <?php else: ?>
-	<p><i><?php echo _("No timings for this place."); ?></i></p>
+	<p><i><?php echo _("No waiting time for this place added yet."); ?></i></p>
 <?php endif; ?>

@@ -18,7 +18,7 @@ $user = current_user();
 
 if($_GET["type"] == "card") $type = "cards";
 elseif($_GET["type"] == "page") $type = "pages";
-else  die(_("Fatal error!"));
+else  die(_("Error"));
 
 $file = "../views/".$type."/".$_GET["page"].".php";
 
@@ -28,18 +28,18 @@ $file = "../views/".$type."/".$_GET["page"].".php";
  */
 if( isset($_GET["page"]) && !empty($_GET["page"]) && !ereg('[^0-9A-Za-z_-]', $_GET["page"]) && file_exists($file) ):
 	
-	include($file);
+	if($settings["debug"]==true) include($file);
+	else @include($file);
 
 /*
  * Not found error
  */
 else:
 
-	echo '<h2>'._('Error 404 - page not found').'</h2>';
-	echo '<br /><br />:-(';
+	echo '<h2>'._("Error 404 - page not found").'</h2><br /><br />';
 	
 	// For debugging:
-	if($settings["debug"]==true) echo '<p>Page: '.htmlspecialchars($_GET["page"]).' | Type: '.$type.' | Lang: '.$settings["language"].'</p>';
+	if($settings["debug"]==true) echo '<p><small>Page: '.htmlspecialchars($_GET["page"]).' | Type: '.$type.' | Lang: '.$settings["language"].'</small></p>';
 
 endif;
 

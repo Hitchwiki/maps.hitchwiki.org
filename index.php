@@ -232,6 +232,7 @@ $title .= 'Hitchwiki '.gettext("Maps");
 				"complete_statistics", 
 				"public_transport", 
 				"add_public_transport", 
+				"why_register", 
 				"translate", 
 				"countries", 
 				"lost_password", 
@@ -432,7 +433,7 @@ $title .= 'Hitchwiki '.gettext("Maps");
 				else: ?>
 				
 					<ul class="align_right" id="loginSidemenu">
-						<li><a href="./?page=why_to_register" id="why_to_register" class="pagelink"><?php echo _("Why to register?"); ?></a></li>
+						<li><a href="./?page=why_register" id="why_register" class="pagelink"><?php echo _("Why register?"); ?></a></li>
 						<li><a href="http://hitchwiki.org/en/index.php?title=Special:UserLogin&amp;type=signup&amp;returnto=Maps.hitchwiki.org" id="register"><?php echo _("Register!"); ?></a></li>
 					</ul>
 
@@ -488,15 +489,14 @@ $title .= 'Hitchwiki '.gettext("Maps");
 							<li><a href="#" id="news" class="icon new pagelink"><b><?php echo _("Ooh! New Maps!"); ?></b></a></li>
 							
 							<li><a href="#" id="add_place" class="icon add"><?php echo _("Add place"); ?></a></li>
-							<?php /*
-							<li><a href="#" id="my_points" class="icon table pagelink"><?php echo _("My points"); ?></a></li>
-							<li><a href="#" id="new_collection" class="icon table_add pagelink"><?php echo _("New collection"); ?></a></li>
-							*/ ?>
+							<?php /* <li><a href="#" id="my_points" class="icon table pagelink"><?php echo _("My points"); ?></a></li> */ ?>
 							<li><a href="./?page=public_transport" id="public_transport" class="icon pagelink underground"><?php echo _("Public transport"); ?></a></li>
 							<li><a href="./?page=countries" id="countries" class="icon world pagelink"><?php echo _("Countries"); ?></a></li>
 							<li><a href="#" id="tools" class="icon lorry"><?php echo _("Tools"); ?></a></li>
-							<?php /*<li><a href="#" id="link_here" class="icon link cardlink"><?php echo _("Link here"); ?></a></li>
-							<li><a href="#" id="download" class="icon page_white_put cardlink"><?php echo _("Download"); ?></a></li>*/ ?>
+							<!--
+							<li><a href="#" id="link_here" class="icon link cardlink"><?php echo _("Link here"); ?></a></li>
+							<li><a href="#" id="download" class="icon page_white_put cardlink"><?php echo _("Download"); ?></a></li>
+							-->
 							<?php if($user["logged_in"]===true): ?>
 							<li><a href="./?page=users" id="users" class="icon user pagelink"><?php echo _("Members"); ?></a></li>
 							<?php endif; ?>
@@ -540,7 +540,7 @@ $title .= 'Hitchwiki '.gettext("Maps");
 			<div id="Footer">
 			    <ul>
 			    	<li>
-			    		<a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/" title="<?php echo _("Licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License"); ?>"><img alt="Creative Commons License" src="static/gfx/cc-by-sa.png" width="67" height="20"/></a>
+			    		<a rel="license" href="<?php echo _("http://creativecommons.org/licenses/by-sa/3.0/"); ?>" title="<?php echo _("Licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License"); ?>"><img alt="Creative Commons License" src="static/gfx/cc-by-sa.png" width="67" height="20"/></a>
 			    		&nbsp;
 			    		<a href="http://www.facebook.com/Hitchwiki" class="icon facebook" style="margin: 2px 0 0 3px; padding-top: 3px; display: block; float: right;">Facebook</a>
 			    	</li>

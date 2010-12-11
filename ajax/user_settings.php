@@ -23,7 +23,7 @@ start_sql();
 		
 		// Check if it's current user who is updating this, include a password with info array
 		$user = current_user(true);
-		if($_POST["user_id"] != $user["id"]) { echo json_encode( array("error"=>_("You don't have permission do update settings for this user.")) ); exit; }
+		if($_POST["user_id"] != $user["id"]) { echo json_encode( array("error"=>"You don't have permission to update settings for this user.") ); exit; }
 	}
 	else { echo json_encode( array("error"=>_("Missing user ID.")) ); exit; }
 

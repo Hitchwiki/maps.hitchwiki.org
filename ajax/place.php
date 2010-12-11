@@ -135,7 +135,7 @@ if($place["error"] !== true):
 				    		echo Markdown($place["description"][$code]);
 				    		?><small class="hidden"><a href="#" onclick="info_dialog('Editing is not in use yet, sorry.', 'TODO'); return false;"><?php echo _("Edit"); ?></a></small><?php
 				    	} else {
-				    		echo '<em>'._("No description available in this language.").'</em> &mdash; <small class="hidden"><a href="#" onclick="writeDescription(\''.$code.'\'); return false;">'._("Write one?").'</a></small>';
+				    		echo '<em>'._("No description available for this language.").'</em> &mdash; <small class="hidden"><a href="#" onclick="writeDescription(\''.$code.'\'); return false;">'._("Write one?").'</a></small>';
 				        }
 				        echo '</p></div>';
 				    }
@@ -434,7 +434,7 @@ if($place["error"] !== true):
 								});
 								
 				    		} else {
-								info_dialog("<?php echo _("Please give your timing first."); ?>", "<?php echo _("Error"); ?>", true);
+								info_dialog("<?php echo _("Please add your waiting time first."); ?>", "<?php echo _("Error"); ?>", true);
 				    		}
 				    				    	
 				    	});
@@ -545,7 +545,7 @@ if($place["error"] !== true):
 										if($user===false): 
 											?><input type="text" name="nick" id="nick" value="<?php echo _("Nickname"); ?>" class="align_left grey" size="14" maxlength="80" /><?php 
 										else:
-											?><strong title="<?php echo _("You are logged in and this name will be visible for others."); ?>"><small class="align_left light"><?php echo $user["name"]; ?></small></strong><?php
+											?><strong title="<?php echo _("You are logged in. Your name will be visible for others."); ?>"><small class="align_left light"><?php echo $user["name"]; ?></small></strong><?php
 										endif;
 										
 										?><button id="btn_comment" class="align_right smaller"><?php echo _("Comment"); ?></button><br />')
@@ -626,7 +626,7 @@ if($place["error"] !== true):
 												}
 												// Oops!
 												else {
-													info_dialog("<?php echo _("Adding a comment failed, please try again."); ?>", "<?php echo _("Adding a comment failed"); ?>", true);
+													info_dialog("<?php echo _("Adding a comment failed, please try again."); ?>", "<?php echo _("Error"); ?>", true);
 													maps_debug("Adding comment failed. <br />- Error: "+data.error+"<br />- Data: "+data);
 												}
 

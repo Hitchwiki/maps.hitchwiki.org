@@ -1383,7 +1383,7 @@ function pt_list($country_iso) {
 							
 							// URL
 							if(!empty($row["title"])) echo '<td><a href="'.htmlspecialchars($row["URL"]).'" rel="nofollow" target="_blank">'.htmlspecialchars($row["title"]).'</a></td>';
-							else echo '<td><a href="'.htmlspecialchars($row["URL"]).'" rel="nofollow" target="_blank">'._("Go the site").'</a></td>';
+							else echo '<td><a href="'.htmlspecialchars($row["URL"]).'" rel="nofollow" target="_blank">'._("Go to site").'</a></td>';
 							
 							// Type
 							echo '<td class="pt_types">';
@@ -1431,13 +1431,13 @@ function pt_list($country_iso) {
 		<?php endif; ?>
 		
 		<br />
-		<small class="icon transportation_in-city">In-city transportation</small><br />
-		<small class="icon transportation_inter-city">Inter-city / international transportation</small><br />
+		<small class="icon transportation_in-city"><?php echo _("In-city transportation"); ?></small><br />
+		<small class="icon transportation_inter-city"><?php echo _("Inter-city / international transportation"); ?></small><br />
 <?php
 	}
 	else {
 		?>
-		<p><?php echo _("No public transport in catalog for this country."); ?> <a href="#" onclick="open_page('add_public_transport'); return false;"><?php echo _("Add some?"); ?></a></p>
+		<p><?php echo _("No public transport found for this country."); ?> <a href="./?page=add_public_transport" onclick="open_page('add_public_transport'); return false;"><?php echo _("Add some?"); ?></a></p>
 		<?php
 	}
 }
