@@ -1,4 +1,4 @@
-<h2><?php echo _("Help"); ?></h2>
+<h2><?php echo _("Help & About"); ?></h2>
 
 
 <div class="align_left" style="width: 400px; margin: 0 40px 20px 0;">
@@ -71,6 +71,18 @@
 	<b><?php echo _("Translators"); ?></b>
 	<ul>
 		<li><?php echo _("Finnish"); ?> - <a href="http://www.ihminen.org">Mikael Korpela</a></li>
+		<li><?php echo _("German"); ?> - MrTweek, Platschi</li>
+		<li><?php echo _("Dutch"); ?> - Platschi</li>
+		<li><?php echo _("Russian"); ?> - Siberian explorer, Platschi</li>
+		<li><?php echo _("Romanian"); ?> - montaniard</li>
+		<li><?php echo _("Portuguese"); ?> - Joao</li>
+		<li><?php echo _("Spanish"); ?> - Prino</li>
+		<!-- 
+		<li><?php echo _("Swedish"); ?> - </li>
+		<li><?php echo _("Lithuanian"); ?> - </li>
+		<li><?php echo _("French"); ?> - </li>
+		<li><?php echo _("Polish"); ?> - </li>
+		-->
 	</ul>
 	
 	<p><br /><?php echo _("Contact us"); ?>: <a href="mailto:<?php echo $settings["email"]; ?>"><?php echo $settings["email"]; ?></a></p>
