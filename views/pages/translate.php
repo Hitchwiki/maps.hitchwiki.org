@@ -19,4 +19,4 @@ foreach($settings["valid_languages"] as $code => $lang) {
 
 <p><a href="mailto:<?php echo $settings["email"]; ?>"><?php echo $settings["email"]; ?></a></p>
 
-<p><?php echo _("You can see current status of translations from"); ?> <a href="http://hitchwiki.org/translate/projects/maps/" target="_blank">hitchwiki.org/translate/</a></p>
+<p><?php printf(_("You can see the current status of translations from %s"), '<a href="http://hitchwiki.org/translate/projects/maps/" target="_blank">hitchwiki.org/translate/</a>'); ?></p>

@@ -358,7 +358,7 @@ $title .= 'Hitchwiki '.gettext("Maps");
 				<h2><?php echo _("Maps"); ?></h2>
 
 				<div class="Navigation">
-					<a href="http://hitchwiki.org/en/Main_Page"><?php echo _("Wiki"); ?></a> | <a href="http://hitchwiki.org/community/"><?php echo _("Community"); ?></a> | <a href="http://hitchwiki.org/planet/"><?php echo _("Planet"); ?></a>
+					<a href="http://hitchwiki.org/"><?php echo _("Wiki"); ?></a> | <a href="http://hitchwiki.org/community/"><?php echo _("Community"); ?></a> | <a href="http://hitchwiki.org/planet/"><?php echo _("Planet"); ?></a>
 				</div>
 
 				<h3><?php echo _("Find good places for hitchhiking and add your favorites"); ?></h3>
@@ -400,6 +400,7 @@ $title .= 'Hitchwiki '.gettext("Maps");
 					 * Pick one random hello
 					 */
 					$hello = array(
+						"Hi!" => "GB",
 						"Hello!" => "GB",
 						"Tere!" => "EE",
 						"Hei!" => "FI",
@@ -413,8 +414,12 @@ $title .= 'Hitchwiki '.gettext("Maps");
 						"Bok!" => "HR",
 						"Hallo!" => "NL",
 						"Hallo!" => "DE",
+						"Moin!" => "DE",
+						"Servus!" => "DE",
+						"Grüß Gott!" => "AU",
 						"Hej!" => "DK",
 						"Hej!" => "SE",
+						"Hejsan!" => "SE",
 						"Ciào!" => "IT",
 						"Sveiki!" => "LV",
 						"Moïen!" => "LU",
