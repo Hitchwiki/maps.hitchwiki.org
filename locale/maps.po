@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Maps\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-12-03 00:45+0200\n"
-"PO-Revision-Date: 2010-12-03 00:46+0200\n"
+"POT-Creation-Date: 2010-12-03 03:15+0200\n"
+"PO-Revision-Date: 2010-12-03 03:15+0200\n"
 "Last-Translator: Mikael Korpela <mikael@ihminen.org>\n"
 "Language-Team:  <maps@hitchwiki.org>\n"
 "MIME-Version: 1.0\n"
@@ -340,7 +340,7 @@ msgstr ""
 
 #: ajax/map_statistics.php:257
 #, php-format
-msgid "This is just a preview map. Go to %s for actual service."
+msgid "This is just a preview map. Go to %s for the actual service."
 msgstr ""
 
 #: ajax/place.php:54
@@ -519,7 +519,6 @@ msgid "Link to this place:"
 msgstr ""
 
 #: ajax/place.php:727
-#: admin/views/users.php:185
 msgid "Latitude"
 msgstr ""
 
@@ -634,10 +633,6 @@ msgstr ""
 msgid "We have %s registered hitchhikers!"
 msgstr ""
 
-#: admin/views/users.php:178
-msgid "ID"
-msgstr ""
-
 #: admin/views/users.php:180
 msgid "Member since"
 msgstr ""
@@ -652,10 +647,6 @@ msgstr ""
 
 #: admin/views/users.php:184
 msgid "Language"
-msgstr ""
-
-#: admin/views/users.php:186
-msgid "Gravatar"
 msgstr ""
 
 #: admin/views/users.php:203
@@ -1305,10 +1296,5 @@ msgstr ""
 
 #: widget.php:85
 msgid "Requested country could not be found!"
-msgstr ""
-
-#: widget.php:89
-#, php-format
-msgid "This is just a preview map. Go to %s for the actual service."
 msgstr ""
 

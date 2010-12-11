@@ -175,15 +175,15 @@ endif;
 	<table class="infotable" id="users_list" cellspacing="0" cellpadding="0">
 	    <thead>
 	    	<tr>
-	    		<th><?php echo _("ID"); ?></th>
+	    		<th>#</th>
 	    		<th><?php echo _("User"); ?></th>
 	    		<th><?php echo _("Member since"); ?></th>
 	    		<th><?php echo _("Location"); ?></th>
 	    		<th><?php echo _("Country"); ?></th>
 	    		<th><?php echo _("Email"); ?></th>
 	    		<th><?php echo _("Language"); ?></th>
-	    		<th><?php echo _("Latitude"); ?></th>
-	    		<th><?php echo _("Gravatar"); ?></th>
+	    		<th>Latitude</th>
+	    		<th>Gravatar</th>
 	    		<th><?php echo _("Admin"); ?></th>
 	    		<th><?php echo _("Manage"); ?></th>
 	    	</tr>
