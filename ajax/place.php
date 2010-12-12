@@ -675,7 +675,6 @@ if($place["error"] !== true):
 								$("#extralinks").slideUp();
 							}
 						
-						
 						});
 					
 					});

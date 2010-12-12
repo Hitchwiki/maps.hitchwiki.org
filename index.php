@@ -387,7 +387,7 @@ $title .= 'Hitchwiki '.gettext("Maps");
 					 */
 					if($settings["language"]=='pirate') echo 'skull'; // Yarr!
 					elseif($user["admin"]===true) echo 'tux'; // ;-)
-					else echo 'user_orange';
+					else echo 'user_orange'; // default
 					
 					echo '"'; //end class
 					

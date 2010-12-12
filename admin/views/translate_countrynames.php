@@ -46,7 +46,7 @@ if($locale_short != false && $locale != false) {
 				if(isset($_POST["sql_update"]) && $_POST["sql_update"] == "1") {
 					$result = mysql_query($query);
 					if(!$result) {
-						$query_log .= ' - <b style="color: darkred;">ERROR:</b> '.mysql_error();
+						$query_log .= ' - <b style="color: darkred;">ERROR</b> '.mysql_error();
 					} else {
 						$query_log .= ' - <b style="color: darkgreen;">UPDATED</b>';
 					}
