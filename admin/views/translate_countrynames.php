@@ -6,10 +6,13 @@
  *
  */
 
-if(isset($user) && $user["admin"]===true): ?>
+if(isset($user) && $user["admin"]===true): 
+
+start_sql();
+?>
 
 
-<h2>Translate country names</h2>
+<h2>Translate countrynames</h2>
 
 <?php
 
@@ -30,23 +33,37 @@ if($locale_short != false && $locale != false) {
 	$i=0;
 	$data = readURL("http://ws.geonames.org/countryInfoCSV?lang=".strtolower($locale_short));
 	$lines = explode("\n",$data);
-	$query = "";
+	$query_log = "";
 	foreach($lines as $num => $line) {
 		if($num != 0 && !empty($line)) {
 			$line = explode("\t",$line);
 			
 			if(!empty($line[4])) {
-				$query .= "UPDATE `t_countries` SET `".$locale."` = '".mysql_real_escape_string( $line[4] )."' WHERE `iso` = '".$line[0]."';\n";
+				$query = "UPDATE `t_countries` SET `".$locale."` = '".mysql_real_escape_string( $line[4] )."' WHERE `iso` = '".$line[0]."'";//;\n
+				
+				$query_log .= '<span style="font-family: courier,serif;">'.$query.'</span>';
+				
+				if(isset($_POST["sql_update"]) && $_POST["sql_update"] == "1") {
+					$result = mysql_query($query);
+					if(!$result) {
+						$query_log .= ' - <b style="color: darkred;">ERROR:</b> '.mysql_error();
+					} else {
+						$query_log .= ' - <b style="color: darkgreen;">UPDATED</b>';
+					}
+				}
+				$query_log .= '<br />';
+				$result = false;
+				
 			}
 		}
 	}
 	
 	// To the DB?
+	/*
 	if(isset($_POST["sql_update"]) && $_POST["sql_update"] == "1") {
 
-		start_sql();
-		$result = mysql_query($query);
-		if (!$result) {
+		
+		if ($sql_error) {
 			?>
 			<div class="ui-state-error ui-corner-all" style="padding: 0 .7em; margin: 20px 0;"> 
 			    <p><span class="ui-icon ui-icon-alert" style="float: left; margin-right: .3em;"></span> 
@@ -57,16 +74,17 @@ if($locale_short != false && $locale != false) {
 			?>
 			<div class="ui-state-highlight ui-corner-all" style="padding: 0 .7em; margin: 20px 0;"> 
 			    <p><span class="ui-icon ui-icon-info" style="float: left; margin-right: .3em;"></span> 
-			    	<?php echo mysql_num_rows($result); ?> languages updated to the database.
+			    	<?php echo $lang_count; ?> languages updated to the database.
 			    </p>
 			</div>
 			<?php
 		}
 	}
+	*/
 	
 	
 	// Echo out
-	echo '<hr /><pre>'. $query .'</pre><hr />';
+	echo '<hr />'. $query_log .'<hr />';
 
 	echo '<h2>Re-translate</h2>';
 } 
@@ -96,7 +114,7 @@ if($locale_short != false && $locale != false) {
 	<small><a href="http://en.wikipedia.org/wiki/ISO_639-1">ISO 639-1</a> and <a href="http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements">Alpha-2</a> seperated with underscore (_). eg. "de_DE" for German</small>
 	<br /><br />
 	
-	<input type="checkbox" value="1" name="sql_update" id="sql_update" /> <label for="sql_update">Update results to the SQL database?</label><br />
+	<input type="checkbox" value="1" name="sql_update" id="sql_update" <?php if(isset($_POST["sql_update"]) && $_POST["sql_update"] == "1") echo ' checked="checked"'; ?> /> <label for="sql_update">Update results to the SQL database?</label><br />
 	<small>Remember to first <a href="./?page=new_language">add new language</a> to the DB!</small>
 	
 	<br /><br />

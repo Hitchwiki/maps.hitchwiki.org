@@ -652,25 +652,25 @@ if($place["error"] !== true):
 	<li>
 		<ul>
 			<li>
-				<h4 class="icon magnifier" style="display:inline;"><?php echo _("More about this place"); ?></h4>
+				<h4 class="icon magnifier" style="display:inline;" id="more_about_title"><?php echo _("More about this place"); ?></h4>
 				<a href="#" id="toggle_extralinks" class="ui-icon ui-icon-triangle-1-e align_right" title="<?php echo _("Toggle"); ?>"></a>
 				
 				<script type="text/javascript">
 					// Toggle search place
 					$(function() {
 					
-						$("#toggle_extralinks").click(function(e){
+						$("#more_about_title, #toggle_extralinks").click(function(e){
 							e.preventDefault();
 						
 							if($("#extralinks").is(":hidden")) {
 								
-								$(this).removeClass("ui-icon-triangle-1-e").addClass("ui-icon-triangle-1-s"); 
+								$("#toggle_extralinks").removeClass("ui-icon-triangle-1-e").addClass("ui-icon-triangle-1-s"); 
 								$(this).blur();
 								$("#extralinks").slideDown();
 								
 							} else {
 							
-								$(this).removeClass("ui-icon-triangle-1-s").addClass("ui-icon-triangle-1-e"); 
+								$("#toggle_extralinks").removeClass("ui-icon-triangle-1-s").addClass("ui-icon-triangle-1-e"); 
 								$(this).blur();
 								$("#extralinks").slideUp();
 							}

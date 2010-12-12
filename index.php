@@ -274,12 +274,12 @@ $title .= 'Hitchwiki '.gettext("Maps");
 		<link rel="bookmark icon" href="<?php echo $settings["base_url"]; ?>/favicon.png" type="image/png" />
 		<link rel="image_src" href="<?php echo $settings["base_url"]; ?>/badge.png" />
 		<link rel="apple-touch-icon" href="<?php echo $settings["base_url"]; ?>/static/gfx/badge-57x57.png" />
-		<meta name="description" content="<?php echo _("Find good places for hitchhiking and add your own."); ?>" />
+		<meta name="description" content="<?php echo _("Find good places for hitchhiking and add your own"); ?>" />
 		
 		<!-- The Open Graph Protocol - http://opengraphprotocol.org/ -->
 		<meta property="og:title" content="<?php echo $title; ?>" />
 		<meta property="og:site_name" content="Hitchwiki.org" />
-		<meta property="og:description" content="<?php echo _("Find good places for hitchhiking and add your own."); ?>" />
+		<meta property="og:description" content="<?php echo _("Find good places for hitchhiking and add your own"); ?>" />
 		<meta property="og:image" content="<?php echo $settings["base_url"]; ?>/badge.png" />
 		<meta property="og:url" content="<?php echo $settings["base_url"]; ?>/"/>
 		<meta property="og:type" content="website" />
@@ -361,7 +361,7 @@ $title .= 'Hitchwiki '.gettext("Maps");
 					<a href="http://hitchwiki.org/"><?php echo _("Wiki"); ?></a> | <a href="http://hitchwiki.org/community/"><?php echo _("Community"); ?></a> | <a href="http://hitchwiki.org/planet/"><?php echo _("Planet"); ?></a>
 				</div>
 
-				<h3><?php echo _("Find good places for hitchhiking and add your favorites"); ?></h3>
+				<h3><?php echo _("Find good places for hitchhiking and add your own"); ?></h3>
 
 			<!-- /Logo -->
 			</div>
@@ -385,7 +385,8 @@ $title .= 'Hitchwiki '.gettext("Maps");
 					/*
 					 * Icon
 					 */
-					if($user["admin"]===true) echo 'tux'; // ;-)
+					if($settings["language"]=='pirate') echo 'skull'; // Yarr!
+					elseif($user["admin"]===true) echo 'tux'; // ;-)
 					else echo 'user_orange';
 					
 					echo '"'; //end class
