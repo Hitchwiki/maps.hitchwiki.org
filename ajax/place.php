@@ -139,12 +139,15 @@ if($place["error"] !== true):
 				    		<?php 
 				    		
 				    			echo Markdown($place["description"][$code]["description"]); 
-				    		
+				    			/*
+				    			TODO: this was a bit buggy, prints out 1970 for empty days??
+				    			
 								if(!empty($place["description"][$code]["datetime"])) {
 									echo '<br /><small title="'.date("r",strtotime($place["description"][$code]["datetime"])).'">';
 									printf(_('Description written %s'), date("j.n.Y",strtotime($place["description"][$code]["datetime"])));
 									echo '</small>';
 								}
+								*/
 				    		?>
 				    						    		
 				    		<div class="clear"></div>
