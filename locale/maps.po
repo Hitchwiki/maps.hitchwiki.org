@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Maps\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-12-12 04:57+0300\n"
-"PO-Revision-Date: 2010-12-12 05:02+0300\n"
+"POT-Creation-Date: 2010-12-13 22:40+0300\n"
+"PO-Revision-Date: 2010-12-13 22:44+0300\n"
 "Last-Translator: Mikael Korpela <mikael@ihminen.org>\n"
 "Language-Team:  <maps@hitchwiki.org>\n"
 "MIME-Version: 1.0\n"
@@ -26,181 +26,181 @@ msgstr ""
 "X-Poedit-SearchPath-9: .\n"
 
 #: lib/api.php:411
-#: lib/functions.php:977
-#: lib/functions.php:985
-#: lib/functions.php:987
+#: lib/functions.php:1014
+#: lib/functions.php:1022
+#: lib/functions.php:1024
 msgid "Anonymous"
 msgstr ""
 
-#: lib/functions.php:577
+#: lib/functions.php:614
 msgid "Asia"
 msgstr ""
 
-#: lib/functions.php:581
+#: lib/functions.php:618
 msgid "Africa"
 msgstr ""
 
-#: lib/functions.php:585
+#: lib/functions.php:622
 msgid "North America"
 msgstr ""
 
-#: lib/functions.php:589
+#: lib/functions.php:626
 msgid "South America"
 msgstr ""
 
-#: lib/functions.php:593
+#: lib/functions.php:630
 msgid "Antarctica"
 msgstr ""
 
-#: lib/functions.php:597
+#: lib/functions.php:634
 msgid "Europe"
 msgstr ""
 
-#: lib/functions.php:601
+#: lib/functions.php:638
 msgid "Australia and Oceania"
 msgstr ""
 
 # (hitchability)
-#: lib/functions.php:997
+#: lib/functions.php:1034
 msgid "Very good"
 msgstr ""
 
 # (hitchability)
-#: lib/functions.php:998
+#: lib/functions.php:1035
 msgid "Good"
 msgstr ""
 
 # (hitchability)
-#: lib/functions.php:999
+#: lib/functions.php:1036
 msgid "Average"
 msgstr ""
 
 # (hitchability)
-#: lib/functions.php:1000
+#: lib/functions.php:1037
 msgid "Bad"
 msgstr ""
 
 # (hitchability)
-#: lib/functions.php:1001
+#: lib/functions.php:1038
 msgid "Senseless"
 msgstr ""
 
 # (hitchability)
-#: lib/functions.php:1002
-#: lib/functions.php:1014
+#: lib/functions.php:1039
+#: lib/functions.php:1051
 msgid "Unknown"
 msgstr ""
 
 # an abbreviation for "minute"
-#: lib/functions.php:1015
-#: lib/functions.php:1022
+#: lib/functions.php:1052
+#: lib/functions.php:1059
 msgid "min"
 msgstr ""
 
 # an abbreviation for "hour"
-#: lib/functions.php:1018
+#: lib/functions.php:1055
 msgid "h"
 msgstr ""
 
-#: lib/functions.php:1302
+#: lib/functions.php:1339
 msgid "Other"
 msgstr ""
 
-#: lib/functions.php:1303
+#: lib/functions.php:1340
 msgid "Local bus"
 msgstr ""
 
-#: lib/functions.php:1304
+#: lib/functions.php:1341
 msgid "Trolleybus"
 msgstr ""
 
-#: lib/functions.php:1305
+#: lib/functions.php:1342
 msgid "Tram"
 msgstr ""
 
-#: lib/functions.php:1306
+#: lib/functions.php:1343
 msgid "Metro"
 msgstr ""
 
-#: lib/functions.php:1307
+#: lib/functions.php:1344
 msgid "Commuter train"
 msgstr ""
 
-#: lib/functions.php:1308
+#: lib/functions.php:1345
 msgid "Taxi"
 msgstr ""
 
-#: lib/functions.php:1309
+#: lib/functions.php:1346
 msgid "Long distance bus"
 msgstr ""
 
-#: lib/functions.php:1310
+#: lib/functions.php:1347
 msgid "Long distance train"
 msgstr ""
 
-#: lib/functions.php:1311
+#: lib/functions.php:1348
 msgid "Airline"
 msgstr ""
 
-#: lib/functions.php:1312
+#: lib/functions.php:1349
 msgid "Shipping"
 msgstr ""
 
-#: lib/functions.php:1313
+#: lib/functions.php:1350
 msgid "Carsharing"
 msgstr ""
 
-#: lib/functions.php:1314
+#: lib/functions.php:1351
 msgid "Car rental"
 msgstr ""
 
-#: lib/functions.php:1364
+#: lib/functions.php:1401
 #: ajax/country.php:158
 msgid "City"
 msgstr ""
 
-#: lib/functions.php:1365
+#: lib/functions.php:1402
 msgid "Site"
 msgstr ""
 
-#: lib/functions.php:1366
+#: lib/functions.php:1403
 #: ajax/add_place.php:81
 msgid "Type"
 msgstr ""
 
-#: lib/functions.php:1368
+#: lib/functions.php:1405
 msgid "Manage"
 msgstr ""
 
-#: lib/functions.php:1386
+#: lib/functions.php:1423
 msgid "Go to site"
 msgstr ""
 
-#: lib/functions.php:1404
+#: lib/functions.php:1441
 msgid "Remove page permanently"
 msgstr ""
 
-#: lib/functions.php:1405
+#: lib/functions.php:1442
 msgid "Edit page"
 msgstr ""
 
-#: lib/functions.php:1424
+#: lib/functions.php:1461
 msgid "Are you sure?"
 msgstr ""
 
-#: lib/functions.php:1434
+#: lib/functions.php:1471
 msgid "In-city transportation"
 msgstr ""
 
-#: lib/functions.php:1435
+#: lib/functions.php:1472
 msgid "Inter-city / international transportation"
 msgstr ""
 
-#: lib/functions.php:1440
+#: lib/functions.php:1477
 msgid "No public transport found for this country."
 msgstr ""
 
-#: lib/functions.php:1440
+#: lib/functions.php:1477
 msgid "Add some?"
 msgstr ""
 
@@ -353,6 +353,51 @@ msgstr ""
 msgid "Public transport"
 msgstr ""
 
+#: ajax/js-translation.json.php:42
+msgid "Toggle log"
+msgstr ""
+
+#: ajax/js-translation.json.php:43
+msgid "places"
+msgstr ""
+
+#: ajax/js-translation.json.php:44
+msgid "Zoom closer to see them."
+msgstr ""
+
+#: ajax/js-translation.json.php:45
+msgid "Searching..."
+msgstr ""
+
+#: ajax/js-translation.json.php:46
+#: ajax/js-translation.json.php:50
+msgid "Your search did not match any places."
+msgstr ""
+
+#: ajax/js-translation.json.php:47
+msgid "Try searching in English and add a country name in to your search."
+msgstr ""
+
+#: ajax/js-translation.json.php:48
+msgid "Example:"
+msgstr ""
+
+#: ajax/js-translation.json.php:49
+msgid "Not found"
+msgstr ""
+
+#: ajax/js-translation.json.php:51
+msgid "Try searching by english city names or/and add a country name with cities."
+msgstr ""
+
+#: ajax/js-translation.json.php:52
+msgid "Are you sure you want to remove this comment?"
+msgstr ""
+
+#: ajax/js-translation.json.php:54
+msgid "Updating description failed."
+msgstr ""
+
 #: ajax/map_statistics.php:17
 #: admin/index.php:53
 #: admin/index.php:95
@@ -364,199 +409,210 @@ msgstr ""
 msgid "This is just a preview map. Go to %s for the actual service."
 msgstr ""
 
+#: ajax/place.php:23
+#: ajax/place.php:851
+msgid "Sorry, but the place cannot be found.<br /><br />The place you are looking for might have been removed or is temporarily unavailable."
+msgstr ""
+
 #: ajax/place.php:54
 msgid "Zoom in"
 msgstr ""
 
-#: ajax/place.php:136
-msgid "Edit"
+# %s = day, eg. 1.2.2010
+#: ajax/place.php:145
+#, php-format
+msgid "Description written %s"
 msgstr ""
 
-#: ajax/place.php:138
+#: ajax/place.php:160
+#: ajax/place.php:182
 msgid "No description available for this language."
 msgstr ""
 
-#: ajax/place.php:138
+#: ajax/place.php:160
 msgid "Write one?"
 msgstr ""
 
-#: ajax/place.php:163
+#: ajax/place.php:161
+#: ajax/place.php:216
 msgid "Save"
 msgstr ""
 
-#: ajax/place.php:192
-msgid "Added by"
+# %s = URL to a login page
+#: ajax/place.php:184
+#, php-format
+msgid "You need to be <a href=\"%s\">logged in</a> to add or edit descriptions."
 msgstr ""
 
-#: ajax/place.php:193
-msgid "Added at"
-msgstr ""
-
-#: ajax/place.php:215
+#: ajax/place.php:247
 msgid "1 vote"
 msgstr ""
 
 # %s = number
-#: ajax/place.php:216
+#: ajax/place.php:248
 #, php-format
 msgid "%s votes"
 msgstr ""
 
-#: ajax/place.php:221
-#: ajax/place.php:222
+#: ajax/place.php:253
+#: ajax/place.php:254
 msgid "Vote distribution"
 msgstr ""
 
-#: ajax/place.php:249
+#: ajax/place.php:281
 msgid "Your opinion..."
 msgstr ""
 
-#: ajax/place.php:259
+#: ajax/place.php:291
 msgid "You rated for this place"
 msgstr ""
 
-#: ajax/place.php:291
+#: ajax/place.php:323
 msgid "Rating failed, please try again."
 msgstr ""
 
-#: ajax/place.php:291
+#: ajax/place.php:323
 msgid "Rating failed"
 msgstr ""
 
-#: ajax/place.php:313
+#: ajax/place.php:345
 #: ajax/waitingtimes.php:69
 msgid "Waiting time"
 msgstr ""
 
-#: ajax/place.php:317
+#: ajax/place.php:349
 msgid "Show log"
 msgstr ""
 
-#: ajax/place.php:322
+#: ajax/place.php:354
 #, php-format
 msgid "%d experience"
 msgid_plural "%d experiences"
 msgstr[0] ""
 msgstr[1] ""
 
-#: ajax/place.php:330
+#: ajax/place.php:362
 msgid "See log"
 msgstr ""
 
-#: ajax/place.php:335
+#: ajax/place.php:367
 msgid "hours"
 msgstr ""
 
-#: ajax/place.php:336
+#: ajax/place.php:368
 msgid "minutes"
 msgstr ""
 
-#: ajax/place.php:340
+#: ajax/place.php:372
 msgid "Your experience..."
 msgstr ""
 
-#: ajax/place.php:348
+#: ajax/place.php:380
 msgid "Other..."
 msgstr ""
 
-#: ajax/place.php:350
-#: ajax/place.php:354
+#: ajax/place.php:382
+#: ajax/place.php:386
 msgid "Add"
 msgstr ""
 
-#: ajax/place.php:430
+#: ajax/place.php:462
 msgid "Adding a waitingtime failed, please try again."
 msgstr ""
 
-#: ajax/place.php:437
+#: ajax/place.php:469
 msgid "Please add your waiting time first."
 msgstr ""
 
-#: ajax/place.php:475
+#: ajax/place.php:507
 msgid "Comments"
 msgstr ""
 
-#: ajax/place.php:502
-#: ajax/place.php:508
-#: ajax/place.php:622
+#: ajax/place.php:534
+#: ajax/place.php:540
+#: ajax/place.php:654
 msgid "Remove comment permanently"
 msgstr ""
 
-#: ajax/place.php:503
+#: ajax/place.php:535
 msgid "Edit comment"
 msgstr ""
 
-#: ajax/place.php:520
+#: ajax/place.php:552
 msgid "Leave a comment..."
 msgstr ""
 
-#: ajax/place.php:546
-#: ajax/place.php:556
-#: ajax/place.php:598
+#: ajax/place.php:578
+#: ajax/place.php:588
+#: ajax/place.php:630
 msgid "Nickname"
 msgstr ""
 
-#: ajax/place.php:548
+#: ajax/place.php:580
 msgid "You are logged in. Your name will be visible for others."
 msgstr ""
 
-#: ajax/place.php:551
+#: ajax/place.php:583
 msgid "Comment"
 msgstr ""
 
-#: ajax/place.php:572
+#: ajax/place.php:604
 msgid "Please write a comment first."
 msgstr ""
 
-#: ajax/place.php:572
+#: ajax/place.php:604
 msgid "Comment missing"
 msgstr ""
 
-#: ajax/place.php:582
+#: ajax/place.php:614
 msgid "Sending..."
 msgstr ""
 
-#: ajax/place.php:629
+#: ajax/place.php:661
 msgid "Adding a comment failed, please try again."
 msgstr ""
 
-#: ajax/place.php:655
+#: ajax/place.php:687
 msgid "More about this place"
 msgstr ""
 
-#: ajax/place.php:656
+#: ajax/place.php:688
 msgid "Toggle"
 msgstr ""
 
-#: ajax/place.php:687
+#: ajax/place.php:729
+msgid "Added by"
+msgstr ""
+
+#: ajax/place.php:733
+msgid "Added at"
+msgstr ""
+
+#: ajax/place.php:743
 msgid "Link to this place:"
 msgstr ""
 
-#: ajax/place.php:726
+#: ajax/place.php:782
 msgid "Latitude"
 msgstr ""
 
-#: ajax/place.php:727
+#: ajax/place.php:783
 msgid "Longitude"
 msgstr ""
 
-#: ajax/place.php:770
+#: ajax/place.php:826
 msgid "Remove place"
 msgstr ""
 
-#: ajax/place.php:773
+#: ajax/place.php:829
 msgid "Edit place"
 msgstr ""
 
-#: ajax/place.php:777
+#: ajax/place.php:833
 msgid "See user"
 msgstr ""
 
-#: ajax/place.php:795
-msgid "Sorry, but the place cannot be found.<br /><br />The place you are looking for might have been removed or is temporarily unavailable."
-msgstr ""
-
-#: ajax/place.php:795
+#: ajax/place.php:851
 msgid "The place cannot be found"
 msgstr ""
 
@@ -1354,6 +1410,7 @@ msgstr ""
 msgid "Developers"
 msgstr ""
 
+# Application Programming Interface, API ( http://en.wikipedia.org/wiki/Api )
 #: index.php:563
 msgid "API"
 msgstr ""
