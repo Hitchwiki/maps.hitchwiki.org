@@ -181,7 +181,7 @@ if($place["error"] !== true):
 				    		} else {
 				    			echo '<em>'._("No description available for this language.").'</em>';
 				    			echo '<br /><br />';
-				    			printf('<small>'._('You need to be <a href="%s">logged in</a> to add or edit descreptions.').'</small>', 'http://hitchwiki.org/en/index.php?title=Special:UserLogin&returnto=Maps.hitchwiki.org');
+				    			printf('<small>'._('You need to be <a href="%s">logged in</a> to add or edit descriptions.').'</small>', 'http://hitchwiki.org/en/index.php?title=Special:UserLogin&returnto=Maps.hitchwiki.org');
 				    		}
 				        }
 				        
