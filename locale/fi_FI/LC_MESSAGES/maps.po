@@ -2,7 +2,7 @@
 # This file is distributed under the same license as the Maps package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2010-12-11 22:29+0100\n"
+"PO-Revision-Date: 2010-12-14 01:07+0300\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -11,9 +11,82 @@ msgstr ""
 "Project-Id-Version: Maps\n"
 "POT-Creation-Date: \n"
 "Last-Translator: Mikael Korpela <mikael@ihminen.org>\n"
-"Language-Team: Mikael Korpela <mikael@ihminen.org>\n"
-"X-Poedit-Language: Finnish\n"
-"X-Poedit-Country: FINLAND\n"
+"Language-Team: \n"
+
+#: ajax/js-translation.json.php:42
+msgid "Toggle log"
+msgstr ""
+
+#: ajax/js-translation.json.php:43
+msgid "places"
+msgstr "paikkaa"
+
+#: ajax/js-translation.json.php:44
+msgid "Zoom closer to see them."
+msgstr "Tarkenna lähemmäksi nähdäksesi ne."
+
+#: ajax/js-translation.json.php:45
+msgid "Searching..."
+msgstr "Etsitään..."
+
+#: ajax/js-translation.json.php:46
+#: ajax/js-translation.json.php:50
+msgid "Your search did not match any places."
+msgstr "Hakusi ei tuottanut yhtään tulosta."
+
+#: ajax/js-translation.json.php:47
+msgid "Try searching in English and add a country name in to your search."
+msgstr ""
+
+#: ajax/js-translation.json.php:48
+msgid "Example:"
+msgstr "Esimerkki:"
+
+#: ajax/js-translation.json.php:49
+msgid "Not found"
+msgstr "Ei löytynyt"
+
+#: ajax/js-translation.json.php:51
+msgid "Try searching by english city names or/and add a country name with cities."
+msgstr ""
+
+#: ajax/js-translation.json.php:52
+msgid "Are you sure you want to remove this comment?"
+msgstr "Haluatko varmasti poistaa tämän komentin?"
+
+#: ajax/js-translation.json.php:54
+msgid "Updating description failed."
+msgstr "Kuvauksen päivittäminen epäonnistui."
+
+#: ajax/place.php:145
+msgid "Description written %s"
+msgstr "Kuvaus kirjoitettu %s"
+
+#: ajax/place.php:184
+msgid "You need to be <a href=\"%s\">logged in</a> to add or edit descriptions."
+msgstr "Sinun täytyy olla <a href=\"%s\">kirjautuneena sisään</a> lisätäksesi tai muokataksesi kuvauksia."
+
+#: views/cards/report.php:2
+msgid "Report a problem"
+msgstr "Raportoi ongelma"
+
+#: views/cards/report.php:6
+msgid "Reference"
+msgstr "Referenssi"
+
+#: views/cards/report.php:15
+msgid "Describe the problem"
+msgstr "Kuvaile ongelmaa"
+
+#: views/cards/report.php:18
+msgid "Send"
+msgstr "Lähetä"
+
+#: index.php:277
+#: index.php:282
+#: index.php:364
+msgid "Find good places for hitchhiking and add your own"
+msgstr "Löydä hyviä liftauspaikkoja ja lisää omasi"
 
 #: views/pages/help.php:76
 msgid "Russian"
@@ -57,11 +130,11 @@ msgstr "Romania"
 
 #: views/pages/why_register.php:13
 msgid "Set up a new center point, so that the map will be centered to there every time you login"
-msgstr ""
+msgstr "Aseta uusi keskipiste, jonne kartta on keskitettynä kun kirjaudut sivustolle."
 
 #: views/pages/translate.php:22
 msgid "You can see the current status of translations from %s"
-msgstr ""
+msgstr "Voit tarkistaa käännösten tämänhetkisen tilanteen osoitteessa %s"
 
 #: views/pages/why_register.php:7
 msgid "Hitcwiki Maps works with your Hitchwiki-account, so with one login you can access <a href=\"http://hitchwiki.org/\">Wiki</a>, <a href=\"http://hitchwiki.org/community/\">Community</a> and Maps."
@@ -73,11 +146,11 @@ msgstr "Miksi kartta on aina keskitettynä Eurooppaan?"
 
 #: views/pages/help.php:20
 msgid "Most of this maps hitchhiking places are in Europe. If you have registered, you can set a point of your current country from settings. The map will center there whenever you log in."
-msgstr ""
+msgstr "Suurinosa liftauspaikoista on Euroopassa. Jos olet rekisteröitynyt, voit asettaa nykyisen maasi asetuksista. Kun seuraavan kerran tulet sivuille, kartta on keskitettynä sinne."
 
 #: views/pages/why_register.php:9
 msgid "When logged in, you will have some more features on this site:"
-msgstr ""
+msgstr "Kun olet kirjautuneena, saat käyttöösi sivuston lisäominaisuuksia:"
 
 #: ajax/waitingtimes.php:114
 msgid "Are you sure you want to remove this record?"
@@ -87,15 +160,16 @@ msgstr "Oletko varma että haluat poistaa tämän merkinnän?"
 msgid "Could not remove a record due to an error. Please try again!"
 msgstr "Merkintää ei voitu poistaa virheen vuoksi. Yritäthän uudelleen!"
 
-#: ajax/place.php:548
+#: ajax/place.php:580
 msgid "You are logged in. Your name will be visible for others."
 msgstr "Olet kirjautuneena sisään. Nimesi tulee näkymään muille."
 
-#: ajax/place.php:437
+#: ajax/place.php:469
 msgid "Please add your waiting time first."
 msgstr "Lisääthän odotusaikasi ensin."
 
-#: ajax/place.php:138
+#: ajax/place.php:160
+#: ajax/place.php:182
 msgid "No description available for this language."
 msgstr "Tällä kielellä ei ole lisätty kuvausta."
 
@@ -107,36 +181,36 @@ msgstr "Paikkaa ei voitu lisätä virheen vuoksi."
 msgid "Your name <i>\"%s\"</i> will be visible for this place."
 msgstr "Nimesi <i>\"%s\"</i> näytetään paikan yhteydessä."
 
-#: lib/functions.php:1434
+#: lib/functions.php:1471
 msgid "In-city transportation"
 msgstr "Kaupungin sisäinen liikenne"
 
-#: lib/functions.php:1386
+#: lib/functions.php:1423
 msgid "Go to site"
 msgstr "Mene sivulle"
 
-#: lib/functions.php:1435
+#: lib/functions.php:1472
 msgid "Inter-city / international transportation"
 msgstr "Kaupunkien välinen / kansainvälinen liikenne"
 
 #: views/pages/why_register.php:1
-#: index.php:441
+#: index.php:442
 msgid "Why register?"
 msgstr "Miksi rekisteröityä?"
 
-#: index.php:548
+#: index.php:549
 msgid "http://creativecommons.org/licenses/by-sa/3.0/"
 msgstr "http://creativecommons.org/licenses/by-sa/3.0/deed.fi"
 
-#: index.php:503
+#: index.php:504
 msgid "Download"
 msgstr "Lataa"
 
-#: index.php:502
+#: index.php:503
 msgid "Link here"
 msgstr "Linkitä tähän"
 
-#: lib/functions.php:1440
+#: lib/functions.php:1477
 msgid "No public transport found for this country."
 msgstr "Tälle maalle ei löytynyt julkista liikennettä."
 
@@ -154,168 +228,168 @@ msgstr "Muokkaa paikkoja ja näe paikat jotka lisäsit itse."
 
 #: views/pages/why_register.php:14
 msgid "Enable/disable additional map layers and choose your default"
-msgstr ""
+msgstr "Lisää/poista karttatasoja käytöstä ja valitse oletustaso"
 
 #: views/pages/why_register.php:15
 msgid "Connect Maps with your <a href=\"http://latitude.google.com/\">Google Latitude</a> account to keep it centered while you travel"
-msgstr ""
+msgstr "Liitä <a href=\"http://latitude.google.com/\">Google Latitude</a> tunnus Karttoihin ja kartta pysyy keskitettynä sinun matkustaessa"
 
 #: views/pages/why_register.php:16
 msgid "...and more!"
 msgstr "...ja lisää!"
 
 #: lib/api.php:411
-#: lib/functions.php:977
-#: lib/functions.php:985
-#: lib/functions.php:987
+#: lib/functions.php:1014
+#: lib/functions.php:1022
+#: lib/functions.php:1024
 msgid "Anonymous"
 msgstr "Anonyymi"
 
-#: lib/functions.php:577
+#: lib/functions.php:614
 msgid "Asia"
 msgstr "Aasia"
 
-#: lib/functions.php:581
+#: lib/functions.php:618
 msgid "Africa"
 msgstr "Afrikka"
 
-#: lib/functions.php:585
+#: lib/functions.php:622
 msgid "North America"
 msgstr "Pohjois-Amerikka"
 
-#: lib/functions.php:589
+#: lib/functions.php:626
 msgid "South America"
 msgstr "Etelä-Amerikka"
 
-#: lib/functions.php:593
+#: lib/functions.php:630
 msgid "Antarctica"
 msgstr "Antarktis"
 
-#: lib/functions.php:597
+#: lib/functions.php:634
 msgid "Europe"
 msgstr "Eurooppa"
 
-#: lib/functions.php:601
+#: lib/functions.php:638
 msgid "Australia and Oceania"
 msgstr "Australia ja Oseania"
 
-#: lib/functions.php:997
+#: lib/functions.php:1034
 msgid "Very good"
 msgstr "Erinomainen"
 
-#: lib/functions.php:998
+#: lib/functions.php:1035
 msgid "Good"
 msgstr "Hyvä"
 
-#: lib/functions.php:999
+#: lib/functions.php:1036
 msgid "Average"
 msgstr "Keskiverto"
 
-#: lib/functions.php:1000
+#: lib/functions.php:1037
 msgid "Bad"
 msgstr "Huono"
 
-#: lib/functions.php:1001
+#: lib/functions.php:1038
 msgid "Senseless"
 msgstr "Järjetön"
 
-#: lib/functions.php:1002
-#: lib/functions.php:1014
+#: lib/functions.php:1039
+#: lib/functions.php:1051
 msgid "Unknown"
 msgstr "Tuntematon"
 
-#: lib/functions.php:1015
-#: lib/functions.php:1022
+#: lib/functions.php:1052
+#: lib/functions.php:1059
 msgid "min"
 msgstr "min"
 
-#: lib/functions.php:1018
+#: lib/functions.php:1055
 msgid "h"
 msgstr "t"
 
-#: lib/functions.php:1302
+#: lib/functions.php:1339
 msgid "Other"
 msgstr "Muu"
 
-#: lib/functions.php:1303
+#: lib/functions.php:1340
 msgid "Local bus"
 msgstr "Paikallisbussi"
 
-#: lib/functions.php:1304
+#: lib/functions.php:1341
 msgid "Trolleybus"
 msgstr "Johdinauto"
 
-#: lib/functions.php:1305
+#: lib/functions.php:1342
 msgid "Tram"
 msgstr "Raitiovaunu"
 
-#: lib/functions.php:1306
+#: lib/functions.php:1343
 msgid "Metro"
 msgstr "Metro"
 
-#: lib/functions.php:1307
+#: lib/functions.php:1344
 msgid "Commuter train"
 msgstr "Lähijuna"
 
-#: lib/functions.php:1308
+#: lib/functions.php:1345
 msgid "Taxi"
 msgstr "Taksi"
 
-#: lib/functions.php:1309
+#: lib/functions.php:1346
 msgid "Long distance bus"
 msgstr "Pitkänmatkan bussit"
 
-#: lib/functions.php:1310
+#: lib/functions.php:1347
 msgid "Long distance train"
 msgstr "Pitkänmatkan junat"
 
-#: lib/functions.php:1311
+#: lib/functions.php:1348
 msgid "Airline"
 msgstr "Lentoliikenne"
 
-#: lib/functions.php:1312
+#: lib/functions.php:1349
 msgid "Shipping"
 msgstr "Laivaliikenne"
 
-#: lib/functions.php:1313
+#: lib/functions.php:1350
 msgid "Carsharing"
 msgstr "Kimppakyyti"
 
-#: lib/functions.php:1314
+#: lib/functions.php:1351
 msgid "Car rental"
 msgstr "Autonvuokraus"
 
-#: lib/functions.php:1364
+#: lib/functions.php:1401
 #: ajax/country.php:158
 msgid "City"
 msgstr "Kaupunki"
 
-#: lib/functions.php:1365
+#: lib/functions.php:1402
 msgid "Site"
 msgstr "Sivu"
 
-#: lib/functions.php:1366
+#: lib/functions.php:1403
 #: ajax/add_place.php:81
 msgid "Type"
 msgstr "Tyyppi"
 
-#: lib/functions.php:1368
+#: lib/functions.php:1405
 msgid "Manage"
 msgstr "Hallinnoi"
 
-#: lib/functions.php:1404
+#: lib/functions.php:1441
 msgid "Remove page permanently"
 msgstr "Poista sivu pysyvästi"
 
-#: lib/functions.php:1405
+#: lib/functions.php:1442
 msgid "Edit page"
 msgstr "Muokkaa sivua"
 
-#: lib/functions.php:1424
+#: lib/functions.php:1461
 msgid "Are you sure?"
 msgstr "Oletko varma?"
 
-#: lib/functions.php:1440
+#: lib/functions.php:1477
 msgid "Add some?"
 msgstr "Lisää muutama?"
 
@@ -459,92 +533,89 @@ msgstr "Kartat"
 msgid "Zoom in"
 msgstr "Lähennä"
 
-#: ajax/place.php:136
-msgid "Edit"
-msgstr "Muokkaa"
-
-#: ajax/place.php:138
+#: ajax/place.php:160
 msgid "Write one?"
 msgstr "Kommentoi sinä?"
 
-#: ajax/place.php:163
+#: ajax/place.php:161
+#: ajax/place.php:216
 msgid "Save"
 msgstr "Tallenna"
 
-#: ajax/place.php:192
+#: ajax/place.php:729
 msgid "Added by"
 msgstr "Lisäsi"
 
-#: ajax/place.php:193
+#: ajax/place.php:733
 msgid "Added at"
 msgstr "Lisätty"
 
-#: ajax/place.php:215
+#: ajax/place.php:247
 msgid "1 vote"
 msgstr "1 ääni"
 
-#: ajax/place.php:216
+#: ajax/place.php:248
 msgid "%s votes"
 msgstr "%s ääntä"
 
-#: ajax/place.php:221
-#: ajax/place.php:222
+#: ajax/place.php:253
+#: ajax/place.php:254
 msgid "Vote distribution"
 msgstr "Äänten jakauma"
 
-#: ajax/place.php:249
+#: ajax/place.php:281
 msgid "Your opinion..."
 msgstr "Mielipiteesi..."
 
-#: ajax/place.php:259
+#: ajax/place.php:291
 msgid "You rated for this place"
 msgstr "Arvostelit paikan"
 
-#: ajax/place.php:291
+#: ajax/place.php:323
 msgid "Rating failed, please try again."
 msgstr "Arvostelu epäonnistui, yritäthän uudelleen."
 
-#: ajax/place.php:291
+#: ajax/place.php:323
 msgid "Rating failed"
 msgstr "Arvostelu epäonnistui"
 
-#: ajax/place.php:313
+#: ajax/place.php:345
 #: ajax/waitingtimes.php:69
 msgid "Waiting time"
 msgstr "Odotusaika"
 
-#: ajax/place.php:317
+#: ajax/place.php:349
 msgid "Show log"
 msgstr "Näytä loki"
 
-#: ajax/place.php:322
+#: ajax/place.php:354
 msgid "%d experience"
 msgid_plural "%d experiences"
 msgstr[0] "%d kokemus"
 msgstr[1] "%d kokemusta"
 
-#: ajax/place.php:330
+#: ajax/place.php:362
 msgid "See log"
 msgstr "Näytä loki"
 
-#: ajax/place.php:335
+#: ajax/place.php:367
 msgid "hours"
 msgstr "tuntia"
 
-#: ajax/place.php:336
+#: ajax/place.php:368
 msgid "minutes"
 msgstr "minuuttia"
 
-#: ajax/place.php:340
+#: ajax/place.php:372
 msgid "Your experience..."
 msgstr "Kokemuksesi..."
 
-#: ajax/place.php:348
+#: ajax/place.php:380
 msgid "Other..."
 msgstr "Muu..."
 
-#: ajax/place.php:350
-#: ajax/place.php:354
+#: ajax/place.php:382
+#: ajax/place.php:386
 msgid "Add"
 msgstr "Lisää"
 
@@ -552,91 +623,92 @@ msgstr "Lisää"
 msgid "Adding..."
 msgstr "Lisätään..."
 
-#: ajax/place.php:430
+#: ajax/place.php:462
 msgid "Adding a waitingtime failed, please try again."
 msgstr "Odotusajan lisääminen epäonnistui, yritäthän uudelleen."
 
-#: ajax/place.php:475
+#: ajax/place.php:507
 msgid "Comments"
 msgstr "Kommentit"
 
-#: ajax/place.php:502
-#: ajax/place.php:508
-#: ajax/place.php:622
+#: ajax/place.php:534
+#: ajax/place.php:540
+#: ajax/place.php:654
 msgid "Remove comment permanently"
 msgstr "Poista kommentti pysyvästi"
 
-#: ajax/place.php:503
+#: ajax/place.php:535
 msgid "Edit comment"
 msgstr "Muokkaa kommenttia"
 
-#: ajax/place.php:520
+#: ajax/place.php:552
 msgid "Leave a comment..."
 msgstr "Jätä kommentti..."
 
-#: ajax/place.php:546
-#: ajax/place.php:556
-#: ajax/place.php:598
+#: ajax/place.php:578
+#: ajax/place.php:588
+#: ajax/place.php:630
 msgid "Nickname"
 msgstr "Nimimerkki"
 
-#: ajax/place.php:551
+#: ajax/place.php:583
 msgid "Comment"
 msgstr "Kommentti"
 
-#: ajax/place.php:572
+#: ajax/place.php:604
 msgid "Please write a comment first."
 msgstr "Kirjoitathan ensin kommentin."
 
-#: ajax/place.php:572
+#: ajax/place.php:604
 msgid "Comment missing"
 msgstr "Kommentti puuttuu"
 
-#: ajax/place.php:582
+#: ajax/place.php:614
 msgid "Sending..."
 msgstr "Lähetetään..."
 
-#: ajax/place.php:629
+#: ajax/place.php:661
 msgid "Adding a comment failed, please try again."
 msgstr "Kommentin lisääminen epäonnistui, yritäthän uudelleen."
 
-#: ajax/place.php:655
+#: ajax/place.php:687
 msgid "More about this place"
 msgstr "Lisätietoja paikasta"
 
-#: ajax/place.php:656
+#: ajax/place.php:688
 msgid "Toggle"
 msgstr "Vaihda"
 
-#: ajax/place.php:688
+#: ajax/place.php:743
 msgid "Link to this place:"
-msgstr "Linkitä paikkaan"
+msgstr "Linkitä paikkaan:"
 
-#: ajax/place.php:727
+#: ajax/place.php:782
 msgid "Latitude"
 msgstr "Leveyspiiri"
 
-#: ajax/place.php:728
+#: ajax/place.php:783
 msgid "Longitude"
 msgstr "Pituuspiiri"
 
-#: ajax/place.php:771
+#: ajax/place.php:826
 msgid "Remove place"
 msgstr "Poista paikka"
 
-#: ajax/place.php:774
+#: ajax/place.php:829
 msgid "Edit place"
 msgstr "Muokkaa paikkaa"
 
-#: ajax/place.php:778
+#: ajax/place.php:833
 msgid "See user"
 msgstr "Näytä käyttäjä"
 
-#: ajax/place.php:796
+#: ajax/place.php:23
+#: ajax/place.php:851
 msgid "Sorry, but the place cannot be found.<br /><br />The place you are looking for might have been removed or is temporarily unavailable."
 msgstr "Paikkaa jota yritit hakea ei löydy.<br /><br />Se on voitu poistaa tai on väliaikaisesti käyttämättömissä."
 
-#: ajax/place.php:796
+#: ajax/place.php:851
 msgid "The place cannot be found"
 msgstr "Paikkaa ei löydy"
 
@@ -705,7 +777,6 @@ msgstr "Ylläpito"
 #: admin/views/new_language.php:12
 #: admin/views/new_language.php:24
 #: admin/views/places.php:13
-#: admin/views/translate_countrynames.php:53
 #: admin/views/users.php:116
 msgid "Alert"
 msgstr "Huomautus"
@@ -887,7 +958,7 @@ msgstr "Mikä tämä on?"
 
 #: views/pages/help.php:8
 msgid "This is supposed to be a worldmap for hitchhikers, showing good and bad hitching places. Feel free to add all your favourite hitching places (or even more) to the map."
-msgstr ""
+msgstr "Tältä liftareiden maailmankartalta löydät hyvät ja huonot liftauspaikat. Lisää vapaasti kaikki tuntemasi paikat karttaan."
 
 #: views/pages/help.php:10
 msgid "How can I add places?"
@@ -895,7 +966,7 @@ msgstr "Kuinka voin lisätä paikkoja?"
 
 #: views/pages/help.php:11
 msgid "Just click on <i>Add place</i> in the menu. Set the orange marker to the place and click on <i>Add place</i>. Make sure to zoom as close as possible, so the point will be more accurate. It is also helpful if you give your points a rating and maybe a little description (i.e. what kind of place this is or how to get there). Please write description at least in English."
-msgstr ""
+msgstr "Klikkaa <i>Lisää paikka</i> valikosta. Siirrä oranssi merkki liftipaikalle ja klikkaa <i>Lisää paikka</i>. Varmistathan että kartan tarkennus on mahdollisimman tarkka, jotta paikkamerkinnästä tulee tarkempi. Muita liftareita auttaa myös, jos annat paikalle arvion ja kirjoitat lyhyen kommentin (esimerkiksi minkä tyyppinen paikka on ja kuinka sinne pääsee). Kirjoitathan kuvauksen ainakin englanniksi."
 
 #: views/pages/help.php:13
 msgid "Can I use HTML tags in descriptions and comments?"
@@ -911,7 +982,7 @@ msgstr "Miksi rekisteröityisin?"
 
 #: views/pages/help.php:17
 msgid "If you are logged in, you will have some more features on this site. I.e. you will be able to modify your places later, and your nickname will be shown on each of your places and comments."
-msgstr ""
+msgstr "Kun olet kirjautuneena, saat käyttöösi joitakin sivuston lisäominaisuuksia. Esimerkiksi voit muokata lisäämiäsi paikkoja myöhemmin ja nimimerkkisi näytetään jokaisen lisäämäsi paikan ja kommentin yhteydessä."
 
 #: views/pages/help.php:24
 msgid "About Hitchwiki Maps"
@@ -958,6 +1029,7 @@ msgid "This is your profile as others see it."
 msgstr "Profiilisi näyttää tältä muille."
 
 #: views/pages/profile.php:27
+#: views/pages/users.php:30
 msgid "Last seen"
 msgstr "Viimeksi nähty"
 
@@ -984,8 +1056,8 @@ msgstr "Asetukset"
 
 #: views/pages/settings.php:29
 #: views/pages/translate.php:9
-#: index.php:521
-#: index.php:523
+#: index.php:522
+#: index.php:524
 msgid "Choose language"
 msgstr "Valitse kieli"
 
@@ -1002,7 +1074,7 @@ msgid "Default map layer"
 msgstr "Oletuskartta"
 
 #: views/pages/settings.php:65
-#: index.php:654
+#: index.php:655
 msgid "Default"
 msgstr "Oletus"
 
@@ -1075,10 +1147,6 @@ msgid "Profile reset"
 msgstr "Profiili nollattu"
 
 #: views/pages/settings.php:402
-msgid "Error while trying to reset your profile. Please try again!"
-msgstr "Tapahtui virhe profiilisi nollauksessa. Yritäthän uudestaan!"
-
-#: views/pages/settings.php:402
 msgid "Profile was NOT reset"
 msgstr "Profiilia EI nollattu"
 
@@ -1095,7 +1163,7 @@ msgid "You must be logged in to edit settings."
 msgstr "Sinun täytyy kirjautua muokataksesi asetuksia."
 
 #: views/pages/statistics.php:1
-#: index.php:509
+#: index.php:510
 msgid "Statistics"
 msgstr "Tilastot"
 
@@ -1124,17 +1192,13 @@ msgid "Hitchwiki Maps is currently available in %s languages"
 msgstr "Hitchwiki Kartat on tällä hetkellä saatavilla %s kielellä"
 
 #: views/pages/translate.php:16
-#: index.php:537
+#: index.php:538
 msgid "Help us with translating!"
 msgstr "Auta kääntämisessä!"
 
 #: views/pages/translate.php:18
 msgid "If you would like to add content in your own language, or translate all visible interface texts, contact us so we can put up a new language."
 msgstr "Jos haluaisit lisätä sisältöä kielelläsi, tai kääntää kaikki käyttöliittymän näkyvät tekstit, ota meihin yhteyttä jotta voimme julkaista uuden kielen."
-
-#: views/pages/users.php:1
-msgid "Users"
-msgstr "Käyttäjät"
 
 #: views/pages/users.php:23
 msgid "We have %s registered hitchhikers using Maps!"
@@ -1149,7 +1213,7 @@ msgid "Visible only for admins"
 msgstr "Näkyy vain ylläpitäjille"
 
 #: views/pages/users.php:35
-#: index.php:512
+#: index.php:513
 msgid "Admins"
 msgstr "Ylläpitäjät"
 
@@ -1208,11 +1272,6 @@ msgstr "Paikkaa ei löydy."
 msgid "The place you are looking for might have been removed or is temporarily unavailable."
 msgstr "Paikka jota hait on voitu poistaa tai saavuttamattomissa väliaikaisesti."
 
-#: index.php:277
-#: index.php:282
-msgid "Find good places for hitchhiking and add your own."
-msgstr "Löydä liftauspaikkoja ja lisää omat suosikkisi."
-
 #: views/pages/help.php:1
 msgid "Help & About"
 msgstr "Apua & Tietoa"
@@ -1220,10 +1279,6 @@ msgstr "Apua & Tietoa"
 #: index.php:361
 msgid "Community"
 msgstr "Yhteisö"
-
-#: index.php:364
-msgid "Find good places for hitchhiking and add your favorites"
-msgstr "Löydä liftauspaikkoja ja lisää omat suosikkisi"
 
 #: index.php:379
 msgid "Profile"
@@ -1233,112 +1288,113 @@ msgstr "Profiili"
 msgid "Logout"
 msgstr "Kirjaudu ulos"
 
-#: index.php:434
+#: index.php:435
 msgid "Hello from %s"
 msgstr "Tervehdys maasta; %s"
 
-#: index.php:442
+#: index.php:443
 msgid "Register!"
 msgstr "Rekisteröidy!"
 
-#: index.php:445
+#: index.php:446
 msgid "Login"
 msgstr "Kirjaudu"
 
-#: index.php:468
+#: index.php:469
 msgid "Find places"
 msgstr "Löydä paikkoja"
 
-#: index.php:473
+#: index.php:474
 msgid "Search"
 msgstr "Etsi"
 
-#: index.php:481
+#: index.php:482
 msgid "Nearby places from"
 msgstr "Paikat lähistöltä"
 
-#: index.php:483
+#: index.php:484
 msgid "Show the city on the map"
 msgstr "Näytä kaupunki kartalla"
 
-#: index.php:484
+#: index.php:485
 msgid "Show the state on the map"
 msgstr "Näytä osavaltio kartalla"
 
-#: index.php:485
+#: index.php:486
 msgid "Show the country on the map"
 msgstr "Näytä maa kartalla"
 
-#: index.php:494
+#: index.php:495
 msgid "Ooh! New Maps!"
 msgstr "Oho! Uusi Kartat!"
 
-#: index.php:500
-#: index.php:616
+#: index.php:501
+#: index.php:617
 msgid "Tools"
 msgstr "Työkalut"
 
-#: index.php:506
+#: views/pages/users.php:1
+#: index.php:507
 msgid "Members"
 msgstr "Jäsenet"
 
-#: index.php:548
+#: index.php:549
 msgid "Licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License"
 msgstr "Lisensoitu Creative Commons Attribution-ShareAlike 3.0 Unported -lisenssillä"
 
-#: index.php:554
+#: index.php:555
 msgid "Contact us!"
 msgstr "Ota yhteyttä!"
 
-#: index.php:558
+#: index.php:559
 msgid "Developers"
 msgstr "Kehittäjät"
 
-#: index.php:562
+#: index.php:563
 msgid "API"
 msgstr "API"
 
-#: index.php:603
+#: index.php:604
 msgid "Turn JavaScript on from your browser."
 msgstr "JavaScriptin tulee olla päällä selaimesta."
 
-#: index.php:623
+#: index.php:624
 msgid "Navigate"
 msgstr "Navigoi"
 
-#: index.php:628
+#: index.php:629
 msgid "Measure distance"
 msgstr "Mittaa matka"
 
-#: index.php:633
+#: index.php:634
 msgid "Measure area"
 msgstr "Mittaa alue"
 
-#: index.php:647
+#: index.php:648
 msgid "Measure"
 msgstr "Mittaus"
 
-#: index.php:651
+#: index.php:652
 msgid "Show markers after zoom level"
 msgstr "Näytä paikat zoomin jälkeen."
 
-#: index.php:657
+#: index.php:658
 msgid "Continent level"
 msgstr "Maanosan tarkkuudella"
 
-#: index.php:658
+#: index.php:659
 msgid "Country level"
 msgstr "Maan tarkkuudella"
 
-#: index.php:659
+#: index.php:660
 msgid "City level"
 msgstr "Kaupunkitaso"
 
-#: index.php:660
+#: index.php:661
 msgid "Street level"
 msgstr "Katutaso"
 
-#: index.php:678
+#: index.php:679
 msgid "Map"
 msgstr "Kartta"
 
@@ -1353,4 +1409,8 @@ msgstr "Pyydettyä maata ei löydy!"
 #: ajax/map_statistics.php:257
 msgid "This is just a preview map. Go to %s for the actual service."
 msgstr "Tämä on vain esikatselukartta, varsinainen palvelu osoitteessa %s"
+
+#: views/pages/settings.php:402
+msgid "Error while trying to reset your profile. Please try again!"
+msgstr "Tapahtui virhe profiilisi nollauksessa. Yritäthän uudestaan!"
 
