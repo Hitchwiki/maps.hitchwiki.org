@@ -393,7 +393,7 @@ class maps_api
 	 		$user = current_user();
 		
 			if(!is_numeric($comment["user_id"]) OR empty($comment["user_id"])) return $this->API_error("Invalid user ID.");
-			elseif($comment["user_id"] != $user["id"]) return $this->API_error("Posting commend failde. You need to be logged in. (".$user["id"].")");
+			elseif($comment["user_id"] != $user["id"]) return $this->API_error("Posting commend failed. You need to be logged in. (".$user["id"].")");
 			else $user_id = $comment["user_id"];
 	
 		} else {
@@ -437,6 +437,64 @@ class maps_api
 	
 	}
 
+	
+	/*
+	 * Add description
+	 * Comment must be an array including:
+	 * - place_id (required)
+	 * - description (required)
+	 * - user_id (optional)
+	 * - language tag, e.g. en_UK
+	 */
+	function addDescription($description=array()) {
+		global $settings;
+	
+		// Place ID
+		if(!isset($description["place_id"]) OR empty($description["place_id"]) OR !is_numeric($description["place_id"])) return $this->API_error("Invalid place ID.");
+	
+		// Comment
+		if(!isset($description["description"]) OR empty($description["description"])) return $this->API_error("Description missing.");
+		else {
+			$description["description"] = htmlspecialchars($description["description"]);
+		}
+	
+		// User ID
+		$user = current_user();
+		if($user!==false) $user_id = $user["id"];
+		else return $this->API_error("Posting description failed. You need to be logged in.");
+		
+		// Language
+		if(isset($description["language"]) && !empty($description["language"]) && isset($settings["valid_languages"][$description["language"]])) $language = "'".mysql_real_escape_string($description["language"])."'";
+		else return $this->API_error("Language missing or not valid.");
+	
+		// Build a query
+		$query = "INSERT INTO `t_points_descriptions` (`id`, `fk_point`, `fk_user`, `language`, `description`, `datetime`, `ip`) 
+						VALUES (NULL, 
+								'".mysql_real_escape_string($description["place_id"])."', 
+								".mysql_real_escape_string($user_id).", 
+								".$language.", 
+								'".mysql_real_escape_string($description["description"])."', 
+								NOW(), '".$_SERVER['REMOTE_ADDR']."')";
+	
+	    // Build an array
+   		$res = mysql_query($query);
+   		if(!$res) return $this->API_error("Query failed!");
+   		
+   		$description["date"] = date("j.n.Y");
+   		$description["time"] = date("H:i:s");
+   		$description["date_r"] = date("r");
+   		$description["language"] = $language;
+   		$description["description"] = Markdown(stripslashes($description["description"]));
+   		
+   		$description["id"] = mysql_insert_id();
+   		$description["success"] = true;
+   		
+   		// Return
+   		return $this->output($description);
+	
+	}
+
+	
 	
 	/*
 	 * Add place

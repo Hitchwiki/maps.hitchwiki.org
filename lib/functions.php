@@ -96,9 +96,11 @@ function get_place($id=false, $more=false) {
 			    		`datetime`";
 									
 			// Add all available languages to the query
+			/*
 			foreach($settings["valid_languages"] as $code => $name) {
 				$query .= ",`".$code."`";
 			}
+			*/
 			
 		}//if more end
 		
@@ -107,6 +109,7 @@ function get_place($id=false, $more=false) {
 		    		LIMIT 1";
 
 		$res = mysql_query($query);
+		
 		
 		// Return error for no result
 		if(!$res OR mysql_affected_rows() <= 0) {
@@ -136,9 +139,12 @@ function get_place($id=false, $more=false) {
 		 		$place["datetime"] = $r["datetime"];
 		 		
 		 		// Loop trough descriptions in different languages
+		 		/*
 		 		foreach($settings["valid_languages"] as $code => $name) {
 		 			$place["description"][$code] = stripslashes($r[$code]);
 		 		}
+		 		*/
+		
 		 		
 		 	} // end more
 		 	
@@ -146,7 +152,7 @@ function get_place($id=false, $more=false) {
 		 	$place["rating"] = $r["rating"];
 
 			if($more==true) {
-								
+	
 				// Get stats about ratings if we know there are more than one
 				if($r["rating_count"] > 1) {
 					
@@ -170,10 +176,41 @@ function get_place($id=false, $more=false) {
 				else {
 					$place["waiting_stats"]["count"] = $r["waitingtime_count"];
 				}
-				
-				
+
+
+				// Descreptions from a seperate table
+				$query2 = "SELECT * FROM 
+							(
+								SELECT 
+									`id`,
+									`datetime`, 
+									`fk_point`,
+									`fk_user`,
+									`language`, 
+									`description` 
+								FROM `t_points_descriptions` 
+								WHERE `fk_point` = ".mysql_real_escape_string($id)." 
+								ORDER BY `datetime` DESC
+							) 
+							AS `t_points_descriptions_tmp`
+							
+							GROUP BY `language`
+							
+							ORDER BY `language` DESC";
 					
-					
+				
+				$res2 = mysql_query($query2);
+				while($r2 = mysql_fetch_array($res2, MYSQL_ASSOC)) {
+				
+					// In DB we have these fields: id, datetime, language, fk_point, fk_user, ip, description
+					$place["description"][$r2["language"]]["datetime"] = $r2["datetime"];
+					$place["description"][$r2["language"]]["fk_user"] = $r2["fk_user"];
+					$place["description"][$r2["language"]]["description"] = $r2["description"];
+				
+				}
+
+
+
 				// Comments
 		 		$place["comments"] = get_comments($id);
 		 		$place["comments_count"] = count($place["comments"]);

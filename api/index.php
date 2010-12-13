@@ -223,6 +223,18 @@ if(isset($_GET["add_comment"])) {
 
 
 /*
+ * Update/add description
+ */
+if(isset($_GET["add_description"])) {
+
+	if(!empty($_POST)) echo $api->addDescription($_POST);
+	else echo $api->API_error("Send description by POST-method.");
+
+}
+
+
+
+/*
  * Remove comment
  */
 if(isset($_GET["remove_comment"])) {

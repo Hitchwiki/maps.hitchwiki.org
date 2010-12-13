@@ -1463,6 +1463,7 @@ function close_add_place() {
 	}
 }
 
+
 function update_add_place(q_lon, q_lat, needsConverting) {
 	maps_debug("Updating add place -info.");
 
@@ -1565,8 +1566,8 @@ function showPlacePanel(id, zoomin) {
 			$("#PlacePanel").html(content).show();
 			
 			// Shrink map a bit and make some space for the panel
-			$("#map").attr("style","right:250px;");
-			$("#map_selector").attr("style","right:265px;");
+			$("#map").css("right","250px");
+			$("#map_selector").css("right","265px");
 			
 			// Zoom in into a marker if requested so
 			if(zoomin == true) {
@@ -1588,7 +1589,7 @@ function hidePlacePanel() {
 	
 	// Map to full width again
 	$("#map").css("right","0");
-	$("#map_selector").attr("style","right:15px;");
+	$("#map_selector").css("right","15px");
 	$("#PlacePanel").hide().html("");
 }
 
@@ -1809,9 +1810,36 @@ function close_cards() {
 }
 
 
+				    
+/*
+ * Save written description
+ */
+function saveDescription(post_place_id, post_language, post_description) {
+    
+    maps_debug("Saving description for place #"+post_place_id);
+    $.post('api/?add_description', { place_id: post_place_id, language: post_language, description: post_description }, 
+        function(data) {
+        
+        	if(data.success == true) {
+        		maps_debug("Description saved.");
+        		showPlacePanel(post_place_id);
+        	}
+        	// Oops!
+        	else {
+        	    info_dialog(_('Updating description failed.')+'<br /><br />'+_('Please try again!'), _("Error"), true);
+        	    maps_debug("Updating description failed. <br />- Error: "+data.error+"<br />- Data: "+data);
+        	}
+        
+        }, "json"
+    ); // post end
+    
+}
 
-// Function to remove comment
-// Produces an error popup if current logged in user doesn't have any permission
+
+/*
+ * Function to remove comment
+ * Produces an error popup if current logged in user doesn't have any permission
+ */
 function removeComment(remove_id) {
     maps_debug("Asked to remove a comment "+remove_id);
 	stats("comment/remove/");

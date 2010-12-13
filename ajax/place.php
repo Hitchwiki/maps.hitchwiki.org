@@ -20,7 +20,7 @@ if(isset($_GET["id"]) && is_numeric($_GET["id"])) {
 
 }
 else {
-	echo '<p>Error: Missing ID!</p>';
+	echo '<p>'._("Sorry, but the place cannot be found.<br /><br />The place you are looking for might have been removed or is temporarily unavailable.").'</p>';
 	exit;
 }
 
@@ -132,11 +132,59 @@ if($place["error"] !== true):
 				    	echo '<p>';
 				    	
 				    	if(!empty($place["description"][$code])) {
-				    		echo Markdown($place["description"][$code]);
-				    		?><small class="hidden"><a href="#" onclick="info_dialog('Editing is not in use yet, sorry.', 'TODO'); return false;"><?php echo _("Edit"); ?></a></small><?php
+				    		
+				    		// Edit link, only for registered users
+				    		/*if($user!==false): ?><small class="align_right"><a href="#" onclick="info_dialog('Editing is not in use yet, sorry.', 'TODO'); return false;"><?php echo _("Edit"); ?></a></small><?php endif; ?>
+				    		*/ ?>
+				    		<?php 
+				    		
+				    			echo Markdown($place["description"][$code]["description"]); 
+				    		
+								if(!empty($place["description"][$code]["datetime"])) {
+									echo '<br /><small title="'.date("r",strtotime($place["description"][$code]["datetime"])).'">';
+									printf(_('Description written %s'), date("j.n.Y",strtotime($place["description"][$code]["datetime"])));
+									echo '</small>';
+								}
+				    		?>
+				    						    		
+				    		<div class="clear"></div>
+				    		
+				    		<?php
 				    	} else {
-				    		echo '<em>'._("No description available for this language.").'</em> &mdash; <small class="hidden"><a href="#" onclick="writeDescription(\''.$code.'\'); return false;">'._("Write one?").'</a></small>';
+				    		// Editing box (only for registered users):
+				    		
+				    		if($user!==false) {
+				    		?>
+				    		<textarea rows="4" style="margin-bottom: 5px;" id="add_description_<?php echo $code; ?>"></textarea>
+				    		<br />
+				    		<small style="display:block; width: 150px; float: left;"><em><?php echo _("No description available for this language."); ?> <?php echo _("Write one?"); ?></em></small>
+				    		<button id="btn_save_description_<?php echo $code; ?>" class="align_right smaller"><?php echo _("Save"); ?></button>
+				    		<div class="clear"></div>
+							<script type="text/javascript">
+							$(function() {
+							
+				    			$("#btn_save_description_<?php echo $code; ?>").button({
+				    			    icons: {
+				    			        primary: 'ui-icon-pencil'
+				    			    }
+				    			}).click(function(e) {
+				    				e.preventDefault();
+				    				// Save written description
+				    				maps_debug("(button) Save a description for <?php echo $code; ?>");
+				    				saveDescription('<?php echo $place["id"]; ?>', '<?php echo $code; ?>', $("#add_description_<?php echo $code; ?>").val());
+				    				
+				    			});
+							
+							});
+							</script>
+				    		<?php
+				    		} else {
+				    			echo '<em>'._("No description available for this language.").'</em>';
+				    			echo '<br /><br />';
+				    			printf('<small>'._('You need to be <a href="%s">logged in</a> to add or edit descreptions.').'</small>', 'http://hitchwiki.org/en/index.php?title=Special:UserLogin&returnto=Maps.hitchwiki.org');
+				    		}
 				        }
+				        
 				        echo '</p></div>';
 				    }
 				    ?>
@@ -154,10 +202,15 @@ if($place["error"] !== true):
 				    	$(this).blur();
 				    	$("#descriptions .description").hide();
 				    	$("#descriptions #tab-"+selected_language).show();
+						stats("read_description/"+selected_language);
 				    });
+				    
+					
 				});
 				
-				// Build a description writer
+				
+				// Build a description writer by clicking "edit"
+				/*
 				function writeDescription(language) {
 				
 				    $("#tab-"+language).html('<textarea rows="4" id="add_description"></textarea><br /><button id="btn_save_description" class="align_right" style="font-size: 11px;"><?php echo _("Save"); ?></button><div class="clear"></div>');
@@ -171,32 +224,11 @@ if($place["error"] !== true):
 				    	// Save written description
 				    	// TODO!
 				    	maps_debug("Save a description");
-				    	info_dialog("Saving descriptions isn't working yet, sorry.", "TODO");
-				    });
-				    
-				
-				    
+				    }); 
 				}
+				*/
 				
 				</script>
-				
-				<?php
-					// When marker was added and who added it
-					echo '<div class="meta"';
-					
-					if(!empty($place["datetime"])) echo ' title="'.date("r",strtotime($place["datetime"])).'"';
-					 
-					echo '>';
-					
-					// Name
-					if(isset($place["user"]["name"]) && $place["user"]["name"] != _("Anonymous")) echo _("Added by").' <strong>'.htmlspecialchars($place["user"]["name"]).'</strong> &mdash; ';
-					elseif(!empty($place["datetime"])) echo _("Added at")." ";
-					
-					// Date
-					if(!empty($place["datetime"])) echo date("j.n.Y",strtotime($place["datetime"]));
-					
-					echo '</div>';
-				?>
 			</li>
 			<?php endif; /* end if empty description */ ?>
 			
@@ -684,7 +716,31 @@ if($place["error"] !== true):
 	    	<div class="hidden" id="extralinks">
 	    	
 			<li>
-				<div class="icon link"><label for="link_place"><?php echo _("Link to this place:"); ?></label></div>
+				<?php
+					// When marker was added and who added it
+					echo '<div class="meta"';
+					
+					if(!empty($place["datetime"])) echo ' title="'.date("r",strtotime($place["datetime"])).'"';
+					 
+					echo '>';
+					
+					// Name
+					if(isset($place["user"]["name"])) {
+						echo _("Added by").' <strong>'.htmlspecialchars($place["user"]["name"]).'</strong>';
+					
+						if(!empty($place["datetime"])) ' &mdash; ';
+					}
+					elseif(!empty($place["datetime"])) echo _("Added at")." ";
+					
+					// Date
+					if(!empty($place["datetime"])) echo date("j.n.Y",strtotime($place["datetime"]));
+					
+					echo '</div>';
+				?>
+			</li>
+	    	
+			<li>
+				<div class="icon link"><label for="link_place"><small><?php echo _("Link to this place:"); ?></small></label></div>
 				<input type="text" id="link_place" value="<?php echo htmlspecialchars($place["link"]); ?>" class="copypaste" />
 				<script type="text/javascript">
 					$(function() {
@@ -791,8 +847,9 @@ else: ?>
 
 <script type="text/javascript">
     $(function() {
-    	hidePlacePanel();
+		maps_debug("Error loading marker data from the PHP-side.");
 		info_dialog("<?php echo _("Sorry, but the place cannot be found.<br /><br />The place you are looking for might have been removed or is temporarily unavailable."); ?>", "<?php echo _("The place cannot be found"); ?>", true);
+    	hidePlacePanel();
 	});
 </script>
 
