@@ -73,10 +73,11 @@
 		<li><?php echo _("Finnish"); ?> - <a href="http://www.ihminen.org">Mikael Korpela</a></li>
 		<li><?php echo _("German"); ?> - MrTweek, Platschi</li>
 		<li><?php echo _("Dutch"); ?> - Platschi</li>
-		<li><?php echo _("Russian"); ?> - Siberian explorer, Platschi</li>
+		<li><?php echo _("Russian"); ?> - Siberian explorer, Platschi, rAndoM</li>
 		<li><?php echo _("Romanian"); ?> - montaniard</li>
 		<li><?php echo _("Portuguese"); ?> - Joao</li>
 		<li><?php echo _("Spanish"); ?> - Prino</li>
+		<li><?php echo _("Chinese"); ?> - Mipplor</li>
 		<!-- 
 		<li><?php echo _("Swedish"); ?> - </li>
 		<li><?php echo _("Lithuanian"); ?> - </li>
