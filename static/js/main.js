@@ -1614,7 +1614,7 @@ function search(q) {
 		method: "get",
 		url: 'ajax/geocoder.php?q=' + q,
 		dataType: "json",
-		timeout: 7000, // timeout in milliseconds; 1s = 1000ms
+		timeout: 10000, // timeout in milliseconds; 1s = 1000ms
 	 
 		// Got a place
 		success: function(data){

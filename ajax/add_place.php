@@ -182,10 +182,10 @@ $user = current_user();
 	<li id="event_info" style="display:none;">
 		<ul>
 			<li class="clear">
-				<label for="start_date" class="icon calendar_view_day align_left">Starting date</label> <input type="text" value="" size="10" name="start_date" id="start_date" class="datepicker align_left" style="margin-left: 5px;" /> <a href="#" id="clear_start_date" class="ui-icon ui-icon-cancel align_left" title="<?php echo _("Clear"); ?>"><?php echo _("Clear"); ?></a>
+				<label for="start_date" class="icon calendar_view_day align_left"><?php echo _("Starting date"); ?></label> <input type="text" value="" size="10" name="start_date" id="start_date" class="datepicker align_left" style="margin-left: 5px;" /> <a href="#" id="clear_start_date" class="ui-icon ui-icon-cancel align_left" title="<?php echo _("Clear"); ?>"><?php echo _("Clear"); ?></a>
 			</li>
 			<li class="clear">
-				<label for="end_date" class="icon calendar_view_day align_left">Ending date</label> <input type="text" value="" size="10" name="end_date" id="end_date" class="datepicker align_left" style="margin-left: 5px;" /> <a href="#" id="clear_end_date" class="ui-icon ui-icon-cancel align_left" title="<?php echo _("Clear"); ?>"><?php echo _("Clear"); ?></a>
+				<label for="end_date" class="icon calendar_view_day align_left"><?php echo _("Ending date"); ?></label> <input type="text" value="" size="10" name="end_date" id="end_date" class="datepicker align_left" style="margin-left: 5px;" /> <a href="#" id="clear_end_date" class="ui-icon ui-icon-cancel align_left" title="<?php echo _("Clear"); ?>"><?php echo _("Clear"); ?></a>
 				<div class="clear"></div>
 			</li>
 		</ul>
@@ -225,7 +225,7 @@ $user = current_user();
 
 		</ul>
 	</li>
-	<?php /*<!-- TODO! -->
+	<!-- TODO! --
 	<li id="waitingtime_question">
 		<ul>
 			<li>
@@ -253,7 +253,8 @@ $user = current_user();
 
 		</ul>
 	</li>
-	*/ ?><input type="hidden" value="" name="waitingtime" id="waitingtime" />
+	-->
+	<input type="hidden" value="" name="waitingtime" id="waitingtime" />
 	
 	<li>
 		<ul>

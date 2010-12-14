@@ -139,15 +139,14 @@ if($place["error"] !== true):
 				    		<?php 
 				    		
 				    			echo Markdown($place["description"][$code]["description"]); 
-				    			/*
-				    			TODO: this was a bit buggy, prints out 1970 for empty days??
 				    			
+				    			// Date 
 								if(!empty($place["description"][$code]["datetime"])) {
 									echo '<br /><small title="'.date("r",strtotime($place["description"][$code]["datetime"])).'">';
 									printf(_('Description written %s'), date("j.n.Y",strtotime($place["description"][$code]["datetime"])));
 									echo '</small>';
 								}
-								*/
+								
 				    		?>
 				    						    		
 				    		<div class="clear"></div>
@@ -160,7 +159,7 @@ if($place["error"] !== true):
 				    		?>
 				    		<textarea rows="4" style="margin-bottom: 5px;" id="add_description_<?php echo $code; ?>"></textarea>
 				    		<br />
-				    		<small style="display:block; width: 150px; float: left;"><em><?php echo _("No description available for this language."); ?> <?php echo _("Write one?"); ?></em></small>
+				    		<small style="display:block; width: 143px; float: left;"><em><?php echo _("No description available for this language."); ?> <?php echo _("Write one?"); ?></em></small>
 				    		<button id="btn_save_description_<?php echo $code; ?>" class="align_right smaller"><?php echo _("Save"); ?></button>
 				    		<div class="clear"></div>
 							<script type="text/javascript">
