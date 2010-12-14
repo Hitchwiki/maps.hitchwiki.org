@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Maps\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-12-13 22:40+0300\n"
-"PO-Revision-Date: 2010-12-13 22:44+0300\n"
+"POT-Creation-Date: 2010-12-14 02:17+0300\n"
+"PO-Revision-Date: 2010-12-14 02:17+0300\n"
 "Last-Translator: Mikael Korpela <mikael@ihminen.org>\n"
 "Language-Team:  <maps@hitchwiki.org>\n"
 "MIME-Version: 1.0\n"
@@ -205,7 +205,7 @@ msgid "Add some?"
 msgstr ""
 
 #: ajax/add_place.php:32
-#: ajax/add_place.php:262
+#: ajax/add_place.php:263
 msgid "Add place"
 msgstr ""
 
@@ -246,8 +246,16 @@ msgid "Please fill as many different language descriptions as you can."
 msgstr ""
 
 #: ajax/add_place.php:185
+msgid "Starting date"
+msgstr ""
+
+#: ajax/add_place.php:185
 #: ajax/add_place.php:188
 msgid "Clear"
+msgstr ""
+
+#: ajax/add_place.php:188
+msgid "Ending date"
 msgstr ""
 
 #: ajax/add_place.php:215
@@ -258,40 +266,64 @@ msgstr ""
 msgid "About Hitchability"
 msgstr ""
 
-#: ajax/add_place.php:263
+#: ajax/add_place.php:232
+msgid "Waiting time"
+msgstr ""
+
+#: ajax/add_place.php:235
+msgid "hours"
+msgstr ""
+
+#: ajax/add_place.php:236
+msgid "minutes"
+msgstr ""
+
+#: ajax/add_place.php:240
+msgid "I don't know"
+msgstr ""
+
+#: ajax/add_place.php:248
+msgid "Other..."
+msgstr ""
+
+#: ajax/add_place.php:251
+msgid "Just add what you've experienced. You can add multiple timings after saving and we will calculate an average out of them."
+msgstr ""
+
+#: ajax/add_place.php:264
 msgid "Cancel"
 msgstr ""
 
-#: ajax/add_place.php:270
+#: ajax/add_place.php:271
 #, php-format
 msgid "Your name <i>\"%s\"</i> will be visible for this place."
 msgstr ""
 
-#: ajax/add_place.php:297
+#: ajax/add_place.php:298
 msgid "Adding..."
 msgstr ""
 
-#: ajax/add_place.php:374
+#: ajax/add_place.php:375
 msgid "Thank you!"
 msgstr ""
 
-#: ajax/add_place.php:374
+#: ajax/add_place.php:375
 msgid "Place successfully added to the map."
 msgstr ""
 
-#: ajax/add_place.php:374
+#: ajax/add_place.php:375
 msgid "Place added successfully"
 msgstr ""
 
-#: ajax/add_place.php:383
+#: ajax/add_place.php:384
 msgid "Could not add place due to an error."
 msgstr ""
 
-#: ajax/add_place.php:383
+#: ajax/add_place.php:384
 msgid "Please try again!"
 msgstr ""
 
-#: ajax/add_place.php:383
+#: ajax/add_place.php:384
 msgid "Error"
 msgstr ""
 
@@ -410,7 +442,7 @@ msgid "This is just a preview map. Go to %s for the actual service."
 msgstr ""
 
 #: ajax/place.php:23
-#: ajax/place.php:851
+#: ajax/place.php:853
 msgid "Sorry, but the place cannot be found.<br /><br />The place you are looking for might have been removed or is temporarily unavailable."
 msgstr ""
 
@@ -419,200 +451,183 @@ msgid "Zoom in"
 msgstr ""
 
 # %s = day, eg. 1.2.2010
-#: ajax/place.php:145
+#: ajax/place.php:146
 #, php-format
 msgid "Description written %s"
 msgstr ""
 
-#: ajax/place.php:160
-#: ajax/place.php:182
+#: ajax/place.php:162
+#: ajax/place.php:184
 msgid "No description available for this language."
 msgstr ""
 
-#: ajax/place.php:160
+#: ajax/place.php:162
 msgid "Write one?"
 msgstr ""
 
-#: ajax/place.php:161
-#: ajax/place.php:216
+#: ajax/place.php:163
+#: ajax/place.php:218
 msgid "Save"
 msgstr ""
 
 # %s = URL to a login page
-#: ajax/place.php:184
+#: ajax/place.php:186
 #, php-format
 msgid "You need to be <a href=\"%s\">logged in</a> to add or edit descriptions."
 msgstr ""
 
-#: ajax/place.php:247
+#: ajax/place.php:249
 msgid "1 vote"
 msgstr ""
 
 # %s = number
-#: ajax/place.php:248
+#: ajax/place.php:250
 #, php-format
 msgid "%s votes"
 msgstr ""
 
-#: ajax/place.php:253
-#: ajax/place.php:254
+#: ajax/place.php:255
+#: ajax/place.php:256
 msgid "Vote distribution"
 msgstr ""
 
-#: ajax/place.php:281
+#: ajax/place.php:283
 msgid "Your opinion..."
 msgstr ""
 
-#: ajax/place.php:291
+#: ajax/place.php:293
 msgid "You rated for this place"
 msgstr ""
 
-#: ajax/place.php:323
+#: ajax/place.php:325
 msgid "Rating failed, please try again."
 msgstr ""
 
-#: ajax/place.php:323
+#: ajax/place.php:325
 msgid "Rating failed"
 msgstr ""
 
-#: ajax/place.php:345
-#: ajax/waitingtimes.php:69
-msgid "Waiting time"
-msgstr ""
-
-#: ajax/place.php:349
+#: ajax/place.php:351
 msgid "Show log"
 msgstr ""
 
-#: ajax/place.php:354
+#: ajax/place.php:356
 #, php-format
 msgid "%d experience"
 msgid_plural "%d experiences"
 msgstr[0] ""
 msgstr[1] ""
 
-#: ajax/place.php:362
+#: ajax/place.php:364
 msgid "See log"
 msgstr ""
 
-#: ajax/place.php:367
-msgid "hours"
-msgstr ""
-
-#: ajax/place.php:368
-msgid "minutes"
-msgstr ""
-
-#: ajax/place.php:372
+#: ajax/place.php:374
 msgid "Your experience..."
 msgstr ""
 
-#: ajax/place.php:380
-msgid "Other..."
-msgstr ""
-
-#: ajax/place.php:382
-#: ajax/place.php:386
+#: ajax/place.php:384
+#: ajax/place.php:388
 msgid "Add"
 msgstr ""
 
-#: ajax/place.php:462
+#: ajax/place.php:464
 msgid "Adding a waitingtime failed, please try again."
 msgstr ""
 
-#: ajax/place.php:469
+#: ajax/place.php:471
 msgid "Please add your waiting time first."
 msgstr ""
 
-#: ajax/place.php:507
+#: ajax/place.php:509
 msgid "Comments"
 msgstr ""
 
-#: ajax/place.php:534
-#: ajax/place.php:540
-#: ajax/place.php:654
+#: ajax/place.php:536
+#: ajax/place.php:542
+#: ajax/place.php:656
 msgid "Remove comment permanently"
 msgstr ""
 
-#: ajax/place.php:535
+#: ajax/place.php:537
 msgid "Edit comment"
 msgstr ""
 
-#: ajax/place.php:552
+#: ajax/place.php:554
 msgid "Leave a comment..."
 msgstr ""
 
-#: ajax/place.php:578
-#: ajax/place.php:588
-#: ajax/place.php:630
+#: ajax/place.php:580
+#: ajax/place.php:590
+#: ajax/place.php:632
 msgid "Nickname"
 msgstr ""
 
-#: ajax/place.php:580
+#: ajax/place.php:582
 msgid "You are logged in. Your name will be visible for others."
 msgstr ""
 
-#: ajax/place.php:583
+#: ajax/place.php:585
 msgid "Comment"
 msgstr ""
 
-#: ajax/place.php:604
+#: ajax/place.php:606
 msgid "Please write a comment first."
 msgstr ""
 
-#: ajax/place.php:604
+#: ajax/place.php:606
 msgid "Comment missing"
 msgstr ""
 
-#: ajax/place.php:614
+#: ajax/place.php:616
 msgid "Sending..."
 msgstr ""
 
-#: ajax/place.php:661
+#: ajax/place.php:663
 msgid "Adding a comment failed, please try again."
 msgstr ""
 
-#: ajax/place.php:687
+#: ajax/place.php:689
 msgid "More about this place"
 msgstr ""
 
-#: ajax/place.php:688
+#: ajax/place.php:690
 msgid "Toggle"
 msgstr ""
 
-#: ajax/place.php:729
+#: ajax/place.php:731
 msgid "Added by"
 msgstr ""
 
-#: ajax/place.php:733
+#: ajax/place.php:735
 msgid "Added at"
 msgstr ""
 
-#: ajax/place.php:743
+#: ajax/place.php:745
 msgid "Link to this place:"
 msgstr ""
 
-#: ajax/place.php:782
+#: ajax/place.php:784
 msgid "Latitude"
 msgstr ""
 
-#: ajax/place.php:783
+#: ajax/place.php:785
 msgid "Longitude"
 msgstr ""
 
-#: ajax/place.php:826
+#: ajax/place.php:828
 msgid "Remove place"
 msgstr ""
 
-#: ajax/place.php:829
+#: ajax/place.php:831
 msgid "Edit place"
 msgstr ""
 
-#: ajax/place.php:833
+#: ajax/place.php:835
 msgid "See user"
 msgstr ""
 
-#: ajax/place.php:851
+#: ajax/place.php:853
 msgid "The place cannot be found"
 msgstr ""
 
