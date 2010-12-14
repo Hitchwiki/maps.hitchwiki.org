@@ -532,22 +532,6 @@ class maps_api
 		$continent = country_iso_to_continent($country_iso);
 		if($continent===false) return $this->API_error("Problem with the countrycode.");
 		
-		
-		// Description
-		$descreption_fields = "";
-		$descreptions = "";
-		foreach($settings["valid_languages"] as $code => $name) {
-		
-			if(isset($place["description_".$code]) & !empty($place["description_".$code])) {
-
-				// Build a bit of mysql query
-				$descreption_fields .= '`'.mysql_real_escape_string($code).'`, '; 
-				$descreptions .= "'".mysql_real_escape_string(htmlspecialchars($place["description_".$code]))."', "; 
-			
-			}
-		
-		}
-			
 	
 		// User ID
 		if(isset($place["user_id"])) {
@@ -619,7 +603,6 @@ class maps_api
 												`type`, 
 												`lat`, 
 												`lon`, 
-												".$descreption_fields."
 												`rating`, 
 												`rating_count`, 
 												`waitingtime`, 
@@ -633,7 +616,6 @@ class maps_api
 								".$type.",
 								'".mysql_real_escape_string($place["lat"])."',
 								'".mysql_real_escape_string($place["lon"])."',
-								".$descreptions."
 								".$rating.",
 								".$rating_count.",  
 								".$waitingtime.",
@@ -650,6 +632,33 @@ class maps_api
    		$result["id"] = mysql_insert_id();
    		$result["success"] = true;
    		
+		
+		// Now that we have an ID for the place, save descriptions also
+		foreach($settings["valid_languages"] as $code => $name) {
+		
+			if(isset($place["description_".$code]) & !empty($place["description_".$code])) {
+
+				/*
+				 * Array should include:
+				 * - place_id (required)
+				 * - description (required)
+				 * - user_id (optional)
+				 * - language (e.g. en_UK)
+				 * 
+				 * for more, see addDescription() from this class
+				 */
+				$description["place_id"] = $result["id"];
+				$description["description"] = $place["description_".$code];
+				$description["language"] = $code;
+				
+				if($user_id != "NULL") $description["user_id"] = $user_id;
+				
+				$this->addDescription($description);
+				$description = null;
+			}
+		
+		}
+
    		
    		// Add possible rating to the database
    		if($rating_count != 0) {

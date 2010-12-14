@@ -259,12 +259,9 @@ $user = current_user();
 	<li>
 		<ul>
 			<li>
-			    
-			    <p><small><b>Note:</b> <em>We know about a little bug that causes descriptions to "disappear". They are actually saved, but won't show in just saved place. A fix is on its way and there will be no data loss. Editing descriptions works fine, but no need to add descriptions again to new places by that way. Thanks.</em></small></p>
-			    
+			
 			    <button id="btn_add_place" class="smaller"><?php echo _("Add place"); ?></button>
 			    <button id="btn_cancel" class="smaller"><?php echo _("Cancel"); ?></button>
-			    
 			    
 			    <?php 
 			    if($user["logged_in"]===true) { 
