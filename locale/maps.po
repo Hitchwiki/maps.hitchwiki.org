@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Maps\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-12-14 02:17+0300\n"
-"PO-Revision-Date: 2010-12-14 02:17+0300\n"
+"POT-Creation-Date: 2010-12-15 02:08+0300\n"
+"PO-Revision-Date: 2010-12-15 02:08+0300\n"
 "Last-Translator: Mikael Korpela <mikael@ihminen.org>\n"
 "Language-Team:  <maps@hitchwiki.org>\n"
 "MIME-Version: 1.0\n"
@@ -155,7 +155,7 @@ msgid "Car rental"
 msgstr ""
 
 #: lib/functions.php:1401
-#: ajax/country.php:158
+#: ajax/country.php:159
 msgid "City"
 msgstr ""
 
@@ -294,94 +294,94 @@ msgstr ""
 msgid "Cancel"
 msgstr ""
 
-#: ajax/add_place.php:271
+#: ajax/add_place.php:270
 #, php-format
 msgid "Your name <i>\"%s\"</i> will be visible for this place."
 msgstr ""
 
-#: ajax/add_place.php:298
+#: ajax/add_place.php:297
 msgid "Adding..."
 msgstr ""
 
-#: ajax/add_place.php:375
+#: ajax/add_place.php:374
 msgid "Thank you!"
 msgstr ""
 
-#: ajax/add_place.php:375
+#: ajax/add_place.php:374
 msgid "Place successfully added to the map."
 msgstr ""
 
-#: ajax/add_place.php:375
+#: ajax/add_place.php:374
 msgid "Place added successfully"
 msgstr ""
 
-#: ajax/add_place.php:384
+#: ajax/add_place.php:383
 msgid "Could not add place due to an error."
 msgstr ""
 
-#: ajax/add_place.php:384
+#: ajax/add_place.php:383
 msgid "Please try again!"
 msgstr ""
 
-#: ajax/add_place.php:384
+#: ajax/add_place.php:383
 msgid "Error"
 msgstr ""
 
-#: ajax/country.php:77
+#: ajax/country.php:78
 msgid "About"
 msgstr ""
 
-#: ajax/country.php:88
+#: ajax/country.php:89
 msgid "Places in Maps"
 msgstr ""
 
-#: ajax/country.php:92
+#: ajax/country.php:93
 msgid "Cities in Maps"
 msgstr ""
 
-#: ajax/country.php:98
+#: ajax/country.php:99
 msgid "Capital"
 msgstr ""
 
-#: ajax/country.php:110
+#: ajax/country.php:111
 msgid "Continent"
 msgstr ""
 
-#: ajax/country.php:114
+#: ajax/country.php:115
 msgid "Area"
 msgstr ""
 
-#: ajax/country.php:120
+#: ajax/country.php:121
 msgid "Population"
 msgstr ""
 
-#: ajax/country.php:127
+#: ajax/country.php:128
 msgid "Currency"
 msgstr ""
 
 # %s = number
-#: ajax/country.php:154
+#: ajax/country.php:155
 #, php-format
 msgid "Top %s cities"
 msgstr ""
 
-#: ajax/country.php:159
+#: ajax/country.php:160
 msgid "Places"
 msgstr ""
 
-#: ajax/country.php:192
+#: ajax/country.php:193
 msgid "Map started to load. This might take some time."
 msgstr ""
 
-#: ajax/country.php:192
+#: ajax/country.php:193
 msgid "Show cities on the map"
 msgstr ""
 
-#: ajax/country.php:192
+#: ajax/country.php:193
 msgid "Experimental, might be slow."
 msgstr ""
 
-#: ajax/country.php:197
+#: ajax/country.php:198
 msgid "Public transport"
 msgstr ""
 
@@ -442,7 +442,7 @@ msgid "This is just a preview map. Go to %s for the actual service."
 msgstr ""
 
 #: ajax/place.php:23
-#: ajax/place.php:853
+#: ajax/place.php:951
 msgid "Sorry, but the place cannot be found.<br /><br />The place you are looking for might have been removed or is temporarily unavailable."
 msgstr ""
 
@@ -592,42 +592,85 @@ msgid "More about this place"
 msgstr ""
 
 #: ajax/place.php:690
+#: ajax/place.php:890
 msgid "Toggle"
 msgstr ""
 
-#: ajax/place.php:731
-msgid "Added by"
+#: ajax/place.php:734
+msgid "Temperature"
 msgstr ""
 
 #: ajax/place.php:735
-msgid "Added at"
+msgid "Humidity"
 msgstr ""
 
-#: ajax/place.php:745
-msgid "Link to this place:"
+#: ajax/place.php:736
+msgid "Wind"
+msgstr ""
+
+#: ajax/place.php:736
+msgid "Direction"
+msgstr ""
+
+#: ajax/place.php:736
+msgid "Intensity"
+msgstr ""
+
+#: ajax/place.php:736
+msgid "m/s"
+msgstr ""
+
+#: ajax/place.php:737
+msgid "Air pressure"
+msgstr ""
+
+#: ajax/place.php:780
+msgid "Added by"
 msgstr ""
 
 #: ajax/place.php:784
+msgid "Added at"
+msgstr ""
+
+#: ajax/place.php:795
+msgid "Link to this place:"
+msgstr ""
+
+#: ajax/place.php:812
+#, php-format
+msgid "Weather near %s"
+msgstr ""
+
+#: ajax/place.php:815
+msgid "Weather from Wunderground.com"
+msgstr ""
+
+#: ajax/place.php:848
 msgid "Latitude"
 msgstr ""
 
-#: ajax/place.php:785
+#: ajax/place.php:849
 msgid "Longitude"
 msgstr ""
 
-#: ajax/place.php:828
+#: ajax/place.php:889
+#: admin/index.php:101
+msgid "Administration"
+msgstr ""
+
+#: ajax/place.php:933
 msgid "Remove place"
 msgstr ""
 
-#: ajax/place.php:831
+#: ajax/place.php:934
 msgid "Edit place"
 msgstr ""
 
-#: ajax/place.php:835
+#: ajax/place.php:935
 msgid "See user"
 msgstr ""
 
-#: ajax/place.php:853
+#: ajax/place.php:951
 msgid "The place cannot be found"
 msgstr ""
 
@@ -664,7 +707,6 @@ msgid "Date"
 msgstr ""
 
 #: ajax/waitingtimes.php:70
-#: admin/views/users.php:179
 msgid "User"
 msgstr ""
 
@@ -685,7 +727,6 @@ msgid "No waiting time for this place added yet."
 msgstr ""
 
 #: admin/index.php:53
-#: admin/views/users.php:187
 msgid "Admin"
 msgstr ""
 
@@ -701,14 +742,9 @@ msgstr ""
 msgid "Planet"
 msgstr ""
 
-#: admin/index.php:101
-msgid "Administration"
-msgstr ""
-
 #: admin/views/new_language.php:12
 #: admin/views/new_language.php:24
 #: admin/views/places.php:13
-#: admin/views/users.php:116
 msgid "Alert"
 msgstr ""
 
@@ -1003,23 +1039,27 @@ msgstr ""
 msgid "Spanish"
 msgstr ""
 
-#: views/pages/help.php:81
-msgid "Swedish"
+#: views/pages/help.php:80
+msgid "Chinese"
 msgstr ""
 
 #: views/pages/help.php:82
-msgid "Lithuanian"
+msgid "Swedish"
 msgstr ""
 
 #: views/pages/help.php:83
-msgid "French"
+msgid "Lithuanian"
 msgstr ""
 
 #: views/pages/help.php:84
+msgid "French"
+msgstr ""
+
+#: views/pages/help.php:85
 msgid "Polish"
 msgstr ""
 
-#: views/pages/help.php:88
+#: views/pages/help.php:89
 msgid "Contact us"
 msgstr ""
 
