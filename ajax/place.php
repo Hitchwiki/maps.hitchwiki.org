@@ -693,17 +693,65 @@ if($place["error"] !== true):
 					// Toggle search place
 					$(function() {
 					
+						var place_weather_info = $("#extralinks #place_weather #place_weather_info");
+						
 						$("#more_about_title, #toggle_extralinks").click(function(e){
 							e.preventDefault();
 						
 							if($("#extralinks").is(":hidden")) {
 								
+								maps_debug("Open place's extra info.");
+											
 								$("#toggle_extralinks").removeClass("ui-icon-triangle-1-e").addClass("ui-icon-triangle-1-s"); 
 								$(this).blur();
 								$("#extralinks").slideDown();
 								
+								
+								// If no weather info yet, get data from wunderground.com
+								if(place_weather_info.hasClass("no_weather")) {
+								
+									maps_debug("Loading the weather info for the place from wunderground...");
+									
+									//$.getJSON('ajax/wefather.php?lat=<?php echo $place["lat"]; ?>&lon=<?php echo $place["lon"]; ?>', function(data) {	
+									$.ajax({
+										// Define AJAX properties.
+										method: "get",
+										url: 'ajax/weather.php?lat=<?php echo $place["lat"]; ?>&lon=<?php echo $place["lon"]; ?>',
+										dataType: "json",
+										timeout: 7000, // timeout in milliseconds; 1s = 1000ms
+									 
+										// Got a place
+										success: function(data){		
+									
+									    if(data.error==true) {
+									        maps_debug("PHP Error when loading weather information.");
+									        place_weather_info.html('<b><i><?php echo _("Error"); ?></i></b>').delay(5000).parent().fadeOut('slow');
+									    }
+									    else {
+										    maps_debug("Got the weather!");
+										    place_weather_info.html('<img src="'+data.weather.icon+'" alt="" class="align_right" />'+
+										    		data.weather.status+'<br />'+
+										    		'<b><?php echo _("Temperature"); ?>:</b> '+data.weather.temperature_c+'&deg;C / '+data.weather.temperature_f+'&deg;F<br />'+
+										    		'<b><?php echo _("Humidity"); ?>:</b> '+data.weather.relative_humidity+'<br />'+
+										    		'<b><?php echo _("Wind"); ?>:</b> <span title="<?php echo _("Direction"); ?>">'+data.weather.wind_degrees+'&deg;</span>, <span title="<?php echo _("Intensity"); ?>">'+data.weather.wind_mph+'<?php echo _("m/s"); ?></span><br />'+
+										    		'<b><?php echo _("Air pressure"); ?>:</b> '+data.weather.pressure_in+' in ('+data.weather.pressure_mb+' mb)');
+									    }
+									    
+										},
+										// Didn't find anything...
+										error: function( objAJAXRequest, strError ){
+											maps_debug("JSON weather query didn't find anything. Error type: "+strError);
+									        place_weather_info.html('<b><i><?php echo _("Error"); ?></i></b>').delay(5000).parent().fadeOut('slow');
+										}
+									});
+									
+								}
+								
+								
 							} else {
 							
+								maps_debug("Close place's extra info.");
+								
 								$("#toggle_extralinks").removeClass("ui-icon-triangle-1-s").addClass("ui-icon-triangle-1-e"); 
 								$(this).blur();
 								$("#extralinks").slideUp();
@@ -717,6 +765,7 @@ if($place["error"] !== true):
 	    	
 	    	<div class="hidden" id="extralinks">
 	    	
+	    	<!-- meta info -->
 			<li>
 				<?php
 					// When marker was added and who added it
@@ -741,6 +790,7 @@ if($place["error"] !== true):
 				?>
 			</li>
 	    	
+	    	<!-- place link -->
 			<li>
 				<div class="icon link"><label for="link_place"><small><?php echo _("Link to this place:"); ?></small></label></div>
 				<input type="text" id="link_place" value="<?php echo htmlspecialchars($place["link"]); ?>" class="copypaste" />
@@ -754,11 +804,23 @@ if($place["error"] !== true):
 				</script>
 				
 			</li>
+			
 	    	
+	    	<!-- Weather info will be loaded on fly when opening #extralinks -->
+	    	<li id="place_weather">
+	    		<small>
+	    			<b class="icon weather" style="padding-top: 5px;display:block;"><?php printf(_("Weather near %s"), $place["location"]["locality"]); ?></b>
+	    			<span id="place_weather_info" class="no_weather"><img src="static/gfx/loading.gif" alt="<?php echo _("Loading"); ?>" /></span>
+	    			<br />
+	    			<a href="http://www.wunderground.com/cgi-bin/findweather/getForecast?query=<?php echo $place["lat"]; ?>,<?php echo $place["lon"]; ?>" target="_blank"><?php echo _("Weather from Wunderground.com"); ?></a>
+	    		</small>
+	    	</li>
+	    	
+	    	<!-- city info -->
 	    	<?php if(!empty($place["location"]["locality"])): ?>
 			<li>
 	    		<small>
-	    			<b class="icon building" style="padding-top: 3px;display:block;"><?php echo $place["location"]["locality"]; ?></b>
+	    			<b class="icon building" style="padding-top: 5px;display:block;"><?php echo $place["location"]["locality"]; ?></b>
 	    			<a target="_blank" href="http://hitchwiki.org/en/index.php?title=Special%3ASearch&search=<?php echo urlencode($place["location"]["locality"]); ?>&go=Go">Hitchwiki</a>, 
 	    			<a target="_blank" href="http://en.wikipedia.org/wiki/Special:Search?search=<?php echo urlencode($place["location"]["locality"]); ?>">Wikipedia</a>, 
 	    			<a target="_blank" href="http://wikitravel.org/en/Special:Search?search=<?php echo urlencode($place["location"]["locality"]); ?>&go=Go">Wikitravel</a>
@@ -766,10 +828,11 @@ if($place["error"] !== true):
 	    	</li>
 	    	<?php endif; ?>
 
+			<!-- country info -->
 	    	<?php if(!empty($place["location"]["country"]["name"])): ?>
 	    	<li>
 	    		<small>
-	    			<b class="icon world" style="padding-top: 3px;display:block;"><?php echo $place["location"]["country"]["name"]; ?></b>
+	    			<b class="icon world" style="padding-top: 5px;display:block;"><?php echo $place["location"]["country"]["name"]; ?></b>
 	    			<a target="_blank" href="http://hitchwiki.org/en/index.php?title=Special%3ASearch&search=<?php echo urlencode($place["location"]["country"]["name"]); ?>&go=Go">Hitchwiki</a>, 
 	    			<a target="_blank" href="http://en.wikipedia.org/wiki/Special:Search?search=<?php echo urlencode($place["location"]["country"]["name"]); ?>">Wikipedia</a>, 
 	    			<a target="_blank" href="http://wikitravel.org/en/Special:Search?search=<?php echo urlencode($place["location"]["country"]["name"]); ?>&go=Go">Wikitravel</a>, 
@@ -778,6 +841,7 @@ if($place["error"] !== true):
 			</li>
 	    	<?php endif; ?>
 	    	
+	    	<!-- coordinate related info -->
 	    	<li>
 				<small id="coordinates">
 				    <b class="icon map" style="padding-top: 3px;display:block;">
@@ -822,20 +886,54 @@ if($place["error"] !== true):
 	<li>
 		<ul>
 			<li>
-				<small class="light icon wrench" style="display: block;">
+				<h4 class="icon wrench" style="display:inline;" id="for_admins_title"><?php echo _("Administration"); ?></h4>
+				<a href="#" id="toggle_for_admins" class="ui-icon ui-icon-triangle-1-e align_right" title="<?php echo _("Toggle"); ?>"></a>
 				
-					&nbsp;
-					<a href="admin/?page=places&amp;remove=<?php echo $place["id"]; ?>" onclick="confirm('Are you sure?');"><?php echo _("Remove place"); ?></a> 
+				<script type="text/javascript">
+					// Toggle search place
+					$(function() {
 					
-					&bull; 
-					<a href="admin/?page=places&amp;edit=<?php echo $place["id"]; ?>"><?php echo _("Edit place"); ?></a> 
+						$("#for_admins_title, #toggle_for_admins").click(function(e){
+							e.preventDefault();
+						
+							if($("#for_admins").is(":hidden")) {
+								
+								$("#toggle_for_admins").removeClass("ui-icon-triangle-1-e").addClass("ui-icon-triangle-1-s"); 
+								$(this).blur();
+								$("#for_admins").slideDown();
+								
+							} else {
+							
+								$("#toggle_for_admins").removeClass("ui-icon-triangle-1-s").addClass("ui-icon-triangle-1-e"); 
+								$(this).blur();
+								$("#for_admins").slideUp();
+							}
+						
+						});
 					
-					<?php if(!empty($place["user"]["id"])): ?>
-					&bull; 
-					<a href="admin/?users&amp;user=<?php echo $place["user"]["id"]; ?>"><?php echo _("See user"); ?></a> 
-					<?php endif; ?>
-					
-				</small>
+					});
+				</script>
+			</li>
+	    	
+	    	<div class="hidden" id="for_admins">
+	    	
+			<li>
+					<ul>
+						<li>
+							<label for="place_id">Place ID:</label> <input type="text" size="6" style="width: 50px;" value="<?php echo $place["id"]; ?>" id="place_id" class="copypaste" />
+							<script type="text/javascript">
+								$(function() {
+									// Select all from input on focus
+									$("#place_id").focus(function(){
+									    this.select();
+									});
+								});
+							</script>
+						</li>
+						<li><a href="admin/?page=places&amp;remove=<?php echo $place["id"]; ?>" onclick="confirm('Are you sure?');"><?php echo _("Remove place"); ?></a></li>
+						<li><a href="admin/?page=places&amp;edit=<?php echo $place["id"]; ?>"><?php echo _("Edit place"); ?></a></li>
+						<?php if(!empty($place["user"]["id"])): ?><li><a href="admin/?users&amp;user=<?php echo $place["user"]["id"]; ?>"><?php echo _("See user"); ?></a></li><?php endif; ?>
+					</ul>
 			</li>
 		</ul>
 	</li>

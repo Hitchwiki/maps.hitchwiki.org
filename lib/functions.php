@@ -895,7 +895,7 @@ function ISO_to_country($iso, $db=false, $lang="") {
 		
 		// Check if language is valid (if not, use default)
 		// Settings comes from config.php
-		if(empty($settings["valid_languages"][$lang])) $lang = $settings["default_language"];
+		if(empty($settings["valid_languages"][$lang])) $lang = $settings["language"];
 
 
 		if(is_array($db) && !empty($db)) {
@@ -906,9 +906,9 @@ function ISO_to_country($iso, $db=false, $lang="") {
 		
 			// Gather data
 			start_sql();
-			$result = mysql_query("SELECT iso,".mysql_real_escape_string($lang)." FROM `t_countries` WHERE iso = '".mysql_real_escape_string(strtoupper($iso))."' LIMIT 1");
+			$result = mysql_query("SELECT `iso`,`".mysql_real_escape_string($lang)."` FROM `t_countries` WHERE iso = '".mysql_real_escape_string(strtoupper($iso))."' LIMIT 1");
 			if (!$result) {
-	   			die("query failed.");
+	   			return false;
 			}
 			
 			// Result

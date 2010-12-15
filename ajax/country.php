@@ -22,6 +22,7 @@ if(isset($_GET["country"]) && strlen($_GET["country"]) == 2) {
 		
 	$country["iso"] = 			htmlspecialchars(strtoupper($_GET["country"]));
 	$country["name"] = 			ISO_to_country($country["iso"], $lang);
+	$country["name_en_UK"] = 	ISO_to_country($country["iso"], 'en_UK');
 	$country["places"] = 		total_places($country["iso"]);
 	$country["hitchability"] = 	"#";
 	
@@ -131,10 +132,10 @@ elseif($format == 'html') {
 	    	
 	    	<tr>
 	    		<td colspan="2"><small>
-	    			<a target="_blank" href="http://hitchwiki.org/en/index.php?title=Special%3ASearch&search=<?php echo urlencode($country["name"]); ?>&go=Go">Hitchwiki</a>, 
-	    			<a target="_blank" href="http://en.wikipedia.org/wiki/Special:Search?search=<?php echo urlencode($country["name"]); ?>">Wikipedia</a>, 
-	    			<a target="_blank" href="http://wikitravel.org/en/Special:Search?search=<?php echo urlencode($country["name"]); ?>&go=Go">Wikitravel</a>, 
-	    			<a target="_blank" href="http://www.couchsurfing.org/statistics.html?country_name=<?php echo urlencode($country["name"]); ?>">CouchSurfing</a>
+	    			<a target="_blank" href="http://hitchwiki.org/en/index.php?title=Special%3ASearch&search=<?php echo urlencode($country["name_en_UK"]); ?>&go=Go">Hitchwiki</a>, 
+	    			<a target="_blank" href="http://en.wikipedia.org/wiki/Special:Search?search=<?php echo urlencode($country["name_en_UK"]); ?>">Wikipedia</a>, 
+	    			<a target="_blank" href="http://wikitravel.org/en/Special:Search?search=<?php echo urlencode($country["name_en_UK"]); ?>&go=Go">Wikitravel</a>, 
+	    			<a target="_blank" href="http://www.couchsurfing.org/statistics.html?country_name=<?php echo urlencode($country["name_en_UK"]); ?>">CouchSurfing</a>
 	    		</small></td>
 	    	</tr>
 	    	
