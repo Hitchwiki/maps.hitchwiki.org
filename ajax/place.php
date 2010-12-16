@@ -712,6 +712,8 @@ if($place["error"] !== true):
 								
 									maps_debug("Loading the weather info for the place from wunderground...");
 									
+									var weather_error_html = '<b><i><?php echo _("Error"); ?></i></b>'; // TODO: something nicer to here, since might be a bit common error to show
+									 
 									//$.getJSON('ajax/wefather.php?lat=<?php echo $place["lat"]; ?>&lon=<?php echo $place["lon"]; ?>', function(data) {	
 									$.ajax({
 										// Define AJAX properties.
@@ -719,8 +721,6 @@ if($place["error"] !== true):
 										url: 'ajax/weather.php?lat=<?php echo $place["lat"]; ?>&lon=<?php echo $place["lon"]; ?>',
 										dataType: "json",
 										timeout: 7000, // timeout in milliseconds; 1s = 1000ms
-									 
-									 	var weather_error_html = '<b><i><?php echo _("Error"); ?></i></b>'; // TODO: something nicer to here, since might be a bit common error to show
 									 
 										// Got a place
 										success: function(data){		
@@ -870,6 +870,7 @@ if($place["error"] !== true):
 	/*
 	 * Facebook btn will be published only when webpage is at it's final destination, so we won't get wrong URL history to anywhere.
 	 *
+	*/ ?>
 	<li>
 		<ul>
 			<li title="<?php echo _("Recommend this place for your Facebook contacts"); ?>" id="share_place">
@@ -879,7 +880,6 @@ if($place["error"] !== true):
 			
 		</ul>
 	</li>
-	*/ ?>
 
 
 	<?php 

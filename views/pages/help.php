@@ -42,7 +42,7 @@
 		<li><a href="http://plugins.jquery.com/project/cookie">jQuery Cookie Plugin</a></li>
 		<li><a href="http://plugins.jquery.com/project/pstrength">jQuery Password Strength Field Plugin</a></li>
 		<li><a href="http://code.google.com/p/jquery-json/">jQuery JSON</a></li>
-		<li><a href="http://www.famfamfam.com/lab/icons/">Fam Fam Fam icons</a></li>
+		<li><a href="http://www.famfamfam.com/lab/icons/">Fam Fam Fam Silk &amp; Flag icons</a></li>
 		<li><a href="http://www.aiga.org/content.cfm/symbol-signs">Aiga - Symbol Signs</a></li>
 	</ul>
 	

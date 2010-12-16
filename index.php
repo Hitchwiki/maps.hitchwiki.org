@@ -537,7 +537,7 @@ $title .= 'Hitchwiki '.gettext("Maps");
 				    			</select>
 				    			<input type="submit" id="submit" class="button" value="&raquo;" />
 				    		</form>
-				    		<small><a href="./?page=translate" id="translate" class="pagelink"><?php echo _("Help us with translating!"); ?></a></small>
+				    		<a href="./?page=translate" id="translate" class="pagelink"><small class="light"><?php echo _("Help us with translating!"); ?></small></a>
 				    		</li>
 						</ul>
 					</li>

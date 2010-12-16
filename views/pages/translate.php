@@ -6,7 +6,7 @@
 // Print out a list of current languages
 foreach($settings["valid_languages"] as $code => $lang) {
 
-	echo '<li><a href="./?page=translate&amp;lang='.$code.'" title="'._("Choose language").'"><img class="flag" alt="" src="static/gfx/flags/png/'.strtolower(substr($code, -2)).'.png" /> '.$lang.'</a> ('.$settings["languages_in_english"][$code].')</li>';
+	echo '<li><a href="./?page=translate&amp;lang='.$code.'" title="'._("Choose language").'"><img class="flag" alt="" src="static/gfx/flags/'.strtolower(substr($code, -2)).'.png" /> '.$lang.'</a> ('.$settings["languages_in_english"][$code].')</li>';
 
 }
 
