@@ -10,18 +10,14 @@
  * Initialize Maps
  */
 if(@is_file('config.php')) require_once "config.php";
-else $settings["maintenance_page"] = true;
-
+else { $settings["non_maintenance_ip"] = array(); $settings["maintenance_page"] = true; }
 
 /*
  * Put up a maintenance -sign
  * Set it up from config.php or test it from ./?maintenance
  */
-if(isset($_GET["maintenance"])) $settings["maintenance_page"] = true;
-if($settings["maintenance_page"]===true && !in_array($_SERVER['REMOTE_ADDR'], $settings["non_maintenance_ip"])) {
-	@include("maintenance_page.php");
-	exit;
-}
+if(isset($_GET["maintenance"])) { $settings["non_maintenance_ip"] = array(); $settings["maintenance_page"] = true; }
+if($settings["maintenance_page"]===true && !in_array($_SERVER['REMOTE_ADDR'], $settings["non_maintenance_ip"])) { @include("maintenance_page.php"); exit; }
 
 
 
