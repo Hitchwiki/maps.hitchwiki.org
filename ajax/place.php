@@ -870,7 +870,7 @@ if($place["error"] !== true):
 	/*
 	 * Facebook btn will be published only when webpage is at it's final destination, so we won't get wrong URL history to anywhere.
 	 *
-	*/ ?>
+	 * Tried to publish it, but it just gives me "recommends Hitchwiki Maps" and link to /maps/ - not to the place. Trying again later. - 16.12.2010 Mikael
 	<li>
 		<ul>
 			<li title="<?php echo _("Recommend this place for your Facebook contacts"); ?>" id="share_place">
@@ -880,6 +880,7 @@ if($place["error"] !== true):
 			
 		</ul>
 	</li>
+	*/ ?>
 
 
 	<?php 
