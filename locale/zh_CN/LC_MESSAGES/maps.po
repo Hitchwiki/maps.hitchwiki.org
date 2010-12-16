@@ -2,7 +2,7 @@
 # This file is distributed under the same license as the Maps package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2010-12-16 07:35:02+0000\n"
+"PO-Revision-Date: 2010-12-16 23:40:03+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -10,43 +10,55 @@ msgstr ""
 "X-Generator: GlotPress/0.1\n"
 "Project-Id-Version: Maps\n"
 
-#: ajax/place.php:736
+#: views/pages/help.php:73 views/pages/help.php:89
+msgid "English"
+msgstr ""
+
+#: views/pages/help.php:85
+msgid "Latvian"
+msgstr ""
+
+#: views/pages/help.php:89
+msgid "Pirate"
+msgstr ""
+
+#: ajax/place.php:738
 msgid "Wind"
 msgstr "风"
 
-#: ajax/place.php:734
+#: ajax/place.php:736
 msgid "Temperature"
 msgstr "温度"
 
-#: ajax/place.php:735
+#: ajax/place.php:737
 msgid "Humidity"
 msgstr "湿度"
 
-#: ajax/place.php:736
+#: ajax/place.php:738
 msgid "Intensity"
 msgstr "密度"
 
-#: ajax/place.php:736
+#: ajax/place.php:738
 msgid "Direction"
 msgstr "方向"
 
-#: ajax/place.php:812
+#: ajax/place.php:814
 msgid "Weather near %s"
 msgstr "天气相对%s"
 
-#: ajax/place.php:737
+#: ajax/place.php:739
 msgid "Air pressure"
 msgstr "气压"
 
-#: ajax/place.php:815
+#: ajax/place.php:817
 msgid "Weather from Wunderground.com"
 msgstr "天气预报来自Wunderground.com"
 
-#: views/pages/help.php:80
+#: views/pages/help.php:81
 msgid "Chinese"
 msgstr "中文"
 
-#: ajax/place.php:736
+#: ajax/place.php:738
 msgid "m/s"
 msgstr "米每秒"
 
@@ -134,47 +146,47 @@ msgstr "描述这个问题"
 msgid "Send"
 msgstr "发送"
 
-#: index.php:277 index.php:282 index.php:364
+#: index.php:273 index.php:278 index.php:360
 msgid "Find good places for hitchhiking and add your own"
 msgstr "找到一个好的搭车点，作为你自己的"
 
-#: views/pages/help.php:76
+#: views/pages/help.php:77
 msgid "Russian"
 msgstr "俄文"
 
-#: views/pages/help.php:74
+#: views/pages/help.php:75
 msgid "German"
 msgstr "德文"
 
-#: views/pages/help.php:75
+#: views/pages/help.php:76
 msgid "Dutch"
 msgstr "荷兰文"
 
-#: views/pages/help.php:85
+#: views/pages/help.php:84
 msgid "Polish"
 msgstr "波兰文"
 
-#: views/pages/help.php:84
+#: views/pages/help.php:87
 msgid "French"
 msgstr "法文"
 
-#: views/pages/help.php:83
+#: views/pages/help.php:82
 msgid "Lithuanian"
 msgstr "立陶宛文"
 
-#: views/pages/help.php:82
+#: views/pages/help.php:86
 msgid "Swedish"
 msgstr "瑞典文"
 
-#: views/pages/help.php:79
+#: views/pages/help.php:80
 msgid "Spanish"
 msgstr "西班牙文"
 
-#: views/pages/help.php:78
+#: views/pages/help.php:79
 msgid "Portuguese"
 msgstr "葡萄牙文"
 
-#: views/pages/help.php:77
+#: views/pages/help.php:78
 msgid "Romanian"
 msgstr "罗马尼亚文"
 
@@ -242,19 +254,19 @@ msgstr "去这个地方"
 msgid "Inter-city / international transportation"
 msgstr "城际或国际交通"
 
-#: views/pages/why_register.php:1 index.php:442
+#: views/pages/why_register.php:1 index.php:438
 msgid "Why register?"
 msgstr "为什么注册啊？"
 
-#: index.php:549
+#: index.php:547
 msgid "http://creativecommons.org/licenses/by-sa/3.0/"
 msgstr "http://creativecommons.org/licenses/by-sa/3.0/"
 
-#: index.php:504
+#: index.php:501
 msgid "Download"
 msgstr "下载"
 
-#: index.php:503
+#: index.php:500
 msgid "Link here"
 msgstr "链接在这"
 
@@ -579,11 +591,11 @@ msgstr "写一条么？"
 msgid "Save"
 msgstr "保存"
 
-#: ajax/place.php:780
+#: ajax/place.php:782
 msgid "Added by"
 msgstr "由...添加"
 
-#: ajax/place.php:784
+#: ajax/place.php:786
 msgid "Added at"
 msgstr "加在"
 
@@ -706,39 +718,39 @@ msgstr "添加评论失败，再试一下吧"
 msgid "More about this place"
 msgstr "这个地方的详情"
 
-#: ajax/place.php:690 ajax/place.php:890
+#: ajax/place.php:690 ajax/place.php:893
 msgid "Toggle"
 msgstr "切换"
 
-#: ajax/place.php:795
+#: ajax/place.php:797
 msgid "Link to this place:"
 msgstr "这个地方的链接："
 
-#: ajax/place.php:848
+#: ajax/place.php:850
 msgid "Latitude"
 msgstr "纬度"
 
-#: ajax/place.php:849
+#: ajax/place.php:851
 msgid "Longitude"
 msgstr "经度"
 
-#: ajax/place.php:933
+#: ajax/place.php:936
 msgid "Remove place"
 msgstr "删除地点"
 
-#: ajax/place.php:934
+#: ajax/place.php:937
 msgid "Edit place"
 msgstr "编辑地点"
 
-#: ajax/place.php:935
+#: ajax/place.php:938
 msgid "See user"
 msgstr "查看用户"
 
-#: ajax/place.php:23 ajax/place.php:951
+#: ajax/place.php:23 ajax/place.php:954
 msgid "Sorry, but the place cannot be found.<br /><br />The place you are looking for might have been removed or is temporarily unavailable."
 msgstr "抱歉！找不到这个地方<br /><br /> 你找的这个可能被删除了或者暂时不可用"
 
-#: ajax/place.php:951
+#: ajax/place.php:954
 msgid "The place cannot be found"
 msgstr "找不到这个地方"
 
@@ -798,7 +810,7 @@ msgstr "日志"
 msgid "Planet"
 msgstr "星球"
 
-#: ajax/place.php:889 admin/index.php:101
+#: ajax/place.php:892 admin/index.php:101
 msgid "Administration"
 msgstr "管理"
 
@@ -1032,11 +1044,11 @@ msgstr "参与者"
 msgid "Translators"
 msgstr "译者"
 
-#: views/pages/help.php:73
+#: views/pages/help.php:74
 msgid "Finnish"
 msgstr "完成"
 
-#: views/pages/help.php:89
+#: views/pages/help.php:92
 msgid "Contact us"
 msgstr "联系我们"
 
@@ -1068,12 +1080,12 @@ msgstr "公共交通目录"
 msgid "Find timetables for the public transport."
 msgstr "找到公共交通时刻表"
 
-#: views/pages/settings.php:8 index.php:380
+#: views/pages/settings.php:8 index.php:376
 msgid "Settings"
 msgstr "设置"
 
-#: views/pages/settings.php:29 views/pages/translate.php:9 index.php:522
-#: index.php:524
+#: views/pages/settings.php:29 views/pages/translate.php:9 index.php:520
+#: index.php:522
 msgid "Choose language"
 msgstr "选择语言"
 
@@ -1089,7 +1101,7 @@ msgstr "使用地图功能"
 msgid "Default map layer"
 msgstr "默认地图页面"
 
-#: views/pages/settings.php:65 index.php:655
+#: views/pages/settings.php:65 index.php:653
 msgid "Default"
 msgstr "默认"
 
@@ -1177,7 +1189,7 @@ msgstr "重新设置取消"
 msgid "You must be logged in to edit settings."
 msgstr "你必须登录才能编辑"
 
-#: views/pages/statistics.php:1 index.php:510
+#: views/pages/statistics.php:1 index.php:508
 msgid "Statistics"
 msgstr "数据"
 
@@ -1205,7 +1217,7 @@ msgstr "地点密度"
 msgid "Hitchwiki Maps is currently available in %s languages"
 msgstr "搭车百科地图目前有%s种语言"
 
-#: views/pages/translate.php:16 index.php:538
+#: views/pages/translate.php:16 index.php:536
 msgid "Help us with translating!"
 msgstr "帮助我们翻译吧！"
 
@@ -1225,7 +1237,7 @@ msgstr ""
 msgid "Visible only for admins"
 msgstr ""
 
-#: views/pages/users.php:35 index.php:513
+#: views/pages/users.php:35 index.php:511
 msgid "Admins"
 msgstr ""
 
@@ -1269,15 +1281,15 @@ msgstr ""
 msgid "Roads"
 msgstr ""
 
-#: index.php:107
+#: index.php:103
 msgid "a Hitchhiking spot in"
 msgstr ""
 
-#: index.php:262
+#: index.php:258
 msgid "Sorry, but the place cannot be found."
 msgstr ""
 
-#: index.php:262
+#: index.php:258
 msgid "The place you are looking for might have been removed or is temporarily unavailable."
 msgstr ""
 
@@ -1285,123 +1297,123 @@ msgstr ""
 msgid "Help & About"
 msgstr ""
 
-#: index.php:361
+#: index.php:357
 msgid "Community"
 msgstr ""
 
-#: index.php:379
+#: index.php:375
 msgid "Profile"
 msgstr ""
 
-#: index.php:381
+#: index.php:377
 msgid "Logout"
 msgstr ""
 
-#: index.php:435
+#: index.php:431
 msgid "Hello from %s"
 msgstr ""
 
-#: index.php:443
+#: index.php:439
 msgid "Register!"
 msgstr ""
 
-#: index.php:446
+#: index.php:442
 msgid "Login"
 msgstr ""
 
-#: index.php:469
+#: index.php:465
 msgid "Find places"
 msgstr ""
 
-#: index.php:474
+#: index.php:470
 msgid "Search"
 msgstr ""
 
-#: index.php:482
+#: index.php:478
 msgid "Nearby places from"
 msgstr ""
 
-#: index.php:484
+#: index.php:480
 msgid "Show the city on the map"
 msgstr ""
 
-#: index.php:485
+#: index.php:481
 msgid "Show the state on the map"
 msgstr ""
 
-#: index.php:486
+#: index.php:482
 msgid "Show the country on the map"
 msgstr ""
 
-#: index.php:495
+#: index.php:491
 msgid "Ooh! New Maps!"
 msgstr ""
 
-#: index.php:501 index.php:617
+#: index.php:497 index.php:615
 msgid "Tools"
 msgstr ""
 
-#: views/pages/users.php:1 index.php:507
+#: views/pages/users.php:1 index.php:505
 msgid "Members"
 msgstr ""
 
-#: index.php:549
+#: index.php:547
 msgid "Licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License"
 msgstr ""
 
-#: index.php:555
+#: index.php:553
 msgid "Contact us!"
 msgstr ""
 
-#: index.php:559
+#: index.php:557
 msgid "Developers"
 msgstr ""
 
-#: index.php:563
+#: index.php:561
 msgid "API"
 msgstr ""
 
-#: index.php:604
+#: index.php:602
 msgid "Turn JavaScript on from your browser."
 msgstr ""
 
-#: index.php:624
+#: index.php:622
 msgid "Navigate"
 msgstr ""
 
-#: index.php:629
+#: index.php:627
 msgid "Measure distance"
 msgstr ""
 
-#: index.php:634
+#: index.php:632
 msgid "Measure area"
 msgstr ""
 
-#: index.php:648
+#: index.php:646
 msgid "Measure"
 msgstr ""
 
-#: index.php:652
+#: index.php:650
 msgid "Show markers after zoom level"
 msgstr ""
 
-#: index.php:658
+#: index.php:656
 msgid "Continent level"
 msgstr ""
 
-#: index.php:659
+#: index.php:657
 msgid "Country level"
 msgstr ""
 
-#: index.php:660
+#: index.php:658
 msgid "City level"
 msgstr ""
 
-#: index.php:661
+#: index.php:659
 msgid "Street level"
 msgstr ""
 
-#: index.php:679
+#: index.php:677
 msgid "Map"
 msgstr ""
 
