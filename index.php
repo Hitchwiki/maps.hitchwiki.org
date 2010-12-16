@@ -499,10 +499,12 @@ $title .= 'Hitchwiki '.gettext("Maps");
 							<li><a href="./?page=public_transport" id="public_transport" class="icon pagelink underground"><?php echo _("Public transport"); ?></a></li>
 							<li><a href="./?page=countries" id="countries" class="icon world pagelink"><?php echo _("Countries"); ?></a></li>
 							<li><a href="#" id="tools" class="icon lorry"><?php echo _("Tools"); ?></a></li>
-							<!--
-							<li><a href="#" id="link_here" class="icon link cardlink"><?php echo _("Link here"); ?></a></li>
-							<li><a href="#" id="download" class="icon page_white_put cardlink"><?php echo _("Download"); ?></a></li>
-							-->
+							
+							<?php if($user["admin"]===true): ?>
+							<li><a href="#" id="link_here" class="icon link cardlink"><?php echo _("Link here"); ?> *</a></li>
+							<li><a href="#" id="download" class="icon page_white_put cardlink"><?php echo _("Download"); ?> *</a></li>
+							<?php endif; ?>
+							
 							<?php if($user["logged_in"]===true): ?>
 							<li><a href="./?page=users" id="users" class="icon user pagelink"><?php echo _("Members"); ?></a></li>
 							<?php endif; ?>
