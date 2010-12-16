@@ -2,16 +2,53 @@
 # This file is distributed under the same license as the Maps package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2010-12-14 14:59+0300\n"
+"PO-Revision-Date: 2010-12-16 07:35:02+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Generator: GlotPress/0.1\n"
 "Project-Id-Version: Maps\n"
-"POT-Creation-Date: \n"
-"Last-Translator: Mikael Korpela <mikael@ihminen.org>\n"
-"Language-Team: \n"
+
+#: ajax/place.php:736
+msgid "Wind"
+msgstr "风"
+
+#: ajax/place.php:734
+msgid "Temperature"
+msgstr "温度"
+
+#: ajax/place.php:735
+msgid "Humidity"
+msgstr "湿度"
+
+#: ajax/place.php:736
+msgid "Intensity"
+msgstr "密度"
+
+#: ajax/place.php:736
+msgid "Direction"
+msgstr "方向"
+
+#: ajax/place.php:812
+msgid "Weather near %s"
+msgstr "天气相对%s"
+
+#: ajax/place.php:737
+msgid "Air pressure"
+msgstr "气压"
+
+#: ajax/place.php:815
+msgid "Weather from Wunderground.com"
+msgstr "天气预报来自Wunderground.com"
+
+#: views/pages/help.php:80
+msgid "Chinese"
+msgstr "中文"
+
+#: ajax/place.php:736
+msgid "m/s"
+msgstr "米每秒"
 
 #: ajax/add_place.php:188
 msgid "End date"
@@ -49,8 +86,7 @@ msgstr "放大看他们"
 msgid "Searching..."
 msgstr "搜索中"
 
-#: ajax/js-translation.json.php:46
-#: ajax/js-translation.json.php:50
+#: ajax/js-translation.json.php:46 ajax/js-translation.json.php:50
 msgid "Your search did not match any places."
 msgstr "未找到你的搜索"
 
@@ -98,9 +134,7 @@ msgstr "描述这个问题"
 msgid "Send"
 msgstr "发送"
 
-#: index.php:277
-#: index.php:282
-#: index.php:364
+#: index.php:277 index.php:282 index.php:364
 msgid "Find good places for hitchhiking and add your own"
 msgstr "找到一个好的搭车点，作为你自己的"
 
@@ -116,19 +150,19 @@ msgstr "德文"
 msgid "Dutch"
 msgstr "荷兰文"
 
-#: views/pages/help.php:84
+#: views/pages/help.php:85
 msgid "Polish"
 msgstr "波兰文"
 
-#: views/pages/help.php:83
+#: views/pages/help.php:84
 msgid "French"
 msgstr "法文"
 
-#: views/pages/help.php:82
+#: views/pages/help.php:83
 msgid "Lithuanian"
 msgstr "立陶宛文"
 
-#: views/pages/help.php:81
+#: views/pages/help.php:82
 msgid "Swedish"
 msgstr "瑞典文"
 
@@ -184,16 +218,15 @@ msgstr "成功登录。其他人能看到你"
 msgid "Please add your waiting time first."
 msgstr "请先添加你搭车等待的时间"
 
-#: ajax/place.php:162
-#: ajax/place.php:184
+#: ajax/place.php:162 ajax/place.php:184
 msgid "No description available for this language."
 msgstr "在这个语言没有相关描述"
 
-#: ajax/add_place.php:384
+#: ajax/add_place.php:383
 msgid "Could not add place due to an error."
 msgstr "有错误了不能添加地点"
 
-#: ajax/add_place.php:271
+#: ajax/add_place.php:270
 msgid "Your name <i>\"%s\"</i> will be visible for this place."
 msgstr "你的名字<i>\"%s\"</i>会在这个地方显示"
 
@@ -209,8 +242,7 @@ msgstr "去这个地方"
 msgid "Inter-city / international transportation"
 msgstr "城际或国际交通"
 
-#: views/pages/why_register.php:1
-#: index.php:442
+#: views/pages/why_register.php:1 index.php:442
 msgid "Why register?"
 msgstr "为什么注册啊？"
 
@@ -230,7 +262,7 @@ msgstr "链接在这"
 msgid "No public transport found for this country."
 msgstr "这个国家没找到公共交通"
 
-#: ajax/add_place.php:375
+#: ajax/add_place.php:374
 msgid "Place successfully added to the map."
 msgstr "地点成功添加！"
 
@@ -254,9 +286,7 @@ msgstr "用<a href=\"http://latitude.google.com/\">Google Latitude</a> 账户来
 msgid "...and more!"
 msgstr "还有呢！"
 
-#: lib/api.php:411
-#: lib/functions.php:1014
-#: lib/functions.php:1022
+#: lib/api.php:411 lib/functions.php:1014 lib/functions.php:1022
 #: lib/functions.php:1024
 msgid "Anonymous"
 msgstr "匿名"
@@ -309,13 +339,11 @@ msgstr "糟糕"
 msgid "Senseless"
 msgstr "没戏"
 
-#: lib/functions.php:1039
-#: lib/functions.php:1051
+#: lib/functions.php:1039 lib/functions.php:1051
 msgid "Unknown"
 msgstr "不详"
 
-#: lib/functions.php:1052
-#: lib/functions.php:1059
+#: lib/functions.php:1052 lib/functions.php:1059
 msgid "min"
 msgstr "分钟"
 
@@ -375,8 +403,7 @@ msgstr "拼车"
 msgid "Car rental"
 msgstr "租车"
 
-#: lib/functions.php:1401
-#: ajax/country.php:158
+#: lib/functions.php:1401 ajax/country.php:159
 msgid "City"
 msgstr "城市"
 
@@ -384,8 +411,7 @@ msgstr "城市"
 msgid "Site"
 msgstr "地点"
 
-#: lib/functions.php:1403
-#: ajax/add_place.php:81
+#: lib/functions.php:1403 ajax/add_place.php:81
 msgid "Type"
 msgstr "类型"
 
@@ -409,8 +435,7 @@ msgstr "你确定么？"
 msgid "Add some?"
 msgstr "添加么？"
 
-#: ajax/add_place.php:32
-#: ajax/add_place.php:263
+#: ajax/add_place.php:32 ajax/add_place.php:263
 msgid "Add place"
 msgstr "添加地点"
 
@@ -450,8 +475,7 @@ msgstr "描述"
 msgid "Please fill as many different language descriptions as you can."
 msgstr "请用你所知道的所有语言添加"
 
-#: ajax/add_place.php:185
-#: ajax/add_place.php:188
+#: ajax/add_place.php:185 ajax/add_place.php:188
 msgid "Clear"
 msgstr "清空"
 
@@ -467,81 +491,79 @@ msgstr "关于搭车度"
 msgid "Cancel"
 msgstr "取消"
 
-#: ajax/add_place.php:375
+#: ajax/add_place.php:374
 msgid "Thank you!"
 msgstr "谢谢！"
 
-#: ajax/add_place.php:375
+#: ajax/add_place.php:374
 msgid "Place added successfully"
 msgstr "成功添加地点"
 
-#: ajax/add_place.php:384
+#: ajax/add_place.php:383
 msgid "Please try again!"
 msgstr "再试一遍！"
 
-#: ajax/add_place.php:384
+#: ajax/add_place.php:383
 msgid "Error"
 msgstr "错误"
 
-#: ajax/country.php:77
+#: ajax/country.php:78
 msgid "About"
 msgstr "关于"
 
-#: ajax/country.php:88
+#: ajax/country.php:89
 msgid "Places in Maps"
 msgstr "地图上的地点"
 
-#: ajax/country.php:92
+#: ajax/country.php:93
 msgid "Cities in Maps"
 msgstr "地图上的城市"
 
-#: ajax/country.php:98
+#: ajax/country.php:99
 msgid "Capital"
 msgstr "首都"
 
-#: ajax/country.php:110
+#: ajax/country.php:111
 msgid "Continent"
 msgstr "大陆"
 
-#: ajax/country.php:114
+#: ajax/country.php:115
 msgid "Area"
 msgstr "地域"
 
-#: ajax/country.php:120
+#: ajax/country.php:121
 msgid "Population"
 msgstr "人口"
 
-#: ajax/country.php:127
+#: ajax/country.php:128
 msgid "Currency"
 msgstr "货币"
 
-#: ajax/country.php:154
+#: ajax/country.php:155
 msgid "Top %s cities"
 msgstr "领先的%s城市"
 
-#: ajax/country.php:159
+#: ajax/country.php:160
 msgid "Places"
 msgstr "地点"
 
-#: ajax/country.php:192
+#: ajax/country.php:193
 msgid "Map started to load. This might take some time."
 msgstr "地图开始载入，稍等片刻"
 
-#: ajax/country.php:192
+#: ajax/country.php:193
 msgid "Show cities on the map"
 msgstr "在地图上显示城市"
 
-#: ajax/country.php:192
+#: ajax/country.php:193
 msgid "Experimental, might be slow."
 msgstr "测试中，稍等啊"
 
-#: ajax/country.php:197
+#: ajax/country.php:198
 msgid "Public transport"
 msgstr "公共交通"
 
-#: ajax/map_statistics.php:17
-#: admin/index.php:53
-#: admin/index.php:95
+#: ajax/map_statistics.php:17 admin/index.php:53 admin/index.php:95
 msgid "Maps"
 msgstr "地图"
 
@@ -553,16 +575,15 @@ msgstr "放大"
 msgid "Write one?"
 msgstr "写一条么？"
 
-#: ajax/place.php:163
-#: ajax/place.php:218
+#: ajax/place.php:163 ajax/place.php:218
 msgid "Save"
 msgstr "保存"
 
-#: ajax/place.php:731
+#: ajax/place.php:780
 msgid "Added by"
 msgstr "由...添加"
 
-#: ajax/place.php:735
+#: ajax/place.php:784
 msgid "Added at"
 msgstr "加在"
 
@@ -574,8 +595,7 @@ msgstr "1个顶"
 msgid "%s votes"
 msgstr "%s 顶"
 
-#: ajax/place.php:255
-#: ajax/place.php:256
+#: ajax/place.php:255 ajax/place.php:256
 msgid "Vote distribution"
 msgstr "投票分布"
 
@@ -630,12 +650,11 @@ msgstr "你的经验"
 msgid "Other..."
 msgstr "其他的..."
 
-#: ajax/place.php:384
-#: ajax/place.php:388
+#: ajax/place.php:384 ajax/place.php:388
 msgid "Add"
 msgstr "添加"
 
-#: ajax/add_place.php:298
+#: ajax/add_place.php:297
 msgid "Adding..."
 msgstr "添加..."
 
@@ -647,9 +666,7 @@ msgstr "添加等待时间失败，再试一遍吧."
 msgid "Comments"
 msgstr "评论"
 
-#: ajax/place.php:536
-#: ajax/place.php:542
-#: ajax/place.php:656
+#: ajax/place.php:536 ajax/place.php:542 ajax/place.php:656
 msgid "Remove comment permanently"
 msgstr "永久删除评论"
 
@@ -661,9 +678,7 @@ msgstr "编辑评论"
 msgid "Leave a comment..."
 msgstr "留条评论"
 
-#: ajax/place.php:580
-#: ajax/place.php:590
-#: ajax/place.php:632
+#: ajax/place.php:580 ajax/place.php:590 ajax/place.php:632
 msgid "Nickname"
 msgstr "昵称"
 
@@ -691,40 +706,39 @@ msgstr "添加评论失败，再试一下吧"
 msgid "More about this place"
 msgstr "这个地方的详情"
 
-#: ajax/place.php:690
+#: ajax/place.php:690 ajax/place.php:890
 msgid "Toggle"
 msgstr "切换"
 
-#: ajax/place.php:745
+#: ajax/place.php:795
 msgid "Link to this place:"
 msgstr "这个地方的链接："
 
-#: ajax/place.php:784
+#: ajax/place.php:848
 msgid "Latitude"
 msgstr "纬度"
 
-#: ajax/place.php:785
+#: ajax/place.php:849
 msgid "Longitude"
 msgstr "经度"
 
-#: ajax/place.php:828
+#: ajax/place.php:933
 msgid "Remove place"
 msgstr "删除地点"
 
-#: ajax/place.php:831
+#: ajax/place.php:934
 msgid "Edit place"
 msgstr "编辑地点"
 
-#: ajax/place.php:835
+#: ajax/place.php:935
 msgid "See user"
 msgstr "查看用户"
 
-#: ajax/place.php:23
-#: ajax/place.php:853
+#: ajax/place.php:23 ajax/place.php:951
 msgid "Sorry, but the place cannot be found.<br /><br />The place you are looking for might have been removed or is temporarily unavailable."
 msgstr "抱歉！找不到这个地方<br /><br /> 你找的这个可能被删除了或者暂时不可用"
 
-#: ajax/place.php:853
+#: ajax/place.php:951
 msgid "The place cannot be found"
 msgstr "找不到这个地方"
 
@@ -761,7 +775,6 @@ msgid "Date"
 msgstr "日期"
 
 #: ajax/waitingtimes.php:70
-#: admin/views/users.php:179
 msgid "User"
 msgstr "用户"
 
@@ -770,7 +783,6 @@ msgid "Remove record"
 msgstr "删除记录"
 
 #: admin/index.php:53
-#: admin/views/users.php:187
 msgid "Admin"
 msgstr "管理员"
 
@@ -786,14 +798,12 @@ msgstr "日志"
 msgid "Planet"
 msgstr "星球"
 
-#: admin/index.php:101
+#: ajax/place.php:889 admin/index.php:101
 msgid "Administration"
 msgstr "管理"
 
-#: admin/views/new_language.php:12
-#: admin/views/new_language.php:24
+#: admin/views/new_language.php:12 admin/views/new_language.php:24
 #: admin/views/places.php:13
-#: admin/views/users.php:116
 msgid "Alert"
 msgstr "警报"
 
@@ -833,8 +843,7 @@ msgstr "下载标记的kml文件"
 msgid "World"
 msgstr "世界"
 
-#: views/cards/download.php:8
-#: views/cards/download.php:9
+#: views/cards/download.php:8 views/cards/download.php:9
 msgid "markers"
 msgstr "标记"
 
@@ -845,10 +854,6 @@ msgstr "地图上看得到的地方"
 #: views/cards/download.php:55
 msgid "Zipped"
 msgstr "压缩的"
-
-#: views/cards/download.php:61
-msgid "%s is widely used format for sharing location based information."
-msgstr "%s是添加地点信息常用的格式"
 
 #: views/cards/download.php:68
 msgid "Use Open Street Map Export tool"
@@ -888,40 +893,40 @@ msgstr "英文的"
 
 #: views/pages/add_public_transport.php:19
 msgid "Webpage"
-msgstr ""
+msgstr "网页"
 
 #: views/pages/add_public_transport.php:19
 #: views/pages/add_public_transport.php:30
 msgid "Required."
-msgstr ""
+msgstr "需要的"
 
 #: views/pages/add_public_transport.php:19
 msgid "Please try to add an English version of the page."
-msgstr ""
+msgstr "请尝试用英文添加这个页面"
 
 #: views/pages/add_public_transport.php:54
 msgid "Add page"
-msgstr ""
+msgstr "添加页面"
 
 #: views/pages/add_public_transport.php:147
 msgid "Please fill all required fields!"
-msgstr ""
+msgstr "请填写所用的空白"
 
 #: views/pages/add_public_transport.php:190
 msgid "Page added to the catalog."
-msgstr ""
+msgstr "日志添加页面成功"
 
 #: views/pages/add_public_transport.php:198
 msgid "Error adding page to the catalog. Check required fields and try again."
-msgstr ""
+msgstr "日志添加页面出错。请检查各项再试一次"
 
 #: views/pages/add_public_transport.php:218
 msgid "You must be logged in to add pages."
-msgstr ""
+msgstr "请先登录再添加页面"
 
 #: views/pages/api.php:1
 msgid "API Documentation"
-msgstr ""
+msgstr "API文件"
 
 #: views/pages/api.php:10
 msgid "List of API-calls"
@@ -929,56 +934,55 @@ msgstr ""
 
 #: views/pages/api.php:251
 msgid "default"
-msgstr ""
+msgstr "默认"
 
 #: views/pages/complete_statistics.php:1
 msgid "Complete statistics"
-msgstr ""
+msgstr "完整数据"
 
 #: views/pages/complete_statistics.php:3
 msgid "There are currently %s places marked."
-msgstr ""
+msgstr "目前%s的地方已被标记"
 
 #: views/pages/complete_statistics.php:3
 msgid "See more compact statistics."
-msgstr ""
+msgstr "浏览更多数据"
 
 #: views/pages/complete_statistics.php:7
 msgid "Top countries"
-msgstr ""
+msgstr "排名靠前的国家"
 
 #: views/pages/complete_statistics.php:25
 msgid "Top cities"
-msgstr ""
+msgstr "排名靠前的城市"
 
 #: views/pages/countries.php:1
 msgid "Countries"
-msgstr ""
+msgstr "国家"
 
 #: views/pages/countries.php:23
 msgid "Loading..."
-msgstr ""
+msgstr "载入中。。。"
 
-#: views/pages/countries.php:56
-#: views/pages/countries.php:67
+#: views/pages/countries.php:56 views/pages/countries.php:67
 msgid "Couldn't load info. Please try again."
-msgstr ""
+msgstr "加载不到信息。请再试一遍"
 
 #: views/pages/countries.php:82
 msgid "I haven't been everywhere, but it's on my list."
-msgstr ""
+msgstr "我还没去呢，但它在我的目录中了"
 
 #: views/pages/help.php:7
 msgid "What is this?"
-msgstr ""
+msgstr "这是什么？"
 
 #: views/pages/help.php:8
 msgid "This is supposed to be a worldmap for hitchhikers, showing good and bad hitching places. Feel free to add all your favourite hitching places (or even more) to the map."
-msgstr ""
+msgstr "我们想做一个搭车人的世界地图，列出好的和烂的搭车点。非常欢迎你的参与，把你最喜欢的搭车点儿添加在地图上。"
 
 #: views/pages/help.php:10
 msgid "How can I add places?"
-msgstr ""
+msgstr "如何添加地点？"
 
 #: views/pages/help.php:11
 msgid "Just click on <i>Add place</i> in the menu. Set the orange marker to the place and click on <i>Add place</i>. Make sure to zoom as close as possible, so the point will be more accurate. It is also helpful if you give your points a rating and maybe a little description (i.e. what kind of place this is or how to get there). Please write description at least in English."
@@ -994,129 +998,124 @@ msgstr ""
 
 #: views/pages/help.php:16
 msgid "Why should I sign up?"
-msgstr ""
+msgstr "问什么我要注册？"
 
 #: views/pages/help.php:17
 msgid "If you are logged in, you will have some more features on this site. I.e. you will be able to modify your places later, and your nickname will be shown on each of your places and comments."
-msgstr ""
+msgstr "如果登录，你能使用本站的更多功能，如：你能编辑你的地点，还有在搭车点和你的评论显示出你的昵称。"
 
 #: views/pages/help.php:24
 msgid "About Hitchwiki Maps"
-msgstr ""
+msgstr "关于搭车地图"
 
 #: views/pages/help.php:26
 msgid "Used technologies"
-msgstr ""
+msgstr "使用的技术"
 
 #: views/pages/help.php:28
 msgid "Server side"
-msgstr ""
+msgstr "服务端"
 
 #: views/pages/help.php:37
 msgid "Client side"
-msgstr ""
+msgstr "用户端"
 
 #: views/pages/help.php:49
 msgid "Services"
-msgstr ""
+msgstr "服务"
 
 #: views/pages/help.php:64
 msgid "People involved"
-msgstr ""
+msgstr "参与者"
 
 #: views/pages/help.php:71
 msgid "Translators"
-msgstr ""
+msgstr "译者"
 
 #: views/pages/help.php:73
 msgid "Finnish"
-msgstr ""
+msgstr "完成"
 
-#: views/pages/help.php:88
+#: views/pages/help.php:89
 msgid "Contact us"
-msgstr ""
+msgstr "联系我们"
 
 #: views/pages/news.php:1
 msgid "News"
-msgstr ""
+msgstr "新闻"
 
 #: views/pages/profile.php:11
 msgid "This is your profile as others see it."
-msgstr ""
+msgstr "这是你的页面"
 
-#: views/pages/profile.php:27
-#: views/pages/users.php:30
+#: views/pages/profile.php:27 views/pages/users.php:30
 msgid "Last seen"
-msgstr ""
+msgstr "最后被看到"
 
 #: views/pages/profile.php:66
 msgid "Administrator"
-msgstr ""
+msgstr "管理员"
 
 #: views/pages/profile.php:87
 msgid "Image from your %s"
-msgstr ""
+msgstr "来自%s的图像"
 
 #: views/pages/public_transport.php:1
 msgid "Public transport catalog"
-msgstr ""
+msgstr "公共交通目录"
 
 #: views/pages/public_transport.php:101
 msgid "Find timetables for the public transport."
-msgstr ""
+msgstr "找到公共交通时刻表"
 
-#: views/pages/settings.php:8
-#: index.php:380
+#: views/pages/settings.php:8 index.php:380
 msgid "Settings"
-msgstr ""
+msgstr "设置"
 
-#: views/pages/settings.php:29
-#: views/pages/translate.php:9
-#: index.php:522
+#: views/pages/settings.php:29 views/pages/translate.php:9 index.php:522
 #: index.php:524
 msgid "Choose language"
-msgstr ""
+msgstr "选择语言"
 
 #: views/pages/settings.php:45
 msgid "Can be anything, most likely a city."
-msgstr ""
+msgstr "随便是什么，但很可能是个城市"
 
 #: views/pages/settings.php:53
 msgid "Used map services"
-msgstr ""
+msgstr "使用地图功能"
 
 #: views/pages/settings.php:61
 msgid "Default map layer"
-msgstr ""
+msgstr "默认地图页面"
 
-#: views/pages/settings.php:65
-#: index.php:655
+#: views/pages/settings.php:65 index.php:655
 msgid "Default"
-msgstr ""
+msgstr "默认"
 
 #: views/pages/settings.php:108
 msgid "Don't try to recognize my location"
-msgstr ""
+msgstr "不要识别我的位置"
 
 #: views/pages/settings.php:116
 msgid "Map will be centered to here"
-msgstr ""
+msgstr "地图将地位在这里"
 
 #: views/pages/settings.php:118
 msgid "I'd rather not tell"
-msgstr ""
+msgstr "我不想说"
 
 #: views/pages/settings.php:130
 msgid "Allow Hitchwiki Maps to use your Gravatar"
-msgstr ""
+msgstr "让搭车百科地图使用我的Gravatar"
 
 #: views/pages/settings.php:131
 msgid "We would show information from your %s page, if you have one."
-msgstr ""
+msgstr "如果你有的话，我们会显示你的%s页面。"
 
 #: views/pages/settings.php:135
 msgid "Google Latitude user ID"
-msgstr ""
+msgstr "Google Latitude 用户名"
 
 #: views/pages/settings.php:138
 msgid "<a href=\"%s\" target=\"_blank\">Enable Google Latitude</a> first and copy here your 20-digit user ID from the bottom of the page, visible in a textbox."
@@ -1124,7 +1123,7 @@ msgstr ""
 
 #: views/pages/settings.php:138
 msgid "Your location will be published also on your profile page."
-msgstr ""
+msgstr "你的位置会发布在你的个人页面"
 
 #: views/pages/settings.php:142
 msgid "Center Maps always to your Google Latitude location"
@@ -1132,68 +1131,67 @@ msgstr ""
 
 #: views/pages/settings.php:152
 msgid "Update"
-msgstr ""
+msgstr "更新"
 
 #: views/pages/settings.php:158
 msgid "Reset your profile"
-msgstr ""
+msgstr "重置你的页面"
 
 #: views/pages/settings.php:362
 msgid "Settings updated!"
-msgstr ""
+msgstr "设置更新成功！"
 
 #: views/pages/settings.php:362
 msgid "Some settings might require refreshing the page."
-msgstr ""
+msgstr "某些设置需要刷新页面才看得到"
 
 #: views/pages/settings.php:374
 msgid "Updating settings failed:"
-msgstr ""
+msgstr "更新设置失败："
 
 #: views/pages/settings.php:389
 msgid "Are you sure you want to reset your profile? You cannot undo this action!"
-msgstr ""
+msgstr "你确定要重新设置你的页面么？操作无法还原！"
 
 #: views/pages/settings.php:399
 msgid "Your profile was reset permanently."
-msgstr ""
+msgstr "你的页面被永久重置"
 
 #: views/pages/settings.php:399
 msgid "Profile reset"
-msgstr ""
+msgstr "页面重新设置"
 
 #: views/pages/settings.php:402
 msgid "Profile was NOT reset"
-msgstr ""
+msgstr "页面没有重新设置"
 
 #: views/pages/settings.php:410
 msgid "You cancelled your profile reset."
-msgstr ""
+msgstr "你取消了页面重新设置"
 
 #: views/pages/settings.php:410
 msgid "Reset cancelled"
-msgstr ""
+msgstr "重新设置取消"
 
 #: views/pages/settings.php:428
 msgid "You must be logged in to edit settings."
-msgstr ""
+msgstr "你必须登录才能编辑"
 
-#: views/pages/statistics.php:1
-#: index.php:510
+#: views/pages/statistics.php:1 index.php:510
 msgid "Statistics"
-msgstr ""
+msgstr "数据"
 
 #: views/pages/statistics.php:3
 msgid "See more complete statistics."
-msgstr ""
+msgstr "查看更多完整数据"
 
 #: views/pages/statistics.php:8
 msgid "Top %s countries"
-msgstr ""
+msgstr "排名靠前的%s国家"
 
 #: views/pages/statistics.php:45
 msgid "By continents"
-msgstr ""
+msgstr "按大陆划分"
 
 #: views/pages/statistics.php:66
 msgid "Top %s users"
@@ -1201,24 +1199,23 @@ msgstr ""
 
 #: views/pages/statistics.php:118
 msgid "Place density"
-msgstr ""
+msgstr "地点密度"
 
 #: views/pages/translate.php:2
 msgid "Hitchwiki Maps is currently available in %s languages"
-msgstr ""
+msgstr "搭车百科地图目前有%s种语言"
 
-#: views/pages/translate.php:16
-#: index.php:538
+#: views/pages/translate.php:16 index.php:538
 msgid "Help us with translating!"
-msgstr ""
+msgstr "帮助我们翻译吧！"
 
 #: views/pages/translate.php:18
 msgid "If you would like to add content in your own language, or translate all visible interface texts, contact us so we can put up a new language."
-msgstr ""
+msgstr "如果你想用你的语言编辑，或是翻译内容。请联系我们，我们能加入新的语言"
 
 #: views/pages/users.php:23
 msgid "We have %s registered hitchhikers using Maps!"
-msgstr ""
+msgstr "我们有%s位注册的搭车客使用地图"
 
 #: views/pages/users.php:29
 msgid "Using Maps since"
@@ -1228,8 +1225,7 @@ msgstr ""
 msgid "Visible only for admins"
 msgstr ""
 
-#: views/pages/users.php:35
-#: index.php:513
+#: views/pages/users.php:35 index.php:513
 msgid "Admins"
 msgstr ""
 
@@ -1245,14 +1241,11 @@ msgstr ""
 msgid "You must be logged in to view users."
 msgstr ""
 
-#: config.empty.php:100
-#: config.empty.php:107
+#: config.empty.php:100 config.empty.php:107
 msgid "Satellite"
 msgstr ""
 
-#: config.empty.php:101
-#: config.empty.php:106
-#: config.empty.php:111
+#: config.empty.php:101 config.empty.php:106 config.empty.php:111
 msgid "Hybrid"
 msgstr ""
 
@@ -1344,13 +1337,11 @@ msgstr ""
 msgid "Ooh! New Maps!"
 msgstr ""
 
-#: index.php:501
-#: index.php:617
+#: index.php:501 index.php:617
 msgid "Tools"
 msgstr ""
 
-#: views/pages/users.php:1
-#: index.php:507
+#: views/pages/users.php:1 index.php:507
 msgid "Members"
 msgstr ""
 
@@ -1426,7 +1417,10 @@ msgstr ""
 msgid "This is just a preview map. Go to %s for the actual service."
 msgstr ""
 
+#: views/cards/download.php:61
+msgid "%s is widely used format for sharing location based information."
+msgstr "%s是添加地点信息常用的格式"
+
 #: views/pages/settings.php:402
 msgid "Error while trying to reset your profile. Please try again!"
 msgstr ""
-

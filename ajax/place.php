@@ -720,28 +720,30 @@ if($place["error"] !== true):
 										dataType: "json",
 										timeout: 7000, // timeout in milliseconds; 1s = 1000ms
 									 
+									 	var weather_error_html = '<b><i><?php echo _("Error"); ?></i></b>'; // TODO: something nicer to here, since might be a bit common error to show
+									 
 										// Got a place
 										success: function(data){		
 									
-									    if(data.error==true) {
-									        maps_debug("PHP Error when loading weather information.");
-									        place_weather_info.html('<b><i><?php echo _("Error"); ?></i></b>').delay(5000).parent().fadeOut('slow');
-									    }
-									    else {
-										    maps_debug("Got the weather!");
-										    place_weather_info.html('<img src="'+data.weather.icon+'" alt="" class="align_right" />'+
-										    		data.weather.status+'<br />'+
-										    		'<b><?php echo _("Temperature"); ?>:</b> '+data.weather.temperature_c+'&deg;C / '+data.weather.temperature_f+'&deg;F<br />'+
-										    		'<b><?php echo _("Humidity"); ?>:</b> '+data.weather.relative_humidity+'<br />'+
-										    		'<b><?php echo _("Wind"); ?>:</b> <span title="<?php echo _("Direction"); ?>">'+data.weather.wind_degrees+'&deg;</span>, <span title="<?php echo _("Intensity"); ?>">'+data.weather.wind_mph+'<?php echo _("m/s"); ?></span><br />'+
-										    		'<b><?php echo _("Air pressure"); ?>:</b> '+data.weather.pressure_in+' in ('+data.weather.pressure_mb+' mb)');
-									    }
+									    	if(data.error==true) {
+									    	    maps_debug("PHP Error when loading weather information.");
+									    	    place_weather_info.html(weather_error_html).delay(9000).parent().fadeOut('slow');
+									    	}
+									    	else {
+											    maps_debug("Got the weather!");
+											    place_weather_info.html('<img src="'+data.weather.icon+'" alt="" class="align_right" />'+
+											    		data.weather.status+'<br />'+
+											    		'<b><?php echo _("Temperature"); ?>:</b> '+data.weather.temperature_c+'&deg;C / '+data.weather.temperature_f+'&deg;F<br />'+
+											    		'<b><?php echo _("Humidity"); ?>:</b> '+data.weather.relative_humidity+'<br />'+
+											    		'<b><?php echo _("Wind"); ?>:</b> <span title="<?php echo _("Direction"); ?>">'+data.weather.wind_degrees+'&deg;</span>, <span title="<?php echo _("Intensity"); ?>">'+data.weather.wind_mph+'<?php echo _("m/s"); ?></span><br />'+
+											    		'<b><?php echo _("Air pressure"); ?>:</b> '+data.weather.pressure_in+' in ('+data.weather.pressure_mb+' mb)');
+									    	}
 									    
 										},
 										// Didn't find anything...
 										error: function( objAJAXRequest, strError ){
 											maps_debug("JSON weather query didn't find anything. Error type: "+strError);
-									        place_weather_info.html('<b><i><?php echo _("Error"); ?></i></b>').delay(5000).parent().fadeOut('slow');
+									        place_weather_info.html(weather_error_html).delay(9000).parent().fadeOut('slow');
 										}
 									});
 									
