@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Maps\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2010-12-15 02:08+0300\n"
-"PO-Revision-Date: 2010-12-15 02:08+0300\n"
+"PO-Revision-Date: 2010-12-16 09:33+0300\n"
 "Last-Translator: Mikael Korpela <mikael@ihminen.org>\n"
 "Language-Team:  <maps@hitchwiki.org>\n"
 "MIME-Version: 1.0\n"
@@ -612,10 +612,12 @@ msgstr ""
 msgid "Direction"
 msgstr ""
 
+# (of the wind speed, # m/s)
 #: ajax/place.php:736
 msgid "Intensity"
 msgstr ""
 
+# meters/second
 #: ajax/place.php:736
 msgid "m/s"
 msgstr ""
@@ -636,11 +638,13 @@ msgstr ""
 msgid "Link to this place:"
 msgstr ""
 
+# %s = a city
 #: ajax/place.php:812
 #, php-format
 msgid "Weather near %s"
 msgstr ""
 
+# Double meaning; "weather data from" and "see more"
 #: ajax/place.php:815
 msgid "Weather from Wunderground.com"
 msgstr ""
@@ -803,6 +807,7 @@ msgstr ""
 msgid "%s is widely used format for sharing location based information."
 msgstr ""
 
+# Links to http://www.openstreetmap.org/export
 #: views/cards/download.php:68
 msgid "Use Open Street Map Export tool"
 msgstr ""
