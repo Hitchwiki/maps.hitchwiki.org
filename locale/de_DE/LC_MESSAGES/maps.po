@@ -2,13 +2,29 @@
 # This file is distributed under the same license as the Maps package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2010-12-17 15:40:01+0000\n"
+"PO-Revision-Date: 2010-12-17 23:15:01+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 "X-Generator: GlotPress/0.1\n"
 "Project-Id-Version: Maps\n"
+
+#: views/pages/api.php:269
+msgid "License"
+msgstr ""
+
+#: views/pages/api.php:270
+msgid "Creative Commons License"
+msgstr ""
+
+#: views/pages/help.php:108
+msgid "You can show your love to us and recommend Hitchwiki Maps to your hitchhiker mates in Facebook by pressing this cute little button with a familiar icon on it:"
+msgstr ""
+
+#: index.php:371
+msgid "http://hitchwiki.org/en/"
+msgstr ""
 
 #: views/pages/help.php:73 views/pages/help.php:89
 msgid "English"
@@ -146,7 +162,7 @@ msgstr "Beschreibe das Problem."
 msgid "Send"
 msgstr "Senden"
 
-#: index.php:273 index.php:278 index.php:360
+#: index.php:121
 msgid "Find good places for hitchhiking and add your own"
 msgstr "Finde gute Trampstellen und füge deine hinzu"
 
@@ -242,35 +258,35 @@ msgstr ""
 msgid "Your name <i>\"%s\"</i> will be visible for this place."
 msgstr "Dein Name <i>\"%s\"</i> wird an dieser Markierung angegeben."
 
-#: lib/functions.php:1471
+#: lib/functions.php:1502
 msgid "In-city transportation"
 msgstr "Öffentlicher Nahverkehr"
 
-#: lib/functions.php:1423
+#: lib/functions.php:1454
 msgid "Go to site"
 msgstr "Zur Seite gehen"
 
-#: lib/functions.php:1472
+#: lib/functions.php:1503
 msgid "Inter-city / international transportation"
 msgstr "Öffentlicher Fernverkehr"
 
-#: views/pages/why_register.php:1 index.php:438
+#: views/pages/why_register.php:1 index.php:452
 msgid "Why register?"
 msgstr "Warum registrieren?"
 
-#: index.php:547
+#: views/pages/api.php:270 views/pages/api.php:272
 msgid "http://creativecommons.org/licenses/by-sa/3.0/"
 msgstr "http://creativecommons.org/licenses/by-sa/3.0/deed.de"
 
-#: index.php:501
+#: index.php:515
 msgid "Download"
 msgstr "Herunterladen"
 
-#: index.php:500
+#: index.php:514
 msgid "Link here"
 msgstr "Link hierher."
 
-#: lib/functions.php:1477
+#: lib/functions.php:1508
 msgid "No public transport found for this country."
 msgstr "Keine Verkehrsinformationen für dieses Land gefunden."
 
@@ -298,8 +314,8 @@ msgstr ""
 msgid "...and more!"
 msgstr "...und mehr!"
 
-#: lib/api.php:411 lib/functions.php:1014 lib/functions.php:1022
-#: lib/functions.php:1024
+#: lib/api.php:411 lib/functions.php:1045 lib/functions.php:1053
+#: lib/functions.php:1055
 msgid "Anonymous"
 msgstr "Anonym"
 
@@ -331,119 +347,119 @@ msgstr "Europa"
 msgid "Australia and Oceania"
 msgstr "Australien und Ozeanien"
 
-#: lib/functions.php:1034
+#: lib/functions.php:1065
 msgid "Very good"
 msgstr "Sehr gut"
 
-#: lib/functions.php:1035
+#: lib/functions.php:1066
 msgid "Good"
 msgstr "Gut"
 
-#: lib/functions.php:1036
+#: lib/functions.php:1067
 msgid "Average"
 msgstr "Mittel"
 
-#: lib/functions.php:1037
+#: lib/functions.php:1068
 msgid "Bad"
 msgstr "Schlecht"
 
-#: lib/functions.php:1038
+#: lib/functions.php:1069
 msgid "Senseless"
 msgstr "Unmöglich"
 
-#: lib/functions.php:1039 lib/functions.php:1051
+#: lib/functions.php:1070 lib/functions.php:1082
 msgid "Unknown"
 msgstr "Unbekannt"
 
-#: lib/functions.php:1052 lib/functions.php:1059
+#: lib/functions.php:1083 lib/functions.php:1090
 msgid "min"
 msgstr "min"
 
-#: lib/functions.php:1055
+#: lib/functions.php:1086
 msgid "h"
 msgstr "Std"
 
-#: lib/functions.php:1339
+#: lib/functions.php:1370
 msgid "Other"
 msgstr "Andere"
 
-#: lib/functions.php:1340
+#: lib/functions.php:1371
 msgid "Local bus"
 msgstr "Stadtbus"
 
-#: lib/functions.php:1341
+#: lib/functions.php:1372
 msgid "Trolleybus"
 msgstr "O-Bus"
 
-#: lib/functions.php:1342
+#: lib/functions.php:1373
 msgid "Tram"
 msgstr "Straßenbahn"
 
-#: lib/functions.php:1343
+#: lib/functions.php:1374
 msgid "Metro"
 msgstr "U-Bahn"
 
-#: lib/functions.php:1344
+#: lib/functions.php:1375
 msgid "Commuter train"
 msgstr "S-Bahn"
 
-#: lib/functions.php:1345
+#: lib/functions.php:1376
 msgid "Taxi"
 msgstr "Taxi"
 
-#: lib/functions.php:1346
+#: lib/functions.php:1377
 msgid "Long distance bus"
 msgstr "Fernbus"
 
-#: lib/functions.php:1347
+#: lib/functions.php:1378
 msgid "Long distance train"
 msgstr "Fernzug"
 
-#: lib/functions.php:1348
+#: lib/functions.php:1379
 msgid "Airline"
 msgstr "Fluglinie"
 
-#: lib/functions.php:1349
+#: lib/functions.php:1380
 msgid "Shipping"
 msgstr "Schifffahrt"
 
-#: lib/functions.php:1350
+#: lib/functions.php:1381
 msgid "Carsharing"
 msgstr "Carsharing"
 
-#: lib/functions.php:1351
+#: lib/functions.php:1382
 msgid "Car rental"
 msgstr "Autovermietung"
 
-#: lib/functions.php:1401 ajax/country.php:159
+#: lib/functions.php:1432 ajax/country.php:159
 msgid "City"
 msgstr "Stadt"
 
-#: lib/functions.php:1402
+#: lib/functions.php:1433
 msgid "Site"
 msgstr "Seite"
 
-#: lib/functions.php:1403 ajax/add_place.php:81
+#: lib/functions.php:1434 ajax/add_place.php:81
 msgid "Type"
 msgstr "Typ"
 
-#: lib/functions.php:1405
+#: lib/functions.php:1436
 msgid "Manage"
 msgstr ""
 
-#: lib/functions.php:1441
+#: lib/functions.php:1472
 msgid "Remove page permanently"
 msgstr "Seite endgültig löschen"
 
-#: lib/functions.php:1442
+#: lib/functions.php:1473
 msgid "Edit page"
 msgstr "Seite bearbeiten"
 
-#: lib/functions.php:1461
+#: lib/functions.php:1492
 msgid "Are you sure?"
 msgstr "Bist du sicher?"
 
-#: lib/functions.php:1477
+#: lib/functions.php:1508
 msgid "Add some?"
 msgstr "Hinzufügen?"
 
@@ -1079,12 +1095,12 @@ msgstr ""
 msgid "Find timetables for the public transport."
 msgstr "Finde Fahrpläne für den Öffentlichen Nahverkehr."
 
-#: views/pages/settings.php:8 index.php:376
+#: views/pages/settings.php:8 index.php:390
 msgid "Settings"
 msgstr "Einstellungen"
 
-#: views/pages/settings.php:29 views/pages/translate.php:9 index.php:520
-#: index.php:522
+#: views/pages/settings.php:29 views/pages/translate.php:9 index.php:534
+#: index.php:536
 msgid "Choose language"
 msgstr "Sprache auswählen"
 
@@ -1100,7 +1116,7 @@ msgstr "Benutze Kartendienste"
 msgid "Default map layer"
 msgstr "Standardkartenansicht"
 
-#: views/pages/settings.php:65 index.php:653
+#: views/pages/settings.php:65 index.php:667
 msgid "Default"
 msgstr "Standard"
 
@@ -1188,7 +1204,7 @@ msgstr "Zurücksetzen abgebrochen"
 msgid "You must be logged in to edit settings."
 msgstr "Du musst eingeloggt sein, um die Einstellungen zu bearbeiten."
 
-#: views/pages/statistics.php:1 index.php:508
+#: views/pages/statistics.php:1 index.php:522
 msgid "Statistics"
 msgstr "Statistiken"
 
@@ -1216,7 +1232,7 @@ msgstr "Markierungsdichte"
 msgid "Hitchwiki Maps is currently available in %s languages"
 msgstr "Hitchwiki Maps ist derzeit in %s Sprachen verfügbar"
 
-#: views/pages/translate.php:16 index.php:536
+#: views/pages/translate.php:16 index.php:550
 msgid "Help us with translating!"
 msgstr "Hilf uns beim Übersetzen!"
 
@@ -1236,7 +1252,7 @@ msgstr "Benutzt Hitchwiki Maps seit"
 msgid "Visible only for admins"
 msgstr "Sichtbar nur für Administratoren"
 
-#: views/pages/users.php:35 index.php:511
+#: views/pages/users.php:35 index.php:525
 msgid "Admins"
 msgstr "Administratoren"
 
@@ -1280,15 +1296,15 @@ msgstr "Luftbilder"
 msgid "Roads"
 msgstr "Straßen"
 
-#: index.php:103
+#: index.php:105
 msgid "a Hitchhiking spot in"
 msgstr "Trampstelle in "
 
-#: index.php:258
+#: index.php:272
 msgid "Sorry, but the place cannot be found."
 msgstr "Sorry, der Ort konnte leider nicht gefunden werden."
 
-#: index.php:258
+#: index.php:272
 msgid "The place you are looking for might have been removed or is temporarily unavailable."
 msgstr "Der Ort den du suchst ist vorrübergehend nicht erreichbar."
 
@@ -1296,123 +1312,123 @@ msgstr "Der Ort den du suchst ist vorrübergehend nicht erreichbar."
 msgid "Help & About"
 msgstr "Hilfe & Info"
 
-#: index.php:357
+#: index.php:371
 msgid "Community"
 msgstr "Community"
 
-#: index.php:375
+#: index.php:389
 msgid "Profile"
 msgstr "Profil"
 
-#: index.php:377
+#: index.php:391
 msgid "Logout"
 msgstr "Abmelden"
 
-#: index.php:431
+#: index.php:445
 msgid "Hello from %s"
 msgstr "Hallo von %s"
 
-#: index.php:439
+#: index.php:453
 msgid "Register!"
 msgstr "Anmelden!"
 
-#: index.php:442
+#: index.php:456
 msgid "Login"
 msgstr "Einloggen"
 
-#: index.php:465
+#: index.php:479
 msgid "Find places"
 msgstr "Trampstellen finden"
 
-#: index.php:470
+#: index.php:484
 msgid "Search"
 msgstr "Suche"
 
-#: index.php:478
+#: index.php:492
 msgid "Nearby places from"
 msgstr "Plätze in der Nähe von"
 
-#: index.php:480
+#: index.php:494
 msgid "Show the city on the map"
 msgstr "Stadt auf der Karte anzeigen"
 
-#: index.php:481
+#: index.php:495
 msgid "Show the state on the map"
 msgstr "Zeige das Bundesland auf der Karte"
 
-#: index.php:482
+#: index.php:496
 msgid "Show the country on the map"
 msgstr "Land auf der Karte anzeigen"
 
-#: index.php:491
+#: index.php:505
 msgid "Ooh! New Maps!"
 msgstr "Ooh! Neue Karten!"
 
-#: index.php:497 index.php:615
+#: index.php:511 index.php:629
 msgid "Tools"
 msgstr "Werkzeuge"
 
-#: views/pages/users.php:1 index.php:505
+#: views/pages/users.php:1 index.php:519
 msgid "Members"
 msgstr "Mitglieder"
 
-#: index.php:547
+#: views/pages/api.php:272
 msgid "Licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License"
 msgstr "Dieses Werk und die Inhalte sind lizensiert unter einer Creative Commons Namensnennung-Weitergabe unter gleichen Bedingungen 3.0 Deutschland Lizenz."
 
-#: index.php:553
+#: index.php:567
 msgid "Contact us!"
 msgstr "Kontakt!"
 
-#: index.php:557
+#: index.php:571
 msgid "Developers"
 msgstr "Entwickler"
 
-#: index.php:561
+#: index.php:575
 msgid "API"
 msgstr "API"
 
-#: index.php:602
+#: index.php:616
 msgid "Turn JavaScript on from your browser."
 msgstr "Bitte aktiviere Javascript in deinem Browser."
 
-#: index.php:622
+#: index.php:636
 msgid "Navigate"
 msgstr "Navigieren"
 
-#: index.php:627
+#: index.php:641
 msgid "Measure distance"
 msgstr "Entfernungen abmessen"
 
-#: index.php:632
+#: index.php:646
 msgid "Measure area"
 msgstr "Fläche abmessen"
 
-#: index.php:646
+#: index.php:660
 msgid "Measure"
 msgstr "Messung"
 
-#: index.php:650
+#: index.php:664
 msgid "Show markers after zoom level"
 msgstr "Markierungen anzeigen ab Zoomlevel"
 
-#: index.php:656
+#: index.php:670
 msgid "Continent level"
 msgstr "Kontintentenansicht"
 
-#: index.php:657
+#: index.php:671
 msgid "Country level"
 msgstr "Länderansicht"
 
-#: index.php:658
+#: index.php:672
 msgid "City level"
 msgstr "Stadtansicht"
 
-#: index.php:659
+#: index.php:673
 msgid "Street level"
 msgstr "Straßenansicht"
 
-#: index.php:677
+#: index.php:691
 msgid "Map"
 msgstr "Karte"
 
