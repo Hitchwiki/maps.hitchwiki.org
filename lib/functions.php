@@ -1021,10 +1021,10 @@ function image_map($lat, $lon, $zoom=15, $format='png', $width=150, $height=150)
 
 	if(!validate_lon($lon) OR !validate_lat($lat) OR $zoom===false OR $zoom < 0 OR $width <= 0 OR $height <= 0) 
 	  return false;
-	  
+
 	elseif($format != 'png' && $format != 'jpeg') 
 	  return false;
-	  
+
 	else 
 	  return 'http://tah.openstreetmap.org/MapOf/?lat='.urlencode($lat).'&long='.urlencode($lon).'&z='.urlencode($zoom).'&w='.urlencode($width).'&h='.urlencode($height).'&skip_attr=on&format='.urlencode($format);
 

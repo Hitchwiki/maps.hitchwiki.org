@@ -123,7 +123,7 @@ $slogan = _("Find good places for hitchhiking and add your own");
 // Description
 if(isset($show_place) && !isset($show_place_error) && !empty($place["description"]["en_UK"]["description"])) $description = htmlspecialchars(strip_tags($place["description"]["en_UK"]["description"]));	
 else $description = $slogan;
-		
+
 
 ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html 
