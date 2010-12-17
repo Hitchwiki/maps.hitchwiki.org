@@ -79,7 +79,7 @@
 		<li><?php echo _("Portuguese"); ?> - Joao</li>
 		<li><?php echo _("Spanish"); ?> - Prino</li>
 		<li><?php echo _("Chinese"); ?> - Mipplor</li>
-		<li><?php echo _("Lithuanian"); ?> - Mindaugas, Prino</li>
+		<li><?php echo _("Lithuanian"); ?> - Mindo, Prino</li>
 		<!-- 
 		<li><?php echo _("Polish"); ?> - </li>
 		<li><?php echo _("Latvian"); ?> - </li>
