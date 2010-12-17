@@ -985,7 +985,7 @@ function country_iso_to_continent($code="") {
  * return true/false
  */
 function validate_lat($lat) {
-	if($lat > -90 && $lat < 90) return true;
+	if($lat !== false && $lat > -90 && $lat < 90) return true;
 	else return false;
 }
 
@@ -996,9 +996,40 @@ function validate_lat($lat) {
  * return true/false
  */
 function validate_lon($lon) {
-	if($lon > -180 && $lon < 180) return true;
+	if($lon !== false && $lon > -180 && $lon < 180) return true;
 	else return false;
 }
+
+
+
+/*
+ * Produce an URL to image map
+ * Requires: 
+ * - lat
+ * - lon
+ *
+ * Optional:
+ * - zoom
+ * - format (png|jpg)
+ * - width
+ * - height
+ *
+ * returns an url to the image from openstreetmap
+ * e.g. http://tah.openstreetmap.org/MapOf/?lat=62&long=23&z=13&w=500&h=500&skip_attr=on&format=jpeg
+ */
+function image_map($lat, $lon, $zoom=15, $format='png', $width=150, $height=150) {
+
+	if(!validate_lon($lon) OR !validate_lat($lat) OR $zoom===false OR $zoom < 0 OR $width <= 0 OR $height <= 0) 
+	  return false;
+	  
+	elseif($format != 'png' && $format != 'jpeg') 
+	  return false;
+	  
+	else 
+	  return 'http://tah.openstreetmap.org/MapOf/?lat='.urlencode($lat).'&long='.urlencode($lon).'&z='.urlencode($zoom).'&w='.urlencode($width).'&h='.urlencode($height).'&skip_attr=on&format='.urlencode($format);
+
+}
+
 
 
 /* 

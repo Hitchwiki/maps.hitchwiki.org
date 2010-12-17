@@ -96,10 +96,12 @@ sm = new GeoExt.grid.FeatureSelectionModel({layers: layers});
 }
 
 /*
- *  Build a title
+ *  Build a title, image, slogan and description
  */
+ 
+// Title
 // If place
-if(isset($show_place)) {
+if(isset($show_place) && !isset($show_place_error)) {
     $title .= _("a Hitchhiking spot in").' '; 
 
     // in city, country
@@ -109,7 +111,19 @@ if(isset($show_place)) {
     $title .= ' - ';
 }
 $title .= 'Hitchwiki '.gettext("Maps");
+ 
+ 
+// Image
+$website_img[] = $settings["base_url"].'/badge.png'; 
+if(isset($show_place) && !isset($show_place_error)) $website_img[] = image_map($place["lat"],$place["lon"]);
+			
+// Slogan
+$slogan = _("Find good places for hitchhiking and add your own");
 
+// Description
+if(isset($show_place) && !isset($show_place_error) && !empty($place["description"]["en_UK"]["description"])) $description = htmlspecialchars(strip_tags($place["description"]["en_UK"]["description"]));	
+else $description = $slogan;
+		
 
 ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html 
@@ -268,18 +282,18 @@ $title .= 'Hitchwiki '.gettext("Maps");
 		</script>
 		<link rel="shortcut icon" href="<?php echo $settings["base_url"]; ?>/favicon.png" type="image/png" />
 		<link rel="bookmark icon" href="<?php echo $settings["base_url"]; ?>/favicon.png" type="image/png" />
-		<link rel="image_src" href="<?php echo $settings["base_url"]; ?>/badge.png" />
+		<?php foreach($website_img as $img): ?><link rel="image_src" href="<?php echo $img; ?>" /><?php endforeach; ?>
 		<link rel="apple-touch-icon" href="<?php echo $settings["base_url"]; ?>/static/gfx/badge-57x57.png" />
-		<meta name="description" content="<?php echo _("Find good places for hitchhiking and add your own"); ?>" />
+		<meta name="description" content="<?php echo $description; ?>" />
 		
 		<!-- The Open Graph Protocol - http://opengraphprotocol.org/ -->
 		<meta property="og:title" content="<?php echo $title; ?>" />
 		<meta property="og:site_name" content="Hitchwiki.org" />
-		<meta property="og:description" content="<?php echo _("Find good places for hitchhiking and add your own"); ?>" />
-		<meta property="og:image" content="<?php echo $settings["base_url"]; ?>/badge.png" />
+		<meta property="og:description" content="<?php echo $description; ?>" />
+		<?php foreach($website_img as $img): ?><meta property="og:image" content="<?php echo $img; ?>" /><?php endforeach; ?>
 		<meta property="og:url" content="<?php echo $settings["base_url"]; ?>/"/>
 		<meta property="og:type" content="website" />
-		<meta property="og:email" content="<?php echo $settings["email"]; ?>" />
+	<?php /*<meta property="og:email" content="<?php echo $settings["email"]; ?>" /> */ ?>
 	<?php if(isset($place)): ?>
 		<meta property="og:latitude" content="<?php echo $place["lat"]; ?>" />
 		<meta property="og:longitude" content="<?php echo $place["lon"]; ?>" />
@@ -354,10 +368,10 @@ $title .= 'Hitchwiki '.gettext("Maps");
 				<h2><?php echo _("Maps"); ?></h2>
 
 				<div class="Navigation">
-					<a href="http://hitchwiki.org/"><?php echo _("Wiki"); ?></a> | <a href="http://hitchwiki.org/community/"><?php echo _("Community"); ?></a> | <a href="http://hitchwiki.org/planet/"><?php echo _("Planet"); ?></a>
+					<a href="<?php echo _("http://hitchwiki.org/en/"); ?>"><?php echo _("Wiki"); ?></a> | <a href="http://hitchwiki.org/community/"><?php echo _("Community"); ?></a> | <a href="http://hitchwiki.org/planet/"><?php echo _("Planet"); ?></a>
 				</div>
 
-				<h3><?php echo _("Find good places for hitchhiking and add your own"); ?></h3>
+				<h3><?php echo $slogan; ?></h3>
 
 			<!-- /Logo -->
 			</div>
@@ -467,7 +481,7 @@ $title .= 'Hitchwiki '.gettext("Maps");
 								<form method="get" action="#" id="search_form" name="search" role="search">
 									<div class="ui-widget">
 									<input type="text" value="" id="q" name="q" />
-									<button type="submit" class="search_submit button"> <span class="icon magnifier">&nbsp;</span><span class="hidden"><?php echo _("Search"); ?></span></button>
+									<button type="submit" class="search_submit button" title="<?php echo _("Search"); ?>"> <span class="icon magnifier">&nbsp;</span><span class="hidden"><?php echo _("Search"); ?></span></button>
 									<div class="clear"></div>
 									</div>
 								</form>
