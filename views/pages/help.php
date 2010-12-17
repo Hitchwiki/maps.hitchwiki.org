@@ -105,7 +105,7 @@
 
 	<br /><br />
 	
-	<small>You can show your love to us and recommend Hitchwiki Maps to your hitchhiker mates in Facebook by pressing this cute little button with a familiar icon on it:</small>
+	<small><?php echo _("You can show your love to us and recommend Hitchwiki Maps to your hitchhiker mates in Facebook by pressing this cute little button with a familiar icon on it:"); ?></small>
 	
 	<fb:like layout="standard" href="<?php echo urlencode($settings["base_url"]); ?>">
 

@@ -2,7 +2,7 @@
 # This file is distributed under the same license as the Maps package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2010-12-16 23:40:04+0000\n"
+"PO-Revision-Date: 2010-12-17 15:40:02+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -800,7 +800,7 @@ msgstr "Administratorius"
 
 #: admin/index.php:98
 msgid "Wiki"
-msgstr "Wiki"
+msgstr "Viki"
 
 #: admin/index.php:98
 msgid "Blogs"
@@ -1002,7 +1002,7 @@ msgstr ""
 
 #: views/pages/help.php:13
 msgid "Can I use HTML tags in descriptions and comments?"
-msgstr "Ar galiu naudoti HTML gaires aprašimuose ir komentaruos?"
+msgstr "Ar galiu naudoti HTML gaires aprašymuose ir komentaruos?"
 
 #: views/pages/help.php:14
 msgid "No, but you can use <a href=\"http://en.wikipedia.org/wiki/Markdown\" target=\"_blank\">Markdown</a> syntax."
@@ -1046,7 +1046,7 @@ msgstr "Vertėjai"
 
 #: views/pages/help.php:74
 msgid "Finnish"
-msgstr "Suomijos"
+msgstr "Suomių"
 
 #: views/pages/help.php:92
 msgid "Contact us"
@@ -1391,7 +1391,7 @@ msgstr "Išmatuoti plotą"
 
 #: index.php:646
 msgid "Measure"
-msgstr "Išmatuoti"
+msgstr "Atstumas"
 
 #: index.php:650
 msgid "Show markers after zoom level"

@@ -266,9 +266,8 @@ Example, download a file "testfile.kml" with a place on it in Finnish:
 
 
 
-<h3 id="license">License</h3>
-
-<a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/"><img alt="Creative Commons License" style="border-width:0" src="http://i.creativecommons.org/l/by-sa/3.0/88x31.png" /></a>
+<h3 id="license"><?php echo _("License"); ?></h3>
+<a rel="license" href="<?php echo _("http://creativecommons.org/licenses/by-sa/3.0/"); ?>"><img alt="<?php echo _("Creative Commons License"); ?>" style="border-width:0" src="http://i.creativecommons.org/l/by-sa/3.0/88x31.png" /></a>
 <br /><br />
-This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/">Creative Commons Attribution-ShareAlike 3.0 Unported License</a>.
+<a rel="license" href="<?php echo _("http://creativecommons.org/licenses/by-sa/3.0/"); ?>"><?php echo _("Licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License"); ?></a>.
 
