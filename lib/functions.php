@@ -363,15 +363,15 @@ function get_comments($id=false, $limit=false) {
 /* 
  * List available countries with markers
  * type: option | tr | li | array (default)
- * order: markers (default) | name | false
+ * order: places count | name (default) | false
  * limit: int | false (default)
  * count: true (default) | false 
  * world: true | false (default) (list's all the countries, even without any markers)
  * coordinates: true | false (default)
  */
-function list_countries($type="array", $order="markers", $limit=false, $count=true, $world=false, $coordinates=false, $selected_country=false) {
+function list_countries($type="array", $order="name", $limit=false, $count=true, $world=false, $coordinates=false, $selected_country=false) {
 	start_sql();
-	
+
 	// Get all country iso-codes
 	$codes = countrycodes();
 	
@@ -398,22 +398,27 @@ function list_countries($type="array", $order="markers", $limit=false, $count=tr
 	// Create an array out of this stuff
 	$i=0;
 	while($r = mysql_fetch_array($res, MYSQL_ASSOC)) {
+		
+		// $r['country'] contains ISO-code of the country, Eg. RU for Russia
 	
 		// Remove "used" country from empty countries -list
 		if($world==true) unset($empty_countries[$r['country']]);
 	
+		// Get translated countryname
+		$countryname = ISO_to_country($r['country'], $codes);
+	
 		// Gather an array
-		$country_array[$r['country']]["iso"] = $r['country'];
-		$country_array[$r['country']]["name"] = ISO_to_country($r['country'], $codes);
-		$country_array[$r['country']]["places"] = $r['cnt'];
+		$country_array[$countryname]["iso"] = $r['country'];
+		$country_array[$countryname]["name"] = $countryname;
+		$country_array[$countryname]["places"] = $r['cnt'];
 		
 		// Add also coordinates if requested
 		if($coordinates==true && $country_coordinates[$r['country']]["lat"] != "" && $country_coordinates[$r['country']]["lon"] != "") {
-			$country_array[$r['country']]["lat"] = $country_coordinates[$r['country']]["lat"];
-			$country_array[$r['country']]["lon"] = $country_coordinates[$r['country']]["lon"];
+			$country_array[$countryname]["lat"] = $country_coordinates[$r['country']]["lat"];
+			$country_array[$countryname]["lon"] = $country_coordinates[$r['country']]["lon"];
 		} elseif($coordinates==true) {
-			$country_array[$r['country']]["lat"] = "";
-			$country_array[$r['country']]["lon"] = "";
+			$country_array[$countryname]["lat"] = "";
+			$country_array[$countryname]["lon"] = "";
 		}
 		
 		// limit results if asked to
@@ -425,17 +430,17 @@ function list_countries($type="array", $order="markers", $limit=false, $count=tr
 	// Add empty countries to the main list if requested
 	if($world==true) {
 		foreach($empty_countries as $iso => $countryname) {
-			$country_array2[$iso]["iso"] = $iso;
-			$country_array2[$iso]["name"] = $countryname;
-			$country_array2[$iso]["places"] = 0;
+			$country_array2[$countryname]["iso"] = $iso;
+			$country_array2[$countryname]["name"] = $countryname;
+			$country_array2[$countryname]["places"] = 0;
 			
 			// Add also coordinates if requested
 			if($coordinates==true && $country_coordinates[$iso]["lat"] != "" && $country_coordinates[$iso]["lon"] != "") {
-				$country_array2[$iso]["lat"] = $country_coordinates[$iso]["lat"];
-				$country_array2[$iso]["lon"] = $country_coordinates[$iso]["lon"];
+				$country_array2[$countryname]["lat"] = $country_coordinates[$iso]["lat"];
+				$country_array2[$countryname]["lon"] = $country_coordinates[$iso]["lon"];
 			} elseif($coordinates==true) {
-				$country_array[$iso]["lat"] = "";
-				$country_array[$iso]["lon"] = "";
+				$country_array[$countryname]["lat"] = "";
+				$country_array[$countryname]["lon"] = "";
 			}
 		}
 	
