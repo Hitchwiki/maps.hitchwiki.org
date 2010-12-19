@@ -761,7 +761,7 @@ function country_info($iso=false, $lang=false) {
  * lang: get countrynames from different languagecol: en_UK | fi_FI | de_DE | es_ES | ru_RU | lt_LT | ...etc
  * lowercase: true | false (default)  - returns names in lowercase
  */
-function countrycodes($first="code", $lang="", $lowercase=false) {
+function countrycodes($first="code", $lang="", $lowercase=false, $one_try = false) {
 	global $settings;
 
 	// Check if language is valid (if not, use default)
@@ -782,22 +782,36 @@ function countrycodes($first="code", $lang="", $lowercase=false) {
 	// Gather data
 	start_sql();
 	$result = mysql_query($query);
-	if (!$result) {
-	   die("Error: SQL query failed with countrycodes()");
+
+	if(!$result) {
+		// No result with that language
+		// Get listing with default language
+		if($one_try === false) {
+			countrycodes($first, $settings["default_language"], $lowercase, true);
+		}
+		else {
+			echo " <!-- ERROR: SQL query failed with countrycodes() --> ";
+			@include("../maintenance_page.php");
+			die();
+		}
 	}
+	// Got result, continue...
+	else {
 	
-	while ($row = mysql_fetch_array($result)) {
+		while ($row = mysql_fetch_array($result)) {
+		    
+		    // Countryname (fall-back to the default)
+		    if(!empty($row[$lang])) $name = $row[$lang];
+		    else $name = $row[$settings["default_language"]];
+		    
+		    // Make name lowercase if asked to
+		    if($lowercase==true) $name = strtolower($name);
 		
-		// Countryname (fall-back to the default)
-		if(!empty($row[$lang])) $name = $row[$lang];
-		else $name = $row[$settings["default_language"]];
-		
-		// Make name lowercase if asked to
-		if($lowercase==true) $name = strtolower($name);
+		    // Gather list in form "iso => name" or "name => iso"
+		    if($first=="name") $list[$name] = $row["iso"];
+		    else $list[$row["iso"]] = $name;
+		}
 	
-		// Gather list in form "iso => name" or "name => iso"
-	    if($first=="name") $list[$name] = $row["iso"];
-	    else $list[$row["iso"]] = $name;
 	}
 	
 	return $list;
@@ -935,14 +949,19 @@ function ISO_to_country($iso, $db=false, $lang="") {
  */
 function shortlang($lang="") {
 
-	// Use default in not specified
+	// Use current in use -language if not specified
 	if(empty($lang)) {
 		global $settings;
 		$lang = $settings["language"];
 	}
 	
-	// Return shortie
-	return substr($lang, 0, 2); 
+	// Do the shortie!
+	if(strstr("_", $lang)) $bits = explode("_", $lang);
+	elseif(strstr("@", $lang)) $bits = explode("@", $lang);
+	else $bits[0] = substr($lang, 0, 2);
+
+	// Give 'em that shortie...
+	return $bits[0];
 }
 
 
