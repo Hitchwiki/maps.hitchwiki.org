@@ -2,7 +2,7 @@
 # This file is distributed under the same license as the Maps package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2010-12-17 23:15:01+0000\n"
+"PO-Revision-Date: 2010-12-19 23:40:02+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -24,7 +24,7 @@ msgstr ""
 
 #: index.php:371
 msgid "http://hitchwiki.org/en/"
-msgstr ""
+msgstr "http://hitchwiki.org/ru/"
 
 #: views/pages/help.php:73 views/pages/help.php:89
 msgid "English"
@@ -164,7 +164,7 @@ msgstr "Отправить"
 
 #: index.php:121
 msgid "Find good places for hitchhiking and add your own"
-msgstr "Найти хорошие места для автостопа и добавить собственные"
+msgstr "Ищите хорошие позиции для автостопа и добавляйте свои собственные"
 
 #: views/pages/help.php:77
 msgid "Russian"
@@ -541,7 +541,7 @@ msgstr "Описание"
 
 #: ajax/country.php:89
 msgid "Places in Maps"
-msgstr "Места на Картах"
+msgstr "Мест на Картах"
 
 #: ajax/country.php:93
 msgid "Cities in Maps"
@@ -816,7 +816,7 @@ msgstr "Админ"
 
 #: admin/index.php:98
 msgid "Wiki"
-msgstr "Вики"
+msgstr "АвтостопВики"
 
 #: admin/index.php:98
 msgid "Blogs"
@@ -1331,7 +1331,7 @@ msgstr "Привет из %s"
 
 #: index.php:453
 msgid "Register!"
-msgstr "Регистрируйся!"
+msgstr "Регистрация"
 
 #: index.php:456
 msgid "Login"
@@ -1343,7 +1343,7 @@ msgstr "Поиск"
 
 #: index.php:484
 msgid "Search"
-msgstr "Поиск"
+msgstr "Искать!"
 
 #: index.php:492
 msgid "Nearby places from"

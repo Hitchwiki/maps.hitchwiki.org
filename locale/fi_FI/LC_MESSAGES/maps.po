@@ -2,7 +2,7 @@
 # This file is distributed under the same license as the Maps package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2010-12-17 23:15:01+0000\n"
+"PO-Revision-Date: 2010-12-19 23:40:02+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -20,7 +20,7 @@ msgstr "Creative Commons Lisenssi"
 
 #: views/pages/help.php:108
 msgid "You can show your love to us and recommend Hitchwiki Maps to your hitchhiker mates in Facebook by pressing this cute little button with a familiar icon on it:"
-msgstr ""
+msgstr "Voit osoittaa rakkauttasi ja suositella Hitchwiki Karttoja liftarikavereillesi Facebookissa. Klikkaa tätä söpöä pientä nappia tutulla peukkukuvakkeella:"
 
 #: index.php:371
 msgid "http://hitchwiki.org/en/"

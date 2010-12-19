@@ -2,7 +2,7 @@
 # This file is distributed under the same license as the Maps package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2010-12-17 23:15:02+0000\n"
+"PO-Revision-Date: 2010-12-19 23:40:03+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -12,19 +12,19 @@ msgstr ""
 
 #: views/pages/api.php:269
 msgid "License"
-msgstr ""
+msgstr "协议"
 
 #: views/pages/api.php:270
 msgid "Creative Commons License"
-msgstr ""
+msgstr "Creative Commons License"
 
 #: views/pages/help.php:108
 msgid "You can show your love to us and recommend Hitchwiki Maps to your hitchhiker mates in Facebook by pressing this cute little button with a familiar icon on it:"
-msgstr ""
+msgstr "喜欢搭车百科地图就把她推荐给朋友吧！脸书上面也能找到她!"
 
 #: index.php:371
 msgid "http://hitchwiki.org/en/"
-msgstr ""
+msgstr "http://hitchwiki.org/zh/"
 
 #: views/pages/help.php:73 views/pages/help.php:89
 msgid "English"
@@ -60,7 +60,7 @@ msgstr "方向"
 
 #: ajax/place.php:814
 msgid "Weather near %s"
-msgstr "天气相对%s"
+msgstr "%s的天气"
 
 #: ajax/place.php:739
 msgid "Air pressure"
@@ -140,7 +140,7 @@ msgstr "更新描述失败"
 
 #: ajax/place.php:146
 msgid "Description written %s"
-msgstr "描述撰写了%s"
+msgstr "描述撰写于%s"
 
 #: ajax/place.php:186
 msgid "You need to be <a href=\"%s\">logged in</a> to add or edit descriptions."
@@ -1078,7 +1078,7 @@ msgstr "这是你的页面"
 
 #: views/pages/profile.php:27 views/pages/users.php:30
 msgid "Last seen"
-msgstr "最后被看到"
+msgstr "最后一次现身"
 
 #: views/pages/profile.php:66
 msgid "Administrator"
@@ -1383,7 +1383,7 @@ msgstr "联系我们！"
 
 #: index.php:571
 msgid "Developers"
-msgstr "开发者"
+msgstr "Developers"
 
 #: index.php:575
 msgid "API"

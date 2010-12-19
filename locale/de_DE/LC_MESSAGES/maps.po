@@ -2,7 +2,7 @@
 # This file is distributed under the same license as the Maps package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2010-12-17 23:15:01+0000\n"
+"PO-Revision-Date: 2010-12-19 23:40:01+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -12,11 +12,11 @@ msgstr ""
 
 #: views/pages/api.php:269
 msgid "License"
-msgstr ""
+msgstr "Lizenz"
 
 #: views/pages/api.php:270
 msgid "Creative Commons License"
-msgstr ""
+msgstr "Creative-Commons-Lizenz"
 
 #: views/pages/help.php:108
 msgid "You can show your love to us and recommend Hitchwiki Maps to your hitchhiker mates in Facebook by pressing this cute little button with a familiar icon on it:"
@@ -24,19 +24,19 @@ msgstr ""
 
 #: index.php:371
 msgid "http://hitchwiki.org/en/"
-msgstr ""
+msgstr "http://hitchwiki.org/de/"
 
 #: views/pages/help.php:73 views/pages/help.php:89
 msgid "English"
-msgstr ""
+msgstr "Englisch"
 
 #: views/pages/help.php:85
 msgid "Latvian"
-msgstr ""
+msgstr "Lettisch"
 
 #: views/pages/help.php:89
 msgid "Pirate"
-msgstr ""
+msgstr "Piratensprache"
 
 #: ajax/place.php:738
 msgid "Wind"
@@ -144,7 +144,7 @@ msgstr ""
 
 #: ajax/place.php:186
 msgid "You need to be <a href=\"%s\">logged in</a> to add or edit descriptions."
-msgstr ""
+msgstr "Du musst dich <a href=\"%s\">einloggen</a> um Einträge hinzuzufügen oder zu bearbeiten."
 
 #: views/cards/report.php:2
 msgid "Report a problem"
@@ -216,7 +216,7 @@ msgstr ""
 
 #: views/pages/why_register.php:7
 msgid "Hitcwiki Maps works with your Hitchwiki-account, so with one login you can access <a href=\"http://hitchwiki.org/\">Wiki</a>, <a href=\"http://hitchwiki.org/community/\">Community</a> and Maps."
-msgstr ""
+msgstr "Hitchwiki Maps funktioniert mit deinem Hitchwiki-Account. Mit einem Login kannst du also <a href=\"http://hitchwiki.org/\">Wiki</a>, <a href=\"http://hitchwiki.org/community/\">Community</a> und Maps benutzen."
 
 #: views/pages/help.php:19
 msgid "Why is the map always centered on Europe?"
@@ -228,7 +228,7 @@ msgstr "Die meisten Markierungen auf dieser Karte befinden sich in Europa. Sobal
 
 #: views/pages/why_register.php:9
 msgid "When logged in, you will have some more features on this site:"
-msgstr ""
+msgstr "Wenn du eingeloggt bist, hast du mehr Features auf der Seite:"
 
 #: ajax/waitingtimes.php:114
 msgid "Are you sure you want to remove this record?"
@@ -236,7 +236,7 @@ msgstr "Möchtest du diesen Eintrag wirklich löschen?"
 
 #: ajax/waitingtimes.php:131
 msgid "Could not remove a record due to an error. Please try again!"
-msgstr ""
+msgstr "Eintrag konnte nicht gelöscht werden, da ein Fehler aufgetreten ist. Bitte versuch es noch einmal!"
 
 #: ajax/place.php:582
 msgid "You are logged in. Your name will be visible for others."
@@ -252,7 +252,7 @@ msgstr "Keine Beschreibung in dieser Sprache verfügbar."
 
 #: ajax/add_place.php:383
 msgid "Could not add place due to an error."
-msgstr ""
+msgstr "Konnte nicht gespeichert werden, da ein Fehler aufgetreten ist."
 
 #: ajax/add_place.php:270
 msgid "Your name <i>\"%s\"</i> will be visible for this place."
@@ -304,7 +304,7 @@ msgstr "Alle Marker die zu hinzugefügt hast bearbeiten."
 
 #: views/pages/why_register.php:14
 msgid "Enable/disable additional map layers and choose your default"
-msgstr ""
+msgstr "Zusätzliche Kartenlayer ein- oder ausschalten"
 
 #: views/pages/why_register.php:15
 msgid "Connect Maps with your <a href=\"http://latitude.google.com/\">Google Latitude</a> account to keep it centered while you travel"
