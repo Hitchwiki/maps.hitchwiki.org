@@ -32,7 +32,7 @@ if(isset($_GET["country"]) && !empty($_GET["country"]) && strlen($_GET["country"
 
 		start_sql(); // from lib/functions.php
 		
-    	$query = "SELECT `iso`,`lat`,`lon`,`zoom` FROM `t_countries` WHERE `iso` = '".mysql_real_escape_string($_GET["country"])."'";
+    	$query = "SELECT `iso`,`lat`,`lon`,`zoom` FROM `t_countries` WHERE `iso` = '".mysql_real_escape_string(strtoupper($_GET["country"]))."'";
 
 	    // Build an array
    		$res = mysql_query($query);
