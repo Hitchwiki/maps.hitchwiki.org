@@ -2,7 +2,7 @@
 # This file is distributed under the same license as the Maps package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2010-12-19 23:40:02+0000\n"
+"PO-Revision-Date: 2010-12-22 18:30:04+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -12,15 +12,15 @@ msgstr ""
 
 #: views/pages/api.php:269
 msgid "License"
-msgstr ""
+msgstr "Лицензия"
 
 #: views/pages/api.php:270
 msgid "Creative Commons License"
-msgstr ""
+msgstr "Лицензия Creative Commons"
 
 #: views/pages/help.php:108
 msgid "You can show your love to us and recommend Hitchwiki Maps to your hitchhiker mates in Facebook by pressing this cute little button with a familiar icon on it:"
-msgstr ""
+msgstr "Нажав эту кнопку вы сможете выразить свою признательность проекту и порекомендовать АвтостопВики своим друзьям в Facebook."
 
 #: index.php:371
 msgid "http://hitchwiki.org/en/"
@@ -28,15 +28,15 @@ msgstr "http://hitchwiki.org/ru/"
 
 #: views/pages/help.php:73 views/pages/help.php:89
 msgid "English"
-msgstr ""
+msgstr "Английский"
 
 #: views/pages/help.php:85
 msgid "Latvian"
-msgstr ""
+msgstr "Латвийский"
 
 #: views/pages/help.php:89
 msgid "Pirate"
-msgstr ""
+msgstr "Пиратский"
 
 #: ajax/place.php:738
 msgid "Wind"
@@ -60,7 +60,7 @@ msgstr "Направление"
 
 #: ajax/place.php:814
 msgid "Weather near %s"
-msgstr ""
+msgstr "Погода возле %s"
 
 #: ajax/place.php:739
 msgid "Air pressure"
@@ -96,7 +96,7 @@ msgstr "Не знаю"
 
 #: ajax/add_place.php:251
 msgid "Just add what you've experienced. You can add multiple timings after saving and we will calculate an average out of them."
-msgstr "Добавьте время ожидания из личного опыта. После очередной поездки можете также добавить новое время"
+msgstr "Добавьте время ожидания исходя из личного опыта. После очередной поездки можете снова добавить новое время."
 
 #: ajax/js-translation.json.php:42
 msgid "Toggle log"
@@ -116,7 +116,7 @@ msgstr "Поиск..."
 
 #: ajax/js-translation.json.php:46 ajax/js-translation.json.php:50
 msgid "Your search did not match any places."
-msgstr ""
+msgstr "Искомых слов не найдено."
 
 #: ajax/js-translation.json.php:47
 msgid "Try searching in English and add a country name in to your search."
@@ -236,7 +236,7 @@ msgstr "Вы уверены, что хотите удалить эту запи�
 
 #: ajax/waitingtimes.php:131
 msgid "Could not remove a record due to an error. Please try again!"
-msgstr "Не удалось удалить запись вследствии ошибки. Попробуйте ещё раз."
+msgstr "Ошибка удаления записи. Попробуйте ещё раз."
 
 #: ajax/place.php:582
 msgid "You are logged in. Your name will be visible for others."
@@ -264,7 +264,7 @@ msgstr "Городской транспорт"
 
 #: lib/functions.php:1454
 msgid "Go to site"
-msgstr "Перейти"
+msgstr "Перейти по ссылке"
 
 #: lib/functions.php:1503
 msgid "Inter-city / international transportation"
@@ -385,7 +385,7 @@ msgstr "Другое"
 
 #: lib/functions.php:1371
 msgid "Local bus"
-msgstr "Автобус"
+msgstr "Городской автобус"
 
 #: lib/functions.php:1372
 msgid "Trolleybus"
@@ -581,11 +581,11 @@ msgstr "Карта загружается. Это может занять нек
 
 #: ajax/country.php:193
 msgid "Show cities on the map"
-msgstr "Показать города на карте"
+msgstr "Показать на карте города"
 
 #: ajax/country.php:193
 msgid "Experimental, might be slow."
-msgstr "Экспериментально, может быть медленным."
+msgstr "Бета-версия, работает медленно."
 
 #: ajax/country.php:198
 msgid "Public transport"
@@ -597,19 +597,19 @@ msgstr "Карты"
 
 #: ajax/place.php:54
 msgid "Zoom in"
-msgstr "Увеличить"
+msgstr "Приблизить"
 
 #: ajax/place.php:162
 msgid "Write one?"
-msgstr "Написать."
+msgstr "Пока кто-нибудь его не добавит."
 
 #: ajax/place.php:163 ajax/place.php:218
 msgid "Save"
-msgstr "Сохранить"
+msgstr "Добавить описание"
 
 #: ajax/place.php:782
 msgid "Added by"
-msgstr "Добавлено"
+msgstr "Место добавлено"
 
 #: ajax/place.php:786
 msgid "Added at"
@@ -617,11 +617,11 @@ msgstr "Добавлено в "
 
 #: ajax/place.php:249
 msgid "1 vote"
-msgstr "1 голос"
+msgstr "1 оценка"
 
 #: ajax/place.php:250
 msgid "%s votes"
-msgstr "%s голосов (голоса)"
+msgstr "Оценок: %s"
 
 #: ajax/place.php:255 ajax/place.php:256
 msgid "Vote distribution"
@@ -654,9 +654,9 @@ msgstr "Показать журнал"
 #: ajax/place.php:356
 msgid "%d experience"
 msgid_plural "%d experiences"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "Среднее время %d час"
+msgstr[1] "Среднее время %d часа"
+msgstr[2] "Среднее время %d часов"
 
 #: ajax/place.php:364
 msgid "See log"
@@ -732,15 +732,15 @@ msgstr "Не удалось добавить комментарий, попро�
 
 #: ajax/place.php:689
 msgid "More about this place"
-msgstr "Больше об этом месте"
+msgstr "Дополнительно"
 
 #: ajax/place.php:690 ajax/place.php:893
 msgid "Toggle"
-msgstr ""
+msgstr "Свернуть/Развернуть"
 
 #: ajax/place.php:797
 msgid "Link to this place:"
-msgstr "Ссылки на это место"
+msgstr "Ссылка на это место"
 
 #: ajax/place.php:850
 msgid "Latitude"
@@ -833,7 +833,7 @@ msgstr "Администрация"
 #: admin/views/new_language.php:12 admin/views/new_language.php:24
 #: admin/views/places.php:13
 msgid "Alert"
-msgstr ""
+msgstr "Внимание!"
 
 #: admin/views/users.php:173
 msgid "We have %s registered hitchhikers!"
@@ -841,7 +841,7 @@ msgstr "Зарегистрировано %s автостопщиков."
 
 #: admin/views/users.php:180
 msgid "Member since"
-msgstr "Участник с "
+msgstr "Зарегистрирован"
 
 #: admin/views/users.php:181
 msgid "Location"
@@ -881,7 +881,7 @@ msgstr "Видимый участок карты."
 
 #: views/cards/download.php:55
 msgid "Zipped"
-msgstr ""
+msgstr "Сжатый"
 
 #: views/cards/download.php:68
 msgid "Use Open Street Map Export tool"
@@ -909,7 +909,7 @@ msgstr "К примеру, вы можете встроить карту в св
 
 #: views/pages/add_public_transport.php:1
 msgid "Add a page to the catalog"
-msgstr "Добавить"
+msgstr "Добавление страницы"
 
 #: views/pages/add_public_transport.php:14
 msgid "Title"
@@ -990,7 +990,7 @@ msgstr "Страны"
 
 #: views/pages/countries.php:23
 msgid "Loading..."
-msgstr "Загружается..."
+msgstr "Загрузка..."
 
 #: views/pages/countries.php:56 views/pages/countries.php:67
 msgid "Couldn't load info. Please try again."
@@ -1243,7 +1243,7 @@ msgstr "Если вы хотели бы добавить контент на с�
 
 #: views/pages/users.php:23
 msgid "We have %s registered hitchhikers using Maps!"
-msgstr "Мы зарегистрировали %s автостопщиков с помощью Карт"
+msgstr "В проекте участвуют %s автостопщиков из разных стран."
 
 #: views/pages/users.php:29
 msgid "Using Maps since"
@@ -1411,7 +1411,7 @@ msgstr "Измерено"
 
 #: index.php:664
 msgid "Show markers after zoom level"
-msgstr "Показать маркеры на уровне приближения"
+msgstr "Показать маркеры на уровне приближения (оптимально 9)"
 
 #: index.php:670
 msgid "Continent level"

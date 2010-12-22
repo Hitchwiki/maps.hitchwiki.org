@@ -2,7 +2,7 @@
 # This file is distributed under the same license as the Maps package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2010-12-19 23:40:03+0000\n"
+"PO-Revision-Date: 2010-12-22 18:30:12+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -654,9 +654,7 @@ msgstr "显示日志"
 #: ajax/place.php:356
 msgid "%d experience"
 msgid_plural "%d experiences"
-msgstr[0] ""
-"\n"
-"%d经验"
+msgstr[0] "%d经验"
 
 #: ajax/place.php:364
 msgid "See log"
