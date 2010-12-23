@@ -9,8 +9,23 @@
 
 
 // Set langauge from URL
-if(isset($_GET["lang"]) && array_key_exists($_GET["lang"], $settings["valid_languages"])) {
-	$settings["language"] = $_GET["lang"];
+if (isset($_GET["lang"])) {
+    if (preg_match('!.._..!', $_GET['lang']))
+        $tlang = $_GET['lang'];
+    else if (strlen($_GET['lang']) == 2) {
+        $tlang = strtolower($_GET['lang']).'_'.strtoupper($_GET['lang']);
+
+        if (array_key_exists($tlang, $settings["valid_languages"]))
+            $settings["language"] = $tlang;
+        else  {
+            foreach($settings['valid_languages'] AS $short => $long) {
+                if (substr($short, 0, 2) == $_GET['lang']) {
+                    $settings['language'] = $short;
+                    break;
+                }
+            }
+        }
+    }
 }
 // Set language from users settings
 elseif(isset($user["language"]) && in_array($user["language"], $settings["valid_languages"])) {
