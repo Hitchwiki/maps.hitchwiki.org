@@ -11,7 +11,7 @@
 // Set langauge from URL
 if (isset($_GET["lang"])) {
     if (preg_match('!.._..!', $_GET['lang']))
-        $tlang = $_GET['lang'];
+        $settings['language'] = $_GET['lang'];
     else if (strlen($_GET['lang']) == 2) {
         $tlang = strtolower($_GET['lang']).'_'.strtoupper($_GET['lang']);
 
@@ -60,6 +60,8 @@ elseif(!isset($_COOKIE[$settings["cookie_prefix"]."lang"]) || !array_key_exists(
  * Gettext is looking translation from "./locale/LANGUAGE_CODE/LC_MESSAGES/maps.mo"
  * http://www.php.net/manual/en/function.gettext.php
  */
+
+
 putenv('LC_ALL='.$settings["language"]);
 setlocale(LC_ALL, $settings["language"]);
 
