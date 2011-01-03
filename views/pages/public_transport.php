@@ -8,16 +8,23 @@
 	 
 	// Gather data
 	start_sql();
-	$result = mysql_query("SELECT `country` FROM `t_ptransport` GROUP BY `country` ORDER BY `country` ASC");
+	$result = mysql_query("SELECT `country` FROM `t_ptransport` GROUP BY `country`");// ORDER BY `country` ASC
 	if (!$result) {
 	   die("Error: SQL query failed with countrycodes()");
 	}
 	
+	// Do this so we can sort it by translated countryname
 	while ($row = mysql_fetch_array($result)) {
-		
-		echo '<option value="'.$row["country"].'">'.ISO_to_country($row["country"]).'</option>';
+		$countryname = ISO_to_country($row["country"]);
+		$countrylist[$countryname]["name"] = $countryname;
+		$countrylist[$countryname]["iso"] = $row["country"];
+		unset($countryname);
 	}
+	ksort($countrylist);
 	
+	foreach($countrylist as $country) {
+		echo '<option value="'.$country["iso"].'">'.$country["name"].'</option>';
+	}
 	?>
 </select></h2>
 

@@ -142,7 +142,7 @@ if($place["error"] !== true):
 				    			
 				    			// Date 
 								if(!empty($place["description"][$code]["datetime"])) {
-									echo '<br /><small title="'.date("r",strtotime($place["description"][$code]["datetime"])).'">';
+									echo '<br /><small title="'.date(DATE_RFC822,strtotime($place["description"][$code]["datetime"])).'">';
 									printf(_('Description written %s'), date("j.n.Y",strtotime($place["description"][$code]["datetime"])));
 									echo '</small>';
 								}
@@ -243,13 +243,9 @@ if($place["error"] !== true):
 
 				<!-- Hitchability -->
 				<?php 
-				#<div class="icon hitchability_'.$place["rating"].'"></div>
-				echo '<b>'._("Hitchability").':</b> '.hitchability2textual($place["rating"]).' <b class="bigger hitchability_color_'.$place["rating"].'">&bull;</b> <small class="light">('; 
-					
-					if($place["rating_stats"]["rating_count"] == 1) echo _("1 vote"); 
-					else printf(_("%s votes"), $place["rating_stats"]["rating_count"]);
-				
-				?>)</small>
+					echo '<b>'._("Hitchability").':</b> '.hitchability2textual($place["rating"]).' <b class="bigger hitchability_color_'.$place["rating"].'">&bull;</b> ';
+					echo '<small class="light">('.sprintf(ngettext("%d vote", "%d votes", $place["rating_stats"]["rating_count"]), $place["rating_stats"]["rating_count"]).')</small>';
+				?>
 				
 				<?php if($place["rating_stats"]["rating_count"] > 1): ?>
 					<br /><small class="light"><?php echo _("Vote distribution"); ?>:</small><br />
@@ -290,7 +286,7 @@ if($place["error"] !== true):
 				</select>
 				<?php
 				
-				if(!empty($users_rating_date)) echo '<br /><small class="light">'._("You rated for this place").' <span title="'.date("r", strtotime($users_rating_date)).'">'.date("j.n.Y", strtotime($users_rating_date)).'</span></small>';
+				if(!empty($users_rating_date)) echo '<br /><small class="light">'._("You rated for this place").' <span title="'.date(DATE_RFC822, strtotime($users_rating_date)).'">'.date("j.n.Y", strtotime($users_rating_date)).'</span></small>';
 				
 				?>
 				<script type="text/javascript">
@@ -344,24 +340,15 @@ if($place["error"] !== true):
 				<!-- Waiting time -->
 				<?php 
 				
-				echo '<b>'._("Waiting time").':</b> ';
+				echo '<b title="'._("Average").'">'._("Waiting time").':</b> ';
 				
 				if($place["waiting_stats"]["count"] > 0) {
-					
 					echo $place["waiting_stats"]["avg_textual"].' <small class="light">(<a href="#" id="show_waitingtime_log" title="'._("Show log").'">'; 
-					/*
-					if($place["waiting_stats"]["count"] == 1) echo _("1 experience"); 
-					else printf(_("%s experiences"), $place["waiting_stats"]["count"]);
-					*/
 					printf(ngettext("%d experience", "%d experiences", $place["waiting_stats"]["count"]), $place["waiting_stats"]["count"]);
-					
 					echo '</a>)</small>';
-					
 				}
 				else echo _("Unknown");
 				?>
-				<!--
-				<a href="#" id="waitingtime_log" class="ui-icon ui-icon-clock align_right"><?php echo _("See log"); ?></a>-->
 				
 				<br />
 				
@@ -528,7 +515,7 @@ if($place["error"] !== true):
 						elseif(isset($comment["user"]["name"])) echo htmlspecialchars($comment["user"]["name"]);
 						else echo '<i>'._("Anonymous").'</i>';
 						
-						echo '</strong> &mdash; <span title="'.date("r",strtotime($comment["datetime"])).'">'.date("j.n.Y",strtotime($comment["datetime"])).'</span>';
+						echo '</strong> &mdash; <span title="'.date(DATE_RFC822,strtotime($comment["datetime"])).'">'.date("j.n.Y",strtotime($comment["datetime"])).'</span>';
 						
 						// Show remove-link for logged in comments owner
 						if($user["admin"]===true) {
@@ -712,7 +699,7 @@ if($place["error"] !== true):
 								
 									maps_debug("Loading the weather info for the place from wunderground...");
 									
-									var weather_error_html = '<b><i><?php echo _("Error"); ?></i></b>'; // TODO: something nicer to here, since might be a bit common error to show
+									var weather_error_html = '<?php error_sign(_("No weather info..."), false); ?>'; // TODO: something nicer to here, since might be a bit common error to show
 									 
 									//$.getJSON('ajax/wefather.php?lat=<?php echo $place["lat"]; ?>&lon=<?php echo $place["lon"]; ?>', function(data) {	
 									$.ajax({
@@ -727,7 +714,7 @@ if($place["error"] !== true):
 									
 									    	if(data.error==true) {
 									    	    maps_debug("PHP Error when loading weather information.");
-									    	    place_weather_info.html(weather_error_html).delay(9000).parent().fadeOut('slow');
+									    	    place_weather_info.html(weather_error_html).delay(5000).slideUp('slow');
 									    	}
 									    	else {
 											    maps_debug("Got the weather!");
@@ -743,7 +730,7 @@ if($place["error"] !== true):
 										// Didn't find anything...
 										error: function( objAJAXRequest, strError ){
 											maps_debug("JSON weather query didn't find anything. Error type: "+strError);
-									        place_weather_info.html(weather_error_html).delay(9000).parent().fadeOut('slow');
+									        place_weather_info.html(weather_error_html).delay(5000).slideUp('slow');
 										}
 									});
 									
@@ -769,14 +756,9 @@ if($place["error"] !== true):
 	    	
 	    	<!-- meta info -->
 			<li>
+	    		<small class="inset">
 				<?php
-					// When marker was added and who added it
-					echo '<div class="meta"';
-					
-					if(!empty($place["datetime"])) echo ' title="'.date("r",strtotime($place["datetime"])).'"';
-					 
-					echo '>';
-					
+					// When marker was added and who added it					
 					// Name
 					if(isset($place["user"]["name"])) {
 						echo _("Added by").' <strong>'.htmlspecialchars($place["user"]["name"]).'</strong>';
@@ -786,11 +768,29 @@ if($place["error"] !== true):
 					elseif(!empty($place["datetime"])) echo _("Added at")." ";
 					
 					// Date
-					if(!empty($place["datetime"])) echo date("j.n.Y",strtotime($place["datetime"]));
+					if(!empty($place["datetime"])) {
+						echo '<span title="'.date(DATE_RFC822,strtotime($place["datetime"])).'">'.date("j.n.Y",strtotime($place["datetime"])).'</span>';
+					}
 					
-					echo '</div>';
+					if(isset($place["user"]["name"]) OR !empty($place["datetime"])) echo '<br />';
+					
+					// Elevation
+					if($place["elevation"]=="0" OR !empty($place["elevation"])) echo _("Elevation").': '.$place["elevation"].' '._("meters").'<br />';
+					
 				?>
+	    		</small>
 			</li>
+	    	
+	    	<!-- Weather info will be loaded on fly when opening #extralinks -->
+	    	<li id="place_weather">
+	    		<small>
+	    			<b class="icon weather" style="padding-top: 5px;display:block;"><?php printf(_("Weather near %s"), $place["location"]["locality"]); ?></b>
+					<div class="inset">
+	    				<span id="place_weather_info" class="no_weather"><img src="static/gfx/loading.gif" alt="<?php echo _("Loading"); ?>" /><br /></span>
+	    				<a href="http://www.wunderground.com/cgi-bin/findweather/getForecast?query=<?php echo $place["lat"]; ?>,<?php echo $place["lon"]; ?>" target="_blank"><?php echo _("Weather from Wunderground.com"); ?></a>
+	    			</div>
+	    		</small>
+	    	</li>
 	    	
 	    	<!-- place link -->
 			<li>
@@ -808,24 +808,16 @@ if($place["error"] !== true):
 			</li>
 			
 	    	
-	    	<!-- Weather info will be loaded on fly when opening #extralinks -->
-	    	<li id="place_weather">
-	    		<small>
-	    			<b class="icon weather" style="padding-top: 5px;display:block;"><?php printf(_("Weather near %s"), $place["location"]["locality"]); ?></b>
-	    			<span id="place_weather_info" class="no_weather"><img src="static/gfx/loading.gif" alt="<?php echo _("Loading"); ?>" /></span>
-	    			<br />
-	    			<a href="http://www.wunderground.com/cgi-bin/findweather/getForecast?query=<?php echo $place["lat"]; ?>,<?php echo $place["lon"]; ?>" target="_blank"><?php echo _("Weather from Wunderground.com"); ?></a>
-	    		</small>
-	    	</li>
-	    	
 	    	<!-- city info -->
 	    	<?php if(!empty($place["location"]["locality"])): ?>
 			<li>
 	    		<small>
 	    			<b class="icon building" style="padding-top: 5px;display:block;"><?php echo $place["location"]["locality"]; ?></b>
+	    			<div class="inset">
 	    			<a target="_blank" href="http://hitchwiki.org/en/index.php?title=Special%3ASearch&search=<?php echo urlencode($place["location"]["locality"]); ?>&go=Go">Hitchwiki</a>, 
 	    			<a target="_blank" href="http://en.wikipedia.org/wiki/Special:Search?search=<?php echo urlencode($place["location"]["locality"]); ?>">Wikipedia</a>, 
 	    			<a target="_blank" href="http://wikitravel.org/en/Special:Search?search=<?php echo urlencode($place["location"]["locality"]); ?>&go=Go">Wikitravel</a>
+	    			</div>
 	    		</small>
 	    	</li>
 	    	<?php endif; ?>
@@ -835,10 +827,12 @@ if($place["error"] !== true):
 	    	<li>
 	    		<small>
 	    			<b class="icon world" style="padding-top: 5px;display:block;"><?php echo $place["location"]["country"]["name"]; ?></b>
+	    			<div class="inset">
 	    			<a target="_blank" href="http://hitchwiki.org/en/index.php?title=Special%3ASearch&search=<?php echo urlencode($place["location"]["country"]["name"]); ?>&go=Go">Hitchwiki</a>, 
 	    			<a target="_blank" href="http://en.wikipedia.org/wiki/Special:Search?search=<?php echo urlencode($place["location"]["country"]["name"]); ?>">Wikipedia</a>, 
 	    			<a target="_blank" href="http://wikitravel.org/en/Special:Search?search=<?php echo urlencode($place["location"]["country"]["name"]); ?>&go=Go">Wikitravel</a>, 
 	    			<a target="_blank" href="http://www.couchsurfing.org/statistics.html?country_name=<?php echo urlencode($place["location"]["country"]["name"]); ?>">CouchSurfing</a>
+	    			</div>
 	    		</small>
 			</li>
 	    	<?php endif; ?>
@@ -850,17 +844,32 @@ if($place["error"] !== true):
 				    	<span class="lat" title="<?php echo _("Latitude"); ?>"><?php echo $place["lat"]; ?></span>, 
 				    	<span class="lon" title="<?php echo _("Longitude"); ?>"><?php echo $place["lon"]; ?></span>
 				    </b>
-				    
-					<a href="http://maps.google.com/?q=<?php echo $place["lat"].",".$place["lon"]; ?>" target="_blank">Google</a>, 
+				    <div class="inset">
+	    			<a href="http://maps.google.com/?q=<?php echo $place["lat"].",".$place["lon"]; ?>" target="_blank">Google</a>, 
 				    <a href="http://www.bing.com/maps/default.aspx?v=2&amp;cp=<?php echo $place["lat"]."~".$place["lon"]; ?>&amp;style=r&amp;lvl=12&amp;sp=Point.<?php echo $place["lat"]."_".$place["lon"]."_".urlencode($place["location"]["locality"]); ?>___" target="_blank">Bing</a>, 
 					<a href="http://www.openstreetmap.org/index.html?mlat=<?php echo $place["lat"]; ?>&amp;mlon=<?php echo $place["lon"]; ?>&amp;zoom=12&amp;layers=B000FTF" target="_blank">OpenStreetMap</a>, 
 					<a href="http://www.wikimapia.org/#lat=<?php echo $place["lat"]; ?>&amp;lon=<?php echo $place["lon"]; ?>&amp;z=12&amp;l=24&amp;m=w" target="_blank">Wikimapia</a>, 
 					<a href="http://www.panoramio.com/map/#lt=<?php echo $place["lat"]; ?>&amp;ln=<?php echo $place["lon"]; ?>&amp;z=0&amp;k=0&amp;a=1&amp;tab=2" target="_blank">Panoramio</a>,
 					<a href="http://www.flickr.com/nearby/<?php echo $place["lat"].",".$place["lon"]; ?>" target="_blank">Flickr</a>, 
 					<a href="http://maps.google.com/maps?&amp;q=<?php echo $place["lat"].",".$place["lon"]; ?>&amp;spn=0.1,0.1&amp;output=kml" target="_blank">Google Earth</a>
-	
+					</div>
 				</small>
 			</li>
+			
+	    	<!-- download -->
+	    	<li>
+				<small>
+				<b class="icon page_white_put" style="padding-top: 3px;display:block;"><?php echo _("Download marker as a file"); ?></b>
+					<div class="inset">
+	    			<a href="./api/?format=gpx&amp;download=hitchhiking_place_<?php echo $place["id"]; ?>&amp;place=<?php echo $place["id"]; ?>" type="application/gpx+xml" class="icon gpx">GPX</a> &nbsp; 
+					<a href="./api/?format=kml&amp;download=hitchhiking_place_<?php echo $place["id"]; ?>&amp;place=<?php echo $place["id"]; ?>" type="application/vnd.google-earth.kml+xml" class="icon kml">KML</a> &nbsp;
+					<!--
+					<a href="./api/?format=kmz&amp;download=hitchhiking_place_<?php echo $place["id"]; ?>&amp;place=<?php echo $place["id"]; ?>" type="application/vnd.google-earth.kmz" class="icon gmz">KMZ (<?php echo _("Zipped"); ?> KML)</a> 
+					-->
+					</div>
+				</small>
+			</li>
+			
 
 		</div>
 		

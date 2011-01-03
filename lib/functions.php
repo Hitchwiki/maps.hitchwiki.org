@@ -89,6 +89,7 @@ function get_place($id=false, $more=false) {
 		if($more==true) {
 		 
 			$query .= ",
+						`elevation`,
 						`rating_count`,
 			    		`country`,
 			    		`continent`,
@@ -124,6 +125,7 @@ function get_place($id=false, $more=false) {
 		 	$place["lon"] = $r["lon"];
 		 	
 		 	if($more==true) {
+		 		$place["elevation"] = $r["elevation"];
 		 		$place["location"]["locality"] = $r["locality"];
 		 		$place["location"]["country"]["iso"] = $r["country"];
 		 		$place["location"]["country"]["name"] = ISO_to_country($r["country"]);
@@ -445,8 +447,11 @@ function list_countries($type="array", $order="name", $limit=false, $count=true,
 		}
 	
 		$country_array = array_merge($country_array, $country_array2);
-		sort($country_array);
+		//sort($country_array);
 	}
+	
+	// Alphabetic order by translated countrynames
+	ksort($country_array);
 	
 	
 	// Print it out
@@ -946,8 +951,10 @@ function ISO_to_country($iso, $db=false, $lang="") {
 /* 
  * Shorten longer language codes
  * ISO_639-1 ('en_UK' => 'en')
+ *
+ * mode: country / language
  */
-function shortlang($lang="") {
+function shortlang($lang="", $mode="language") {
 
 	// Use current in use -language if not specified
 	if(empty($lang)) {
@@ -956,12 +963,16 @@ function shortlang($lang="") {
 	}
 	
 	// Do the shortie!
-	if(strstr("_", $lang)) $bits = explode("_", $lang);
-	elseif(strstr("@", $lang)) $bits = explode("@", $lang);
-	else $bits[0] = substr($lang, 0, 2);
-
+	if(strstr($lang, "_")) $bits = explode("_", $lang);
+	elseif(strstr($lang, "@")) $bits = explode("@", $lang);
+	else {
+		$bits[0] = substr($lang, 0, 2);
+		$bits[1] = "world";
+	}
+	
 	// Give 'em that shortie...
-	return $bits[0];
+	if($mode=="language") return $bits[0];
+	elseif($mode=="country") return $bits[1];
 }
 
 
@@ -1339,6 +1350,108 @@ function get_user($session=false) {
 }
 
 
+/* 
+ * Protect email against spam
+ */
+function protect_email($email) {
+	return str_replace("@", "&#64;", $email);
+}
+
+
+/*
+ * Print out an error sign
+ */
+function error_sign($msg=false, $hide=true) {
+
+	$random = rand(0,1000);
+	
+	$title = _("Error");
+	if(!empty($msg)) {
+		$title .= ":";
+		$msg = htmlspecialchars($msg);
+	} else $msg = "";
+	
+	// Print error sign
+	echo '<div class="ui-state-error ui-corner-all" style="padding: 0 .7em; margin: 10px 0;" id="error_'.$random.'">'. 
+	    '<p><span class="ui-icon ui-icon-alert" style="float: left; margin-right: .3em;"></span> '.
+	    '<strong>'.$title.'</strong> <span class="error_text">'.$msg.'</span></p>'.
+	    '</div>';
+	
+	// Hides error
+	if($hide==true) {
+		echo '<script type="text/javascript">'.
+				'$(function(){'.
+					'$("#error_'.$random.'").delay(2500).fadeOut("slow");'.
+				'});'.
+			'</script>';
+	}
+}
+
+
+/*
+ * Gives an elevation in meters
+ *
+ * http://www.geonames.org/export/web-services.html
+ * Elevation - Aster Global Digital Elevation Model
+ * sample area: ca 30m x 30m, between 83N and 65S latitude. Result : a single number giving the elevation in meters 
+ * according to aster gdem, ocean areas have been masked as "no data" and have been assigned a value of -9999"
+ */
+function get_elevation($lat,$lon) {
+
+	$elevation = readURL("http://ws.geonames.org/astergdem?lat=".urlencode($lat)."&lng=".urlencode($lon));
+
+	if(trim($elevation) == '-9999') return '0';
+	elseif(!empty($elevation)) return trim($elevation);
+	else return false;
+}
+
+
+
+/*
+ * Output description in HTML form for map bubbles (eg. for KML-files)
+ */
+function bubble_description_html($marker) {
+	global $settings;
+   $lang = $settings["default_language"];
+
+   if(!empty($marker["description"][$lang]["description"])) $return .= Markdown($marker["description"][$lang]["description"]).' ';
+
+   // Meta START		
+   $return .= "\n".'<div style="border-top: 1px solid #ccc; margin: 5px 0 0 0; padding: 5px 0 0 0;"><small>';
+
+   // Meta: rating
+   $return .= '<b>'._("Hitchability").':</b> '.hitchability2textual($marker["rating"]).' <b style="font-size: 15px; color: #'.$settings["hitchability_colors"][$marker["rating"]].';">&bull;</b> ('; 
+   $return .= sprintf(ngettext("%d vote", "%d votes", $marker["rating_stats"]["rating_count"]), $marker["rating_stats"]["rating_count"]);
+   $return .= ')<br />';
+
+   if($marker["rating_stats"]["rating_count"] > 1) {
+       $return .= _("Vote distribution").':<br />';
+       $return .= '<img src="'.rating_chart($marker["rating_stats"], 220).'" alt="'._("Vote distribution").'" /><br />';
+   }
+
+   // Meta: Waitingtime
+   if($marker["waiting_stats"]["count"] > 0) {
+       $return .= '<b title="'._("Average").'">'._("Waiting time").':</b> ';
+       $return .= $marker["waiting_stats"]["avg_textual"].' ('; 
+       $return .= sprintf(ngettext("%d experience", "%d experiences", $marker["waiting_stats"]["count"]), $marker["waiting_stats"]["count"]);
+       $return .= ')<br />';
+   }
+
+   // Meta: edited time
+   if(!empty($marker["description"][$lang]["datetime"])) {
+       $return .= '<span title="'.date(DATE_RFC822,strtotime($marker["description"][$lang]["datetime"])).'">';
+       $return .= sprintf(_('Description written %s'), date("j.n.Y",strtotime($marker["description"][$lang]["datetime"])));
+       $return .= '</span><br />';
+   }
+
+   // Meta: link				
+   if(!empty($marker["link"])) $return .= '<a href="'.$marker["link"].'">'._("Place in Hitchwiki Maps").'</a><br />';
+
+   // Meta END
+   $return .= "</small></div>\n";
+
+   return $return;
+}
 
 
 

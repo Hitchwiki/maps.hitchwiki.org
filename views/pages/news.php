@@ -24,6 +24,7 @@ if(strstr($_SERVER['HTTP_USER_AGENT'], "Opera")): ?>
 	<fb:comments xid="<?php echo urlencode($settings["base_url"]); ?>" numposts="5" width="650" publish_feed="true"></fb:comments>
 <?php endif; ?>
 
+
 <script type="text/javascript">
     $(function() {
     	FB.XFBML.parse(document.getElementById('pages'));

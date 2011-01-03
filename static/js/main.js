@@ -125,13 +125,6 @@ $(document).ready(function() {
 	});
 	
 	
-	// Language selection
-	$("form#language_selection input#submit").hide();
-	$("form#language_selection select").change(function() {
-		$("form#language_selection input#submit").click();
-		//$(this).parent("form").submit(); //<- Ain't working for some reason?
-	});
-    
     
     // Login panel
     /*
@@ -238,10 +231,26 @@ $(document).ready(function() {
 		stats("add_place/");
 		init_add_place();
 	});
+	
+	
+	// Change a language panel
+	$("#toggleLanguages").click(function(e){
+		
+	});
+
+
+	// Language Panel - Opening/closing
+	$("#toggleLanguages, div#languagePanel h4 .close").click(function(e){
+		e.preventDefault();
+		stats("toggle_languagelist/");
+		$(this).blur();
+		$("div#languagePanel").toggle();
+		close_page();
+	});
+	$("div#languagePanel").attr("style","top: 10px; right: 10px;");
 
 
 	// Tools Panel - Opening/closing
-	// Tools Panel - Add a close button to tools panel
 	$("#Navigation #tools, div#toolsPanel h4 .close").click(function(e){
 		e.preventDefault();
 		stats("toggle_tools/");
@@ -249,11 +258,13 @@ $(document).ready(function() {
 		$("div#toolsPanel").toggle();
 		close_page();
 	});
-	
+
+
 	// Tools Panel - make it draggable
-	$("div#toolsPanel")
+	$(".floatingPanel.draggable")
 		.draggable({ handle: 'h4' })
 		.attr("style","text-align:left; top: 100px; left: 240px;");
+
 
 	// Tools Panel - init zoom tool slider
 	$("div#toolsPanel #zoom_slider").slider({

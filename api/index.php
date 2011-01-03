@@ -53,6 +53,14 @@ if(isset($_GET["download"])) {
 		header('Content-type: application/vnd.google-earth.kml+xml; charset=utf8');
 		$file_format = "kml";
 	}
+	elseif($api->format == "kmz") {
+		header('Content-type: application/vnd.google-earth.kmz; charset=utf8');
+		$file_format = "kmz";
+	}
+	elseif($api->format == "gpx") {
+		header('Content-type: application/gpx+xml; charset=utf8');
+		$file_format = "kml";
+	}
 	else {
 		header('Content-type: text/plain; charset=utf8');
 		$file_format = "txt";
@@ -64,6 +72,9 @@ if(isset($_GET["download"])) {
 	
 	// Send it to the browser
 	header('Content-Disposition: attachment; filename="'.$filename.'.'.$file_format.'"');
+}
+elseif($api->format == "kml") {
+	header('Content-type: application/vnd.google-earth.kml+xml; charset=utf8');
 }
 // Just serve as a text stream if format is "string" (to make it easier to read)
 elseif($api->format == "string") {

@@ -5,6 +5,7 @@
 
 <div class="align_left" style="margin: 0 40px 20px 0;">
 
+	<!-- top countries -->
 	<h3><?php printf( _( 'Top %s countries' ), "20" ); ?></h3>
 	<table class="infotable" cellspacing="0" cellpadding="0">
 		<thead>
@@ -17,12 +18,14 @@
 			<?php list_countries("tr", "markers", 20); ?>
 		</tbody>
 	</table>
+	<!-- /top countries -->
 	
 </div>
 
 
 <div class="align_left" style="margin: 0 40px 20px 0;">
 
+	<!-- top cities -->
 	<h3><?php printf( _( 'Top %s cities' ), "20" ); ?></h3>
 	<table class="infotable" cellspacing="0" cellpadding="0">
 		<thead>
@@ -36,12 +39,14 @@
 			<?php list_cities("tr", "markers", 20); ?>
 		</tbody>
 	</table>
+	<!-- /top ities -->
 	
 </div>
 
 
 <div class="align_left" style="margin: 0 40px 20px 0;">
 
+	<!-- top continents -->
 	<h3><?php printf( _( 'By continents' ), "20" ); ?></h3>
 	<table class="infotable" cellspacing="0" cellpadding="0">
 		<thead>
@@ -54,14 +59,78 @@
 			<?php list_continents("tr", true); ?>
 		</tbody>
 	</table>
+	<!-- /top continents -->
 	
 	
-<p>
+	<!-- hitchability -->
 	<h3><?php echo _("Hitchability"); ?> - <?php echo _("Vote distribution"); ?></h3>
 	<img src="<?php echo rating_chart(rating_stats(), 200); ?>" alt="<?php echo _("Vote distribution"); ?>" />
-</p>
-
+	<p><?php
+		$result = mysql_query("SELECT COUNT(id) as count FROM `t_ratings` WHERE `rating` IS NOT NULL AND `rating` != '0'");
+		while ($row = mysql_fetch_array($result)) {
+			printf(ngettext("%d vote in total.", "%d votes in total.", $row["count"]), $row["count"]);
+			break;
+		}	
+	?></p>
+	<!-- /hitchability -->
 	
+</div>
+
+<div class="clear"></div>
+	
+<div style="margin: 0 0 20px 0;">
+
+	<!-- highest places -->
+	<h3><?php echo _("Highest hitchhiking places"); ?></h3>
+	<table class="infotable" cellspacing="0" cellpadding="0">
+		<thead>
+			<tr>
+				<th><?php echo _("Country"); ?></th>
+				<th><?php echo _("Highest place"); ?></th>
+				<th><?php echo _("Average elevation"); ?></th>
+				<th><?php echo _("Lowest place"); ?></th>
+				<th><?php echo _("Places"); ?></th>
+			</tr>
+		</thead>
+		<tbody>
+		<?php
+		
+		$query = "SELECT 
+						MAX(elevation) AS max, 
+						AVG(elevation) AS avg, 
+						MIN(elevation) AS min, 
+						COUNT(id) as count,
+						`elevation`,
+						`country`,
+						`locality`,
+						`type` 
+					FROM `t_points` 
+					GROUP BY country
+					ORDER BY max DESC";
+		
+		$result = mysql_query($query);
+		$i=1;
+		while ($row = mysql_fetch_array($result)) {
+		
+			echo '<tr>';
+			echo '<td><img class="flag" alt="'.strtolower($row["country"]).'" src="static/gfx/flags/'.strtolower($row["country"]).'.png" /> <a href="#" id="search_for_this">'.ISO_to_country($row["country"]).'</a></td>';
+			echo '<td>'.$row["max"].' '._("m").'</td>';
+			echo '<td>'.round($row["avg"]).' '._("m").'</td>';
+			echo '<td>'.$row["min"].' '._("m").'</td>';
+			echo '<td>'.$row["count"].'</td>';
+			echo '</tr>';
+			
+			if($i>=10) break;
+			else $i++;
+		}
+		?>
+		</tbody>
+	</table>
+	<!-- /highest places -->
+
+</div>
+
+
 <!--
 	<h3><?php printf( _( 'Top %s users' ), "20" ); ?></h3>
 	<table class="infotable" cellspacing="0" cellpadding="0">
@@ -73,63 +142,19 @@
 	    </thead>
 	    <tbody>
 	    	<tr>
-	    		<td>User</td>
-	    		<td>1</td>
-	    	</tr>
-	    	<tr>
-	    		<td>User</td>
-	    		<td>1</td>
-	    	</tr>
-	    	<tr>
-	    		<td>User</td>
-	    		<td>1</td>
-	    	</tr>
-	    	<tr>
-	    		<td>User</td>
-	    		<td>1</td>
-	    	</tr>
-	    	<tr>
-	    		<td>User</td>
-	    		<td>1</td>
-	    	</tr>
-	    	<tr>
-	    		<td>User</td>
-	    		<td>1</td>
-	    	</tr>
-	    	<tr>
-	    		<td>User</td>
-	    		<td>1</td>
-	    	</tr>
-	    	<tr>
-	    		<td>User</td>
-	    		<td>1</td>
-	    	</tr>
-	    	<tr>
-	    		<td>User</td>
-	    		<td>1</td>
+	    		<td>-</td>
+	    		<td>-</td>
 	    	</tr>
 	    </tbody>
 	</table>
 -->
-</div>
+
+
 
 <div class="clear"></div>
 
+	<!-- place dencity -->
 	<h3><?php echo _("Place density"); ?></h3>
-	<!-- http://code.google.com/apis/chart/docs/gallery/map_charts.html --
-	<img src="http://chart.apis.google.com/chart?cht=t&chs=440x220&chd=s:_&chtm=world&chf=bg,s,faf9f3" alt="<?php echo _("Hitchability"); ?>" />
-
-	<br /><br />-->
-	
-	<!-- http://code.google.com/apis/visualization/documentation/gallery/intensitymap.html -->
-	<!--
-	<iframe src="lib/map_statistics.php?map=1" width="460" height="250" border="0" style="border:0;"></iframe>
-	
-	<br /><br />
-	-->
-	<!-- http://code.google.com/apis/visualization/documentation/gallery/geomap.html -->
-	<!--
-	<iframe src="lib/map_statistics.php?map=2" width="820" height="430" border="0" style="border:0;"></iframe>
-	-->
 	<!-- http://code.google.com/apis/visualization/documentation/gallery/geomap.html -->
 	<iframe src="ajax/map_statistics.php?map=3" width="820" height="430" border="0" style="border:0;"></iframe>
+	<!-- /place dencity -->

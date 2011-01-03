@@ -378,6 +378,9 @@ textarea.icon {
 .icon.weather 			{ background-image: url(../gfx/icons/weather.png); }
 .icon.eye	 			{ background-image: url(../gfx/icons/eye.png); }
 
+.icon.gpx 				{ background-image: url(../gfx/icons/gpx.png); }
+.icon.kml 				{ background-image: url(../gfx/icons/kml.png); }
+.icon.kmz 				{ background-image: url(../gfx/icons/package.png); }
 
 
 
@@ -457,7 +460,6 @@ html, body {
 	}
 		#LoginNavi #Hello {
 			display: block;
-			padding-top: 25px;
 			font-style: italic;
 			color: #9d8100;
 		}
@@ -469,72 +471,16 @@ html, body {
 			font-size: 11px;
 		}
 		#LoginNavi #loginOpener {
-			padding: 5px 10px 10px 30px;
 			font-size: 13px;
 			font-weight: bold;
-			border: 1px solid transparent;
-			border-bottom: 0;
-			position: absolute;
-			top: 20px;
-			right: 141px;
-			background-position: 8px 6px;
-			z-index: 99999;
-			
-			-webkit-border-top-left-radius: 5px;
-			-webkit-border-top-right-radius: 5px;
-			-moz-border-radius-topleft: 5px;
-			-moz-border-radius-topright: 5px;
-			border-top-left-radius: 5px;
-			border-top-right-radius: 5px;
 		}
-		#LoginNavi #loginOpener.open {
-			background-color: #e4b330;
-			border: 1px solid #ca940f;
-			color: #000;
-			border-bottom: 0;
+		#loginHellomenu {
+			padding-top: 20px;
+			float: right;
 		}
-		
-		#loginPanel {
-			position: absolute;
-			background: #f2d871 url(../gfx/login_bg.gif) repeat-x;
-			border: 1px solid #ca940f;
-			padding: 10px;
-			width: 200px;
-			top: 53px;
-			right: 141px;
-			z-index: 99998;
-			font-size: 12px;
-			line-height: 15px;
-			
-			-webkit-border-radius: 5px;
-			-webkit-border-top-right-radius: 0;
-			-moz-border-radius: 5px;
-			-moz-border-radius-topright: 0;
-			border-radius: 5px;
-			border-top-right-radius: 0;
+		.logged_out #loginHellomenu {
+			padding-top: 27px;
 		}
-		#loginPanel #email,
-		#loginPanel #password {
-			width: 100%;
-		}
-		#loginPanel #rememberMeRow {
-			font-size: 11px;
-			line-height: 11px;
-			display: block;
-			padding-bottom: 10px;
-		}
-		#loginPanel #login_meta {
-			display: block;
-			border-top: 1px solid #ca940f;
-			padding-top: 5px;
-			clear: both;
-		}
-		#loginPanel .loading {
-			display: none;
-			padding: 30px 0;
-			background: url(../gfx/loading.gif) center center no-repeat;
-		}
-
 
 #Sidebar {
 	width: 170px;
@@ -674,7 +620,7 @@ ul#Navigation {
 	}
 
 
-#toolsPanel {
+.floatingPanel {
 	display: block;
 	text-align: left;
 	position: absolute;
@@ -686,6 +632,7 @@ ul#Navigation {
 	font-size: 11px;
 	border: 1px solid #c9ab22;
 	border-bottom: transparent;
+	z-index: 99998;
 	
 	-webkit-border-radius: 3px;
 	-moz-border-radius: 3px;
@@ -695,22 +642,24 @@ ul#Navigation {
   	-moz-box-shadow: 0px 0px 5px #ccc;
   	-webkit-box-shadow: 0px 0px 5px #ccc;
 }
-	#toolsPanel ul {
+	.floatingPanel ul {
 		list-style: none;
 		padding: 0;
 		margin: 0;
 	}
-	#toolsPanel h4 {
+	.floatingPanel h4 {
 		display: block;
 		border-bottom: 1px solid #c9ab22;
 		margin: 0 0 7px 0;
 		color: #000;
+	}
+	.floatingPanel.draggable h4 {
 		cursor: move;
 	}
-	#toolsPanel #zoom_slider {
+	.floatingPanel #zoom_slider {
 		margin: 3px 7px;
 	}
-	#toolsPanel hr {
+	.floatingPanel hr {
 		color: #c9ab22;
 		background-color: #c9ab22;
 		height: 1px;
@@ -720,6 +669,13 @@ ul#Navigation {
 		clear: both;
 	}
 
+#languagePanel {
+    width: 150px;
+}
+#languagePanel .selected {
+	font-weight: bold;
+	color: #333;
+}
 
 code.example {
 	display: block;
@@ -750,7 +706,16 @@ code.example {
 	#PlacePanel #write_comment { width: 185px; }
 	#PlacePanel .copypaste { width: 200px; background: transparent; color: #413914; }
 	#PlacePanel .copypaste:hover { border-color: #81722f; }
+	#PlacePanel .inset { padding-left: 6px; }
 	
+#language ul {
+	display: block;
+	position: absolute;
+	top: 0;
+	right: 0;
+	padding: 5px;
+	background: #;
+}
 
 #loading-bar {
 	display: block;

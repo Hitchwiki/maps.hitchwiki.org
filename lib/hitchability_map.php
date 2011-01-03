@@ -1,5 +1,6 @@
 <?php
-/*
+/* Hitchwiki Maps - hitchability_map.php
+ *
  * Load config to set language and stuff
  */
 require_once "../config.php";

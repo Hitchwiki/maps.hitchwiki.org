@@ -2,13 +2,96 @@
 # This file is distributed under the same license as the Maps package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2010-12-22 18:30:04+0000\n"
+"PO-Revision-Date: 2011-01-03 19:45:01+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 "X-Generator: GlotPress/0.1\n"
 "Project-Id-Version: Maps\n"
+
+#: views/pages/statistics.php:71
+msgid "%d vote in total."
+msgid_plural "%d votes in total."
+msgstr[0] "Итого: %d голос."
+msgstr[1] "Итого: %d голоса."
+msgstr[2] "Итого: %d голосов."
+
+#: views/cards/download.php:70
+msgid "Read about converting data between formats"
+msgstr "Конвертирование файлов"
+
+#: views/cards/download.php:2
+msgid "Download markers as a file"
+msgstr "Загрузить координаты мест в виде файла "
+
+#: api/templates/gpx.php:32 api/templates/kml.php:34 api/templates/kml.php:44
+msgid "Hitchhiking places"
+msgstr "Позиции для автостопа"
+
+#: views/cards/download.php:20
+msgid "Format"
+msgstr "Формат файла"
+
+#: views/pages/statistics.php:117 views/pages/statistics.php:118
+#: views/pages/statistics.php:119
+msgid "m"
+msgstr "м"
+
+#: views/pages/statistics.php:90
+msgid "Average elevation"
+msgstr "Средняя высота над уровнем моря"
+
+#: ajax/place.php:862
+msgid "Download marker as a file"
+msgstr "Загрузить координаты места в виде файла"
+
+#: ajax/place.php:702
+msgid "No weather info..."
+msgstr "Информация о погоде недоступна"
+
+#: ajax/place.php:778
+msgid "Elevation"
+msgstr "Высота над уровнем моря"
+
+#: ajax/place.php:778
+msgid "meters"
+msgstr "метров"
+
+#: views/pages/statistics.php:89
+msgid "Highest place"
+msgstr "Высочайшая позиция"
+
+#: views/pages/statistics.php:84
+msgid "Highest hitchhiking places"
+msgstr "Высчочайшие позиции для автостопа"
+
+#: views/pages/statistics.php:91
+msgid "Lowest place"
+msgstr "Позиция с наименьшей высотой над уровнем моря"
+
+#: lib/functions.php:1424
+msgid "%d vote"
+msgid_plural "%d votes"
+msgstr[0] "%d голос"
+msgstr[1] "%d голоса"
+msgstr[2] "%d голосов"
+
+#: lib/functions.php:1448
+msgid "Place in Hitchwiki Maps"
+msgstr "Место на Картах АвтостопВики"
+
+#: ajax/waitingtimes.php:76
+msgid "Waiting time varies from %s to %s."
+msgstr "Время ожидания варьируется от %s до %s."
+
+#: views/pages/help.php:82
+msgid "Italian"
+msgstr "Итальянский"
+
+#: index.php:528
+msgid "Street view"
+msgstr "Уличный вид"
 
 #: views/pages/api.php:269
 msgid "License"
@@ -18,7 +101,7 @@ msgstr "Лицензия"
 msgid "Creative Commons License"
 msgstr "Лицензия Creative Commons"
 
-#: views/pages/help.php:108
+#: views/pages/help.php:109
 msgid "You can show your love to us and recommend Hitchwiki Maps to your hitchhiker mates in Facebook by pressing this cute little button with a familiar icon on it:"
 msgstr "Нажав эту кнопку вы сможете выразить свою признательность проекту и порекомендовать АвтостопВики своим друзьям в Facebook."
 
@@ -26,55 +109,55 @@ msgstr "Нажав эту кнопку вы сможете выразить св
 msgid "http://hitchwiki.org/en/"
 msgstr "http://hitchwiki.org/ru/"
 
-#: views/pages/help.php:73 views/pages/help.php:89
+#: views/pages/help.php:73 views/pages/help.php:90
 msgid "English"
 msgstr "Английский"
 
-#: views/pages/help.php:85
+#: views/pages/help.php:86
 msgid "Latvian"
 msgstr "Латвийский"
 
-#: views/pages/help.php:89
+#: views/pages/help.php:90
 msgid "Pirate"
 msgstr "Пиратский"
 
-#: ajax/place.php:738
+#: ajax/place.php:725
 msgid "Wind"
 msgstr "Ветер"
 
-#: ajax/place.php:736
+#: ajax/place.php:723
 msgid "Temperature"
 msgstr "Температура"
 
-#: ajax/place.php:737
+#: ajax/place.php:724
 msgid "Humidity"
 msgstr "Влажность"
 
-#: ajax/place.php:738
+#: ajax/place.php:725
 msgid "Intensity"
-msgstr ""
+msgstr "Интенсивность"
 
-#: ajax/place.php:738
+#: ajax/place.php:725
 msgid "Direction"
 msgstr "Направление"
 
-#: ajax/place.php:814
+#: ajax/place.php:787
 msgid "Weather near %s"
 msgstr "Погода возле %s"
 
-#: ajax/place.php:739
+#: ajax/place.php:726
 msgid "Air pressure"
 msgstr "Атмосферное давление"
 
-#: ajax/place.php:817
+#: ajax/place.php:790
 msgid "Weather from Wunderground.com"
 msgstr "Погода предоставлена ресурсом Wunderground.com"
 
-#: views/pages/help.php:81
+#: views/pages/help.php:80
 msgid "Chinese"
 msgstr "Китайский"
 
-#: ajax/place.php:738
+#: ajax/place.php:725
 msgid "m/s"
 msgstr "м/с"
 
@@ -98,10 +181,6 @@ msgstr "Не знаю"
 msgid "Just add what you've experienced. You can add multiple timings after saving and we will calculate an average out of them."
 msgstr "Добавьте время ожидания исходя из личного опыта. После очередной поездки можете снова добавить новое время."
 
-#: ajax/js-translation.json.php:42
-msgid "Toggle log"
-msgstr "Лог"
-
 #: ajax/js-translation.json.php:43
 msgid "places"
 msgstr "места"
@@ -124,7 +203,7 @@ msgstr "Попытайтесь искать название страны на �
 
 #: ajax/js-translation.json.php:48
 msgid "Example:"
-msgstr ""
+msgstr "Например:"
 
 #: ajax/js-translation.json.php:49
 msgid "Not found"
@@ -138,7 +217,7 @@ msgstr "Вы уверены, что хотите удалить этот ком�
 msgid "Updating description failed."
 msgstr "Не удалось обновить описание."
 
-#: ajax/place.php:146
+#: lib/functions.php:1443
 msgid "Description written %s"
 msgstr "Описание написано %s"
 
@@ -178,23 +257,23 @@ msgstr "Немецкий"
 msgid "Dutch"
 msgstr "Голландский"
 
-#: views/pages/help.php:84
+#: views/pages/help.php:83
 msgid "Polish"
 msgstr "Польский"
 
-#: views/pages/help.php:87
+#: views/pages/help.php:88
 msgid "French"
 msgstr "Французский"
 
-#: views/pages/help.php:82
+#: views/pages/help.php:81
 msgid "Lithuanian"
 msgstr "Литовский"
 
-#: views/pages/help.php:86
+#: views/pages/help.php:87
 msgid "Swedish"
 msgstr "Шведский"
 
-#: views/pages/help.php:80
+#: views/pages/help.php:84
 msgid "Spanish"
 msgstr "Испанский"
 
@@ -230,19 +309,19 @@ msgstr "Потому что за пределами Европы автосто�
 msgid "When logged in, you will have some more features on this site:"
 msgstr "Зарегистрированные пользователи также могут:"
 
-#: ajax/waitingtimes.php:114
+#: ajax/waitingtimes.php:128
 msgid "Are you sure you want to remove this record?"
 msgstr "Вы уверены, что хотите удалить эту запись?"
 
-#: ajax/waitingtimes.php:131
+#: ajax/waitingtimes.php:145
 msgid "Could not remove a record due to an error. Please try again!"
 msgstr "Ошибка удаления записи. Попробуйте ещё раз."
 
-#: ajax/place.php:582
+#: ajax/place.php:569
 msgid "You are logged in. Your name will be visible for others."
 msgstr "Вы вошли и будете видны остальным пользователям."
 
-#: ajax/place.php:471
+#: ajax/place.php:458
 msgid "Please add your waiting time first."
 msgstr "Сперва добавьте своё время ожидания."
 
@@ -258,19 +337,19 @@ msgstr "Ошибка добавления места."
 msgid "Your name <i>\"%s\"</i> will be visible for this place."
 msgstr "У описания этой точки будет подпись <i>\"%s\"</i>"
 
-#: lib/functions.php:1502
+#: lib/functions.php:1639
 msgid "In-city transportation"
 msgstr "Городской транспорт"
 
-#: lib/functions.php:1454
+#: lib/functions.php:1591
 msgid "Go to site"
 msgstr "Перейти по ссылке"
 
-#: lib/functions.php:1503
+#: lib/functions.php:1640
 msgid "Inter-city / international transportation"
 msgstr "Междугородний транспорт"
 
-#: views/pages/why_register.php:1 index.php:452
+#: views/pages/why_register.php:1 index.php:398
 msgid "Why register?"
 msgstr "Зачем регистрироваться?"
 
@@ -278,15 +357,15 @@ msgstr "Зачем регистрироваться?"
 msgid "http://creativecommons.org/licenses/by-sa/3.0/"
 msgstr "http://creativecommons.org/licenses/by-sa/3.0/deed.ru"
 
-#: index.php:515
+#: index.php:527
 msgid "Download"
 msgstr "Загрузить"
 
-#: index.php:514
+#: index.php:526
 msgid "Link here"
-msgstr ""
+msgstr "Ссылки"
 
-#: lib/functions.php:1508
+#: lib/functions.php:1645
 msgid "No public transport found for this country."
 msgstr "Для этой страны общественный транспорт не описан."
 
@@ -294,7 +373,7 @@ msgstr "Для этой страны общественный транспорт
 msgid "Place successfully added to the map."
 msgstr "Место успешно добавлено на карту."
 
-#: ajax/waitingtimes.php:144
+#: ajax/waitingtimes.php:158
 msgid "No waiting time for this place added yet."
 msgstr "Для этого места ещё не добавлено ни одного времени ожидания."
 
@@ -314,152 +393,152 @@ msgstr "Привязать к Карте свой <a href=\"http://latitude.goog
 msgid "...and more!"
 msgstr "... дальше больше!"
 
-#: lib/api.php:411 lib/functions.php:1045 lib/functions.php:1053
-#: lib/functions.php:1055
+#: lib/api.php:416 lib/functions.php:1080 lib/functions.php:1088
+#: lib/functions.php:1090
 msgid "Anonymous"
 msgstr "Анонимус"
 
-#: lib/functions.php:614
+#: lib/functions.php:624
 msgid "Asia"
 msgstr "Азия"
 
-#: lib/functions.php:618
+#: lib/functions.php:628
 msgid "Africa"
 msgstr "Африка"
 
-#: lib/functions.php:622
+#: lib/functions.php:632
 msgid "North America"
 msgstr "Северная Америка"
 
-#: lib/functions.php:626
+#: lib/functions.php:636
 msgid "South America"
 msgstr "Южная Америка"
 
-#: lib/functions.php:630
+#: lib/functions.php:640
 msgid "Antarctica"
 msgstr "Антарктика"
 
-#: lib/functions.php:634
+#: lib/functions.php:644
 msgid "Europe"
 msgstr "Европа"
 
-#: lib/functions.php:638
+#: lib/functions.php:648
 msgid "Australia and Oceania"
 msgstr "Австралия и Океания"
 
-#: lib/functions.php:1065
+#: lib/functions.php:1100
 msgid "Very good"
 msgstr "Очень хорошо"
 
-#: lib/functions.php:1066
+#: lib/functions.php:1101
 msgid "Good"
 msgstr "Хорошо"
 
-#: lib/functions.php:1067
+#: lib/functions.php:1102 lib/functions.php:1434
 msgid "Average"
 msgstr "Средне"
 
-#: lib/functions.php:1068
+#: lib/functions.php:1103
 msgid "Bad"
 msgstr "Плохо"
 
-#: lib/functions.php:1069
+#: lib/functions.php:1104
 msgid "Senseless"
 msgstr "Бесмысленно"
 
-#: lib/functions.php:1070 lib/functions.php:1082
+#: lib/functions.php:1105 lib/functions.php:1117
 msgid "Unknown"
 msgstr "Неизвестно"
 
-#: lib/functions.php:1083 lib/functions.php:1090
+#: lib/functions.php:1118 lib/functions.php:1125
 msgid "min"
 msgstr "мин"
 
-#: lib/functions.php:1086
+#: lib/functions.php:1121
 msgid "h"
 msgstr "ч"
 
-#: lib/functions.php:1370
+#: lib/functions.php:1507
 msgid "Other"
 msgstr "Другое"
 
-#: lib/functions.php:1371
+#: lib/functions.php:1508
 msgid "Local bus"
 msgstr "Городской автобус"
 
-#: lib/functions.php:1372
+#: lib/functions.php:1509
 msgid "Trolleybus"
 msgstr "Троллейбус"
 
-#: lib/functions.php:1373
+#: lib/functions.php:1510
 msgid "Tram"
 msgstr "Трамвай"
 
-#: lib/functions.php:1374
+#: lib/functions.php:1511
 msgid "Metro"
 msgstr "Метро"
 
-#: lib/functions.php:1375
+#: lib/functions.php:1512
 msgid "Commuter train"
 msgstr "Пригородные поезда"
 
-#: lib/functions.php:1376
+#: lib/functions.php:1513
 msgid "Taxi"
 msgstr "Такси"
 
-#: lib/functions.php:1377
+#: lib/functions.php:1514
 msgid "Long distance bus"
 msgstr "Междугородние автобусы"
 
-#: lib/functions.php:1378
+#: lib/functions.php:1515
 msgid "Long distance train"
 msgstr "Междугородние поезда"
 
-#: lib/functions.php:1379
+#: lib/functions.php:1516
 msgid "Airline"
 msgstr "Авиаперелеты"
 
-#: lib/functions.php:1380
+#: lib/functions.php:1517
 msgid "Shipping"
 msgstr "Паромы"
 
-#: lib/functions.php:1381
+#: lib/functions.php:1518
 msgid "Carsharing"
 msgstr "Каршэринг"
 
-#: lib/functions.php:1382
+#: lib/functions.php:1519
 msgid "Car rental"
 msgstr "Аренда автомобилей"
 
-#: lib/functions.php:1432 ajax/country.php:159
+#: lib/functions.php:1569 ajax/country.php:159
 msgid "City"
 msgstr "Город"
 
-#: lib/functions.php:1433
+#: lib/functions.php:1570
 msgid "Site"
 msgstr "Сайт"
 
-#: lib/functions.php:1434 ajax/add_place.php:81
+#: lib/functions.php:1571 ajax/add_place.php:81
 msgid "Type"
 msgstr "Тип"
 
-#: lib/functions.php:1436
+#: lib/functions.php:1573
 msgid "Manage"
 msgstr "Управлять"
 
-#: lib/functions.php:1472
+#: lib/functions.php:1609
 msgid "Remove page permanently"
 msgstr "Удалить страницу навсегда"
 
-#: lib/functions.php:1473
+#: lib/functions.php:1610
 msgid "Edit page"
 msgstr "Редактировать страницу"
 
-#: lib/functions.php:1492
+#: lib/functions.php:1629
 msgid "Are you sure?"
 msgstr "Вы уверены?"
 
-#: lib/functions.php:1508
+#: lib/functions.php:1645
 msgid "Add some?"
 msgstr "Добавить ссылку!"
 
@@ -507,7 +586,7 @@ msgstr "Заполните описание на всех доступных В�
 msgid "Clear"
 msgstr "Очистить"
 
-#: ajax/add_place.php:215
+#: lib/functions.php:1423 ajax/add_place.php:215
 msgid "Hitchability"
 msgstr "Удобство позиции"
 
@@ -531,7 +610,7 @@ msgstr "Место успешно добавлено"
 msgid "Please try again!"
 msgstr "Пожайлуста, попробуйте ещё раз."
 
-#: ajax/add_place.php:383
+#: lib/functions.php:1368 ajax/add_place.php:383
 msgid "Error"
 msgstr "Ошибка"
 
@@ -607,60 +686,48 @@ msgstr "Пока кто-нибудь его не добавит."
 msgid "Save"
 msgstr "Добавить описание"
 
-#: ajax/place.php:782
+#: ajax/place.php:764
 msgid "Added by"
 msgstr "Место добавлено"
 
-#: ajax/place.php:786
+#: ajax/place.php:768
 msgid "Added at"
 msgstr "Добавлено в "
 
-#: ajax/place.php:249
-msgid "1 vote"
-msgstr "1 оценка"
-
-#: ajax/place.php:250
-msgid "%s votes"
-msgstr "Оценок: %s"
-
-#: ajax/place.php:255 ajax/place.php:256
+#: lib/functions.php:1428 lib/functions.php:1429
 msgid "Vote distribution"
 msgstr "Распределение голосов"
 
-#: ajax/place.php:283
+#: ajax/place.php:279
 msgid "Your opinion..."
 msgstr "Ваше мнение..."
 
-#: ajax/place.php:293
+#: ajax/place.php:289
 msgid "You rated for this place"
 msgstr "Вы оценили это место"
 
-#: ajax/place.php:325
+#: ajax/place.php:321
 msgid "Rating failed, please try again."
 msgstr "Оценить не удалось, попробуйте снова."
 
-#: ajax/place.php:325
+#: ajax/place.php:321
 msgid "Rating failed"
 msgstr "Не удалось оценить"
 
-#: ajax/add_place.php:232
+#: lib/functions.php:1434 ajax/add_place.php:232
 msgid "Waiting time"
 msgstr "Время ожидания"
 
-#: ajax/place.php:351
+#: ajax/place.php:346
 msgid "Show log"
 msgstr "Показать журнал"
 
-#: ajax/place.php:356
+#: lib/functions.php:1436
 msgid "%d experience"
 msgid_plural "%d experiences"
 msgstr[0] "Среднее время %d час"
 msgstr[1] "Среднее время %d часа"
 msgstr[2] "Среднее время %d часов"
-
-#: ajax/place.php:364
-msgid "See log"
-msgstr "Смотри лог"
 
 #: ajax/add_place.php:235
 msgid "hours"
@@ -670,7 +737,7 @@ msgstr "часов (часа)"
 msgid "minutes"
 msgstr "минут(ы)"
 
-#: ajax/place.php:374
+#: ajax/place.php:361
 msgid "Your experience..."
 msgstr "Ваш опыт..."
 
@@ -678,7 +745,7 @@ msgstr "Ваш опыт..."
 msgid "Other..."
 msgstr "Другое..."
 
-#: ajax/place.php:384 ajax/place.php:388
+#: ajax/place.php:371 ajax/place.php:375
 msgid "Add"
 msgstr "Добавить"
 
@@ -686,55 +753,55 @@ msgstr "Добавить"
 msgid "Adding..."
 msgstr "Добавление..."
 
-#: ajax/place.php:464
+#: ajax/place.php:451
 msgid "Adding a waitingtime failed, please try again."
 msgstr "Не удалось добавить время ожидания, попробуйте снова."
 
-#: ajax/place.php:509
+#: ajax/place.php:496
 msgid "Comments"
 msgstr "Комментарии"
 
-#: ajax/place.php:536 ajax/place.php:542 ajax/place.php:656
+#: ajax/place.php:523 ajax/place.php:529 ajax/place.php:643
 msgid "Remove comment permanently"
 msgstr "Удалить комментарий"
 
-#: ajax/place.php:537
+#: ajax/place.php:524
 msgid "Edit comment"
 msgstr "Редактировать комментарий"
 
-#: ajax/place.php:554
+#: ajax/place.php:541
 msgid "Leave a comment..."
 msgstr "Оставить комментарий"
 
-#: ajax/place.php:580 ajax/place.php:590 ajax/place.php:632
+#: ajax/place.php:567 ajax/place.php:577 ajax/place.php:619
 msgid "Nickname"
 msgstr "Никнейм"
 
-#: ajax/place.php:585
+#: ajax/place.php:572
 msgid "Comment"
 msgstr "Комментировать"
 
-#: ajax/place.php:606
+#: ajax/place.php:593
 msgid "Please write a comment first."
 msgstr "Пожалуйста, сначала напишите комментарий."
 
-#: ajax/place.php:606
+#: ajax/place.php:593
 msgid "Comment missing"
 msgstr "Отсутствует комментарий"
 
-#: ajax/place.php:616
+#: ajax/place.php:603
 msgid "Sending..."
 msgstr "Отправка..."
 
-#: ajax/place.php:663
+#: ajax/place.php:650
 msgid "Adding a comment failed, please try again."
 msgstr "Не удалось добавить комментарий, попробуйте снова."
 
-#: ajax/place.php:689
+#: ajax/place.php:676
 msgid "More about this place"
 msgstr "Дополнительно"
 
-#: ajax/place.php:690 ajax/place.php:893
+#: ajax/place.php:677 ajax/place.php:902
 msgid "Toggle"
 msgstr "Свернуть/Развернуть"
 
@@ -742,31 +809,31 @@ msgstr "Свернуть/Развернуть"
 msgid "Link to this place:"
 msgstr "Ссылка на это место"
 
-#: ajax/place.php:850
+#: ajax/place.php:844
 msgid "Latitude"
 msgstr "Широта"
 
-#: ajax/place.php:851
+#: ajax/place.php:845
 msgid "Longitude"
 msgstr "Долгота"
 
-#: ajax/place.php:936
+#: ajax/place.php:945
 msgid "Remove place"
 msgstr "Удалить место"
 
-#: ajax/place.php:937
+#: ajax/place.php:946
 msgid "Edit place"
 msgstr "Редактировать место"
 
-#: ajax/place.php:938
+#: ajax/place.php:947
 msgid "See user"
 msgstr "Смотри участника"
 
-#: ajax/place.php:23 ajax/place.php:954
+#: ajax/place.php:23 ajax/place.php:963
 msgid "Sorry, but the place cannot be found.<br /><br />The place you are looking for might have been removed or is temporarily unavailable."
 msgstr "Извините, но место невозможно найти. <br /><br />Место, которое вы ищете могло быть удалено или временно недоступно."
 
-#: ajax/place.php:954
+#: ajax/place.php:963
 msgid "The place cannot be found"
 msgstr "Невозможно найти это место."
 
@@ -794,19 +861,15 @@ msgstr "Ой! Что-то пошло не так! Попробуйте снов�
 msgid "Error 404 - page not found"
 msgstr "Ошибка 404 - страница не найдена"
 
-#: ajax/waitingtimes.php:28
-msgid "Error!"
-msgstr "Ошибка!"
-
-#: ajax/waitingtimes.php:68
+#: ajax/waitingtimes.php:82
 msgid "Date"
 msgstr "Дата"
 
-#: ajax/waitingtimes.php:70
+#: ajax/waitingtimes.php:84
 msgid "User"
 msgstr "Пользователь"
 
-#: ajax/waitingtimes.php:90
+#: ajax/waitingtimes.php:104
 msgid "Remove record"
 msgstr "Удалить запись"
 
@@ -826,7 +889,7 @@ msgstr "Блоги"
 msgid "Planet"
 msgstr "Планета"
 
-#: ajax/place.php:892 admin/index.php:101
+#: ajax/place.php:901 admin/index.php:101
 msgid "Administration"
 msgstr "Администрация"
 
@@ -863,10 +926,6 @@ msgstr "Это Вы!"
 msgid "Results from Hitchwiki Maps"
 msgstr "Результаты с Карт АвтостопВики"
 
-#: views/cards/download.php:2
-msgid "Download a KML-file of markers"
-msgstr "Загрузить KLM-файл с маркерами"
-
 #: views/cards/download.php:8
 msgid "World"
 msgstr "Мир"
@@ -879,21 +938,21 @@ msgstr "маркеры"
 msgid "Visible area on the map"
 msgstr "Видимый участок карты."
 
-#: views/cards/download.php:55
+#: ajax/place.php:867
 msgid "Zipped"
 msgstr "Сжатый"
 
-#: views/cards/download.php:68
+#: views/cards/download.php:72
 msgid "Use Open Street Map Export tool"
 msgstr "Используйте инструмент Open Street Map Export"
 
 #: views/cards/link_here.php:2
 msgid "Link to this view"
-msgstr ""
+msgstr "Ссылка на показанную часть карты"
 
 #: views/cards/link_here.php:4
 msgid "Weblink"
-msgstr ""
+msgstr "Ссылка"
 
 #: views/cards/link_here.php:9
 msgid "Code for hitchwiki"
@@ -905,7 +964,7 @@ msgstr "Код для вставки"
 
 #: views/cards/link_here.php:16
 msgid "You can embed a map to your own blog for example."
-msgstr "К примеру, вы можете встроить карту в свой блог."
+msgstr "Например, чтобы встроить карту в свой блог."
 
 #: views/pages/add_public_transport.php:1
 msgid "Add a page to the catalog"
@@ -968,7 +1027,7 @@ msgstr "по умолчанию"
 msgid "Complete statistics"
 msgstr "Детальная статистика"
 
-#: views/pages/complete_statistics.php:3
+#: views/pages/complete_statistics.php:3 views/pages/statistics.php:3
 msgid "There are currently %s places marked."
 msgstr "На данный момент отмечены %s мест(а)"
 
@@ -984,15 +1043,17 @@ msgstr "Топ стран"
 msgid "Top cities"
 msgstr "Топ городов"
 
-#: views/pages/countries.php:1
+#: views/pages/countries.php:1 index.php:522
 msgid "Countries"
 msgstr "Страны"
 
-#: views/pages/countries.php:23
+#: views/pages/countries.php:23 views/pages/public_transport.php:50
+#: views/pages/settings.php:276 widget.php:93 widget.php:97
 msgid "Loading..."
 msgstr "Загрузка..."
 
 #: views/pages/countries.php:56 views/pages/countries.php:67
+#: views/pages/public_transport.php:82 views/pages/public_transport.php:93
 msgid "Couldn't load info. Please try again."
 msgstr "Не могу загрузить информацию. Пожалуйста, попробуйте позже."
 
@@ -1028,7 +1089,7 @@ msgstr "HTML-теги нельзя, но можно использовать с�
 msgid "Why should I sign up?"
 msgstr "Зачем нужно регистрироваться?"
 
-#: views/pages/help.php:17
+#: views/pages/help.php:17 views/pages/why_register.php:5
 msgid "If you are logged in, you will have some more features on this site. I.e. you will be able to modify your places later, and your nickname will be shown on each of your places and comments."
 msgstr "После регистрации вам станет доступным расширенный функционал этого сайта. Например, возможность редактировать уже добавленные вами позиции. Также ник будет отбражаться на всех описаниях и комментариях оставленных вами."
 
@@ -1064,7 +1125,7 @@ msgstr "Переводчики"
 msgid "Finnish"
 msgstr "Финский"
 
-#: views/pages/help.php:92
+#: views/pages/help.php:93
 msgid "Contact us"
 msgstr "Контакты"
 
@@ -1092,16 +1153,16 @@ msgstr ""
 msgid "Public transport catalog"
 msgstr "Каталог общественного транспорта"
 
-#: views/pages/public_transport.php:101
+#: views/pages/public_transport.php:108
 msgid "Find timetables for the public transport."
 msgstr "Поиск расписаний общественного транспорта"
 
-#: views/pages/settings.php:8 index.php:390
+#: views/pages/settings.php:8 index.php:392
 msgid "Settings"
 msgstr "Настройки"
 
-#: views/pages/settings.php:29 views/pages/translate.php:9 index.php:534
-#: index.php:536
+#: views/pages/settings.php:29 views/pages/translate.php:9 index.php:386
+#: index.php:672
 msgid "Choose language"
 msgstr "Выбрать нужный язык"
 
@@ -1117,7 +1178,7 @@ msgstr "Используемые карты"
 msgid "Default map layer"
 msgstr "Карты, показываемые по умолчанию."
 
-#: views/pages/settings.php:65 index.php:667
+#: views/pages/settings.php:65 index.php:653
 msgid "Default"
 msgstr "по умолчанию"
 
@@ -1201,11 +1262,11 @@ msgstr "Вы отменили удаление своего аккаунта."
 msgid "Reset cancelled"
 msgstr "Удаление отменено"
 
-#: views/pages/settings.php:428
+#: views/pages/settings.php:425
 msgid "You must be logged in to edit settings."
 msgstr "Вы должны войти чтобы изменить настройки."
 
-#: views/pages/statistics.php:1 index.php:522
+#: views/pages/statistics.php:1 index.php:536
 msgid "Statistics"
 msgstr "Статистика"
 
@@ -1213,19 +1274,19 @@ msgstr "Статистика"
 msgid "See more complete statistics."
 msgstr "Показать детальную статистику."
 
-#: views/pages/statistics.php:8
+#: views/pages/statistics.php:9
 msgid "Top %s countries"
 msgstr "Топ %s стран"
 
-#: views/pages/statistics.php:45
+#: views/pages/statistics.php:50
 msgid "By continents"
 msgstr "По континентам"
 
-#: views/pages/statistics.php:66
+#: views/pages/statistics.php:135
 msgid "Top %s users"
 msgstr "Топ %s пользователей"
 
-#: views/pages/statistics.php:118
+#: views/pages/statistics.php:157
 msgid "Place density"
 msgstr "Количество указанных мест по странам"
 
@@ -1233,7 +1294,7 @@ msgstr "Количество указанных мест по странам"
 msgid "Hitchwiki Maps is currently available in %s languages"
 msgstr "Карты АвтостопВики сейчас доступны на %s языках (языке)"
 
-#: views/pages/translate.php:16 index.php:550
+#: views/pages/translate.php:16 index.php:695
 msgid "Help us with translating!"
 msgstr "Помощь с переводом"
 
@@ -1253,7 +1314,7 @@ msgstr "Зарегистрирован"
 msgid "Visible only for admins"
 msgstr "Доступно только администраторам"
 
-#: views/pages/users.php:35 index.php:525
+#: views/pages/users.php:35 index.php:539
 msgid "Admins"
 msgstr "Администраторы"
 
@@ -1269,35 +1330,36 @@ msgstr "Редактировать пользователя"
 msgid "You must be logged in to view users."
 msgstr "Вам нужно войти, чтобы видеть пользователей"
 
-#: config.empty.php:100 config.empty.php:107
+#: config.empty.php:101 config.empty.php:108 config.php:122 config.php:129
 msgid "Satellite"
 msgstr "Спутник"
 
-#: config.empty.php:101 config.empty.php:106 config.empty.php:111
+#: config.empty.php:102 config.empty.php:107 config.empty.php:112
+#: config.php:123 config.php:128 config.php:133
 msgid "Hybrid"
 msgstr "Гибрид"
 
-#: config.empty.php:102
+#: config.empty.php:103 config.php:124
 msgid "Streets"
 msgstr "Улицы"
 
-#: config.empty.php:103
+#: config.empty.php:104 config.php:125
 msgid "Physical"
 msgstr "Физическая"
 
-#: config.empty.php:108
+#: config.empty.php:109 config.php:130
 msgid "Street"
 msgstr "Улица"
 
-#: config.empty.php:112
+#: config.empty.php:113 config.php:134
 msgid "Aerial"
 msgstr ""
 
-#: config.empty.php:113
+#: config.empty.php:114 config.php:135
 msgid "Roads"
 msgstr "Дороги"
 
-#: index.php:105
+#: api/templates/gpx.php:68 api/templates/kml.php:110
 msgid "a Hitchhiking spot in"
 msgstr "Позиция для автостопа в"
 
@@ -1309,7 +1371,7 @@ msgstr "Извините, но место невозможно найти."
 msgid "The place you are looking for might have been removed or is temporarily unavailable."
 msgstr "Место, которое вы ищете, могло быть удалено или временно недоступно."
 
-#: views/pages/help.php:1
+#: views/pages/help.php:1 index.php:313 index.php:535
 msgid "Help & About"
 msgstr "Справка"
 
@@ -1317,59 +1379,59 @@ msgstr "Справка"
 msgid "Community"
 msgstr "Сообщество"
 
-#: index.php:389
+#: index.php:391
 msgid "Profile"
 msgstr "Профиль"
 
-#: index.php:391
+#: index.php:394 index.php:462
 msgid "Logout"
 msgstr "Выйти"
 
-#: index.php:445
+#: index.php:461
 msgid "Hello from %s"
 msgstr "Привет из %s"
 
-#: index.php:453
+#: index.php:399
 msgid "Register!"
 msgstr "Регистрация"
 
-#: index.php:456
+#: index.php:468
 msgid "Login"
 msgstr "Войти"
 
-#: index.php:479
+#: index.php:492
 msgid "Find places"
 msgstr "Поиск"
 
-#: index.php:484
+#: index.php:497
 msgid "Search"
 msgstr "Искать!"
 
-#: index.php:492
+#: index.php:505
 msgid "Nearby places from"
 msgstr "Места рядом"
 
-#: index.php:494
+#: index.php:507
 msgid "Show the city on the map"
 msgstr "Показать город на карте"
 
-#: index.php:495
+#: index.php:508
 msgid "Show the state on the map"
 msgstr ""
 
-#: index.php:496
+#: index.php:509
 msgid "Show the country on the map"
 msgstr "Показать эту страну на карте"
 
-#: index.php:505
+#: index.php:518
 msgid "Ooh! New Maps!"
 msgstr "Новые Карты!"
 
-#: index.php:511 index.php:629
+#: index.php:523 index.php:616
 msgid "Tools"
 msgstr "Инструменты"
 
-#: views/pages/users.php:1 index.php:519
+#: views/pages/users.php:1 index.php:532
 msgid "Members"
 msgstr "Участники"
 
@@ -1377,59 +1439,59 @@ msgstr "Участники"
 msgid "Licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License"
 msgstr "Лицензия Creative Commons Attribution-ShareAlike 3.0 Unported License"
 
-#: index.php:567
+#: index.php:555
 msgid "Contact us!"
 msgstr "Свяжитесь с нами!"
 
-#: index.php:571
+#: index.php:558
 msgid "Developers"
 msgstr "Разработчики"
 
-#: index.php:575
+#: index.php:562
 msgid "API"
 msgstr "API"
 
-#: index.php:616
+#: index.php:603
 msgid "Turn JavaScript on from your browser."
 msgstr "Включите JavaScript в своём браузере."
 
-#: index.php:636
+#: index.php:623
 msgid "Navigate"
 msgstr "Просмотр карты"
 
-#: index.php:641
+#: index.php:628
 msgid "Measure distance"
 msgstr "Измерить расстояние"
 
-#: index.php:646
+#: index.php:633
 msgid "Measure area"
 msgstr "Измерить площадь"
 
-#: index.php:660
+#: index.php:646
 msgid "Measure"
 msgstr "Измерено"
 
-#: index.php:664
+#: index.php:650
 msgid "Show markers after zoom level"
 msgstr "Показать маркеры на уровне приближения (оптимально 9)"
 
-#: index.php:670
+#: index.php:656
 msgid "Continent level"
 msgstr "Континент"
 
-#: index.php:671
+#: index.php:657
 msgid "Country level"
 msgstr "Страна"
 
-#: index.php:672
+#: index.php:658
 msgid "City level"
 msgstr "Город"
 
-#: index.php:673
+#: index.php:659
 msgid "Street level"
 msgstr "Улица"
 
-#: index.php:691
+#: index.php:711
 msgid "Map"
 msgstr "Карта"
 
@@ -1445,9 +1507,9 @@ msgstr "Запрошенная страна не может быть найде�
 msgid "This is just a preview map. Go to %s for the actual service."
 msgstr "Это только предпросмотр карты. Для реального сервиса перейдите через %s."
 
-#: views/cards/download.php:61
-msgid "%s is widely used format for sharing location based information."
-msgstr ""
+#: ajax/js-translation.json.php:42
+msgid "Toggle log"
+msgstr "Лог"
 
 #: views/pages/settings.php:402
 msgid "Error while trying to reset your profile. Please try again!"

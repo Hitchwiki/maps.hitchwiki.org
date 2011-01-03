@@ -21,14 +21,7 @@ $user = current_user();
  * Check ID
  */
 if(!isset($_GET["id"]) OR !is_numeric($_GET["id"])) {
-	?>
-	<div class="ui-widget">
-	    <div class="ui-state-error ui-corner-all" style="padding: 0 .7em;"> 
-	    	<p><span class="ui-icon ui-icon-alert" style="float: left; margin-right: .3em;"></span> 
-	    	<?php echo _("Error!"); ?></p>
-	    </div>
-	</div>
-	<?php
+	error_sign();
 	exit;
 }
 
@@ -38,8 +31,19 @@ if(!isset($_GET["id"]) OR !is_numeric($_GET["id"])) {
  */
 
 // Build an array
-$res = mysql_query("SELECT `id`,`fk_user`,`fk_point`,`waitingtime`,`datetime` FROM `t_waitingtimes` WHERE `fk_point` = '".mysql_real_escape_string($_GET["id"])."'");
-if(!$res) return $this->API_error("Query failed!");
+$res = mysql_query("SELECT 
+						`id`,
+						`fk_user`,
+						`fk_point`,
+						`waitingtime`,
+						`datetime`			
+					FROM `t_waitingtimes` 
+					WHERE `fk_point` = '".mysql_real_escape_string($_GET["id"])."'");
+					
+if(!$res) {
+	error_sign();
+	die();
+}
 
 // If found timings, go:
 if(mysql_affected_rows() >= 1):
@@ -47,7 +51,12 @@ if(mysql_affected_rows() >= 1):
 	// Gather data first into an array, so we can tell if there 
 	// were records by current user, and print out little different <thead>
 	$current_user_rows = false;
+	$waitingtime_min = false;
+	$waitingtime_max = false;
 	while($r = mysql_fetch_array($res, MYSQL_ASSOC)) {
+	
+		if($r["waitingtime"] < $waitingtime_min OR $waitingtime_min === false) $waitingtime_min = $r["waitingtime"];
+		if($r["waitingtime"] > $waitingtime_max OR $waitingtime_max === false) $waitingtime_max = $r["waitingtime"]; 
 	
 		$waitingtimes[] = array(
 			"datetime" 		=> strtotime($r["datetime"]),
@@ -62,6 +71,11 @@ if(mysql_affected_rows() >= 1):
 	
 	?>
 	<br />
+	<?php
+	if(count($waitingtimes) > 2) {
+		printf('<small>'._("Waiting time varies from %s to %s.").'</small><br />', nicetime($waitingtime_min), nicetime($waitingtime_max));
+	}
+	?>
 	<table cellpadding="0" cellspacing="0" class="infotable smaller" id="timing_list">
 		<thead>
 		    <tr>
@@ -78,7 +92,7 @@ if(mysql_affected_rows() >= 1):
 	foreach($waitingtimes as $waitingtime) {
 	
 		echo '<tr id="timing-'.$waitingtime["id"].'">';
-		echo '<td title="'.date("r", $waitingtime["datetime"]).'">'.date("j.n.Y", $waitingtime["datetime"]).'</td>';
+		echo '<td title="'.date(DATE_RFC822, $waitingtime["datetime"]).'">'.date("j.n.Y", $waitingtime["datetime"]).'</td>';
 		echo '<td>'.$waitingtime["waitingtime"].'</td>';
 		
 		if($user["id"] == $waitingtime["user_id"]) echo '<td><a href="./?page=profile" onclick="open_page(\'profile\'); return false;">'.$waitingtime["username"].'</a></td>';

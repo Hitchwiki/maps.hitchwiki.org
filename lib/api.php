@@ -14,7 +14,7 @@
 class maps_api
 {
 
-	public $format = 'json'; // json (default) | kml | array | string
+	public $format = 'json'; // json (default) | kml | gpx | array | string
 
 
 	/*
@@ -31,11 +31,13 @@ class maps_api
 
 	/**
 	 * Set format
-	 * format: json (default) | kml | array | string
+	 * format: json (default) | kml | kmz | gpx | array | string
 	 */
 	public function set_format($format='json') {
 		if(strtolower($format) == 'json' 
+			OR strtolower($format) == 'gpx' 
 			OR strtolower($format) == 'kml' 
+			OR strtolower($format) == 'kmz' 
 			OR strtolower($format) == 'array' 
 			OR strtolower($format) == 'string') {
 				$this->format = strtolower($format);
@@ -54,7 +56,9 @@ class maps_api
 
    		if($error_format=="string") return print_r($error,true);
    		elseif($error_format=="json") return json_encode($error);
-   		elseif($error_format=="kml") return $this->array2kml($error);
+   		elseif($error_format=="kml") return $this->array2kml($error, 'error');
+   		elseif($error_format=="kmz") return $this->array2kml($error, 'error');
+   		elseif($error_format=="gpx") return $this->array2gpx($error, 'error');
    		else return $error;
    
 		exit;
@@ -66,11 +70,13 @@ class maps_api
 	 * input: array
 	 * output: array formated in wanted format (see $this->format)
 	 */
-	function output( $result = array() ) {
+	function output( $result = array(), $model = false ) {
 
 		if(empty($result)) return $this->API_error("empty");
    		elseif($this->format=="json") return json_encode($result);
-   		elseif($this->format=="kml") return $this->array2kml($result);
+   		elseif($this->format=="kml") return $this->array2kml($result, $model);
+   		elseif($this->format=="kmz") return $this->array2kml($result, $model);
+   		elseif($this->format=="gpx") return $this->array2gpx($result, $model);
    		elseif($this->format=="string") return print_r($result,true);
    		else return $result;
 	}
@@ -87,7 +93,7 @@ class maps_api
 
    		// Return
     	if($place===false) return $this->API_error("Illegal ID.");
-    	else return $this->output($place);
+    	else return $this->output($place, 'marker');
 
 	}
 
@@ -135,7 +141,7 @@ class maps_api
    	
    	
    		// Return
-   		return $this->output($result);
+   		return $this->output($result, 'markers');
     	
 	}
 
@@ -164,7 +170,7 @@ class maps_api
    		
    		
    		// Return
-   		return $this->output($result);
+   		return $this->output($result, 'markers');
     }
 
 
@@ -192,7 +198,7 @@ class maps_api
    		
    		
    		// Return
-   		return $this->output($result);
+   		return $this->output($result, 'markers');
     }
 
 
@@ -220,7 +226,7 @@ class maps_api
    		
    		
    		// Return
-   		return $this->output($result);
+   		return $this->output($result, 'markers');
     }
 
 
@@ -261,7 +267,7 @@ class maps_api
     	$result = list_countries("array", "name", false, true, $all, $coordinates);
 
    		// Return
-   		return $this->output($result);
+   		return $this->output($result, 'countries');
     }
 
 
@@ -285,8 +291,7 @@ class maps_api
 	function getAll() {
     	
     	// Build a query
-    	$query = "SELECT `id`,`type`,`lat`,`lon`,`rating` FROM `t_points` WHERE 
-					`type` = 1";
+    	$query = "SELECT `id`,`type`,`lat`,`lon`,`rating` FROM `t_points` WHERE `type` = 1";
 
 	    // Build an array
    		$res = mysql_query($query);
@@ -591,10 +596,12 @@ class maps_api
 			$waitingtime = "NULL";
 			$waitingtime_count = 0;
 		}
+	
 		
-		
-		
-		
+		// Elevation
+		$place["elevation"] = get_elevation($place["lat"], $place["lon"]);
+		if($place["elevation"] === false) $elevation = "'".mysql_real_escape_string($place["elevation"])."'";
+		else $elevation = "NULL";
 		
 		
 		// Build a query
@@ -603,6 +610,7 @@ class maps_api
 												`type`, 
 												`lat`, 
 												`lon`, 
+												`elevation`, 
 												`rating`, 
 												`rating_count`, 
 												`waitingtime`, 
@@ -616,6 +624,7 @@ class maps_api
 								".$type.",
 								'".mysql_real_escape_string($place["lat"])."',
 								'".mysql_real_escape_string($place["lon"])."',
+								".$elevation.",
 								".$rating.",
 								".$rating_count.",  
 								".$waitingtime.",
@@ -863,14 +872,63 @@ class maps_api
 	 }
 
 
+
+	/*
+	 * Output data in GPX format
+	 * TODO!
+	 */
+	function array2gpx($data, $mode) {
+		require_once('../api/templates/gpx.php');
+
+		$template = new template_gpx();
+
+		$return = $template->header();
+		
+		if($mode == 'marker') {
+			$return .= $template->marker($data);
+		}
+		elseif($mode == 'markers') {
+			foreach($data as $marker) { 
+				$return .= $template->marker($marker);
+			}
+		}
+		
+		$return .= $template->footer();
+		
+		return $return;
+	}
+
+
+
 	/*
 	 * Output data in KML format
 	 * TODO!
 	 */
-	function array2kml($array) {
-		$array["format"] = "kml";
-		return print_r($array,true);
+	function array2kml($data, $mode) {
+		require_once('../api/templates/kml.php');
+		
+		$template = new template_kml();
+		
+		$return = $template->header();
+		
+		if($mode == 'marker') {
+			$return .= $template->styles($data["rating"]);
+			$return .= $template->marker($data);
+		} 
+		elseif($mode == 'markers') {
+			$return .= $template->styles();
+			$return .= $template->folder('open');
+			foreach($data as $marker) { 
+				$return .= $template->marker(get_place($marker["id"],true));
+			}
+			$return .= $template->folder('close');
+		}
+		
+		$return .= $template->footer();
+		
+		return $return;
 	}
+
 
 
 	/*
@@ -878,9 +936,9 @@ class maps_api
 	 *
 	 * TODO! http://php.net/manual/en/book.zip.php
 	 *
-	 * gmz: true | false (default) - use for "kml"-files: uses "gmz" file-extension instead of "zip"
+	 * kmz: true | false (default) - use for "kml"-files: uses "kmz" file-extension instead of "zip"
 	 */
-	function zipPackage($string, $gmz=false) {
+	function zipPackage($string, $kmz=false) {
 		/*
 		$zip = new ZipArchive();
 		$filename = "./test112.zip";

@@ -3,11 +3,7 @@ Hitchwiki Maps
 _Find good places for hitchhiking and add your favorites_
 
 Dev: [hitchwiki.org/devmaps/](http://hitchwiki.org/devmaps/)
-Current: [maps.hitchwiki.org](http://maps.hitchwiki.org/)
-
-## Log
-
-* 18.5.2010 - Yay! We are making new Hitchwiki Maps!
+Current: [hitchwiki.org/maps](http://hitchwiki.org/maps/)
 
 
 ## Used technologies
@@ -45,7 +41,7 @@ Current: [maps.hitchwiki.org](http://maps.hitchwiki.org/)
 * [GeoPlugin](http://www.geoplugin.com/)
 
 ## jQuery UI
-1.8.6 (stable, for jQuery 1.4+) custom includes:
+1.8.7 (stable, for jQuery 1.4+) custom includes:
 
 #### UI Core
 * Core
@@ -76,7 +72,6 @@ See [http://hitchwiki.org/en/Hitchwiki:Maps](http://hitchwiki.org/en/Hitchwiki:M
 
 
 ## Contact
-* help@liftershalte.info
 * IRC: #hitchhiking @ freenode.net
 
 [Project @ GitHub](http://github.com/Hitchwiki/maps.hitchwiki.org/)

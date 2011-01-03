@@ -27,7 +27,7 @@ $file = "../views/".$type."/".$_GET["page"].".php";
  * Show page
  */
 if( isset($_GET["page"]) && !empty($_GET["page"]) && !ereg('[^0-9A-Za-z_-]', $_GET["page"]) && file_exists($file) ):
-	
+
 	if($settings["debug"]==true) include($file);
 	else @include($file);
 
@@ -35,7 +35,7 @@ if( isset($_GET["page"]) && !empty($_GET["page"]) && !ereg('[^0-9A-Za-z_-]', $_G
  * Not found error
  */
 else:
-
+	error_sign();
 	echo '<h2>'._("Error 404 - page not found").'</h2><br /><br />';
 	
 	// For debugging:

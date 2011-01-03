@@ -1,37 +1,71 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset
-      xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-      xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
-            http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+<?xml-stylesheet type="text/xsl" href="sitemap.xsl"?>
+<!-- generator="Hitchwiki Maps" -->
+<!-- sitemap-generator-url="http://hitchwiki.org/maps/" sitemap-generator-version="1.0" -->
+<!-- generated-on="25.12.2010 00:01" -->
+<urlset 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:geo="http://www.google.com/geo/schemas/sitemap/1.0" 
+	xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" 
+	xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">	
+
 <url>
-  <loc>http://hitchwiki.org/maps/</loc>
+	<loc>http://hitchwiki.org/maps/</loc>
+	<changefreq>always</changefreq>
+	<priority>1.0</priority>
 </url>
 <url>
-  <loc>http://hitchwiki.org/maps/?page=why_to_register</loc>
+	<loc>http://hitchwiki.org/maps/?page=why_register</loc>
+	<changefreq>always</changefreq>
+	<priority>1.0</priority>
 </url>
 <url>
-  <loc>http://hitchwiki.org/maps/?page=public_transport</loc>
+	<loc>http://hitchwiki.org/maps/?page=public_transport</loc>
+	<changefreq>always</changefreq>
+	<priority>1.0</priority>
 </url>
 <url>
-  <loc>http://hitchwiki.org/maps/?page=countries</loc>
+	<loc>http://hitchwiki.org/maps/?page=countries</loc>
+	<changefreq>always</changefreq>
+	<priority>1.0</priority>
 </url>
 <url>
-  <loc>http://hitchwiki.org/maps/?page=translate</loc>
+	<loc>http://hitchwiki.org/maps/?page=translate</loc>
+	<changefreq>always</changefreq>
+	<priority>1.0</priority>
 </url>
 <url>
-  <loc>http://hitchwiki.org/maps/?page=help</loc>
+	<loc>http://hitchwiki.org/maps/?page=help</loc>
+	<changefreq>always</changefreq>
+	<priority>1.0</priority>
 </url>
 <url>
-  <loc>http://hitchwiki.org/maps/?page=statistics</loc>
+	<loc>http://hitchwiki.org/maps/?page=statistics</loc>
+	<changefreq>always</changefreq>
+	<priority>1.0</priority>
 </url>
 <url>
-  <loc>http://hitchwiki.org/maps/?page=complete_statistics</loc>
+	<loc>http://hitchwiki.org/maps/?page=complete_statistics</loc>
+	<changefreq>always</changefreq>
+	<priority>1.0</priority>
 </url>
 <url>
-  <loc>http://hitchwiki.org/maps/?page=api</loc>
+	<loc>http://hitchwiki.org/maps/?page=api</loc>
+	<changefreq>always</changefreq>
+	<priority>1.0</priority>
 </url>
 <url>
-  <loc>http://hitchwiki.org/maps/?page=news</loc>
+	<loc>http://hitchwiki.org/maps/?page=news</loc>
+	<changefreq>always</changefreq>
+	<priority>1.0</priority>
 </url>
+<url> 
+	<loc>http://hitchwiki.org/maps/api/?format=kml&amp;download=world&amp;all</loc>
+	<changefreq>always</changefreq>
+	<priority>1.0</priority>
+	<geo:geo>
+		<geo:format>kml</geo:format>
+	</geo:geo>
+</url>
+
 </urlset>

@@ -77,11 +77,12 @@
 		<li><?php echo _("Russian"); ?> - Siberian explorer, Platschi, rAndoM</li>
 		<li><?php echo _("Romanian"); ?> - montaniard</li>
 		<li><?php echo _("Portuguese"); ?> - Joao</li>
-		<li><?php echo _("Spanish"); ?> - Prino</li>
 		<li><?php echo _("Chinese"); ?> - Mipplor</li>
 		<li><?php echo _("Lithuanian"); ?> - Mindo, Prino</li>
+		<li><?php echo _("Italian"); ?> - Maurizio</li>
+		<li><?php echo _("Polish"); ?> - Robert, Iza</li>
+		<li><?php echo _("Spanish"); ?> - Prino</li>
 		<!-- 
-		<li><?php echo _("Polish"); ?> - </li>
 		<li><?php echo _("Latvian"); ?> - </li>
 		<li><?php echo _("Swedish"); ?> - </li>
 		<li><?php echo _("French"); ?> - </li>

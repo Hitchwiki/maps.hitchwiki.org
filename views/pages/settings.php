@@ -331,27 +331,27 @@ $(function() {
 			}
 			
 			$.post('ajax/user_settings.php', { 
-																			email: p_email, 
-																			name: p_name,  
-																			password1: p_password1, 
-																			password2: p_password2, 
-																			language: p_language, 
-																			location: p_location, 
-																			private_location: p_private_location,
-																			google_latitude: p_google_latitude,
-																			allow_gravatar: p_allow_gravatar,
-																			<?php if(!empty($settings["google_maps_api_key"])): ?>map_google: p_map_google,<?php endif; ?>
-																			<?php if(!empty($settings["yahoo_maps_appid"])): ?>map_yahoo: p_map_yahoo,<?php endif; ?>
-																			<?php if($settings["ms_virtualearth"]===true): ?>map_vearth: p_map_vearth,<?php endif; ?>
-																			map_default_layer: p_map_default_layer,
-																			centered_glatitude: p_centered_glatitude,
-																			country: p_country<?php
-																			
-																			// Send current logged in user ID
-																			if(!empty($user["id"])) echo ', user_id: '.$user["id"];
-																			
-																			?> 
-																		}, 
+				    email: p_email, 
+				    name: p_name,  
+				    password1: p_password1, 
+				    password2: p_password2, 
+				    language: p_language, 
+				    location: p_location, 
+				    private_location: p_private_location,
+				    google_latitude: p_google_latitude,
+				    allow_gravatar: p_allow_gravatar,
+				    <?php if(!empty($settings["google_maps_api_key"])): ?>map_google: p_map_google,<?php endif; ?>
+				    <?php if(!empty($settings["yahoo_maps_appid"])): ?>map_yahoo: p_map_yahoo,<?php endif; ?>
+				    <?php if($settings["ms_virtualearth"]===true): ?>map_vearth: p_map_vearth,<?php endif; ?>
+				    map_default_layer: p_map_default_layer,
+				    centered_glatitude: p_centered_glatitude,
+				    country: p_country<?php
+				    
+				    // Send current logged in user ID
+				    if(!empty($user["id"])) echo ', user_id: '.$user["id"];
+				    
+				    ?> 
+				}, 
 			    function(data) {
 			    	hide_loading_bar();
 			
@@ -421,11 +421,8 @@ $(function() {
 
 <?php 
 // Not logged in?
-else: ?>
+else: 
+	error_sign(_("You must be logged in to edit settings."), false);
+endif;
 
-	<div class="ui-state-error ui-corner-all" style="padding: 0 .7em; margin: 20px 0;"> 
-	    <p><span class="ui-icon ui-icon-alert" style="float: left; margin-right: .3em;"></span> 
-	    <?php echo _("You must be logged in to edit settings."); ?></p>
-	</div>
-
-<?php endif; ?>
+?>

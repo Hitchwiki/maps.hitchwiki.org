@@ -110,7 +110,7 @@ if(isset($show_place) && !isset($show_place_error)) {
     $title .= $place["location"]["country"]["name"];
     $title .= ' - ';
 }
-$title .= 'Hitchwiki '.gettext("Maps");
+$title .= 'Hitchwiki '._("Maps");
  
  
 // Image
@@ -381,81 +381,94 @@ else $description = $slogan;
 				else echo 'logged_out';
 				
 			?>">
-				<?php 
-				// User is logged in:
-				if($user["logged_in"]===true): ?>
 				
 					<ul class="align_right" id="loginSidemenu">
+						<li><a href="#" id="toggleLanguages" title="<?php echo _("Choose language"); ?>">Language</a></li>
+						
+						<?php // User is logged in:
+						if($user["logged_in"]===true): ?>
+				
 						<li><a href="./?page=profile" id="profile" class="pagelink"><?php echo _("Profile"); ?></a></li>
 						<li><a href="./?page=settings" id="settings" class="pagelink"><?php echo _("Settings"); ?></a></li>
+						<!--
 						<li><a href="http://hitchwiki.org/en/index.php?title=Special:UserLogout&returnto=Maps.hitchwiki.org" id="logout"><?php echo _("Logout"); ?></a></li>
-					</ul>
-					<span id="Hello"><span class="icon <?php
-					
-					/*
-					 * Icon
-					 */
-					if($settings["language"]=='pirate') echo 'skull'; // Yarr!
-					elseif($user["admin"]===true) echo 'tux'; // ;-)
-					else echo 'user_orange'; // default
-					
-					echo '"'; //end class
-					
-					// Gravatar
-					//if($user["allow_gravatar"]=="1" && !empty($user["email"])) echo ' style="background-image: url(http://www.gravatar.com/avatar/'.md5($user["email"]).'/?s=16);"';
-					
-					echo '>'; //end tag
-					
-					
-					/*
-					 * Pick one random hello
-					 */
-					$hello = array(
-						"Hi!" => "GB",
-						"Hello!" => "GB",
-						"Tere!" => "EE",
-						"Hei!" => "FI",
-						"Moi!" => "FI",
-						"¡Hola!" => "ES",
-						"Shalom!" => "IL",
-						"Namaste!" => "NP",
-						"Namaste!" => "IN",
-						"Labas!" => "LT",
-						"Mambo!" => "CG",
-						"Bok!" => "HR",
-						"Hallo!" => "NL",
-						"Hallo!" => "DE",
-						"Moin!" => "DE",
-						"Servus!" => "DE",
-						"Grüß Gott!" => "AU",
-						"Hej!" => "DK",
-						"Hej!" => "SE",
-						"Hejsan!" => "SE",
-						"Ciào!" => "IT",
-						"Sveiki!" => "LV",
-						"Moïen!" => "LU",
-						"Salamaleikum," => "SN",
-						"Čau!" => "SK",
-						"Hoezit!" => "ZA",
-						"Jambo!" => "KE",
-						"Selam!" => "TR"
-					);
-					$hello_greeting = array_rand($hello,1);
-					
-					?><span title="<?php printf(_("Hello from %s"), ISO_to_country($hello[$hello_greeting])); ?>"><?php echo $hello_greeting; ?></span> <a href="./?page=profile" id="profile" class="pagelink"><?php echo $user["name"]; ?></a></span></span>
-
-				<?php 
-				// User is NOT logged in:
-				else: ?>
-				
-					<ul class="align_right" id="loginSidemenu">
+						-->
+						<?php else: ?>
+						
 						<li><a href="./?page=why_register" id="why_register" class="pagelink"><?php echo _("Why register?"); ?></a></li>
 						<li><a href="http://hitchwiki.org/en/index.php?title=Special:UserLogin&amp;type=signup&amp;returnto=Maps.hitchwiki.org" id="register"><?php echo _("Register!"); ?></a></li>
+					
+						<?php endif; ?>
 					</ul>
-
-					<a href="http://hitchwiki.org/en/index.php?title=Special:UserLogin&amp;returnto=Maps.hitchwiki.org" id="loginOpener" class="icon lock align_right"><?php echo _("Login"); ?></a>
-				
-				<?php endif; ?>
+					
+					<div id="loginHellomenu">
+					<?php 
+					// User is logged in:
+					if($user["logged_in"]===true): ?>
+						
+						<span id="Hello"><span class="icon <?php
+						
+						/*
+						 * Icon
+						 */
+						if($settings["language"]=='pirate') echo 'skull'; // Yarr!
+						elseif($user["admin"]===true) echo 'tux'; // ;-)
+						else echo 'user_orange'; // default
+						
+						echo '"'; //end class
+						
+						// Gravatar
+						//if($user["allow_gravatar"]=="1" && !empty($user["email"])) echo ' style="background-image: url(http://www.gravatar.com/avatar/'.md5($user["email"]).'/?s=16);"';
+						
+						echo '>'; //end tag
+						
+						
+						/*
+						 * Pick one random hello
+						 */
+						$hello = array(
+							"Hi!" => "GB",
+							"Hello!" => "GB",
+							"Tere!" => "EE",
+							"Hei!" => "FI",
+							"Moi!" => "FI",
+							"¡Hola!" => "ES",
+							"Shalom!" => "IL",
+							"Namaste!" => "NP",
+							"Namaste!" => "IN",
+							"Labas!" => "LT",
+							"Mambo!" => "CG",
+							"Bok!" => "HR",
+							"Hallo!" => "NL",
+							"Hallo!" => "DE",
+							"Moin!" => "DE",
+							"Servus!" => "DE",
+							"Grüß Gott!" => "AU",
+							"Hej!" => "DK",
+							"Hej!" => "SE",
+							"Hejsan!" => "SE",
+							"Ciào!" => "IT",
+							"Sveiki!" => "LV",
+							"Moïen!" => "LU",
+							"Salamaleikum," => "SN",
+							"Čau!" => "SK",
+							"Hoezit!" => "ZA",
+							"Jambo!" => "KE",
+							"Selam!" => "TR"
+						);
+						$hello_greeting = array_rand($hello,1);
+						
+						?><span title="<?php printf(_("Hello from %s"), ISO_to_country($hello[$hello_greeting])); ?>"><?php echo $hello_greeting; ?></span> <a href="./?page=profile" id="profile" class="pagelink"><?php echo $user["name"]; ?></a></span></span>
+						<small class="logout align_right"><a href="http://hitchwiki.org/en/index.php?title=Special:UserLogout&returnto=Maps.hitchwiki.org" id="logout">&rsaquo; <?php echo _("Logout"); ?></a></small>
+					
+					<?php 
+					// User is NOT logged in:
+					else: ?>
+					
+						<a href="http://hitchwiki.org/en/index.php?title=Special:UserLogin&amp;returnto=Maps.hitchwiki.org" id="loginOpener" class="icon lock align_right"><?php echo _("Login"); ?></a>
+					
+					<?php endif; ?>
+					</div>
 			<!-- /Login -->
 			</div>
 		
@@ -505,20 +518,20 @@ else $description = $slogan;
 							<li><a href="#" id="news" class="icon new pagelink"><b><?php echo _("Ooh! New Maps!"); ?></b></a></li>
 							
 							<li><a href="#" id="add_place" class="icon add"><?php echo _("Add place"); ?></a></li>
-							<?php /* <li><a href="#" id="my_points" class="icon table pagelink"><?php echo _("My points"); ?></a></li> */ ?>
 							<li><a href="./?page=public_transport" id="public_transport" class="icon pagelink underground"><?php echo _("Public transport"); ?></a></li>
 							<li><a href="./?page=countries" id="countries" class="icon world pagelink"><?php echo _("Countries"); ?></a></li>
 							<li><a href="#" id="tools" class="icon lorry"><?php echo _("Tools"); ?></a></li>
+							<li><a href="#" id="link_here" class="icon link cardlink"><?php echo _("Link here"); ?></a></li>
+							<li><a href="#" id="download" class="icon page_white_put cardlink"><?php echo _("Download"); ?></a></li>
 							
 							<?php if($user["admin"]===true): ?>
-							<li><a href="#" id="link_here" class="icon link cardlink"><?php echo _("Link here"); ?> *</a></li>
-							<li><a href="#" id="download" class="icon page_white_put cardlink"><?php echo _("Download"); ?> *</a></li>
 							<li><a href="#" id="streetview" class="icon eye cardlink"><?php echo _("Street view"); ?> *</a></li>
 							<?php endif; ?>
 							
 							<?php if($user["logged_in"]===true): ?>
 							<li><a href="./?page=users" id="users" class="icon user pagelink"><?php echo _("Members"); ?></a></li>
 							<?php endif; ?>
+							
 							<li><a href="./?page=help" id="help" class="icon help pagelink"><?php echo htmlspecialchars(_("Help & About")); ?></a></li>
 							<li><a href="./?page=statistics" id="statistics" class="icon chart_bar pagelink"><?php echo _("Statistics"); ?></a></li>
 			    			<?php
@@ -527,32 +540,7 @@ else $description = $slogan;
 			    			?>
 						</ul>
 					</li>
-					
-					<!-- 3rd block -->
-					<li>
-						<ul>
-				    		<li>
-				    		<!--<label for="language"><h3><?php echo _("Choose language"); ?></h3></label>-->
-				    		<form method="get" action="./" name="language_selection" id="language_selection">
-				    			<select name="lang" id="language" title="<?php echo _("Choose language"); ?>">
-				    				<?php
-				    				// Print out available languages
-				    				foreach($settings["valid_languages"] as $code => $name) {
-				    					echo '<option value="'.$code.'"';
-				    					
-				    					if($code == $settings["language"]) echo ' selected="selected"';
-				    					
-				    					echo '>'.$name.'</option>';
-				    				}
-				    				?>
-				    			</select>
-				    			<input type="submit" id="submit" class="button" value="&raquo;" />
-				    		</form>
-				    		<a href="./?page=translate" id="translate" class="pagelink"><small class="light"><?php echo _("Help us with translating!"); ?></small></a>
-				    		</li>
-						</ul>
-					</li>
-				
+									
 				</ul>
 
 
@@ -564,9 +552,7 @@ else $description = $slogan;
 			    		<a href="http://www.facebook.com/Hitchwiki" class="icon facebook" style="margin: 2px 0 0 3px; padding-top: 3px; display: block; float: right;">Facebook</a>
 			    	</li>
 
-			    	<li>
-			    		<a href="mailto:<?php echo $settings["email"]; ?>" title="<?php echo _("Contact us!"); ?>"><?php echo $settings["email"]; ?></a>
-			    	</li>
+			    	<li title="<?php echo _("Contact us!"); ?>"><?php echo protect_email($settings["email"]); ?></li>
 			    	
 			    	<li id="developers">
 			    		<a href="http://github.com/Hitchwiki"><?php echo _("Developers"); ?></a>
@@ -625,7 +611,7 @@ else $description = $slogan;
 	       
 	       
 	       <!-- Tools -->
-	       <div id="toolsPanel" class="hidden">
+	       <div id="toolsPanel" class="floatingPanel draggable hidden">
 	       		<h4 class="icon lorry">
 	       			<?php echo _("Tools"); ?>
 	       			<a href="#" class="close ui-icon ui-icon-closethick align_right" title="<?php echo _("Close"); ?>"><?php echo _("Close"); ?></a>
@@ -655,7 +641,6 @@ else $description = $slogan;
 				        
 				        <input type="checkbox" name="geodesic" checked="checked" id="geodesicToggle" onclick="toggleGeodesic(this);" />
 				        <label for="geodesicToggle"><?php echo _("Use geodesic measures"); ?></label>
-				        <br />
 				        */ ?>
 				        
 				    	<div class="align_right clear"><?php echo _("Measure"); ?>: <span id="toolOutput">-</span></div>
@@ -679,8 +664,42 @@ else $description = $slogan;
 	       </div>
 	       <!-- /tools -->
 	       
+	       
+	       <!-- languages -->
+	       
+	       <div id="languagePanel" class="floatingPanel hidden">
+	       		<h4 class="icon world">
+	       			<?php echo _("Choose language"); ?>
+	       			<a href="#" class="close ui-icon ui-icon-closethick align_right" title="<?php echo _("Close"); ?>"><?php echo _("Close"); ?></a>
+	       		</h4>
+				<div id="controlToggle">
+				
+				    <ul>
+				    	<?php
+				    	    // Print out available languages
+				    	    foreach($settings["valid_languages"] as $code => $name) {
+				    	    	?>
+				    	    	<li>
+				    	    		<span class="icon" style="background-image: url(static/gfx/flags/<?php echo strtolower(shortlang($code, 'country')); ?>.png);">	
+				    	    			<?php
+				    	    			echo '<a href="./?lang='.$code.'"';
+				    	    			if($code == $settings["language"]) echo ' class="selected"';
+				    	    			echo ' title="'.$settings["languages_in_english"][$code].'">'.$name.'</a>';
+				    	    			?>
+				    	    		</span>
+				    	    	</li>
+				    	    	<?php
+				    	    }
+				    	?>
+					</ul>
+					<a href="./?page=translate" id="translate" class="pagelink"><small class="light"><?php echo _("Help us with translating!"); ?></small></a>
+				    						        
+				</div>
+	       </div>
+	       <!-- /languages -->
+		
 
-	        <!-- Placeholder for simple error/info -dialog. see info_dialog(); from main.js for more. -->
+	       <!-- Placeholder for simple error/info -dialog. see info_dialog(); from main.js for more. -->
 	       <div id="dialog-message"></div>
 	       
 	       

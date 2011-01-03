@@ -30,6 +30,7 @@ $settings["fb"]["app"]["secret"] = 		"";
 
 $settings["email"] = 					"maps@hitchwiki.org";
 $settings["cookie_prefix"] = 			"hitchwiki_maps_";
+$settings["hitchability_colors"] = 		array('ffffff','00ad00','96ad00','ffff00','ff8d00','ff0000'); // Rating = key (0-5)
 
 // Languages
 // See ./admin/ to set up new languages
