@@ -1,7 +1,8 @@
 <?php
 /*
- * Hitchwiki Maps: config.php
+ * Hitchwiki Maps: config.empty.php
  *
+ * Copy this file to "config.php"
  */
 
 /* 
