@@ -19,7 +19,8 @@
 	<h3><?php echo _("Why is the map always centered on Europe?"); ?></h3>
 	<p><?php echo _("Most of this maps hitchhiking places are in Europe. If you have registered, you can set a point of your current country from settings. The map will center there whenever you log in."); ?></p>
 	
-	<br />
+	<p><br /><?php echo _("Contact us"); ?>: <a href="mailto:<?php echo $settings["email"]; ?>"><?php echo $settings["email"]; ?></a></p>
+	
 	
 	<h2><?php echo _("About Hitchwiki Maps"); ?></h2>
 	
@@ -82,15 +83,13 @@
 		<li><?php echo _("Italian"); ?> - Maurizio</li>
 		<li><?php echo _("Polish"); ?> - Robert, Iza</li>
 		<li><?php echo _("Spanish"); ?> - Prino</li>
+		<li><?php echo _("French"); ?> - Perilisk</li>
 		<!-- 
-		<li><?php echo _("Latvian"); ?> - </li>
+		<li><?php echo _("Latvian"); ?> - Reinis</li>
 		<li><?php echo _("Swedish"); ?> - </li>
-		<li><?php echo _("French"); ?> - </li>
 		-->
 		<li><?php echo _("English")." ("._("Pirate").")"; ?> - Mikael <em>(Yarr!)</em></li>
 	</ul>
-	
-	<p><br /><?php echo _("Contact us"); ?>: <a href="mailto:<?php echo $settings["email"]; ?>"><?php echo $settings["email"]; ?></a></p>
 	
 </div>
 
