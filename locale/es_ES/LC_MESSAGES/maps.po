@@ -2,7 +2,7 @@
 # This file is distributed under the same license as the Maps package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2011-01-03 19:45:03+0000\n"
+"PO-Revision-Date: 2011-01-05 23:00:11+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -83,7 +83,7 @@ msgstr ""
 msgid "Waiting time varies from %s to %s."
 msgstr ""
 
-#: views/pages/help.php:82
+#: views/pages/help.php:83
 msgid "Italian"
 msgstr ""
 
@@ -99,7 +99,7 @@ msgstr ""
 msgid "Creative Commons License"
 msgstr ""
 
-#: views/pages/help.php:109
+#: views/pages/help.php:108
 msgid "You can show your love to us and recommend Hitchwiki Maps to your hitchhiker mates in Facebook by pressing this cute little button with a familiar icon on it:"
 msgstr ""
 
@@ -107,15 +107,15 @@ msgstr ""
 msgid "http://hitchwiki.org/en/"
 msgstr "http://hitchwiki.org/es/"
 
-#: views/pages/help.php:73 views/pages/help.php:90
+#: views/pages/help.php:74 views/pages/help.php:91
 msgid "English"
 msgstr ""
 
-#: views/pages/help.php:86
+#: views/pages/help.php:88
 msgid "Latvian"
 msgstr ""
 
-#: views/pages/help.php:90
+#: views/pages/help.php:91
 msgid "Pirate"
 msgstr ""
 
@@ -151,7 +151,7 @@ msgstr ""
 msgid "Weather from Wunderground.com"
 msgstr ""
 
-#: views/pages/help.php:80
+#: views/pages/help.php:81
 msgid "Chinese"
 msgstr ""
 
@@ -243,43 +243,43 @@ msgstr ""
 msgid "Find good places for hitchhiking and add your own"
 msgstr ""
 
-#: views/pages/help.php:77
+#: views/pages/help.php:78
 msgid "Russian"
 msgstr ""
 
-#: views/pages/help.php:75
+#: views/pages/help.php:76
 msgid "German"
 msgstr "Aleman"
 
-#: views/pages/help.php:76
+#: views/pages/help.php:77
 msgid "Dutch"
 msgstr ""
 
-#: views/pages/help.php:83
+#: views/pages/help.php:84
 msgid "Polish"
 msgstr ""
 
-#: views/pages/help.php:88
+#: views/pages/help.php:86
 msgid "French"
 msgstr ""
 
-#: views/pages/help.php:81
+#: views/pages/help.php:82
 msgid "Lithuanian"
 msgstr ""
 
-#: views/pages/help.php:87
+#: views/pages/help.php:89
 msgid "Swedish"
 msgstr ""
 
-#: views/pages/help.php:84
+#: views/pages/help.php:85
 msgid "Spanish"
 msgstr "Español"
 
-#: views/pages/help.php:79
+#: views/pages/help.php:80
 msgid "Portuguese"
 msgstr ""
 
-#: views/pages/help.php:78
+#: views/pages/help.php:79
 msgid "Romanian"
 msgstr ""
 
@@ -355,11 +355,11 @@ msgstr ""
 msgid "http://creativecommons.org/licenses/by-sa/3.0/"
 msgstr "http://creativecommons.org/licenses/by-sa/3.0/deed.es"
 
-#: index.php:527
+#: index.php:524
 msgid "Download"
 msgstr ""
 
-#: index.php:526
+#: index.php:527
 msgid "Link here"
 msgstr ""
 
@@ -1090,39 +1090,39 @@ msgstr ""
 msgid "If you are logged in, you will have some more features on this site. I.e. you will be able to modify your places later, and your nickname will be shown on each of your places and comments."
 msgstr ""
 
-#: views/pages/help.php:24
+#: views/pages/help.php:25
 msgid "About Hitchwiki Maps"
 msgstr ""
 
-#: views/pages/help.php:26
+#: views/pages/help.php:27
 msgid "Used technologies"
 msgstr ""
 
-#: views/pages/help.php:28
+#: views/pages/help.php:29
 msgid "Server side"
 msgstr ""
 
-#: views/pages/help.php:37
+#: views/pages/help.php:38
 msgid "Client side"
 msgstr ""
 
-#: views/pages/help.php:49
+#: views/pages/help.php:50
 msgid "Services"
 msgstr ""
 
-#: views/pages/help.php:64
+#: views/pages/help.php:65
 msgid "People involved"
 msgstr ""
 
-#: views/pages/help.php:71
+#: views/pages/help.php:72
 msgid "Translators"
 msgstr ""
 
-#: views/pages/help.php:74
+#: views/pages/help.php:75
 msgid "Finnish"
 msgstr ""
 
-#: views/pages/help.php:93
+#: views/pages/help.php:22
 msgid "Contact us"
 msgstr ""
 
@@ -1327,32 +1327,32 @@ msgstr ""
 msgid "You must be logged in to view users."
 msgstr ""
 
-#: config.empty.php:101 config.empty.php:108 config.php:122 config.php:129
+#: config.empty.php:102 config.empty.php:109 config.php:122 config.php:129
 msgid "Satellite"
 msgstr ""
 
-#: config.empty.php:102 config.empty.php:107 config.empty.php:112
+#: config.empty.php:103 config.empty.php:108 config.empty.php:113
 #: config.php:123 config.php:128 config.php:133
 msgid "Hybrid"
 msgstr ""
 
-#: config.empty.php:103 config.php:124
+#: config.empty.php:104 config.php:124
 msgid "Streets"
 msgstr "Calles"
 
-#: config.empty.php:104 config.php:125
+#: config.empty.php:105 config.php:125
 msgid "Physical"
 msgstr ""
 
-#: config.empty.php:109 config.php:130
+#: config.empty.php:110 config.php:130
 msgid "Street"
 msgstr "Calle"
 
-#: config.empty.php:113 config.php:134
+#: config.empty.php:114 config.php:134
 msgid "Aerial"
 msgstr ""
 
-#: config.empty.php:114 config.php:135
+#: config.empty.php:115 config.php:135
 msgid "Roads"
 msgstr ""
 

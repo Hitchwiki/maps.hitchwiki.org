@@ -1,6 +1,8 @@
 
 <h4><?php echo _("Download markers as a file"); ?></h4>
 
+<small>Note, this property is still experimental. If you face any problems, please report us.</small>
+
 <form>
 <div id="fileloader" style="overflow:hidden;width:1px;height:1px;"></div>
 
@@ -18,8 +20,8 @@
 </ul>
 
 <b><?php echo _("Format"); ?>:</b><br />
-<input type="radio" name="format" value="gpx" id="gpx" checked="checked" /> <label for="gpx">GPX</label><br />
-<input type="radio" name="format" value="kml" id="kml" /> <label for="kml">KML</label><br />
+<input type="radio" name="format" value="gpx" id="gpx" disabled="disabled" /> <label for="gpx">GPX <i>(coming)</i></label><br />
+<input type="radio" name="format" value="kml" id="kml" checked="checked" /> <label for="kml">KML</label><br />
 <!--<input type="radio" name="format" value="kmz" id="kmz" /> <label for="kmz">KMZ (<?php echo _("Zipped"); ?> KML)</label><br />-->
 
 <script type="text/javascript">
