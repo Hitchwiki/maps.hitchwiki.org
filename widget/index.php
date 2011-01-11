@@ -3,8 +3,8 @@
 /*
  * Initialize Maps
  */
-if(@is_file('config.php')) require_once "../config.php";
-else $settings["maintenance_page"] = true;
+if(@is_file('../config.php')) require_once "../config.php";
+else { $settings["maintenance_page"] = true; $settings["non_maintenance_ip"] = array(); }
 
 
 /*
@@ -66,6 +66,7 @@ else {
 	<head profile="http://gmpg.org/xfn/11">
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 		<title>Hitchwiki - <?php echo _("Maps"); ?></title>
+        <base href="../" />
         <link rel="stylesheet" type="text/css" href="static/css/widget.css<?php if($settings["debug"]==true) echo '?cache='.date("jnYHis"); ?>" media="all" />
         <script src="static/js/jquery.min.js" type="text/javascript"></script>
         <script src="http://openlayers.org/api/OpenLayers.js" type="text/javascript"></script>
@@ -85,7 +86,7 @@ else {
 			<?php if($alert) echo 'alert("Hitchwiki - '._("Maps").': '._("Requested country could not be found!").'");' ?>
 		//]]>
         </script>
-		<script src="../static/js/widget.js<?php if($settings["debug"]==true) echo '?cache='.date("jnYHis"); ?>" type="text/javascript"></script>
+		<script src="static/js/widget.js<?php if($settings["debug"]==true) echo '?cache='.date("jnYHis"); ?>" type="text/javascript"></script>
 		<meta name="description" content="<?php printf(_("This is just a preview map. Go to %s for the actual service."), $settings["base_url"]."/"); ?>" />
 	</head>
 	<body>
@@ -97,7 +98,7 @@ else {
 			<?php echo _("Loading..."); ?>
 		</div>
 
-		<ul id="log" style="display:none;"></ul>
+		<ul id="log" style="display:block;"></ul>
 
 	</body>
 </html>

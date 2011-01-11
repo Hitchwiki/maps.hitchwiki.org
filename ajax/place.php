@@ -787,7 +787,7 @@ if($place["error"] !== true):
 	    			<b class="icon weather" style="padding-top: 5px;display:block;"><?php printf(_("Weather near %s"), $place["location"]["locality"]); ?></b>
 					<div class="inset">
 	    				<span id="place_weather_info" class="no_weather"><img src="static/gfx/loading.gif" alt="<?php echo _("Loading"); ?>" /><br /></span>
-	    				<a href="http://www.wunderground.com/cgi-bin/findweather/getForecast?query=<?php echo $place["lat"]; ?>,<?php echo $place["lon"]; ?>" target="_blank"><?php echo _("Weather from Wunderground.com"); ?></a>
+	    				<br /><a href="http://www.wunderground.com/cgi-bin/findweather/getForecast?query=<?php echo $place["lat"]; ?>,<?php echo $place["lon"]; ?>" target="_blank"><?php echo _("Weather from Wunderground.com"); ?></a>
 	    			</div>
 	    		</small>
 	    	</li>

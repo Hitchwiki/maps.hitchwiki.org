@@ -5,6 +5,7 @@ _Find good places for hitchhiking and add your favorites_
 Dev: [hitchwiki.org/devmaps/](http://hitchwiki.org/devmaps/)
 Current: [hitchwiki.org/maps](http://hitchwiki.org/maps/)
 
+[Project translations](http://hitchwiki.org/translate/projects/maps)
 
 ## Used technologies
 
@@ -23,7 +24,6 @@ Current: [hitchwiki.org/maps](http://hitchwiki.org/maps/)
 * [jQuery JSON](http://code.google.com/p/jquery-json/)
 * [Fam Fam Fam icons](http://www.famfamfam.com/lab/icons/)
 * [Aiga - Symbol Signs](http://www.aiga.org/content.cfm/symbol-signs)
-
 
 ### Services:
 * [IPInfoDB API](http://ipinfodb.com/)
@@ -73,5 +73,6 @@ See [http://hitchwiki.org/en/Hitchwiki:Maps](http://hitchwiki.org/en/Hitchwiki:M
 
 ## Contact
 * IRC: #hitchhiking @ freenode.net
+* maps (ä) hitchwiki.org
 
 [Project @ GitHub](http://github.com/Hitchwiki/maps.hitchwiki.org/)

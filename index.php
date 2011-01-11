@@ -179,7 +179,7 @@ else $description = $slogan;
 			/*
 			 * Misc settings
 			 */
-			var ip = "<?php echo $_SERVER['REMOTE_ADDR']; ?>";
+			var ip = "<?php echo htmlspecialchars($_SERVER['REMOTE_ADDR']); ?>";
 			var geolocation = "ajax/geolocation_ip_proxy.php";
 			var cookie_prefix = "<?php echo $settings["cookie_prefix"]; ?>";
 			var geolocation_cookiename = "<?php echo $settings["cookie_prefix"]; ?>_geolocation";
@@ -213,7 +213,6 @@ else $description = $slogan;
 		<script src="static/js/jquery.min.js" type="text/javascript"></script>
 		<script src="static/js/jquery-ui.min.js" type="text/javascript"></script>
 		<script src="static/js/jquery.json-2.2.min.js" type="text/javascript"></script>
-		<script src="static/js/jquery.pstrength-min.1.2.js" type="text/javascript"></script>
 		
 		<!-- in production, these are minified (min.js) -->
 		<script src="static/js/jquery.cookie.js" type="text/javascript"></script>

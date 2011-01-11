@@ -27,13 +27,14 @@ $strings = array(
 	"Are you sure you want to remove this comment?",
 	"Error",
 	"Updating description failed.",
-	"Please try again!"
+	"Please try again!",
+	"Hitchhiking spot"
 );
 
 
 /*
- * TODO
- * This an array containing to-be translated strings for JS, it needs to be a copy of array above, only closed by _(string)
+ * TODO-better
+ * This an array containing to be translated strings for JS, it needs to be a copy of array above, only closed by _(string)
  * Idea is that poedit will read this file automaticly and add these to the .po file
  * But then, this array isn't used in any other way in this app
  * Thinking some better solution for this...
@@ -52,7 +53,8 @@ $poedit = array(
 	_("Are you sure you want to remove this comment?"),
 	_("Error"),
 	_("Updating description failed."),
-	_("Please try again!")
+	_("Please try again!"),
+	_("Hitchhiking spot")
 );
 
 

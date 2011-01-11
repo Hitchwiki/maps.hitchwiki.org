@@ -1136,6 +1136,7 @@ function nicetime($minutes) {
  * http://code.google.com/apis/chart/docs/gallery/bar_charts.html
  */
 function rating_chart($rating_stats=false, $width="50") {
+	global $settings;
 
 	// Get ALL ratings
 	if($place===false) {
@@ -1192,7 +1193,7 @@ function rating_chart($rating_stats=false, $width="50") {
 	#$url .= '&chxs=0,ad8c55,8|1,ad8c55,7';
 	$url .= '&chxs=1,ad8c55,10,-1,t,ad8c55|0,ad8c55,10';
 	
-	$url .= '&chco=00ad00|96ad00|ffff00|ff8d00|ff0000';
+	$url .= '&chco='.$settings["hitchability_colors"][1].'|'.$settings["hitchability_colors"][2].'|'.$settings["hitchability_colors"][3].'|'.$settings["hitchability_colors"][4].'|'.$settings["hitchability_colors"][5].'';
 	$url .= '&chbh=6,3';
 
 

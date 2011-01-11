@@ -9,7 +9,35 @@
  * 
  * Created: 2010-07-21
  *
+ * Methods:
+ * - set_format()
+ * - API_error()
+ * - getMarker()
+ * - getMarkersByBound()
+ * - getMarkersByLocality()
+ * - getMarkersByCountry()
+ * - getMarkersByContinent()
+ * - getCountry()
+ * - getCountries()
+ * - getContinents()
+ * - getAll()
+ * - removeComment()
+ * - removeWaitingtime()
+ * - addComment()
+ * - addDescription()
+ * - addPlace()
+ * - getComments()
+ * - addWaitingtime()
+ * - waitingtime()
+ * - deleteProfile()
+ * - rate()
+ * - array2gpx()
+ * - array2kml()
+ * - zipPackage()
+ * - getLanguages()
+ * - AddPublicTransport()
  */
+
 
 class maps_api
 {
@@ -102,17 +130,17 @@ class maps_api
 	 * Get places by boundingbox coordinates
 	 * Square corners, eg. 60.0066276,60.3266276,24.783508,25.103508 (Helsinki, Finland)
 	 */
-	function getMarkersByBound($lt, $lb, $rt, $rb, $description=false) {
+	function getMarkersByBound($lt, $lb, $rt, $rb) {//, $description=false) {
     	global $settings;
 
 
 		// Get description with markers?
-		if(!isset($settings["valid_languages"][$description])) $description = false;
+		//if(!isset($settings["valid_languages"][$description])) $description = false;
 
     	// Build a query
     	$query = "SELECT `id`,`type`,`lat`,`lon`,`rating`";
     	
-    	if($description!=false) $query .= ",`".$description."`";
+    	#if($description!=false) $query .= ",`".$description."`";
     	
     	$query .= " FROM `t_points` WHERE 
 					`type` = 1 AND 
@@ -123,19 +151,18 @@ class maps_api
 
 	    // Build an array
    		$res = mysql_query($query);
-   		if(!$res) return $this->API_error("Query failed!");
+   		if(!$res) return $this->API_error("No results.");
    		$i=0;
 		while($r = mysql_fetch_array($res, MYSQL_ASSOC)) {
    		    $result[$i]["id"] = $r["id"];
    		    $result[$i]["lat"] = $r["lat"];
    		    $result[$i]["lon"] = $r["lon"];
    		    $result[$i]["rating"] = $r["rating"];
-   		    
-   		    if($description!=false) {
+   		    /*
+   		    if(!empty($description) OR $description!=false) {
    		    	$result[$i]["description"] = $r[$description];
-   		    	//$result[$i]["description_language"] = $description;
    		    }
-   		    
+   		    */
    		    $i++;
    		}
    	
@@ -200,6 +227,7 @@ class maps_api
    		// Return
    		return $this->output($result, 'markers');
     }
+
 
 
 	/*
@@ -310,7 +338,7 @@ class maps_api
     }
 
 	
-	
+
 	/* 
 	 * Remove comment
 	 */
@@ -689,9 +717,9 @@ class maps_api
    		return $this->output($result);
 	
 	}
-	
-	
-	
+
+
+
 	/*
 	 * Get all comments for a place
 	 * 
@@ -973,6 +1001,7 @@ class maps_api
    		// Return
    		return $this->output($result);
     }
+
 
 
 

@@ -10,6 +10,8 @@ echo '<h2>'._("Settings").'</h2>';
 // Show only when logged in
 if($user["logged_in"]===true): ?>
 
+<script src="static/js/jquery.pstrength-min.1.2.js" type="text/javascript"></script>
+
 <div class="ui-state-error ui-corner-all hidden" style="padding: 0 .7em; margin: 20px 0;" id="profile_alert"> 
     <p><span class="ui-icon ui-icon-alert" style="float: left; margin-right: .3em;"></span> 
     <strong><?php echo _("Alert"); ?>:</strong> <span class="alert_text"></span></p>
@@ -106,7 +108,7 @@ if($user["logged_in"]===true): ?>
 	<br /><br />
 	
 	<input type="checkbox" name="private_location" id="private_location" value="true" <?php if(isset($user["private_location"]) && $user["private_location"] == "1") echo 'checked="checked" '; ?>/> <label for="private_location"><?php echo _("Don't try to recognize my location"); ?></label><br />
-	<small>No "Nearby places from" for you, then.</small><br />	
+	<small><?php echo _('No "Nearby places from" for you, then.'); ?></small><br />	
 	
 	<br /><br />
 </div>

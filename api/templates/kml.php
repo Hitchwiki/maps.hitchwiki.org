@@ -82,7 +82,7 @@ class template_kml
 					  '<IconStyle>'."\n".
 					    "\t".'<color>ff'.$color.'</color>'."\n".
 					    "\t".'<scale>0.5</scale>'."\n".
-					  	"\t".'<hotSpot x="0.5" y="0.5" xunits="fraction" yunits="fraction">'."\n".
+					  	//"\t".'<hotSpot x="0.5" y="0.5" xunits="fraction" yunits="fraction">'."\n".
 					    "\t".'<Icon>'."\n".
 					    "\t"."\t".'<href>'.$settings["base_url"].'/static/gfx/hh_place_'.$rating.'.png</href>'."\n".
 					    "\t".'</Icon>'."\n".

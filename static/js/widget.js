@@ -1,4 +1,11 @@
 
+var proj4326 = new OpenLayers.Projection("EPSG:4326");
+var projmerc = new OpenLayers.Projection("EPSG:900913");
+
+// Missing tiles from the map
+OpenLayers.Util.onImageLoadError = function(){this.src='static/gfx/openlayers/tile_not_found.gif';}
+OpenLayers.Tile.Image.useBlankTile=false;
+
 var markersZoomLimit = 6;
 
 var markers_free = false;
@@ -10,7 +17,25 @@ $(document).ready(function() {
 	$("#map").text('');
 	
 	
+	// Custom images from our own server
+	OpenLayers.ImgPath = "static/gfx/openlayers/";
 	
+	// Create map with controls	
+	map = new OpenLayers.Map('map', {		
+		projection: proj4326,
+		displayProjection: projmerc,
+		units: "m",
+		numZoomLevels: 6,
+		maxResolution: 156543.0339,
+		maxExtent: new OpenLayers.Bounds(-20037508, -20037508, 20037508, 20037508.34),
+		
+		eventListeners: {
+		    "moveend": refreshMapMarkers,
+		}
+	    
+	});
+	
+	/*
 	// Custom images from our own server
 	OpenLayers.ImgPath = "static/gfx/openlayers/";
 	
@@ -24,6 +49,7 @@ $(document).ready(function() {
 	    numZoomLevels: 6
 	    
 	});
+	*/
  
  	// Different colors for markers depending on their rating
 	var colors = [	
@@ -90,7 +116,7 @@ $(document).ready(function() {
     
     
 	// Set map
-    map.setCenter(new OpenLayers.LonLat(lon, lat).transform(new OpenLayers.Projection("EPSG:4326"), map.getProjectionObject()));
+    map.setCenter(new OpenLayers.LonLat(lon, lat).transform(proj4326, projmerc));
     map.zoomTo(zoom);
 
 	// Let markers be freeeee
@@ -98,19 +124,43 @@ $(document).ready(function() {
 	refreshMapMarkers();
 });
 
-
-
+ 
+var descriptions = new Array();
 function onFeatureSelect(feature) {
-	
+	maps_debug("Show bubble #"+feature.attributes.id);
+	/*
 	if(feature.attributes.description != "") {
 		var description = feature.attributes.description;// + '<br /><br />';
 	}
 	else {
 		var description = "<i>No description...</i>";
 	}
+	*/
 	
-	var point = feature.geometry.getBounds().getCenterLonLat();
+	if(feature.attributes.bubble_content == undefined) {
+		var bubble_content = '<i>'+_("Hitchhiking spot")+'</i>';
+		
+		// Get description
+		$.getJSON('api/?place='+feature.attributes.id, function(data) {
+			if(data.error) {
+			    maps_debug("API Error when getting marker info: "+data.error);
+			}
+			else {
+				bubble_content = '<b>'+data.locality+'<br />'+data.country.name+'</b><br /><br /><b>Rating:</b> '+data.exact_rating+' ('+data.rating_count+')<br /><b>Average waiting time:</b> '+data.waiting_stats.avg_textual+'<br /><br />';
 
+				if(data.description.en_UK.description != undefined) {
+					bubble_content = bubble_content+data.description.en_UK.description;
+				}
+			}
+		});
+	}
+	else {
+		maps_debug("...used cached bubble content");
+		var bubble_content = feature.attributes.bubble_content;
+	}
+	
+	// Coordinates
+	var point = feature.geometry.getBounds().getCenterLonLat();
     if(point.lat > map_center.lat) {
     	var offset = 5;
     } else {
@@ -120,7 +170,7 @@ function onFeatureSelect(feature) {
     popup = new OpenLayers.Popup.FramedCloud("Info", 
 							point,
 							null,
-							'<div style="font-size: 11px; line-height: 12px; width: 250px;">' + description +'</div>',//<small><a target="_top" href="./?place=' + feature.attributes.id +'">'+read_more_txt+'</a></small></div>',
+							'<div style="font-size: 11px; line-height: 12px; width: 250px;">' + bubble_content +'</div>',//<small><a target="_top" href="./?place=' + feature.attributes.id +'">'+read_more_txt+'</a></small></div>',
 							{
 								'size': new OpenLayers.Size(15,15), 
 								'offset': new OpenLayers.Pixel(5,offset)
@@ -157,62 +207,68 @@ function refreshMapMarkers() {
 
 		// Get corner coordinates from the map
 		var extent = map.getExtent();
-		var corner1 = new OpenLayers.LonLat(extent.left, extent.top).transform(map.getProjectionObject(), new OpenLayers.Projection("EPSG:4326"));
-		var corner2 = new OpenLayers.LonLat(extent.right, extent.bottom).transform(map.getProjectionObject(), new OpenLayers.Projection("EPSG:4326"));
+		var corner1 = new OpenLayers.LonLat(extent.left, extent.top).transform(projmerc, proj4326);
+		var corner2 = new OpenLayers.LonLat(extent.right, extent.bottom).transform(projmerc, proj4326);
 		
 		
-		var apiCall = 'api/?description=en_UK&bounds='+corner2.lat+','+corner1.lat+','+corner1.lon+','+corner2.lon;	
+		var apiCall = 'api/?bounds='+corner2.lat+','+corner1.lat+','+corner1.lon+','+corner2.lon;	
 		maps_debug("Calling API: "+apiCall);
 		
 		// Get markers from the API for this area
 		$.getJSON(apiCall, function(data) {
 		    // Go trough all markers
 		    
-		    maps_debug("Starting markers each-loop...");
 		    
-		    // Loop markers we got trough 
-		    var markerStock = [];
-		    $.each(data, function(key, value) {
-		    
-		    	// Check if marker isn't already on the map
-		    	// and add it to the map
-		    	if(markers[value.id] != true) {
-		    		markers[value.id] = true;
+		    if(data.error) {
+		    	maps_debug("API Error: "+data.error);
+		    }
+		    else {
+		    	maps_debug("Starting markers each-loop...");
+		    	
+		    	// Loop markers we got trough 
+		    	var markerStock = [];
+		    	$.each(data, function(key, value) {
+		    	
+		    		// Check if marker isn't already on the map
+		    		// and add it to the map
+		    		if(markers[value.id] != true) {
+		    			markers[value.id] = true;
+		    			
+		    			//maps_debug("Adding marker #"+value.id +"<br />("+value.lon+", "+value.lat+")...");
+		    			
+		    	        var coords = new OpenLayers.LonLat(value.lon, value.lat).transform(proj4326, projmerc);
+		    	        
+		    	        markerStock.push(
+		    	            new OpenLayers.Feature.Vector(
+		    	                new OpenLayers.Geometry.Point(coords.lon, coords.lat),
+		    					{
+		    						id: value.id,
+		    						rating: value.rating/*,
+		    						description: value.description*/
+		    					}
+		    	            )
+		    	        );
+		    	        
+		    	        //maps_debug("...done.");
+				
+		    		} 
+		    		else {
+		    			//maps_debug("marker #"+value.id +" already on the map.");
+		    		}
 		    		
-		    		//maps_debug("Adding marker #"+value.id +"<br />("+value.lon+", "+value.lat+")...");
-		    		
-		            var coords = new OpenLayers.LonLat(value.lon, value.lat).transform(new OpenLayers.Projection("EPSG:4326"), map.getProjectionObject());
-		            
-		            markerStock.push(
-		                new OpenLayers.Feature.Vector(
-		                    new OpenLayers.Geometry.Point(coords.lon, coords.lat),
-		    				{
-		    					id: value.id,
-		    					rating: value.rating,
-		    					description: value.description
-		    				}
-		                )
-		            );
-		            
-		            //maps_debug("...done.");
-		
-		    	} 
-		    	else {
-		    		//maps_debug("marker #"+value.id +" already on the map.");
+		    	// each * end
+		    	});
+		    	
+		    	if(markerStock.length > 0) {
+		    		maps_debug("Loop ended. Adding "+markerStock.length+" new markers to the map.");
+		    	    places.addFeatures(markerStock);
+		    	} else {
+		    		maps_debug("Loop ended. No new markers found from this area.");
 		    	}
 		    	
-		    // each * end
-		    });
-		    
-		    if(markerStock.length > 0) {
-		    	maps_debug("Loop ended. Adding "+markerStock.length+" new markers to the map.");
-		        places.addFeatures(markerStock);
-		    } else {
-		    	maps_debug("Loop ended. No new markers found from this area.");
-		    }
-		    
-		    // Loading done, hide loading bar
-		    hide_loading_bar();
+		    	// Loading done, hide loading bar
+		    	hide_loading_bar();
+		    } // else error?
 		    
 		// getjson * end
 		});
@@ -260,4 +316,12 @@ function hide_loading_bar() {
 	if($("#loading-bar").is(":visible") == true) {
 		$("#loading-bar").hide();
 	}
+}
+
+
+/*
+ * JS Gettext
+ */
+function _(str) {
+	return str;
 }
