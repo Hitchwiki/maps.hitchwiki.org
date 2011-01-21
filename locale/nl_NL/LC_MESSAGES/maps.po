@@ -2,7 +2,7 @@
 # This file is distributed under the same license as the Maps package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2011-01-11 17:10:04+0000\n"
+"PO-Revision-Date: 2011-01-21 19:30:13+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -10,13 +10,17 @@ msgstr ""
 "X-Generator: GlotPress/0.1\n"
 "Project-Id-Version: Maps\n"
 
+#: views/pages/settings.php:111
+msgid "No \"Nearby places from\" for you, then."
+msgstr "OK, dan geen \"Plaatsen in de buurt van\" voor jou."
+
 #: views/pages/statistics.php:71
 msgid "%d vote in total."
 msgid_plural "%d votes in total."
 msgstr[0] "%d stemmen in totaal."
 msgstr[1] "%d stemmen in totaal."
 
-#: views/cards/download.php:70
+#: views/cards/download.php:72
 msgid "Read about converting data between formats"
 msgstr "Lees meer over het omzetten van gegevens tussen de formaten"
 
@@ -28,7 +32,7 @@ msgstr "Download markers als een bestand"
 msgid "Hitchhiking places"
 msgstr "Liften plaatsen"
 
-#: views/cards/download.php:20
+#: views/cards/download.php:22
 msgid "Format"
 msgstr "Formaat"
 
@@ -69,13 +73,13 @@ msgstr "Hoogste liften plaatsen"
 msgid "Lowest place"
 msgstr "Laagste plaats"
 
-#: lib/functions.php:1424
+#: lib/functions.php:1425
 msgid "%d vote"
 msgid_plural "%d votes"
 msgstr[0] "%d stemmen"
 msgstr[1] "%d stemmen"
 
-#: lib/functions.php:1448
+#: lib/functions.php:1449
 msgid "Place in Hitchwiki Maps"
 msgstr "Plaats in Hitchwiki Maps"
 
@@ -87,7 +91,7 @@ msgstr "Wachttijd varieert van %s tot %s."
 msgid "Italian"
 msgstr "Italiaans"
 
-#: index.php:528
+#: index.php:527
 msgid "Street view"
 msgstr "Street view"
 
@@ -103,7 +107,7 @@ msgstr "Creative Commons Licentie"
 msgid "You can show your love to us and recommend Hitchwiki Maps to your hitchhiker mates in Facebook by pressing this cute little button with a familiar icon on it:"
 msgstr "Laat zien hoeveel je van ons houdt en beveel Hitchwiki Maps aan aan je liftende vrienden door op dit schattige kleine knopje met het welbekende pictogram te klikken:"
 
-#: index.php:371
+#: index.php:370
 msgid "http://hitchwiki.org/en/"
 msgstr "http://hitchwiki.org/nl/"
 
@@ -167,7 +171,7 @@ msgstr "Eind datum"
 msgid "Start date"
 msgstr "Begin datum"
 
-#: ajax/js-translation.json.php:51
+#: ajax/js-translation.json.php:52
 msgid "Try searching by English city names or/and add a country name with cities."
 msgstr "Probeer te zoeken naar de Engelse namen van steden en/of voeg een naam van het land toe met steden."
 
@@ -179,43 +183,43 @@ msgstr "Ik weet het niet"
 msgid "Just add what you've experienced. You can add multiple timings after saving and we will calculate an average out of them."
 msgstr "Voeg gewoon wat je hebt meegemaakt. Je kunt meerdere wachttijden toevoegen, na het opslaan zullen we het gemiddelde berekenen."
 
-#: ajax/js-translation.json.php:43
+#: ajax/js-translation.json.php:44
 msgid "places"
 msgstr "plaatsen"
 
-#: ajax/js-translation.json.php:44
+#: ajax/js-translation.json.php:45
 msgid "Zoom closer to see them."
 msgstr "Zoom in om ze te zien."
 
-#: ajax/js-translation.json.php:45
+#: ajax/js-translation.json.php:46
 msgid "Searching..."
 msgstr "Zoeken ..."
 
-#: ajax/js-translation.json.php:46 ajax/js-translation.json.php:50
+#: ajax/js-translation.json.php:47 ajax/js-translation.json.php:51
 msgid "Your search did not match any places."
 msgstr "Je zoekopdracht heeft geen resultaten opgeleverd plaatsen."
 
-#: ajax/js-translation.json.php:47
+#: ajax/js-translation.json.php:48
 msgid "Try searching in English and add a country name in to your search."
 msgstr "Probeer te zoeken in het Engels en voeg een naam van het land in in je zoekopdracht."
 
-#: ajax/js-translation.json.php:48
+#: ajax/js-translation.json.php:49
 msgid "Example:"
 msgstr "Voorbeeld:"
 
-#: ajax/js-translation.json.php:49
+#: ajax/js-translation.json.php:50
 msgid "Not found"
 msgstr "Niet gevonden"
 
-#: ajax/js-translation.json.php:52
+#: ajax/js-translation.json.php:53
 msgid "Are you sure you want to remove this comment?"
 msgstr "Ben je zeker dat je deze reactie wilt verwijderen?"
 
-#: ajax/js-translation.json.php:54
+#: ajax/js-translation.json.php:55
 msgid "Updating description failed."
 msgstr "Actualisering van de beschrijving is mislukt."
 
-#: lib/functions.php:1443
+#: lib/functions.php:1444
 msgid "Description written %s"
 msgstr "Beschrijving geschreven %s"
 
@@ -335,19 +339,19 @@ msgstr "Plaats kon niet toe gevoegd worden vanwege een fout."
 msgid "Your name <i>\"%s\"</i> will be visible for this place."
 msgstr "Je naam <i>\"%s\"</i> zal zichtbaar zijn voor deze plaats."
 
-#: lib/functions.php:1639
+#: lib/functions.php:1640
 msgid "In-city transportation"
 msgstr "Lokaal vervoer."
 
-#: lib/functions.php:1591
+#: lib/functions.php:1592
 msgid "Go to site"
 msgstr "Ga naar de website"
 
-#: lib/functions.php:1640
+#: lib/functions.php:1641
 msgid "Inter-city / international transportation"
 msgstr "Intercity / internationaal transport"
 
-#: views/pages/why_register.php:1 index.php:398
+#: views/pages/why_register.php:1 index.php:397
 msgid "Why register?"
 msgstr "Waarom registreren?"
 
@@ -355,15 +359,15 @@ msgstr "Waarom registreren?"
 msgid "http://creativecommons.org/licenses/by-sa/3.0/"
 msgstr "http://creativecommons.org/licenses/by-sa/3.0/deed.nl"
 
-#: index.php:524
+#: index.php:523
 msgid "Download"
 msgstr "Download"
 
-#: index.php:527
+#: index.php:526
 msgid "Link here"
 msgstr "Link hier"
 
-#: lib/functions.php:1645
+#: lib/functions.php:1646
 msgid "No public transport found for this country."
 msgstr "Geen openbaar vervoer gevonden voor dit land."
 
@@ -391,7 +395,7 @@ msgstr "Verbind Maps met je <a href=\"http://latitude.google.com/\">Google Latit
 msgid "...and more!"
 msgstr "... en meer!"
 
-#: lib/api.php:416 lib/functions.php:1080 lib/functions.php:1088
+#: lib/api.php:444 lib/functions.php:1080 lib/functions.php:1088
 #: lib/functions.php:1090
 msgid "Anonymous"
 msgstr "Anoniem"
@@ -432,7 +436,7 @@ msgstr "Heel goed"
 msgid "Good"
 msgstr "Goed"
 
-#: lib/functions.php:1102 lib/functions.php:1434
+#: lib/functions.php:1102 lib/functions.php:1435
 msgid "Average"
 msgstr "Gemiddeld"
 
@@ -456,87 +460,87 @@ msgstr "min"
 msgid "h"
 msgstr "u"
 
-#: lib/functions.php:1507
+#: lib/functions.php:1508
 msgid "Other"
 msgstr "Overig"
 
-#: lib/functions.php:1508
+#: lib/functions.php:1509
 msgid "Local bus"
 msgstr "Lokale bus"
 
-#: lib/functions.php:1509
+#: lib/functions.php:1510
 msgid "Trolleybus"
 msgstr "Trolleybus"
 
-#: lib/functions.php:1510
+#: lib/functions.php:1511
 msgid "Tram"
 msgstr "Tram"
 
-#: lib/functions.php:1511
+#: lib/functions.php:1512
 msgid "Metro"
 msgstr "Metro"
 
-#: lib/functions.php:1512
+#: lib/functions.php:1513
 msgid "Commuter train"
 msgstr "Pendeltrein"
 
-#: lib/functions.php:1513
+#: lib/functions.php:1514
 msgid "Taxi"
 msgstr "Taxi"
 
-#: lib/functions.php:1514
+#: lib/functions.php:1515
 msgid "Long distance bus"
 msgstr "Interlokale bus"
 
-#: lib/functions.php:1515
+#: lib/functions.php:1516
 msgid "Long distance train"
 msgstr "Interlokale trein"
 
-#: lib/functions.php:1516
+#: lib/functions.php:1517
 msgid "Airline"
 msgstr "Vliegtuig"
 
-#: lib/functions.php:1517
+#: lib/functions.php:1518
 msgid "Shipping"
 msgstr "Schip"
 
-#: lib/functions.php:1518
+#: lib/functions.php:1519
 msgid "Carsharing"
 msgstr "Auto delen"
 
-#: lib/functions.php:1519
+#: lib/functions.php:1520
 msgid "Car rental"
 msgstr "Huur auto"
 
-#: lib/functions.php:1569 ajax/country.php:159
+#: lib/functions.php:1570 ajax/country.php:159
 msgid "City"
 msgstr "Stad"
 
-#: lib/functions.php:1570
+#: lib/functions.php:1571
 msgid "Site"
 msgstr "Website"
 
-#: lib/functions.php:1571 ajax/add_place.php:81
+#: lib/functions.php:1572 ajax/add_place.php:81
 msgid "Type"
 msgstr "Type"
 
-#: lib/functions.php:1573
+#: lib/functions.php:1574
 msgid "Manage"
 msgstr "Beheer"
 
-#: lib/functions.php:1609
+#: lib/functions.php:1610
 msgid "Remove page permanently"
 msgstr "Verwijder de pagina voorgoed"
 
-#: lib/functions.php:1610
+#: lib/functions.php:1611
 msgid "Edit page"
 msgstr "Wijzig pagina"
 
-#: lib/functions.php:1629
+#: lib/functions.php:1630
 msgid "Are you sure?"
 msgstr "Ben je zeker?"
 
-#: lib/functions.php:1645
+#: lib/functions.php:1646
 msgid "Add some?"
 msgstr "Toevoegen"
 
@@ -584,7 +588,7 @@ msgstr "Vul a.u.b. de beschrijving in zoveel mogelijk talen in."
 msgid "Clear"
 msgstr "Wissen"
 
-#: lib/functions.php:1423 ajax/add_place.php:215
+#: lib/functions.php:1424 ajax/add_place.php:215
 msgid "Hitchability"
 msgstr "Liftbaarheid"
 
@@ -608,7 +612,7 @@ msgstr "Markering is met succes toegevoegd"
 msgid "Please try again!"
 msgstr "Probeer het nogmaals!"
 
-#: lib/functions.php:1368 ajax/add_place.php:383
+#: lib/functions.php:1369 ajax/add_place.php:383
 msgid "Error"
 msgstr "Fout"
 
@@ -692,7 +696,7 @@ msgstr "Toegevoegd door"
 msgid "Added at"
 msgstr "Toegevoegd op"
 
-#: lib/functions.php:1428 lib/functions.php:1429
+#: lib/functions.php:1429 lib/functions.php:1430
 msgid "Vote distribution"
 msgstr "Verdeling van de stemmen"
 
@@ -712,7 +716,7 @@ msgstr "Beoordeling mislukt, probeer het nogmaals"
 msgid "Rating failed"
 msgstr "Beoordeling mislukt"
 
-#: lib/functions.php:1434 ajax/add_place.php:232
+#: lib/functions.php:1435 ajax/add_place.php:232
 msgid "Waiting time"
 msgstr "Wachttijd"
 
@@ -720,7 +724,7 @@ msgstr "Wachttijd"
 msgid "Show log"
 msgstr "Laat de log zien"
 
-#: lib/functions.php:1436
+#: lib/functions.php:1437
 msgid "%d experience"
 msgid_plural "%d experiences"
 msgstr[0] "%d ervaring"
@@ -923,15 +927,15 @@ msgstr "Dat ben je zelf!"
 msgid "Results from Hitchwiki Maps"
 msgstr "Resultaten van Hitchwiki maps"
 
-#: views/cards/download.php:8
+#: views/cards/download.php:10
 msgid "World"
 msgstr "Wereld"
 
-#: views/cards/download.php:8 views/cards/download.php:9
+#: views/cards/download.php:10 views/cards/download.php:11
 msgid "markers"
 msgstr "Markeringen"
 
-#: views/cards/download.php:9
+#: views/cards/download.php:11
 msgid "Visible area on the map"
 msgstr "Zichtbare regio op de kaart"
 
@@ -939,7 +943,7 @@ msgstr "Zichtbare regio op de kaart"
 msgid "Zipped"
 msgstr "Ge-zipped"
 
-#: views/cards/download.php:72
+#: views/cards/download.php:74
 msgid "Use Open Street Map Export tool"
 msgstr "Gebruik het Open Street Map export gereedschap"
 
@@ -1040,12 +1044,12 @@ msgstr "Top landen"
 msgid "Top cities"
 msgstr "Top steden"
 
-#: views/pages/countries.php:1 index.php:522
+#: views/pages/countries.php:1 index.php:521
 msgid "Countries"
 msgstr "Landen"
 
 #: views/pages/countries.php:23 views/pages/public_transport.php:50
-#: views/pages/settings.php:276 widget.php:93 widget.php:97
+#: views/pages/settings.php:278 widget.php:93 widget.php:97
 msgid "Loading..."
 msgstr "Laden..."
 
@@ -1154,116 +1158,116 @@ msgstr "Catalogus van openbaar vervoer"
 msgid "Find timetables for the public transport."
 msgstr "Vind dienstregeling voor openbaar vervoer. "
 
-#: views/pages/settings.php:8 index.php:392
+#: views/pages/settings.php:8 index.php:391
 msgid "Settings"
 msgstr "Instellingen"
 
-#: views/pages/settings.php:29 views/pages/translate.php:9 index.php:386
-#: index.php:672
+#: views/pages/settings.php:31 views/pages/translate.php:9 index.php:385
+#: index.php:671
 msgid "Choose language"
 msgstr "Kies taal"
 
-#: views/pages/settings.php:45
+#: views/pages/settings.php:47
 msgid "Can be anything, most likely a city."
 msgstr "Kan van alles zijn, waarschijnlijk een stad."
 
-#: views/pages/settings.php:53
+#: views/pages/settings.php:55
 msgid "Used map services"
 msgstr "Gebruikte kaarten diensten"
 
-#: views/pages/settings.php:61
+#: views/pages/settings.php:63
 msgid "Default map layer"
 msgstr "Standaard kaart aanzicht"
 
-#: views/pages/settings.php:65 index.php:653
+#: views/pages/settings.php:67 index.php:652
 msgid "Default"
 msgstr "Standaard"
 
-#: views/pages/settings.php:108
+#: views/pages/settings.php:110
 msgid "Don't try to recognize my location"
 msgstr "Probeer niet mijn locatie te bepalen"
 
-#: views/pages/settings.php:116
+#: views/pages/settings.php:118
 msgid "Map will be centered to here"
 msgstr "Map wordt gecentreerd op deze locatie "
 
-#: views/pages/settings.php:118
+#: views/pages/settings.php:120
 msgid "I'd rather not tell"
 msgstr "Dat vertel ik liever niet"
 
-#: views/pages/settings.php:130
+#: views/pages/settings.php:132
 msgid "Allow Hitchwiki Maps to use your Gravatar"
 msgstr "Sta Hitchwiki Maps toe mijn Gravatar te gebruiken"
 
-#: views/pages/settings.php:131
+#: views/pages/settings.php:133
 msgid "We would show information from your %s page, if you have one."
 msgstr "We tonen hier informatie van je eigen %s website, als je er een hebt."
 
-#: views/pages/settings.php:135
+#: views/pages/settings.php:137
 msgid "Google Latitude user ID"
 msgstr "Google Latitude gebruikers naam."
 
-#: views/pages/settings.php:138
+#: views/pages/settings.php:140
 msgid "<a href=\"%s\" target=\"_blank\">Enable Google Latitude</a> first and copy here your 20-digit user ID from the bottom of the page, visible in a textbox."
 msgstr "<a href=\"%s\" target=\"_blank\">Activeer Google Latitude</a> eerst en kopieer dan je 20-cijferige gebuikers-ID hierheen."
 
-#: views/pages/settings.php:138
+#: views/pages/settings.php:140
 msgid "Your location will be published also on your profile page."
 msgstr "Je locatie wordt ook aangegeven op de pagina met je gebruikers profiel."
 
-#: views/pages/settings.php:142
+#: views/pages/settings.php:144
 msgid "Center Maps always to your Google Latitude location"
 msgstr "Centreer de kaart altijd op je locatie van Google Latitude"
 
-#: views/pages/settings.php:152
+#: views/pages/settings.php:154
 msgid "Update"
 msgstr "Update"
 
-#: views/pages/settings.php:158
+#: views/pages/settings.php:160
 msgid "Reset your profile"
 msgstr "Reset je gebruikers profiel"
 
-#: views/pages/settings.php:362
+#: views/pages/settings.php:364
 msgid "Settings updated!"
 msgstr "Instellingen bijgewerkt!"
 
-#: views/pages/settings.php:362
+#: views/pages/settings.php:364
 msgid "Some settings might require refreshing the page."
 msgstr "Het is nodig de pagina te herladen voor sommige instellingen."
 
-#: views/pages/settings.php:374
+#: views/pages/settings.php:376
 msgid "Updating settings failed:"
 msgstr "Bijwerken van instellingen mislukt:"
 
-#: views/pages/settings.php:389
+#: views/pages/settings.php:391
 msgid "Are you sure you want to reset your profile? You cannot undo this action!"
 msgstr "Ben je er zeker van dat je je gebruikers profiel wit resetten? Deze actie kan niet ongedaan worden gemaakt!"
 
-#: views/pages/settings.php:399
+#: views/pages/settings.php:401
 msgid "Your profile was reset permanently."
 msgstr "Je gebruikers profiel is volledig gereset."
 
-#: views/pages/settings.php:399
+#: views/pages/settings.php:401
 msgid "Profile reset"
 msgstr "Je gebruikers profiel is gereset"
 
-#: views/pages/settings.php:402
+#: views/pages/settings.php:404
 msgid "Profile was NOT reset"
 msgstr "Gebruikers profiel is NIET gereset"
 
-#: views/pages/settings.php:410
+#: views/pages/settings.php:412
 msgid "You cancelled your profile reset."
 msgstr "Je heb het resetten van je gebruikers profiel afgebroken."
 
-#: views/pages/settings.php:410
+#: views/pages/settings.php:412
 msgid "Reset cancelled"
 msgstr "Reset afgebroken"
 
-#: views/pages/settings.php:425
+#: views/pages/settings.php:427
 msgid "You must be logged in to edit settings."
 msgstr "Je moet ingelogd zijn om je instellingen te wijzigen."
 
-#: views/pages/statistics.php:1 index.php:536
+#: views/pages/statistics.php:1 index.php:535
 msgid "Statistics"
 msgstr "Statistieken"
 
@@ -1291,7 +1295,7 @@ msgstr "Dichtheid van markeringen"
 msgid "Hitchwiki Maps is currently available in %s languages"
 msgstr "Hitchwiki Maps is momenteel beschikbaar in %s talen"
 
-#: views/pages/translate.php:16 index.php:695
+#: views/pages/translate.php:16 index.php:694
 msgid "Help us with translating!"
 msgstr "Help ons met vertalingen!"
 
@@ -1311,7 +1315,7 @@ msgstr "Gebruiker van Maps sinds"
 msgid "Visible only for admins"
 msgstr "Alleen zichtbaar voor beheerders"
 
-#: views/pages/users.php:35 index.php:539
+#: views/pages/users.php:35 index.php:538
 msgid "Admins"
 msgstr "Beheerders"
 
@@ -1360,75 +1364,75 @@ msgstr "Wegen"
 msgid "a Hitchhiking spot in"
 msgstr "een Liftplaats in"
 
-#: index.php:272
+#: index.php:271
 msgid "Sorry, but the place cannot be found."
 msgstr "Sorry, deze plaats kan niet worden gevonden."
 
-#: index.php:272
+#: index.php:271
 msgid "The place you are looking for might have been removed or is temporarily unavailable."
 msgstr "De plaats waar je naar op zoek bent is mogelijk verwijderd of is tijdelijk niet beschikbaar."
 
-#: views/pages/help.php:1 index.php:313 index.php:535
+#: views/pages/help.php:1 index.php:312 index.php:534
 msgid "Help & About"
 msgstr "Help & Over"
 
-#: index.php:371
+#: index.php:370
 msgid "Community"
 msgstr "Gemeenschap"
 
-#: index.php:391
+#: index.php:390
 msgid "Profile"
 msgstr "Gebruikers profiel"
 
-#: index.php:394 index.php:462
+#: index.php:393 index.php:461
 msgid "Logout"
 msgstr "Log uit"
 
-#: index.php:461
+#: index.php:460
 msgid "Hello from %s"
 msgstr "Hallo van %s"
 
-#: index.php:399
+#: index.php:398
 msgid "Register!"
 msgstr "Registreer!"
 
-#: index.php:468
+#: index.php:467
 msgid "Login"
 msgstr "Log in"
 
-#: index.php:492
+#: index.php:491
 msgid "Find places"
 msgstr "Vind plaatsen"
 
-#: index.php:497
+#: index.php:496
 msgid "Search"
 msgstr "Zoek"
 
-#: index.php:505
+#: index.php:504
 msgid "Nearby places from"
 msgstr "Plaatsen in de buurt van"
 
-#: index.php:507
+#: index.php:506
 msgid "Show the city on the map"
 msgstr "Laat de stad zien op de kaart"
 
-#: index.php:508
+#: index.php:507
 msgid "Show the state on the map"
 msgstr "Laat de provincie zien op de kaart"
 
-#: index.php:509
+#: index.php:508
 msgid "Show the country on the map"
 msgstr "Laat het land zien op de kaart"
 
-#: index.php:518
+#: index.php:517
 msgid "Ooh! New Maps!"
 msgstr "Oh! Nieuwe kaarten!"
 
-#: index.php:523 index.php:616
+#: index.php:522 index.php:615
 msgid "Tools"
 msgstr "Gereedschap"
 
-#: views/pages/users.php:1 index.php:532
+#: views/pages/users.php:1 index.php:531
 msgid "Members"
 msgstr "Leden"
 
@@ -1436,59 +1440,59 @@ msgstr "Leden"
 msgid "Licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License"
 msgstr "Deze website en haar inhoud zijn beschikbaar onder een Creative Commons Naamsvermelding-GelijkDelen 3.0 Unported (Attribution-ShareAlike 3.0 Unported) licentie."
 
-#: index.php:555
+#: index.php:554
 msgid "Contact us!"
 msgstr "Neem contact met ons op!"
 
-#: index.php:558
+#: index.php:557
 msgid "Developers"
 msgstr "Ontwikkelaars"
 
-#: index.php:562
+#: index.php:561
 msgid "API"
 msgstr "API"
 
-#: index.php:603
+#: index.php:602
 msgid "Turn JavaScript on from your browser."
 msgstr "Schakel JavaSript in op je browser."
 
-#: index.php:623
+#: index.php:622
 msgid "Navigate"
 msgstr "Navigeer"
 
-#: index.php:628
+#: index.php:627
 msgid "Measure distance"
 msgstr "Afstand berekening"
 
-#: index.php:633
+#: index.php:632
 msgid "Measure area"
 msgstr "Oppervlakte berekening "
 
-#: index.php:646
+#: index.php:645
 msgid "Measure"
 msgstr "Afmeting"
 
-#: index.php:650
+#: index.php:649
 msgid "Show markers after zoom level"
 msgstr "Toon de markeringen vanaf zoom niveau"
 
-#: index.php:656
+#: index.php:655
 msgid "Continent level"
 msgstr "Op continentaal niveau"
 
-#: index.php:657
+#: index.php:656
 msgid "Country level"
 msgstr "Op niveau per land"
 
-#: index.php:658
+#: index.php:657
 msgid "City level"
 msgstr "Op niveau per stad"
 
-#: index.php:659
+#: index.php:658
 msgid "Street level"
 msgstr "Op niveau van straat"
 
-#: index.php:711
+#: index.php:710
 msgid "Map"
 msgstr "Kaart"
 
@@ -1504,10 +1508,10 @@ msgstr "Gevraagde land kon niet worden gevonden!"
 msgid "This is just a preview map. Go to %s for the actual service."
 msgstr "Dit is een voorbeeld van een kaart. Ga naar %s voor de echte toepassing."
 
-#: ajax/js-translation.json.php:42
+#: ajax/js-translation.json.php:43
 msgid "Toggle log"
 msgstr "Toon de log"
 
-#: views/pages/settings.php:402
+#: views/pages/settings.php:404
 msgid "Error while trying to reset your profile. Please try again!"
 msgstr "Er is een fout opgetreden bij het resetten van je gebruikers profiel. Probeer het nogmaals!"

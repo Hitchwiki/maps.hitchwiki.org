@@ -2,7 +2,7 @@
 # This file is distributed under the same license as the Maps package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2011-01-11 17:10:04+0000\n"
+"PO-Revision-Date: 2011-01-21 19:30:13+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -10,12 +10,16 @@ msgstr ""
 "X-Generator: GlotPress/0.1\n"
 "Project-Id-Version: Maps\n"
 
+#: views/pages/settings.php:111
+msgid "No \"Nearby places from\" for you, then."
+msgstr "你周围没有"
+
 #: views/pages/statistics.php:71
 msgid "%d vote in total."
 msgid_plural "%d votes in total."
 msgstr[0] "共有%d投票"
 
-#: views/cards/download.php:70
+#: views/cards/download.php:72
 msgid "Read about converting data between formats"
 msgstr "了解如何在不同格式之间转换文件"
 
@@ -27,7 +31,7 @@ msgstr "下载地点文件"
 msgid "Hitchhiking places"
 msgstr "搭车点"
 
-#: views/cards/download.php:20
+#: views/cards/download.php:22
 msgid "Format"
 msgstr "格式"
 
@@ -68,12 +72,12 @@ msgstr "最高的搭车点"
 msgid "Lowest place"
 msgstr "最低的地点"
 
-#: lib/functions.php:1424
+#: lib/functions.php:1425
 msgid "%d vote"
 msgid_plural "%d votes"
 msgstr[0] "%d的投票"
 
-#: lib/functions.php:1448
+#: lib/functions.php:1449
 msgid "Place in Hitchwiki Maps"
 msgstr "搭车百科地图的地点"
 
@@ -85,7 +89,7 @@ msgstr "等待时间介于%s和%s之间"
 msgid "Italian"
 msgstr "意大利语"
 
-#: index.php:528
+#: index.php:527
 msgid "Street view"
 msgstr "街景"
 
@@ -101,7 +105,7 @@ msgstr "Creative Commons License"
 msgid "You can show your love to us and recommend Hitchwiki Maps to your hitchhiker mates in Facebook by pressing this cute little button with a familiar icon on it:"
 msgstr "喜欢搭车百科地图就把她推荐给朋友吧！脸书上面也能找到她!"
 
-#: index.php:371
+#: index.php:370
 msgid "http://hitchwiki.org/en/"
 msgstr "http://hitchwiki.org/zh/"
 
@@ -165,7 +169,7 @@ msgstr "结束日期"
 msgid "Start date"
 msgstr "开始日期"
 
-#: ajax/js-translation.json.php:51
+#: ajax/js-translation.json.php:52
 msgid "Try searching by English city names or/and add a country name with cities."
 msgstr "试着用英文地名或者加上国家名字再搜索"
 
@@ -177,43 +181,43 @@ msgstr "我不知道"
 msgid "Just add what you've experienced. You can add multiple timings after saving and we will calculate an average out of them."
 msgstr "添加你搭车经历。我们会在众多编写中计算平均的搭车时间。"
 
-#: ajax/js-translation.json.php:43
+#: ajax/js-translation.json.php:44
 msgid "places"
 msgstr "地点"
 
-#: ajax/js-translation.json.php:44
+#: ajax/js-translation.json.php:45
 msgid "Zoom closer to see them."
 msgstr "放大看他们"
 
-#: ajax/js-translation.json.php:45
+#: ajax/js-translation.json.php:46
 msgid "Searching..."
 msgstr "搜索中"
 
-#: ajax/js-translation.json.php:46 ajax/js-translation.json.php:50
+#: ajax/js-translation.json.php:47 ajax/js-translation.json.php:51
 msgid "Your search did not match any places."
 msgstr "未找到你的搜索"
 
-#: ajax/js-translation.json.php:47
+#: ajax/js-translation.json.php:48
 msgid "Try searching in English and add a country name in to your search."
 msgstr "尝试用英文搜索或者加上国家名字"
 
-#: ajax/js-translation.json.php:48
+#: ajax/js-translation.json.php:49
 msgid "Example:"
 msgstr "范例"
 
-#: ajax/js-translation.json.php:49
+#: ajax/js-translation.json.php:50
 msgid "Not found"
 msgstr "未发现"
 
-#: ajax/js-translation.json.php:52
+#: ajax/js-translation.json.php:53
 msgid "Are you sure you want to remove this comment?"
 msgstr "你确定删除这条评论么"
 
-#: ajax/js-translation.json.php:54
+#: ajax/js-translation.json.php:55
 msgid "Updating description failed."
 msgstr "更新描述失败"
 
-#: lib/functions.php:1443
+#: lib/functions.php:1444
 msgid "Description written %s"
 msgstr "描述撰写于%s"
 
@@ -333,19 +337,19 @@ msgstr "有错误了不能添加地点"
 msgid "Your name <i>\"%s\"</i> will be visible for this place."
 msgstr "你的名字<i>\"%s\"</i>会在这个地方显示"
 
-#: lib/functions.php:1639
+#: lib/functions.php:1640
 msgid "In-city transportation"
 msgstr "市内交通"
 
-#: lib/functions.php:1591
+#: lib/functions.php:1592
 msgid "Go to site"
 msgstr "去这个地方"
 
-#: lib/functions.php:1640
+#: lib/functions.php:1641
 msgid "Inter-city / international transportation"
 msgstr "城际或国际交通"
 
-#: views/pages/why_register.php:1 index.php:398
+#: views/pages/why_register.php:1 index.php:397
 msgid "Why register?"
 msgstr "为什么注册啊？"
 
@@ -353,15 +357,15 @@ msgstr "为什么注册啊？"
 msgid "http://creativecommons.org/licenses/by-sa/3.0/"
 msgstr "http://creativecommons.org/licenses/by-sa/3.0/"
 
-#: index.php:524
+#: index.php:523
 msgid "Download"
 msgstr "下载"
 
-#: index.php:527
+#: index.php:526
 msgid "Link here"
 msgstr "链接在这"
 
-#: lib/functions.php:1645
+#: lib/functions.php:1646
 msgid "No public transport found for this country."
 msgstr "这个国家没找到公共交通"
 
@@ -389,7 +393,7 @@ msgstr "用<a href=\"http://latitude.google.com/\">Google Latitude</a> 账户来
 msgid "...and more!"
 msgstr "还有呢！"
 
-#: lib/api.php:416 lib/functions.php:1080 lib/functions.php:1088
+#: lib/api.php:444 lib/functions.php:1080 lib/functions.php:1088
 #: lib/functions.php:1090
 msgid "Anonymous"
 msgstr "匿名"
@@ -430,7 +434,7 @@ msgstr "很棒"
 msgid "Good"
 msgstr "棒"
 
-#: lib/functions.php:1102 lib/functions.php:1434
+#: lib/functions.php:1102 lib/functions.php:1435
 msgid "Average"
 msgstr "一般"
 
@@ -454,87 +458,87 @@ msgstr "分钟"
 msgid "h"
 msgstr "小时"
 
-#: lib/functions.php:1507
+#: lib/functions.php:1508
 msgid "Other"
 msgstr "其他的"
 
-#: lib/functions.php:1508
+#: lib/functions.php:1509
 msgid "Local bus"
 msgstr "本地公交车"
 
-#: lib/functions.php:1509
+#: lib/functions.php:1510
 msgid "Trolleybus"
 msgstr "无轨电车"
 
-#: lib/functions.php:1510
+#: lib/functions.php:1511
 msgid "Tram"
 msgstr "有轨电车"
 
-#: lib/functions.php:1511
+#: lib/functions.php:1512
 msgid "Metro"
 msgstr "地铁"
 
-#: lib/functions.php:1512
+#: lib/functions.php:1513
 msgid "Commuter train"
 msgstr "通勤火车"
 
-#: lib/functions.php:1513
+#: lib/functions.php:1514
 msgid "Taxi"
 msgstr "出租车"
 
-#: lib/functions.php:1514
+#: lib/functions.php:1515
 msgid "Long distance bus"
 msgstr "长途车"
 
-#: lib/functions.php:1515
+#: lib/functions.php:1516
 msgid "Long distance train"
 msgstr "长途火车"
 
-#: lib/functions.php:1516
+#: lib/functions.php:1517
 msgid "Airline"
 msgstr "航班"
 
-#: lib/functions.php:1517
+#: lib/functions.php:1518
 msgid "Shipping"
 msgstr "轮船"
 
-#: lib/functions.php:1518
+#: lib/functions.php:1519
 msgid "Carsharing"
 msgstr "拼车"
 
-#: lib/functions.php:1519
+#: lib/functions.php:1520
 msgid "Car rental"
 msgstr "租车"
 
-#: lib/functions.php:1569 ajax/country.php:159
+#: lib/functions.php:1570 ajax/country.php:159
 msgid "City"
 msgstr "城市"
 
-#: lib/functions.php:1570
+#: lib/functions.php:1571
 msgid "Site"
 msgstr "地点"
 
-#: lib/functions.php:1571 ajax/add_place.php:81
+#: lib/functions.php:1572 ajax/add_place.php:81
 msgid "Type"
 msgstr "类型"
 
-#: lib/functions.php:1573
+#: lib/functions.php:1574
 msgid "Manage"
 msgstr "管理"
 
-#: lib/functions.php:1609
+#: lib/functions.php:1610
 msgid "Remove page permanently"
 msgstr "永久删除这个页面"
 
-#: lib/functions.php:1610
+#: lib/functions.php:1611
 msgid "Edit page"
 msgstr "编辑页面"
 
-#: lib/functions.php:1629
+#: lib/functions.php:1630
 msgid "Are you sure?"
 msgstr "你确定么？"
 
-#: lib/functions.php:1645
+#: lib/functions.php:1646
 msgid "Add some?"
 msgstr "添加么？"
 
@@ -582,7 +586,7 @@ msgstr "请用你所知道的所有语言添加"
 msgid "Clear"
 msgstr "清空"
 
-#: lib/functions.php:1423 ajax/add_place.php:215
+#: lib/functions.php:1424 ajax/add_place.php:215
 msgid "Hitchability"
 msgstr "搭车度"
 
@@ -606,7 +610,7 @@ msgstr "成功添加地点"
 msgid "Please try again!"
 msgstr "再试一遍！"
 
-#: lib/functions.php:1368 ajax/add_place.php:383
+#: lib/functions.php:1369 ajax/add_place.php:383
 msgid "Error"
 msgstr "错误"
 
@@ -690,7 +694,7 @@ msgstr "由...添加"
 msgid "Added at"
 msgstr "加在"
 
-#: lib/functions.php:1428 lib/functions.php:1429
+#: lib/functions.php:1429 lib/functions.php:1430
 msgid "Vote distribution"
 msgstr "投票分布"
 
@@ -710,7 +714,7 @@ msgstr "打分失败，再试一遍"
 msgid "Rating failed"
 msgstr "打分失败"
 
-#: lib/functions.php:1434 ajax/add_place.php:232
+#: lib/functions.php:1435 ajax/add_place.php:232
 msgid "Waiting time"
 msgstr "等待时间"
 
@@ -718,7 +722,7 @@ msgstr "等待时间"
 msgid "Show log"
 msgstr "显示日志"
 
-#: lib/functions.php:1436
+#: lib/functions.php:1437
 msgid "%d experience"
 msgid_plural "%d experiences"
 msgstr[0] "%d经验"
@@ -920,15 +924,15 @@ msgstr "是你自己！"
 msgid "Results from Hitchwiki Maps"
 msgstr "搭车地图的结果"
 
-#: views/cards/download.php:8
+#: views/cards/download.php:10
 msgid "World"
 msgstr "世界"
 
-#: views/cards/download.php:8 views/cards/download.php:9
+#: views/cards/download.php:10 views/cards/download.php:11
 msgid "markers"
 msgstr "标记"
 
-#: views/cards/download.php:9
+#: views/cards/download.php:11
 msgid "Visible area on the map"
 msgstr "地图上看得到的地方"
 
@@ -936,7 +940,7 @@ msgstr "地图上看得到的地方"
 msgid "Zipped"
 msgstr "压缩的"
 
-#: views/cards/download.php:72
+#: views/cards/download.php:74
 msgid "Use Open Street Map Export tool"
 msgstr "使用开放街景地图工具"
 
@@ -1037,12 +1041,12 @@ msgstr "排名靠前的国家"
 msgid "Top cities"
 msgstr "排名靠前的城市"
 
-#: views/pages/countries.php:1 index.php:522
+#: views/pages/countries.php:1 index.php:521
 msgid "Countries"
 msgstr "国家"
 
 #: views/pages/countries.php:23 views/pages/public_transport.php:50
-#: views/pages/settings.php:276 widget.php:93 widget.php:97
+#: views/pages/settings.php:278 widget.php:93 widget.php:97
 msgid "Loading..."
 msgstr "载入中。。。"
 
@@ -1151,116 +1155,116 @@ msgstr "公共交通目录"
 msgid "Find timetables for the public transport."
 msgstr "找到公共交通时刻表"
 
-#: views/pages/settings.php:8 index.php:392
+#: views/pages/settings.php:8 index.php:391
 msgid "Settings"
 msgstr "设置"
 
-#: views/pages/settings.php:29 views/pages/translate.php:9 index.php:386
-#: index.php:672
+#: views/pages/settings.php:31 views/pages/translate.php:9 index.php:385
+#: index.php:671
 msgid "Choose language"
 msgstr "选择语言"
 
-#: views/pages/settings.php:45
+#: views/pages/settings.php:47
 msgid "Can be anything, most likely a city."
 msgstr "城市或者随便什么"
 
-#: views/pages/settings.php:53
+#: views/pages/settings.php:55
 msgid "Used map services"
 msgstr "使用地图功能"
 
-#: views/pages/settings.php:61
+#: views/pages/settings.php:63
 msgid "Default map layer"
 msgstr "默认地图页面"
 
-#: views/pages/settings.php:65 index.php:653
+#: views/pages/settings.php:67 index.php:652
 msgid "Default"
 msgstr "默认"
 
-#: views/pages/settings.php:108
+#: views/pages/settings.php:110
 msgid "Don't try to recognize my location"
 msgstr "不要识别我的位置"
 
-#: views/pages/settings.php:116
+#: views/pages/settings.php:118
 msgid "Map will be centered to here"
 msgstr "地图将地位在这里"
 
-#: views/pages/settings.php:118
+#: views/pages/settings.php:120
 msgid "I'd rather not tell"
 msgstr "我不想说"
 
-#: views/pages/settings.php:130
+#: views/pages/settings.php:132
 msgid "Allow Hitchwiki Maps to use your Gravatar"
 msgstr "让搭车百科地图使用我的Gravatar"
 
-#: views/pages/settings.php:131
+#: views/pages/settings.php:133
 msgid "We would show information from your %s page, if you have one."
 msgstr "如果你有的话，我们会显示你的%s页面。"
 
-#: views/pages/settings.php:135
+#: views/pages/settings.php:137
 msgid "Google Latitude user ID"
 msgstr "Google Latitude 用户名"
 
-#: views/pages/settings.php:138
+#: views/pages/settings.php:140
 msgid "<a href=\"%s\" target=\"_blank\">Enable Google Latitude</a> first and copy here your 20-digit user ID from the bottom of the page, visible in a textbox."
 msgstr "<a href=\"%s\" target=\"_blank\">Enable Google Latitude</a> first and copy here 页面底端的你的20位数字的用户名, 能在文本框看到."
 
-#: views/pages/settings.php:138
+#: views/pages/settings.php:140
 msgid "Your location will be published also on your profile page."
 msgstr "你的位置会发布在你的个人页面"
 
-#: views/pages/settings.php:142
+#: views/pages/settings.php:144
 msgid "Center Maps always to your Google Latitude location"
 msgstr "地图永远定位到你的Google Latitude位置"
 
-#: views/pages/settings.php:152
+#: views/pages/settings.php:154
 msgid "Update"
 msgstr "更新"
 
-#: views/pages/settings.php:158
+#: views/pages/settings.php:160
 msgid "Reset your profile"
 msgstr "重置你的页面"
 
-#: views/pages/settings.php:362
+#: views/pages/settings.php:364
 msgid "Settings updated!"
 msgstr "设置更新成功！"
 
-#: views/pages/settings.php:362
+#: views/pages/settings.php:364
 msgid "Some settings might require refreshing the page."
 msgstr "某些设置需要刷新页面才看得到"
 
-#: views/pages/settings.php:374
+#: views/pages/settings.php:376
 msgid "Updating settings failed:"
 msgstr "更新设置失败："
 
-#: views/pages/settings.php:389
+#: views/pages/settings.php:391
 msgid "Are you sure you want to reset your profile? You cannot undo this action!"
 msgstr "你确定要重新设置你的页面么？操作无法还原！"
 
-#: views/pages/settings.php:399
+#: views/pages/settings.php:401
 msgid "Your profile was reset permanently."
 msgstr "你的页面被永久重置"
 
-#: views/pages/settings.php:399
+#: views/pages/settings.php:401
 msgid "Profile reset"
 msgstr "页面重新设置"
 
-#: views/pages/settings.php:402
+#: views/pages/settings.php:404
 msgid "Profile was NOT reset"
 msgstr "页面没有重新设置"
 
-#: views/pages/settings.php:410
+#: views/pages/settings.php:412
 msgid "You cancelled your profile reset."
 msgstr "你取消了页面重新设置"
 
-#: views/pages/settings.php:410
+#: views/pages/settings.php:412
 msgid "Reset cancelled"
 msgstr "重新设置取消"
 
-#: views/pages/settings.php:425
+#: views/pages/settings.php:427
 msgid "You must be logged in to edit settings."
 msgstr "你必须登录才能编辑"
 
-#: views/pages/statistics.php:1 index.php:536
+#: views/pages/statistics.php:1 index.php:535
 msgid "Statistics"
 msgstr "数据"
 
@@ -1288,7 +1292,7 @@ msgstr "地点密度"
 msgid "Hitchwiki Maps is currently available in %s languages"
 msgstr "搭车百科地图目前有%s种语言"
 
-#: views/pages/translate.php:16 index.php:695
+#: views/pages/translate.php:16 index.php:694
 msgid "Help us with translating!"
 msgstr "帮助我们翻译吧！"
 
@@ -1308,7 +1312,7 @@ msgstr "使用地图自"
 msgid "Visible only for admins"
 msgstr "只管理员可见"
 
-#: views/pages/users.php:35 index.php:539
+#: views/pages/users.php:35 index.php:538
 msgid "Admins"
 msgstr "管理员"
 
@@ -1357,75 +1361,75 @@ msgstr "道路"
 msgid "a Hitchhiking spot in"
 msgstr "一个搭车点在"
 
-#: index.php:272
+#: index.php:271
 msgid "Sorry, but the place cannot be found."
 msgstr "抱歉，找不到这个地方"
 
-#: index.php:272
+#: index.php:271
 msgid "The place you are looking for might have been removed or is temporarily unavailable."
 msgstr "这个地方可能被删除了或者暂时不能用"
 
-#: views/pages/help.php:1 index.php:313 index.php:535
+#: views/pages/help.php:1 index.php:312 index.php:534
 msgid "Help & About"
 msgstr "帮助&关于"
 
-#: index.php:371
+#: index.php:370
 msgid "Community"
 msgstr "社区"
 
-#: index.php:391
+#: index.php:390
 msgid "Profile"
 msgstr "概况"
 
-#: index.php:394 index.php:462
+#: index.php:393 index.php:461
 msgid "Logout"
 msgstr "登出"
 
-#: index.php:461
+#: index.php:460
 msgid "Hello from %s"
 msgstr "来自%s问好"
 
-#: index.php:399
+#: index.php:398
 msgid "Register!"
 msgstr "已经注册了"
 
-#: index.php:468
+#: index.php:467
 msgid "Login"
 msgstr "登录"
 
-#: index.php:492
+#: index.php:491
 msgid "Find places"
 msgstr "找地方"
 
-#: index.php:497
+#: index.php:496
 msgid "Search"
 msgstr "搜索"
 
-#: index.php:505
+#: index.php:504
 msgid "Nearby places from"
 msgstr "你在哪儿："
 
-#: index.php:507
+#: index.php:506
 msgid "Show the city on the map"
 msgstr "在地图上显示城市"
 
-#: index.php:508
+#: index.php:507
 msgid "Show the state on the map"
 msgstr "在地图上显示省"
 
-#: index.php:509
+#: index.php:508
 msgid "Show the country on the map"
 msgstr "在地图上显示国家"
 
-#: index.php:518
+#: index.php:517
 msgid "Ooh! New Maps!"
 msgstr "我靠！新地图！"
 
-#: index.php:523 index.php:616
+#: index.php:522 index.php:615
 msgid "Tools"
 msgstr "工具"
 
-#: views/pages/users.php:1 index.php:532
+#: views/pages/users.php:1 index.php:531
 msgid "Members"
 msgstr "成员们"
 
@@ -1433,59 +1437,59 @@ msgstr "成员们"
 msgid "Licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License"
 msgstr "本站协议：Creative Commons Attribution-ShareAlike 3.0 Unported License"
 
-#: index.php:555
+#: index.php:554
 msgid "Contact us!"
 msgstr "联系我们！"
 
-#: index.php:558
+#: index.php:557
 msgid "Developers"
 msgstr "Developers"
 
-#: index.php:562
+#: index.php:561
 msgid "API"
 msgstr "API"
 
-#: index.php:603
+#: index.php:602
 msgid "Turn JavaScript on from your browser."
 msgstr "从你的浏览器打开JavaScript "
 
-#: index.php:623
+#: index.php:622
 msgid "Navigate"
 msgstr "导航"
 
-#: index.php:628
+#: index.php:627
 msgid "Measure distance"
 msgstr "测量距离"
 
-#: index.php:633
+#: index.php:632
 msgid "Measure area"
 msgstr "测面积"
 
-#: index.php:646
+#: index.php:645
 msgid "Measure"
 msgstr "测量"
 
-#: index.php:650
+#: index.php:649
 msgid "Show markers after zoom level"
 msgstr "放大后显示标记"
 
-#: index.php:656
+#: index.php:655
 msgid "Continent level"
 msgstr "大陆层面"
 
-#: index.php:657
+#: index.php:656
 msgid "Country level"
 msgstr "国家层面"
 
-#: index.php:658
+#: index.php:657
 msgid "City level"
 msgstr "城市层面"
 
-#: index.php:659
+#: index.php:658
 msgid "Street level"
 msgstr "街道层面"
 
-#: index.php:711
+#: index.php:710
 msgid "Map"
 msgstr "地图"
 
@@ -1501,10 +1505,10 @@ msgstr "找不到你要的国家！"
 msgid "This is just a preview map. Go to %s for the actual service."
 msgstr "这个是预览地图，实际操作在这%s"
 
-#: ajax/js-translation.json.php:42
+#: ajax/js-translation.json.php:43
 msgid "Toggle log"
 msgstr "Toggle log"
 
-#: views/pages/settings.php:402
+#: views/pages/settings.php:404
 msgid "Error while trying to reset your profile. Please try again!"
 msgstr "重置你的页面失败，再试一次吧！"
