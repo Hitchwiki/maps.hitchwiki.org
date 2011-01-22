@@ -1131,6 +1131,60 @@ function nicetime($minutes) {
 
 
 /*
+ * Returns a graph <table class="chart">
+ * CSS can be found from static/css/main.css
+ * size: small | big
+ */
+function rating_chart_html($rating_stats=false, $width='100%', $size='small') {
+	global $settings;
+	
+	// Test so that we have a rating stats in an array form
+	if(!is_array($rating_stats)) return false;
+
+	// Default is 0%
+	$raintg_percentages[1]["rating"] = "0";
+	$raintg_percentages[1]["count"] = "0";
+	$raintg_percentages[2]["rating"] = "0";
+	$raintg_percentages[2]["count"] = "0";
+	$raintg_percentages[3]["rating"] = "0";
+	$raintg_percentages[3]["count"] = "0";
+	$raintg_percentages[4]["rating"] = "0";
+	$raintg_percentages[4]["count"] = "0";
+	$raintg_percentages[5]["rating"] = "0";
+	$raintg_percentages[5]["count"] = "0";
+
+
+	// Count percentages
+	foreach($rating_stats["ratings"] as $rating) {
+		// Count the percentage of this rating
+		$raintg_percentages[$rating["rating"]]["rating"] = 100*($rating["rating_count"]/$rating_stats["rating_count"]);
+		$raintg_percentages[$rating["rating"]]["count"] = $rating["rating_count"];
+	}
+
+	// Produce HTML
+	$chart = '<table cellpadding="0" cellspacing="0" style="width: '.htmlspecialchars($width).';" class="chart light ';
+	$chart .= ($size == 'big') ? "bigger": "smaller";
+	$chart .= '">';
+	$chart .= '<tbody>';
+	
+	for($i=1; $i <= 5; $i++) {
+	
+		$chart .= '<tr>
+			<td class="label">'.str_replace(" ", "&nbsp;",hitchability2textual($i)).'</td>
+			<td class="bar"><span style="width:'.round($raintg_percentages[$i]["rating"]).'%; background-color: #'.$settings["hitchability_colors"][$i].';"></span></td>
+			<td class="value">'.$raintg_percentages[$i]["count"].'</td>
+		</tr>';
+	
+	}
+	
+	$chart .= '</tbody></table>';
+
+	return $chart;
+}
+
+
+
+/*
  * Returns a graph img-url of ratings
  * Uses Google Chart API
  * http://code.google.com/apis/chart/docs/gallery/bar_charts.html

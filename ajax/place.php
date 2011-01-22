@@ -249,7 +249,8 @@ if($place["error"] !== true):
 				
 				<?php if($place["rating_stats"]["rating_count"] > 1): ?>
 					<br /><small class="light"><?php echo _("Vote distribution"); ?>:</small><br />
-					<img src="<?php echo rating_chart($place["rating_stats"], 220); ?>" alt="<?php echo _("Vote distribution"); ?>" />
+					<!--<img src="<?php echo rating_chart($place["rating_stats"], 220); ?>" alt="<?php echo _("Vote distribution"); ?>" />-->
+					<?php echo rating_chart_html($place["rating_stats"]); ?>
 				<?php endif; ?>
 				
 			

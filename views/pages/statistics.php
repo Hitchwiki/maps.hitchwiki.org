@@ -64,7 +64,7 @@
 	
 	<!-- hitchability -->
 	<h3><?php echo _("Hitchability"); ?> - <?php echo _("Vote distribution"); ?></h3>
-	<img src="<?php echo rating_chart(rating_stats(), 200); ?>" alt="<?php echo _("Vote distribution"); ?>" />
+	<?php echo rating_chart_html(rating_stats()); ?>
 	<p><?php
 		$result = mysql_query("SELECT COUNT(id) as count FROM `t_ratings` WHERE `rating` IS NOT NULL AND `rating` != '0'");
 		while ($row = mysql_fetch_array($result)) {

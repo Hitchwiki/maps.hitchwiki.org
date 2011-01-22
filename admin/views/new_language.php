@@ -6,12 +6,6 @@
 if(isset($user) && $user["admin"]===true): ?>
 
 <h1>Add new language to the Maps</h1>
-
-		<div class="ui-state-error ui-corner-all" style="padding: 0 .7em; margin: 20px 0;"> 
-		    <p><span class="ui-icon ui-icon-alert" style="float: left; margin-right: .3em;"></span> 
-		    <strong><?php echo _("Alert"); ?>:</strong> Now working yet.</p>
-		</div>
-		
 <?php
 
 if(isset($_POST["language_code"]) && isset($_POST["language_name"]) && isset($_POST["language_name_en"])) {
@@ -29,27 +23,15 @@ if(isset($_POST["language_code"]) && isset($_POST["language_name"]) && isset($_P
 		// Add stuff to the DB
 
 		
-		/*
 		#start_sql();
-
-		$query = "ALTER TABLE `t_countries` ADD `".mysql_real_escape_string($_POST["language_code"])."` VARCHAR( 80 ) NULL DEFAULT NULL COMMENT '".mysql_real_escape_string($_POST["language_name_en"])."' AFTER `en_UK`";
+		$query = "ALTER TABLE `t_countries` ADD `".mysql_real_escape_string($_POST["language_code"])."` VARCHAR( 80 ) CHARACTER SET utf8 COLLATE utf8_general_ci NULL COMMENT '".mysql_real_escape_string($_POST["language_name_en"])."' AFTER `en_UK` ;";
 		
-		echo $query;
-		
-		$result = mysql_query($query);
-		if (!$result) {
-	   		die("Error: SQL query failed.");
-		}
-		
-		$query = "ALTER TABLE `t_points` ADD `".mysql_real_escape_string($_POST["language_code"])."` TEXT NULL DEFAULT NULL COMMENT '".mysql_real_escape_string($_POST["language_name_en"])."' AFTER `en_UK`";
-		
-		echo $query;
+		#echo $query;
 		
 		$result = mysql_query($query);
 		if (!$result) {
 	   		die("Error: SQL query failed.");
 		}
-		*/
 		
 		
 		$status .= "Added language to the MySQL DB.<br />";

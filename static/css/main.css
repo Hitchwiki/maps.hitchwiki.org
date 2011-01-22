@@ -690,6 +690,55 @@ code.example {
 }
 
 
+.chart {
+	width: 100%;
+	overflow: hidden;
+	margin: 0;
+	padding: 0;
+	font-family: Lucida sans,helvetica,arial,sans-serif;
+	font-size: 9px;
+	line-height: 9px;
+}
+	.chart.bigger {
+		font-size: 13px;
+		line-height: 18px;
+	}
+	.chart.bigger .bar span {
+		height: 9px;
+	}
+	.chart tr {
+		clear: both;
+	}
+	.chart .value {
+		display: block;
+		float: right;
+		padding: 0 0 0 3px;
+		text-align: left;
+	}
+	.chart .label {
+		display: block;
+		float: left;
+		padding: 0 3px 0 0;
+		text-align: right;
+	}
+	.chart .bar {
+		width: 100%;
+		padding: 0 3px;
+		border-right: 1px solid #ad8c55;
+		border-left: 1px solid #ad8c55;
+	}
+	.chart .bar span {
+		display: block;
+		float: left;
+		height: 6px;
+		width: 0%;
+		margin: 2px 0;
+		background-color: #ad8c55;
+		-webkit-border-radius: 2px;
+		-moz-border-radius: 2px;
+		border-radius: 2px;
+	}
+	
 
 #PlacePanel {
 	overflow-x: hidden;
