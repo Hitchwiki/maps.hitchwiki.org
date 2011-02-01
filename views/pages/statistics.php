@@ -6,7 +6,7 @@
 <div class="align_left" style="margin: 0 40px 20px 0;">
 
 	<!-- top countries -->
-	<h3><?php printf( _( 'Top %s countries' ), "20" ); ?></h3>
+	<h3 class="icon world"><?php printf( _( 'Top %s countries' ), "20" ); ?></h3>
 	<table class="infotable" cellspacing="0" cellpadding="0">
 		<thead>
 			<tr>
@@ -26,7 +26,7 @@
 <div class="align_left" style="margin: 0 40px 20px 0;">
 
 	<!-- top cities -->
-	<h3><?php printf( _( 'Top %s cities' ), "20" ); ?></h3>
+	<h3 class="icon building"><?php printf( _( 'Top %s cities' ), "20" ); ?></h3>
 	<table class="infotable" cellspacing="0" cellpadding="0">
 		<thead>
 			<tr>
@@ -47,7 +47,7 @@
 <div class="align_left" style="margin: 0 40px 20px 0;">
 
 	<!-- top continents -->
-	<h3><?php printf( _( 'By continents' ), "20" ); ?></h3>
+	<h3 class="icon world"><?php printf( _( 'By continents' ), "20" ); ?></h3>
 	<table class="infotable" cellspacing="0" cellpadding="0">
 		<thead>
 			<tr>
@@ -63,15 +63,12 @@
 	
 	
 	<!-- hitchability -->
-	<h3><?php echo _("Hitchability"); ?> - <?php echo _("Vote distribution"); ?></h3>
+	<h3 class="icon chart_bar"><?php echo _("Hitchability"); ?> - <?php echo _("Vote distribution"); ?></h3>
 	<?php echo rating_chart_html(rating_stats()); ?>
 	<p><?php
-		$result = mysql_query("SELECT COUNT(id) as count FROM `t_ratings` WHERE `rating` IS NOT NULL AND `rating` != '0'");
-		while ($row = mysql_fetch_array($result)) {
-			printf(ngettext("%d vote in total.", "%d votes in total.", $row["count"]), $row["count"]);
-			break;
-		}	
-	?></p>
+		$total = hitchability_votes_total();
+		printf(ngettext("%d vote in total.", "%d votes in total.", $total), $total);
+	?> <a href="./?page=hitchability" onclick="open_page('hitchability'); return false;"><?php echo _("Read more..."); ?></a></p>
 	<!-- /hitchability -->
 	
 </div>
@@ -131,7 +128,7 @@
 </div>
 
 
-<!--
+<?php /*
 	<h3><?php printf( _( 'Top %s users' ), "20" ); ?></h3>
 	<table class="infotable" cellspacing="0" cellpadding="0">
 	    <thead>
@@ -147,8 +144,7 @@
 	    	</tr>
 	    </tbody>
 	</table>
--->
-
+*/ ?>
 
 
 <div class="clear"></div>

@@ -134,23 +134,31 @@ if($place["error"] !== true):
 				    	if(!empty($place["description"][$code])) {
 				    		
 				    		// Edit link, only for registered users
-				    		/*if($user!==false): ?><small class="align_right"><a href="#" onclick="info_dialog('Editing is not in use yet, sorry.', 'TODO'); return false;"><?php echo _("Edit"); ?></a></small><?php endif; ?>
-				    		*/ ?>
-				    		<?php 
-				    		
-				    			echo Markdown($place["description"][$code]["description"]); 
-				    			
-				    			// Date 
-								if(!empty($place["description"][$code]["datetime"])) {
-									echo '<br /><small title="'.date(DATE_RFC822,strtotime($place["description"][$code]["datetime"])).'">';
-									printf(_('Description written %s'), date("j.n.Y",strtotime($place["description"][$code]["datetime"])));
-									echo '</small>';
-								}
-								
-				    		?>
-				    						    		
+				    		if($user!==false) echo '<a href="#" class="edit_description" id="description_'.$code.'" lang="'.langcode($code).'" title="'._("Edit").'">';
+
+				    		echo Markdown($place["description"][$code]["description"]);
+				    		//'.langcode($code).'
+				    		if($user!==false) {
+				    			echo '</a><div class="edit_description_editing" id="edit_description_editing_'.langcode($code).'" style="display: none;" lang="'.langcode($code).'">';
+				    			echo '<textarea rows="5" lang="'.langcode($code).'">'.htmlspecialchars($place["description"][$code]["description"]).'</textarea><br />';
+				    			echo '<input type="hidden" name="original_description" class="original_description" lang="'.langcode($code).'" value="'.htmlspecialchars($place["description"][$code]["description"]).'" />';
+				    			echo '<small>';
+				    				echo '<b><a href="#'.langcode($code).'" class="save">'._("Save").'</a></b> - ';
+				    				echo '<a href="#'.langcode($code).'" class="recover">'._("Undo changes").'</a> - ';
+				    				echo '<a href="#'.langcode($code).'" class="cancel">'._("Cancel").'</a>';
+				    			echo '</small></div>'; 
+				    		}
+
+				    		// Date 
+							if(!empty($place["description"][$code]["datetime"])) {
+							    echo '<br /><small title="'.date(DATE_RFC822,strtotime($place["description"][$code]["datetime"])).'">';
+							    printf(_('Description written %s'), date("j.n.Y",strtotime($place["description"][$code]["datetime"])));
+							    echo '</small>';
+							}
+							?>
+
 				    		<div class="clear"></div>
-				    		
+
 				    		<?php
 				    	} else {
 				    		// Editing box (only for registered users):
@@ -174,7 +182,6 @@ if($place["error"] !== true):
 				    				// Save written description
 				    				maps_debug("(button) Save a description for <?php echo $code; ?>");
 				    				saveDescription('<?php echo $place["id"]; ?>', '<?php echo $code; ?>', $("#add_description_<?php echo $code; ?>").val());
-				    				
 				    			});
 							
 							});
@@ -210,25 +217,66 @@ if($place["error"] !== true):
 					
 				});
 				
-				
-				// Build a description writer by clicking "edit"
-				/*
-				function writeDescription(language) {
-				
-				    $("#tab-"+language).html('<textarea rows="4" id="add_description"></textarea><br /><button id="btn_save_description" class="align_right" style="font-size: 11px;"><?php echo _("Save"); ?></button><div class="clear"></div>');
-				
-				    $("#btn_save_description").button({
-				        icons: {
-				            primary: 'ui-icon-pencil'
-				        }
-				    }).click(function(e) {
-				    	e.preventDefault();
-				    	// Save written description
-				    	// TODO!
-				    	maps_debug("Save a description");
-				    }); 
-				}
-				*/
+			<?php 
+			// Editing only for logged in users
+			if($user!==false): ?>
+			    $("a.edit_description").click(function(e){
+			    	e.preventDefault();
+			    	
+			    	var edit_lang_id = $(this).attr("lang");
+			    	var edit_lang = edit_lang_id.replace('-','_');
+			    	
+			    	maps_debug("Editing description for "+edit_lang_id);
+			    	
+			    	var editing_area = $('.edit_description_editing[lang='+edit_lang_id+']');
+			    	editing_area.show();
+			    	$(this).hide();
+			    });
+			    
+			    $(".edit_description_editing .recover").click(function(e){
+			    	e.preventDefault();
+			    	var edit_lang_id = $(this).attr("href").replace("#", "");
+			    	maps_debug("Recover original description for "+edit_lang_id);
+			    	
+			    	var original_text = $('.original_description[lang='+edit_lang_id+']').val();
+			    	$('.edit_description_editing[lang='+edit_lang_id+'] textarea').val(original_text);
+			    	maps_debug("Text for "+edit_lang_id+" replaced with original: "+original_text);
+			    	
+			    });
+			    
+			    $(".edit_description_editing .cancel").click(function(e){
+			    	e.preventDefault();
+			    	var edit_lang_id = $(this).attr("href").replace("#", "");
+			    	maps_debug("Cancel editing for "+edit_lang_id);
+			    	
+			    	// Recover original text first
+			    	var original_text = $('.original_description[lang='+edit_lang_id+']').val();
+			    	$('.edit_description_editing[lang='+edit_lang_id+'] textarea').val(original_text);
+			    	maps_debug("Text for "+edit_lang_id+" replaced with original: "+original_text);
+			    	
+			    	$('.edit_description_editing[lang='+edit_lang_id+']').hide();
+			    	$('.edit_description[lang='+edit_lang_id+']').show();
+			    	
+			    });
+			    
+			    $(".edit_description_editing .save").click(function(e){
+			    	e.preventDefault();
+			    	var edit_lang_id = $(this).attr("href").replace("#", "");
+			    	var edit_lang = edit_lang_id.replace('-','_');
+			    	maps_debug("Save edit for "+edit_lang_id);
+			    	
+			    	var new_text = $('.edit_description_editing[lang='+edit_lang_id+'] textarea').val();
+			    	maps_debug("New text for "+edit_lang_id+": " +new_text);
+			    	/*
+			    	$('.edit_description_editing[lang='+edit_lang_id+']').hide();
+			    	$('.edit_description[lang='+edit_lang_id+']').show();
+			    	*/
+			    	
+				    saveDescription('<?php echo $place["id"]; ?>', edit_lang, $('.edit_description_editing[lang='+edit_lang_id+'] textarea').val());
+			    	
+			    });
+			    
+			<?php endif; ?>
 				
 				</script>
 			</li>
@@ -449,8 +497,8 @@ if($place["error"] !== true):
 									}
 									// Oops!
 									else {
-									    info_dialog("<?php echo _("Adding a waitingtime failed, please try again."); ?>", "<?php echo _("Error"); ?>", true);
-									    maps_debug("Adding a waitingtime failed. <br />- Error: "+data.error+"<br />- Data: "+data);
+									    info_dialog("<?php echo _("Adding a waiting time failed.")."<br /><br />"._("Please try again!"); ?>", "<?php echo _("Error"); ?>", true);
+									    maps_debug("Adding a waiting time failed. <br />- Error: "+data.error+"<br />- Data: "+data);
 									}
 									
 								});
@@ -648,7 +696,7 @@ if($place["error"] !== true):
 												}
 												// Oops!
 												else {
-													info_dialog("<?php echo _("Adding a comment failed, please try again."); ?>", "<?php echo _("Error"); ?>", true);
+													info_dialog("<?php echo _("Adding a comment failed.")."<br /><br />"._("Please try again!"); ?>", "<?php echo _("Error"); ?>", true);
 													maps_debug("Adding comment failed. <br />- Error: "+data.error+"<br />- Data: "+data);
 												}
 
@@ -673,7 +721,7 @@ if($place["error"] !== true):
 	<!-- infolinks -->
 	<li>
 		<ul>
-			<li>
+			<li class="cursor_hand">
 				<h4 class="icon magnifier" style="display:inline;" id="more_about_title"><?php echo _("More about this place"); ?></h4>
 				<a href="#" id="toggle_extralinks" class="ui-icon ui-icon-triangle-1-e align_right" title="<?php echo _("Toggle"); ?>"></a>
 				
@@ -898,7 +946,7 @@ if($place["error"] !== true):
 	if($user["admin"]===true): ?>
 	<li>
 		<ul>
-			<li>
+			<li class="cursor_hand">
 				<h4 class="icon wrench" style="display:inline;" id="for_admins_title"><?php echo _("Administration"); ?></h4>
 				<a href="#" id="toggle_for_admins" class="ui-icon ui-icon-triangle-1-e align_right" title="<?php echo _("Toggle"); ?>"></a>
 				

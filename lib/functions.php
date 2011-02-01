@@ -238,7 +238,7 @@ function get_place($id=false, $more=false) {
  * id: fk_point in t_ratings (required)
  */
 function rating_stats($id=false) {
-
+	start_sql();
 	
 	$query = "SELECT `fk_user`,`fk_point`,`rating`,
 		    COUNT(DISTINCT rating) AS different_ratings,
@@ -365,7 +365,7 @@ function get_comments($id=false, $limit=false) {
 /* 
  * List available countries with markers
  * type: option | tr | li | array (default)
- * order: places count | name (default) | false
+ * order: markers | name (default) | false
  * limit: int | false (default)
  * count: true (default) | false 
  * world: true | false (default) (list's all the countries, even without any markers)
@@ -451,7 +451,7 @@ function list_countries($type="array", $order="name", $limit=false, $count=true,
 	}
 	
 	// Alphabetic order by translated countrynames
-	ksort($country_array);
+	if($order=="name") ksort($country_array);
 	
 	
 	// Print it out
@@ -976,6 +976,19 @@ function shortlang($lang="", $mode="language") {
 }
 
 
+/*
+ * Format language for xml:lang and html:lang
+ */
+function langcode($lang=false) {
+	if($lang==false) {
+		global $settings;
+		$lang = $settings["language"];
+	}
+	$lang = str_replace('_','-',$lang);
+	$lang = str_replace('@','-',$lang);
+	return $lang;
+}
+
 
 /* 
  * Content name
@@ -1104,6 +1117,7 @@ function hitchability2textual($rating=false) {
 	elseif($rating == 5) return _("Senseless");
 	else return _("Unknown");
 }
+
 
 
 
@@ -1252,6 +1266,19 @@ function rating_chart($rating_stats=false, $width="50") {
 
 
 	return $url;
+}
+
+
+/* 
+ * Return hitchability votes in total (amount)
+ */
+function hitchability_votes_total() {
+	start_sql();
+	$result = mysql_query("SELECT COUNT(id) as count FROM `t_ratings` WHERE `rating` IS NOT NULL AND `rating` != '0'");
+    while ($row = mysql_fetch_array($result)) {
+    	return $row["count"];
+    	break;
+    }
 }
 
 

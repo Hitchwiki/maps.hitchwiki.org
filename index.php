@@ -133,7 +133,7 @@ else $description = $slogan;
 	// Load schema only if FB-tags are filled in config
 	if(!empty($settings["fb"])): ?>xmlns:fb="http://developers.facebook.com/schema/" <?php endif; ?>
 	dir="ltr" 
-	lang="<?php echo shortlang(); ?>">
+	lang="<?php echo langcode(); ?>">
 	<head profile="http://gmpg.org/xfn/11">
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 		<title><?php echo $title; ?></title>
@@ -237,6 +237,7 @@ else $description = $slogan;
         	// Allowed page names
 			$pages = array(
 				"help", 
+				"hitchability",
 				"statistics", 
 				"complete_statistics", 
 				"public_transport", 
@@ -514,8 +515,6 @@ else $description = $slogan;
 					<!-- 2nd block -->
 					<li>
 						<ul>
-							<li><a href="#" id="news" class="icon new pagelink"><b><?php echo _("Ooh! New Maps!"); ?></b></a></li>
-							
 							<li><a href="#" id="add_place" class="icon add"><?php echo _("Add place"); ?></a></li>
 							<li><a href="./?page=public_transport" id="public_transport" class="icon pagelink underground"><?php echo _("Public transport"); ?></a></li>
 							<li><a href="./?page=countries" id="countries" class="icon world pagelink"><?php echo _("Countries"); ?></a></li>
@@ -533,6 +532,7 @@ else $description = $slogan;
 							
 							<li><a href="./?page=help" id="help" class="icon help pagelink"><?php echo htmlspecialchars(_("Help & About")); ?></a></li>
 							<li><a href="./?page=statistics" id="statistics" class="icon chart_bar pagelink"><?php echo _("Statistics"); ?></a></li>
+							<li><a href="#" id="news" class="icon new pagelink"><b><?php echo _("News"); ?></b></a></li>
 			    			<?php
 			    				// Visible only for admins
 			    				if($user["admin"]===true) echo '<li><a href="./admin/" class="icon tux">'._("Admins").'</a></li>';
@@ -551,25 +551,18 @@ else $description = $slogan;
 			    		<a href="http://www.facebook.com/Hitchwiki" class="icon facebook" style="margin: 2px 0 0 3px; padding-top: 3px; display: block; float: right;">Facebook</a>
 			    	</li>
 
-			    	<li title="<?php echo _("Contact us!"); ?>"><?php echo protect_email($settings["email"]); ?></li>
-			    	
 			    	<li id="developers">
-			    		<a href="http://github.com/Hitchwiki"><?php echo _("Developers"); ?></a>
-			    		
-			    		&bull;
-			    		
+			    		<a href="#" class="cardlink" id="contact"><?php echo _("Contact us!"); ?></a>
+			    		&bull; <a href="http://github.com/Hitchwiki"><?php echo _("Developers"); ?></a>
+			    		<br />
 			    		<a href="#" id="api" class="pagelink"><?php echo _("API"); ?></a>
-			    		
-			    		<?php /* toggle log link will be added here from main.js for devs */ ?>
-			    		
+			    		<?php if($settings["debug"] == true) { echo '&bull; <a href="#" class="toggle_log">'._("Toggle log").'</a>'; } ?>
 			    	</li>
 			    </ul>
-			    
 
 			<!-- /Footer -->
 			</div>
-			
-			
+
 			<!-- /Sidebar -->
 			</div>
 	        

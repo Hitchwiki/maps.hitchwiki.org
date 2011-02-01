@@ -726,6 +726,7 @@ code.example {
 		padding: 0 3px;
 		border-right: 1px solid #ad8c55;
 		border-left: 1px solid #ad8c55;
+		background: transparent url(../gfx/line.gif) 50% 50% repeat-x;
 	}
 	.chart .bar span {
 		display: block;
@@ -757,6 +758,21 @@ code.example {
 	#PlacePanel .copypaste:hover { border-color: #81722f; }
 	#PlacePanel .inset { padding-left: 6px; }
 	
+	#PlacePanel .edit_description {
+		text-decoration: none;
+		color: #000;
+		padding: 0;
+		margin: 0;
+		display: block;
+	}
+	#PlacePanel .edit_description:active,
+	#PlacePanel .edit_description:hover {
+		text-decoration: none;
+		color: #432d03;
+		background: #ede4d4;
+		cursor: text;
+	}
+		
 #language ul {
 	display: block;
 	position: absolute;
@@ -877,6 +893,25 @@ ul li ul li #comments ol li.own_comment {
 	position: absolute;
 	text-align: left;
 	padding: 40px 30px;
+	top: 80px;
+	left: 170px;
+	bottom: 0;
+	right: 0;
+	min-width: 800px;
+	overflow: auto;
+	z-index: 9998;
+	border-left: 1px solid #c0b78b;
+	background-color: #faf9f3;
+	
+  	box-shadow: inset 0px 0px 5px #c1bead;
+  	-moz-box-shadow: inset 0px 0px 5px #c1bead;
+  	-webkit-box-shadow: inset 0px 0px 5px #c1bead;
+}
+/*
+.page {
+	position: absolute;
+	text-align: left;
+	padding: 40px 30px;
 	top: 90px;
 	left: 180px;
 	bottom: 10px;
@@ -895,12 +930,16 @@ ul li ul li #comments ol li.own_comment {
 	-moz-border-radius: 5px;
 	border-radius: 5px;
 }
+*/
 
 #pages .close {
     position: absolute;
     top: 100px;
     right: 30px;
 	z-index: 9999;
+  	box-shadow: 0px 0px 5px #b35c0f;
+  	-moz-box-shadow: 0px 0px 5px #b35c0f;
+  	-webkit-box-shadow: 0px 0px 5px #b35c0f;
 }
 
 
@@ -991,6 +1030,10 @@ ul.ui-tabs-nav { padding:0 0 0 8px; }
 	height: 320px;
 	max-height: 620px;
 	max-width: 700px;
+	
+	-webkit-border-radius: 3px;
+	-moz-border-radius: 3px;
+	border-radius: 3px;
 }
 	#log .handle {
 		display: block;
@@ -999,6 +1042,13 @@ ul.ui-tabs-nav { padding:0 0 0 8px; }
 		background: #003460;
 		color: #fff;
 		cursor: move;
+		
+		-webkit-border-top-left-radius: 3px;
+		-webkit-border-top-right-radius: 3px;
+		-moz-border-radius-topleft: 3px;
+		-moz-border-radius-topright: 3px;
+		border-top-left-radius: 3px;
+		border-top-right-radius: 3px;
 	} 
 	#log ul {
 		padding: 10px;
@@ -1023,3 +1073,4 @@ ul.ui-tabs-nav { padding:0 0 0 8px; }
 /* Misc * extras */
 .clear { clear: both; }
 .hidden { display: none; }
+.cursor_hand { cursor: hand; }

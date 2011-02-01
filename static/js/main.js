@@ -28,31 +28,27 @@ $(document).ready(function() {
 	// Initialize stuff when page has finished loading
 	// --------------------------------------------------
 
-	// Debug log-box
-	if(debug==true) {
+	/*
+	 * Debug log-box
+	 */
+	// Some positioning...
+	var log = $("#log").attr("style","position:absolute; top: 100px; left: 100px;");
+	log.draggable({handle: '#log .handle'});
+	$("#log ul").resizable({alsoResize: '#log'});
 	
-		// Some positioning...
-		var log = $("#log").attr("style","position:absolute; top: 100px; left: 100px;");
+	// Create a toggle button for log
+	$(".toggle_log").click(function(e){
+	    e.preventDefault();
+	    log.toggle();
+	});
 	
-		log.draggable({handle: '#log .handle'});
-		$("#log ul").resizable({alsoResize: '#log'});
-		
-		// Create a toggle button for log
-		$("#developers").append(' &bull; <a href="#" id="toggle_log">'+_("Toggle log")+'</a>');
-		$("#toggle_log").click(function(e){
-			e.preventDefault();
-			log.toggle();
-		});
-		
-		
-		// Show or hide log at the start?
-		if(show_log==true) {
-			log.show();
-		} else { 
-			log.hide();
-		}
-		
+	// Show or hide log at the start?
+	if(show_log==true) {
+	    log.show();
+	} else { 
+	    log.hide();
 	}
+
 
 	// getUserLocation:
 	if(private_location==false) { fetchlocation(); }
@@ -245,7 +241,7 @@ $(document).ready(function() {
 		stats("toggle_languagelist/");
 		$(this).blur();
 		$("div#languagePanel").toggle();
-		close_page();
+		//close_page();
 	});
 	$("div#languagePanel").attr("style","top: 10px; right: 10px;");
 
@@ -256,7 +252,7 @@ $(document).ready(function() {
 		stats("toggle_tools/");
 		$(this).blur();
 		$("div#toolsPanel").toggle();
-		close_page();
+		//close_page();
 	});
 
 
@@ -969,8 +965,7 @@ function fetchlocation() {
  */
 function displaylocation(location) {
 	if (location.Status == 'OK') {
-		maps_debug("Showing location under search bar.");
-  		
+		maps_debug("Showing location under search bar: "+location.City+", "+location.CountryName);
   		// Tool is hidden as a default, and stays hidden if no location is found
 		var show_nearby = false;
 		
@@ -997,9 +992,6 @@ function displaylocation(location) {
 				.click(function(){ search(location.RegionName + ', ' + location.CountryName); });
 			$('#nearby .state').show('fast');
 			show_nearby = true;
-		}
-		else {
-			$('#nearby .state a').text('blaa');
 		}
 		
 		// Country
@@ -1765,13 +1757,13 @@ function open_card(name, title) { //, x_coord, y_coord, width
 	if(width = undefined) { var width = '200'; }
 	*/
 
-	// Close pages if open
-	if($("#pages .page").is(':visible')) { close_page(); }
 
 	// Allow only one card per type
+	/*
 	if($("#card_"+name).size()) {
 		$("#card_"+name).dialog("close");
 	}
+	*/
 	
 	//$(".card").dialog("destroy");
 
@@ -1779,6 +1771,10 @@ function open_card(name, title) { //, x_coord, y_coord, width
 	    url: "ajax/views.php?type=card&lang="+locale+"&page=" + name,
 	    async: false,
 	    success: function(content){
+		    close_cards();
+	
+			// Close pages if open
+			if($("#pages .page").is(':visible')) { close_page(); }
 	    	
 	    	$("#cards").html('<div class="card" id="card_'+name+'" title="'+title+'">'+content+'</div>');
 	    	$("#cards .card").dialog({
@@ -1828,17 +1824,23 @@ function close_cards() {
 function saveDescription(post_place_id, post_language, post_description) {
     
     maps_debug("Saving description for place #"+post_place_id);
+	show_loading_bar(_("Saving..."));
+
     $.post('api/?add_description', { place_id: post_place_id, language: post_language, description: post_description }, 
         function(data) {
         
+	        hide_loading_bar();
+        
         	if(data.success == true) {
-        		maps_debug("Description saved.");
+        		maps_debug("Description saved. lang: "+post_language+", post-id: "+post_place_id);
         		showPlacePanel(post_place_id);
+        		return data.description;
         	}
         	// Oops!
         	else {
         	    info_dialog(_('Updating description failed.')+'<br /><br />'+_('Please try again!'), _("Error"), true);
         	    maps_debug("Updating description failed. <br />- Error: "+data.error+"<br />- Data: "+data);
+        	    return false;
         	}
         
         }, "json"
