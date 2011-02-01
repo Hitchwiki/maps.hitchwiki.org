@@ -13,7 +13,7 @@
 <div class="align_left" style="margin: 0 40px 20px 0;">
 
 	<!-- top countries -->
-	<h3 class="icon world"><?php echo _('Most hitchable countries'); ?></h3>
+	<h3 class="icon world"><?php echo 'Most hitchable countries'; ?></h3>
 	<table class="infotable" cellspacing="0" cellpadding="0">
 		<thead>
 			<tr>
