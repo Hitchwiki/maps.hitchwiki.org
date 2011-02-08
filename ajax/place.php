@@ -133,12 +133,14 @@ if($place["error"] !== true):
 				    	
 				    	if(!empty($place["description"][$code])) {
 				    		
+				    		$allow_editing = false;
+				    		
 				    		// Edit link, only for registered users
-				    		if($user!==false) echo '<a href="#" class="edit_description" id="description_'.$code.'" lang="'.langcode($code).'" title="'._("Edit").'">';
+				    		if($user!==false && $allow_editing == true) echo '<a href="#" class="edit_description" id="description_'.$code.'" lang="'.langcode($code).'" title="'._("Edit").'">';
 
 				    		echo Markdown($place["description"][$code]["description"]);
 				    		//'.langcode($code).'
-				    		if($user!==false) {
+				    		if($user!==false && $allow_editing == true) {
 				    			echo '</a><div class="edit_description_editing" id="edit_description_editing_'.langcode($code).'" style="display: none;" lang="'.langcode($code).'">';
 				    			echo '<textarea rows="5" lang="'.langcode($code).'">'.htmlspecialchars($place["description"][$code]["description"]).'</textarea><br />';
 				    			echo '<input type="hidden" name="original_description" class="original_description" lang="'.langcode($code).'" value="'.htmlspecialchars($place["description"][$code]["description"]).'" />';
@@ -152,7 +154,15 @@ if($place["error"] !== true):
 				    		// Date 
 							if(!empty($place["description"][$code]["datetime"])) {
 							    echo '<br /><small title="'.date(DATE_RFC822,strtotime($place["description"][$code]["datetime"])).'">';
-							    printf(_('Description written %s'), date("j.n.Y",strtotime($place["description"][$code]["datetime"])));
+								$description_date = date("j.n.Y",strtotime($place["description"][$code]["datetime"]));
+							    
+							    if($place["description"][$code]["versions"] > 1) {
+							    	printf(_('Description edited %s'), $description_date);
+							    	echo ' &mdash; <a href="#" onclick="place_history('.$place["id"].', \''.langcode($code).'\'); return false;">'._("History").'</a>';
+							    }
+							    else {
+							    	printf(_('Description written %s'), $description_date);
+							    }
 							    echo '</small>';
 							}
 							?>
@@ -219,7 +229,7 @@ if($place["error"] !== true):
 				
 			<?php 
 			// Editing only for logged in users
-			if($user!==false): ?>
+			if($user!==false && $allow_editing == true): ?>
 			    $("a.edit_description").click(function(e){
 			    	e.preventDefault();
 			    	

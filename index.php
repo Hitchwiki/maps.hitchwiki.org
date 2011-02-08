@@ -251,7 +251,8 @@ else $description = $slogan;
 				"settings", 
 				"profile",
 				"users",
-				"beta"
+				"beta",
+				"log_all"
 			);
 			?>
 			$(document).ready(function() {
@@ -388,8 +389,8 @@ else $description = $slogan;
 						<?php // User is logged in:
 						if($user["logged_in"]===true): ?>
 				
-						<li><a href="./?page=profile" id="profile" class="pagelink"><?php echo _("Profile"); ?></a></li>
 						<li><a href="./?page=settings" id="settings" class="pagelink"><?php echo _("Settings"); ?></a></li>
+						<li><a href="./?page=profile" id="profile" class="pagelink"><?php echo _("Profile"); ?></a></li>
 						<!--
 						<li><a href="http://hitchwiki.org/en/index.php?title=Special:UserLogout&returnto=Maps.hitchwiki.org" id="logout"><?php echo _("Logout"); ?></a></li>
 						-->
@@ -521,22 +522,26 @@ else $description = $slogan;
 							<li><a href="#" id="tools" class="icon lorry"><?php echo _("Tools"); ?></a></li>
 							<li><a href="#" id="download" class="icon page_white_put cardlink"><?php echo _("Download"); ?></a></li>
 							<li><a href="#" id="link_here" class="icon link cardlink"><?php echo _("Link here"); ?></a></li>
-							
-							<?php if($user["admin"]===true): ?>
-							<li><a href="#" id="streetview" class="icon eye cardlink"><?php echo _("Street view"); ?> *</a></li>
-							<?php endif; ?>
-							
+
 							<?php if($user["logged_in"]===true): ?>
 							<li><a href="./?page=users" id="users" class="icon user pagelink"><?php echo _("Members"); ?></a></li>
 							<?php endif; ?>
-							
+
 							<li><a href="./?page=help" id="help" class="icon help pagelink"><?php echo htmlspecialchars(_("Help & About")); ?></a></li>
 							<li><a href="./?page=statistics" id="statistics" class="icon chart_bar pagelink"><?php echo _("Statistics"); ?></a></li>
-							<li><a href="#" id="news" class="icon new pagelink"><b><?php echo _("News"); ?></b></a></li>
-			    			<?php
-			    				// Visible only for admins
-			    				if($user["admin"]===true) echo '<li><a href="./admin/" class="icon tux">'._("Admins").'</a></li>';
-			    			?>
+							<li><a href="#" id="news" class="icon new pagelink"><?php echo _("News"); ?></a></li>
+
+			    			<?php // Visible only for admins
+			    			if($user["admin"]===true): ?>
+						</ul>
+					</li>
+					<li>
+						<ul>
+			    			<li><a href="./admin/" class="icon tux"><?php echo _("Admins"); ?></a></li>
+							<li><a href="#" id="log_all" class="icon page_white_text pagelink"><?php echo _("Log"); ?></a></li>
+							<li><a href="#" id="streetview" class="icon eye cardlink"><?php echo _("Street view"); ?></a></li>
+							<?php endif; ?>
+
 						</ul>
 					</li>
 									

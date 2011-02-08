@@ -181,7 +181,7 @@ function get_place($id=false, $more=false) {
 
 
 				// Descreptions from a seperate table
-				$query2 = "SELECT * FROM 
+				$query2 = "SELECT *, COUNT(*) AS languages_count FROM 
 							(
 								SELECT 
 									`id`,
@@ -190,6 +190,7 @@ function get_place($id=false, $more=false) {
 									`fk_user`,
 									`language`, 
 									`description` 
+		    					
 								FROM `t_points_descriptions` 
 								WHERE `fk_point` = ".mysql_real_escape_string($id)." 
 								ORDER BY `datetime` DESC
@@ -199,8 +200,7 @@ function get_place($id=false, $more=false) {
 							GROUP BY `language`
 							
 							ORDER BY `language` DESC";
-					
-				
+								
 				$res2 = mysql_query($query2);
 				while($r2 = mysql_fetch_array($res2, MYSQL_ASSOC)) {
 				
@@ -208,6 +208,8 @@ function get_place($id=false, $more=false) {
 					$place["description"][$r2["language"]]["datetime"] = $r2["datetime"];
 					$place["description"][$r2["language"]]["fk_user"] = $r2["fk_user"];
 					$place["description"][$r2["language"]]["description"] = $r2["description"];
+					$place["description"][$r2["language"]]["versions"] = $r2["languages_count"];
+				
 				
 				}
 
@@ -232,6 +234,192 @@ function get_place($id=false, $more=false) {
 
 }
 
+
+/*
+ * Gather a log array about place/user
+ * - descriptions
+ * - ratings
+ * - waitingtimes
+ * - comments
+ * - place creations
+ */
+function gather_log($id=false,$type="place") {
+
+	$log = array();
+	
+	// Get a log for a place
+	if($id!==false) {
+	
+	$query = "
+		SELECT * FROM 
+		(
+				SELECT `id`,`ip`,`datetime`,`fk_user`,
+					 `description` AS `log_entry`,
+					 'description' AS `log_type`
+				FROM `t_points_descriptions` 
+				WHERE `fk_point` = ".mysql_real_escape_string($id)." 
+					AND `datetime` IS NOT NULL
+
+
+			UNION ALL
+
+
+				SELECT `id`,`ip`,`datetime`,`fk_user`,
+					 `rating` AS `log_entry`,
+					 'rating' AS `log_type`
+				FROM `t_ratings` 
+				WHERE `fk_point` = ".mysql_real_escape_string($id)." 
+					AND `datetime` IS NOT NULL
+
+
+			UNION ALL
+
+
+				SELECT `id`,`ip`,`datetime`,`fk_user`,
+					 `waitingtime` AS `log_entry`,
+					 'waitingtime' AS `log_type`
+				FROM `t_waitingtimes` 
+				WHERE `fk_point` = ".mysql_real_escape_string($id)." 
+					AND `datetime` IS NOT NULL
+
+
+			UNION ALL
+
+
+				SELECT `id`,`ip`,`datetime`,`fk_user`,
+					 `comment` AS `log_entry`,
+					 'comment' AS `log_type`
+				FROM `t_comments` 
+				WHERE `fk_place` = ".mysql_real_escape_string($id)." AND `hidden` IS NULL 
+					AND `datetime` IS NOT NULL
+
+
+			UNION ALL
+
+
+				SELECT 
+					`id` AS `id`, 
+					'' AS `ip`, 
+					`datetime`, 
+					`user` AS `fk_user`,
+					`locality` AS `log_entry`,
+					'place' AS `log_type`
+				FROM `t_points` 
+				WHERE `id` = ".mysql_real_escape_string($id)."
+					AND `datetime` IS NOT NULL
+				
+		) 
+		AS `log`
+		ORDER BY `datetime` DESC";
+	
+	}
+	// Get everything what's happening on the site
+	else {
+		$query = "SELECT * FROM 
+		(
+		
+				SELECT `id`,`ip`,`datetime`,`fk_user`,`fk_point`,
+					 `description` AS `log_entry`,
+					 'description' AS `log_type`
+				FROM `t_points_descriptions` 
+				WHERE DATE_SUB(CURDATE(),INTERVAL 7 DAY) <= datetime 
+					AND `datetime` IS NOT NULL
+
+
+			UNION ALL
+
+
+				SELECT `id`,`ip`,`datetime`,`fk_user`,`fk_point`,
+					 `rating` AS `log_entry`,
+					 'rating' AS `log_type`
+				FROM `t_ratings` 
+				WHERE DATE_SUB(CURDATE(),INTERVAL 7 DAY) <= datetime 
+					AND `datetime` IS NOT NULL
+
+
+			UNION ALL
+
+
+				SELECT `id`,`ip`,`datetime`,`fk_user`,`fk_point`,
+					 `waitingtime` AS `log_entry`,
+					 'waitingtime' AS `log_type`
+				FROM `t_waitingtimes` 
+				WHERE DATE_SUB(CURDATE(),INTERVAL 7 DAY) <= datetime 
+					AND `datetime` IS NOT NULL
+
+
+			UNION ALL
+
+
+				SELECT `id`,`ip`,`datetime`,`fk_user`,`fk_place` AS `fk_point`,
+					 `comment` AS `log_entry`,
+					 'comment' AS `log_type`
+				FROM `t_comments` 
+				WHERE DATE_SUB(CURDATE(),INTERVAL 7 DAY) <= datetime 
+					AND `datetime` IS NOT NULL
+					AND `hidden` IS NULL
+
+
+			UNION ALL
+
+
+				SELECT 
+					`id`, 
+					'' AS `ip`, 
+					`datetime`, 
+					`user_id` AS `fk_user`,
+					'' AS `fk_point`, 
+					`country` AS `log_entry`,
+					'public_transport' AS `log_type`
+				FROM `t_ptransport` 
+				WHERE DATE_SUB(CURDATE(),INTERVAL 7 DAY) <= datetime 
+					AND `datetime` IS NOT NULL
+
+
+			UNION ALL
+
+
+				SELECT 
+					`id`, 
+					'' AS `ip`, 
+					`registered` AS `datetime`, 
+					`id` AS `fk_user`,
+					'' AS `fk_point`, 
+					`country` AS `log_entry`,
+					'user' AS `log_type`
+				FROM `t_users` 
+				WHERE DATE_SUB(CURDATE(),INTERVAL 7 DAY) <= registered 
+					AND `registered` IS NOT NULL
+
+
+			UNION ALL
+
+
+				SELECT 
+					`id`, 
+					`id` AS `fk_point`, 
+					'' AS `ip`, 
+					`datetime`, 
+					`user` AS `fk_user`,
+					`locality` AS `log_entry`,
+					'place' AS `log_type`
+				FROM `t_points` 
+				WHERE DATE_SUB(CURDATE(),INTERVAL 7 DAY) <= datetime 
+					AND `datetime` IS NOT NULL
+				
+		)
+		AS `log`
+		ORDER BY `datetime` DESC";
+	}
+
+	$res = mysql_query($query);
+	while($line = mysql_fetch_array($res, MYSQL_ASSOC)) {
+		$log[] = $line;
+	}
+
+	if(!empty($log)) return $log;
+	else return false;
+}
 
 /*
  * Get rating statistics for a place
@@ -1468,6 +1656,7 @@ function error_sign($msg=false, $hide=true) {
 			'</script>';
 	}
 }
+
 
 
 /*

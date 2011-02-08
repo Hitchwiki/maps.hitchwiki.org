@@ -175,6 +175,8 @@ input, textarea, button, .button {
 	padding-top: 2px;
 	padding-bottom: 2px;
 }
+button.cursor_hand { cursor: hand !important; }
+
 textarea { width: 100%; }
 input, textarea {
  	background-color: #fff;
@@ -214,6 +216,7 @@ input[disabled='disabled'] {
 		padding: 5px 0;
 		overflow: hidden;
 		text-shadow: 0px 1px 1px #e8c161;
+		cursor: hand !important;
 		
 		border-top-left-radius: 0;
 		border-top-right-radius: 0;
@@ -302,12 +305,21 @@ textarea.icon {
 	background-position: right center;
 }
 
-.icon-osm 		{ background-image: url('../gfx/icons/osm.png') !important; }
-.icon-google 	{ background-image: url('../gfx/icons/google.gif') !important; }
-.icon-yahoo 	{ background-image: url('../gfx/icons/yahoo.png') !important; }
-.icon-bing 		{ background-image: url('../gfx/icons/bing.gif') !important; }
-.icon-ww 		{ background-image: url('../gfx/icons/nasa.png') !important; }
+/* Icons / services */
+.icon-osm 				{ background-image: url('../gfx/icons/osm.png') !important; }
+.icon-google 			{ background-image: url('../gfx/icons/google.gif') !important; }
+.icon-yahoo 			{ background-image: url('../gfx/icons/yahoo.png') !important; }
+.icon-bing 				{ background-image: url('../gfx/icons/bing.gif') !important; }
+.icon-ww 				{ background-image: url('../gfx/icons/nasa.png') !important; }
+.icon.facebook 			{ background-image: url(../gfx/facebook_small.png); padding-left: 17px; }
+.icon.gravatar 			{ background-image: url(../gfx/icons/gravatar.gif); }
 
+/* Icons / fileformats */
+.icon.gpx 				{ background-image: url(../gfx/icons/gpx.png); }
+.icon.kml 				{ background-image: url(../gfx/icons/kml.png); }
+.icon.kmz 				{ background-image: url(../gfx/icons/package.png); }
+
+/* Icons / hitchability */
 .icon.hitchability_0 	{ background-image: url(../gfx/icons/hitchability_0.png); }
 .icon.hitchability_1 	{ background-image: url(../gfx/icons/hitchability_1.png); }
 .icon.hitchability_2 	{ background-image: url(../gfx/icons/hitchability_2.png); }
@@ -315,6 +327,7 @@ textarea.icon {
 .icon.hitchability_4 	{ background-image: url(../gfx/icons/hitchability_4.png); }
 .icon.hitchability_5 	{ background-image: url(../gfx/icons/hitchability_5.png); }
 
+/* Icons / means of transportation */
 .icon.transportation_0 	{ background-image: url(../gfx/icons/transportation_0.png); }
 .icon.transportation_1 	{ background-image: url(../gfx/icons/transportation_1.png); }
 .icon.transportation_2 	{ background-image: url(../gfx/icons/transportation_2.png); }
@@ -331,11 +344,11 @@ textarea.icon {
 .icon.transportation_in-city	{ background-image: url(../gfx/icons/transportation_in-city.png); }
 .icon.transportation_inter-city	{ background-image: url(../gfx/icons/transportation_inter-city.png); }
 
-.icon.facebook 			{ background-image: url(../gfx/facebook_small.png); padding-left: 17px; }
-.icon.gravatar 			{ background-image: url(../gfx/icons/gravatar.gif); }
+/* Icons / commons */
 .icon.magnifier 		{ background-image: url(../gfx/icons/magnifier.png); }
 .icon.add 				{ background-image: url(../gfx/icons/add.png); }
 .icon.chart_bar 		{ background-image: url(../gfx/icons/chart_bar.png); }
+.icon.chart_bar2 		{ background-image: url(../gfx/icons/chart_bar2.png); }
 .icon.folder_database 	{ background-image: url(../gfx/icons/folder_database.png); }
 .icon.folder 			{ background-image: url(../gfx/icons/folder.png); }
 .icon.help 				{ background-image: url(../gfx/icons/help.png); }
@@ -377,17 +390,17 @@ textarea.icon {
 .icon.skull 			{ background-image: url(../gfx/icons/skull.png); }
 .icon.weather 			{ background-image: url(../gfx/icons/weather.png); }
 .icon.eye	 			{ background-image: url(../gfx/icons/eye.png); }
-
-.icon.gpx 				{ background-image: url(../gfx/icons/gpx.png); }
-.icon.kml 				{ background-image: url(../gfx/icons/kml.png); }
-.icon.kmz 				{ background-image: url(../gfx/icons/package.png); }
+.icon.pencil	 		{ background-image: url(../gfx/icons/pencil.png); }
+.icon.pencil_add		{ background-image: url(../gfx/icons/pencil_add.png); }
+.icon.pencil_delete		{ background-image: url(../gfx/icons/pencil_delete.png); }
+.icon.page_white_text	{ background-image: url(../gfx/icons/page_white_text.png); }
+.icon.page_white		{ background-image: url(../gfx/icons/page_white.png); }
 
 
 
 /* 
  * 5) Layout
  */
-
 
 html, body {
 	padding: 0;
@@ -740,6 +753,19 @@ code.example {
 		border-radius: 2px;
 	}
 	
+.history {
+	list-style: none;
+	padding: 0;
+	margin: 10px 0;
+	border-top: 1px solid #c9ab22;
+}
+.history li {
+	padding: 10px 0 10px 25px;
+	background-position: 0 10px;
+	margin: 10px 0;
+	border-bottom: 1px solid #c9ab22;
+}
+
 
 #PlacePanel {
 	overflow-x: hidden;
@@ -907,7 +933,7 @@ ul li ul li #comments ol li.own_comment {
   	-moz-box-shadow: inset 0px 0px 5px #c1bead;
   	-webkit-box-shadow: inset 0px 0px 5px #c1bead;
 }
-/*
+/* old one 
 .page {
 	position: absolute;
 	text-align: left;

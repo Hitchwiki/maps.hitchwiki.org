@@ -1597,6 +1597,14 @@ function hidePlacePanel() {
 }
 
 
+function place_history(id, language) {
+	maps_debug("Open edit history for a place "+id);
+
+	open_page("log_place", id+"|"+language);
+	//alert("History not in use yet");
+}
+
+
 /* 
  * Search
  */
@@ -1704,15 +1712,21 @@ function showCountry(country_iso) {
 /* 
  * Open page
  */
-function open_page(name) {
+function open_page(name, variables) {
 	maps_debug("Open a page: "+name);
 	stats("pages/"+name+"/");
 
 	// Close cards if open
 	if($("#cards .card").is(':visible')) { close_cards(); }
 	
+	if(variables == false || variables == undefined) { 
+		var variables = "";
+	} else {
+		var variables = "&"+variables;
+	}
+	
 	$.ajax({
-		url: "ajax/views.php?type=page&lang="+locale+"&page=" + name,
+		url: "ajax/views.php?type=page&lang="+locale+"&page=" + name + variables,
 		async: false,
 		success: function(content){
 			// If pages not opened yet

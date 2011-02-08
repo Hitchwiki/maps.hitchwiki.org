@@ -10,6 +10,8 @@
 <!-- /hitchability -->
 
 
+<?php /*
+
 <div class="align_left" style="margin: 0 40px 20px 0;">
 
 	<!-- top countries -->
@@ -28,3 +30,5 @@
 	<!-- /top countries -->
 	
 </div>
+
+*/ ?>

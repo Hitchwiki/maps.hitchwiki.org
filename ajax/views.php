@@ -26,7 +26,7 @@ $file = "../views/".$type."/".$_GET["page"].".php";
 /*
  * Show page
  */
-if( isset($_GET["page"]) && !empty($_GET["page"]) && !ereg('[^0-9A-Za-z_-]', $_GET["page"]) && file_exists($file) ):
+if( isset($_GET["page"]) && !empty($_GET["page"]) && file_exists($file) ): //!ereg('[^0-9A-Za-z_-]', $_GET["page"]) &&  (Function ereg() is deprecated)
 
 	if($settings["debug"]==true) include($file);
 	else @include($file);

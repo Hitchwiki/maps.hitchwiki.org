@@ -76,8 +76,9 @@ class maps_api
 	/*
 	 * Function to stop API
 	 */
-	function API_error($msg="true", $error_format=false) {
-		$error["error"] = strip_tags($msg);
+	function API_error($msg=false, $error_format=false) {
+		$error["error"] = "true";
+		if($msg!=false && !empty($msg)) $error["error_description"] = strip_tags($msg);
 
 		// You can use custom return format in errors if you want to
 		if($error_format==false) $error_format = $this->format;
@@ -100,7 +101,7 @@ class maps_api
 	 */
 	function output( $result = array(), $model = false ) {
 
-		if(empty($result)) return $this->API_error("empty");
+		if(empty($result)) return $this->API_error("No results.");
    		elseif($this->format=="json") return json_encode($result);
    		elseif($this->format=="kml") return $this->array2kml($result, $model);
    		elseif($this->format=="kmz") return $this->array2kml($result, $model);
@@ -120,7 +121,8 @@ class maps_api
     	$place = ($more == true) ? get_place($id,true): get_place($id,false);
 
    		// Return
-    	if($place===false) return $this->API_error("Illegal ID.");
+   		if($place["error"] == "true") return $this->API_error("Place not found.");
+    	elseif($place===false) return $this->API_error("Illegal ID.");
     	else return $this->output($place, 'marker');
 
 	}

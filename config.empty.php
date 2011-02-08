@@ -57,6 +57,7 @@ $settings["languages_in_english"] = 	array(
 
 // Usually you don't need to edit this, but you can set it manually, too. No ending "/".
 $settings["base_url"] = "http://hitchwiki.org/maps";
+$settings["base_url_demo"] 	= "http://hitchwiki.org/devmaps";
 #TODO, automate this. "http" . ((!empty($_SERVER['HTTPS'])) ? "s" : "") . "://".$_SERVER['SERVER_NAME'].dirname($_SERVER['REQUEST_URI']);
 
 /*

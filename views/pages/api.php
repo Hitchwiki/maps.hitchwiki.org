@@ -6,6 +6,9 @@
 
 <p>API call base URL: <code class="highlight"><?php echo $settings["base_url"]; ?>/api/</code></p>
 
+<p>API call base URL for demo purpose: <code class="highlight"><?php echo $settings["base_url_demo"]; ?>/api/</code><br />
+<small><em>Use this when you want to test your program, since it uses a different database and changes won't go visible to the actual website.</em></small></p>
+
 
 <h2><?php echo _("List of API-calls"); ?></h2>
 <ul>
@@ -18,6 +21,7 @@
 	<li><a href="#countries">List of countries</a></li>
 	<li><a href="#languages">List of languages</a></li>
 	<li><a href="#custom">Custom variables</a></li>
+	<li><a href="#errors">Errors</a></li>
 	<li><a href="#license">License</a></li>
 </ul>
 
@@ -31,6 +35,7 @@ JSON Example:<br />
 	"id":"355",
 	"lat":"51.2029594207479",
 	"lon":"4.38469022512436",
+	"elevation":"7",
 	"rating":"5",
 	"rating_count":"1",
 	"location":
@@ -56,12 +61,20 @@ JSON Example:<br />
 	"datetime":"2010-07-29 15:12:20",
 	"description":
 	{
-		"en_UK":"Description in English.",
-		"de_DE":null,
-		"es_ES":null,
-		"ru_RU":null,
-		"fi_FI":"Kuvaus suomeksi.",
-		"lt_LT":null
+		"en_UK":
+		{
+			"datetime":"2011-01-31 23:41:15",
+			"fk_user":"12345",
+			"description":"Lorem ipsum dolor sit amet.",
+			"versions":"2"
+		},
+		"lt_LT":
+		{
+			"datetime":"2010-12-22 21:11:12",
+			"fk_user":"12355",
+			"description":"Loremė ipsumius dolor šites amet.",
+			"versions":"1"
+		},
 	},
 	"comments":
 	{[
@@ -102,11 +115,24 @@ JSON Example:<br />
 
 
 <h3 id="places_area">List places from area</h3>
-<code class="highlight">/api/?bounds=</code><br />
+<code class="highlight">/api/?bounds=59.375129767984,64.208716083434,22.544799804826,35.190063476196</code><br />
 JSON Example:<br />
-<code class="example"><pre>{
+<code class="example"><pre>[
+	{
+		"id":"957",
+		"lat":"61.4893999989479",
+		"lon":"23.7795531749725",
+		"rating":"2"
+	},
+	{
+		"id":"1591",
+		"lat":"61.1811048903562",
+		"lon":"23.8870024681091",
+		"rating":"1"
+	},
+	...
 
-}</pre></code>
+]</pre></code>
 <br /><br />
 
 
@@ -238,6 +264,17 @@ JSON Example:<br />
 }</pre></code>
 <br /><br />
 
+<h3 id="errors">In case of error</h3>
+If API produces an error, it returns "error":"true" and possible error description. 
+<br /><br />
+JSON Example where calling /api/?place=351 didn't find a place with this ID:<br />
+<code class="example"><pre>
+{
+	"error":"true",
+	"error_description":"Place not found."
+}</pre></code>
+<br /><br />
+
 <h3 id="custom">Custom variables</h3>
 Variables you can use with all API calls:
 <ul>
@@ -257,7 +294,7 @@ Variables you can use with all API calls:
 	</li>
 	<li><strong class="highlight">format</strong>: not required. By default API returns a JSON string, but you can ask for: <span class="highlight" title="JavaScript Object Notation">json</span>, <span class="highlight" title="Keyhole Markup Language">kml</span> and <span class="highlight">string</span> (for testing - it's just human readable rather than computer). NOTICE: KML format not functional yet.</li>
 	<li><strong class="highlight">download</strong>: force to download as a file. If you add content to it, it's used as a filename. Eg. <span class="highlight">download=filename</span>. Default filename is "places" and ".json/kml/txt" will be added depending on requested format. Valid characters are "<i>a-zA-Z0-9._-</i>" and max 255 of them.</li>
-	<li><strong class="highlight">who</strong>: it's not required, but would be lovely to see how uses our API. You can add unique string like service name, URL or email to this.</li>
+	<li><strong class="highlight">who</strong>: it's not required, but would be lovely to see who uses our API. You can add unique string like service name, URL or email to this.</li>
 </ul>
 <br /><br />
 Example, download a file "testfile.kml" with a place on it in Finnish:
