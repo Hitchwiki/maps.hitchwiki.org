@@ -158,7 +158,7 @@ if($place["error"] !== true):
 							    
 							    if($place["description"][$code]["versions"] > 1) {
 							    	printf(_('Description edited %s'), $description_date);
-							    	echo ' &mdash; <a href="#" onclick="place_history('.$place["id"].', \''.langcode($code).'\'); return false;">'._("History").'</a>';
+							    	if($allow_editing == true) echo ' &mdash; <a href="#" onclick="place_history('.$place["id"].', \''.langcode($code).'\'); return false;">'._("History").'</a>';
 							    }
 							    else {
 							    	printf(_('Description written %s'), $description_date);
