@@ -65,8 +65,8 @@ else:
 		}
 		elseif($line["log_type"] == "description") { 
 			echo sprintf(_("%s added or edited description of the place"), $who);
-			echo '<br /><small title="'._("Language").'">'._("Language").': '._($settings["languages_in_english"][$line["log_meta"]]).'</small>';
-			echo '<br /><small><em class="bubble">'.Markdown($line["log_entry"]).'</em></small>';
+			if(!empty($line["log_meta"])) echo '<br /><small title="'._("Language").'">'._("Language").': '._($settings["languages_in_english"][$line["log_meta"]]).'</small>';
+			echo '<br /><small><em class="bubble">'.Markdown(utf8_decode($line["log_entry"])).'</em></small>';
 		}
 
 

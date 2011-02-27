@@ -798,6 +798,9 @@ code.example {
 		background: #ede4d4;
 		cursor: text;
 	}
+	#PlacePanel #show_waitingtime_log {
+		white-space: nowrap;
+	}
 		
 #language ul {
 	display: block;

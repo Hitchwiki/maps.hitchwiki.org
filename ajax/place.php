@@ -403,7 +403,7 @@ if($place["error"] !== true):
 				echo '<b title="'._("Average").'">'._("Waiting time").':</b> ';
 				
 				if($place["waiting_stats"]["count"] > 0) {
-					echo $place["waiting_stats"]["avg_textual"].' <small class="light">(<a href="#" id="show_waitingtime_log" title="'._("Edit history").'">'; 
+					echo $place["waiting_stats"]["avg_textual"].' <small class="light">(<a href="#" id="show_waitingtime_log" title="'._("Show log").'">'; 
 					printf(ngettext("%d experience", "%d experiences", $place["waiting_stats"]["count"]), $place["waiting_stats"]["count"]);
 					echo '</a>)</small>';
 				}
