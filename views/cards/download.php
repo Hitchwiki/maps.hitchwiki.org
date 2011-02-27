@@ -1,7 +1,7 @@
 
 <h4><?php echo _("Download markers as a file"); ?></h4>
 
-<small>Note, this property is still experimental. If you face any problems, please report us.</small>
+<small><em>Note, this feature is still experimental. If you face any problems, please report us by clicking "contact us" link on the left-bottom of the page.</em></small>
 
 <form>
 <div id="fileloader" style="overflow:hidden;width:1px;height:1px;"></div>

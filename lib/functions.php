@@ -255,17 +255,17 @@ function gather_log($id=false,$type="place") {
 		(
 				SELECT `id`,`ip`,`datetime`,`fk_user`,
 					 `description` AS `log_entry`,
+					 `language` AS `log_meta`,
 					 'description' AS `log_type`
 				FROM `t_points_descriptions` 
 				WHERE `fk_point` = ".mysql_real_escape_string($id)." 
-					AND `datetime` IS NOT NULL
 
 
 			UNION ALL
 
-
 				SELECT `id`,`ip`,`datetime`,`fk_user`,
 					 `rating` AS `log_entry`,
+					 '' AS `log_meta`,
 					 'rating' AS `log_type`
 				FROM `t_ratings` 
 				WHERE `fk_point` = ".mysql_real_escape_string($id)." 
@@ -274,9 +274,9 @@ function gather_log($id=false,$type="place") {
 
 			UNION ALL
 
-
 				SELECT `id`,`ip`,`datetime`,`fk_user`,
 					 `waitingtime` AS `log_entry`,
+					 '' AS `log_meta`,
 					 'waitingtime' AS `log_type`
 				FROM `t_waitingtimes` 
 				WHERE `fk_point` = ".mysql_real_escape_string($id)." 
@@ -284,10 +284,10 @@ function gather_log($id=false,$type="place") {
 
 
 			UNION ALL
-
-
+				
 				SELECT `id`,`ip`,`datetime`,`fk_user`,
 					 `comment` AS `log_entry`,
+					 '' AS `log_meta`,
 					 'comment' AS `log_type`
 				FROM `t_comments` 
 				WHERE `fk_place` = ".mysql_real_escape_string($id)." AND `hidden` IS NULL 
@@ -296,17 +296,16 @@ function gather_log($id=false,$type="place") {
 
 			UNION ALL
 
-
 				SELECT 
 					`id` AS `id`, 
 					'' AS `ip`, 
 					`datetime`, 
 					`user` AS `fk_user`,
 					`locality` AS `log_entry`,
+					 '' AS `log_meta`,
 					'place' AS `log_type`
 				FROM `t_points` 
 				WHERE `id` = ".mysql_real_escape_string($id)."
-					AND `datetime` IS NOT NULL
 				
 		) 
 		AS `log`
@@ -320,6 +319,7 @@ function gather_log($id=false,$type="place") {
 		
 				SELECT `id`,`ip`,`datetime`,`fk_user`,`fk_point`,
 					 `description` AS `log_entry`,
+					 `language` AS `log_meta`,
 					 'description' AS `log_type`
 				FROM `t_points_descriptions` 
 				WHERE DATE_SUB(CURDATE(),INTERVAL 7 DAY) <= datetime 
@@ -331,6 +331,7 @@ function gather_log($id=false,$type="place") {
 
 				SELECT `id`,`ip`,`datetime`,`fk_user`,`fk_point`,
 					 `rating` AS `log_entry`,
+					 '' AS `log_meta`,
 					 'rating' AS `log_type`
 				FROM `t_ratings` 
 				WHERE DATE_SUB(CURDATE(),INTERVAL 7 DAY) <= datetime 
@@ -342,6 +343,7 @@ function gather_log($id=false,$type="place") {
 
 				SELECT `id`,`ip`,`datetime`,`fk_user`,`fk_point`,
 					 `waitingtime` AS `log_entry`,
+					 '' AS `log_meta`,
 					 'waitingtime' AS `log_type`
 				FROM `t_waitingtimes` 
 				WHERE DATE_SUB(CURDATE(),INTERVAL 7 DAY) <= datetime 
@@ -353,6 +355,7 @@ function gather_log($id=false,$type="place") {
 
 				SELECT `id`,`ip`,`datetime`,`fk_user`,`fk_place` AS `fk_point`,
 					 `comment` AS `log_entry`,
+					 '' AS `log_meta`,
 					 'comment' AS `log_type`
 				FROM `t_comments` 
 				WHERE DATE_SUB(CURDATE(),INTERVAL 7 DAY) <= datetime 
@@ -370,6 +373,7 @@ function gather_log($id=false,$type="place") {
 					`user_id` AS `fk_user`,
 					'' AS `fk_point`, 
 					`country` AS `log_entry`,
+					 '' AS `log_meta`,
 					'public_transport' AS `log_type`
 				FROM `t_ptransport` 
 				WHERE DATE_SUB(CURDATE(),INTERVAL 7 DAY) <= datetime 
@@ -386,6 +390,7 @@ function gather_log($id=false,$type="place") {
 					`id` AS `fk_user`,
 					'' AS `fk_point`, 
 					`country` AS `log_entry`,
+					 '' AS `log_meta`,
 					'user' AS `log_type`
 				FROM `t_users` 
 				WHERE DATE_SUB(CURDATE(),INTERVAL 7 DAY) <= registered 
@@ -402,6 +407,7 @@ function gather_log($id=false,$type="place") {
 					`datetime`, 
 					`user` AS `fk_user`,
 					`locality` AS `log_entry`,
+					 '' AS `log_meta`,
 					'place' AS `log_type`
 				FROM `t_points` 
 				WHERE DATE_SUB(CURDATE(),INTERVAL 7 DAY) <= datetime 
@@ -413,9 +419,11 @@ function gather_log($id=false,$type="place") {
 	}
 
 	$res = mysql_query($query);
-	while($line = mysql_fetch_array($res, MYSQL_ASSOC)) {
-		$log[] = $line;
-	}
+	#if(mysql_num_rows($res) > 0) {
+		while($line = mysql_fetch_array($res, MYSQL_ASSOC)) {
+			$log[] = $line;
+		}
+	#}
 
 	if(!empty($log)) return $log;
 	else return false;
@@ -1237,6 +1245,16 @@ function validate_lon($lon) {
 }
 
 
+/*
+ * Validate ID
+ * return true/false
+ */
+function is_id($id) {
+	if($id !== false && $id >= 0) return true;
+	else return false;
+}
+
+
 
 /*
  * Produce an URL to image map
@@ -1657,6 +1675,32 @@ function error_sign($msg=false, $hide=true) {
 	}
 }
 
+/*
+ * Print out an info sign
+ */
+function info_sign($msg=false, $hide=true) {
+
+	$random = rand(0,1000);
+	
+	if(!empty($msg)) {
+	
+		// Print info sign
+		echo '<div class="ui-state-highlight ui-corner-all" style="padding: 0 .7em; margin: 20px 0;" id="info_'.$random.'">'. 
+		    '<p><span class="ui-icon ui-icon-circle-check" style="float: left; margin-right: .3em;"></span>  '.
+		    '<span class="info_text">'.htmlspecialchars($msg).'</span></p>'.
+		    '</div>';
+		
+		// Hides info
+		if($hide==true) {
+			echo '<script type="text/javascript">'.
+					'$(function(){'.
+						'$("#info_'.$random.'").delay(2500).fadeOut("slow");'.
+					'});'.
+				'</script>';
+		} // hide?
+
+	} // !empty
+}
 
 
 /*

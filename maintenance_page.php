@@ -44,8 +44,8 @@
 	}
     </style>
     <?php
-    	if(isset($_GET["maintenance"])) echo '<meta http-equiv="refresh" content="300;url='.$settings["base_url"].'/">';
-    	else echo '<meta http-equiv="refresh" content="300">';
+    	if(isset($_GET["maintenance"])) echo '<meta http-equiv="refresh" content="300;url='.$settings["base_url"].'/?post_maintenance">';
+    	else echo '<meta http-equiv="refresh" content="300;url=./?post_maintenance">';
     ?>
 </head><body>
 

@@ -782,7 +782,7 @@ code.example {
 	#PlacePanel #write_comment { width: 185px; }
 	#PlacePanel .copypaste { width: 200px; background: transparent; color: #413914; }
 	#PlacePanel .copypaste:hover { border-color: #81722f; }
-	#PlacePanel .inset { padding-left: 6px; }
+	#PlacePanel .inset { display: block; padding-left: 6px; }
 	
 	#PlacePanel .edit_description {
 		text-decoration: none;
@@ -907,12 +907,13 @@ ul li ul li #comments ol li.own_comment {
  */ 
 
 #cards {
-	/* Area size should be same as #map */
+	/* Area size should be same as #map 
 	position: absolute;
 	top: 90px;
 	bottom: 0;
 	left: 170px;
 	right: 0;
+	*/
 }
 
 .page {
@@ -976,56 +977,30 @@ ul li ul li #comments ol li.own_comment {
  */
 .ui-dialog-content {
 	font-size: 12px;
-	line-height: 15px;
-}
-
-.ui-dialog-content {
+	line-height: 15px;/*
 	padding: 0;
-}
-
-.ui-tabs-panel {
-	margin: 0 !important;
-	padding: 5px !important;
-}
-
-.ui-dialog-content {
 	margin: 0 !important;
 	overflow-x: hidden !important;
+	*/
+}
+
+.ui-dialog-content textarea {
+	width: 97%;
 }
 
 .ui-widget-header {
 
 }
-.ui-dialog-title {
+.ui-dialog-title {/*
 	font-size: 12px !important;
 	line-height: 15px !important;
-}
-
-.ui-tabs-nav {
-	background: #eee !important;
-	border: 1px solid #ccc !important;
-}
-
-/* overrides for ui-tab styles */
-ul.ui-tabs-nav { padding:0 0 0 8px; }
-.ui-tabs-nav li { margin:5px 5px 0 0; }
-
-.ui-tabs-nav li a:link,
-.ui-tabs-nav li a:visited,
-.ui-tabs-nav li a:hover,
-.ui-tabs-nav li a:active { font-size:11px; padding:4px 1.2em 3px; color:#e9af6d; padding: 3px; }
-
-.ui-tabs-nav li.ui-tabs-selected a:link,
-.ui-tabs-nav li.ui-tabs-selected a:visited,
-.ui-tabs-nav li.ui-tabs-selected a:hover,
-.ui-tabs-nav li.ui-tabs-selected a:active { color:#e6820E; border-bottom: 2px solid #fff; }
-
-.ui-tabs-panel { padding:20px 9px; font-size:12px; line-height:1.4; color:#000; }
+*/}
 
 .ui-widget-content a:link,
 .ui-widget-content a:visited { color:#1b75bb; text-decoration:none; }
 .ui-widget-content a:hover,
 .ui-widget-content a:active { color:#0b559b; }
+
 
 .ui-datepicker {
 	font-size: 80% !important;

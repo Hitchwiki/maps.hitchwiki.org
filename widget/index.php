@@ -1,5 +1,4 @@
 <?php
-
 /*
  * Initialize Maps
  */
@@ -68,6 +67,7 @@ else {
 		<title>Hitchwiki - <?php echo _("Maps"); ?></title>
         <base href="../" />
         <link rel="stylesheet" type="text/css" href="static/css/widget.css<?php if($settings["debug"]==true) echo '?cache='.date("jnYHis"); ?>" media="all" />
+        <!--
         <script src="static/js/jquery.min.js" type="text/javascript"></script>
         <script src="http://openlayers.org/api/OpenLayers.js" type="text/javascript"></script>
         <script type="text/javascript">
@@ -87,10 +87,17 @@ else {
 		//]]>
         </script>
 		<script src="static/js/widget.js<?php if($settings["debug"]==true) echo '?cache='.date("jnYHis"); ?>" type="text/javascript"></script>
+		-->
 		<meta name="description" content="<?php printf(_("This is just a preview map. Go to %s for the actual service."), $settings["base_url"]."/"); ?>" />
 	</head>
 	<body>
-
+	
+<div style="padding:30px;">
+<em>Sorry, Embedding maps is currently out of use. We'll try to get it back as soon as possible.</em>
+<br /><br />
+<a href="http://hitchwiki.org/maps" target="_blank"><img src="http://hitchwiki.org/maps/badge.png" alt="Hitchwiki Maps" /></a>
+</div>
+<!--
 	    <small id="loading-bar"><?php echo _("Loading..."); ?></small>
 
 		<div id="map">
@@ -99,6 +106,6 @@ else {
 		</div>
 
 		<ul id="log" style="display:block;"></ul>
-
+-->
 	</body>
 </html>

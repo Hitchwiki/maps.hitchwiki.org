@@ -262,8 +262,10 @@ else $description = $slogan;
 
 					open_page("<?php echo htmlspecialchars($_GET["page"]); ?>");
 
+				<?php endif; ?>
+				
 				<?php // Open marker
-				elseif(isset($show_place)): ?>
+				if(isset($show_place)): ?>
 
 					showPlacePanel("<?php echo $show_place; ?>", true);
 
@@ -272,12 +274,22 @@ else $description = $slogan;
 
 					info_dialog("<?php echo _("Sorry, but the place cannot be found.")."<br /><br />"._("The place you are looking for might have been removed or is temporarily unavailable."); ?>", "<?php echo _("The place cannot be found"); ?>", true);
 
+				<?php endif; ?>
+				
 				<?php // Perform search
-				elseif(isset($_GET["q"]) && !empty($_GET["q"])): ?>
+				if(isset($_GET["q"]) && !empty($_GET["q"])): ?>
 
 					search("<?php echo strip_tags($_GET["q"]); ?>");
 
 				<?php endif; ?>
+				
+				<?php // Show welcome text after a maintenance break
+				if(isset($_GET["post_maintenance"])): ?>
+				
+					info_dialog('<?php echo _('Sorry about that!').'<br /><br />'._('If something on the website seems wrong to you, please use "contact us" link at the bottom-left of the page.'); ?>', '<?php echo _("The maintenance break is now over"); ?>', false);
+
+				<?php endif; ?>
+				
 			});
 		//]]>
 		</script>

@@ -283,7 +283,7 @@ Variables you can use with all API calls:
 		<?php
 			foreach($settings["valid_languages"] as $code => $lang) {
 			
-				echo '<li title="'.$lang.'"><span class="highlight">'.$code.'</span>: <img class="flag" alt="" src="static/gfx/flags/png/'.strtolower(substr($code, -2)).'.png" /> ' . $settings["languages_in_english"][$code];
+				echo '<li title="'.$lang.'"><span class="highlight">'.$code.'</span>: <img class="flag" alt="" src="static/gfx/flags/'.strtolower(substr($code, -2)).'.png" /> ' . $settings["languages_in_english"][$code];
 				
 				if($code == $settings["default_language"]) echo ' ('._("default").')';
 				

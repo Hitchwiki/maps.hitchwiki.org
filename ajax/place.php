@@ -133,17 +133,18 @@ if($place["error"] !== true):
 				    	
 				    	if(!empty($place["description"][$code])) {
 				    		
-				    		$allow_editing = false;
+				    		// FOR DEBUGGING NOW ONLY; WILL BE REMOVED!
+				    		$allow_editing = true;
 				    		
 				    		// Edit link, only for registered users
-				    		if($user!==false && $allow_editing == true) echo '<a href="#" class="edit_description" id="description_'.$code.'" lang="'.langcode($code).'" title="'._("Edit").'">';
+				    		if($user!==false && $allow_editing == true) echo '<a href="#" class="edit_description" id="description_'.$code.'" lang="'.langcode($code).'" title="'._("Click to edit").'">';
 
 				    		echo Markdown($place["description"][$code]["description"]);
 				    		//'.langcode($code).'
 				    		if($user!==false && $allow_editing == true) {
 				    			echo '</a><div class="edit_description_editing" id="edit_description_editing_'.langcode($code).'" style="display: none;" lang="'.langcode($code).'">';
-				    			echo '<textarea rows="5" lang="'.langcode($code).'">'.htmlspecialchars($place["description"][$code]["description"]).'</textarea><br />';
-				    			echo '<input type="hidden" name="original_description" class="original_description" lang="'.langcode($code).'" value="'.htmlspecialchars($place["description"][$code]["description"]).'" />';
+				    			echo '<textarea rows="5" lang="'.langcode($code).'">'.strip_tags($place["description"][$code]["description"]).'</textarea><br />';
+				    			echo '<input type="hidden" name="original_description" class="original_description" lang="'.langcode($code).'" value="'.strip_tags($place["description"][$code]["description"]).'" />';
 				    			echo '<small>';
 				    				echo '<b><a href="#'.langcode($code).'" class="save">'._("Save").'</a></b> - ';
 				    				echo '<a href="#'.langcode($code).'" class="recover">'._("Undo changes").'</a> - ';
@@ -402,7 +403,7 @@ if($place["error"] !== true):
 				echo '<b title="'._("Average").'">'._("Waiting time").':</b> ';
 				
 				if($place["waiting_stats"]["count"] > 0) {
-					echo $place["waiting_stats"]["avg_textual"].' <small class="light">(<a href="#" id="show_waitingtime_log" title="'._("Show log").'">'; 
+					echo $place["waiting_stats"]["avg_textual"].' <small class="light">(<a href="#" id="show_waitingtime_log" title="'._("Edit history").'">'; 
 					printf(ngettext("%d experience", "%d experiences", $place["waiting_stats"]["count"]), $place["waiting_stats"]["count"]);
 					echo '</a>)</small>';
 				}
@@ -758,7 +759,7 @@ if($place["error"] !== true):
 								
 									maps_debug("Loading the weather info for the place from wunderground...");
 									
-									var weather_error_html = '<?php error_sign(_("No weather info..."), false); ?>'; // TODO: something nicer to here, since might be a bit common error to show
+									var weather_error_html = '<?php info_sign(_("No weather info..."), false); ?>';
 									 
 									//$.getJSON('ajax/wefather.php?lat=<?php echo $place["lat"]; ?>&lon=<?php echo $place["lon"]; ?>', function(data) {	
 									$.ajax({
@@ -771,7 +772,7 @@ if($place["error"] !== true):
 										// Got a place
 										success: function(data){		
 									
-									    	if(data.error==true) {
+									    	if(data.error==true || data == undefined) {
 									    	    maps_debug("PHP Error when loading weather information.");
 									    	    place_weather_info.html(weather_error_html).delay(5000).slideUp('slow');
 									    	}
@@ -789,7 +790,8 @@ if($place["error"] !== true):
 										// Didn't find anything...
 										error: function( objAJAXRequest, strError ){
 											maps_debug("JSON weather query didn't find anything. Error type: "+strError);
-									        place_weather_info.html(weather_error_html).delay(5000).slideUp('slow');
+									        place_weather_info.html(weather_error_html);
+									        place_weather_info.delay(500).slideUp('slow');
 										}
 									});
 									
@@ -816,27 +818,28 @@ if($place["error"] !== true):
 	    	<!-- meta info -->
 			<li>
 	    		<small class="inset">
-				<?php
+					<?php
 					// When marker was added and who added it					
 					// Name
 					if(isset($place["user"]["name"])) {
-						echo _("Added by").' <strong>'.htmlspecialchars($place["user"]["name"]).'</strong>';
+						echo "&bull; "._("Added by").' <strong>'.htmlspecialchars($place["user"]["name"]).'</strong>';
 					
-						if(!empty($place["datetime"])) ' &mdash; ';
+						if(!empty($place["datetime"])) echo ' &mdash;';
 					}
-					elseif(!empty($place["datetime"])) echo _("Added at")." ";
+					elseif(!empty($place["datetime"])) echo "&bull; "._("Added at");
 					
 					// Date
 					if(!empty($place["datetime"])) {
-						echo '<span title="'.date(DATE_RFC822,strtotime($place["datetime"])).'">'.date("j.n.Y",strtotime($place["datetime"])).'</span>';
+						echo ' <span title="'.date(DATE_RFC822,strtotime($place["datetime"])).'">'.date("j.n.Y",strtotime($place["datetime"])).'</span>';
 					}
 					
 					if(isset($place["user"]["name"]) OR !empty($place["datetime"])) echo '<br />';
 					
 					// Elevation
-					if($place["elevation"]=="0" OR !empty($place["elevation"])) echo _("Elevation").': '.$place["elevation"].' '._("meters").'<br />';
+					if($place["elevation"]=="0" OR !empty($place["elevation"])) echo "&bull; "._("Elevation").': '.$place["elevation"].' '._("meters").'<br />';
 					
-				?>
+					?>
+					&bull; <a href="#" onclick="place_history('<?php echo $place["id"]; ?>'); return false;"><?php echo _("Show log"); ?></a>
 	    		</small>
 			</li>
 	    	

@@ -40,7 +40,7 @@ if(!empty($profile)): ?>
     	<?php if(!empty($profile["country"])): ?>
     	<tr>
     		<td><b><?php echo _("Country"); ?></b></td>
-    		<td><a href="#" id="search_for_this"><?php echo ISO_to_country($profile["country"]); ?></a> <img class="flag" alt="" src="static/gfx/flags/png/<?php echo strtolower($profile["country"]); ?>.png" /></td>
+    		<td><a href="#" id="search_for_this"><?php echo ISO_to_country($profile["country"]); ?></a> <img class="flag" alt="" src="static/gfx/flags/<?php echo strtolower($profile["country"]); ?>.png" /></td>
     	</tr>
     	<?php endif; ?>
     	

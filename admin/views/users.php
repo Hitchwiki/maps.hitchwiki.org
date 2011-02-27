@@ -214,7 +214,7 @@ endif;
 	    		
 	    		
 	    		// Country
-	    		if(!empty($row["country"])) echo '<td>'.ISO_to_country($row["country"]) . ' <img class="flag" alt="" src="../static/gfx/flags/png/'.strtolower($row["country"]).'.png" /></td>';
+	    		if(!empty($row["country"])) echo '<td>'.ISO_to_country($row["country"]) . ' <img class="flag" alt="" src="../static/gfx/flags/'.strtolower($row["country"]).'.png" /></td>';
 	    		else echo '<td> </td>';
 	    		
 	    		

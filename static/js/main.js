@@ -1597,11 +1597,13 @@ function hidePlacePanel() {
 }
 
 
-function place_history(id, language) {
-	maps_debug("Open edit history for a place "+id);
+function place_history(place_id, place_language) {
+	maps_debug("Open edit history for a place "+place_id);
+	
+	if(place_language != undefined || place_language != "" || place_language != false) { place_language2 = "&place_lang="+place_language; }
+	else place_language2 = "";
 
-	open_page("log_place", id+"|"+language);
-	//alert("History not in use yet");
+	open_page("log_place", "place_id="+place_id+place_language2);
 }
 
 
@@ -1799,6 +1801,7 @@ function open_card(name, title) { //, x_coord, y_coord, width
 	    				maxWidth: 650,
 	    				show: 'slide'
 			});
+			$("#cards .card a").blur();
 	    	
 	    	// If pages not opened yet
 	    	/*

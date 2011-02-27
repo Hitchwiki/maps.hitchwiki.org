@@ -1,13 +1,14 @@
-<?php
+<h2><?php echo _("Edit history for a place"); ?></h2><?php
 
+if(!isset($_GET["place_id"]) OR !is_id($_GET["place_id"])):
+	error_sign(_("Oops! Something went wrong! Try again."), false);
+else:
 
-	$id = "5771";//"2722";
-
+	$id = $_GET["place_id"]; //Good IDs for debugging: 5771 2722
 	$lines = gather_log($id);
 	$place = get_place($id, true);
-	
 
-?><h2><?php echo _("Edit history for a place"); ?></h2>
+?>
 
 <h3><?php 
 
@@ -31,7 +32,7 @@
 	
 		// empty datetime?
 		// Try to get rid of these already at the query...
-		if(!empty($line["datetime"])){
+		//if(!empty($line["datetime"]) OR $line["log_type"] == "place"){
 		
 		// Icon
 		if($line["log_type"] == "comment") $icon = 'comment';
@@ -64,27 +65,35 @@
 		}
 		elseif($line["log_type"] == "description") { 
 			echo sprintf(_("%s added or edited description of the place"), $who);
+			echo '<br /><small title="'._("Language").'">'._("Language").': '._($settings["languages_in_english"][$line["log_meta"]]).'</small>';
 			echo '<br /><small><em class="bubble">'.Markdown($line["log_entry"]).'</em></small>';
 		}
 
 
-		// When
-		echo '<br /><small title="'.date(DATE_RFC822,strtotime($line["datetime"])).'"><a href="./?page=place_history&amp;place='.$place["id"].'#log-'.$line["log_type"].'-'.$line["id"].'">'.date("j.n.Y H:i",strtotime($line["datetime"])).'</a>';
+		// Start meta
+		echo '<br /><small>';
+
+			// When
+			if(!empty($line["datetime"])) echo '<a href="./?page=place_history&amp;place='.$place["id"].'#log-'.$line["log_type"].'-'.$line["id"].'" title="'.date(DATE_RFC822,strtotime($line["datetime"])).'">'.date("j.n.Y H:i",strtotime($line["datetime"])).'</a>';
+			else echo _("Before 27. November 2010");
 		
-		// IP for Admins
-		if($user["admin"] === true && !empty($line["ip"])) echo ' &mdash; <a href="http://ip-lookup.net/?'.$line["ip"].'" title="IP">'.$line["ip"].'</a>';
+			// IP for Admins
+			if($user["admin"] === true && !empty($line["ip"])) echo ' &mdash; <a href="http://ip-lookup.net/?'.$line["ip"].'" title="IP">'.$line["ip"].'</a>';
 		
+		// End meta
 		echo '</small>';
 
 		// END
 		echo '</li>';
 		
 		// empty datetime?
-		}	
+		//}
 	}
 	// Is $lines array?
-	} else echo '<li>'.error_sign(_("This place doesn't have log events."),false).'</li>';
+	} else echo '<li>'.info_sign(_("This place doesn't have log events."),false).'</li>';
 ?>
 </ul>
 
 </div>
+
+<?php endif; ?>
