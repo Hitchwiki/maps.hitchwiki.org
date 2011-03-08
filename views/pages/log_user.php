@@ -5,7 +5,7 @@ echo info_sign("This feature is under development and visible only for admins.",
 #if($user["logged_in"]===true): 
 
 
-?><h2><?php printf(_("Activity log for user %s"), "Username"); ?></h2>
+?><h2><?php printf(_("%s's activity log"), "Username"); ?></h2>
 
 
 <div style="width: 650px;">
@@ -49,7 +49,8 @@ echo info_sign("This feature is under development and visible only for admins.",
 			echo sprintf(_('%1$s rated "%2$s" for this place'), $who, hitchability2textual($line["log_entry"]));
 		}
 		elseif($line["log_type"] == "description") { 
-			echo sprintf(_("%s added or edited description of the place"), $who);
+			echo sprintf("%s added or edited a description of the place", $who);
+			#echo sprintf(_("%s added or edited a description of the place"), $who);
 			if(!empty($line["log_meta"])) echo '<br /><small title="'._("Language").'">'._("Language").': '._($settings["languages_in_english"][$line["log_meta"]]).'</small>';
 			echo '<br /><small><em class="bubble">'.Markdown(utf8_decode($line["log_entry"])).'</em></small>';
 		}

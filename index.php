@@ -556,7 +556,7 @@ else $description = $slogan;
 			    			<li><a href="./admin/" class="icon tux"><?php echo _("Admins"); ?></a></li>
 							<li><a href="./?page=log" id="log_all" class="icon page_white_text pagelink"><?php echo _("Log"); ?></a></li>
 							<li><a href="#" id="streetview" class="icon eye cardlink"><?php echo _("Street view"); ?></a></li>
-							<li><a href="#" id="trips" class="icon flag_green pagelink"><?php echo _("Your trips"); ?></a></li>
+							<li><a href="#" id="trips" class="icon flag_green pagelink"><?php echo _("My trips"); ?></a></li>
 							<?php endif; ?>
 
 						</ul>

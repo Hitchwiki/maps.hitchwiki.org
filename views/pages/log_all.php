@@ -8,7 +8,7 @@
 ?><h2><?php echo _("Log"); ?></h2>
 
 <div style="width: 650px;">
-<p><?php printf(_("Actions on a website during the last %d days."), 7); ?></p>
+<p><?php printf(_("Actions on the website during the last %d days."), 7); ?></p>
 
 <ul class="history">
 <?php
@@ -54,12 +54,13 @@
 			echo sprintf(_('%1$s rated "%2$s" for this place'), $who, hitchability2textual($line["log_entry"]));
 		}
 		elseif($line["log_type"] == "description") { 
-			echo sprintf(_("%s added or edited description of the place"), $who);
+			echo sprintf("%s added or edited a description of the place", $who);
+			#echo sprintf(_("%s added or edited a description of the place"), $who);
 			if(!empty($line["log_meta"])) echo '<br /><small title="'._("Language").'">'._("Language").': '._($settings["languages_in_english"][$line["log_meta"]]).'</small>';
 			echo '<br /><small><em class="bubble">'.Markdown(utf8_decode($line["log_entry"])).'</em></small>';
 		}
 		elseif($line["log_type"] == "public_transport") { 
-			echo sprintf(_('%1$s added a link to public transportation info in %2$s'), $who, '<b>'.ISO_to_country($line["log_entry"]).'</b>');
+			echo sprintf(_('%1$s added a link to the public transportation catalog for %2$s'), $who, '<b>'.ISO_to_country($line["log_entry"]).'</b>');
 		}
 		elseif($line["log_type"] == "user") { 
 			echo sprintf(_("%s started using Maps"), $who);

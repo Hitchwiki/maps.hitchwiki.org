@@ -4,10 +4,10 @@
 
 <h2><?php echo _("My trips	"); ?></h2>
 
-<a href="#"><b><?php echo _("My trips	"); ?></b></a> &bull; 
-<a href="#">Countries visited</a> &bull; 
+<a href="#"><b><?php echo _("My trips"); ?></b></a> &bull; 
+<a href="#"><?php echo _("Countries visited"); ?></a> &bull; 
 <a href="#">Mountains</a> &bull; 
-<a href="#">Import</a> &bull; 
+<a href="#"><?php echo _("Import"); ?></a> &bull; 
 
 
 <!-- pagination --> 
@@ -25,9 +25,9 @@
 
     <!-- timescale selector -->
     <li class="special timescale">
-    	<label for="date_from" class="meta">From</label> <input type="text" class="meta" value="2.1.2010" size="10" name="date_from" id="date_from" style="text-align: center;" />
+    	<label for="date_from" class="meta"><?php echo _("From"); ?></label> <input type="text" class="meta" value="2.1.2010" size="10" name="date_from" id="date_from" style="text-align: center;" />
     	&nbsp;
-    	<label for="date_to" class="meta">To</label> <input type="text" class="meta" value="2.1.2011" size="10" name="date_to" id="date_to" style="text-align: center;" />
+    	<label for="date_to" class="meta"><?php echo _("To"); ?></label> <input type="text" class="meta" value="2.1.2011" size="10" name="date_to" id="date_to" style="text-align: center;" />
     </li>	
     
     <!-- per page selector -->
@@ -59,14 +59,14 @@
     		<h4><a href="#" onclick="open_page('trips_place'); return false;">Place, city, Country</a></h4>
 			
     		<ul class="meta">
-    			<li class="icon thumb_up">Hitchability: Good</li>
+    			<li class="icon thumb_up"><?php echo _("Hitchability"); ?>: Good</li>
     			<li class="icon time">Waiting time: 1h 4m</li>
     		</ul>
     	</div>
 
     	<div class="make_hitchplace">
     		<a href="#" class="yes_please png">Make place a hitchhiking spot</a>
-    		<a href="#" class="no_thanks meta light"><i>No thanks</i></a>
+    		<a href="#" class="no_thanks meta light"><i><?php echo _("No thanks"); ?></i></a>
     	</div>
     	
     </li>
