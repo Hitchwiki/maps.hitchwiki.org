@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Maps\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2011-03-08 16:30+0200\n"
-"PO-Revision-Date: 2011-03-08 16:30+0200\n"
+"POT-Creation-Date: 2011-03-08 17:14+0200\n"
+"PO-Revision-Date: 2011-03-08 17:14+0200\n"
 "Last-Translator: Mikael Korpela <mikael@ihminen.org>\n"
 "Language-Team:  <maps@hitchwiki.org>\n"
 "MIME-Version: 1.0\n"
@@ -1254,7 +1254,7 @@ msgid "%s started using Maps"
 msgstr ""
 
 #: views/pages/log_all.php:89
-msgid "Could not load log."
+msgid "Oh! Nothing has changed. Only the desert wind is moving some bits around..."
 msgstr ""
 
 #: views/pages/log_place.php:1
@@ -1271,7 +1271,7 @@ msgid "This place doesn't have any log events."
 msgstr ""
 
 #: views/pages/log_trips.php:12
-msgid "This place doesn't have log events."
+msgid "Recorder hasn't recorded anything yet."
 msgstr ""
 
 #: views/pages/log_user.php:8
@@ -1280,7 +1280,7 @@ msgid "%s's activity log"
 msgstr ""
 
 #: views/pages/log_user.php:79
-msgid "This user doesn't have any log events."
+msgid "User hasn't been poiking around the site yet."
 msgstr ""
 
 #: views/pages/news.php:1
@@ -1393,16 +1393,12 @@ msgstr ""
 msgid "Clear your recorded trips"
 msgstr ""
 
-#: views/pages/settings.php:186
-msgid "See usage log"
-msgstr ""
-
 #: views/pages/settings.php:193
 msgid "Keep map centered to my current location"
 msgstr ""
 
 #: views/pages/settings.php:197
-msgid "Automatically publish my trips"
+msgid "Publish my trips automatically"
 msgstr ""
 
 #: views/pages/settings.php:198
@@ -1551,9 +1547,6 @@ msgid "You can see the current status of translations from %s"
 msgstr ""
 
 #: views/pages/trips.php:5
-msgid "My trips\t"
-msgstr ""
-
 #: views/pages/trips.php:7
 msgid "My trips"
 msgstr ""
