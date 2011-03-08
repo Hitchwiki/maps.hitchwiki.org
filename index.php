@@ -217,6 +217,7 @@ else $description = $slogan;
 		<!-- in production, these are minified (min.js) -->
 		<script src="static/js/jquery.cookie.js" type="text/javascript"></script>
 		<script src="static/js/jquery.gettext.js" type="text/javascript"></script>
+		<script src="static/js/jquery.itoggle-min.js" type="text/javascript"></script>
 		<script src="static/js/main.js<?php if($settings["debug"]==true) echo '?cache='.date("jnYHis"); ?>" type="text/javascript"></script>
 		<?php else: ?>
 		<script src="static/js/combined.js.php" type="text/javascript"></script>
@@ -252,7 +253,10 @@ else $description = $slogan;
 				"profile",
 				"users",
 				"beta",
-				"log_all"
+				"trips",
+				"log_all",
+				"log_trips",
+				"log_user"
 			);
 			?>
 			$(document).ready(function() {
@@ -541,7 +545,7 @@ else $description = $slogan;
 
 							<li><a href="./?page=help" id="help" class="icon help pagelink"><?php echo htmlspecialchars(_("Help & About")); ?></a></li>
 							<li><a href="./?page=statistics" id="statistics" class="icon chart_bar pagelink"><?php echo _("Statistics"); ?></a></li>
-							<li><a href="#" id="news" class="icon new pagelink"><?php echo _("News"); ?></a></li>
+							<li><a href="./?page=news" id="news" class="icon new pagelink"><?php echo _("News"); ?></a></li>
 
 			    			<?php // Visible only for admins
 			    			if($user["admin"]===true): ?>
@@ -550,8 +554,9 @@ else $description = $slogan;
 					<li>
 						<ul>
 			    			<li><a href="./admin/" class="icon tux"><?php echo _("Admins"); ?></a></li>
-							<li><a href="#" id="log_all" class="icon page_white_text pagelink"><?php echo _("Log"); ?></a></li>
+							<li><a href="./?page=log" id="log_all" class="icon page_white_text pagelink"><?php echo _("Log"); ?></a></li>
 							<li><a href="#" id="streetview" class="icon eye cardlink"><?php echo _("Street view"); ?></a></li>
+							<li><a href="#" id="trips" class="icon flag_green pagelink"><?php echo _("Your trips"); ?></a></li>
 							<?php endif; ?>
 
 						</ul>
@@ -762,7 +767,13 @@ else $description = $slogan;
 		</div>
 		
 		<!-- for debugging -->
-		<div id="log" class="hidden"><b class="handle">Log</b><ul><li /></ul></div>
+		<div id="log" class="hidden">
+			<b class="handle">
+				<?php echo _("Log"); ?>
+	       		<a href="#" class="close ui-icon ui-icon-closethick align_right" title="<?php echo _("Close"); ?>"><?php echo _("Close"); ?></a>
+			</b>
+			<ul><li /></ul>
+		</div>
 
 <?php // Google analytics
 if(isset($settings["google_analytics_id"]) && !empty($settings["google_analytics_id"])): ?>

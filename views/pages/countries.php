@@ -1,4 +1,4 @@
-<h2><label for="show_country"><?php echo _("Countries"); ?>:</label> <select id="show_country" name="show_country" style="margin-left: 20px; font-size:17px;">
+<h2 class="icon world"><label for="show_country"><?php echo _("Countries"); ?>:</label> <select id="show_country" name="show_country" style="margin-left: 20px; font-size:17px;">
 	<option value=""><?php echo _("Select"); ?></option>
 	<?php list_countries("option", "name", false, true, true); ?>
 </select></h2>

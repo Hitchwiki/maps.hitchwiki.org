@@ -1,4 +1,4 @@
-<h2><?php echo _("Members"); ?></h2>
+<h2 class="icon user"><?php echo _("Members"); ?></h2>
 
 <?php if($user["logged_in"]===true): ?>
 

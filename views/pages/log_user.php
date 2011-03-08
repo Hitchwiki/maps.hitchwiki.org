@@ -1,27 +1,12 @@
-<h2><?php echo _("Edit history for the place"); ?></h2><?php
+<?php
+echo info_sign("This feature is under development and visible only for admins.",false);
 
-if(!isset($_GET["place_id"]) OR !is_id($_GET["place_id"])):
-	error_sign(_("Oops! Something went wrong! Try again."), false);
-else:
+// Show only when logged in
+#if($user["logged_in"]===true): 
 
-	$id = $_GET["place_id"]; //Good IDs for debugging: 5771 2722
-	$lines = gather_log($id);
-	$place = get_place($id, true);
 
-?>
+?><h2><?php printf(_("Activity log for user %s"), "Username"); ?></h2>
 
-<h3><?php 
-
-	// Flag
-	if(!empty($place["location"]["country"]["iso"])) echo '<img class="flag" alt="'.$place["location"]["country"]["iso"].'" src="static/gfx/flags/'.strtolower($place["location"]["country"]["iso"]).'.png" /> ';
-	
-	// Town/City
-	if(!empty($place["location"]["locality"])) echo $place["location"]["locality"].", ";
-	
-	// Country
-	if(!empty($place["location"]["country"]["name"])) echo $place["location"]["country"]["name"];
-	
-?></h3>
 
 <div style="width: 650px;">
 <ul class="history">
@@ -90,10 +75,8 @@ else:
 		//}
 	}
 	// Is $lines array?
-	} else echo '<li>'.info_sign(_("This place doesn't have log events."),false).'</li>';
+	} else echo '<li>'.info_sign(_("This user doesn't have any log events."),false).'</li>';
 ?>
 </ul>
 
 </div>
-
-<?php endif; ?>

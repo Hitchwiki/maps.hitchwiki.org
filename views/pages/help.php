@@ -1,4 +1,4 @@
-<h2><?php echo _("Help & About"); ?></h2>
+<h2 class="icon help"><?php echo _("Help & About"); ?></h2>
 
 
 <div class="align_left" style="width: 400px; margin: 0 40px 20px 0;">
@@ -19,12 +19,12 @@
 	<h3><?php echo _("Why is the map always centered on Europe?"); ?></h3>
 	<p><?php echo _("Most of this maps hitchhiking places are in Europe. If you have registered, you can set a point of your current country from settings. The map will center there whenever you log in."); ?></p>
 	
-	<p><br /><?php echo _("Contact us"); ?>: <a href="mailto:<?php echo $settings["email"]; ?>"><?php echo $settings["email"]; ?></a></p>
+	<p><a href="#" class="icon email" onclick="javascript:open_card('contact','<?php echo _("Contact us!"); ?>'); return false;"><?php echo _("Contact us!"); ?></a></p>
 	
 	
-	<h2><?php echo _("About Hitchwiki Maps"); ?></h2>
+<!--	<h2><?php echo _("About Hitchwiki Maps"); ?></h2>-->
 	
-	<h4><?php echo _("Used technologies"); ?></h4>
+	<h3><?php echo _("Used technologies"); ?></h3>
 	
 	<b><?php echo _("Server side"); ?></b>
 	<ul>

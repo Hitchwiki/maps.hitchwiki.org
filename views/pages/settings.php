@@ -5,7 +5,7 @@
 
 
 
-echo '<h2>'._("Settings").'</h2>';
+echo '<h2 class="icon wrench">'._("Settings").'</h2>';
 
 // Show only when logged in
 if($user["logged_in"]===true): ?>
@@ -44,16 +44,8 @@ if($user["logged_in"]===true): ?>
 	
 	<br /><br />
 	
-	<label for="location"><?php echo _("Location"); ?></label> <small>(<?php echo _("Can be anything, most likely a city."); ?>)</small><br />
-	<div class="ui-widget">
-	<input type="text" name="location" id="location" size="25" maxlength="255" value="<?php if(isset($user["location"])) echo htmlspecialchars($user["location"]); ?>" />
-	</div>
-	
-	<br />
-	
 	
 	<label><?php echo _("Used map services"); ?></label><br />
-	
 	<input type="checkbox" name="map_osm" id="map_osm" disabled="disabled" checked="checked" value="true" /><label for="map_osm" class="icon icon-osm">Open Street Maps</label><br />
 	<?php if(!empty($settings["google_maps_api_key"])): ?><input type="checkbox" name="map_google" id="map_google" value="true" <?php if($user["map_google"]=='1') echo 'checked="checked" '; ?>/><label for="map_google" class="icon icon-google">Google Maps</label><br /><?php endif; ?>
 	<?php if(!empty($settings["yahoo_maps_appid"])): ?><input type="checkbox" name="map_yahoo" id="map_yahoo" value="true" <?php if($user["map_yahoo"]=='1') echo 'checked="checked" '; ?>/><label for="map_yahoo" class="icon icon-yahoo">Yahoo Maps</label><br /><?php endif; ?>
@@ -108,14 +100,14 @@ if($user["logged_in"]===true): ?>
 	<br /><br />
 	
 	<input type="checkbox" name="private_location" id="private_location" value="true" <?php if(isset($user["private_location"]) && $user["private_location"] == "1") echo 'checked="checked" '; ?>/> <label for="private_location"><?php echo _("Don't try to recognize my location"); ?></label><br />
-	<small><?php echo _('No "Nearby places from" for you, then.'); ?></small><br />	
+	<small class="tip checkbox"><?php echo _('No "Nearby places from" for you, then.'); ?></small><br />	
 	
 	<br /><br />
 </div>
-<div style="float: left; width: 360px;">
+<div style="float: left; width: 370px;">
 
 	
-	<label for="country"><?php echo _("Country"); ?></label> <small>(<?php echo _("Map will be centered to here"); ?>)</small><br />
+	<label for="country"><?php echo _("Country"); ?></label><br />
 	<select id="country" name="country">
 		<option value=""><?php echo _("I'd rather not tell"); ?></option>
 		<option value="">-------------</option>
@@ -125,30 +117,113 @@ if($user["logged_in"]===true): ?>
 		else $selected_country = false;
 		
 		list_countries("option", "name", false, false, true, false, $selected_country); ?>
-	</select> &nbsp; <img class="flag" alt="" src="" class="hidden" />
+	</select> &nbsp; <?php
+		
+		if(!empty($user["country"])) echo '<img class="flag" alt="" src="static/gfx/flags/'.strtolower($user["country"]).'.png" />';
+		else echo '<img class="flag" alt="" src="#" class="hidden" />';
+		
+	?><br /><small class="tip"><?php echo _("The map will be centered to here."); ?></small>
 	
 	<br /><br />
 	
-	<input type="checkbox" name="allow_gravatar" id="allow_gravatar" value="true" <?php if(isset($user["allow_gravatar"]) && $user["allow_gravatar"] == "1") echo 'checked="checked" '; ?>/> <label for="allow_gravatar" class="icon gravatar"><?php echo _("Allow Hitchwiki Maps to use your Gravatar"); ?></label><br />
-	<small><?php printf(_('We would show information from your %s page, if you have one.'), '<a href="http://www.gravatar.com" target="_blank">Gravatar</a>'); ?></small>
 	
-	<br /><br />
+	<label for="location"><?php echo _("Location"); ?></label><br />
+	<div class="ui-widget">
+	<input type="text" name="location" id="location" size="25" maxlength="255" value="<?php if(isset($user["location"])) echo htmlspecialchars($user["location"]); ?>" />
+	<br /><small class="tip"><?php echo _("Can be anything, most likely a city."); ?></small>
+	</div>
+	
+	<br />
+	
+	<input type="checkbox" name="allow_gravatar" id="allow_gravatar" value="true" <?php if(isset($user["allow_gravatar"]) && $user["allow_gravatar"] == "1") echo 'checked="checked" '; ?>/> <label for="allow_gravatar" class="icon gravatar"><?php echo _("Allow Hitchwiki Maps to use your Gravatar"); ?></label>
+	<br /><small class="tip checkbox"><?php printf(_('We would show information from your %s page, if you have one.'), '<a href="http://www.gravatar.com" target="_blank">Gravatar</a>'); ?></small>
+	
+	
+	<!--	
+	<br />
 
 	<label for="google_latitude"><?php echo _("Google Latitude user ID"); ?></label><br />
 	<input type="text" name="google_latitude" id="google_latitude" size="25" maxlength="80" value="<?php if(isset($user["google_latitude"])) echo htmlspecialchars($user["google_latitude"]); ?>" />
 	<br />
-	<!--<img src="static/gfx/icons/latitude-icon-small.png" alt="Google Latitude" class="align_left" style="margin: 5px 5px 5px 0;" />--><small><?php printf(_('<a href="%s" target="_blank">Enable Google Latitude</a> first and copy here your 20-digit user ID from the bottom of the page, visible in a textbox.'), 'https://www.google.com/latitude/b/0/apps'); echo " "._("Your location will be published also on your profile page."); ?></small>
+	-->
+	<!--<img src="static/gfx/icons/latitude-icon-small.png" alt="Google Latitude" class="align_left" style="margin: 5px 5px 5px 0;" />-->
+	<!--
+	<small class="tip"><?php printf(_('<a href="%s" target="_blank">Enable Google Latitude</a> first and copy here your 20-digit user ID from the bottom of the page, visible in a textbox.'), 'https://www.google.com/latitude/b/0/apps'); echo " "._("Your location will be published also on your profile page."); ?></small>
+	-->
 	
-	<br /><br />
-	
-	<input type="checkbox" name="centered_glatitude" id="centered_glatitude" value="true" <?php if(isset($user["centered_glatitude"]) && $user["centered_glatitude"] == "1") echo 'checked="checked" '; ?>/> <label for="centered_glatitude"><?php echo _("Center Maps always to your Google Latitude location"); ?></label><br />
-	<small>Does not work currently, but soon. You can set this to be ready.</small><br />	
 	
 	<br /><br />
 
 </div>
 
-<div style="float: left; width: 600px; padding: 20px 0;" class="clear">
+<div style="width: 650px;" class="clear">
+
+	<?php // Visible only for admins
+	if($user["admin"]===true): ?>
+	
+	
+	<h2 class="icon flag_green" style="display: block; float:left; margin: 0 15px 0 0;"><label for="recorder"><?php echo _("Trip recorder"); ?></label></h2> 
+	
+	<!-- on/off btn -->
+	<input type="checkbox" name="recorder" id="recorder" title="<?php echo _("Toggle trip recorder on/off"); ?>" />
+	<script type="text/javascript">
+	$(function() {
+		$("#recorder").onoff_toggle({
+			onClickOff: function(){
+				alert("off");
+				$("#recorder_settings input").attr("disabled", false);
+			},
+			onClickOn: function(){
+				alert("on");
+				$("#recorder_settings input").attr("disabled", true);
+			}
+		});
+	});
+	</script>
+	
+	<!-- log and reset links -->
+	<a href="#" id="btn_reset_trips" class="align_right"><span class="ui-icon ui-icon-trash align_left"> </span> &nbsp;<small><?php echo _("Clear your recorded trips"); ?></small></a>
+	<a href="#" id="btn_show_trip_logs" onclick="javascript:open_page('log_trips'); return false;" class="align_right" style="margin-right: 10px;"><span class="ui-icon ui-icon-document align_left"> </span> &nbsp;<small><?php echo _("See usage log"); ?></small></a>
+	
+	
+	<div class="clear" id="recorder_settings">
+	
+	<?php echo info_sign("This feature is under development and visible only for admins.",false); ?>
+
+	<input type="checkbox" name="centered_glatitude" id="centered_glatitude" value="true" <?php if(isset($user["centered_glatitude"]) && $user["centered_glatitude"] == "1") echo 'checked="checked" '; ?>/> <label for="centered_glatitude" class="checkbox"><?php echo _("Keep map centered to my location"); ?></label>
+	
+	<br /><br />
+	
+	<input type="checkbox" class="checkbox" name="public_by_default" id="public_by_default" /> <label for="public_by_default" class="checkbox"><?php echo _("Automatically publish my trips"); ?></label>
+	<br /><small class="tip checkbox"><?php echo _("If not, you need to manually publish them from your trips page."); ?></small>
+	
+	<br />
+	
+	<input type="checkbox" class="checkbox" name="show_location" id="show_location" /> <label for="show_location" class="checkbox"><?php echo _("Share my latest location on my profile page"); ?></label>
+	
+	<br /><br />
+	
+	<input type="checkbox" class="checkbox" name="only_registered" id="only_registered" /> <label for="only_registered" class="checkbox"><?php echo _("Share my location and trips only with registered users"); ?></label>
+	
+	<br /><br />
+	
+	<input type="checkbox" class="checkbox" name="fetch_google_latitude" id="fetch_google_latitude" /> <label for="fetch_google_latitude" class="checkbox"><?php echo _("Automatically fetch my location from Google Latitude"); ?></label>
+	
+	<div class="settings_sub_box" id="google_latitude_settings" style="display:none;">
+	    <label for="google_latitude_badge" class="icon tag"><?php echo _('Paste your "Google Public Location Badge" code to here'); ?></label><br />
+	    <textarea name="google_latitude_badge" id="google_latitude_badge"></textarea>
+	    <small class="tip"><?php printf(_('First enable <a href="%s" target="_blank">Google Public Location Badge</a>. Then copy and paste the HTML snippet from the textarea onto textarea above.'), 'https://www.google.com/latitude/b/0/apps'); ?></small>
+	  
+	    <div class="or"><span>or</span></div>
+	    
+	    <label for="google_latitude_id" class="icon icon-google-latitude"><?php echo _("Google Latitude user ID"); ?></label> 
+	    <input type="text" name="google_latitude_id" id="google_latitude_id" size="25" maxlength="80" value="<?php if(isset($user["google_latitude"])) echo htmlspecialchars($user["google_latitude"]); ?>" />
+	</div>
+				
+	<br /><br />
+	
+	</div><!-- /#recorder_settings -->
+	<?php endif; ?>	
 
 	<!-- save/update -->
 	<button id="btn_profile_form"><?php echo _("Update"); ?></button>
@@ -164,8 +239,19 @@ if($user["logged_in"]===true): ?>
 <script type="text/javascript" src="static/js/jquery.pstrength-min.1.2.js"></script>
 <script type="text/javascript">
 $(function() {
+	
+	// Toggle more settings specific to Google Latitude
+    $("input#fetch_google_latitude").change(function() {
+		if($(this).is(":checked") && $("#google_latitude_settings").is(":hidden")) {
+			$("#google_latitude_settings").slideDown("fast");
+		} 
+		else if($("#google_latitude_settings").is(":visible")) {
+			$("#google_latitude_settings").slideUp("fast");
+		} 
+	});
 
-	$('#password1').pstrength();
+	// Requires static/js/jquery.pstrength-min.1.2.js
+	$("#password1").pstrength();
 
 	<?php 
 	// Set country selection

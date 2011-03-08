@@ -17,6 +17,6 @@ foreach($settings["valid_languages"] as $code => $lang) {
 
 <p><?php echo _("If you would like to add content in your own language, or translate all visible interface texts, contact us so we can put up a new language."); ?></p>
 
-<p><a href="mailto:<?php echo $settings["email"]; ?>"><?php echo $settings["email"]; ?></a></p>
+<p><b><a href="#" class="icon email" onclick="javascript:open_card('contact','<?php echo _("Contact us!"); ?>'); return false;"><?php echo _("Contact us!"); ?></a></b></p>
 
 <p><?php printf(_("You can see the current status of translations from %s"), '<a href="http://hitchwiki.org/translate/projects/maps/" target="_blank">hitchwiki.org/translate/</a>'); ?></p>

@@ -37,7 +37,7 @@ $(document).ready(function() {
 	$("#log ul").resizable({alsoResize: '#log'});
 	
 	// Create a toggle button for log
-	$(".toggle_log").click(function(e){
+	$("#log .close, .toggle_log").click(function(e){
 	    e.preventDefault();
 	    log.toggle();
 	});
@@ -1726,7 +1726,7 @@ function open_page(name, variables) {
 	} else {
 		var variables = "&"+variables;
 	}
-	
+
 	$.ajax({
 		url: "ajax/views.php?type=page&lang="+locale+"&page=" + name + variables,
 		async: false,
@@ -1744,6 +1744,7 @@ function open_page(name, variables) {
       	}
 	});
 }
+
 
 
 /* 
@@ -1949,6 +1950,75 @@ function info_dialog(dialog_info, dialog_title, dialog_alert, reload_page) {
 	dialog_title = null;
 	dialog_alert = false;
 }
+
+
+/*
+ * Make a graphical on/off slider out of checkbox-input
+ *
+ * Usage:
+ *
+	$("input#target").onoff_toggle({
+	    onClickOff: function(){
+	    	// a callback when turning off
+	    },
+	    onClickOn: function(){
+	    	// a callback when turning on
+	    }
+	});
+ */
+(function($){
+	$.fn.onoff_toggle = function(options) {
+	
+		var defaults = {
+			onClickOn: function(){},
+			onClickOff: function(){}
+		},
+		settings = $.extend({}, defaults, options);
+	
+		var checkbox = $(this);
+		var name = $(this).attr("id");
+
+		// Do we start from on or off state?
+		if(checkbox.is(":checked")) var state = "on";
+		else var state = "off";
+		
+		// Fire when checkbox gets clicked
+		checkbox.change(function(){
+		    onoff_change(checkbox);
+		});
+
+		// Add a clickable element
+		checkbox.after('<a href="#" id="onoff_'+name+'" class="onoff_toggle '+state+'"><span></span></a>');
+		checkbox.next("a.onoff_toggle").click(function(e){
+		    e.preventDefault();
+		    
+		    if(checkbox.is(":checked")) checkbox.attr("checked", false);
+		    else checkbox.attr("checked", true);
+		    
+		    onoff_change(checkbox);
+		});
+
+		function onoff_change(toggle_target) {
+		
+		    if(toggle_target.is(":checked")) {
+		    	var toggled_position = '0 bottom';
+				//settings.onSlideOn.call(this); //Callback after the slide turns the toggle off
+		    }
+		    else {
+		    	var toggled_position = '-54px bottom';
+				//settings.onSlideOn.call(this); //Callback after the slide turns the toggle on
+		    }
+		    
+		    toggle_target.next("a.onoff_toggle").animate({
+		      'background-position': toggled_position
+		    }, 250);
+		}
+		
+		// Hide checkbox
+		$(this).hide();
+
+	};
+})(jQuery);
 
 
 /* 

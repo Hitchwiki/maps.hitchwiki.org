@@ -1686,7 +1686,7 @@ function info_sign($msg=false, $hide=true) {
 	
 		// Print info sign
 		echo '<div class="ui-state-highlight ui-corner-all" style="padding: 0 .7em; margin: 20px 0;" id="info_'.$random.'">'. 
-		    '<p><span class="ui-icon ui-icon-circle-check" style="float: left; margin-right: .3em;"></span>  '.
+		    '<p><span class="ui-icon ui-icon-info" style="float: left; margin-right: .3em;"></span>  '.
 		    '<span class="info_text">'.htmlspecialchars($msg).'</span></p>'.
 		    '</div>';
 		

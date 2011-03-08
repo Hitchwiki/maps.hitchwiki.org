@@ -1,3 +1,6 @@
+
+<?= info_sign("This feature is under development and visible only for admins.",false); ?>
+
 <?php
 
 	$lines = gather_log();

@@ -19,6 +19,12 @@ $settings["google_maps_api_key"] = 		""; // API key to enable
 $settings["yahoo_maps_appid"] = 		""; // APP ID to enable
 $settings["ms_virtualearth"] = 			false; // false|true to enable
 
+// OAuth 2 Credentials for Google Latitude API
+$settings["google_latitude_client_id"] = 		"";
+$settings["google_latitude_client_secret"] = 	"";
+$settings["google_latitude_access_key"] = 		"";
+
+// Analytic tools
 $settings["google_analytics_id"] =		""; // ID to enable
 
 // fb:admins or fb:app_id - A comma-separated list of either the Facebook IDs of page administrators or a Facebook Platform application ID. At a minimum, include only your own Facebook ID.
