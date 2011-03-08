@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Maps\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2011-03-08 12:41+0200\n"
-"PO-Revision-Date: 2011-03-08 12:41+0200\n"
+"POT-Creation-Date: 2011-03-08 16:30+0200\n"
+"PO-Revision-Date: 2011-03-08 16:30+0200\n"
 "Last-Translator: Mikael Korpela <mikael@ihminen.org>\n"
 "Language-Team:  <maps@hitchwiki.org>\n"
 "MIME-Version: 1.0\n"
@@ -1291,6 +1291,10 @@ msgstr ""
 msgid "This is your profile as others see it."
 msgstr ""
 
+#: views/pages/profile.php:11
+msgid "Edit your profile"
+msgstr ""
+
 #: views/pages/profile.php:27
 msgid "Last seen"
 msgstr ""
@@ -1394,7 +1398,7 @@ msgid "See usage log"
 msgstr ""
 
 #: views/pages/settings.php:193
-msgid "Keep map centered to my location"
+msgid "Keep map centered to my current location"
 msgstr ""
 
 #: views/pages/settings.php:197
@@ -1625,7 +1629,7 @@ msgstr ""
 msgid "You must be logged in to view users."
 msgstr ""
 
-#: views/pages/why_register.php:1
+#: views/pages/why_register.php:3
 #: index.php:415
 msgid "Why register?"
 msgstr ""
@@ -1651,11 +1655,12 @@ msgid "Enable/disable additional map layers and choose your default"
 msgstr ""
 
 #: views/pages/why_register.php:15
-msgid "Connect Maps with your <a href=\"http://latitude.google.com/\">Google Latitude</a> account to keep it centered while you travel"
+msgid "...and more!"
 msgstr ""
 
-#: views/pages/why_register.php:16
-msgid "...and more!"
+#: views/pages/why_register.php:19
+#: index.php:416
+msgid "Register!"
 msgstr ""
 
 #: config.empty.php:109
@@ -1739,10 +1744,6 @@ msgstr ""
 #: index.php:411
 #: index.php:479
 msgid "Logout"
-msgstr ""
-
-#: index.php:416
-msgid "Register!"
 msgstr ""
 
 # %s = translated countryname
