@@ -1734,11 +1734,11 @@ function open_page(name, variables) {
 			// If pages not opened yet
 			if($("#pages .page").is(':hidden')) {
 				$("#pages .page .content").html(content).show();
-				$("#pages .page").slideDown('fast');
+				$("#pages .page").attr("id",name).slideDown('fast');
 				$("#pages .close").show();
 			} else {
 				$("#pages .page .content").html(content);
-				$("#pages .page").attr({ scrollTop: 0 });
+				$("#pages .page").attr("id",name).attr({ scrollTop: 0 });
 			}
 			return true;
       	}
@@ -1755,7 +1755,7 @@ function close_page() {
 	
 	if($("#pages .page").is(':visible')) {
 			$("#pages .page .content").hide('fast').text('');
-			$("#pages .page").slideUp('fast');
+			$("#pages .page").slideUp('fast').attr(id,"closed");
 			$("#pages .close").hide();
 	}
 }

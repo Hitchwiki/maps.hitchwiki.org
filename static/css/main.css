@@ -136,7 +136,7 @@ a.light, .light, .tip, .meta {
 }
 .smaller, .meta, .tip {
 	font-size: 11px;
-	line-height: 12px;
+	line-height: 14px;
 }
 .tip.checkbox {
 	padding-left: 24px;
@@ -1260,30 +1260,65 @@ ul li ul li #comments ol li.own_comment {
   	-moz-box-shadow: inset 0px 0px 5px #c1bead;
   	-webkit-box-shadow: inset 0px 0px 5px #c1bead;
 }
-/* old one 
-.page {
-	position: absolute;
-	text-align: left;
-	padding: 40px 30px;
-	top: 90px;
-	left: 180px;
-	bottom: 10px;
-	right: 10px;
-	min-width: 800px;
-	overflow: auto;
-	z-index: 9998;
-	border: 1px solid #c0b78b;
-	background-color: #faf9f3;
-	
-  	box-shadow: 0px 0px 5px #ccc;
-  	-moz-box-shadow: 0px 0px 5px #ccc;
-  	-webkit-box-shadow: 0px 0px 5px #ccc;
-	
-	-webkit-border-radius: 5px;
-	-moz-border-radius: 5px;
-	border-radius: 5px;
-}
-*/
+	/*
+	 * Custom backgrounds and styles for pages 
+	 */
+	.page#profile { 
+		background: #167c72 url(../gfx/bg_marshmellow.jpg) -400px -100px no-repeat; 
+	}
+	/* Profile */
+	.page#profile .profile_card { 
+		float: left;
+		margin-right: 20px;
+		border: 0;
+	}
+	.page#profile .profile_card li:last-child {
+		border-bottom: 0;
+	} 
+	.page#profile h2,
+	.page#profile .white a,
+	.page#profile .white { 
+		color: #fff;
+		text-shadow: 1px 1px 3px #1f5f59;
+	}
+	.page#profile .profile_card, 
+	.page#profile .location_map { 
+		background: #fff;
+		
+		-webkit-border-radius: 3px;
+		-moz-border-radius: 3px;
+		border-radius: 3px;
+		
+  		box-shadow: 1px 1px 3px #1f5f59;
+  		-moz-box-shadow: 1px 1px 3px #1f5f59;
+  		-webkit-box-shadow: 1px 1px 3px #1f5f59;
+	}
+	.page#profile .location_map { 
+		width: 400px;
+		height: 400px;
+		padding: 3px;
+		overflow: hidden;
+	}
+	.page#profile h2 {
+		font-weight: normal;
+		font-size: 30px;
+		line-height: 35px;
+	} 
+	/* Why register */
+	.page#why_register { 
+		background: #000 url(../gfx/bg_globe.jpg) no-repeat; 
+		padding: 50px 30px 40px 50px;
+  		box-shadow: inset 0px 0px 5px #000;
+  		-moz-box-shadow: inset 0px 0px 5px #000;
+  		-webkit-box-shadow: inset 0px 0px 5px #000;
+	}
+	.page#why_register .textbox { 
+		width: 595px; 
+		height: 314px; 
+		margin: 0 40px 20px 0; 
+		padding: 120px 35px 35px 35px; 
+		background: url(../gfx/bg_why_register.png) no-repeat;
+	}
 
 #pages .close {
     position: absolute;

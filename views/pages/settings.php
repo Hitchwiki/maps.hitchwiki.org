@@ -190,7 +190,7 @@ if($user["logged_in"]===true): ?>
 	
 	<?php echo info_sign("This feature is under development and visible only for admins.",false); ?>
 
-	<input type="checkbox" name="centered_glatitude" id="centered_glatitude" value="true" <?php if(isset($user["centered_glatitude"]) && $user["centered_glatitude"] == "1") echo 'checked="checked" '; ?>/> <label for="centered_glatitude" class="checkbox"><?php echo _("Keep map centered to my location"); ?></label>
+	<input type="checkbox" name="centered_glatitude" id="centered_glatitude" value="true" <?php if(isset($user["centered_glatitude"]) && $user["centered_glatitude"] == "1") echo 'checked="checked" '; ?>/> <label for="centered_glatitude" class="checkbox"><?php echo _("Keep map centered to my current location"); ?></label>
 	
 	<br /><br />
 	
@@ -211,8 +211,8 @@ if($user["logged_in"]===true): ?>
 	
 	<div class="settings_sub_box" id="google_latitude_settings" style="display:none;">
 	    <label for="google_latitude_badge" class="icon tag"><?php echo _('Paste your "Google Public Location Badge" code to here'); ?></label><br />
-	    <textarea name="google_latitude_badge" id="google_latitude_badge"></textarea>
-	    <small class="tip"><?php printf(_('First enable <a href="%s" target="_blank">Google Public Location Badge</a>. Then copy and paste the HTML snippet from the textarea onto textarea above.'), 'https://www.google.com/latitude/b/0/apps'); ?></small>
+	    <textarea name="google_latitude_badge" id="google_latitude_badge" style="width: 90%; margin:3px 0 5px 0;"></textarea>
+	    <br /><small class="tip"><?php printf(_('First enable <a href="%s" target="_blank">Google Public Location Badge</a>. Then copy and paste the HTML snippet from the textarea onto textarea above.'), 'https://www.google.com/latitude/b/0/apps'); ?></small>
 	  
 	    <div class="or"><span>or</span></div>
 	    

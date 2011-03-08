@@ -8,10 +8,10 @@ $profile = $user;
 
 if(!empty($profile)): ?>
 
-<?php if($user["id"] == $profile["id"]): ?><small><em><?php echo _("This is your profile as others see it."); ?></em></small><?php endif; ?>
+<?php if($user["id"] == $profile["id"]): ?><small class="tip white"><em><?php echo _("This is your profile as others see it."); ?> &mdash; <a href="#" onclick="open_page('settings'); return false;"><?php echo _("Edit your profile"); ?></a></em></small><?php endif; ?>
 <h2 title="<?php echo $profile["id"]; ?>"><?php echo $profile["name"]; ?></h2>
 
-<table class="infotable" cellspacing="0" cellpadding="0" style="float: left; margin-right: 20px;">
+<table class="infotable profile_card" cellspacing="0" cellpadding="0">
     <tbody>
     	
     	<?php if(!empty($profile["registered"])): ?>
@@ -97,7 +97,7 @@ if(!empty($profile)): ?>
 
 
 <?php if(!empty($profile["google_latitude"])): ?>
-<iframe src="http://www.google.com/latitude/apps/badge/api?user=<?php echo urlencode($profile["google_latitude"]); ?>&type=iframe&maptype=roadmap" width="400" height="400" frameborder="0"></iframe>
+<div class="location_map"><iframe src="http://www.google.com/latitude/apps/badge/api?user=<?php echo urlencode($profile["google_latitude"]); ?>&type=iframe&maptype=roadmap" width="400" height="400" frameborder="0"></iframe></div>
 <?php endif; ?>
 
 
