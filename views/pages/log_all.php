@@ -86,7 +86,7 @@
 		
 	}
 	// Is $lines array?
-	} else echo '<li>'.error_sign(_("Could not load log."),false).'</li>';
+	} else echo '<li><br /><br />'.info_sign(_("Oh! Nothing has changed. Only the desert wind is moving some bits around..."),false).'<br /><br /></li>';
 ?>
 </ul>
 

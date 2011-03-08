@@ -183,7 +183,7 @@ if($user["logged_in"]===true): ?>
 	
 	<!-- log and reset links -->
 	<a href="#" id="btn_reset_trips" class="align_right"><span class="ui-icon ui-icon-trash align_left"> </span> &nbsp;<small><?php echo _("Clear your recorded trips"); ?></small></a>
-	<a href="#" id="btn_show_trip_logs" onclick="javascript:open_page('log_trips'); return false;" class="align_right" style="margin-right: 10px;"><span class="ui-icon ui-icon-document align_left"> </span> &nbsp;<small><?php echo _("See usage log"); ?></small></a>
+	<a href="#" id="btn_show_trip_logs" onclick="javascript:open_page('log_trips'); return false;" class="align_right" style="margin-right: 10px;"><span class="ui-icon ui-icon-document align_left"> </span> &nbsp;<small><?php echo _("History"); ?></small></a>
 	
 	
 	<div class="clear" id="recorder_settings">
@@ -194,7 +194,7 @@ if($user["logged_in"]===true): ?>
 	
 	<br /><br />
 	
-	<input type="checkbox" class="checkbox" name="public_by_default" id="public_by_default" /> <label for="public_by_default" class="checkbox"><?php echo _("Automatically publish my trips"); ?></label>
+	<input type="checkbox" class="checkbox" name="public_by_default" id="public_by_default" /> <label for="public_by_default" class="checkbox"><?php echo _("Publish my trips automatically"); ?></label>
 	<br /><small class="tip checkbox"><?php echo _("If not, you need to manually publish them from your trips page."); ?></small>
 	
 	<br />

@@ -2,7 +2,7 @@
 <?= info_sign("This feature is under development and visible only for admins.",false); ?>
 
 
-<h2><?php echo _("My trips	"); ?></h2>
+<h2><?php echo _("My trips"); ?></h2>
 
 <a href="#"><b><?php echo _("My trips"); ?></b></a> &bull; 
 <a href="#"><?php echo _("Countries visited"); ?></a> &bull; 

@@ -1,6 +1,8 @@
+<?php
+echo info_sign("This feature is under development and visible only for admins.",false);
+?>
+<div id="pano" style="width: 350px; height: 250px;"></div>
 
-<div id="pano" style="width: 500px; height: 500px;"></div>
-    
 <script type="text/javascript">
     function google_streetview() {
       var panoOpts = {

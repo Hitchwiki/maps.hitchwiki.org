@@ -9,7 +9,7 @@ echo info_sign("This feature is under development and visible only for admins.",
 <div style="width: 650px;">
 <ul class="history">
 <?php
-	echo '<li>'.info_sign(_("This place doesn't have log events."),false).'</li>';
+	echo '<li><br /><br />'.info_sign(_("Recorder hasn't recorded anything yet."),false).'<br /><br /></li>';
 ?>
 </ul>
 </div>

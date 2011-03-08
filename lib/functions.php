@@ -417,7 +417,8 @@ function gather_log($id=false,$type="place") {
 		AS `log`
 		ORDER BY `datetime` DESC";
 	}
-
+	
+	start_sql();
 	$res = mysql_query($query);
 	#if(mysql_num_rows($res) > 0) {
 		while($line = mysql_fetch_array($res, MYSQL_ASSOC)) {
