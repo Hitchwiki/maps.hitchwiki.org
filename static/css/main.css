@@ -1266,6 +1266,60 @@ ul li ul li #comments ol li.own_comment {
 	.page#profile { 
 		background: #167c72 url(../gfx/bg_marshmellow.jpg) -400px -100px no-repeat; 
 	}
+	/* Countries */
+	.page#countries { 
+		background: #000 url(../gfx/bg_globe.jpg) no-repeat; 
+	}
+	.page#countries h2 label,
+	.page#countries h2 { 
+		color: #fff;
+		text-shadow: 1px 1px 3px #1f5f59;
+		font-weight: normal;
+		font-size: 30px;
+		line-height: 35px;
+	}
+	.page#countries .textbox { 
+		background: #fff;
+		
+		padding: 20px;
+		
+		width: 750px;
+		
+		-webkit-border-radius: 3px;
+		-moz-border-radius: 3px;
+		border-radius: 3px;
+		
+  		box-shadow: 1px 1px 3px #000;
+  		-moz-box-shadow: 1px 1px 3px #000;
+  		-webkit-box-shadow: 1px 1px 3px #000;
+	}
+	/* About */
+	.page#about { 
+		background: #167c72 url(../gfx/bg_marshmellow.jpg) no-repeat; 
+	}
+	.page#about h2 { 
+		color: #fff;
+		text-shadow: 1px 1px 3px #1f5f59;
+		font-weight: normal;
+		font-size: 30px;
+		line-height: 35px;
+	}
+	.page#about .textbox { 
+		background: #fff;
+		
+		padding: 20px;
+		
+		width: 750px;
+		
+		-webkit-border-radius: 3px;
+		-moz-border-radius: 3px;
+		border-radius: 3px;
+		
+  		box-shadow: 1px 1px 3px #1f5f59;
+  		-moz-box-shadow: 1px 1px 3px #1f5f59;
+  		-webkit-box-shadow: 1px 1px 3px #1f5f59;
+	}
+	
 	/* Profile */
 	.page#profile .profile_card { 
 		float: left;

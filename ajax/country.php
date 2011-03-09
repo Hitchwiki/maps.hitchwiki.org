@@ -173,6 +173,7 @@ elseif($format == 'html') {
 	<h3><img class="flag" alt="<?php echo $country["iso"]; ?>" src="static/gfx/flags/<?php echo strtolower($country["iso"]); ?>.png" /> <?php echo $country["name"]; ?></h3>
 
 	<!-- http://code.google.com/apis/visualization/documentation/gallery/geomap.html -->
+	
 	<iframe src="ajax/map_statistics.php?map=<?php
 	
 	/*
@@ -191,7 +192,10 @@ elseif($format == 'html') {
 	?>&country=<?php echo $country["iso"]; ?>" name="countrymap" id="countrymap" width="560" height="350" border="0" style="border:0;"></iframe>
 	
 	<?php if($mapLimit): ?><small id="show_map_with_cities"><br /><a onclick="$('#show_map_with_cities').html('<br /><i><?php echo _("Map started to load. This might take some time."); ?></i>').delay(10000).fadeOut(1000);" href="ajax/map_statistics.php?map=4&country=<?php echo $country["iso"]; ?>" target="countrymap"><?php echo _("Show cities on the map"); ?> (<?php echo _("Experimental, might be slow."); ?>)</a></small><?php endif; ?>
-
+	
+	<!--
+	<iframe src="widget/" name="countrymap" id="countrymap" width="480" height="350" border="0" style="border:0;"></iframe>
+	-->
 </div>
 <div class="clear"></div>
 

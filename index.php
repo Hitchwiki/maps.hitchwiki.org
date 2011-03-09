@@ -252,6 +252,7 @@ else $description = $slogan;
 				"settings", 
 				"profile",
 				"users",
+				"about",
 				"beta",
 				"trips",
 				"log_all",
@@ -327,7 +328,7 @@ else $description = $slogan;
 			if(isset($settings["fb"]["app"]["id"]) && !empty($settings["fb"]["app"]["id"])) echo '<meta property="fb:app_id" content="'.$settings["fb"]["app"]["id"].'" />'."\n";
 		?>
 		<link rel="home" href="<?php echo $settings["base_url"]; ?>/" title="Hitchwiki <?php echo _("Maps"); ?>" />
-		<link rel="help" href="<?php echo $settings["base_url"]; ?>/?page=help" title="Hitchwiki <?php echo htmlspecialchars(_("Help & About")); ?>" />
+		<link rel="help" href="<?php echo $settings["base_url"]; ?>/?page=about" title="Hitchwiki <?php echo htmlspecialchars(_("Help & About")); ?>" />
 		<link rel="search" type="application/opensearchdescription+xml" href="<?php echo $settings["base_url"]; ?>/opensearch/" title="Hitchwiki <?php echo _("Maps"); ?>" />
 		<?php
 		/*
@@ -543,7 +544,7 @@ else $description = $slogan;
 							<li><a href="./?page=users" id="users" class="icon user pagelink"><?php echo _("Members"); ?></a></li>
 							<?php endif; ?>
 
-							<li><a href="./?page=help" id="help" class="icon help pagelink"><?php echo htmlspecialchars(_("Help & About")); ?></a></li>
+							<li><a href="./?page=about" id="about" class="icon help pagelink"><?php echo htmlspecialchars(_("Help & About")); ?></a></li>
 							<li><a href="./?page=statistics" id="statistics" class="icon chart_bar pagelink"><?php echo _("Statistics"); ?></a></li>
 							<li><a href="./?page=news" id="news" class="icon new pagelink"><?php echo _("News"); ?></a></li>
 

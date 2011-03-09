@@ -1,9 +1,11 @@
-<h2 class="icon world"><label for="show_country"><?php echo _("Countries"); ?>:</label> <select id="show_country" name="show_country" style="margin-left: 20px; font-size:17px;">
+<h2><label for="show_country"><?php echo _("Countries"); ?>:</label> <select id="show_country" name="show_country" style="margin-left: 20px; font-size:17px;">
 	<option value=""><?php echo _("Select"); ?></option>
 	<?php list_countries("option", "name", false, true, true); ?>
 </select></h2>
 
-<div class="ui-state-error ui-corner-all hidden" style="padding: 0 .7em; margin: 20px 0;" id="countries_error"> 
+<div class="textbodx">
+
+<div class="ui-state-error ui-corner-all hidden" style="padding: 0 .7em; margin: 20px 0; width: 600px;" id="countries_error"> 
     <p><span class="ui-icon ui-icon-alert" style="float: left; margin-right: .3em;"></span> 
     <strong><?php echo _("Error"); ?>:</strong> <span class="error_text"></span></p>
 </div>
@@ -18,6 +20,8 @@
 		$("#show_country").change( function () { 
 		
 			var country_select = $(this);
+			
+			$("#countries_error").hide();
 			
 			// Show "loading" and disable select
 			show_loading_bar("<?php echo _("Loading..."); ?>");
@@ -78,7 +82,9 @@
 	});
 </script>
 
-<div id="countryinfo">
-	<p><em>"<?php echo _("I haven't been everywhere, but it's on my list."); ?>"</em></p>
-	<iframe src="ajax/map_statistics.php?map=3" width="820" height="430" border="0" style="border:0;"></iframe>
+<div id="countryinfo" class="textbox">
+	<p><em class="bigger">"<?php echo _("I haven't been everywhere, but it's on my list."); ?>"</em></p>
+	<iframe src="ajax/map_statistics.php?map=3" width="100%" height="430" border="0" style="border:0;"></iframe>
+</div>
+
 </div>

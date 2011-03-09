@@ -91,7 +91,7 @@ else:
 		//}
 	}
 	// Is $lines array?
-	} else echo '<li>'.info_sign(_("This place doesn't have any log events."),false).'</li>';
+	} else echo '<li><br /><br />'.info_sign(_("Nobody did anything for this place! Is it that good?"),false).'<br /><br /></li>';
 ?>
 </ul>
 

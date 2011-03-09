@@ -76,7 +76,7 @@ echo info_sign("This feature is under development and visible only for admins.",
 		//}
 	}
 	// Is $lines array?
-	} else echo '<li><br /><br />'.info_sign(_("User hasn't been poiking around the site yet."),false).'<br /><br /></li>';
+	} else echo '<li><br /><br />'.info_sign(_("User hasn't been poking around the site yet."),false).'<br /><br /></li>';
 ?>
 </ul>
 

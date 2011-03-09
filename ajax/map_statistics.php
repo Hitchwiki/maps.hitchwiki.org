@@ -149,7 +149,7 @@ elseif(isset($_GET["map"]) && $_GET["map"] == "3"): ?>
       ?>
       var options = {};
       options['dataMode'] = 'regions';
-      options['width'] = '800';
+      options['width'] = '100%';
       options['height'] = '400';
 
       var container = document.getElementById('map_canvas');

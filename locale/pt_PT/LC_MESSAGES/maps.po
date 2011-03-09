@@ -2,13 +2,29 @@
 # This file is distributed under the same license as the Maps package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2011-03-08 15:00:04+0000\n"
+"PO-Revision-Date: 2011-03-09 14:30:02+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 "X-Generator: GlotPress/0.1\n"
 "Project-Id-Version: Maps\n"
+
+#: views/pages/log_user.php:79
+msgid "User hasn't been poking around the site yet."
+msgstr ""
+
+#: views/pages/settings.php:197
+msgid "Publish my trips automatically"
+msgstr ""
+
+#: views/pages/log_trips.php:12
+msgid "Recorder hasn't recorded anything yet."
+msgstr ""
+
+#: views/pages/log_all.php:89
+msgid "Oh! Nothing has changed. Only the desert wind is moving some bits around..."
+msgstr ""
 
 #: views/pages/log_all.php:51 views/pages/log_place.php:61
 #: views/pages/log_user.php:46
@@ -50,10 +66,6 @@ msgstr ""
 msgid "Edit history for the place"
 msgstr ""
 
-#: views/pages/log_all.php:89
-msgid "Could not load log."
-msgstr ""
-
 #: views/pages/log_all.php:66
 msgid "%s started using Maps"
 msgstr ""
@@ -74,7 +86,7 @@ msgstr ""
 msgid "Trip recorder"
 msgstr ""
 
-#: views/pages/trips.php:7
+#: views/pages/trips.php:5 views/pages/trips.php:7
 msgid "My trips"
 msgstr ""
 
@@ -84,10 +96,6 @@ msgstr ""
 
 #: views/pages/log_all.php:8 views/pages/log_trips.php:7
 msgid "Log"
-msgstr ""
-
-#: views/pages/log_user.php:79
-msgid "This user doesn't have any log events."
 msgstr ""
 
 #: views/pages/settings.php:168
@@ -100,10 +108,6 @@ msgstr ""
 
 #: views/pages/settings.php:193
 msgid "Keep map centered to my current location"
-msgstr ""
-
-#: views/pages/settings.php:197
-msgid "Automatically publish my trips"
 msgstr ""
 
 #: views/pages/settings.php:198
