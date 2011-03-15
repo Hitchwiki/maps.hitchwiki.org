@@ -24,6 +24,8 @@ if($user["logged_in"]===true): ?>
 
 
 <form method="post" action="#" id="profile_form">
+	<input type="hidden" name="google_latitude" id="google_latitude" value="<?php if(isset($user["google_latitude"])) echo htmlspecialchars($user["google_latitude"]); ?>" />
+
 
 <div style="float: left; width: 250px; padding-right: 20px;">
 

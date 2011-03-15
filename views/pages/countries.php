@@ -84,7 +84,7 @@
 
 <div id="countryinfo" class="textbox">
 	<p><em class="bigger">"<?php echo _("I haven't been everywhere, but it's on my list."); ?>"</em></p>
-	<iframe src="ajax/map_statistics.php?map=3" width="100%" height="430" border="0" style="border:0;"></iframe>
+	<iframe src="ajax/map_statistics.php?map=3" width="100%" height="430" frameborder="0" style="border:0;"></iframe>
 </div>
 
 </div>

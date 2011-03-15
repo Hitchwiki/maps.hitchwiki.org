@@ -12,9 +12,27 @@ else { $settings["maintenance_page"] = true; $settings["non_maintenance_ip"] = a
  */
 if(isset($_GET["maintenance"])) $settings["maintenance_page"] = true;
 if($settings["maintenance_page"]===true && !in_array($_SERVER['REMOTE_ADDR'], $settings["non_maintenance_ip"])) {
-	include("maintenance_page.php");
+
+?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" dir="ltr" lang="en">
+	<head profile="http://gmpg.org/xfn/11">
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		<title>Hitchwiki - Maps</title>
+        <base href="../" />
+        <link rel="stylesheet" type="text/css" href="static/css/widget.css" media="all" />
+	</head>
+	<body>
+		<div style="padding:30px;">
+			<em>Sorry, Embedding maps is currently out of use. We'll try to get it back as soon as possible.</em>
+			<br /><br />
+			<a href="http://hitchwiki.org/maps" target="_blank"><img src="http://hitchwiki.org/maps/badge.png" alt="Hitchwiki Maps" /></a>
+		</div>
+	</body>
+</html><?php
+	
+	#include("maintenance_page.php");
 	exit;
-}
+} // end of maintenance
 
 
 /*
@@ -67,7 +85,7 @@ else {
 		<title>Hitchwiki - <?php echo _("Maps"); ?></title>
         <base href="../" />
         <link rel="stylesheet" type="text/css" href="static/css/widget.css<?php if($settings["debug"]==true) echo '?cache='.date("jnYHis"); ?>" media="all" />
-        <!--
+        
         <script src="static/js/jquery.min.js" type="text/javascript"></script>
         <script src="http://openlayers.org/api/OpenLayers.js" type="text/javascript"></script>
         <script type="text/javascript">
@@ -87,17 +105,10 @@ else {
 		//]]>
         </script>
 		<script src="static/js/widget.js<?php if($settings["debug"]==true) echo '?cache='.date("jnYHis"); ?>" type="text/javascript"></script>
-		-->
+		
 		<meta name="description" content="<?php printf(_("This is just a preview map. Go to %s for the actual service."), $settings["base_url"]."/"); ?>" />
 	</head>
 	<body>
-	
-<div style="padding:30px;">
-<em>Sorry, Embedding maps is currently out of use. We'll try to get it back as soon as possible.</em>
-<br /><br />
-<a href="http://hitchwiki.org/maps" target="_blank"><img src="http://hitchwiki.org/maps/badge.png" alt="Hitchwiki Maps" /></a>
-</div>
-<!--
 	    <small id="loading-bar"><?php echo _("Loading..."); ?></small>
 
 		<div id="map">
@@ -105,7 +116,7 @@ else {
 			<?php echo _("Loading..."); ?>
 		</div>
 
-		<ul id="log" style="display:block;"></ul>
--->
+		<ul id="log" style="display:none;"></ul>
+
 	</body>
 </html>

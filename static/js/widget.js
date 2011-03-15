@@ -6,7 +6,7 @@ var projmerc = new OpenLayers.Projection("EPSG:900913");
 OpenLayers.Util.onImageLoadError = function(){this.src='static/gfx/openlayers/tile_not_found.gif';}
 OpenLayers.Tile.Image.useBlankTile=false;
 
-var markersZoomLimit = 6;
+var markersZoomLimit = 5;
 
 var markers_free = false;
 var map, places, map_center;
@@ -88,8 +88,17 @@ $(document).ready(function() {
                 	    graphicZIndex: 2,
                 	    fillColor: "#66ccff",
                 	    strokeColor: "#3399ff"
+                	   
+                	}),
+                	"hover": new OpenLayers.Style({
+                	
+                	    graphicZIndex: 2,
+                	    fillColor: "#66ccff"
                 	    
                 	})
+                	
+                	
+                	
                 }), //stylemap end
 			isBaseLayer: false,
 			rendererOptions: {yOrdering: true}
@@ -105,8 +114,8 @@ $(document).ready(function() {
 	var select_marker = new OpenLayers.Control.SelectFeature(places, 
 							{
 								onSelect: onFeatureSelect, 
-								onUnselect: onFeatureUnselect,
-								hover: true,
+							/*	onUnselect: onFeatureUnselect,*/
+								hover: false,
 								clickout: true,
 								multiple: false,
 								box: false
@@ -127,64 +136,10 @@ $(document).ready(function() {
  
 var descriptions = new Array();
 function onFeatureSelect(feature) {
-	maps_debug("Show bubble #"+feature.attributes.id);
-	/*
-	if(feature.attributes.description != "") {
-		var description = feature.attributes.description;// + '<br /><br />';
-	}
-	else {
-		var description = "<i>No description...</i>";
-	}
-	*/
-	
-	if(feature.attributes.bubble_content == undefined) {
-		var bubble_content = '<i>'+_("Hitchhiking spot")+'</i>';
-		
-		// Get description
-		$.getJSON('api/?place='+feature.attributes.id, function(data) {
-			if(data.error) {
-			    maps_debug("API Error when getting marker info: "+data.error);
-			}
-			else {
-				bubble_content = '<b>'+data.locality+'<br />'+data.country.name+'</b><br /><br /><b>Rating:</b> '+data.exact_rating+' ('+data.rating_count+')<br /><b>Average waiting time:</b> '+data.waiting_stats.avg_textual+'<br /><br />';
+	maps_debug("Open #"+feature.attributes.id);
 
-				if(data.description.en_UK.description != undefined) {
-					bubble_content = bubble_content+data.description.en_UK.description;
-				}
-			}
-		});
-	}
-	else {
-		maps_debug("...used cached bubble content");
-		var bubble_content = feature.attributes.bubble_content;
-	}
-	
-	// Coordinates
-	var point = feature.geometry.getBounds().getCenterLonLat();
-    if(point.lat > map_center.lat) {
-    	var offset = 5;
-    } else {
-    	var offset = -5;
-    }
-    
-    popup = new OpenLayers.Popup.FramedCloud("Info", 
-							point,
-							null,
-							'<div style="font-size: 11px; line-height: 12px; width: 250px;">' + bubble_content +'</div>',//<small><a target="_top" href="./?place=' + feature.attributes.id +'">'+read_more_txt+'</a></small></div>',
-							{
-								'size': new OpenLayers.Size(15,15), 
-								'offset': new OpenLayers.Pixel(5,offset)
-							}, 
-							false);
-
-    feature.popup = popup;
-    map.addPopup(popup);
+	window.location.href = './?place='+feature.attributes.id;
 }
-function onFeatureUnselect(feature) {
-    map.removePopup(feature.popup);
-    feature.popup.destroy();
-    feature.popup = null;
-} 
 
 var markers = new Array();
 function refreshMapMarkers() {
