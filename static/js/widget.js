@@ -138,7 +138,7 @@ var descriptions = new Array();
 function onFeatureSelect(feature) {
 	maps_debug("Open #"+feature.attributes.id);
 
-	window.location.href = './?place='+feature.attributes.id;
+	window.top.location = './?place='+feature.attributes.id;
 }
 
 var markers = new Array();
