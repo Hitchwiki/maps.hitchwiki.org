@@ -78,15 +78,18 @@ else {
 	$lon = (isset($_GET["lon"]) && is_numeric($_GET["lon"])) ? $_GET["lon"] : $d_lon;
 }
 
+$basehref = "../";
+
 ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" dir="ltr" lang="<?php echo shortlang(); ?>">
 	<head profile="http://gmpg.org/xfn/11">
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 		<title>Hitchwiki - <?php echo _("Maps"); ?></title>
-        <base href="../" />
-        <link rel="stylesheet" type="text/css" href="static/css/widget.css<?php if($settings["debug"]==true) echo '?cache='.date("jnYHis"); ?>" media="all" />
+        <!--<base href="../" />-->
+        <meta name="robots" content="noindex, nofollow" />
+        <link rel="stylesheet" type="text/css" href="../static/css/widget.css<?php if($settings["debug"]==true) echo '?cache='.date("jnYHis"); ?>" media="all" />
         
-        <script src="static/js/jquery.min.js" type="text/javascript"></script>
+        <script src="../static/js/jquery.min.js" type="text/javascript"></script>
         <script src="http://openlayers.org/api/OpenLayers.js" type="text/javascript"></script>
         <script type="text/javascript">
 		//<![CDATA[
@@ -104,7 +107,7 @@ else {
 			<?php if($alert) echo 'alert("Hitchwiki - '._("Maps").': '._("Requested country could not be found!").'");' ?>
 		//]]>
         </script>
-		<script src="static/js/widget.js<?php if($settings["debug"]==true) echo '?cache='.date("jnYHis"); ?>" type="text/javascript"></script>
+		<script src="../static/js/widget.js<?php if($settings["debug"]==true) echo '?cache='.date("jnYHis"); ?>" type="text/javascript"></script>
 		
 		<meta name="description" content="<?php printf(_("This is just a preview map. Go to %s for the actual service."), $settings["base_url"]."/"); ?>" />
 	</head>

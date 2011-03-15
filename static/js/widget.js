@@ -3,7 +3,7 @@ var proj4326 = new OpenLayers.Projection("EPSG:4326");
 var projmerc = new OpenLayers.Projection("EPSG:900913");
 
 // Missing tiles from the map
-OpenLayers.Util.onImageLoadError = function(){this.src='static/gfx/openlayers/tile_not_found.gif';}
+OpenLayers.Util.onImageLoadError = function(){this.src='../static/gfx/openlayers/tile_not_found.gif';}
 OpenLayers.Tile.Image.useBlankTile=false;
 
 var markersZoomLimit = 5;
@@ -18,7 +18,7 @@ $(document).ready(function() {
 	
 	
 	// Custom images from our own server
-	OpenLayers.ImgPath = "static/gfx/openlayers/";
+	OpenLayers.ImgPath = "../static/gfx/openlayers/";
 	
 	// Create map with controls	
 	map = new OpenLayers.Map('map', {		
@@ -138,7 +138,7 @@ var descriptions = new Array();
 function onFeatureSelect(feature) {
 	maps_debug("Open #"+feature.attributes.id);
 
-	window.top.location = './?place='+feature.attributes.id;
+	window.top.location = '../?place='+feature.attributes.id;
 }
 
 var markers = new Array();
@@ -166,7 +166,7 @@ function refreshMapMarkers() {
 		var corner2 = new OpenLayers.LonLat(extent.right, extent.bottom).transform(projmerc, proj4326);
 		
 		
-		var apiCall = 'api/?bounds='+corner2.lat+','+corner1.lat+','+corner1.lon+','+corner2.lon;	
+		var apiCall = '../api/?bounds='+corner2.lat+','+corner1.lat+','+corner1.lon+','+corner2.lon;	
 		maps_debug("Calling API: "+apiCall);
 		
 		// Get markers from the API for this area
