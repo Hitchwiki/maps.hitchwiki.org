@@ -172,7 +172,7 @@ else $description = $slogan;
 		
 		?><script src="http://openlayers.org/api/OpenLayers.js" type="text/javascript"></script>
 
-		<link href="ajax/js-translation.json.php?lang=<?php echo $settings["language"]; ?>" lang="<?php echo $settings["language"]; ?>" rel="gettext"/>
+		<link href="ajax/js-translation.json.php?c=<?php echo $settings["cache_buster"]; ?>&amp;lang=<?php echo $settings["language"]; ?>" lang="<?php echo $settings["language"]; ?>" rel="gettext"/>
 		<script type="text/javascript">
 		//<![CDATA[
 
@@ -210,22 +210,28 @@ else $description = $slogan;
 		
 		<?php /*$settings["debug"]==true*/if(!isset($_GET["min.js"])): ?>
 		<!-- in production, these are combined (combined.js.php) -->
-		<script src="static/js/jquery.min.js" type="text/javascript"></script>
-		<script src="static/js/jquery-ui.min.js" type="text/javascript"></script>
+		<script src="static/js/jquery.min.js?c=<?php echo $settings["cache_buster"]; ?>" type="text/javascript"></script>
+		<script src="static/js/jquery-ui.min.js?c=<?php echo $settings["cache_buster"]; ?>" type="text/javascript"></script>
 		<script src="static/js/jquery.json-2.2.min.js" type="text/javascript"></script>
 		
 		<!-- in production, these are minified (min.js) -->
 		<script src="static/js/jquery.cookie.js" type="text/javascript"></script>
 		<script src="static/js/jquery.gettext.js" type="text/javascript"></script>
 		<script src="static/js/jquery.itoggle-min.js" type="text/javascript"></script>
-		<script src="static/js/main.js<?php if($settings["debug"]==true) echo '?cache='.date("jnYHis"); ?>" type="text/javascript"></script>
+		<script src="static/js/main.js?c=<?php 
+			if($settings["debug"]==true) echo date("jnYHis"); 
+			else echo $settings["cache_buster"];
+		?>" type="text/javascript"></script>
 		<?php else: ?>
 		<script src="static/js/combined.js.php" type="text/javascript"></script>
 		<script src="static/js/min.js" type="text/javascript"></script>
 		<?php endif; ?>
 
 		<!-- Keep main stylesheet here after min.js/main.js -->
-		<link rel="stylesheet" type="text/css" href="static/css/main.css<?php if($settings["debug"]==true) echo '?cache='.date("jnYHis"); ?>" media="all" />
+		<link rel="stylesheet" type="text/css" href="static/css/main.css?c=<?php 
+			if($settings["debug"]==true) echo date("jnYHis"); 
+			else echo $settings["cache_buster"];
+		?>" media="all" />
 		
 		<script type="text/javascript">
 		//<![CDATA[
@@ -401,7 +407,7 @@ else $description = $slogan;
 			?>">
 				
 					<ul class="align_right" id="loginSidemenu">
-						<li><a href="#" id="toggleLanguages" title="<?php echo _("Choose language"); ?>"><?php echo _("Language"); ?></a></li>
+						<li><a href="#" id="toggleLanguages" title="<?php echo _("Choose language"); ?>">Language</a></li>
 						
 						<?php // User is logged in:
 						if($user["logged_in"]===true): ?>

@@ -8,7 +8,9 @@
 /* 
  * SETTINGS you might want to adjust:
  */
+ 
 // Tools for devs:
+$settings["cache_buster"] = 			''; // Force user's browser to refresh JS and CSS files by changing this to something new
 $settings["debug"] = 					false;
 $settings["allow_admins"] = 			false; // Set false to temporarily take off all admin priviliges
 $settings["maintenance_page"] = 		false; // Set true to close down visible page
