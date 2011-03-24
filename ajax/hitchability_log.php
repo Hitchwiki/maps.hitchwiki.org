@@ -1,7 +1,7 @@
 <?php
 /*
- * Hitchwiki Maps: waitingtimes.php
- * Show a waiting time log for a place
+ * Hitchwiki Maps: hitchability.php
+ * Show a ratings log for a place
  */
 
 /*
@@ -35,9 +35,9 @@ $res = mysql_query("SELECT
 						`id`,
 						`fk_user`,
 						`fk_point`,
-						`waitingtime`,
+						`rating`,
 						`datetime`			
-					FROM `t_waitingtimes` 
+					FROM `t_ratings` 
 					WHERE `fk_point` = '".mysql_real_escape_string($_GET["id"])."'");
 					
 if(!$res) {
@@ -51,16 +51,15 @@ if(mysql_affected_rows() >= 1):
 	// Gather data first into an array, so we can tell if there 
 	// were records by current user, and print out little different <thead>
 	$current_user_rows = false;
-	$waitingtime_min = false;
-	$waitingtime_max = false;
 	while($r = mysql_fetch_array($res, MYSQL_ASSOC)) {
 	
-		if($r["waitingtime"] < $waitingtime_min OR $waitingtime_min === false) $waitingtime_min = $r["waitingtime"];
-		if($r["waitingtime"] > $waitingtime_max OR $waitingtime_max === false) $waitingtime_max = $r["waitingtime"]; 
 	
-		$waitingtimes[] = array(
-			"datetime" 		=> strtotime($r["datetime"]),
-			"waitingtime" 	=> nicetime($r["waitingtime"]),
+		if(!empty($r["datetime"])) $datetime = strtotime($r["datetime"]);
+		else $datetime = "";
+		
+		$ratings[] = array(
+			"datetime" 		=> $datetime,
+			"rating" 		=> hitchability2textual($r["rating"]),
 			"username" 		=> username($r["fk_user"]),
 			"user_id" 		=> $r["fk_user"],
 			"id" 		=> $r["id"]
@@ -70,17 +69,26 @@ if(mysql_affected_rows() >= 1):
 	}
 	
 	?>
+	
+	
+	<?php 
+	// If more than 1 rating, show more complicated statistics
+	
+	$place = get_place($_GET["id"],true);
+	
+	if(isset($_GET["stats"])): ?>
+	    <br /><small class="light"><?php echo _("Vote distribution"); ?>:</small><br />
+	    <!--<img src="<?php echo rating_chart($place["rating_stats"], 220); ?>" alt="<?php echo _("Vote distribution"); ?>" />-->
+	    <?php echo rating_chart_html($place["rating_stats"]); ?>
+	<?php endif; ?>
+				
+	
 	<br />
-	<?php
-	if(count($waitingtimes) > 2) {
-		printf('<small>'._("Waiting time varies from %s to %s.").'</small><br />', nicetime($waitingtime_min), nicetime($waitingtime_max));
-	}
-	?>
-	<table cellpadding="0" cellspacing="0" class="infotable smaller" id="timing_list">
+	<table cellpadding="0" cellspacing="0" class="infotable smaller" id="rating_list">
 		<thead>
 		    <tr>
 		    	<th><span class="ui-icon ui-icon-calendar"><?php echo _("Date"); ?></span></th>
-		    	<th><span class="ui-icon ui-icon-clock"><?php echo _("Waiting time"); ?></span></th>
+		    	<th><span class="ui-icon ui-icon-star"><?php echo _("Hitchability"); ?></span></th>
 		    	<th><span class="ui-icon ui-icon-person"><?php echo _("User"); ?></span></th>
 		    	<?php if($current_user_rows===true) echo '<th> </th>'; ?>
 		    </tr>
@@ -89,19 +97,22 @@ if(mysql_affected_rows() >= 1):
 	<?php
 	
 	// Print out the array
-	foreach($waitingtimes as $waitingtime) {
+	foreach($ratings as $rating) {
 	
-		echo '<tr id="timing-'.$waitingtime["id"].'">';
-		echo '<td title="'.date(DATE_RFC822, $waitingtime["datetime"]).'">'.date("j.n.Y", $waitingtime["datetime"]).'</td>';
-		echo '<td>'.$waitingtime["waitingtime"].'</td>';
+		echo '<tr id="rating-'.$rating["id"].'">';
 		
-		if($user["id"] == $waitingtime["user_id"]) echo '<td><a href="./?page=profile" onclick="open_page(\'profile\'); return false;">'.$waitingtime["username"].'</a></td>';
-		else echo '<td>'.$waitingtime["username"].'</td>';
+		if(!empty($rating["datetime"])) echo '<td title="'.date(DATE_RFC822, $rating["datetime"]).'">'.date("n/Y", $rating["datetime"]).'</td>';
+		else echo '<td> </td>';
+		
+		echo '<td>'.$rating["rating"].'</td>';
+		
+		if(!empty($user["id"]) && $user["id"] == $rating["user_id"]) echo '<td><a href="./?page=profile" onclick="open_page(\'profile\'); return false;">'.$rating["username"].'</a></td>';
+		else echo '<td>'.$rating["username"].'</td>';
 		
 		// Print extra cell if in this list there are some of this users waitingtimes. 
 		// Print delete-icon into users own rows
 		if($current_user_rows===true) {
-			if($user["id"] == $waitingtime["user_id"] OR $user["admin"] === true) echo '<td><a href="#" class="remove_waitingtime ui-icon ui-icon-trash align_right" title="'._("Remove record").'">'.$waitingtime["id"].'</a></td>';
+			if($user["id"] == $rating["user_id"] OR $user["admin"] === true) echo '<td><a href="#" class="remove_rating ui-icon ui-icon-trash align_right" title="'._("Remove record").'">'.$rating["id"].'</a></td>';
 			else echo '<td> </td>';
 		}
 		
@@ -115,27 +126,26 @@ if(mysql_affected_rows() >= 1):
 	<script type="text/javascript">
 		$(function() {
 		
-		    // Remove time row
-		    $(".remove_waitingtime").click(function(e) {
+		    // Remove rating
+		    $(".remove_rating").click(function(e) {
 		    	e.preventDefault();
-		    	stats("waitingtimes/remove");
 		    	
 				var remove_id = $(this).text();
 	
-	    		maps_debug("Asked to remove timing "+remove_id);
-				stats("waitingtime/remove/");
+	    		maps_debug("Asked to remove rating "+remove_id);
+				stats("rating/remove/");
 				
 				var confirm_remove = confirm("<?php echo _("Are you sure you want to remove this record?"); ?>")
 				
 				if(confirm_remove) {
 					// Call API
-					$.getJSON('api/?remove_waitingtime='+remove_id, function(data) {
+					$.getJSON('api/?remove_rating&rating_id='+remove_id, function(data) {
 					
 						if(data.success == true) {
 					
-	    					maps_debug("Timing "+remove_id+" removed.");
+	    					maps_debug("Rating "+remove_id+" removed.");
 						
-							// Fade timing away
+							// Fade rating away
 	    					//$("#timing_list #timing-"+remove_id).fadeOut("slow");
 	    					showPlacePanel(<?php echo htmlspecialchars($_GET["id"]); ?>);
 	    			
@@ -155,5 +165,5 @@ if(mysql_affected_rows() >= 1):
 	</script>
 
 <?php else: ?>
-	<p><i><?php echo _("No waiting time for this place added yet."); ?></i></p>
+	<p><i><?php echo _("No ratings for this place added yet."); ?></i></p>
 <?php endif; ?>

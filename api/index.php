@@ -256,6 +256,18 @@ if(isset($_GET["remove_comment"])) {
 
 
 /*
+ * Remove rating
+ * by ID of the rating (rating_id) or by id of the place (place_id)
+ */
+if(isset($_GET["remove_rating"])) {
+
+	if(isset($_GET["rating_id"])) echo $api->removeRating($_GET["rating_id"], false);
+	elseif(isset($_GET["place_id"])) echo $api->removeRating(false, $_GET["place_id"]);
+	else echo $api->API_error("No ID defined.");
+
+}
+
+/*
  * Remove waitingtime
  */
 if(isset($_GET["remove_waitingtime"])) {

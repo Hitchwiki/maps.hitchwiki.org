@@ -123,6 +123,7 @@ table.infotable {
 		background-color: #eddeb6;
 		text-align: left;
 	}
+	table.infotable#rating_list,
 	table.infotable#timing_list {
 		width: 100%;
 	}
@@ -1442,7 +1443,7 @@ ul li ul li #comments ol li.own_comment {
 	font-family: Courier,serif;
 	padding: 0;
 	margin: 0;
-	width: 400px;
+	width: 450px;
 	height: 320px;
 	max-height: 620px;
 	max-width: 700px;
@@ -1471,11 +1472,15 @@ ul li ul li #comments ol li.own_comment {
 		border-top-left-radius: 3px;
 		border-top-right-radius: 3px;
 	} 
-	#log ul {
+	#log ol {
+		/*
 		padding: 10px;
 		margin: 0;
+		*/
+		margin-right: 0;
+		padding-right: 0;
 		display: block;
-		width: 380px;
+		width: 410px;
 		height: 280px;
 		max-height: 580px;
 		max-width: 680px;
@@ -1484,10 +1489,17 @@ ul li ul li #comments ol li.own_comment {
 		
 	}
 	#log li {
-		list-style: square;
-		padding: 2px 0;
-		margin: 0 0 0 10px;
+		color: #969696;
+		margin-right: 0;
+		padding-right: 0;
+		/*list-style: square;*/
+		/*
+		margin: 0 0 0 20px;
+		*/
 	} 
+	#log li span {
+		color: #fff;
+	}
 
 
 

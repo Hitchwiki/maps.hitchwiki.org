@@ -2,7 +2,7 @@
 # This file is distributed under the same license as the Maps package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2011-03-15 22:00:04+0000\n"
+"PO-Revision-Date: 2011-03-24 16:30:04+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -12,123 +12,123 @@ msgstr ""
 
 #: views/pages/log_user.php:79
 msgid "User hasn't been poking around the site yet."
-msgstr ""
+msgstr "此用户还没有被poke"
 
 #: views/pages/settings.php:197
 msgid "Publish my trips automatically"
-msgstr ""
+msgstr "自动发布我的旅程"
 
 #: views/pages/log_trips.php:12
 msgid "Recorder hasn't recorded anything yet."
-msgstr ""
+msgstr "记录器还没工作呢"
 
 #: views/pages/log_all.php:89
 msgid "Oh! Nothing has changed. Only the desert wind is moving some bits around..."
-msgstr ""
+msgstr "嗷！没有任何改动。"
 
 #: views/pages/log_all.php:51 views/pages/log_place.php:61
 #: views/pages/log_user.php:46
 msgid "%1$s waited for a ride in here for %2$s"
-msgstr ""
+msgstr "%1$s在这里等了%2$s"
 
 #: views/pages/log_place.php:94
 msgid "This place doesn't have any log events."
-msgstr ""
+msgstr "这里没有任何事件"
 
 #: views/pages/log_place.php:79 views/pages/log_user.php:64
 msgid "Before 27. November 2010"
-msgstr ""
+msgstr "在2010年11月27日以前"
 
 #: views/pages/log_all.php:63
 msgid "%1$s added a link to the public transportation catalog for %2$s"
-msgstr ""
+msgstr "%1$s为%2$s添加了一个公共交通的链接"
 
 #: views/pages/log_all.php:11
 msgid "Actions on the website during the last %d days."
-msgstr ""
+msgstr "过去%d天内网站的更改"
 
 #: views/pages/log_all.php:44 views/pages/log_place.php:54
 #: views/pages/log_user.php:39
 msgid "%s added a new place"
-msgstr ""
+msgstr "%s添加了一个新地点"
 
 #: views/pages/log_all.php:47 views/pages/log_place.php:57
 #: views/pages/log_user.php:42
 msgid "%s commented place"
-msgstr ""
+msgstr "%s个被评论的地点"
 
 #: views/pages/log_all.php:54 views/pages/log_place.php:64
 #: views/pages/log_user.php:49
 msgid "%1$s rated \"%2$s\" for this place"
-msgstr ""
+msgstr "%1$s给这个地方打分为\"%2$s\" "
 
 #: views/pages/log_place.php:1
 msgid "Edit history for the place"
-msgstr ""
+msgstr "编辑这个地点的历史"
 
 #: views/pages/log_all.php:66
 msgid "%s started using Maps"
-msgstr ""
+msgstr "%s开始使用地图了"
 
 #: views/pages/profile.php:11
 msgid "Edit your profile"
-msgstr ""
+msgstr "编辑你的档案"
 
 #: views/pages/log_user.php:8
 msgid "%s's activity log"
-msgstr ""
+msgstr "%s的活动日志"
 
 #: views/pages/settings.php:125
 msgid "The map will be centered to here."
-msgstr ""
+msgstr "地图将定位在这里"
 
 #: views/pages/settings.php:165
 msgid "Trip recorder"
-msgstr ""
+msgstr "旅程记录器"
 
 #: views/pages/trips.php:5 views/pages/trips.php:7
 msgid "My trips"
-msgstr ""
+msgstr "我的旅程"
 
 #: index.php:293
 msgid "Sorry about that!"
-msgstr ""
+msgstr "抱歉啊！"
 
 #: views/pages/log_all.php:8 views/pages/log_trips.php:7
 msgid "Log"
-msgstr ""
+msgstr "日志"
 
 #: views/pages/settings.php:168
 msgid "Toggle trip recorder on/off"
-msgstr ""
+msgstr "日志记录器开/关"
 
 #: views/pages/settings.php:185
 msgid "Clear your recorded trips"
-msgstr ""
+msgstr "清空记录的旅程"
 
 #: views/pages/settings.php:193
 msgid "Keep map centered to my current location"
-msgstr ""
+msgstr "保持地图定位在此处"
 
 #: views/pages/settings.php:198
 msgid "If not, you need to manually publish them from your trips page."
-msgstr ""
+msgstr "否则，你要在你的旅程页面手动发布"
 
 #: views/pages/settings.php:202
 msgid "Share my latest location on my profile page"
-msgstr ""
+msgstr "在我的档案页面分享我最新的位置"
 
 #: views/pages/settings.php:206
 msgid "Share my location and trips only with registered users"
-msgstr ""
+msgstr "只和注册用户分享我的旅程和位置"
 
 #: views/pages/settings.php:210
 msgid "Automatically fetch my location from Google Latitude"
-msgstr ""
+msgstr "自动从Google Latitude获取我的位置"
 
 #: views/pages/settings.php:213
 msgid "Paste your \"Google Public Location Badge\" code to here"
-msgstr ""
+msgstr "粘贴\"Google Public Location Badge\" 到这里"
 
 #: views/pages/settings.php:215
 msgid "First enable <a href=\"%s\" target=\"_blank\">Google Public Location Badge</a>. Then copy and paste the HTML snippet from the textarea onto textarea above."
@@ -136,53 +136,53 @@ msgstr ""
 
 #: views/pages/trips.php:8
 msgid "Countries visited"
-msgstr ""
+msgstr "去过的国家"
 
 #: views/pages/trips.php:10
 msgid "Import"
-msgstr ""
+msgstr "载入"
 
 #: views/pages/trips.php:28
 msgid "From"
-msgstr ""
+msgstr "从"
 
 #: views/pages/trips.php:30
 msgid "To"
-msgstr ""
+msgstr "到"
 
 #: views/pages/trips.php:36 views/pages/trips.php:37 views/pages/trips.php:38
 #: views/pages/trips.php:39 views/pages/trips.php:236 views/pages/trips.php:237
 #: views/pages/trips.php:238 views/pages/trips.php:239
 msgid "%d per page"
-msgstr ""
+msgstr "每页%d"
 
 #: views/pages/trips.php:69
 msgid "No thanks"
-msgstr ""
+msgstr "不用了"
 
 #: views/pages/trips_place.php:11
 msgid "Back to listing"
-msgstr ""
+msgstr "回到列表"
 
 #: index.php:293
 msgid "If something on the website seems wrong to you, please use \"contact us\" link at the bottom-left of the page."
-msgstr ""
+msgstr "如果本网站有错误，请点击页面左下角，联系我们"
 
 #: index.php:293
 msgid "The maintenance break is now over"
-msgstr ""
+msgstr "维护的休息结束了"
 
 #: ajax/place.php:162
 msgid "History"
-msgstr ""
+msgstr "历史"
 
 #: ajax/place.php:161
 msgid "Description edited %s"
-msgstr ""
+msgstr "描述编辑了%s"
 
 #: ajax/place.php:140
 msgid "Click to edit"
-msgstr ""
+msgstr "点击编辑"
 
 #: views/cards/contact.php:71
 msgid "Thank you very much!"

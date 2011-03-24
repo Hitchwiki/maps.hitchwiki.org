@@ -23,6 +23,7 @@
  * - getAll()
  * - removeComment()
  * - removeWaitingtime()
+ * - removeRating()
  * - addComment()
  * - addDescription()
  * - addPlace()
@@ -371,7 +372,6 @@ class maps_api
 	
 	}
 	
-	
 	/* 
 	 * Remove waitingtime
 	 */
@@ -380,7 +380,7 @@ class maps_api
 		// ID
 		if($id===false OR empty($id) OR !is_numeric($id)) return $this->API_error("Invalid ID.");
 		
-		// Check if user has rights to remove comment
+		// Check if user has rights to remove timing
 	 	$user = current_user();
 		// Admins have rights to remove anything, others we need to check from the database
 		if($user["admin"] !== true) {
@@ -398,7 +398,53 @@ class maps_api
    		if(!$res) return $this->API_error("Query failed!");
    		
    		if(mysql_affected_rows() >= 1) return $this->output( array("success"=>true) );
-   		else return $this->API_error("Comment ID not found.");
+   		else return $this->API_error("Waitingtime ID not found.");
+	
+	}
+	
+	
+	/* 
+	 * Remove rating
+	 * by ID of the rating ($rating_id) or by id of the place ($place_id)
+	 */
+	function removeRating($rating_id=false, $place_id=false) {
+	
+		// Delete by rating ID
+		if($rating_id !== false) {
+			if(empty($rating_id) OR !is_numeric($rating_id)) return $this->API_error("Invalid rating ID.");
+			else $id = $rating_id;
+		} 
+		// Delete by place ID
+		elseif($place_id !== false) {
+			if(empty($place_id) OR !is_numeric($place_id)) return $this->API_error("Invalid place ID.");
+			else $id = $place_id;
+		}
+		else return $this->API_error("No rating- or place ID.");
+		
+		
+		// Check if user has rights to remove rating
+	 	$user = current_user();
+		// Admins have rights to remove anything, others we need to check from the database
+		if($user["admin"] !== true) {
+		
+			if($rating_id !== false) $rescheck_query = "SELECT `id`,`fk_user` FROM `t_ratings` WHERE `fk_user` = ".$user["id"]." AND `id` = ".mysql_real_escape_string($id)." LIMIT 1";
+			elseif($place_id !== false) $rescheck_query = "SELECT `fk_point`,`fk_user` FROM `t_ratings` WHERE `fk_user` = ".$user["id"]." AND `fk_point` = ".mysql_real_escape_string($id)." LIMIT 1";
+   			
+   			$rescheck = mysql_query($rescheck_query);
+   			if(!$rescheck) return $this->API_error("Checking permissions query failed!");
+			
+			// If we didn't find any rows matching rating-id AND user-id, user doesn't have permissions to remove this
+			if(mysql_num_rows($rescheck) <= 0) return $this->API_error("permission_denied ".$rescheck_query);
+		}
+				
+		// Remove it
+   		if($rating_id !== false) $res = mysql_query("DELETE FROM `t_ratings` WHERE `id` = ".mysql_real_escape_string($id)." LIMIT 1");
+		elseif($place_id !== false) $res = mysql_query("DELETE FROM `t_ratings` WHERE `fk_user` = ".$user["id"]." AND `fk_point` = ".mysql_real_escape_string($id)." LIMIT 1");
+
+   		if(!$res) return $this->API_error("Query failed!");
+   	
+   		if(mysql_affected_rows() >= 1) return $this->output( array("success"=>true) );
+   		else return $this->API_error("Rating ID not found.");
 	
 	}
 	

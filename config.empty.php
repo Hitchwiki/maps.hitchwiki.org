@@ -9,9 +9,10 @@
  * SETTINGS you might want to adjust:
  */
 // Tools for devs:
-$settings["debug"] = 					true;
-$settings["maintenance_page"] = 		true; // Set true to close down visible page
-$settings["maintenance_api"] = 			true; // Set true to close down API
+$settings["debug"] = 					false;
+$settings["allow_admins"] = 			false; // Set false to temporarily take off all admin priviliges
+$settings["maintenance_page"] = 		false; // Set true to close down visible page
+$settings["maintenance_api"] = 			false; // Set true to close down API
 $settings["non_maintenance_ip"] = 		array(); // Add IP addresses to whom show a normal page while in maintenance mode.
 
 // API-keys:

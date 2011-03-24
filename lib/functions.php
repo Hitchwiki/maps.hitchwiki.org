@@ -1549,6 +1549,7 @@ function current_user($get_password=false) {
  * password = md5(t_user.password)
  */
 function get_user($session=false) {
+	global $settings;
 	start_sql();
 
 	$res = mysql_query("SELECT * FROM `t_users` WHERE `id` = '".mysql_real_escape_string($session["wsUserID"])."' LIMIT 1");
@@ -1580,7 +1581,7 @@ function get_user($session=false) {
 			$user["map_default_layer"] = $r["map_default_layer"];
 			
 			// Admin? 1:false
-			if($r["admin"]=="1") $user["admin"] = true;
+			if($r["admin"]=="1" && $settings["allow_admins"] === true) $user["admin"] = true;
 			else $user["admin"] = false;
 			
 			// If the name in the session was different than the one in DB, update DB

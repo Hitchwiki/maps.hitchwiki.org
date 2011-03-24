@@ -32,9 +32,9 @@ $(document).ready(function() {
 	 * Debug log-box
 	 */
 	// Some positioning...
-	var log = $("#log").attr("style","position:absolute; top: 100px; left: 100px;");
-	log.draggable({handle: '#log .handle'});
-	$("#log ul").resizable({alsoResize: '#log'});
+	var log = $("#log").attr("style","position: absolute; top: 100px; left: 100px;");
+	log.draggable({handle: ".handle", containment: "body"});
+	$("#log").resizable({alsoResize: '#log ol'});
 	
 	// Create a toggle button for log
 	$("#log .close, .toggle_log").click(function(e){
@@ -1735,7 +1735,7 @@ function open_page(name, variables) {
 			if($("#pages .page").is(':hidden')) {
 				$("#pages .page .content").html(content).show();
 				$("#pages .page").attr("id",name).slideDown('fast');
-				$("#pages .close").show();
+				$("#pages .close").fadeIn();
 			} else {
 				$("#pages .page .content").html(content);
 				$("#pages .page").attr("id",name).attr({ scrollTop: 0 });
@@ -1747,6 +1747,7 @@ function open_page(name, variables) {
 
 
 
+
 /* 
  * Close page
  */
@@ -1755,8 +1756,8 @@ function close_page() {
 	
 	if($("#pages .page").is(':visible')) {
 			$("#pages .page .content").hide('fast').text('');
+			$("#pages .close").fadeOut('fast');
 			$("#pages .page").slideUp('fast').attr(id,"closed");
-			$("#pages .close").hide();
 	}
 }
 
@@ -1784,15 +1785,17 @@ function open_card(name, title) { //, x_coord, y_coord, width
 	
 	//$(".card").dialog("destroy");
 
+	// Close pages if open
+	if($("#pages .page").is(':visible')) { close_page(); }
+	    	
+	close_cards();
+		    
 	$.ajax({
 	    url: "ajax/views.php?type=card&lang="+locale+"&page=" + name,
 	    async: false,
 	    success: function(content){
-		    close_cards();
 	
-			// Close pages if open
-			if($("#pages .page").is(':visible')) { close_page(); }
-	    	
+		    
 	    	$("#cards").html('<div class="card" id="card_'+name+'" title="'+title+'">'+content+'</div>');
 	    	$("#cards .card").dialog({
 						position: [280,100],
@@ -2054,7 +2057,7 @@ function hide_loading_bar() {
  */
 function maps_debug(str) {
 	if(debug==true) {
-		 $("#log ul").append("<li>"+str+"</li>").attr({ scrollTop: $("#log ul").attr("scrollHeight") });
+		 $("#log ol").append("<li><span>"+str+"</span></li>").attr({ scrollTop: $("#log ol").attr("scrollHeight") });
 		return true;
 	}
 }

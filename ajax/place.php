@@ -302,41 +302,38 @@ if($place["error"] !== true):
 
 				<!-- Hitchability -->
 				<?php 
-					echo '<b>'._("Hitchability").':</b> '.hitchability2textual($place["rating"]).' <b class="bigger hitchability_color_'.$place["rating"].'">&bull;</b> ';
-					echo '<small class="light">('.sprintf(ngettext("%d vote", "%d votes", $place["rating_stats"]["rating_count"]), $place["rating_stats"]["rating_count"]).')</small>';
+					// Hitchability + link for more info
+					echo '<h3 style="margin: 0; display: inline;" class="icon thumb_up">'._("Hitchability").':</h3> '.hitchability2textual($place["rating"]).' <b class="bigger hitchability_color_'.$place["rating"].'">&bull;</b> ';
+					
+
+
+					// Check if user has already rated this point, and if, what did one rate?
+					$users_rating = false;
+					if($user["logged_in"]===true) {
+					
+						$res4 = mysql_query("SELECT `fk_user`,`fk_point`,`datetime`,`rating` FROM `t_ratings` WHERE `fk_user` = ".mysql_real_escape_string($user["id"])." AND `fk_point` = ".mysql_real_escape_string($place["id"])." LIMIT 1");
+   						if(!$res4) return $this->API_error("Query failed! (4)");
+						
+						// If we have a result
+						if(mysql_num_rows($res4) > 0) {
+							// Get an ID of row we need to just update
+							while($r = mysql_fetch_array($res4, MYSQL_ASSOC)) {
+								$users_rating = $r["rating"];
+								$users_rating_date = $r["datetime"];
+							}
+						}
+					} //logged_in?
+			
+			
+				// Show rating menu
 				?>
-				
-				<?php if($place["rating_stats"]["rating_count"] > 1): ?>
-					<br /><small class="light"><?php echo _("Vote distribution"); ?>:</small><br />
-					<!--<img src="<?php echo rating_chart($place["rating_stats"], 220); ?>" alt="<?php echo _("Vote distribution"); ?>" />-->
-					<?php echo rating_chart_html($place["rating_stats"]); ?>
-				<?php endif; ?>
-				
-			
-			<?php
-			
-			// Check if user has already rated this point, and if, what did one rate?
-			$users_rating = false;
-			if($user["logged_in"]===true) {
-			
-				$res4 = mysql_query("SELECT `fk_user`,`fk_point`,`datetime`,`rating` FROM `t_ratings` WHERE `fk_user` = ".mysql_real_escape_string($user["id"])." AND `fk_point` = ".mysql_real_escape_string($place["id"])." LIMIT 1");
-   				if(!$res4) return $this->API_error("Query failed! (4)");
-				
-				// If we have a result
-				if(mysql_num_rows($res4) > 0) {
-					// Get an ID of row we need to just update
-					while($r = mysql_fetch_array($res4, MYSQL_ASSOC)) {
-						$users_rating = $r["rating"];
-						$users_rating_date = $r["datetime"];
-					}
-				}
-				
-			}
-			
-			?>
 				<br />
 				<select name="rate" id="rate" class="smaller">
-					<?php if($users_rating==false): ?><option value=""><?php echo _("Your opinion..."); ?></option><?php endif; ?>
+					<?php if($users_rating==false): ?>
+						<option value=""><?php echo _("Your opinion..."); ?></option>
+					<?php else: ?>
+						<option value="0"><?php echo _("Remove my rating"); ?></option>
+					<?php endif; ?>
 					<option value="1"<?php if($users_rating==1) echo ' selected="selected"'; ?>><?php echo hitchability2textual(1); ?></option>
 					<option value="2"<?php if($users_rating==2) echo ' selected="selected"'; ?>><?php echo hitchability2textual(2); ?></option>
 					<option value="3"<?php if($users_rating==3) echo ' selected="selected"'; ?>><?php echo hitchability2textual(3); ?></option>
@@ -344,11 +341,23 @@ if($place["error"] !== true):
 					<option value="5"<?php if($users_rating==5) echo ' selected="selected"'; ?>><?php echo hitchability2textual(5); ?></option>
 					<?php /* if($user["logged_in"]===true): ?><option value="clear"><?php echo _("Clear my rating"); ?></option><?php/ endif;  TODO! */ ?>
 				</select>
+			
 				<?php
 				
-				if(!empty($users_rating_date)) echo '<br /><small class="light">'._("You rated for this place").' <span title="'.date(DATE_RFC822, strtotime($users_rating_date)).'">'.date("j.n.Y", strtotime($users_rating_date)).'</span></small>';
-				
+				// Start small info area
+				if(!empty($users_rating_date) OR !empty($place["rating_stats"]["rating_count"])) echo '<small class="light">';
+
+				// Used has rated for the place
+				if(!empty($users_rating_date)) echo '<br />&rsaquo; '._("You rated for this place").' <span title="'.date(DATE_RFC822, strtotime($users_rating_date)).'">'.date("j.n.Y", strtotime($users_rating_date)).'</span>';
+
+				// Link to show ratings -log
+				if(!empty($place["rating_stats"]["rating_count"])) echo '<a href="#" id="show_rating_log" title="'._("Show log").'"><br />&rsaquo; '.sprintf(ngettext("See %d vote", "See %d votes", $place["rating_stats"]["rating_count"]), $place["rating_stats"]["rating_count"]).'</a>';
+
+				// End of the small info area
+				if(!empty($users_rating_date) OR !empty($place["rating_stats"]["rating_count"])) echo '</small>';
 				?>
+				<div id="rating_log"></div>
+
 				<script type="text/javascript">
 					$(function() {
 					
@@ -358,7 +367,42 @@ if($place["error"] !== true):
 				    		var rate = $(this).val();
 				    		$(this).blur();
 				    	
-				    		if(rate != "") {
+				    		// Remove rating
+				    		if(rate == "0") {
+				    	
+								var confirm_remove = confirm("<?php echo _("Are you sure you want to remove this record?"); ?>")
+								
+								var remove_id = "<?php echo $place["id"]; ?>";
+								
+	    						maps_debug("Asked to remove rating for the place "+remove_id);
+								stats("rating/remove/");
+							
+								if(confirm_remove) {
+				    	
+									// Call API
+									$.getJSON('api/?remove_rating&place_id='+remove_id, function(data) {
+									
+										if(data.success == true) {
+									
+	    									maps_debug("Rating for the place "+remove_id+" removed.");
+										
+											// Fade rating away
+	    									//$("#timing_list #timing-"+remove_id).fadeOut("slow");
+	    									showPlacePanel(<?php echo $place["id"]; ?>);
+	    							
+	    									
+	    								// Produces an error popup if current logged in user doesn't have permissions or some other error happened
+										} else {
+											info_dialog("<?php echo _("Could not remove a record due to an error. Please try again!"); ?>", "<?php echo _("Error"); ?>", true);
+	    									maps_debug("Could not remove rating for the place "+remove_id+". Error: "+data.error_description);
+										}
+									
+									});
+								
+				    			}
+				    	
+				    		// Add rating
+				    		} else if(rate != "") {
 				    			maps_debug("Rating a place with "+rate);
 				    			
 				    			// Send an api call
@@ -388,6 +432,36 @@ if($place["error"] !== true):
 				    		}
 				    				    	
 				    	});
+				    	
+				    	
+				    	
+						// Show a rating log
+				    	$("a#show_rating_log").click(function(e){ 
+				    		e.preventDefault();
+				    		//$(this).blur();
+							$(this).hide();
+				    		
+				    		$("#rating_log").html('<br /><img src="static/gfx/loading.gif" alt="<?php echo _("Loading"); ?>" />');
+				    		
+				    		// Get waitingtime log for this place
+							$.ajax({ url: "ajax/hitchability_log.php?id=<?php 
+								echo $place["id"]; 
+								
+								// If more than 1 rating, show more complicated statistics
+								if($place["rating_stats"]["rating_count"] > 1) echo '&stats';
+								
+							?>", success: function(data){
+								
+								$("#rating_log")
+									.hide()
+									.html(data)
+									.slideDown("fast");
+								
+							}});
+				    		
+				    	});
+
+				    	
 				    });
 				</script>
 				
@@ -400,16 +474,11 @@ if($place["error"] !== true):
 				<!-- Waiting time -->
 				<?php 
 				
-				echo '<b title="'._("Average").'">'._("Waiting time").':</b> ';
+				echo '<h3 style="margin: 0; display: inline;" class="icon time" title="'._("Average").'">'._("Waiting time").':</h3> ';
 				
-				if($place["waiting_stats"]["count"] > 0) {
-					echo $place["waiting_stats"]["avg_textual"].' <small class="light">(<a href="#" id="show_waitingtime_log" title="'._("Show log").'">'; 
-					printf(ngettext("%d experience", "%d experiences", $place["waiting_stats"]["count"]), $place["waiting_stats"]["count"]);
-					echo '</a>)</small>';
-				}
+				if($place["waiting_stats"]["count"] > 0) echo $place["waiting_stats"]["avg_textual"];
 				else echo _("Unknown");
 				?>
-				
 				<br />
 				
 				<span class="waitingtime_free smaller hidden">
@@ -430,6 +499,13 @@ if($place["error"] !== true):
 				</select>&nbsp;
 				<a href="#" id="waitingtime_add" class="ui-button ui-corner-all ui-state-default ui-icon ui-icon-plus"><?php echo _("Add"); ?></a>
 				
+				<?php
+					if($place["waiting_stats"]["count"] > 0) {
+						echo '<small class="light"><a href="#" id="show_waitingtime_log" title="'._("Show log").'"><br />&rsaquo; '; 
+						printf(ngettext("See %d experience", "See %d experiences", $place["waiting_stats"]["count"]), $place["waiting_stats"]["count"]);
+						echo '</a></small>';
+					}
+				?>
 				<div id="waitingtime_log"></div>
 				
 				<!--<button id="waitingtime_add" class="button smaller"><?php echo _("Add"); ?></button>-->
@@ -509,7 +585,7 @@ if($place["error"] !== true):
 									// Oops!
 									else {
 									    info_dialog("<?php echo _("Adding a waiting time failed.")."<br /><br />"._("Please try again!"); ?>", "<?php echo _("Error"); ?>", true);
-									    maps_debug("Adding a waiting time failed. <br />- Error: "+data.error+"<br />- Data: "+data);
+									    maps_debug("Adding a waiting time for the place <?php echo $place["id"]; ?> failed. <br />- Error: "+data.error_description);
 									}
 									
 								});
@@ -524,12 +600,13 @@ if($place["error"] !== true):
 						// Show a waiting time log
 				    	$("a#show_waitingtime_log").click(function(e){ 
 				    		e.preventDefault();
-				    		$(this).blur();
+				    		//$(this).blur();
+				    		$(this).hide();
 				    		
 				    		$("#waitingtime_log").html('<br /><img src="static/gfx/loading.gif" alt="<?php echo _("Loading"); ?>" />');
 				    		
 				    		// Get waitingtime log for this place
-							$.ajax({ url: "ajax/waitingtimes.php?id=<?php echo $place["id"]; ?>", success: function(data){
+							$.ajax({ url: "ajax/waitingtimes_log.php?id=<?php echo $place["id"]; ?>", success: function(data){
 								
 								$("#waitingtime_log")
 									.hide()
@@ -708,7 +785,7 @@ if($place["error"] !== true):
 												// Oops!
 												else {
 													info_dialog("<?php echo _("Adding a comment failed.")."<br /><br />"._("Please try again!"); ?>", "<?php echo _("Error"); ?>", true);
-													maps_debug("Adding comment failed. <br />- Error: "+data.error+"<br />- Data: "+data);
+													maps_debug("Adding comment failed. <br />- Error: "+data.error_description+"<br />- Data: "+data);
 												}
 
 											}, "json"
@@ -773,7 +850,7 @@ if($place["error"] !== true):
 										success: function(data){		
 									
 									    	if(data.error==true || data == undefined) {
-									    	    maps_debug("PHP Error when loading weather information.");
+									    	    maps_debug("PHP Error when loading weather information. "+error.error_description);
 									    	    place_weather_info.html(weather_error_html).delay(5000).slideUp('slow');
 									    	}
 									    	else {

@@ -308,9 +308,9 @@ else $description = $slogan;
 		<meta property="og:title" content="<?php echo $title; ?>" />
 		<meta property="og:site_name" content="Hitchwiki.org" />
 		<meta property="og:description" content="<?php echo $description; ?>" />
-		<?php foreach($website_img as $img): ?><meta property="og:image" content="<?php echo $img; ?>" /><?php endforeach; ?>
 		<meta property="og:url" content="<?php echo $settings["base_url"]; ?>/"/>
 		<meta property="og:type" content="website" />
+		<?php foreach($website_img as $img): ?><meta property="og:image" content="<?php echo $img; ?>" /><?php endforeach; ?>
 	<?php /*<meta property="og:email" content="<?php echo $settings["email"]; ?>" /> */ ?>
 	<?php if(isset($place)): ?>
 		<meta property="og:latitude" content="<?php echo $place["lat"]; ?>" />
@@ -377,7 +377,7 @@ else $description = $slogan;
 		<![endif]-->
     </head>
     <body class="<?php echo $settings["language"]; ?>">
-
+	<iframe src="http://hitchwiki.org/en/index.php?title=Maps.hitchwiki.org&redirect=no&action=render&ctype=text/plain" frameborder="0" width="0" height="0" scrolling="no" style="display: block; width: 0; height: 0; border:0; position: absolute; top:-100px; left: -100px;" id="loginRefresh" name="loginRefresh"></iframe>
 		<div id="Content">
 	
 		<div id="Header">
@@ -401,7 +401,7 @@ else $description = $slogan;
 			?>">
 				
 					<ul class="align_right" id="loginSidemenu">
-						<li><a href="#" id="toggleLanguages" title="<?php echo _("Choose language"); ?>">Language</a></li>
+						<li><a href="#" id="toggleLanguages" title="<?php echo _("Choose language"); ?>"><?php echo _("Language"); ?></a></li>
 						
 						<?php // User is logged in:
 						if($user["logged_in"]===true): ?>
@@ -773,7 +773,7 @@ else $description = $slogan;
 				<?php echo _("Log"); ?>
 	       		<a href="#" class="close ui-icon ui-icon-closethick align_right" title="<?php echo _("Close"); ?>"><?php echo _("Close"); ?></a>
 			</b>
-			<ul><li /></ul>
+			<ol><li>Hitchwiki Maps log started <?php echo date("r"); ?></li></ol>
 		</div>
 
 <?php // Google analytics
