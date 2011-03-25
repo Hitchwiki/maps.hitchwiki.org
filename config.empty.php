@@ -29,6 +29,7 @@ $settings["google_latitude_access_key"] = 		"";
 
 // Analytic tools
 $settings["google_analytics_id"] =		""; // ID to enable
+$settings["piwik_id"] = 				""; // ID to enable
 
 // fb:admins or fb:app_id - A comma-separated list of either the Facebook IDs of page administrators or a Facebook Platform application ID. At a minimum, include only your own Facebook ID.
 $settings["fb"]["admins"] = 			"";

@@ -1386,7 +1386,51 @@ ul li ul li #comments ol li.own_comment {
 }
 
 
+.filelist {
+	padding: 0;
+	margin: 0;
+	font-size: 11px;
+	line-height: 11px;
+}
+.filelist li {
+	clear: both;
+	overflow: hidden;
+}
+.filelist .filename {
+	padding: 3px 5px 0 0;
+	display: block;
+	float: left;	
+}
 
+
+.import_options {
+	display: block;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+	.import_options li.import_option {
+		display: block;
+		padding: 15px;
+		margin: 0 0 10px 0;
+	
+		background-color: #faf9f3;
+
+  		border: 1px solid #cdb46f;
+		/*
+		box-shadow: 1px 1px 2px #c1bead;
+  		-moz-box-shadow: 1px 1px 2px #c1bead;
+  		-webkit-box-shadow: 1px 1px 2px #c1bead;
+  		*/
+	  	box-shadow: inset 1px 1px 4px #c1bead;
+	  	-moz-box-shadow: inset 0px 0px 5px #c1bead;
+	  	-webkit-box-shadow: inset 0px 0px 5px #c1bead;
+
+		-webkit-border-radius: 3px;
+		-moz-border-radius: 3px;
+		border-radius: 3px;
+	}
+	
 
 /*
  * 8) jQuery UI tweaks

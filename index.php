@@ -261,6 +261,7 @@ else $description = $slogan;
 				"about",
 				"beta",
 				"trips",
+				"trips_import",
 				"log_all",
 				"log_trips",
 				"log_user"
@@ -796,5 +797,31 @@ pageTracker._trackPageview();
 } catch(err) {}</script>  
 
 <?php endif; ?>
+
+
+<?php // Piwik
+if(isset($settings["piwik_id"]) && !empty($settings["piwik_id"])): ?>
+<!-- Piwik -->
+<script type="text/javascript">
+/* <![CDATA[ */
+var pkBaseURL = (("https:" == document.location.protocol) ? "https://piwik.guaka.org/" : "http://piwik.guaka.org/");
+document.write(unescape("%3Cscript src='" + pkBaseURL + "piwik.js' type='text/javascript'%3E%3C/script%3E"));
+/* ]]> */
+</script>
+<script type="text/javascript">
+/* <![CDATA[ */
+try {
+var piwikTracker = Piwik.getTracker(pkBaseURL + "piwik.php", <?php echo $settings["piwik_id"]; ?>);
+piwikTracker.setDocumentTitle("");
+piwikTracker.setIgnoreClasses("image");
+
+piwikTracker.trackPageView();
+piwikTracker.enableLinkTracking();
+} catch( err ) {}
+/* ]]> */
+</script><noscript><p><img src="http://piwik.guaka.org/piwik.php?idsite=<?php echo $settings["piwik_id"]; ?>" style="border:0" alt=""/></p></noscript>
+<!-- /Piwik -->
+<?php endif; ?>
+
     </body>
 </html>

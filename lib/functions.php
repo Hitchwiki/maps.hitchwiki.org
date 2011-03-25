@@ -434,7 +434,7 @@ function gather_log($id=false,$type="place") {
  * Get rating statistics for a place
  * id: fk_point in t_ratings (required)
  */
-function rating_stats($id=false) {
+function rating_stats($place_id=false) {
 	start_sql();
 	
 	$query = "SELECT `fk_user`,`fk_point`,`rating`,
@@ -443,7 +443,7 @@ function rating_stats($id=false) {
 		    AVG(rating) AS avg_rating
 		    FROM t_ratings ";
 		    
-	if($id!==false && !empty($id) && is_numeric($id)) $query .= "WHERE `fk_point` = ".mysql_real_escape_string($id);
+	if($place_id!==false && !empty($place_id) && is_numeric($place_id)) $query .= "WHERE `fk_point` = ".mysql_real_escape_string($place_id);
 	
 	$query .= " GROUP BY rating WITH ROLLUP";
 	
@@ -472,7 +472,7 @@ function rating_stats($id=false) {
  * Get waiting time statistics for a place
  * id: fk_point in t_waitingtimes (required)
  */
-function waitingtimes($id=false) {
+function waitingtimes($place_id=false) {
 
 	
 	$query = "SELECT `fk_user`,`fk_point`,`waitingtime`,
@@ -481,7 +481,7 @@ function waitingtimes($id=false) {
 		    AVG(waitingtime) AS avg
 		    FROM t_waitingtimes ";
 		    
-	if($id!==false && !empty($id) && is_numeric($id)) $query .= "WHERE `fk_point` = ".mysql_real_escape_string($id);
+	if($place_id!==false && !empty($place_id) && is_numeric($place_id)) $query .= "WHERE `fk_point` = ".mysql_real_escape_string($place_id);
 	
 	
 	$query .= " GROUP BY waitingtime WITH ROLLUP";
@@ -1407,6 +1407,7 @@ function rating_chart_html($rating_stats=false, $width='100%', $size='small') {
 
 /*
  * Returns a graph img-url of ratings
+ * Note: this is being replaced by our own HTML based chart, see rating_chart_html()
  * Uses Google Chart API
  * http://code.google.com/apis/chart/docs/gallery/bar_charts.html
  */

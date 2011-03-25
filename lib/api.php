@@ -427,22 +427,42 @@ class maps_api
 		// Admins have rights to remove anything, others we need to check from the database
 		if($user["admin"] !== true) {
 		
-			if($rating_id !== false) $rescheck_query = "SELECT `id`,`fk_user` FROM `t_ratings` WHERE `fk_user` = ".$user["id"]." AND `id` = ".mysql_real_escape_string($id)." LIMIT 1";
-			elseif($place_id !== false) $rescheck_query = "SELECT `fk_point`,`fk_user` FROM `t_ratings` WHERE `fk_user` = ".$user["id"]." AND `fk_point` = ".mysql_real_escape_string($id)." LIMIT 1";
+			$rescheck_query = "SELECT `id`,`fk_point`,`fk_user` FROM `t_ratings` WHERE `fk_user` = ".$user["id"]." AND ";
+		
+			if($rating_id !== false) $rescheck_query .= "`id` = ".mysql_real_escape_string($id);
+			elseif($place_id !== false) $rescheck_query .= "`fk_point` = ".mysql_real_escape_string($id);
+   			
+   			$rescheck_query .= " LIMIT 1";
    			
    			$rescheck = mysql_query($rescheck_query);
    			if(!$rescheck) return $this->API_error("Checking permissions query failed!");
 			
 			// If we didn't find any rows matching rating-id AND user-id, user doesn't have permissions to remove this
-			if(mysql_num_rows($rescheck) <= 0) return $this->API_error("permission_denied ".$rescheck_query);
+			if(mysql_num_rows($rescheck) <= 0) return $this->API_error("permission_denied");
 		}
 				
-		// Remove it
+		// Remove rating
    		if($rating_id !== false) $res = mysql_query("DELETE FROM `t_ratings` WHERE `id` = ".mysql_real_escape_string($id)." LIMIT 1");
 		elseif($place_id !== false) $res = mysql_query("DELETE FROM `t_ratings` WHERE `fk_user` = ".$user["id"]." AND `fk_point` = ".mysql_real_escape_string($id)." LIMIT 1");
 
    		if(!$res) return $this->API_error("Query failed!");
    	
+   		
+   		// Update "quick access info" to the t_points
+   		if($rating_id !== false) $rating_stats = false;//rating_stats($id);
+   		elseif($place_id !== false) $rating_stats = rating_stats($id);
+   		
+   		if($rating_stats !== false) {
+   			$res2_query = "UPDATE `t_points` SET `rating` = '".mysql_real_escape_string(round($rating_stats["exact_rating"]))."',`rating_count` = '".mysql_real_escape_string($rating_stats["rating_count"])."' WHERE ";
+			
+   			if($rating_id !== false) $res2_query .= "`id` = ".mysql_real_escape_string($point_id).";";
+   			elseif($place_id !== false) $res2_query .= "`fk_user` = ".$user["id"]." AND `fk_point` = ".mysql_real_escape_string($id).";";
+   			
+   			$res2 = mysql_query($res2_query);
+   			if(!$res2) return $this->API_error("Updating quick access info failed, but rating was removed.");
+   		}
+   	
+   		// All done
    		if(mysql_affected_rows() >= 1) return $this->output( array("success"=>true) );
    		else return $this->API_error("Rating ID not found.");
 	
@@ -891,7 +911,7 @@ class maps_api
 		}
 		else $user = "NULL";
 
-		// Check if user has already rated this spot (then we'll just old record)
+		// Check if user has already rated this spot (then we'll just update old record)
 		// any old records there? -check
 		if($user != "NULL") {
 		

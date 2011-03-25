@@ -153,7 +153,7 @@ if(mysql_affected_rows() >= 1):
 	    				// Produces an error popup if current logged in user doesn't have permissions or some other error happened
 						} else {
 							info_dialog("<?php echo _("Could not remove a record due to an error. Please try again!"); ?>", "<?php echo _("Error"); ?>", true);
-	    					maps_debug("Could note remove timing. Error: "+data.error);
+	    					maps_debug("Could not remove rating. Error: "+data.error_description);
 						}
 					
 					});
