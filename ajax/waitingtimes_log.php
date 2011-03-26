@@ -50,7 +50,11 @@ if(mysql_affected_rows() >= 1):
 
 	// Gather data first into an array, so we can tell if there 
 	// were records by current user, and print out little different <thead>
-	$current_user_rows = false;
+
+	// For admins we'll print it always, set false by default and switch to true in while-loop if user has own records there...	
+	if($user["admin"] === true) $current_user_rows = true;
+	else $current_user_rows = false;
+
 	$waitingtime_min = false;
 	$waitingtime_max = false;
 	while($r = mysql_fetch_array($res, MYSQL_ASSOC)) {

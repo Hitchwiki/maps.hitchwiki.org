@@ -141,7 +141,10 @@ elseif(isset($_GET["map"]) && $_GET["map"] == "3"): ?>
 	  $i=0;
       foreach($data as $country) {
 
-      	echo "\t data.setValue(".$i.", 0, '".$codes[$country["iso"]]."');\n";
+		// a Fix, Google doesn't regognice "Russian Federation" :P
+		if(trim($codes[$country["iso"]]) == "Russian Federation") echo "\t data.setValue(".$i.", 0, 'Russia');\n";
+		else echo "\t data.setValue(".$i.", 0, '".trim($codes[$country["iso"]])."');\n";
+		
       	echo "\t data.setValue(".$i.", 1, ".$country["places"].");\n\n";
 
 		$i++;

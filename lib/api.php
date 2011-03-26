@@ -414,8 +414,9 @@ class maps_api
 			if(empty($rating_id) OR !is_numeric($rating_id)) return $this->API_error("Invalid rating ID.");
 			
 			// Get place id, we need this for update_rating_stats() later
-			$get_place_id = mysql_query("SELECT `id`,`fk_user`,`fk_point` FROM `t_ratings` WHERE `fk_user` = ".$user["id"]." AND `id` = ".mysql_real_escape_string($rating_id)." LIMIT 1");
-   			if(!$get_place_id) return $this->API_error("Getting place id failed.");
+			$query = "SELECT `id`,`fk_point` FROM `t_ratings` WHERE `id` = ".mysql_real_escape_string($rating_id)." LIMIT 1";
+			$get_place_id = mysql_query($query);
+   			if(!$get_place_id) return $this->API_error("Getting place id failed. MySQL error: ".mysql_error());
    			
 			while($r = mysql_fetch_array($get_place_id, MYSQL_ASSOC)) { $place_id = $r["fk_point"]; }
 
@@ -425,10 +426,10 @@ class maps_api
 			if(empty($place_id) OR !is_numeric($place_id)) return $this->API_error("Invalid place ID.");
 		}
 		else return $this->API_error("No rating- or place ID.");
-		
-		
+	
 		// Check if user has rights to remove rating
 	 	$user = current_user();
+	 	
 		// Admins have rights to remove anything, others we need to check from the database
 		if($user["admin"] !== true) {
 		
@@ -448,10 +449,10 @@ class maps_api
 	
 		
 		// Remove rating
-   		$del_query = "DELETE FROM `t_ratings` WHERE `fk_user` = ".$user["id"]." AND ";
+   		$del_query = "DELETE FROM `t_ratings` WHERE ";
    		
    		if($rating_id !== false) $del_query .= "`id` = ".mysql_real_escape_string($rating_id);
-		elseif($place_id !== false) $del_query .= "`fk_point` = ".mysql_real_escape_string($place_id);
+		elseif($place_id !== false) $del_query .= "`fk_user` = ".$user["id"]." AND `fk_point` = ".mysql_real_escape_string($place_id);
 
    		$del_query .= " LIMIT 1";
 

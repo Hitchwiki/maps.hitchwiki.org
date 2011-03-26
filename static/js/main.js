@@ -36,7 +36,7 @@ $(document).ready(function() {
 	log_list = $("#log ol");
 	log.draggable({handle: ".handle", containment: "body"});
 	$("#log").resizable({alsoResize: '#log ol'});
-	
+
 	// Create a hide/show toggle button for the log window
 	$("#log .close, .toggle_log").click(function(e){
 	    e.preventDefault();
@@ -49,6 +49,10 @@ $(document).ready(function() {
 	} else { 
 	    log.hide();
 	}
+
+	// Log user's time
+	var date = new Date();
+	maps_debug("User's time "+date.getHours()+":"+date.getMinutes()+":"+date.getSeconds());
 
 
 	// getUserLocation:
@@ -155,12 +159,6 @@ $(document).ready(function() {
 		init_add_place();
 	});
 	
-	
-	// Change a language panel
-	$("#toggleLanguages").click(function(e){
-		
-	});
-
 
 	// Language Panel - Opening/closing
 	$("#toggleLanguages, div#languagePanel h4 .close").click(function(e){
@@ -179,7 +177,6 @@ $(document).ready(function() {
 		stats("toggle_tools/");
 		$(this).blur();
 		$("div#toolsPanel").toggle();
-		//close_page();
 	});
 
 
@@ -231,6 +228,17 @@ $(document).ready(function() {
 	
 	var sidebar_height = $("#Sidebar").height();
 	$("div#map").attr("style","min-height: "+sidebar_height+"px");
+
+
+	// Refresh login session
+	// Keep Hitchwiki user session fresh by refreshing an iframe with hitchwiki-page in it
+	// Otherwice it'll just dissapear and Maps cannot reach it anymore, even user would be logged in
+	var loginRefresh = $("iframe#loginRefresh");
+	window.setInterval(function(){
+		var date = new Date();
+		loginRefresh.attr("src","http://hitchwiki.org/en/index.php?title=Maps.hitchwiki.org&redirect=no&action=render&ctype=text/plain&hitchwiki_maps_session_refresh");
+		maps_debug("Hitchwiki session refreshed "+date.getHours()+":"+date.getMinutes()+":"+date.getSeconds());
+	}, 300000); // run every 5mins
 
 });
 

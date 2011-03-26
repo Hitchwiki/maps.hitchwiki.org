@@ -75,7 +75,9 @@ elseif($format == 'html') {
 
 <div class="align_left" style="margin: 0 40px 20px 0;">
 
-	<h3><?php echo _("About"); ?></h3>
+	<h3><img class="flag" alt="<?php echo $country["iso"]; ?>" src="static/gfx/flags/<?php echo strtolower($country["iso"]); ?>.png" /> <?php echo $country["name"]; ?></h3>
+
+	<!--<h3><?php echo _("About"); ?></h3>-->
 	
 	<table class="infotable" cellspacing="0" cellpadding="0">
 	    <tbody>
@@ -130,6 +132,7 @@ elseif($format == 'html') {
 	    	</tr>
 	    	<?php endif; ?>
 	    	
+	    	<?php /*
 	    	<tr>
 	    		<td colspan="2"><small>
 	    			<a target="_blank" href="http://hitchwiki.org/en/index.php?title=Special%3ASearch&search=<?php echo urlencode($country["name_en_UK"]); ?>&go=Go">Hitchwiki</a>, 
@@ -138,6 +141,7 @@ elseif($format == 'html') {
 	    			<a target="_blank" href="http://www.couchsurfing.org/statistics.html?country_name=<?php echo urlencode($country["name_en_UK"]); ?>">CouchSurfing</a>
 	    		</small></td>
 	    	</tr>
+	    	*/ ?>
 	    	
 	    </tbody>
 	</table>
@@ -149,10 +153,14 @@ elseif($format == 'html') {
 
 	<h3><?php 
 	
-	if($country["cities_count"] < 10) $top = $country["cities_count"];
-	else $top = "10";
+	$top = 5;
 	
-	printf( _( 'Top %s cities' ), $top ); ?></h3>
+	if($country["cities_count"] < $top) $top = $country["cities_count"];
+	
+	printf(ngettext("Top %d city", "Top %d cities", $top), $top);
+	//printf( _( 'Top %s cities' ), $top ); 
+	
+	?></h3>
 	<table class="infotable" cellspacing="0" cellpadding="0">
 		<thead>
 			<tr>
@@ -161,19 +169,18 @@ elseif($format == 'html') {
 			</tr>
 		</thead>
 		<tbody>
-			<?php list_cities("tr", "markers", 10, true, $country["iso"]); ?>
+			<?php list_cities("tr", "markers", $top, true, $country["iso"]); ?>
 		</tbody>
 	</table>
 	
 </div>
 <?php endif; ?>
 
-<div class="align_left" style="margin: 0 0 20px 0;">
-	
-	<h3><img class="flag" alt="<?php echo $country["iso"]; ?>" src="static/gfx/flags/<?php echo strtolower($country["iso"]); ?>.png" /> <?php echo $country["name"]; ?></h3>
+<div class="clear"></div>
 
 	<!-- http://code.google.com/apis/visualization/documentation/gallery/geomap.html -->
 	
+	<!--
 	<iframe src="ajax/map_statistics.php?map=<?php
 	
 	/*
@@ -192,15 +199,21 @@ elseif($format == 'html') {
 	?>&country=<?php echo $country["iso"]; ?>" name="countrymap" id="countrymap" width="560" height="350" border="0" style="border:0;"></iframe>
 	
 	<?php if($mapLimit): ?><small id="show_map_with_cities"><br /><a onclick="$('#show_map_with_cities').html('<br /><i><?php echo _("Map started to load. This might take some time."); ?></i>').delay(10000).fadeOut(1000);" href="ajax/map_statistics.php?map=4&country=<?php echo $country["iso"]; ?>" target="countrymap"><?php echo _("Show cities on the map"); ?> (<?php echo _("Experimental, might be slow."); ?>)</a></small><?php endif; ?>
-	
-	<!--
-	<iframe src="widget/" name="countrymap" id="countrymap" width="480" height="350" border="0" style="border:0;"></iframe>
 	-->
-</div>
-<div class="clear"></div>
+	<iframe src="widget/?country=<?php echo $country["iso"]; ?>" name="countrymap" id="countrymap" width="100%" height="350" border="0" style="border:0;"></iframe>
+	
 
 <h3 class="icon underground"><?php echo _("Public transport"); ?></h3>
 <?php pt_list($country["iso"]); ?>
+
+
+<h3 class="icon world">In other services</h3>
+
+    <a target="_blank" href="http://hitchwiki.org/en/index.php?title=Special%3ASearch&search=<?php echo urlencode($country["name"]); ?>&go=Go">Hitchwiki</a>, 
+    <a target="_blank" href="http://en.wikipedia.org/wiki/Special:Search?search=<?php echo urlencode($country["name"]); ?>">Wikipedia</a>, 
+    <a target="_blank" href="http://wikitravel.org/en/Special:Search?search=<?php echo urlencode($country["name"]); ?>&go=Go">Wikitravel</a>, 
+    <a target="_blank" href="http://www.couchsurfing.org/statistics.html?country_name=<?php echo urlencode($country["name"]); ?>">CouchSurfing</a>
+
 
 <?php
 }
