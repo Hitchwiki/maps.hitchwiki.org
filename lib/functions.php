@@ -430,6 +430,31 @@ function gather_log($id=false,$type="place") {
 	else return false;
 }
 
+
+
+
+
+/*
+ * Update rating quick access info
+ */
+function update_rating_stats($place_id) {
+
+	if($place_id==false) return false;
+
+	// start_sql(); and get array of stats
+	$rating_stats = rating_stats($place_id); 
+
+   	if($rating_stats !== false) {
+   	    $res = mysql_query("UPDATE `t_points` SET `rating` = '".mysql_real_escape_string(round($rating_stats["exact_rating"]))."',`rating_count` = '".mysql_real_escape_string($rating_stats["rating_count"])."' WHERE `id` = ".mysql_real_escape_string($place_id)." LIMIT 1;");
+
+   	    if(!$res) return false;
+   	    else return true;
+   	}
+   	else return false;
+}
+
+
+
 /*
  * Get rating statistics for a place
  * id: fk_point in t_ratings (required)

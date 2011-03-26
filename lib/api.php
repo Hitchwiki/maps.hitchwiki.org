@@ -412,12 +412,17 @@ class maps_api
 		// Delete by rating ID
 		if($rating_id !== false) {
 			if(empty($rating_id) OR !is_numeric($rating_id)) return $this->API_error("Invalid rating ID.");
-			else $id = $rating_id;
-		} 
+			
+			// Get place id, we need this for update_rating_stats() later
+			$get_place_id = mysql_query("SELECT `id`,`fk_user`,`fk_point` FROM `t_ratings` WHERE `fk_user` = ".$user["id"]." AND `id` = ".mysql_real_escape_string($rating_id)." LIMIT 1");
+   			if(!$get_place_id) return $this->API_error("Getting place id failed.");
+   			
+			while($r = mysql_fetch_array($get_place_id, MYSQL_ASSOC)) { $place_id = $r["fk_point"]; }
+
+		}
 		// Delete by place ID
 		elseif($place_id !== false) {
 			if(empty($place_id) OR !is_numeric($place_id)) return $this->API_error("Invalid place ID.");
-			else $id = $place_id;
 		}
 		else return $this->API_error("No rating- or place ID.");
 		
@@ -429,8 +434,8 @@ class maps_api
 		
 			$rescheck_query = "SELECT `id`,`fk_point`,`fk_user` FROM `t_ratings` WHERE `fk_user` = ".$user["id"]." AND ";
 		
-			if($rating_id !== false) $rescheck_query .= "`id` = ".mysql_real_escape_string($id);
-			elseif($place_id !== false) $rescheck_query .= "`fk_point` = ".mysql_real_escape_string($id);
+			if($rating_id !== false) $rescheck_query .= "`id` = ".mysql_real_escape_string($rating_id);
+			elseif($place_id !== false) $rescheck_query .= "`fk_point` = ".mysql_real_escape_string($place_id);
    			
    			$rescheck_query .= " LIMIT 1";
    			
@@ -440,27 +445,22 @@ class maps_api
 			// If we didn't find any rows matching rating-id AND user-id, user doesn't have permissions to remove this
 			if(mysql_num_rows($rescheck) <= 0) return $this->API_error("permission_denied");
 		}
-				
+	
+		
 		// Remove rating
-   		if($rating_id !== false) $res = mysql_query("DELETE FROM `t_ratings` WHERE `id` = ".mysql_real_escape_string($id)." LIMIT 1");
-		elseif($place_id !== false) $res = mysql_query("DELETE FROM `t_ratings` WHERE `fk_user` = ".$user["id"]." AND `fk_point` = ".mysql_real_escape_string($id)." LIMIT 1");
+   		$del_query = "DELETE FROM `t_ratings` WHERE `fk_user` = ".$user["id"]." AND ";
+   		
+   		if($rating_id !== false) $del_query .= "`id` = ".mysql_real_escape_string($rating_id);
+		elseif($place_id !== false) $del_query .= "`fk_point` = ".mysql_real_escape_string($place_id);
 
-   		if(!$res) return $this->API_error("Query failed!");
+   		$del_query .= " LIMIT 1";
+
+		$del= mysql_query($del_query);
+   		if(!$del) return $this->API_error("Removing rating failed!");
    	
    		
    		// Update "quick access info" to the t_points
-   		if($rating_id !== false) $rating_stats = false;//rating_stats($id);
-   		elseif($place_id !== false) $rating_stats = rating_stats($id);
-   		
-   		if($rating_stats !== false) {
-   			$res2_query = "UPDATE `t_points` SET `rating` = '".mysql_real_escape_string(round($rating_stats["exact_rating"]))."',`rating_count` = '".mysql_real_escape_string($rating_stats["rating_count"])."' WHERE ";
-			
-   			if($rating_id !== false) $res2_query .= "`id` = ".mysql_real_escape_string($point_id).";";
-   			elseif($place_id !== false) $res2_query .= "`fk_user` = ".$user["id"]." AND `fk_point` = ".mysql_real_escape_string($id).";";
-   			
-   			$res2 = mysql_query($res2_query);
-   			if(!$res2) return $this->API_error("Updating quick access info failed, but rating was removed.");
-   		}
+   		if(update_rating_stats($place_id) === false) return $this->API_error("Updating quick access info failed, but rating was removed.");
    	
    		// All done
    		if(mysql_affected_rows() >= 1) return $this->output( array("success"=>true) );
@@ -958,12 +958,11 @@ class maps_api
    		}
    		
    		$result["point_id"] = $point_id;
-   		$result["rating_stats"] = rating_stats($point_id);
+   		$result["rating_stats"] = update_rating_stats($point_id, true); // Retrieve stats and update "quick access info" to the t_points
    		
-   		// Update "quick access info" to the t_points
-   		$res2 = mysql_query("UPDATE `t_points` SET `rating` = '".mysql_real_escape_string(round($result["rating_stats"]["exact_rating"]))."',`rating_count` = '".mysql_real_escape_string($result["rating_stats"]["rating_count"])."' WHERE `id` = ".mysql_real_escape_string($point_id).";");
-   		if(!$res2) return $this->API_error("Query failed! (2)");
-   			
+   		if($result["rating_stats"] == false) return $this->API_error("Retrieving or updating stats failed.");
+   		
+   		   			
    		return $this->output($result);
 	 }
 

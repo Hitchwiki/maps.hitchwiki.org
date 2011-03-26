@@ -186,6 +186,7 @@ else $description = $slogan;
 			var geolocation_cookieoptions = { path: '/', expires: 6 }; // expires: hours
 			var locale = "<?php echo $settings["language"]; ?>";
 			var google_analytics = <?php echo (!empty($settings["google_analytics_id"]) ? 'true' : 'false'); ?>;
+			var piwik_analytics = <?php echo (!empty($settings["piwik_id"]) ? 'true' : 'false'); ?>;
 			var private_location = <?php echo (!empty($user["private_location"]) ? 'true' : 'false'); ?>;
 
 			/*
@@ -382,6 +383,25 @@ else $description = $slogan;
 		<link rel="shortcut icon" href="<?php echo $settings["base_url"]; ?>/favicon.ico" type="image/x-icon" />
 		<link rel="bookmark icon" href="<?php echo $settings["base_url"]; ?>/favicon.ico" type="image/x-icon" />
 		<![endif]-->
+		
+	<?php // Google analytics
+	if(isset($settings["google_analytics_id"]) && !empty($settings["google_analytics_id"])): ?>
+	
+	<script type="text/javascript">
+	
+	  var _gaq = _gaq || [];
+	  _gaq.push(['_setAccount', '<?php echo $settings["google_analytics_id"]; ?>']);
+	  _gaq.push(['_trackPageview']);
+	
+	  (function() {
+	    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+	    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+	    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+	  })();
+	
+	</script>
+	<?php endif; ?>
+
     </head>
     <body class="<?php echo $settings["language"]; ?>">
 	<iframe src="http://hitchwiki.org/en/index.php?title=Maps.hitchwiki.org&redirect=no&action=render&ctype=text/plain" frameborder="0" width="0" height="0" scrolling="no" style="display: block; width: 0; height: 0; border:0; position: absolute; top:-100px; left: -100px;" id="loginRefresh" name="loginRefresh"></iframe>
@@ -783,23 +803,8 @@ else $description = $slogan;
 			<ol><li>Hitchwiki Maps log started <?php echo date("r"); ?></li></ol>
 		</div>
 
-<?php // Google analytics
-if(isset($settings["google_analytics_id"]) && !empty($settings["google_analytics_id"])): ?>
 
-<script type="text/javascript">
-var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
-document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
-</script>
-<script type="text/javascript">
-try {
-var pageTracker = _gat._getTracker("<?php echo $settings["google_analytics_id"]; ?>");
-pageTracker._trackPageview();
-} catch(err) {}</script>  
-
-<?php endif; ?>
-
-
-<?php // Piwik
+<?php // Piwik analytics
 if(isset($settings["piwik_id"]) && !empty($settings["piwik_id"])): ?>
 <!-- Piwik -->
 <script type="text/javascript">
@@ -812,9 +817,8 @@ document.write(unescape("%3Cscript src='" + pkBaseURL + "piwik.js' type='text/ja
 /* <![CDATA[ */
 try {
 var piwikTracker = Piwik.getTracker(pkBaseURL + "piwik.php", <?php echo $settings["piwik_id"]; ?>);
-piwikTracker.setDocumentTitle("");
-piwikTracker.setIgnoreClasses("image");
-
+piwikTracker.setDocumentTitle("Hitchwiki Maps");
+piwikTracker.setDownloadClasses("download");
 piwikTracker.trackPageView();
 piwikTracker.enableLinkTracking();
 } catch( err ) {}

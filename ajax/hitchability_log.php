@@ -77,13 +77,13 @@ if(mysql_affected_rows() >= 1):
 	$place = get_place($_GET["id"],true);
 	
 	if(isset($_GET["stats"])): ?>
-	    <br /><small class="light"><?php echo _("Vote distribution"); ?>:</small><br />
+	    <br /><small><?php echo _("Vote distribution"); ?>:</small><br />
 	    <!--<img src="<?php echo rating_chart($place["rating_stats"], 220); ?>" alt="<?php echo _("Vote distribution"); ?>" />-->
 	    <?php echo rating_chart_html($place["rating_stats"]); ?>
 	<?php endif; ?>
-				
-	
+
 	<br />
+	<small><?php echo _("Hitchability").": ".round($place["rating_stats"]["exact_rating"], 1); ?>/5</small>
 	<table cellpadding="0" cellspacing="0" class="infotable smaller" id="rating_list">
 		<thead>
 		    <tr>

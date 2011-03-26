@@ -32,11 +32,12 @@ $(document).ready(function() {
 	 * Debug log-box
 	 */
 	// Some positioning...
-	var log = $("#log").attr("style","position: absolute; top: 100px; left: 100px;");
+	log = $("#log").attr("style","position: absolute; top: 100px; left: 100px;");
+	log_list = $("#log ol");
 	log.draggable({handle: ".handle", containment: "body"});
 	$("#log").resizable({alsoResize: '#log ol'});
 	
-	// Create a toggle button for log
+	// Create a hide/show toggle button for the log window
 	$("#log .close, .toggle_log").click(function(e){
 	    e.preventDefault();
 	    log.toggle();
@@ -120,81 +121,7 @@ $(document).ready(function() {
 	    }
 	});
 	
-	
-    
-    // Login panel
-    /*
-    if($("#LoginNavi").hasClass("logged_out")) {
-		maps_debug("Initialize the login form");
-		
-    	$("#loginPanel").hide();
-    	$("#loginOpener").click(function(e){
-    		e.preventDefault();
-    		if($(this).hasClass("open")) {
-    			maps_debug("Close login slider.");
-		    	$(this).removeClass("open");
-    			$("#loginPanel").slideUp("fast");
-    			$(this).blur();
-    		} else {
-    			maps_debug("Open login slider.");
-		    	$(this).addClass("open");
-    			$("#loginPanel").slideDown("fast");
-    			$("input#email").focus();
-    		}
-    	});
-		$("#login_form").submit(function(){ 
-			maps_debug("Login submitted.");
-			stats("login/");
-		
-  			$(this).hide();
-  			$("#loginPanel .loading").show();
-		
-			// Grab login info from the form
-			var p_email = $("#Login #email").val();
-			var p_password = $("#Login #password").val();
-			var p_remember = $("#Login #remember_me").val();
-		
-			if(p_email == "" || p_password == "") {
-				info_dialog(_("Please type in your email and password"), _("Login failed"),true);
-			} else {
-		
-				// Send it as a post-requeset
-   				maps_debug("Requesting to login: "+p_email);
-				$.post('ajax/login.php', { email: p_email, password: p_password, remember: p_remember },   
-				function(data) {
-				
-   					maps_debug("Got login responce, login: "+data.login);
-   					
-   					// Empty these just in case
-   					p_email = false;
-   					p_password = false;
-				
-					if(data.login == true) {
-   						$("#reloadPage input").click();
-    	 			}
-					else if(data.login == false) {
-   						$("#loginPanel .loading").hide();
-   						$("#login_form").show();
-    	 				info_dialog('<p><strong>'+_("Incorrect email or password.")+'</strong></p><p><a href="./?page=lost_password">'+_("Lost your password?")+'</a></p>', _('Login failed'),true);
-    	 			}
-    	 			else {
-   						$("#loginPanel .loading").hide();
-   						$("#login_form").show();
-    	 				info_dialog(_("Mystical error with login, please try again."), _("Login failed"),true);
-    	 			}
-    	 			
-    	 			
-				}, "json"
-				); // post end
-   			
-   			} // if empty-else end
-   			
-    	    return false; 
-    	});
-    }// logged_out?
-    */
-    
-    
+	    
     // Initialize page content area
 	$("#pages .close").click(function(e){
 		e.preventDefault();
@@ -1001,11 +928,25 @@ function displaylocation(location) {
 				.click(function(){ search(location.CountryName); });
 			$('#nearby .country').show('fast');
 			show_nearby = true;
+			
 		}
+		
+		// Get info for logging
+		if(location.CountryCode != '' || location.CountryCode != undefined) var log_country = '"'+location.CountryCode+'"';
+		else var log_country = false;
+		
+		if(location.City != '' || location.City != undefined) var log_city = '"'+location.City+'"';
+		else var log_city = false;
+		
 		
 		// Show tool if content is filled
 		if(show_nearby == true) { $('#nearby').slideDown('fast'); }
 		else { $('#nearby').hide(); }
+		
+		
+		if(location.Latitude != '' && location.Longitude != '') {
+			maps_log("visit_location", '{"country":'+log_city+',"country":'+log_country+',"lat":"'+location.Latitude+'","lon":"'+location.Longitude+'"}');
+		}
 		
 		// Move map to the location
 		/*
@@ -2053,15 +1994,21 @@ function hide_loading_bar() {
 
 
 /* 
- * Log debug events if debugging is on
+ * Log debug events
  */
 function maps_debug(str) {
-	if(debug==true) {
-		 $("#log ol").append("<li><span>"+str+"</span></li>").attr({ scrollTop: $("#log ol").attr("scrollHeight") });
-		return true;
-	}
+	log_list.append("<li><span>"+str+"</span></li>");
+	if(log.is(":visible")) log_list.attr({ scrollTop: $("#log ol").attr("scrollHeight") });
 }
 
+/*
+ * Log events to the database
+ * event: max 80 char string id
+ * data: json array
+ */
+function maps_log(event, data) {
+	return true; // Not functional yet
+}
 
 
 /*
@@ -2071,8 +2018,14 @@ function maps_debug(str) {
 function stats(str) {
 	if(str != undefined && str != "") {
 		if(google_analytics == true) {
-			maps_debug("Stats: "+str);
-			pageTracker._trackPageview(str);
+			maps_debug("Analytics (Google): "+str);
+			_gaq.push(['_trackPageview', str]);
+		}
+		if(piwik_analytics == true) {
+			maps_debug("Analytics (Piwik): "+str);
+			/*
+				Track piwik here...
+			*/
 		}
 	
 	} else { maps_debug("Error: empty stats() request!"); }
