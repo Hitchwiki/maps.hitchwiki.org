@@ -96,11 +96,29 @@ if(mysql_affected_rows() >= 1):
 	foreach($waitingtimes as $waitingtime) {
 	
 		echo '<tr id="timing-'.$waitingtime["id"].'">';
+		
+		// Datetime
 		echo '<td title="'.date(DATE_RFC822, $waitingtime["datetime"]).'">'.date("n/Y", $waitingtime["datetime"]).'</td>';
+		
+		// Waitingtime
 		echo '<td>'.$waitingtime["waitingtime"].'</td>';
 		
-		if(!empty($user["id"]) && $user["id"] == $waitingtime["user_id"]) echo '<td><a href="./?page=profile" onclick="open_page(\'profile\'); return false;">'.$waitingtime["username"].'</a></td>';
-		else echo '<td>'.$waitingtime["username"].'</td>';
+		// Username
+		echo '<td>';
+		if(!empty($user["id"]) && $user["id"] == $waitingtime["user_id"]) echo '<strong>';
+		
+		if(!empty($waitingtime["user_id"])) {
+			echo '<a href="./?page=profile&amp;user_id='.$waitingtime["user_id"].'" onclick="open_page(\'profile\', \'user_id='.$waitingtime["user_id"].'\'); return false;" title="';
+	
+			if(!empty($user["id"]) && $user["id"] == $waitingtime["user_id"]) echo _("That's you!");
+			else echo _("Profile");
+		
+			echo '">'.$waitingtime["username"];
+		
+		} else echo $waitingtime["username"];
+		
+		if(!empty($user["id"]) && $user["id"] == $waitingtime["user_id"]) echo '<strong>';
+		echo '</td>';
 		
 		// Print extra cell if in this list there are some of this users waitingtimes. 
 		// Print delete-icon into users own rows

@@ -36,7 +36,7 @@
 		echo '<li id="log-'.$line["log_type"].'-'.$line["id"].'" class="log_'.$line["id"].' icon '.$icon.'">';
 	
 		// Who
-		if(!empty($line["fk_user"])) $who = '<b>'.username($line["fk_user"]).'</b>';
+		if(!empty($line["fk_user"])) $who = '<strong>'.username($line["fk_user"], true).'</strong>';
 		else $who = _("Anonymous");
 
 		// What

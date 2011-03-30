@@ -43,8 +43,14 @@
 	    		echo '<tr valign="top">';
 	    		
 	    		// Name
-	    		if($row["id"] == $user["id"]) echo '<td><b><a href="./?page=profile" onclick="open_page(\'profile\'); return false;">'.htmlspecialchars($row["name"]).'</a></b> <small>&mdash; '._("That's you!").'</small></td>';
-	    		else echo '<td>'.htmlspecialchars($row["name"]).'</td>';
+	    		echo '<td>';
+	    		if($row["id"] == $user["id"]) echo '<b>';
+	    		
+	    		echo '<a href="./?page=profile&amp;user_id='.$row["id"].'" onclick="open_page(\'profile\', \'user_id='.$row["id"].'\'); return false;" title="'._("Profile").'">'.htmlspecialchars($row["name"]).'</a>';
+	    		
+	    		if($row["id"] == $user["id"]) echo '</b> <small>&mdash; '._("That's you!").'</small>';
+	    		echo '</td>';
+	    		
 	    		
 	    		// Registered
 	    		echo '<td style="text-align: right;">'.date("j.n.Y", strtotime($row["registered"])).'</td>';
@@ -55,14 +61,15 @@
 	    		
 	    		// Location
 	    		if(!empty($row["location"])) {
-	    			echo '<td><a href="#" class="search_this">'.htmlspecialchars($row["location"]).'</td>';
+	    			echo '<td><a href="./?q='.urlencode($row["location"]).'" class="search_this">'.htmlspecialchars($row["location"]).'</td>';
 	    		}
 	    		else echo '<td> </td>';
 	    		
 	    		
 	    		// Country
 	    		if(!empty($row["country"])) {
-	    			echo '<td><a href="#" class="search_this">'.ISO_to_country($row["country"]).'</a> <img class="flag" alt="" src="static/gfx/flags/'.strtolower($row["country"]).'.png" /></td>';
+    				$countryname = ISO_to_country($row["country"]);
+	    			echo '<td><a href="./?q='.urlencode($countryname).'" class="search_this">'.$countryname.'</a> <img class="flag" alt="'.$countryname.'" src="static/gfx/flags/'.strtolower($row["country"]).'.png" /></td>';
 	    		}
 	    		else echo '<td> </td>';
 	    		

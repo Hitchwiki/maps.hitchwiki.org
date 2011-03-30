@@ -247,8 +247,110 @@ function gather_log($id=false,$type="place") {
 
 	$log = array();
 	
+	// Get a log for a user
+	if($id!==false && $type == "user") {
+	
+	$query = "
+		SELECT * FROM 
+		(
+				SELECT `id`,`ip`,`datetime`,`fk_user`,
+					 `description` AS `log_entry`,
+					 `language` AS `log_meta`,
+					 'description' AS `log_type`
+				FROM `t_points_descriptions` 
+				WHERE `fk_user` = ".mysql_real_escape_string($id)." 
+
+
+			UNION ALL
+
+				SELECT `id`,`ip`,`datetime`,`fk_user`,
+					 `rating` AS `log_entry`,
+					 '' AS `log_meta`,
+					 'rating' AS `log_type`
+				FROM `t_ratings` 
+				WHERE `fk_user` = ".mysql_real_escape_string($id)." 
+					AND `datetime` IS NOT NULL
+
+
+			UNION ALL
+
+				SELECT `id`,`ip`,`datetime`,`fk_user`,
+					 `waitingtime` AS `log_entry`,
+					 '' AS `log_meta`,
+					 'waitingtime' AS `log_type`
+				FROM `t_waitingtimes` 
+				WHERE `fk_user` = ".mysql_real_escape_string($id)." 
+					AND `datetime` IS NOT NULL
+
+
+			UNION ALL
+				
+				SELECT `id`,`ip`,`datetime`,`fk_user`,
+					 `comment` AS `log_entry`,
+					 '' AS `log_meta`,
+					 'comment' AS `log_type`
+				FROM `t_comments` 
+				WHERE `fk_user` = ".mysql_real_escape_string($id)." AND `hidden` IS NULL 
+					AND `datetime` IS NOT NULL
+
+
+			UNION ALL
+
+				SELECT 
+					`id` AS `id`, 
+					'' AS `ip`, 
+					`datetime`, 
+					`user` AS `fk_user`,
+					`locality` AS `log_entry`,
+					 '' AS `log_meta`,
+					'place' AS `log_type`
+				FROM `t_points` 
+				WHERE `user` = ".mysql_real_escape_string($id)."
+						
+		) 
+		AS `log`
+		ORDER BY `datetime` DESC";
+			
+/*				
+			UNION ALL
+
+
+				SELECT 
+					`id`, 
+					'' AS `ip`, 
+					`datetime`, 
+					`user_id` AS `fk_user`,
+					'' AS `fk_point`, 
+					`country` AS `log_entry`,
+					 '' AS `log_meta`,
+					'public_transport' AS `log_type`
+				FROM `t_ptransport` 
+				WHERE `user_id` = ".mysql_real_escape_string($id)."
+					AND `datetime` IS NOT NULL
+
+
+			UNION ALL
+
+
+				SELECT 
+					`id`, 
+					'' AS `ip`, 
+					`registered` AS `datetime`, 
+					`id` AS `fk_user`,
+					'' AS `fk_point`, 
+					`country` AS `log_entry`,
+					 '' AS `log_meta`,
+					'user' AS `log_type`
+				FROM `t_users` 
+				WHERE `id` = ".mysql_real_escape_string($id)."
+					AND `registered` IS NOT NULL
+
+*/
+
+	
+	}
 	// Get a log for a place
-	if($id!==false) {
+	elseif($id!==false && $type == "place") {
 	
 	$query = "
 		SELECT * FROM 
@@ -420,6 +522,9 @@ function gather_log($id=false,$type="place") {
 	
 	start_sql();
 	$res = mysql_query($query);
+	
+	if(!$res) return false;
+	
 	#if(mysql_num_rows($res) > 0) {
 		while($line = mysql_fetch_array($res, MYSQL_ASSOC)) {
 			$log[] = $line;
@@ -690,14 +795,14 @@ function list_countries($type="array", $order="name", $limit=false, $count=true,
 		
 		// print a list item
 		elseif($type=="li") {
-			echo '<li><img class="flag" alt="'.strtolower($country["iso"]).'" src="static/gfx/flags/'.strtolower($country["iso"]).'.png" /> <a href="#" id="search_for_this">'.$country["name"]."</a>";
+			echo '<li><img class="flag" alt="'.strtolower($country["iso"]).'" src="static/gfx/flags/'.strtolower($country["iso"]).'.png" /> <a href="./?q='.urlencode($country["name"]).'" id="search_for_this">'.$country["name"]."</a>";
 			if($count==true) echo ' <small class="grey">('.$country["places"].')</small>';
 			echo '</li>';
 		}
 		
 		// print a table row
 		elseif($type=="tr") {
-			echo '<tr><td><img class="flag" alt="'.strtolower($country["iso"]).'" src="static/gfx/flags/'.strtolower($country["iso"]).'.png" /> <a href="#" id="search_for_this">'.$country["name"].'</a></td>';
+			echo '<tr><td><img class="flag" alt="'.strtolower($country["iso"]).'" src="static/gfx/flags/'.strtolower($country["iso"]).'.png" /> <a href="./?q='.urlencode($country["name"]).'" id="search_for_this">'.$country["name"].'</a></td>';
 			if($count==true) echo '<td>'.$country["places"].'</td>';
 			echo '</tr>';
 		}
@@ -787,17 +892,17 @@ function list_cities($type="array", $order="markers", $limit=false, $count=true,
 		}
 		elseif($type=="li") {
 		
-			if($country == false) echo '<li><img class="flag" alt="'.strtolower($r['country']).'" src="static/gfx/flags/'.strtolower($r['country']).'.png" /> <a href="#" id="search_for_this">'.$r['locality'].', '.$countryname.'</a>';
-			else echo '<li><a href="#" id="search_for_this">'.$r['locality'].'</a>';
+			if($country == false) echo '<li><img class="flag" alt="'.strtolower($r['country']).'" src="static/gfx/flags/'.strtolower($r['country']).'.png" /> <a href="./?q='.urlencode($r['locality'].', '.$countryname).'" id="search_for_this">'.$r['locality'].', '.$countryname.'</a>';
+			else echo '<li><a href="./?q='.urlencode($r['locality']).'" id="search_for_this">'.$r['locality'].'</a>';
 			
 			if($count==true) echo ' <small class="grey">('.$r['cnt'].')</small>';
 			
 			echo '</li>';
 		}
 		elseif($type=="tr") {
-			echo '<tr><td><a href="#" id="search_for_this">'.$r['locality'].'</a></td>';
+			echo '<tr><td><a href="./?q='.urlencode($r['locality']).'" id="search_for_this">'.$r['locality'].'</a></td>';
 			
-			if($country == false) echo '<td><img class="flag" alt="'.strtolower($r['country']).'" src="static/gfx/flags/'.strtolower($r['country']).'.png" /> <a href="#" id="search_for_this">'.$countryname.'</a></td>';
+			if($country == false) echo '<td><img class="flag" alt="'.strtolower($r['country']).'" src="static/gfx/flags/'.strtolower($r['country']).'.png" /> <a href="./?q='.urlencode($countryname).'" id="search_for_this">'.$countryname.'</a></td>';
 			
 			if($count == true) echo '<td>'.$r['cnt'].'</td>';
 			
@@ -1315,7 +1420,7 @@ function image_map($lat, $lon, $zoom=15, $format='png', $width=150, $height=150)
 /* 
  * Return a user name by ID
  */
-function username($id) {
+function username($id, $link=false) {
 
 	if(!empty($id) && is_numeric($id)) {
 		start_sql();
@@ -1327,7 +1432,9 @@ function username($id) {
 		// If we have a result, go and get the name
 		if(mysql_num_rows($res) > 0) {
 		    while($r = mysql_fetch_array($res, MYSQL_ASSOC)) {
-		    	return htmlspecialchars($r["name"]);
+		    
+		    	if($link===true) return '<a href="./?page=profile&amp;user_id='.$id.'" onclick="open_page(\'profile\', \'user_id='.$id.'\'); return false;" title="'._("Profile").'">'.htmlspecialchars($r["name"]).'</a>';
+		    	else return htmlspecialchars($r["name"]);
 		    }
 		}
 		else return _("Anonymous");
@@ -1570,6 +1677,51 @@ function current_user($get_password=false) {
 
 
 /*
+ * Get user's infoarray by ID
+ */
+function user_info($user_id) {
+	global $settings;
+
+	start_sql();
+
+	$res = mysql_query("SELECT * FROM `t_users` WHERE `id` = '".mysql_real_escape_string($user_id)."' LIMIT 1");
+   	
+   	if(!$res) return false;
+			
+	// If we have a result, continue gathering user array
+	if(mysql_num_rows($res) > 0) {
+		while($r = mysql_fetch_array($res, MYSQL_ASSOC)) {
+
+			$user["logged_in"] = true;
+			$user["id"] = $r["id"];
+			$user["name"] = $r["name"];
+			$user["location"] = $r["location"];
+			$user["country"] = $r["country"];
+			$user["language"] = $r["language"];
+			$user["registered"] = $r["registered"];
+			$user["last_seen"] = $r["last_seen"];
+			$user["private_location"] = $r["private_location"];
+			$user["google_latitude"] = $r["google_latitude"];
+			$user["centered_glatitude"] = $r["centered_glatitude"];
+			$user["allow_gravatar"] = $r["allow_gravatar"];
+			$user["map_google"] = $r["map_google"];
+			$user["map_yahoo"] = $r["map_yahoo"];
+			$user["map_vearth"] = $r["map_vearth"];
+			$user["map_default_layer"] = $r["map_default_layer"];
+			
+			// Admin?
+			if($r["admin"]=="1" && $settings["allow_admins"] === true) $user["admin"] = true;
+			else $user["admin"] = false;
+
+			return $user;
+		}
+	} else return false;
+   	
+}
+
+
+
+/*
  * Check if user is in database
  * email = t_user.email
  * password = md5(t_user.password)
@@ -1586,7 +1738,7 @@ function get_user($session=false) {
 	if(mysql_num_rows($res) > 0) {
 
 		$last_seen = mysql_query("UPDATE `t_users` SET `last_seen` = NOW() WHERE `id` = ".mysql_real_escape_string($session["wsUserID"])." LIMIT 1");
-				
+
 		while($r = mysql_fetch_array($res, MYSQL_ASSOC)) {
 
 			$user["logged_in"] = true;
@@ -1606,7 +1758,7 @@ function get_user($session=false) {
 			$user["map_vearth"] = $r["map_vearth"];
 			$user["map_default_layer"] = $r["map_default_layer"];
 			
-			// Admin? 1:false
+			// Admin?
 			if($r["admin"]=="1" && $settings["allow_admins"] === true) $user["admin"] = true;
 			else $user["admin"] = false;
 			

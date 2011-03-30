@@ -99,7 +99,7 @@ elseif($format == 'html') {
 	    	<?php if(!empty($country["capital"])): ?>
 	    	<tr>
 	    		<td><b><?php echo _("Capital"); ?></b></td>
-	    		<td><a href="#" id="search_for_this"><?php echo $country["capital"]; ?></a></td>
+	    		<td><a href="./?q=<?php echo urlencode($country["capital"].", ".$country["name"]); ?>" id="search_for_this"><?php echo $country["capital"]; ?></a></td>
 	    	</tr>
 			<script type="text/javascript">
 			    $("a#search_for_this").click(function(e){
@@ -207,7 +207,7 @@ elseif($format == 'html') {
 <?php pt_list($country["iso"]); ?>
 
 
-<h3 class="icon world">In other services</h3>
+<h3 class="icon world"><?php printf("%s in other services", $country["name"]); ?></h3>
 
     <a target="_blank" href="http://hitchwiki.org/en/index.php?title=Special%3ASearch&search=<?php echo urlencode($country["name"]); ?>&go=Go">Hitchwiki</a>, 
     <a target="_blank" href="http://en.wikipedia.org/wiki/Special:Search?search=<?php echo urlencode($country["name"]); ?>">Wikipedia</a>, 

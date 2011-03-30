@@ -4,12 +4,18 @@
  */
  
 
-$profile = $user;
+if(isset($_GET["user_id"]) && !empty($_GET["user_id"])) $profile = user_info($_GET["user_id"]);
+else $profile = $user;
+
 
 if(!empty($profile)): ?>
 
-<?php if($user["id"] == $profile["id"]): ?><small class="tip white"><em><?php echo _("This is your profile as others see it."); ?> &mdash; <a href="#" onclick="open_page('settings'); return false;"><?php echo _("Edit your profile"); ?></a></em></small><?php endif; ?>
-<h2 title="<?php echo $profile["id"]; ?>"><?php echo $profile["name"]; ?></h2>
+<?php if($user["id"] == $profile["id"]): ?>
+	<small class="tip white"><em><?php echo _("This is your profile as others see it."); ?> &mdash; <a href="#" onclick="open_page('settings'); return false;"><?php echo _("Edit your profile"); ?></a></em></small>
+	<h2><?php printf("Welcome home, %s", $profile["name"]); ?></h2>
+<?php else: ?>
+	<h2><?php echo $profile["name"]; ?></h2>
+<?php endif; ?>
 
 <table class="infotable profile_card" cellspacing="0" cellpadding="0">
     <tbody>
@@ -32,7 +38,7 @@ if(!empty($profile)): ?>
     	<?php if(!empty($profile["location"])): ?>
     	<tr>
     		<td><b><?php echo _("Location"); ?></b></td>
-    		<td><a href="#" id="search_for_this"><?php echo $profile["location"]; ?></a></td>
+    		<td><a href="./?q=<?php echo urlencode($profile["location"]); ?>" id="search_for_this"><?php echo $profile["location"]; ?></a></td>
     	</tr>
     	<?php endif; ?>
     	
@@ -40,7 +46,8 @@ if(!empty($profile)): ?>
     	<?php if(!empty($profile["country"])): ?>
     	<tr>
     		<td><b><?php echo _("Country"); ?></b></td>
-    		<td><a href="#" id="search_for_this"><?php echo ISO_to_country($profile["country"]); ?></a> <img class="flag" alt="" src="static/gfx/flags/<?php echo strtolower($profile["country"]); ?>.png" /></td>
+    		<?php $countryname = ISO_to_country($profile["country"]); ?>
+    		<td><a href="./?q=<?php echo urlencode($countryname); ?>" id="search_for_this"><?php echo $countryname; ?></a> <img class="flag" alt="" src="static/gfx/flags/<?php echo strtolower($profile["country"]); ?>.png" /></td>
     	</tr>
     	<?php endif; ?>
     	
@@ -60,10 +67,22 @@ if(!empty($profile)): ?>
     	</tr>
     	<?php endif; ?>
     	
-    	
-    	<?php if($profile["admin"]===true): ?>
+    	<?php 
+    	// Show if profile is of an admin
+    	if($profile["admin"]===true): ?>
     	<tr>
     		<td colspan="2"><span class="icon tux"><?php echo _("Administrator"); ?></span></td>
+    	</tr>
+    	<?php endif; ?>
+    	
+    	<?php 
+    	// Show this only for admins
+    	if($user["admin"]===true): ?>
+    	<tr>
+    		<td colspan="2"><span class="icon page_white_text"><a href="#" onclick="open_page('log_user', 'user_id=<?php echo $profile["id"]; ?>'); return false;"><?php printf(_("%s's activity log"), $profile["name"]); ?></a></span></td>
+    	</tr>
+    	<tr>
+    		<td colspan="2"><span class="icon key"><?php echo $profile["id"]; ?></span></td>
     	</tr>
     	<?php endif; ?>
     	

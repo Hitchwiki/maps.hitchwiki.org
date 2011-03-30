@@ -64,6 +64,7 @@ if(mysql_affected_rows() >= 1):
 	    $ratings[] = array(
 	    	"datetime" 		=> $datetime,
 	    	"rating" 		=> hitchability2textual($r["rating"]),
+	    	"rating_num" 	=> $r["rating"],
 	    	"username" 		=> username($r["fk_user"]),
 	    	"user_id" 		=> $r["fk_user"],
 	    	"id" 		=> $r["id"]
@@ -105,13 +106,30 @@ if(mysql_affected_rows() >= 1):
 	
 		echo '<tr id="rating-'.$rating["id"].'">';
 		
+		// Date
 		if(!empty($rating["datetime"])) echo '<td title="'.date(DATE_RFC822, $rating["datetime"]).'">'.date("n/Y", $rating["datetime"]).'</td>';
 		else echo '<td> </td>';
 		
-		echo '<td>'.$rating["rating"].'</td>';
+		// Rating
+		echo '<td title="'.$rating["rating_num"].'/5">'.$rating["rating"].'</td>';
 		
-		if(!empty($user["id"]) && $user["id"] == $rating["user_id"]) echo '<td><a href="./?page=profile" onclick="open_page(\'profile\'); return false;">'.$rating["username"].'</a></td>';
-		else echo '<td>'.$rating["username"].'</td>';
+		// Username
+		echo '<td>';
+		if(!empty($user["id"]) && $user["id"] == $rating["user_id"]) echo '<strong>';
+		
+		if(!empty($rating["user_id"])) {
+			echo '<a href="./?page=profile&amp;user_id='.$rating["user_id"].'" onclick="open_page(\'profile\', \'user_id='.$rating["user_id"].'\'); return false;" title="';
+	
+			if(!empty($user["id"]) && $user["id"] == $rating["user_id"]) echo _("That's you!");
+			else echo _("Profile");
+		
+			echo '">'.$rating["username"];
+		
+		} else echo $rating["username"];
+		
+		if(!empty($user["id"]) && $user["id"] == $rating["user_id"]) echo '<strong>';
+		echo '</td>';
+		
 		
 		// Print extra cell if in this list there are some of this users waitingtimes. 
 		// Print delete-icon into users own rows

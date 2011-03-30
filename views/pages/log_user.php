@@ -2,15 +2,23 @@
 echo info_sign("This feature is under development and visible only for admins.",false);
 
 // Show only when logged in
-#if($user["logged_in"]===true): 
+if($user["logged_in"]===true): 
+
+if(isset($_GET["user_id"]) && !empty($_GET["user_id"])) $profile = user_info($_GET["user_id"]);
+else $profile = $user;
 
 
-?><h2><?php printf(_("%s's activity log"), "Username"); ?></h2>
-
+if($user["id"] == $profile["id"]): ?>
+	<h2><?php printf(_("Hey %s, welcome to your stuff!"), '<a href="./?page=profile" onclick="open_page(\'profile\'); return false;" title="'._("Profile").'">'.$profile["name"].'</a>'); ?></h2>
+<?php else: ?>
+	<h2><?php printf(_("%s's activity log"), '<a href="./?page=profile&amp;user_id='.$profile["id"].'" onclick="open_page(\'profile\', \'user_id='.$profile["id"].'\'); return false;" title="'._("Profile").'">'.$profile["name"].'</a>'); ?></h2>
+<?php endif; ?>
 
 <div style="width: 650px;">
 <ul class="history">
 <?php
+	
+	$lines = gather_log($profile["id"], "user");
 	
 	if(is_array($lines) && !empty($lines)) {
 	foreach($lines as $line) {
@@ -25,13 +33,15 @@ echo info_sign("This feature is under development and visible only for admins.",
 		elseif($line["log_type"] == "waitingtime") $icon = 'time';
 		elseif($line["log_type"] == "rating") $icon = 'chart_bar2';
 		elseif($line["log_type"] == "description") $icon = 'pencil';
+		elseif($line["log_type"] == "public_transport") $icon = 'underground';
+		elseif($line["log_type"] == "user") $icon = 'user';
 		else $icon = 'tag';
 		
 		// START
 		echo '<li id="log-'.$line["log_type"].'-'.$line["id"].'" class="log_'.$line["id"].' icon '.$icon.'">';
 	
 		// Who
-		if(!empty($line["fk_user"])) $who = '<b>'.username($line["fk_user"]).'</b>';
+		if(!empty($line["fk_user"])) $who = '<strong>'.username($line["fk_user"], true).'</strong>';
 		else $who = _("Anonymous");
 
 		// What
@@ -53,6 +63,12 @@ echo info_sign("This feature is under development and visible only for admins.",
 			#echo sprintf(_("%s added or edited a description of the place"), $who);
 			if(!empty($line["log_meta"])) echo '<br /><small title="'._("Language").'">'._("Language").': '._($settings["languages_in_english"][$line["log_meta"]]).'</small>';
 			echo '<br /><small><em class="bubble">'.Markdown(utf8_decode($line["log_entry"])).'</em></small>';
+		}
+		elseif($line["log_type"] == "public_transport") { 
+			echo sprintf(_('%1$s added a link to the public transportation catalog for %2$s'), $who, '<b>'.ISO_to_country($line["log_entry"]).'</b>');
+		}
+		elseif($line["log_type"] == "user") { 
+			echo sprintf(_("%s started using Maps"), $who);
 		}
 
 
@@ -81,3 +97,11 @@ echo info_sign("This feature is under development and visible only for admins.",
 </ul>
 
 </div>
+
+<?php 
+// Not logged in?
+else: 
+	error_sign(_("You must be logged in."), false);
+endif;
+
+?>

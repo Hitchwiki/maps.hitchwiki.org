@@ -257,7 +257,7 @@ elseif(isset($_GET["map"]) && $_GET["map"] == "5" && isset($_GET["country"])): /
   </script>
 <?php endif; ?>
 
-	<meta name="description" content="<?php printf(_("This is just a preview map. Go to %s for the actual service."), $settings["base_url"]."/"); ?>" />
+	<meta name="description" content="<?php printf(_("This is just a preview map. Go to %s for the actual service."), $settings["base_url"]); ?>" />
 </head>
 	<body><div id="map_canvas"></div></body>
 </html>

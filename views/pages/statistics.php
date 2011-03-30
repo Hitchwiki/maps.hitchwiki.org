@@ -79,7 +79,7 @@
 
 	<!-- highest places -->
 	<h3><?php echo _("Highest hitchhiking places"); ?></h3>
-	<table class="infotable" cellspacing="0" cellpadding="0">
+	<table class="infotable" cellspacing="0" cellpadding="0" id="highest_places">
 		<thead>
 			<tr>
 				<th><?php echo _("Country"); ?></th>
@@ -109,8 +109,9 @@
 		$i=1;
 		while ($row = mysql_fetch_array($result)) {
 		
+			$countryname = ISO_to_country($row["country"]);
 			echo '<tr>';
-			echo '<td><img class="flag" alt="'.strtolower($row["country"]).'" src="static/gfx/flags/'.strtolower($row["country"]).'.png" /> <a href="#" id="search_for_this">'.ISO_to_country($row["country"]).'</a></td>';
+			echo '<td><img class="flag" alt="'.$countryname.'" src="static/gfx/flags/'.strtolower($row["country"]).'.png" /> <a href="./?q='.urlencode($countryname).'" id="search_for_this">'.$countryname.'</a></td>';
 			echo '<td>'.$row["max"].' '._("m").'</td>';
 			echo '<td>'.round($row["avg"]).' '._("m").'</td>';
 			echo '<td>'.$row["min"].' '._("m").'</td>';
@@ -123,6 +124,18 @@
 		?>
 		</tbody>
 	</table>
+	
+	<script type="text/javascript">
+	$(function() {
+	    
+	    $("#highest_places .search_for_this").click(function(e){
+	    	e.preventDefault();
+	    	close_page();
+	    	search($(this).text());
+	    });
+	
+	});
+	</script>
 	<!-- /highest places -->
 
 </div>

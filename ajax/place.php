@@ -647,7 +647,7 @@ if($place["error"] !== true):
 						echo '<div class="meta"><strong>';
 						
 						if(isset($comment["user"]["nick"])) echo htmlspecialchars($comment["user"]["nick"]);
-						elseif(isset($comment["user"]["name"])) echo htmlspecialchars($comment["user"]["name"]);
+						elseif(isset($comment["user"]["name"])) echo '<a href="./?page=profile&amp;user_id='.$comment["user"]["id"].'" onclick="open_page(\'profile\', \'user_id='.$comment["user"]["id"].'\'); return false;" title="'._("Profile").'">'.htmlspecialchars($comment["user"]["name"]).'</a>';
 						else echo '<i>'._("Anonymous").'</i>';
 						
 						echo '</strong> &mdash; <span title="'.date(DATE_RFC822,strtotime($comment["datetime"])).'">'.date("j.n.Y",strtotime($comment["datetime"])).'</span>';
@@ -897,7 +897,7 @@ if($place["error"] !== true):
 					// When marker was added and who added it					
 					// Name
 					if(isset($place["user"]["name"])) {
-						echo "&bull; "._("Added by").' <strong>'.htmlspecialchars($place["user"]["name"]).'</strong>';
+						echo "&bull; "._("Added by").' <strong><a href="./?page=profile&amp;user_id='.$place["user"]["id"].'" onclick="open_page(\'profile\', \'user_id='.$place["user"]["id"].'\'); return false;" title="'._("Profile").'">'.htmlspecialchars($place["user"]["name"]).'</a></strong>';
 					
 						if(!empty($place["datetime"])) echo ' &mdash;';
 					}
