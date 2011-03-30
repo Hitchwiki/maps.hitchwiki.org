@@ -12,7 +12,7 @@ if(!empty($profile)): ?>
 
 <?php if($user["id"] == $profile["id"]): ?>
 	<small class="tip white"><em><?php echo _("This is your profile as others see it."); ?> &mdash; <a href="#" onclick="open_page('settings'); return false;"><?php echo _("Edit your profile"); ?></a></em></small>
-	<h2><?php printf("Welcome home, %s", $profile["name"]); ?></h2>
+	<h2><?php printf(_("Welcome home, %s"), $profile["name"]); ?></h2>
 <?php else: ?>
 	<h2><?php echo $profile["name"]; ?></h2>
 <?php endif; ?>
