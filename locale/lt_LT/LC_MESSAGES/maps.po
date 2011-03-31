@@ -2,7 +2,7 @@
 # This file is distributed under the same license as the Maps package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2011-03-30 23:00:05+0000\n"
+"PO-Revision-Date: 2011-03-31 00:00:06+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -10,11 +10,60 @@ msgstr ""
 "X-Generator: GlotPress/0.1\n"
 "Project-Id-Version: Maps\n"
 
-#: views/pages/log_user.php:79
+#: views/pages/own_places.php:8
+msgid "Own places"
+msgstr ""
+
+#: views/pages/log_place.php:94
+msgid "Nobody did anything for this place! Is it that good?"
+msgstr ""
+
+#: views/pages/profile.php:15
+msgid "Welcome home, %s"
+msgstr ""
+
+#: ajax/place.php:333
+msgid "Remove my rating"
+msgstr ""
+
+#: ajax/place.php:503
+msgid "See %d experience"
+msgid_plural "See %d experiences"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: ajax/place.php:352
+msgid "See %d vote"
+msgid_plural "See %d votes"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: views/pages/log_user.php:104
+msgid "You must be logged in."
+msgstr ""
+
+#: ajax/hitchability_log.php:190
+msgid "No ratings for this place added yet."
+msgstr ""
+
+#: views/pages/log_user.php:12
+msgid "Hey %s, welcome to your stuff!"
+msgstr ""
+
+#: ajax/country.php:160
+msgid "Top %d city"
+msgid_plural "Top %d cities"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: views/pages/log_user.php:95
 msgid "User hasn't been poking around the site yet."
 msgstr ""
 
-#: views/pages/settings.php:197
+#: views/pages/settings.php:199
 msgid "Publish my trips automatically"
 msgstr ""
 
@@ -27,19 +76,15 @@ msgid "Oh! Nothing has changed. Only the desert wind is moving some bits around.
 msgstr ""
 
 #: views/pages/log_all.php:51 views/pages/log_place.php:61
-#: views/pages/log_user.php:46
+#: views/pages/log_user.php:56
 msgid "%1$s waited for a ride in here for %2$s"
 msgstr ""
 
-#: views/pages/log_place.php:94
-msgid "This place doesn't have any log events."
-msgstr ""
-
-#: views/pages/log_place.php:79 views/pages/log_user.php:64
+#: views/pages/log_place.php:79 views/pages/log_user.php:80
 msgid "Before 27. November 2010"
 msgstr ""
 
-#: views/pages/log_all.php:63
+#: views/pages/log_all.php:63 views/pages/log_user.php:68
 msgid "%1$s added a link to the public transportation catalog for %2$s"
 msgstr ""
 
@@ -48,17 +93,17 @@ msgid "Actions on the website during the last %d days."
 msgstr ""
 
 #: views/pages/log_all.php:44 views/pages/log_place.php:54
-#: views/pages/log_user.php:39
+#: views/pages/log_user.php:49
 msgid "%s added a new place"
 msgstr ""
 
 #: views/pages/log_all.php:47 views/pages/log_place.php:57
-#: views/pages/log_user.php:42
+#: views/pages/log_user.php:52
 msgid "%s commented place"
 msgstr ""
 
 #: views/pages/log_all.php:54 views/pages/log_place.php:64
-#: views/pages/log_user.php:49
+#: views/pages/log_user.php:59
 msgid "%1$s rated \"%2$s\" for this place"
 msgstr ""
 
@@ -66,31 +111,31 @@ msgstr ""
 msgid "Edit history for the place"
 msgstr ""
 
-#: views/pages/log_all.php:66
+#: views/pages/log_all.php:66 views/pages/log_user.php:71
 msgid "%s started using Maps"
 msgstr ""
 
-#: views/pages/profile.php:11
+#: views/pages/profile.php:14
 msgid "Edit your profile"
 msgstr ""
 
-#: views/pages/log_user.php:8
+#: views/pages/log_user.php:14 views/pages/profile.php:82
 msgid "%s's activity log"
 msgstr ""
 
-#: views/pages/settings.php:125
+#: views/pages/settings.php:127
 msgid "The map will be centered to here."
 msgstr ""
 
-#: views/pages/settings.php:165
+#: views/pages/settings.php:167
 msgid "Trip recorder"
 msgstr ""
 
-#: views/pages/trips.php:5 views/pages/trips.php:7
+#: views/pages/trips.php:5 views/pages/trips.php:7 index.php:587
 msgid "My trips"
 msgstr ""
 
-#: index.php:293
+#: index.php:302
 msgid "Sorry about that!"
 msgstr ""
 
@@ -98,39 +143,39 @@ msgstr ""
 msgid "Log"
 msgstr ""
 
-#: views/pages/settings.php:168
+#: views/pages/settings.php:170
 msgid "Toggle trip recorder on/off"
 msgstr ""
 
-#: views/pages/settings.php:185
+#: views/pages/settings.php:187
 msgid "Clear your recorded trips"
 msgstr ""
 
-#: views/pages/settings.php:193
+#: views/pages/settings.php:195
 msgid "Keep map centered to my current location"
 msgstr ""
 
-#: views/pages/settings.php:198
+#: views/pages/settings.php:200
 msgid "If not, you need to manually publish them from your trips page."
 msgstr ""
 
-#: views/pages/settings.php:202
+#: views/pages/settings.php:204
 msgid "Share my latest location on my profile page"
 msgstr ""
 
-#: views/pages/settings.php:206
+#: views/pages/settings.php:208
 msgid "Share my location and trips only with registered users"
 msgstr ""
 
-#: views/pages/settings.php:210
+#: views/pages/settings.php:212
 msgid "Automatically fetch my location from Google Latitude"
 msgstr ""
 
-#: views/pages/settings.php:213
+#: views/pages/settings.php:215
 msgid "Paste your \"Google Public Location Badge\" code to here"
 msgstr ""
 
-#: views/pages/settings.php:215
+#: views/pages/settings.php:217
 msgid "First enable <a href=\"%s\" target=\"_blank\">Google Public Location Badge</a>. Then copy and paste the HTML snippet from the textarea onto textarea above."
 msgstr ""
 
@@ -164,11 +209,11 @@ msgstr ""
 msgid "Back to listing"
 msgstr ""
 
-#: index.php:293
+#: index.php:302
 msgid "If something on the website seems wrong to you, please use \"contact us\" link at the bottom-left of the page."
 msgstr ""
 
-#: index.php:293
+#: index.php:302
 msgid "The maintenance break is now over"
 msgstr ""
 
@@ -212,11 +257,11 @@ msgstr ""
 msgid "Message"
 msgstr ""
 
-#: ajax/place.php:710
+#: ajax/place.php:785
 msgid "Adding a comment failed."
 msgstr ""
 
-#: ajax/place.php:511
+#: ajax/place.php:585
 msgid "Adding a waiting time failed."
 msgstr ""
 
@@ -236,11 +281,11 @@ msgstr ""
 msgid "So we can reply to you"
 msgstr ""
 
-#: views/pages/settings.php:103
+#: views/pages/settings.php:105
 msgid "No \"Nearby places from\" for you, then."
 msgstr ""
 
-#: views/pages/hitchability.php:8 views/pages/statistics.php:70
+#: views/pages/hitchability.php:8
 msgid "%d vote in total."
 msgid_plural "%d votes in total."
 msgstr[0] ""
@@ -263,8 +308,8 @@ msgstr ""
 msgid "Format"
 msgstr ""
 
-#: views/pages/statistics.php:114 views/pages/statistics.php:115
-#: views/pages/statistics.php:116
+#: views/pages/statistics.php:115 views/pages/statistics.php:116
+#: views/pages/statistics.php:117
 msgid "m"
 msgstr ""
 
@@ -272,19 +317,19 @@ msgstr ""
 msgid "Average elevation"
 msgstr ""
 
-#: ajax/place.php:924
+#: ajax/place.php:999
 msgid "Download marker as a file"
 msgstr ""
 
-#: ajax/place.php:762
+#: ajax/place.php:837
 msgid "No weather info..."
 msgstr ""
 
-#: ajax/place.php:839
+#: ajax/place.php:914
 msgid "Elevation"
 msgstr ""
 
-#: ajax/place.php:839
+#: ajax/place.php:914
 msgid "meters"
 msgstr ""
 
@@ -300,26 +345,26 @@ msgstr ""
 msgid "Lowest place"
 msgstr ""
 
-#: lib/functions.php:1739
+#: lib/functions.php:1919
 msgid "%d vote"
 msgid_plural "%d votes"
 msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
-#: lib/functions.php:1763
+#: lib/functions.php:1943
 msgid "Place in Hitchwiki Maps"
 msgstr ""
 
-#: ajax/waitingtimes.php:76
+#: ajax/waitingtimes_log.php:80
 msgid "Waiting time varies from %s to %s."
 msgstr ""
 
-#: views/pages/help.php:83
+#: views/pages/about.php:67
 msgid "Italian"
 msgstr ""
 
-#: index.php:558
+#: index.php:586
 msgid "Street view"
 msgstr ""
 
@@ -331,63 +376,63 @@ msgstr ""
 msgid "Creative Commons License"
 msgstr ""
 
-#: views/pages/help.php:108
+#: views/pages/about.php:21
 msgid "You can show your love to us and recommend Hitchwiki Maps to your hitchhiker mates in Facebook by pressing this cute little button with a familiar icon on it:"
 msgstr ""
 
-#: index.php:388
+#: index.php:416
 msgid "http://hitchwiki.org/en/"
 msgstr ""
 
-#: views/pages/help.php:74 views/pages/help.php:91
+#: views/pages/about.php:58 views/pages/about.php:75
 msgid "English"
 msgstr "Anglų"
 
-#: views/pages/help.php:88
+#: views/pages/about.php:72
 msgid "Latvian"
 msgstr "Latvių"
 
-#: views/pages/help.php:91
+#: views/pages/about.php:75
 msgid "Pirate"
 msgstr "Piratų"
 
-#: ajax/place.php:785
+#: ajax/place.php:860
 msgid "Wind"
 msgstr "Vėjas"
 
-#: ajax/place.php:783
+#: ajax/place.php:858
 msgid "Temperature"
 msgstr "Temperatūra"
 
-#: ajax/place.php:784
+#: ajax/place.php:859
 msgid "Humidity"
 msgstr "Santikinė dregmė"
 
-#: ajax/place.php:785
+#: ajax/place.php:860
 msgid "Intensity"
 msgstr ""
 
-#: ajax/place.php:785
+#: ajax/place.php:860
 msgid "Direction"
 msgstr "Kryptis"
 
-#: ajax/place.php:849
+#: ajax/place.php:924
 msgid "Weather near %s"
 msgstr "Oro salygos: %s"
 
-#: ajax/place.php:786
+#: ajax/place.php:861
 msgid "Air pressure"
 msgstr "Oro slėgis"
 
-#: ajax/place.php:852
+#: ajax/place.php:927
 msgid "Weather from Wunderground.com"
 msgstr "Orų prognozės pagal Wunderground.com"
 
-#: views/pages/help.php:81
+#: views/pages/about.php:65
 msgid "Chinese"
 msgstr "Kinų"
 
-#: ajax/place.php:785
+#: ajax/place.php:860
 msgid "m/s"
 msgstr "m/s"
 
@@ -447,7 +492,7 @@ msgstr "Ar tikrai norite pašalinti šį komentarą?"
 msgid "Updating description failed."
 msgstr "Nepavyko atnaujinti aprašymo."
 
-#: lib/functions.php:1758
+#: lib/functions.php:1938
 msgid "Description written %s"
 msgstr ""
 
@@ -463,43 +508,43 @@ msgstr "Siųsti"
 msgid "Find good places for hitchhiking and add your own"
 msgstr ""
 
-#: views/pages/help.php:78
+#: views/pages/about.php:62
 msgid "Russian"
 msgstr "Rusų"
 
-#: views/pages/help.php:76
+#: views/pages/about.php:60
 msgid "German"
 msgstr "Vokiečių"
 
-#: views/pages/help.php:77
+#: views/pages/about.php:61
 msgid "Dutch"
 msgstr "Olandų"
 
-#: views/pages/help.php:84
+#: views/pages/about.php:68
 msgid "Polish"
 msgstr "Lenkų"
 
-#: views/pages/help.php:86
+#: views/pages/about.php:70
 msgid "French"
 msgstr "Prancūzų"
 
-#: views/pages/help.php:82
+#: views/pages/about.php:66
 msgid "Lithuanian"
 msgstr "Lietuvių"
 
-#: views/pages/help.php:89
+#: views/pages/about.php:73
 msgid "Swedish"
 msgstr "Švedų"
 
-#: views/pages/help.php:85
+#: views/pages/about.php:69
 msgid "Spanish"
 msgstr "Ispanų"
 
-#: views/pages/help.php:80
+#: views/pages/about.php:64
 msgid "Portuguese"
 msgstr "Portugalų"
 
-#: views/pages/help.php:79
+#: views/pages/about.php:63
 msgid "Romanian"
 msgstr "Rumunų"
 
@@ -515,11 +560,11 @@ msgstr ""
 msgid "Hitcwiki Maps works with your Hitchwiki-account, so with one login you can access <a href=\"http://hitchwiki.org/\">Wiki</a>, <a href=\"http://hitchwiki.org/community/\">Community</a> and Maps."
 msgstr ""
 
-#: views/pages/help.php:19
+#: views/pages/about.php:42
 msgid "Why is the map always centered on Europe?"
 msgstr "Kodėl įkrautame žemėlapyje visuomet yra matoma Europa?"
 
-#: views/pages/help.php:20
+#: views/pages/about.php:43
 msgid "Most of this maps hitchhiking places are in Europe. If you have registered, you can set a point of your current country from settings. The map will center there whenever you log in."
 msgstr ""
 
@@ -527,19 +572,21 @@ msgstr ""
 msgid "When logged in, you will have some more features on this site:"
 msgstr ""
 
-#: ajax/waitingtimes.php:128
+#: ajax/hitchability_log.php:160 ajax/place.php:371
+#: ajax/waitingtimes_log.php:149
 msgid "Are you sure you want to remove this record?"
 msgstr "Ar tikrai norite ištrinti šį įrašą?"
 
-#: ajax/waitingtimes.php:145
+#: ajax/hitchability_log.php:177 ajax/place.php:394
+#: ajax/waitingtimes_log.php:166
 msgid "Could not remove a record due to an error. Please try again!"
 msgstr "Nepavyko ištrinti šio įrašo. Prašome pabandyti dar kartą!"
 
-#: ajax/place.php:629
+#: ajax/place.php:704
 msgid "You are logged in. Your name will be visible for others."
 msgstr "Jūs esate prisijungęs (-usi). Jūsų vardas bus matomas kities nariams."
 
-#: ajax/place.php:518
+#: ajax/place.php:592
 msgid "Please add your waiting time first."
 msgstr "Norėdami tęsti, nurodykite laukimo laiką."
 
@@ -555,19 +602,19 @@ msgstr "Nauja vieta nebuvo įtraukta dėl sistemos klaidos."
 msgid "Your name <i>\"%s\"</i> will be visible for this place."
 msgstr ""
 
-#: lib/functions.php:1954
+#: lib/functions.php:2134
 msgid "In-city transportation"
 msgstr "Miesto transportas"
 
-#: lib/functions.php:1906
+#: lib/functions.php:2086
 msgid "Go to site"
 msgstr "Eiti į puslapį"
 
-#: lib/functions.php:1955
+#: lib/functions.php:2135
 msgid "Inter-city / international transportation"
 msgstr "Tarpmiestinis / tarptautinis transportas"
 
-#: views/pages/why_register.php:3 index.php:415
+#: views/pages/about.php:40
 msgid "Why register?"
 msgstr "Kodėl verta registruotis?"
 
@@ -575,15 +622,15 @@ msgstr "Kodėl verta registruotis?"
 msgid "http://creativecommons.org/licenses/by-sa/3.0/"
 msgstr "http://creativecommons.org/licenses/by-sa/3.0/deed.lt"
 
-#: index.php:539
+#: index.php:567
 msgid "Download"
 msgstr "Atsisųsti"
 
-#: index.php:540
+#: index.php:568
 msgid "Link here"
 msgstr "Nuoroda"
 
-#: lib/functions.php:1960
+#: lib/functions.php:2140
 msgid "No public transport found for this country."
 msgstr "Nėra jokios informacijos apie viešajį transportą šioje šalyje."
 
@@ -591,7 +638,7 @@ msgstr "Nėra jokios informacijos apie viešajį transportą šioje šalyje."
 msgid "Place successfully added to the map."
 msgstr "Nauja vieta buvo įtraukta į žemėlapį."
 
-#: ajax/waitingtimes.php:158
+#: ajax/waitingtimes_log.php:179
 msgid "No waiting time for this place added yet."
 msgstr "Laukimo laikas dar nėra nurodytas šiai vietai."
 
@@ -607,152 +654,152 @@ msgstr ""
 msgid "...and more!"
 msgstr "...ir dar daugiau!"
 
-#: lib/api.php:446 lib/functions.php:1299 lib/functions.php:1307
-#: lib/functions.php:1309
+#: lib/api.php:513 lib/functions.php:1430 lib/functions.php:1440
+#: lib/functions.php:1442
 msgid "Anonymous"
 msgstr "Anonimas"
 
-#: lib/functions.php:820
+#: lib/functions.php:951
 msgid "Asia"
 msgstr "Azija"
 
-#: lib/functions.php:824
+#: lib/functions.php:955
 msgid "Africa"
 msgstr "Afrika"
 
-#: lib/functions.php:828
+#: lib/functions.php:959
 msgid "North America"
 msgstr "Šiaurės Amerika"
 
-#: lib/functions.php:832
+#: lib/functions.php:963
 msgid "South America"
 msgstr "Pietų Amerika"
 
-#: lib/functions.php:836
+#: lib/functions.php:967
 msgid "Antarctica"
 msgstr "Antarktida"
 
-#: lib/functions.php:840
+#: lib/functions.php:971
 msgid "Europe"
 msgstr "Europoje"
 
-#: lib/functions.php:844
+#: lib/functions.php:975
 msgid "Australia and Oceania"
 msgstr "Australija ir Okeanija"
 
-#: lib/functions.php:1319
+#: lib/functions.php:1452
 msgid "Very good"
 msgstr "Labai gera"
 
-#: lib/functions.php:1320
+#: lib/functions.php:1453
 msgid "Good"
 msgstr "Geras"
 
-#: lib/functions.php:1321 lib/functions.php:1749
+#: lib/functions.php:1454 lib/functions.php:1929
 msgid "Average"
 msgstr "Vidutinis"
 
-#: lib/functions.php:1322
+#: lib/functions.php:1455
 msgid "Bad"
 msgstr "Blogas"
 
-#: lib/functions.php:1323
+#: lib/functions.php:1456
 msgid "Senseless"
 msgstr "Neprotingas"
 
-#: lib/functions.php:1324 lib/functions.php:1337
+#: lib/functions.php:1457 lib/functions.php:1470
 msgid "Unknown"
 msgstr "Nežinomas"
 
-#: lib/functions.php:1338 lib/functions.php:1345
+#: lib/functions.php:1471 lib/functions.php:1478
 msgid "min"
 msgstr "min"
 
-#: lib/functions.php:1341
+#: lib/functions.php:1474
 msgid "h"
 msgstr "val"
 
-#: lib/functions.php:1822
+#: lib/functions.php:2002
 msgid "Other"
 msgstr "Kita"
 
-#: lib/functions.php:1823
+#: lib/functions.php:2003
 msgid "Local bus"
 msgstr ""
 
-#: lib/functions.php:1824
+#: lib/functions.php:2004
 msgid "Trolleybus"
 msgstr "Troleibusų"
 
-#: lib/functions.php:1825
+#: lib/functions.php:2005
 msgid "Tram"
 msgstr "Tramvajus"
 
-#: lib/functions.php:1826
+#: lib/functions.php:2006
 msgid "Metro"
 msgstr "Metro"
 
-#: lib/functions.php:1827
+#: lib/functions.php:2007
 msgid "Commuter train"
 msgstr "Priemiestiniai traukiniai"
 
-#: lib/functions.php:1828
+#: lib/functions.php:2008
 msgid "Taxi"
 msgstr "Taksi"
 
-#: lib/functions.php:1829
+#: lib/functions.php:2009
 msgid "Long distance bus"
 msgstr ""
 
-#: lib/functions.php:1830
+#: lib/functions.php:2010
 msgid "Long distance train"
 msgstr "Tarpmiestiniai traukiniai"
 
-#: lib/functions.php:1831
+#: lib/functions.php:2011
 msgid "Airline"
 msgstr "Avia linijos"
 
-#: lib/functions.php:1832
+#: lib/functions.php:2012
 msgid "Shipping"
 msgstr ""
 
-#: lib/functions.php:1833
+#: lib/functions.php:2013
 msgid "Carsharing"
 msgstr "Dalinimasis automobiliu"
 
-#: lib/functions.php:1834
+#: lib/functions.php:2014
 msgid "Car rental"
 msgstr "Automobilių nuoma"
 
-#: lib/functions.php:1884 ajax/country.php:159
+#: lib/functions.php:2064 ajax/country.php:167
 msgid "City"
 msgstr "Miestas"
 
-#: lib/functions.php:1885
+#: lib/functions.php:2065
 msgid "Site"
 msgstr "Web puslapis"
 
-#: lib/functions.php:1886 ajax/add_place.php:81
+#: lib/functions.php:2066 ajax/add_place.php:81
 msgid "Type"
 msgstr "Tipas"
 
-#: lib/functions.php:1888
+#: lib/functions.php:2068
 msgid "Manage"
 msgstr "Valdyti"
 
-#: lib/functions.php:1924
+#: lib/functions.php:2104
 msgid "Remove page permanently"
 msgstr "Ištrinti puslapį negražinamai"
 
-#: lib/functions.php:1925
+#: lib/functions.php:2105
 msgid "Edit page"
 msgstr "Redaguoti puslapį"
 
-#: lib/functions.php:1944
+#: lib/functions.php:2124
 msgid "Are you sure?"
 msgstr ""
 
-#: lib/functions.php:1960
+#: lib/functions.php:2140
 msgid "Add some?"
 msgstr ""
 
@@ -800,7 +847,7 @@ msgstr "Prašome įtraukti aprašymą ir kitomis kalbomis, kuriomis jūs kalbate
 msgid "Clear"
 msgstr ""
 
-#: lib/functions.php:1738 ajax/add_place.php:215
+#: lib/functions.php:1918 ajax/add_place.php:215
 msgid "Hitchability"
 msgstr ""
 
@@ -824,63 +871,63 @@ msgstr "Nauja vieta įdėta sėkmingai"
 msgid "Please try again!"
 msgstr "Prašome pabandyti dar kartą!"
 
-#: lib/functions.php:1656 ajax/add_place.php:383
+#: lib/functions.php:1836 ajax/add_place.php:383
 msgid "Error"
 msgstr "Klaida"
 
-#: ajax/country.php:78
+#: ajax/country.php:80
 msgid "About"
 msgstr "Apie"
 
-#: ajax/country.php:89
+#: ajax/country.php:91
 msgid "Places in Maps"
 msgstr "Vietos žemėlapyje"
 
-#: ajax/country.php:93
+#: ajax/country.php:95
 msgid "Cities in Maps"
 msgstr "Miestai žemėlapyje"
 
-#: ajax/country.php:99
+#: ajax/country.php:101
 msgid "Capital"
 msgstr "Sostinė"
 
-#: ajax/country.php:111
+#: ajax/country.php:113
 msgid "Continent"
 msgstr "Žemynas"
 
-#: ajax/country.php:115
+#: ajax/country.php:117
 msgid "Area"
 msgstr "Plotas"
 
-#: ajax/country.php:121
+#: ajax/country.php:123
 msgid "Population"
 msgstr "Gyventojų skaičius"
 
-#: ajax/country.php:128
+#: ajax/country.php:130
 msgid "Currency"
 msgstr "Valiuta"
 
-#: ajax/country.php:155
+#: views/pages/statistics.php:29
 msgid "Top %s cities"
 msgstr "%s populiarausių miestų"
 
-#: ajax/country.php:160
+#: ajax/country.php:168
 msgid "Places"
 msgstr "Vietos"
 
-#: ajax/country.php:193
+#: ajax/country.php:201
 msgid "Map started to load. This might take some time."
 msgstr "Žemėlapis kraunasi, prašome plaukti."
 
-#: ajax/country.php:193
+#: ajax/country.php:201
 msgid "Show cities on the map"
 msgstr "Rodyti miestus žemėlapyje"
 
-#: ajax/country.php:193
+#: ajax/country.php:201
 msgid "Experimental, might be slow."
 msgstr "Ekspermentinis rėžimas (gali būti lėtas)."
 
-#: ajax/country.php:198
+#: ajax/country.php:206
 msgid "Public transport"
 msgstr "Viešasis transportas"
 
@@ -900,19 +947,19 @@ msgstr "Parašyti?"
 msgid "Save"
 msgstr "Išsaugoti"
 
-#: ajax/place.php:825
+#: ajax/place.php:900
 msgid "Added by"
 msgstr "Pridėjo"
 
-#: ajax/place.php:829
+#: ajax/place.php:904
 msgid "Added at"
 msgstr ""
 
-#: lib/functions.php:1743 lib/functions.php:1744
+#: lib/functions.php:1923 lib/functions.php:1924
 msgid "Vote distribution"
 msgstr "Įvertinimų pasiskirstymas"
 
-#: ajax/place.php:339
+#: ajax/place.php:331
 msgid "Your opinion..."
 msgstr "Tavo nuomonė..."
 
@@ -920,23 +967,23 @@ msgstr "Tavo nuomonė..."
 msgid "You rated for this place"
 msgstr "Tu jau įvertinai šia vietą"
 
-#: ajax/place.php:381
+#: ajax/place.php:423
 msgid "Rating failed, please try again."
 msgstr "Nepavyko išsaugoti jūsų vertinimo, prašome pabandyti dar kartą."
 
-#: ajax/place.php:381
+#: ajax/place.php:423
 msgid "Rating failed"
 msgstr ""
 
-#: lib/functions.php:1749 ajax/add_place.php:232
+#: lib/functions.php:1929 ajax/add_place.php:232
 msgid "Waiting time"
 msgstr "Laukimo laikas"
 
-#: ajax/place.php:406 ajax/place.php:842
+#: ajax/place.php:352 ajax/place.php:502 ajax/place.php:917
 msgid "Show log"
 msgstr ""
 
-#: lib/functions.php:1751
+#: lib/functions.php:1931
 msgid "%d experience"
 msgid_plural "%d experiences"
 msgstr[0] ""
@@ -951,7 +998,7 @@ msgstr "val"
 msgid "minutes"
 msgstr "min"
 
-#: ajax/place.php:421
+#: ajax/place.php:488
 msgid "Your experience..."
 msgstr "Tavo patirtis..."
 
@@ -959,7 +1006,7 @@ msgstr "Tavo patirtis..."
 msgid "Other..."
 msgstr "Kita..."
 
-#: ajax/place.php:431 ajax/place.php:435
+#: ajax/place.php:498 ajax/place.php:509
 msgid "Add"
 msgstr "Pridėti"
 
@@ -967,79 +1014,79 @@ msgstr "Pridėti"
 msgid "Adding..."
 msgstr "Idedama..."
 
-#: ajax/place.php:556
+#: ajax/place.php:631
 msgid "Comments"
 msgstr "Komentarai"
 
-#: ajax/place.php:583 ajax/place.php:589 ajax/place.php:703
+#: ajax/place.php:658 ajax/place.php:664 ajax/place.php:778
 msgid "Remove comment permanently"
 msgstr "Ištrinti komentarą negražinamai"
 
-#: ajax/place.php:584
+#: ajax/place.php:659
 msgid "Edit comment"
 msgstr "Redaguoti komentarą"
 
-#: ajax/place.php:601
+#: ajax/place.php:676
 msgid "Leave a comment..."
 msgstr "Rašyti komentarą..."
 
-#: ajax/place.php:627 ajax/place.php:637 ajax/place.php:679
+#: ajax/place.php:702 ajax/place.php:712 ajax/place.php:754
 msgid "Nickname"
 msgstr "Slapyvardis"
 
-#: ajax/place.php:632
+#: ajax/place.php:707
 msgid "Comment"
 msgstr "Komentaras"
 
-#: ajax/place.php:653
+#: ajax/place.php:728
 msgid "Please write a comment first."
 msgstr "Norėdami tęsti, prašykite komentarą."
 
-#: ajax/place.php:653
+#: ajax/place.php:728
 msgid "Comment missing"
 msgstr "Nėra komentaro"
 
-#: ajax/place.php:663
+#: ajax/place.php:738
 msgid "Sending..."
 msgstr "Siunčiama..."
 
-#: ajax/place.php:736
+#: ajax/place.php:811
 msgid "More about this place"
 msgstr "Plačiau apie šią vietą"
 
-#: ajax/place.php:737 ajax/place.php:964
+#: ajax/place.php:812 ajax/place.php:1039
 msgid "Toggle"
 msgstr ""
 
-#: ajax/place.php:859
+#: ajax/place.php:934
 msgid "Link to this place:"
 msgstr "Nuoroda į šią veitą:"
 
-#: ajax/place.php:906
+#: ajax/place.php:981
 msgid "Latitude"
 msgstr "Platuma"
 
-#: ajax/place.php:907
+#: ajax/place.php:982
 msgid "Longitude"
 msgstr "Ilguma"
 
-#: ajax/place.php:1007
+#: ajax/place.php:1082
 msgid "Remove place"
 msgstr "Ištrinti vietą"
 
-#: ajax/place.php:1008
+#: ajax/place.php:1083
 msgid "Edit place"
 msgstr "Redaguoti vietą"
 
-#: ajax/place.php:1009
+#: ajax/place.php:1084
 msgid "See user"
 msgstr ""
 
-#: ajax/place.php:23 ajax/place.php:1025
+#: ajax/place.php:23 ajax/place.php:1100
 msgid "Sorry, but the place cannot be found.<br /><br />The place you are looking for might have been removed or is temporarily unavailable."
 msgstr ""
 
-#: ajax/place.php:1025
+#: ajax/place.php:1100
 msgid "The place cannot be found"
 msgstr "Vieta, kurios ieškote, negali būti surasta"
 
@@ -1067,15 +1114,15 @@ msgstr "Oi! Kažkas nutiko! Bandykite dar kartą."
 msgid "Error 404 - page not found"
 msgstr "Klaida (404): puslapis nerastas"
 
-#: ajax/waitingtimes.php:82
+#: ajax/hitchability_log.php:95 ajax/waitingtimes_log.php:86
 msgid "Date"
 msgstr "Data"
 
-#: ajax/waitingtimes.php:84
+#: ajax/hitchability_log.php:97 ajax/waitingtimes_log.php:88
 msgid "User"
 msgstr "Vartotojas"
 
-#: ajax/waitingtimes.php:104
+#: ajax/hitchability_log.php:137 ajax/waitingtimes_log.php:126
 msgid "Remove record"
 msgstr "Ištrinti įrašą"
 
@@ -1095,12 +1142,12 @@ msgstr "Tinklaraščiai"
 msgid "Planet"
 msgstr "Planeta"
 
-#: ajax/place.php:963 admin/index.php:101
+#: ajax/place.php:1038 admin/index.php:101
 msgid "Administration"
 msgstr "Administracija"
 
 #: admin/views/new_language.php:12 admin/views/new_language.php:24
-#: admin/views/places.php:13
+#: admin/views/places.php:13 admin/views/users.php:116
 msgid "Alert"
 msgstr "Pranešimas"
 
@@ -1124,7 +1171,7 @@ msgstr "El. paštas"
 msgid "Language"
 msgstr "Kalba"
 
-#: admin/views/users.php:203
+#: ajax/hitchability_log.php:123 ajax/waitingtimes_log.php:113
 msgid "That's you!"
 msgstr "Tai tu!"
 
@@ -1144,7 +1191,7 @@ msgstr "žymekliai"
 msgid "Visible area on the map"
 msgstr "Plontas matomas žemėlapyje"
 
-#: ajax/place.php:929
+#: ajax/place.php:1004
 msgid "Zipped"
 msgstr "Suspaustas"
 
@@ -1172,7 +1219,7 @@ msgstr ""
 msgid "You can embed a map to your own blog for example."
 msgstr "Pavyzdžiui, jūs galite įtraukti žemėlapį į savo tinklaraštį."
 
-#: views/pages/add_public_transport.php:1
+#: views/pages/add_public_transport.php:1 views/pages/public_transport.php:117
 msgid "Add a page to the catalog"
 msgstr "Įtraukti naują puslapį į katalogą"
 
@@ -1233,7 +1280,7 @@ msgstr "numatytas"
 msgid "Complete statistics"
 msgstr "Išsami statistika"
 
-#: views/pages/complete_statistics.php:3 views/pages/statistics.php:3
+#: views/pages/complete_statistics.php:3
 msgid "There are currently %s places marked."
 msgstr ""
 
@@ -1257,76 +1304,76 @@ msgstr "Šalys"
 msgid "Loading..."
 msgstr "Įkraunama..."
 
-#: views/pages/countries.php:56 views/pages/countries.php:67
+#: views/pages/countries.php:60 views/pages/countries.php:71
 #: views/pages/public_transport.php:82 views/pages/public_transport.php:93
 msgid "Couldn't load info. Please try again."
 msgstr "Nepavyko įkrauti informacijos. Prašome pabandyti dar kartą."
 
-#: views/pages/countries.php:82
+#: views/pages/countries.php:86
 msgid "I haven't been everywhere, but it's on my list."
 msgstr ""
 
-#: views/pages/help.php:7
+#: views/pages/about.php:33
 msgid "What is this?"
 msgstr "Kas tai?"
 
-#: views/pages/help.php:8
+#: views/pages/about.php:34
 msgid "This is supposed to be a worldmap for hitchhikers, showing good and bad hitching places. Feel free to add all your favourite hitching places (or even more) to the map."
 msgstr "Tai turėtų būti žemėlapis keliaujanties autostopu su vietomos kurios žymi greitas, patogias bei niekam tikusias vietas pradėti kelionę. Kiekvienas gali pridėti vieną ar kelias pamėgtas vietas į mūsų žemėlapį."
 
-#: views/pages/help.php:10
+#: views/pages/about.php:36
 msgid "How can I add places?"
 msgstr "Kaip įtraukti naują vietą?"
 
-#: views/pages/help.php:11
+#: views/pages/about.php:37
 msgid "Just click on <i>Add place</i> in the menu. Set the orange marker to the place and click on <i>Add place</i>. Make sure to zoom as close as possible, so the point will be more accurate. It is also helpful if you give your points a rating and maybe a little description (i.e. what kind of place this is or how to get there). Please write description at least in English."
 msgstr ""
 
-#: views/pages/help.php:13
+#: views/pages/about.php:45
 msgid "Can I use HTML tags in descriptions and comments?"
 msgstr "Ar galiu naudoti HTML gaires aprašymuose ir komentaruos?"
 
-#: views/pages/help.php:14
+#: views/pages/about.php:46
 msgid "No, but you can use <a href=\"http://en.wikipedia.org/wiki/Markdown\" target=\"_blank\">Markdown</a> syntax."
 msgstr "Ne, tačiau jūs galite naudotis <a href=\"http://en.wikipedia.org/wiki/Markdown\" target=\"_blank\">Markdown</a> sintakse."
 
-#: views/pages/help.php:16
+#: views/pages/about.php:39
 msgid "Why should I sign up?"
 msgstr "Kodėl verta registruotis?"
 
-#: views/pages/help.php:17
+#: views/pages/about.php:40
 msgid "If you are logged in, you will have some more features on this site. I.e. you will be able to modify your places later, and your nickname will be shown on each of your places and comments."
 msgstr ""
 
-#: views/pages/help.php:25
+#: views/pages/about.php:1
 msgid "About Hitchwiki Maps"
 msgstr "Apie Hitchwiki Maps"
 
-#: views/pages/help.php:27
+#: views/pages/about.php:83 views/pages/about.php:120
 msgid "Used technologies"
 msgstr "Naudojamos technologijos"
 
-#: views/pages/help.php:29
+#: views/pages/about.php:85
 msgid "Server side"
 msgstr "Serveryje"
 
-#: views/pages/help.php:38
+#: views/pages/about.php:94
 msgid "Client side"
 msgstr "Kliento pusėje"
 
-#: views/pages/help.php:50
+#: views/pages/about.php:106
 msgid "Services"
 msgstr "Paslaugos"
 
-#: views/pages/help.php:65
+#: views/pages/about.php:49
 msgid "People involved"
 msgstr "Prisidėję žmonės"
 
-#: views/pages/help.php:72
+#: views/pages/about.php:56
 msgid "Translators"
 msgstr "Vertėjai"
 
-#: views/pages/help.php:75
+#: views/pages/about.php:59
 msgid "Finnish"
 msgstr "Suomių"
 
@@ -1334,19 +1381,19 @@ msgstr "Suomių"
 msgid "News"
 msgstr "Naujienos"
 
-#: views/pages/profile.php:11
+#: views/pages/profile.php:14
 msgid "This is your profile as others see it."
 msgstr ""
 
-#: views/pages/profile.php:27
+#: views/pages/profile.php:33
 msgid "Last seen"
 msgstr "Paskutinį kartą matyta (-as)"
 
-#: views/pages/profile.php:66
+#: views/pages/profile.php:74
 msgid "Administrator"
 msgstr "Administratorius"
 
-#: views/pages/profile.php:87
+#: views/pages/profile.php:106
 msgid "Image from your %s"
 msgstr ""
 
@@ -1358,107 +1405,108 @@ msgstr "Viešojo transporto katalogas"
 msgid "Find timetables for the public transport."
 msgstr "Viešojo transporto tvarkaraščių paieška."
 
-#: views/pages/settings.php:8
+#: views/pages/settings.php:8 index.php:436
 msgid "Settings"
 msgstr "Nustatymai"
 
-#: views/pages/settings.php:31 views/pages/translate.php:9
+#: views/pages/settings.php:33 views/pages/translate.php:9 index.php:431
+#: index.php:714
 msgid "Choose language"
 msgstr "Pasirinkite kalbą"
 
-#: views/pages/settings.php:133
+#: views/pages/settings.php:135
 msgid "Can be anything, most likely a city."
 msgstr ""
 
-#: views/pages/settings.php:48
+#: views/pages/settings.php:50
 msgid "Used map services"
 msgstr ""
 
-#: views/pages/settings.php:55
+#: views/pages/settings.php:57
 msgid "Default map layer"
 msgstr "Numatytasis žemėlapio sluoksnis"
 
-#: views/pages/settings.php:59
+#: views/pages/settings.php:61 index.php:695
 msgid "Default"
 msgstr "Numatytas"
 
-#: views/pages/settings.php:102
+#: views/pages/settings.php:104
 msgid "Don't try to recognize my location"
 msgstr ""
 
-#: views/pages/settings.php:112
+#: views/pages/settings.php:114
 msgid "I'd rather not tell"
 msgstr "Aš nepageidauju viešinti informacijos"
 
-#: views/pages/settings.php:138
+#: views/pages/settings.php:140
 msgid "Allow Hitchwiki Maps to use your Gravatar"
 msgstr ""
 
-#: views/pages/settings.php:139
+#: views/pages/settings.php:141
 msgid "We would show information from your %s page, if you have one."
 msgstr ""
 
-#: views/pages/settings.php:145 views/pages/settings.php:219
+#: views/pages/settings.php:147 views/pages/settings.php:221
 msgid "Google Latitude user ID"
 msgstr "Google Latitude vartotojo ID"
 
-#: views/pages/settings.php:151
+#: views/pages/settings.php:153
 msgid "<a href=\"%s\" target=\"_blank\">Enable Google Latitude</a> first and copy here your 20-digit user ID from the bottom of the page, visible in a textbox."
 msgstr ""
 
-#: views/pages/settings.php:151
+#: views/pages/settings.php:153
 msgid "Your location will be published also on your profile page."
 msgstr ""
 
-#: views/pages/settings.php:229
+#: views/pages/settings.php:231
 msgid "Update"
 msgstr "Atnaujinti"
 
-#: views/pages/settings.php:235
+#: views/pages/settings.php:237
 msgid "Reset your profile"
 msgstr ""
 
-#: views/pages/settings.php:450
+#: views/pages/settings.php:452
 msgid "Settings updated!"
 msgstr "Nustatymai sėkmingai atnaujinti!"
 
-#: views/pages/settings.php:450
+#: views/pages/settings.php:452
 msgid "Some settings might require refreshing the page."
 msgstr ""
 
-#: views/pages/settings.php:462
+#: views/pages/settings.php:464
 msgid "Updating settings failed:"
 msgstr "Nepavyko atnaujinti nustatymų:"
 
-#: views/pages/settings.php:477
+#: views/pages/settings.php:479
 msgid "Are you sure you want to reset your profile? You cannot undo this action!"
 msgstr ""
 
-#: views/pages/settings.php:487
+#: views/pages/settings.php:489
 msgid "Your profile was reset permanently."
 msgstr ""
 
-#: views/pages/settings.php:487
+#: views/pages/settings.php:489
 msgid "Profile reset"
 msgstr "Atstatyti profilį"
 
-#: views/pages/settings.php:490
+#: views/pages/settings.php:492
 msgid "Profile was NOT reset"
 msgstr ""
 
-#: views/pages/settings.php:498
+#: views/pages/settings.php:500
 msgid "You cancelled your profile reset."
 msgstr ""
 
-#: views/pages/settings.php:498
+#: views/pages/settings.php:500
 msgid "Reset cancelled"
 msgstr ""
 
-#: views/pages/settings.php:513
+#: views/pages/own_places.php:20
 msgid "You must be logged in to edit settings."
 msgstr "Norėdami redaguoti nustatymus privalote prisijungti."
 
-#: views/pages/statistics.php:1
+#: views/pages/statistics.php:1 index.php:575
 msgid "Statistics"
 msgstr "Statistika"
 
@@ -1474,7 +1522,7 @@ msgstr "%s populiariausių šalių"
 msgid "By continents"
 msgstr "Pagal žemynus"
 
-#: views/pages/statistics.php:153
+#: views/pages/statistics.php:166
 msgid "Place density"
 msgstr "Vietų tankumas"
 
@@ -1482,7 +1530,7 @@ msgstr "Vietų tankumas"
 msgid "Hitchwiki Maps is currently available in %s languages"
 msgstr "Šiuo metu Hitchwiki Maps yra prieinama %s kalba (-omis)"
 
-#: views/pages/translate.php:16
+#: views/pages/about.php:78
 msgid "Help us with translating!"
 msgstr "Padėk išversti!"
 
@@ -1502,48 +1550,48 @@ msgstr "Naudojasi žemėlapiais nuo"
 msgid "Visible only for admins"
 msgstr "Matomas tik administratoriams"
 
-#: views/pages/users.php:35 index.php:556
+#: views/pages/users.php:35 index.php:584
 msgid "Admins"
 msgstr "Administratoriai"
 
-#: views/pages/users.php:77
+#: views/pages/users.php:84
 msgid "Remove user permanently"
 msgstr "Ištrinti šį vartotoją negražinamai"
 
-#: views/pages/users.php:78
+#: views/pages/users.php:85
 msgid "Edit user"
 msgstr "Redaguoti vartotoją"
 
-#: views/pages/users.php:121
+#: views/pages/users.php:128
 msgid "You must be logged in to view users."
 msgstr "Norėdami peržiūrėti kitus vartotojus privalote prisijungti."
 
-#: config.empty.php:109 config.empty.php:116 config.php:122 config.php:129
+#: config.empty.php:113 config.empty.php:120 config.php:122 config.php:129
 msgid "Satellite"
 msgstr "Palydovinis"
 
-#: config.empty.php:110 config.empty.php:115 config.empty.php:120
+#: config.empty.php:114 config.empty.php:119 config.empty.php:124
 #: config.php:123 config.php:128 config.php:133
 msgid "Hybrid"
 msgstr "Hibridinis"
 
-#: config.empty.php:111 config.php:124
+#: config.empty.php:115 config.php:124
 msgid "Streets"
 msgstr "Gatvės"
 
-#: config.empty.php:112 config.php:125
+#: config.empty.php:116 config.php:125
 msgid "Physical"
 msgstr ""
 
-#: config.empty.php:117 config.php:130
+#: config.empty.php:121 config.php:130
 msgid "Street"
 msgstr "Gatvė"
 
-#: config.empty.php:121 config.php:134
+#: config.empty.php:125 config.php:134
 msgid "Aerial"
 msgstr ""
 
-#: config.empty.php:122 config.php:135
+#: config.empty.php:126 config.php:135
 msgid "Roads"
 msgstr "Keliai"
 
@@ -1551,71 +1599,71 @@ msgstr "Keliai"
 msgid "a Hitchhiking spot in"
 msgstr ""
 
-#: index.php:279
+#: index.php:288
 msgid "Sorry, but the place cannot be found."
 msgstr "Atsiprašome, tačiau jūsų nurodyta vieta negali būti surasta."
 
-#: index.php:279
+#: index.php:288
 msgid "The place you are looking for might have been removed or is temporarily unavailable."
 msgstr ""
 
-#: views/pages/help.php:1
+#: index.php:339 index.php:574
 msgid "Help & About"
 msgstr "Pagalba & Apie"
 
-#: index.php:388
+#: index.php:416
 msgid "Community"
 msgstr "Bendruominė"
 
-#: index.php:409
+#: lib/functions.php:1436
 msgid "Profile"
 msgstr "Anketa"
 
-#: index.php:411 index.php:479
+#: index.php:439 index.php:507
 msgid "Logout"
 msgstr "Atsijungti"
 
-#: index.php:478
+#: index.php:506
 msgid "Hello from %s"
 msgstr "Sveiki, %s"
 
-#: views/pages/why_register.php:19 index.php:416
+#: views/pages/why_register.php:19 index.php:444
 msgid "Register!"
 msgstr "Užsiregistruok!"
 
-#: index.php:485
+#: index.php:513
 msgid "Login"
 msgstr "Prisijungti"
 
-#: index.php:509
+#: index.php:537
 msgid "Find places"
 msgstr "Ieškoti vietų"
 
-#: index.php:514
+#: index.php:542
 msgid "Search"
 msgstr "Ieškoti"
 
-#: index.php:522
+#: index.php:550
 msgid "Nearby places from"
 msgstr ""
 
-#: index.php:524
+#: index.php:552
 msgid "Show the city on the map"
 msgstr "Rodyti pasirinktą miestą žemėlapyje"
 
-#: index.php:525
+#: index.php:553
 msgid "Show the state on the map"
 msgstr "Valstija žemėlapyje"
 
-#: index.php:526
+#: index.php:554
 msgid "Show the country on the map"
 msgstr "Šalis žemėlapyje"
 
-#: index.php:538 index.php:630
+#: index.php:566 index.php:658
 msgid "Tools"
 msgstr "Įrankiai"
 
-#: views/pages/users.php:1 index.php:543
+#: views/pages/users.php:1 index.php:571
 msgid "Members"
 msgstr "Nariai"
 
@@ -1623,71 +1671,71 @@ msgstr "Nariai"
 msgid "Licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License"
 msgstr ""
 
-#: views/pages/help.php:22 views/pages/translate.php:20
+#: views/pages/about.php:9
 msgid "Contact us!"
 msgstr "Susisiekite su mumis!"
 
-#: index.php:578
+#: index.php:606
 msgid "Developers"
 msgstr "Komanda"
 
-#: index.php:580
+#: index.php:608
 msgid "API"
 msgstr "API"
 
-#: index.php:617
+#: index.php:645
 msgid "Turn JavaScript on from your browser."
 msgstr "Prašome įjungti JavaScript savo naršyklėje."
 
-#: index.php:637
+#: index.php:665
 msgid "Navigate"
 msgstr ""
 
-#: index.php:642
+#: index.php:670
 msgid "Measure distance"
 msgstr "Išmatuoti atstumą"
 
-#: index.php:647
+#: index.php:675
 msgid "Measure area"
 msgstr "Išmatuoti plotą"
 
-#: index.php:660
+#: index.php:688
 msgid "Measure"
 msgstr "Atstumas"
 
-#: index.php:664
+#: index.php:692
 msgid "Show markers after zoom level"
 msgstr ""
 
-#: index.php:670
+#: index.php:698
 msgid "Continent level"
 msgstr "Žemyno lygiu"
 
-#: index.php:671
+#: index.php:699
 msgid "Country level"
 msgstr "Šalies lygis"
 
-#: index.php:672
+#: index.php:700
 msgid "City level"
 msgstr "Miesto lygiu"
 
-#: index.php:673
+#: index.php:701
 msgid "Street level"
 msgstr "Gatvės lygiu"
 
-#: index.php:725
+#: index.php:753
 msgid "Map"
 msgstr "Žemėlapis"
 
-#: views/pages/statistics.php:71
+#: views/pages/about.php:40
 msgid "Read more..."
 msgstr "Plačiau..."
 
-#: widget/index.php:86
+#: widget/index.php:107
 msgid "Requested country could not be found!"
 msgstr "Šalis, kurios ieškote, nebuvo rasta mūsų duomenų bazėje!"
 
-#: ajax/map_statistics.php:257
+#: ajax/map_statistics.php:260
 msgid "This is just a preview map. Go to %s for the actual service."
 msgstr ""
 
@@ -1695,6 +1743,6 @@ msgstr ""
 msgid "Toggle log"
 msgstr ""
 
-#: views/pages/settings.php:490
+#: views/pages/settings.php:492
 msgid "Error while trying to reset your profile. Please try again!"
 msgstr ""

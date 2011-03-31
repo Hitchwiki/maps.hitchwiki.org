@@ -303,7 +303,7 @@ if($place["error"] !== true):
 				<!-- Hitchability -->
 				<?php 
 					// Hitchability + link for more info
-					echo '<h3 style="margin: 0; display: inline;" class="icon thumb_up">'._("Hitchability").':</h3> <span title="'.round($place["rating_stats"]["exact_rating"], 1).'/5">'.hitchability2textual($place["rating"]).' <b class="bigger hitchability_color_'.$place["rating"].'">&bull;</b></span> ';
+					echo '<h3 style="margin: 0; display: inline;" class="icon thumb_up">'._("Hitchability").':</h3> <span title="'.hitchability2numeric($place["rating_stats"]["exact_rating"]).'">'.hitchability2textual($place["rating"]).' <b class="bigger hitchability_color_'.$place["rating"].'">&bull;</b></span> ';
 					
 					// Check if user has already rated this point, and if, what did one rate?
 					$users_rating = false;

@@ -1458,6 +1458,25 @@ function hitchability2textual($rating=false) {
 }
 
 
+/* 
+ * Return a numerical hitchability
+ * Because how ratings are saved to the database, they might be understood wrong when showing in "stars" mode
+ */
+function hitchability2numeric($rating=false) {
+	
+	if($rating==false) return "0/5";
+	else {
+		if(strlen($rating) > 3) $rating = round($rating, 1);
+	/*
+		1 = 5
+		2 = 4
+		3 = 3
+		4 = 2
+		5 = 1
+	*/
+		return (6-$rating)."/5";
+	}	
+}
 
 
 /*

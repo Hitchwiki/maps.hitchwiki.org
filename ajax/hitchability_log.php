@@ -64,7 +64,7 @@ if(mysql_affected_rows() >= 1):
 	    $ratings[] = array(
 	    	"datetime" 		=> $datetime,
 	    	"rating" 		=> hitchability2textual($r["rating"]),
-	    	"rating_num" 	=> $r["rating"],
+	    	"rating_num" 	=> hitchability2numeric($r["rating"]),
 	    	"username" 		=> username($r["fk_user"]),
 	    	"user_id" 		=> $r["fk_user"],
 	    	"id" 		=> $r["id"]
@@ -88,7 +88,7 @@ if(mysql_affected_rows() >= 1):
 	<?php endif; ?>
 
 	<br />
-	<small><?php echo _("Hitchability").": ".round($place["rating_stats"]["exact_rating"], 1); ?>/5</small>
+	<small><?php echo _("Hitchability").": ".hitchability2numeric($place["rating_stats"]["exact_rating"]); ?></small>
 	<table cellpadding="0" cellspacing="0" class="infotable smaller" id="rating_list">
 		<thead>
 		    <tr>
@@ -111,7 +111,7 @@ if(mysql_affected_rows() >= 1):
 		else echo '<td> </td>';
 		
 		// Rating
-		echo '<td title="'.$rating["rating_num"].'/5">'.$rating["rating"].'</td>';
+		echo '<td title="'.$rating["rating_num"].'">'.$rating["rating"].'</td>';
 		
 		// Username
 		echo '<td>';
