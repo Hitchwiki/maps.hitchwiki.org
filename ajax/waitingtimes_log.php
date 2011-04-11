@@ -70,7 +70,7 @@ if(mysql_affected_rows() >= 1):
 			"id" 		=> $r["id"]
 		);
 		
-		if($user["id"] == $r["fk_user"]) $current_user_rows = true;
+		if($user !== false && $user["id"] == $r["fk_user"]) $current_user_rows = true;
 	}
 	
 	?>
@@ -122,7 +122,7 @@ if(mysql_affected_rows() >= 1):
 		
 		// Print extra cell if in this list there are some of this users waitingtimes. 
 		// Print delete-icon into users own rows
-		if($current_user_rows===true) {
+		if($user !== false && $current_user_rows===true) {
 			if($user["id"] == $waitingtime["user_id"] OR $user["admin"] === true) echo '<td><a href="#" class="remove_waitingtime ui-icon ui-icon-trash align_right" title="'._("Remove record").'">'.$waitingtime["id"].'</a></td>';
 			else echo '<td> </td>';
 		}

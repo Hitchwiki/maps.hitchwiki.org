@@ -1669,7 +1669,7 @@ function available_nick($nick=false) {
 
 /* 
  * Return info about logged in user
- * or if user isn't logged in
+ * or return false if user isn't logged in
  */
 function current_user($get_password=false) {
 	/*
