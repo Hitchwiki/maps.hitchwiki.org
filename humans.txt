@@ -1,0 +1,30 @@
+/* TEAM */
+	Programming, graphic design: Mikael Korpela
+	Contact: mikael [at] ihminen.org
+
+	Programming, help: MrTweek
+	Contact: maps [at] hitchwiki.org
+
+/* THANKS */
+	Name: Platschi
+
+/* TRANSLATIONS */
+	English: Mikael, Platschi
+	Finnish: Mikael
+	German: MrTweek, Platschi
+	Dutch: Platschi
+	Russian: Siberian explorer, Platschi, rAndoM
+	Romanian: montaniard
+	Portuguese: Joao
+	Chinese: Mipplor
+	Lithuanian: Mindo, Prino
+	Italian: Maurizio
+	Polish: Robert, Iza
+	Spanish: Prino
+	French: Perilisk
+	English (Pirate): Mikael (Yarr!)
+
+/* SITE */
+	Doctype: XHTML 1.0 Transitional
+	Contact: maps [at] hitchwiki.org
+	IDE: Coda, Photoshop
