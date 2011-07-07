@@ -168,21 +168,7 @@ if($user["logged_in"]===true): ?>
 	
 	<!-- on/off btn -->
 	<input type="checkbox" name="recorder" id="recorder" title="<?php echo _("Toggle trip recorder on/off"); ?>" />
-	<script type="text/javascript">
-	$(function() {
-		$("#recorder").onoff_toggle({
-			onClickOff: function(){
-				alert("off");
-				$("#recorder_settings input").attr("disabled", false);
-			},
-			onClickOn: function(){
-				alert("on");
-				$("#recorder_settings input").attr("disabled", true);
-			}
-		});
-	});
-	</script>
-	
+
 	<!-- log and reset links -->
 	<a href="#" id="btn_reset_trips" class="align_right"><span class="ui-icon ui-icon-trash align_left"> </span> &nbsp;<small><?php echo _("Clear your recorded trips"); ?></small></a>
 	<a href="#" id="btn_show_trip_logs" onclick="javascript:open_page('log_trips'); return false;" class="align_right" style="margin-right: 10px;"><span class="ui-icon ui-icon-document align_left"> </span> &nbsp;<small><?php echo _("History"); ?></small></a>
@@ -241,7 +227,20 @@ if($user["logged_in"]===true): ?>
 <script type="text/javascript" src="static/js/jquery.pstrength-min.1.2.js"></script>
 <script type="text/javascript">
 $(function() {
-	
+
+	// Toggle trip recorder on/off
+	$("#recorder").onoff_toggle({
+	    onClickOff: function(){
+	    	$("#recorder_settings input").attr("disabled", true);
+	    	$("#recorder_settings").fadeTo("fast", 0.5);
+	    },
+	    onClickOn: function(){
+	    	$("#recorder_settings input").attr("disabled", false);
+	    	$("#recorder_settings").fadeTo("fast", 1);
+	    }
+	});
+
+
 	// Toggle more settings specific to Google Latitude
     $("input#fetch_google_latitude").change(function() {
 		if($(this).is(":checked") && $("#google_latitude_settings").is(":hidden")) {

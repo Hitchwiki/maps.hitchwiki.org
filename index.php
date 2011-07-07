@@ -185,9 +185,9 @@ else $description = $slogan;
 			var geolocation_cookiename = "<?php echo $settings["cookie_prefix"]; ?>_geolocation";
 			var geolocation_cookieoptions = { path: '/', expires: 6 }; // expires: hours
 			var locale = "<?php echo $settings["language"]; ?>";
+			var private_location = <?php echo (!empty($user["private_location"]) ? 'true' : 'false'); ?>;
 			var google_analytics = <?php echo (!empty($settings["google_analytics_id"]) ? 'true' : 'false'); ?>;
 			var piwik_analytics = <?php echo (!empty($settings["piwik_id"]) ? 'true' : 'false'); ?>;
-			var private_location = <?php echo (!empty($user["private_location"]) ? 'true' : 'false'); ?>;
 
 			/*
 			 * Loaded Map layers
@@ -218,7 +218,6 @@ else $description = $slogan;
 		<!-- in production, these are minified (min.js) -->
 		<script src="static/js/jquery.cookie.js" type="text/javascript"></script>
 		<script src="static/js/jquery.gettext.js" type="text/javascript"></script>
-		<script src="static/js/jquery.itoggle-min.js" type="text/javascript"></script>
 		<script src="static/js/main.js?c=<?php 
 			if($settings["debug"]==true) echo date("jnYHis"); 
 			else echo $settings["cache_buster"];
@@ -338,6 +337,7 @@ else $description = $slogan;
 		<link rel="home" href="<?php echo $settings["base_url"]; ?>/" title="Hitchwiki <?php echo _("Maps"); ?>" />
 		<link rel="help" href="<?php echo $settings["base_url"]; ?>/?page=about" title="Hitchwiki <?php echo htmlspecialchars(_("Help & About")); ?>" />
 		<link rel="search" type="application/opensearchdescription+xml" href="<?php echo $settings["base_url"]; ?>/opensearch/" title="Hitchwiki <?php echo _("Maps"); ?>" />
+		<link rel="author" href="<?php echo $settings["base_url"]; ?>/humans.txt" type="text/plain" />
 		<?php
 		/*
 		 * Language versions of the frontpage
@@ -348,32 +348,6 @@ else $description = $slogan;
 		}
 		?>
 		
-		<?php if(isset($settings["fb"]["app"]["id"]) && !empty($settings["fb"]["app"]["id"])): ?>
-		<div id="fb-root"></div>
-		<script>
-		/*
-		 * Load Facebook JavaScript SDK
-		 * http://developers.facebook.com/docs/reference/javascript/
-		 */
-		  window.fbAsyncInit = function() {
-		    FB.init({appId: '<?php echo $settings["fb"]["app"]["id"]; ?>', status: true, cookie: true,
-		             xfbml: true});
-		  };
-		  (function() {
-		    var e = document.createElement('script'); e.async = true;
-		    e.src = document.location.protocol +
-		      '//connect.facebook.net/<?php
-		      	
-		      	// Localization + a little language fix
-		      	if($settings["language"] == "en_UK") echo 'en_US';
-		      	else echo $settings["language"]; 
-		      	
-		      ?>/all.js';
-		    document.getElementById('fb-root').appendChild(e);
-		  }());
-		</script>
-		<?php endif; ?>
-				
 		<!--[if lt IE 7]>
 		<style type="text/css"> 
     	    .png,
@@ -384,74 +358,63 @@ else $description = $slogan;
 		<link rel="bookmark icon" href="<?php echo $settings["base_url"]; ?>/favicon.ico" type="image/x-icon" />
 		<![endif]-->
 		
-	<?php // Google analytics
-	if(isset($settings["google_analytics_id"]) && !empty($settings["google_analytics_id"])): ?>
-	
-	<script type="text/javascript">
-	
-	  var _gaq = _gaq || [];
-	  _gaq.push(['_setAccount', '<?php echo $settings["google_analytics_id"]; ?>']);
-	  _gaq.push(['_trackPageview']);
-	
-	  (function() {
-	    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-	    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-	    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-	  })();
-	
-	</script>
-	<?php endif; ?>
-
+	<?php 
+		// Google analytics
+		init_google_analytics();
+	?>
     </head>
     <body class="<?php echo $settings["language"]; ?>">
 	<iframe src="http://hitchwiki.org/en/index.php?title=Maps.hitchwiki.org&redirect=no&action=render&ctype=text/plain" frameborder="0" width="0" height="0" scrolling="no" style="display: block; width: 0; height: 0; border:0; position: absolute; top:-100px; left: -100px;" id="loginRefresh" name="loginRefresh"></iframe>
 		<div id="Content">
+
 	
 		<div id="Header">
 			<div id="Logo">
 				<h1><a href="http://www.hitchwiki.org/"><span>Hitchwiki</span></a></h1>
 				<h2><?php echo _("Maps"); ?></h2>
+				<h3 class="hide-fix"><?php echo $slogan; ?></h3>
 
-				<div class="Navigation">
-					<a href="<?php echo _("http://hitchwiki.org/en/"); ?>"><?php echo _("Wiki"); ?></a> | <a href="http://hitchwiki.org/community/"><?php echo _("Community"); ?></a> | <a href="http://hitchwiki.org/planet/"><?php echo _("Planet"); ?></a>
+				<div class="HitchwikiPages">
+					<a href="<?php echo _("http://hitchwiki.org/en/"); ?>"><?php echo _("Wiki"); ?></a>
+					| <a href="http://hitchwiki.org/community/"><?php echo _("Community"); ?></a>
+					<!--| <a href="http://hitchwiki.org/planet/"><?php echo _("Planet"); ?></a>-->
 				</div>
+					
+				<div class="clear"></div>
+				<ul id="Navigation" role="navigation">
+					<li><a href="#" id="add_place" class="icon add"><?php echo _("Add place"); ?></a></li>
+					<li><a href="./?page=countries" id="countries" class="icon world pagelink"><?php echo _("Countries"); ?></a></li>
+					<li><a href="./?page=public_transport" id="public_transport" class="icon pagelink underground"><?php echo _("Public transport"); ?></a></li>
 
-				<h3><?php echo $slogan; ?></h3>
+				<?php if($user["logged_in"]===true): ?>
+					<li><a href="./?page=users" id="users" class="icon user pagelink"><?php echo _("Members"); ?></a></li>
+				<?php else: ?>
+					<li><a href="./?page=help" id="help" class="icon help pagelink"><?php echo _("About"); ?></a></li>
+				<?php endif; ?>
 
+			    	<?php // Visible only for admins
+			    	if($user["admin"]===true): ?>
+					<!--<li><a href="#" id="streetview" class="icon eye cardlink"><?php echo _("Street view"); ?></a></li>-->
+					<li><a href="#" id="trips" class="icon flag_green pagelink"><?php echo _("My trips"); ?></a></li>
+					<li><a href="./?page=log" id="log_all" class="icon page_white_text pagelink"><?php echo _("Log"); ?></a></li>
+				<?php endif; ?>
+				</ul>
+				
 			<!-- /Logo -->
 			</div>
 			
-			<div id="LoginNavi" class="<?php
-				if($user["logged_in"]===true) echo 'logged_in';
-				else echo 'logged_out';
-				
-			?>">
-				
-					<ul class="align_right" id="loginSidemenu">
-						<li><a href="#" id="toggleLanguages" title="<?php echo _("Choose language"); ?>">Language</a></li>
+			<div class="align_right">
+
+					<ul id="loginMenu" class="<?php
+							if($user["logged_in"]===true) echo 'logged_in';
+							else echo 'logged_out';
+						?>">
 						
-						<?php // User is logged in:
-						if($user["logged_in"]===true): ?>
-				
-						<li><a href="./?page=settings" id="settings" class="pagelink"><?php echo _("Settings"); ?></a></li>
-						<li><a href="./?page=profile" id="profile" class="pagelink"><?php echo _("Profile"); ?></a></li>
-						<!--
-						<li><a href="http://hitchwiki.org/en/index.php?title=Special:UserLogout&returnto=Maps.hitchwiki.org" id="logout"><?php echo _("Logout"); ?></a></li>
-						-->
-						<?php else: ?>
-						
-						<li><a href="./?page=why_register" id="why_register" class="pagelink"><?php echo _("Why register?"); ?></a></li>
-						<li><a href="http://hitchwiki.org/en/index.php?title=Special:UserLogin&amp;type=signup&amp;returnto=Maps.hitchwiki.org" id="register"><?php echo _("Register!"); ?></a></li>
-					
-						<?php endif; ?>
-					</ul>
-					
-					<div id="loginHellomenu">
-					<?php 
-					// User is logged in:
+					<?php // User is logged in:
 					if($user["logged_in"]===true): ?>
-						
-						<span id="Hello"><span class="icon <?php
+						<li><a href="http://hitchwiki.org/en/index.php?title=Special:UserLogout&returnto=Maps.hitchwiki.org" id="logout"><?php echo _("Logout"); ?></a></li>
+						<li><a href="./?page=settings" id="settings" class="pagelink"><?php echo _("Settings"); ?></a></li>
+						<li class="hello"><span class="icon <?php
 						
 						/*
 						 * Icon
@@ -503,119 +466,42 @@ else $description = $slogan;
 						);
 						$hello_greeting = array_rand($hello,1);
 						
-						?><span title="<?php printf(_("Hello from %s"), ISO_to_country($hello[$hello_greeting])); ?>"><?php echo $hello_greeting; ?></span> <a href="./?page=profile" id="profile" class="pagelink"><?php echo $user["name"]; ?></a></span></span>
-						<small class="logout align_right"><a href="http://hitchwiki.org/en/index.php?title=Special:UserLogout&returnto=Maps.hitchwiki.org" id="logout">&rsaquo; <?php echo _("Logout"); ?></a></small>
-					
-					<?php 
-					// User is NOT logged in:
-					else: ?>
-					
-						<a href="http://hitchwiki.org/en/index.php?title=Special:UserLogin&amp;returnto=Maps.hitchwiki.org" id="loginOpener" class="icon lock align_right"><?php echo _("Login"); ?></a>
-					
+						?><span title="<?php printf(_("Hello from %s"), ISO_to_country($hello[$hello_greeting])); ?>"><?php echo $hello_greeting; ?></span> <a href="./?page=profile" id="profile" class="pagelink" title="<?php echo _("Profile"); ?>"><?php echo $user["name"]; ?></a></span></span></li>
+					<?php else: ?>
+						<li class="login"><a href="http://hitchwiki.org/en/index.php?title=Special:UserLogin&amp;returnto=Maps.hitchwiki.org" id="loginOpener" class="icon lock align_right"><?php echo _("Login"); ?></a></li>
+						<li><a href="./?page=why_register" id="why_register" class="pagelink"><?php echo _("Why register?"); ?></a></li>
+						<li><a href="http://hitchwiki.org/en/index.php?title=Special:UserLogin&amp;type=signup&amp;returnto=Maps.hitchwiki.org" id="register"><?php echo _("Register!"); ?></a></li>
 					<?php endif; ?>
+					</ul>
+					
+					<div id="search">
+					<form method="get" action="#" id="search_form" name="search" role="search">
+						<div class="ui-widget">
+						<input type="text" value="" id="q" name="q" />
+						<button type="submit" class="search_submit button" title="<?php echo _("Search"); ?>"> <span class="icon magnifier">&nbsp;</span><span class="hidden"><?php echo _("Search"); ?></span></button>
+						<div class="clear"></div>
+						</div>
+					</form>
 					</div>
+					
+					<div id="nearby" class="icon map2" style="display:none;">
+						<span class="locality" style="display:none;"><a href="#" title="<?php echo _("Show the city on the map"); ?>"></a></span>
+						<!--<span class="state" style="display:none;"><a href="#" title="<?php echo _("Show the state on the map"); ?>"></a></span>-->
+						<span class="country" style="display:none;"><a href="#" title="<?php echo _("Show the country on the map"); ?>"></a></span>
+					</div>
+					
 			<!-- /Login -->
 			</div>
-		
+
 		<!-- /Header -->
 		</div>
 		<div id="Login">
-				<?php /* By submitting this with JS, you can reload this page and map will be as it was, if you fill lat/lon/zoom inputs and change post->get */ ?>
-				<form method="post" action="./" id="reloadPage" class="hidden">
-				    <input type="submit" />
-				</form>
+			<?php /* By submitting this with JS, you can reload this page and map will be as it was, if you fill lat/lon/zoom inputs and change post->get */ ?>
+			<form method="post" action="./" id="reloadPage" class="hidden">
+			    <input type="submit" />
+			</form>
+		</div>
 
-</div>
-			
-			<div id="Sidebar">
-			
-				<ul id="Navigation" role="navigation">
-				
-					<!-- 1st block -->
-					<li>
-						<ul>
-							<li><h3><?php echo _("Find places"); ?></h3></li>
-							<li id="search">
-								<form method="get" action="#" id="search_form" name="search" role="search">
-									<div class="ui-widget">
-									<input type="text" value="" id="q" name="q" />
-									<button type="submit" class="search_submit button" title="<?php echo _("Search"); ?>"> <span class="icon magnifier">&nbsp;</span><span class="hidden"><?php echo _("Search"); ?></span></button>
-									<div class="clear"></div>
-									</div>
-								</form>
-								
-							</li>
-							
-							<li id="nearby" style="display:none;">
-								<span class="icon map_magnify"><?php echo _("Nearby places from"); ?>:</span><br />
-								<ul>
-									<li class="locality" style="display:none;"><a href="#" title="<?php echo _("Show the city on the map"); ?>"></a></li>
-									<li class="state" style="display:none;"><a href="#" title="<?php echo _("Show the state on the map"); ?>"></a></li>
-									<li class="country" style="display:none;"><a href="#" title="<?php echo _("Show the country on the map"); ?>"></a></li>
-								</ul>
-							</li>
-						</ul>
-					</li>
-
-					<!-- 2nd block -->
-					<li>
-						<ul>
-							<li><a href="#" id="add_place" class="icon add"><?php echo _("Add place"); ?></a></li>
-							<li><a href="./?page=public_transport" id="public_transport" class="icon pagelink underground"><?php echo _("Public transport"); ?></a></li>
-							<li><a href="./?page=countries" id="countries" class="icon world pagelink"><?php echo _("Countries"); ?></a></li>
-							<li><a href="#" id="tools" class="icon lorry"><?php echo _("Tools"); ?></a></li>
-							<li><a href="#" id="download" class="icon page_white_put cardlink"><?php echo _("Download"); ?></a></li>
-							<li><a href="#" id="link_here" class="icon link cardlink"><?php echo _("Link here"); ?></a></li>
-
-							<?php if($user["logged_in"]===true): ?>
-							<li><a href="./?page=users" id="users" class="icon user pagelink"><?php echo _("Members"); ?></a></li>
-							<?php endif; ?>
-
-							<li><a href="./?page=about" id="about" class="icon help pagelink"><?php echo htmlspecialchars(_("Help & About")); ?></a></li>
-							<li><a href="./?page=statistics" id="statistics" class="icon chart_bar pagelink"><?php echo _("Statistics"); ?></a></li>
-							<li><a href="./?page=news" id="news" class="icon new pagelink"><?php echo _("News"); ?></a></li>
-
-			    			<?php // Visible only for admins
-			    			if($user["admin"]===true): ?>
-						</ul>
-					</li>
-					<li>
-						<ul>
-			    			<li><a href="./admin/" class="icon tux"><?php echo _("Admins"); ?></a></li>
-							<li><a href="./?page=log" id="log_all" class="icon page_white_text pagelink"><?php echo _("Log"); ?></a></li>
-							<li><a href="#" id="streetview" class="icon eye cardlink"><?php echo _("Street view"); ?></a></li>
-							<li><a href="#" id="trips" class="icon flag_green pagelink"><?php echo _("My trips"); ?></a></li>
-							<?php endif; ?>
-
-						</ul>
-					</li>
-									
-				</ul>
-
-
-			<div id="Footer">
-			    <ul>
-			    	<li>
-			    		<a rel="license" href="<?php echo _("http://creativecommons.org/licenses/by-sa/3.0/"); ?>" title="<?php echo _("Licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License"); ?>"><img alt="<?php echo _("Creative Commons License"); ?>" src="static/gfx/cc-by-sa.png" width="67" height="20"/></a>
-			    		&nbsp;
-			    		<a href="http://www.facebook.com/Hitchwiki" class="icon facebook" style="margin: 2px 0 0 3px; padding-top: 3px; display: block; float: right;">Facebook</a>
-			    	</li>
-
-			    	<li id="developers">
-			    		<a href="#" class="cardlink" id="contact"><?php echo _("Contact us!"); ?></a>
-			    		&bull; <a href="http://github.com/Hitchwiki"><?php echo _("Developers"); ?></a>
-			    		<br />
-			    		<a href="#" id="api" class="pagelink"><?php echo _("API"); ?></a>
-			    		<?php if($settings["debug"] == true) { echo '&bull; <a href="#" class="toggle_log">'._("Toggle log").'</a>'; } ?>
-			    	</li>
-			    </ul>
-
-			<!-- /Footer -->
-			</div>
-
-			<!-- /Sidebar -->
-			</div>
-	        
 	        
 	        <!-- Adding a alace panel -->
 	       <div id="AddPlacePanel">
@@ -708,7 +594,6 @@ else $description = $slogan;
 	       
 	       
 	       <!-- languages -->
-	       
 	       <div id="languagePanel" class="floatingPanel hidden">
 	       		<h4 class="icon world">
 	       			<?php echo _("Choose language"); ?>
@@ -749,10 +634,10 @@ else $description = $slogan;
 	       <div id="loading-bar"><small class="title"></small></div>
 	       
 
-			<div id="map_selector">
-				<button id="selected_map" class="ui-corner-bottom"><?php echo _("Map"); ?>: <span class="map_name">Open Street Map</span></button>
+		<!-- Map selector -->
+		<div id="map_selector">
 
-				<div id="maplist" class="ui-corner-bottom">
+			<div id="maplist" class="ui-corner-top">
 				<ul>
 					<li class="first"><a href="#" name="mapnik" class="icon icon-osm<?php if($user["map_default_layer"]=='mapnik' OR empty($user["map_default_layer"]) OR !isset($user["map_default_layer"])) { echo ' selected'; } ?>"><?php echo $map_layers["osm"]["mapnik"]; ?></a></li>
 					<li><a href="#" name="osmarender" class="icon icon-osm<?php if($user["map_default_layer"]=='osmarender') { echo ' selected'; } ?>"><?php echo $map_layers["osm"]["osmarender"]; ?></a></li>
@@ -787,10 +672,44 @@ else $description = $slogan;
 					
 				    ?>
 				</ul>
-				</div>
 			</div>
+			<button id="selected_map" class="ui-corner-bottom"><?php echo _("Map"); ?>: <span class="map_name">Open Street Map</span></button>
+		</div>
 
 	       
+	       
+	       
+		<div id="Footer">
+			<div class="content">
+				
+				<ul class="ToolsNavigation">
+					<li><a href="#" id="download" class="icon page_white_put cardlink"><?php echo _("Download"); ?></a></li>
+					<li><a href="#" id="link_here" class="icon link cardlink"><?php echo _("Link here"); ?></a></li>
+					<li><a href="#" id="tools" class="icon lorry"><?php echo _("More tools"); ?></a></li>
+				</ul>
+
+
+				<ul class="MetaNavigation">
+			    		<!--<li><a href="#" id="news" class="icon new pagelink"><?php echo _("News"); ?></a></li>-->
+					<li><a href="#" id="toggleLanguages" title="<?php echo _("Choose language"); ?>">Language</a></li>
+					<li><a href="./?page=help" id="help" class="pagelink"><?php echo htmlspecialchars(_("Help & About")); ?></a></li>
+					<li><a href="./?page=statistics" id="statistics" class="pagelink"><?php echo _("Statistics"); ?></a></li>
+					<li><a href="#" class="cardlink" id="contact"><?php echo _("Contact us!"); ?></a></li>
+			    		<!--<li><a href="http://github.com/Hitchwiki"><?php echo _("Developers"); ?></a></li>-->
+			    		<li><a href="#" id="api" class="pagelink" title="<?php echo _("Developers"); ?>"><?php echo _("API"); ?></a></li>
+
+			    	<?php // Visible only for admins
+			    	if($user["admin"]===true): ?>
+					<!--<?php if($settings["debug"] == true) { echo '<li><a href="#" class="toggle_log">'._("Toggle log").'</a></li>'; } ?>-->
+			    		<li><a href="./admin/"><?php echo _("Admins"); ?></a></li>
+				<?php endif; ?>
+					<li><a href="http://www.facebook.com/Hitchwiki" class="icon facebook" title="Facebook" style="float: left; padding: 0; margin: 0; width: 16px; height: 16px;"><span class="hidden">Facebook</span></a></li>
+					<li><a rel="license" href="<?php echo _("http://creativecommons.org/licenses/by-sa/3.0/"); ?>" title="<?php echo _("Licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License"); ?>"><img alt="<?php echo _("Creative Commons License"); ?>" src="static/gfx/cc-by-sa.png" width="48" height="15"/></a></li>
+				</ul>
+			</div>
+		</div>
+		
+		
 		<!-- /Content -->
 		</div>
 		
@@ -803,29 +722,12 @@ else $description = $slogan;
 			<ol><li>Hitchwiki Maps log started <?php echo date("r"); ?></li></ol>
 		</div>
 
+<?php 
 
-<?php // Piwik analytics
-if(isset($settings["piwik_id"]) && !empty($settings["piwik_id"])): ?>
-<!-- Piwik -->
-<script type="text/javascript">
-/* <![CDATA[ */
-var pkBaseURL = (("https:" == document.location.protocol) ? "https://piwik.guaka.org/" : "http://piwik.guaka.org/");
-document.write(unescape("%3Cscript src='" + pkBaseURL + "piwik.js' type='text/javascript'%3E%3C/script%3E"));
-/* ]]> */
-</script>
-<script type="text/javascript">
-/* <![CDATA[ */
-try {
-var piwikTracker = Piwik.getTracker(pkBaseURL + "piwik.php", <?php echo $settings["piwik_id"]; ?>);
-piwikTracker.setDocumentTitle("Hitchwiki Maps");
-piwikTracker.setDownloadClasses("download");
-piwikTracker.trackPageView();
-piwikTracker.enableLinkTracking();
-} catch( err ) {}
-/* ]]> */
-</script><noscript><p><img src="http://piwik.guaka.org/piwik.php?idsite=<?php echo $settings["piwik_id"]; ?>" style="border:0" alt=""/></p></noscript>
-<!-- /Piwik -->
-<?php endif; ?>
+	// Load Facebook JS
+	init_FB();
 
-    </body>
-</html>
+	// Piwik analytics
+	init_piwik_analytics();
+
+?></body></html>

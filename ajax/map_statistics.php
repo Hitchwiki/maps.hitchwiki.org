@@ -14,7 +14,7 @@ require_once "../config.php";
     <head profile="http://gmpg.org/xfn/11">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     
-    <title>Hitchwiki - <?php echo _("Maps"); ?> - Statistics in maps</title>
+    <title>Hitchwiki - <?php echo _("Maps"); ?> - Embed map</title>
 
     <script type="text/javascript" src="http://www.google.com/jsapi"></script>
 
@@ -258,6 +258,14 @@ elseif(isset($_GET["map"]) && $_GET["map"] == "5" && isset($_GET["country"])): /
 <?php endif; ?>
 
 	<meta name="description" content="<?php printf(_("This is just a preview map. Go to %s for the actual service."), $settings["base_url"]); ?>" />
-</head>
-	<body><div id="map_canvas"></div></body>
-</html>
+
+	<?php 
+		// Google analytics
+		init_google_analytics();
+	?>
+</head><body><div id="map_canvas"></div><?php 
+
+	// Piwik analytics
+	init_piwik_analytics();
+
+?></body></html>

@@ -1850,7 +1850,7 @@ function protect_email($email) {
  */
 function error_sign($msg=false, $hide=true) {
 
-	$random = rand(0,1000);
+	$random = time();
 	
 	$title = _("Error");
 	if(!empty($msg)) {
@@ -1879,7 +1879,7 @@ function error_sign($msg=false, $hide=true) {
  */
 function info_sign($msg=false, $hide=true) {
 
-	$random = rand(0,1000);
+	$random = time();
 	
 	if(!empty($msg)) {
 	
@@ -1900,6 +1900,142 @@ function info_sign($msg=false, $hide=true) {
 
 	} // !empty
 }
+
+
+
+/*
+ * Prints out Javascript to init Facebook
+ * http://developers.facebook.com/docs/reference/javascript/
+ */
+function init_FB() {
+	global $settings;
+	
+	if(isset($settings["fb"]["app"]["id"]) && !empty($settings["fb"]["app"]["id"])) {
+	?>
+	<div id="fb-root"></div>
+	<script>
+	  window.fbAsyncInit = function() {
+	    FB.init({
+			appId: '<?php echo $settings["fb"]["app"]["id"]; ?>', 
+			status: true, 
+			cookie: true,
+			xfbml: true
+		});
+	  };
+	  (function() {
+	    var e = document.createElement('script'); e.async = true;
+	    e.src = document.location.protocol +
+	      '//connect.facebook.net/<?php
+		      	
+		      	// Localization + a little language fix
+		      	if($settings["language"] == "en_UK") echo 'en_US';
+		      	else echo $settings["language"]; 
+		      	
+		      ?>/all.js';
+	    document.getElementById('fb-root').appendChild(e);
+	  }());
+	</script>
+	<?php
+	}
+}
+
+/*
+ * Print out JS that renders XFBML elements on the page
+ * - Requires loading of init_FB()
+ * - You can pass element id or class to parse XFBML only inside it. Eg.: parse_XFBML('#element'); or parse_XFBML('.element');
+ * - You can leave <script> wrapper out by setting $script_tags to 'false'.
+ */
+function parse_XFBML($element=false, $script_tags=true) {
+	global $settings;
+/*	
+	echo '<div style="border:1px solid red;">';
+	
+	echo 'Loading parse_XFBML...';
+	
+	if($script_tags===true) echo ' started JS.<script type="text/javascript">';
+	
+	if(isset($settings["fb"]["app"]["id"]) && !empty($settings["fb"]["app"]["id"])) {
+
+		echo 'FB.XFBML.parse(';
+			
+		if(!empty($element)) echo '$("'.strip_tags($element).'")';
+			
+		echo ');';
+	
+	}
+	else echo 'maps_debug("Tried to parse XFBML, but no init_FB() loaded!");alert("error");';
+	
+	if($script_tags===true) echo '</script> ...ended it';
+	
+	
+	echo '</div>';
+*/
+}
+
+
+
+/*
+ * Prints out Javascript to init Google Analytics
+ * Insert this just before </head> tag
+ * http://analytics.google.com
+ */
+function init_google_analytics() {
+	global $settings;
+
+	if(isset($settings["google_analytics_id"]) && !empty($settings["google_analytics_id"])) {
+	?>
+	<script type="text/javascript">
+	
+	  var _gaq = _gaq || [];
+	  _gaq.push(['_setAccount', '<?php echo $settings["google_analytics_id"]; ?>']);
+	  _gaq.push(['_trackPageview']);
+	
+	  (function() {
+	    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+	    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+	    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+	  })();
+	
+	</script>
+	<?php
+	}
+}
+
+
+/*
+ * Prints out Javascript to init Piwik analytics
+ * http://piwik.guaka.org
+ */
+function init_piwik_analytics() {
+	global $settings;
+
+
+	if(isset($settings["piwik_id"]) && !empty($settings["piwik_id"])) {
+	?>
+	<!-- Piwik -->
+	<script type="text/javascript">
+	/* <![CDATA[ */
+	var pkBaseURL = (("https:" == document.location.protocol) ? "https://piwik.guaka.org/" : "http://piwik.guaka.org/");
+	document.write(unescape("%3Cscript src='" + pkBaseURL + "piwik.js' type='text/javascript'%3E%3C/script%3E"));
+	/* ]]> */
+	</script>
+	<script type="text/javascript">
+	/* <![CDATA[ */
+	try {
+	var piwikTracker = Piwik.getTracker(pkBaseURL + "piwik.php", <?php echo $settings["piwik_id"]; ?>);
+	piwikTracker.setDocumentTitle("Hitchwiki Maps");
+	piwikTracker.setDownloadClasses("download");
+	piwikTracker.trackPageView();
+	piwikTracker.enableLinkTracking();
+	} catch( err ) {}
+	/* ]]> */
+	</script><noscript><img src="http://piwik.guaka.org/piwik.php?idsite=<?php echo $settings["piwik_id"]; ?>" style="border:0" alt=""/></noscript>
+	<!-- /Piwik -->
+	<?php
+	}
+
+}
+
 
 
 /*
@@ -1965,6 +2101,83 @@ function bubble_description_html($marker) {
    $return .= "</small></div>\n";
 
    return $return;
+}
+
+
+
+/*
+* Smarty plugin
+* -------------------------------------------------------------
+* Type:     modifier
+* Name:     relative_date
+* Version:  1.1
+* Date:     November 28, 2008
+* Author:   Chris Wheeler <chris@haydendigital.com>
+* Purpose:  Output dates relative to the current time
+* Input:    timestamp = UNIX timestamp or a date which can be converted by strtotime()
+*           days = use date only and ignore the time
+*           format = (optional) a php date format (for dates over 1 year)
+* -------------------------------------------------------------
+*/
+function relative_date ($timestamp, $days = false, $format = "M j, Y")
+{
+    if (!is_numeric($timestamp)) {
+        // It's not a time stamp, so try to convert it...
+        $timestamp = strtotime($timestamp);
+    }
+
+    if (!is_numeric($timestamp)) {
+        // If its still not numeric, the format is not valid
+        return false;
+    }
+
+    // Calculate the difference in seconds
+    $difference = time() - $timestamp;
+
+    // Check if we only want to calculate based on the day
+    if ($days && $difference < (60*60*24)) {
+        return "Today";
+    }
+    if ($difference < 3) {
+        return "Just now";
+    }
+    if ($difference < 60) {
+        return $difference . " seconds ago";
+    }
+    if ($difference < (60*2)) {
+        return "1 minute ago";
+    }
+    if ($difference < (60*60)) {
+        return intval($difference / 60) . " minutes ago";
+    }
+    if ($difference < (60*60*2)) {
+        return "1 hour ago";
+    }
+    if ($difference < (60*60*24)) {
+        return intval($difference / (60*60)) . " hours ago";
+    }
+    if ($difference < (60*60*24*2)) {
+        return "1 day ago";
+    }
+    if ($difference < (60*60*24*7)) {
+        return intval($difference / (60*60*24)) . " days ago";
+    }
+    if ($difference < (60*60*24*7*2)) {
+        return "1 week ago";
+    }
+    if ($difference < (60*60*24*7*(52/12))) {
+        return intval($difference / (60*60*24*7)) . " weeks ago";
+    }
+    if ($difference < (60*60*24*7*(52/12)*2)) {
+        return "1 month ago";
+    }
+    if ($difference < (60*60*24*364)) {
+        return intval($difference / (60*60*24*7*(52/12))) . " months ago";
+    }
+
+    // More than a year ago, just return the formatted date
+    return @date($format, $timestamp);
+
 }
 
 

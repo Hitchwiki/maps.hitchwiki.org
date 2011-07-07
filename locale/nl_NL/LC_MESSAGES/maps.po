@@ -2,7 +2,7 @@
 # This file is distributed under the same license as the Maps package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2011-04-11 13:30:04+0000\n"
+"PO-Revision-Date: 2011-07-07 08:00:04+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -12,57 +12,57 @@ msgstr ""
 
 #: views/pages/own_places.php:8
 msgid "Own places"
-msgstr ""
+msgstr "Eigen plaatsen"
 
 #: views/pages/log_place.php:94
 msgid "Nobody did anything for this place! Is it that good?"
-msgstr ""
+msgstr "Niemand heeft iets aan deze plaats gedaan? Is dat goed?"
 
 #: views/pages/profile.php:15
 msgid "Welcome home, %s"
-msgstr ""
+msgstr "Welkom thuis, %s"
 
 #: ajax/place.php:333
 msgid "Remove my rating"
-msgstr ""
+msgstr "Verwijder mijn rating"
 
 #: ajax/place.php:503
 msgid "See %d experience"
 msgid_plural "See %d experiences"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Zie %d ervaring"
+msgstr[1] "Zie %d ervaringen"
 
 #: ajax/place.php:352
 msgid "See %d vote"
 msgid_plural "See %d votes"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Zie %d stem"
+msgstr[1] "Zie %d stemmen"
 
 #: views/pages/log_user.php:104
 msgid "You must be logged in."
-msgstr ""
+msgstr "Je moet ingelogd zijn."
 
 #: ajax/hitchability_log.php:190
 msgid "No ratings for this place added yet."
-msgstr ""
+msgstr "Nog geen ratings voor deze plaats toegevoegd."
 
 #: views/pages/log_user.php:12
 msgid "Hey %s, welcome to your stuff!"
-msgstr ""
+msgstr "Hey %s, welkom op je spullen!"
 
 #: ajax/country.php:160
 msgid "Top %d city"
 msgid_plural "Top %d cities"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Top %d stad"
+msgstr[1] "Top %d steden"
 
 #: views/pages/log_user.php:95
 msgid "User hasn't been poking around the site yet."
-msgstr ""
+msgstr "Gebruiker heeft nog niet rondgeneusd op de site."
 
 #: views/pages/settings.php:199
 msgid "Publish my trips automatically"
-msgstr ""
+msgstr "Publiceer mijn reizen automatisch"
 
 #: views/pages/log_trips.php:12
 msgid "Recorder hasn't recorded anything yet."
@@ -70,16 +70,16 @@ msgstr ""
 
 #: views/pages/log_all.php:89
 msgid "Oh! Nothing has changed. Only the desert wind is moving some bits around..."
-msgstr ""
+msgstr "Oh! Er is niets veranderd. Alleen de woestijn wind blaast wat stof in het rond......"
 
 #: views/pages/log_all.php:51 views/pages/log_place.php:61
 #: views/pages/log_user.php:56
 msgid "%1$s waited for a ride in here for %2$s"
-msgstr ""
+msgstr "%1$s wachtte hier voor %2$s voor een lift"
 
 #: views/pages/log_place.php:79 views/pages/log_user.php:80
 msgid "Before 27. November 2010"
-msgstr ""
+msgstr "Voor 27 November 2010"
 
 #: views/pages/log_all.php:63 views/pages/log_user.php:68
 msgid "%1$s added a link to the public transportation catalog for %2$s"
@@ -138,39 +138,39 @@ msgstr ""
 
 #: views/pages/log_all.php:8 views/pages/log_trips.php:7
 msgid "Log"
-msgstr ""
+msgstr "Logboek"
 
 #: views/pages/settings.php:170
 msgid "Toggle trip recorder on/off"
-msgstr ""
+msgstr "Toggle trip recorder aan / uit"
 
 #: views/pages/settings.php:187
 msgid "Clear your recorded trips"
-msgstr ""
+msgstr "Wis je opgenomen trips"
 
 #: views/pages/settings.php:195
 msgid "Keep map centered to my current location"
-msgstr ""
+msgstr "Hou de kaart gecentreerd op mijn huidige locatie"
 
 #: views/pages/settings.php:200
 msgid "If not, you need to manually publish them from your trips page."
-msgstr ""
+msgstr "Zo niet, moet je ze handmatig publiceren van je reis pagina."
 
 #: views/pages/settings.php:204
 msgid "Share my latest location on my profile page"
-msgstr ""
+msgstr "Deel mijn laatste plaats op mijn profielpagina"
 
 #: views/pages/settings.php:208
 msgid "Share my location and trips only with registered users"
-msgstr ""
+msgstr "Deel mijn locatie en reizen alleen met geregistreerde gebruikers"
 
 #: views/pages/settings.php:212
 msgid "Automatically fetch my location from Google Latitude"
-msgstr ""
+msgstr "Haal mijn locatie automatisch op van Google Latitude"
 
 #: views/pages/settings.php:215
 msgid "Paste your \"Google Public Location Badge\" code to here"
-msgstr ""
+msgstr "Plak je \"Google Public Location Badge\" code hier"
 
 #: views/pages/settings.php:217
 msgid "First enable <a href=\"%s\" target=\"_blank\">Google Public Location Badge</a>. Then copy and paste the HTML snippet from the textarea onto textarea above."
@@ -178,25 +178,25 @@ msgstr ""
 
 #: views/pages/trips.php:8
 msgid "Countries visited"
-msgstr ""
+msgstr "Bezochte landen"
 
 #: views/pages/trips.php:10
 msgid "Import"
-msgstr ""
+msgstr "Importeer"
 
 #: views/pages/trips.php:28
 msgid "From"
-msgstr ""
+msgstr "Uit"
 
 #: views/pages/trips.php:30
 msgid "To"
-msgstr ""
+msgstr "Naar"
 
 #: views/pages/trips.php:36 views/pages/trips.php:37 views/pages/trips.php:38
 #: views/pages/trips.php:39 views/pages/trips.php:236 views/pages/trips.php:237
 #: views/pages/trips.php:238 views/pages/trips.php:239
 msgid "%d per page"
-msgstr ""
+msgstr "%d per pagina"
 
 #: views/pages/trips.php:69
 msgid "No thanks"
@@ -216,7 +216,7 @@ msgstr ""
 
 #: ajax/place.php:162
 msgid "History"
-msgstr ""
+msgstr "Geschiedenis"
 
 #: ajax/place.php:161
 msgid "Description edited %s"

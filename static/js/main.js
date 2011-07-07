@@ -155,7 +155,6 @@ $(document).ready(function() {
 	// Add a place -panel
 	$("#Navigation #add_place").click(function(e){
 		e.preventDefault();
-		stats("add_place/");
 		init_add_place();
 	});
 	
@@ -172,7 +171,7 @@ $(document).ready(function() {
 
 
 	// Tools Panel - Opening/closing
-	$("#Navigation #tools, div#toolsPanel h4 .close").click(function(e){
+	$("#Footer #tools, div#toolsPanel h4 .close").click(function(e){
 		e.preventDefault();
 		stats("toggle_tools/");
 		$(this).blur();
@@ -183,7 +182,7 @@ $(document).ready(function() {
 	// Tools Panel - make it draggable
 	$(".floatingPanel.draggable")
 		.draggable({ handle: 'h4' })
-		.attr("style","text-align:left; top: 100px; left: 240px;");
+		.attr("style","text-align:left; top: 100px; left: 60px;");
 
 
 	// Tools Panel - init zoom tool slider
@@ -907,12 +906,12 @@ function displaylocation(location) {
 		// City
 		if(location.City != '' || location.City != undefined) { 
 			$('#nearby .locality a')
-				.text(location.City)
+				.text(location.City + ', ')
 				.click(function(){ search(location.City + ', ' + location.CountryName); });
 			$('#nearby .locality').show('fast');
 			show_nearby = true;
 		}
-		
+		/*
 		// State / Region
 		if(location.State != '--') {
 			$('#nearby .state a')
@@ -928,7 +927,7 @@ function displaylocation(location) {
 			$('#nearby .state').show('fast');
 			show_nearby = true;
 		}
-		
+		*/
 		// Country
 		if(location.CountryName != '' || location.CountryName != undefined) { 
 			$('#nearby .country a')
@@ -1278,11 +1277,11 @@ function refreshMapMarkers() {
  */
 var add_place_initialized_once = false;
 var add_place_open = false;
-function init_add_place() {
+function init_add_place(prefill) {
 	maps_debug("Initialize adding a new place");
 	
-	// Hides possibly open pages
-	close_page();
+	stats("add_place/");
+	
 	
 	// Hides possibly open place panel
 	$("#map").click();
@@ -1300,7 +1299,6 @@ function init_add_place() {
 
 			// Shring map a bit and make some space for the panel
 			$("#map").attr("style","right:250px;");
-			$("#map_selector").attr("style","right:265px;");
 			
 			
 			// Start listening single clicks
@@ -1388,6 +1386,10 @@ function init_add_place() {
 		}// json got data?
 	});//json call end
 
+	// Hides possibly open pages and cards
+	close_page();
+	close_cards();
+
 }
 
 function close_add_place() {
@@ -1419,84 +1421,106 @@ function close_add_place() {
 function update_add_place(q_lon, q_lat, needsConverting) {
 	maps_debug("Updating add place -info.");
 
-	$("#add_new_place_form #address_row").hide();
-	$("#add_new_place_form #loading_row").show();
+	var add_new_place_form = $("#add_new_place_form");
+
+	add_new_place_form.find("#address_row").hide();
+	add_new_place_form.find("#address_row .flag").hide();
+	add_new_place_form.find("#address_row .address_row").text("");
+	add_new_place_form.find("#loading_row").show();
 
 	// Convert coordinates to the "Google projection"
 	var g_lonLat = new OpenLayers.LonLat(q_lon, q_lat).transform(projmerc, proj4326);
 
 	maps_debug("update_add_place() got coords: "+q_lat+", "+q_lon+" => conv: "+g_lonLat.lat+", "+g_lonLat.lon);
 
-	$("#add_new_place_form input#lat").val(g_lonLat.lat);
-	$("#add_new_place_form input#lon").val(g_lonLat.lon);
+	add_new_place_form.find("input#lat").val(g_lonLat.lat);
+	add_new_place_form.find("input#lon").val(g_lonLat.lon);
 
 	// Reverse Geocode latlon -> address
-	$.getJSON('ajax/geocoder.php?mode=reverse&q=' + g_lonLat.lat + ',' + g_lonLat.lon, function(data) {				
-			
-			$("#add_new_place_form #loading_row").hide();
-	
+	//$.getJSON('ajax/geocoder.php?mode=reverse&q=' + g_lonLat.lat + ',' + g_lonLat.lon, function(data) {				
+	$.ajax({
+		// Define AJAX properties.
+		method: "get",
+		url: 'ajax/geocoder.php?mode=reverse&q=' + g_lonLat.lat + ',' + g_lonLat.lon, // + '&c=' + Math.random()
+		dataType: "json",
+		timeout: 10000, // timeout in milliseconds; 1s = 1000ms
+	 
+		// Got a place
+		success: function(data){
+			add_new_place_form.find("#loading_row").hide();
+
 			if(data.error==true) {
-				maps_debug("Error when trying to get reverce geocode. Show manual country selector.");
-				$("#add_new_place_form input#country_iso").val("");
-				$("#add_new_place_form #manual_country_selection").show();
-				$("#add_new_place_form #address_row").hide();
-				$("#add_new_place_form input#locality").val("");
-				
-			} else {
-				maps_debug("Got reverce geocode response.");
+				maps_debug("Reverse geocode returned an error.");
+				add_place_manual_locality_selector();
+			} 
 			
-				$("#add_new_place_form #manual_country_selection").hide();
-				$("#add_new_place_form #address_row").show();
+			// If no country regogniced, we cannot use this info - then go manual
+			else if(data.country_name == undefined || data.country_code == '' || data.country_code == undefined || data.country_name == 'false') {
+					maps_debug("Received a rewerse geocode data, but for this location no country info. (huh?)");
+					add_place_manual_locality_selector();
+			}
 			
+			// All seems to be ok, let's see what we got...
+			else {
+				maps_debug("Reverse geocoder answered:<br />-country_name: '"+data.country_name+"'<br />-county_code: '"+data.country_code+"'<br />-locality: '"+data.locality+"'<br />-address: '"+data.address+"'");
 			
+				// Country info
+				add_new_place_form.find("#address_row #country_name").text(data.country_name);
+				add_new_place_form.find("#address_row .flag").hide().attr("src","static/gfx/flags/"+data.country_code.toLowerCase()+".png").fadeIn('slow');
+				add_new_place_form.find("input#country_iso").val(data.country_code);
+
+
 				// Full address
-				if(data.address != "") {
-					$("#add_new_place_form #address_row #address").html(data.address);
+				if(data.address != "" || data.address != ",") {
+					add_new_place_form.find("#address_row #address").html(data.address);
 				} else {
-					$("#add_new_place_form #address_row #address").text("");
+					add_new_place_form.find("#address_row #address").text("");
 				}
 				
 				if(data.address != "" && data.country_name != "") {
-					$("#add_new_place_form #address_row #address").append("<br />");
+					add_new_place_form.find("#address_row #address").append("<br />");
 				}
 				
 				
 				// City
 				if(data.locality != undefined) {
-					$("#add_new_place_form input#locality").val(data.locality);
-					$("#add_new_place_form #locality_name").text(data.locality);
+					add_new_place_form.find("input#locality").val(data.locality);
+					add_new_place_form.find("#locality_name").text(data.locality);
 					
 					if(data.country_name != undefined && data.country_code != undefined) {
-						$("#add_new_place_form #locality_name").append("<br />");
+						add_new_place_form.find("#locality_name").append("<br />");
 					}
 					
-					$("#add_new_place_form #locality_name").show();
+					add_new_place_form.find("#locality_name").show();
 					
 				}
 				else {
-					$("#add_new_place_form input#locality").val("");
-					$("#add_new_place_form #locality_name").hide().text("");
+					add_new_place_form.find("input#locality").val("");
+					add_new_place_form.find("#locality_name").hide().text("");
 				}
 				
+				// Show all that content now
+				add_new_place_form.find("#address_row").show();
 				
-				// Country name + flag
-				if(data.country_name != undefined && data.country_code != undefined) {
-					$("#add_new_place_form #address_row #country_name").text(data.country_name);
-					$("#add_new_place_form #address_row .flag").hide().attr("src","static/gfx/flags/"+data.country_code.toLowerCase()+".png").fadeIn('slow');
-					$("#add_new_place_form input#country_iso").val(data.country_code);
-				} else { 
-					$("#add_new_place_form #address_row #country_name").text(""); 
-					$("#add_new_place_form #address_row .flag").hide();
-					$("#add_new_place_form input#country_iso").val("");
-					$("#add_new_place_form #manual_country_selection").show();
-				}
-				
-				
-				$("#add_new_place_form #address_row").show();
-				
-			}
-	});
+			} // else after no errors...
+			
+		}, 
+		// Didn't find anything...
+		error: function( objAJAXRequest, strError ){
+			$("#add_new_place_form #loading_row").hide();
+			maps_debug("Error when trying to get reverce geocode. "+strError);
+			add_place_manual_locality_selector();
+		}
+	}); // end ajax
 	
+}
+function add_place_manual_locality_selector() {
+	maps_debug("Show manual locality selector for add a place -panel.");
+	var add_new_place_form = $("#add_new_place_form");
+   	add_new_place_form.find("input#country_iso").val("");
+   	add_new_place_form.find("input#locality").val("");
+   	add_new_place_form.find("#address_row").hide();
+   	add_new_place_form.find("#manual_country_selection").show();
 }
 
 
@@ -1519,7 +1543,6 @@ function showPlacePanel(id, zoomin) {
 			
 			// Shrink map a bit and make some space for the panel
 			$("#map").css("right","250px");
-			$("#map_selector").css("right","265px");
 			
 			// Zoom in into a marker if requested so
 			if(zoomin == true) {
@@ -1541,7 +1564,6 @@ function hidePlacePanel() {
 	
 	// Map to full width again
 	$("#map").css("right","0");
-	$("#map_selector").css("right","15px");
 	$("#PlacePanel").hide().html("");
 }
 
@@ -1563,10 +1585,6 @@ function search(q) {
 	maps_debug("Search: "+q);
 	stats("search/?s="+q);
 	
-	// Close open stuff
-	close_cards();
-	close_page();
-
 	show_loading_bar(_("Searching..."));
 
 	// Geocode
@@ -1632,7 +1650,12 @@ function search(q) {
 			
 	//});
 	
+	// Close open stuff
+	close_cards();
+	close_page();
+	
     return false;
+    
 }
 
 
@@ -1667,9 +1690,6 @@ function open_page(name, variables) {
 	maps_debug("Open a page: "+name);
 	stats("pages/"+name+"/");
 
-	// Close cards if open
-	if($("#cards .card").is(':visible')) { close_cards(); }
-	
 	if(variables == false || variables == undefined) { 
 		var variables = "";
 	} else {
@@ -1692,6 +1712,10 @@ function open_page(name, variables) {
 			return true;
       	}
 	});
+	
+	// Close cards if open
+	if($("#cards .card").is(':visible')) { close_cards(); }
+
 }
 
 
@@ -1708,6 +1732,7 @@ function close_page() {
 			$("#pages .close").fadeOut('fast');
 			$("#pages .page").slideUp('fast').attr(id,"closed");
 	}
+	return true;
 }
 
 
@@ -1733,12 +1758,9 @@ function open_card(name, title) { //, x_coord, y_coord, width
 	*/
 	
 	//$(".card").dialog("destroy");
-
-	// Close pages if open
-	if($("#pages .page").is(':visible')) { close_page(); }
-	    	
+		
 	close_cards();
-		    
+    
 	$.ajax({
 	    url: "ajax/views.php?type=card&lang="+locale+"&page=" + name,
 	    async: false,
@@ -1747,7 +1769,7 @@ function open_card(name, title) { //, x_coord, y_coord, width
 		    
 	    	$("#cards").html('<div class="card" id="card_'+name+'" title="'+title+'">'+content+'</div>');
 	    	$("#cards .card").dialog({
-						position: [280,100],
+						position: [100,100],
 						height: 400,
 						width: 390,
 	    				maxHeight: 600,
@@ -1773,6 +1795,9 @@ function open_card(name, title) { //, x_coord, y_coord, width
       	}
 	});
 	
+	// Close pages if open
+	if($("#pages .page").is(':visible')) { close_page(); }
+
 }
 
 
@@ -1784,6 +1809,7 @@ function open_card(name, title) { //, x_coord, y_coord, width
 function close_cards() {
 	maps_debug("Closing all cards...");
 	$(".card").dialog("close");
+	return true;
 }
 
 
@@ -1954,11 +1980,11 @@ function info_dialog(dialog_info, dialog_title, dialog_alert, reload_page) {
 		
 		    if(toggle_target.is(":checked")) {
 		    	var toggled_position = '0 bottom';
-				//settings.onSlideOn.call(this); //Callback after the slide turns the toggle off
+				settings.onClickOn.call(this); //Callback after the slide turns the toggle off
 		    }
 		    else {
 		    	var toggled_position = '-54px bottom';
-				//settings.onSlideOn.call(this); //Callback after the slide turns the toggle on
+				settings.onClickOff.call(this); //Callback after the slide turns the toggle on
 		    }
 		    
 		    toggle_target.next("a.onoff_toggle").animate({

@@ -20,7 +20,7 @@ if(isset($_GET["country"]) && strlen($_GET["country"]) == 2) {
 
 }
 else {
-	echo 'Choose country.';
+	error_sign("Choose a country.", false);
 	exit;
 }
 

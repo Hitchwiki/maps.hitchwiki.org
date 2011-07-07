@@ -2,7 +2,7 @@
 # This file is distributed under the same license as the Maps package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2011-04-11 13:30:01+0000\n"
+"PO-Revision-Date: 2011-07-07 08:00:03+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -20,25 +20,25 @@ msgstr ""
 
 #: views/pages/profile.php:15
 msgid "Welcome home, %s"
-msgstr ""
+msgstr "Добро пожаловать, %s"
 
 #: ajax/place.php:333
 msgid "Remove my rating"
-msgstr ""
+msgstr "Удалить мою оценку"
 
 #: ajax/place.php:503
 msgid "See %d experience"
 msgid_plural "See %d experiences"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "Посмотреть %d время ожидания"
+msgstr[1] "Посмотреть %d времени ожидания"
+msgstr[2] "Посмотреть %d времен ожидания"
 
 #: ajax/place.php:352
 msgid "See %d vote"
 msgid_plural "See %d votes"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "Посмотреть %d голос"
+msgstr[1] "Посмотреть %d голоса"
+msgstr[2] "Посмотреть %d голосов"
 
 #: views/pages/log_user.php:104
 msgid "You must be logged in."
@@ -78,11 +78,11 @@ msgstr ""
 #: views/pages/log_all.php:51 views/pages/log_place.php:61
 #: views/pages/log_user.php:56
 msgid "%1$s waited for a ride in here for %2$s"
-msgstr ""
+msgstr "%1$s ожидал(а) попутку на этой позиции %2$s"
 
 #: views/pages/log_place.php:79 views/pages/log_user.php:80
 msgid "Before 27. November 2010"
-msgstr ""
+msgstr "До 27 ноября 2010"
 
 #: views/pages/log_all.php:63 views/pages/log_user.php:68
 msgid "%1$s added a link to the public transportation catalog for %2$s"
@@ -95,21 +95,21 @@ msgstr ""
 #: views/pages/log_all.php:44 views/pages/log_place.php:54
 #: views/pages/log_user.php:49
 msgid "%s added a new place"
-msgstr ""
+msgstr "%s первым добавил эту позицию"
 
 #: views/pages/log_all.php:47 views/pages/log_place.php:57
 #: views/pages/log_user.php:52
 msgid "%s commented place"
-msgstr ""
+msgstr "%s оставил комментарий"
 
 #: views/pages/log_all.php:54 views/pages/log_place.php:64
 #: views/pages/log_user.php:59
 msgid "%1$s rated \"%2$s\" for this place"
-msgstr ""
+msgstr "%1$s дал оценку \"%2$s\" этой позиции"
 
 #: views/pages/log_place.php:1
 msgid "Edit history for the place"
-msgstr ""
+msgstr "История внесенных изменений"
 
 #: views/pages/log_all.php:66 views/pages/log_user.php:71
 msgid "%s started using Maps"
@@ -125,7 +125,7 @@ msgstr ""
 
 #: views/pages/settings.php:127
 msgid "The map will be centered to here."
-msgstr ""
+msgstr "Эта страна будет показана при загрузке карты"
 
 #: views/pages/settings.php:167
 msgid "Trip recorder"
@@ -219,43 +219,43 @@ msgstr ""
 
 #: ajax/place.php:162
 msgid "History"
-msgstr ""
+msgstr "История изменений"
 
 #: ajax/place.php:161
 msgid "Description edited %s"
-msgstr ""
+msgstr "Описание изменено %s"
 
 #: ajax/place.php:140
 msgid "Click to edit"
-msgstr ""
+msgstr "Кликните для редактирования"
 
 #: views/cards/contact.php:71
 msgid "Thank you very much!"
-msgstr ""
+msgstr "Спасибо!"
 
 #: ajax/place.php:150
 msgid "Undo changes"
-msgstr ""
+msgstr "Отменить изменения"
 
 #: views/cards/contact.php:71
 msgid "Your message was sent"
-msgstr ""
+msgstr "Сообщение отправлено"
 
 #: views/cards/contact.php:2
 msgid "Drop us an email to %s or use this form"
-msgstr ""
+msgstr "Можете написать на %s или используйте эту форму"
 
 #: views/cards/contact.php:8
 msgid "From: %s"
-msgstr ""
+msgstr "От: %s"
 
 #: views/cards/contact.php:10
 msgid "Your email"
-msgstr ""
+msgstr "E-mail для обратной связи"
 
 #: views/cards/contact.php:18
 msgid "Message"
-msgstr ""
+msgstr "Сообщение"
 
 #: ajax/place.php:785
 msgid "Adding a comment failed."
@@ -267,7 +267,7 @@ msgstr ""
 
 #: views/cards/contact.php:23
 msgid "Include an usage log"
-msgstr ""
+msgstr "Присоединить логи"
 
 #: views/cards/contact.php:75
 msgid "Sending your message failed."
@@ -275,11 +275,11 @@ msgstr ""
 
 #: views/cards/contact.php:23
 msgid "Show"
-msgstr ""
+msgstr "показать"
 
 #: views/cards/contact.php:14
 msgid "So we can reply to you"
-msgstr ""
+msgstr "Чтобы мы могли ответить Вам"
 
 #: views/pages/settings.php:105
 msgid "No \"Nearby places from\" for you, then."

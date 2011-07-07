@@ -23,7 +23,7 @@ $user = current_user();
 <input type="hidden" id="lon" name="lon" value="" />
 <input type="hidden" id="locality" name="locality" value="" />
 				
-<ul id="Navigation">
+<ul class="Sidebar">
 
     <li style="background: #fff;">
 
@@ -40,6 +40,7 @@ $user = current_user();
 	<li id="loading_row">
 		<ul>
 			<li class="centered">
+				<small class="light"><?php echo _("Getting info about the place..."); ?></small><br />
 				<img src="static/gfx/loading.gif" alt="<?php echo _("Loading"); ?>" />
 			</li>
 		</ul>
@@ -50,11 +51,11 @@ $user = current_user();
 			<li>
 				<input type="hidden" id="country_iso" name="country_iso" value="" />
 			    
-			    <small id="address"></small>
+			    <small id="address" class="address_row"></small>
 			    
-			    <span id="locality_name" class="icon building"></span>
+			    <span id="locality_name" class="icon building address_row"></span>
 			    
-			    <img class="flag" alt="" src="" class="hidden" /> <span id="country_name"></span>
+			    <img src="static/gfx/blank.gif" alt="" class="flag hidden" /> <span id="country_name" class="address_row"></span>
 			    &nbsp;
 
 			</li>
@@ -62,7 +63,7 @@ $user = current_user();
 	</li>
 	
 	<!-- manual country selection as a backup method: -->
-	<li id="manual_country_selection">
+	<li id="manual_country_selection" style="display:none;">
 		<ul>
 			<li>
 			    <label for="manual_country"><?php echo _("Country"); ?></label> <small>(<?php echo _("Required"); ?>)</small><br />

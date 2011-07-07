@@ -2,10 +2,10 @@
 <?= info_sign("This feature is under development and visible only for admins.",false); ?>
 
 
-<h2><?php echo _("My trips"); ?></h2>
+<h2><?php echo _("Countries visited"); ?></h2>
 
-<a href="#"><b><?php echo _("My trips"); ?></b></a> &bull; 
-<a href="#" onclick="open_page('trips_countries'); return false;"><?php echo _("Countries visited"); ?></a> &bull; 
+<a href="#" onclick="open_page('trips'); return false;"><?php echo _("My trips"); ?></a> &bull; 
+<a href="#" onclick="open_page('trips_countries'); return false;"><b><?php echo _("Countries visited"); ?></b></a> &bull; 
 <a href="#" onclick="open_page('trips_mountains'); return false;">Mountains</a> &bull; 
 <a href="#" onclick="open_page('trips_import'); return false;"><?php echo _("Import"); ?></a> &bull; 
 
@@ -47,100 +47,62 @@
 
 
 					
-					<ol class="trips">
+					<ol class="trips countries_visited">
 					
 						<li id="marker_id" class="odd">
 						
-							<span class="datetime meta">24th February 2011</span>
+							<span class="datetime meta">January 2011</span>
 							
 							<ul class="place_info">
-								<li class="location icon" style="background-image: url(static/gfx/flags/au.png);"><a href="#">City, Country</a></li>
+								<li class="location icon" style="background-image: url(static/gfx/flags/fi.png);"><a href="#">Finland</a></li>
+								<li class="meta"><b>Places:</b> <a href="#">Helsinki</a>, <a href="#">Turku</a>, <a href="#">Tampere</a>, <a href="#">Jyväskylä</a></li>
 							</ul>
 
 						</li>
-						
 						
 						
 						<li id="marker_id" class="even">
 						
-							<span class="datetime meta">1st March 2011</span>
+							<span class="datetime meta">February 2011</span>
 							
 							<ul class="place_info">
-								<li class="location icon" style="background-image: url(static/gfx/flags/au.png);"><a href="#">City, Country</a></li>
-								<li class="meta align_left icon hitchability_3">Hitchability: Good</li>
-								<li class="meta align_left icon time">Waiting time: 1h 4m</li>
+								<li class="location icon" style="background-image: url(static/gfx/flags/fr.png);"><a href="#">France</a></li>
+								<li class="meta"><b>Places:</b> <a href="#">Paris</a>, <a href="#">Marseille</a>, <a href="#">Lyon</a></li>
+								
+								<li class="location icon" style="background-image: url(static/gfx/flags/de.png);"><a href="#">Germany</a></li>
+								<li class="meta"><b>Places:</b> <a href="#">Berlin</a>, <a href="#">Frankfurt</a></li>
+								
+								<li class="location icon" style="background-image: url(static/gfx/flags/lt.png);"><a href="#">Lithuania</a></li>
+								
 							</ul>
 
 						</li>
 						
 						
-					
 						<li id="marker_id" class="odd">
 						
-							<a href="#" class="make_hh_spot align_right smaller icon add" style="display:none;" onclick="init_add_place(); return false;">Make place a hitchhiking spot</a>
-							
-							<span class="datetime meta">24th March 2011</span>
+							<span class="datetime meta">June 2011</span>
 							
 							<ul class="place_info">
-								<li class="location icon" style="background-image: url(static/gfx/flags/au.png);"><a href="#">City, Country</a></li>
+								<li class="location icon" style="background-image: url(static/gfx/flags/de.png);"><a href="#">Germany</a></li>
 							</ul>
 
 						</li>
 						
-					
+						
 						<li id="marker_id" class="even">
 						
-							<a href="#" class="make_hh_spot align_right smaller icon add" style="display:none;" onclick="init_add_place(); return false;">Make place a hitchhiking spot</a>
-							
-							<span class="datetime meta">24th March 2011</span>
+							<span class="datetime meta">July 2011</span>
 							
 							<ul class="place_info">
-								<li class="location icon" style="background-image: url(static/gfx/flags/au.png);"><a href="#">City, Country</a></li>
+								<li class="location icon" style="background-image: url(static/gfx/flags/lt.png);"><a href="#">Lithuania</a></li>
 							</ul>
 
 						</li>
 						
-					
-						<li id="marker_id" class="odd">
-						
-							<a href="#" class="make_hh_spot align_right smaller icon add" style="display:none;" onclick="init_add_place(); return false;">Make place a hitchhiking spot</a>
-							
-							<span class="datetime meta">29th March 2011</span>
-							
-							<ul class="place_info">
-								<li class="location icon" style="background-image: url(static/gfx/flags/au.png);"><a href="#">City, Country</a></li>
-							</ul>
-
-						</li>
-					
-						<li id="marker_id" class="even">
-						
-							<a href="#" class="make_hh_spot align_right smaller icon add" style="display:none;" onclick="init_add_place(); return false;">Make place a hitchhiking spot</a>
-							
-							<span class="datetime meta">22th April 2011</span>
-							
-							<ul class="place_info">
-								<li class="location icon" style="background-image: url(static/gfx/flags/au.png);"><a href="#">City, Country</a></li>
-							</ul>
-
-						</li>
-
 
 					</ol>
-<script type="text/javascript">
-
-$(".trips li").hover(
-  function () {
-    $(this).find(".make_hh_spot").show();
-  }, 
-  function () {
-    $(this).find(".make_hh_spot").hide();
-  }
-);
-
-</script>
-
-
+					
 
 <!-- pagination --> 
 <ul class="pagination">

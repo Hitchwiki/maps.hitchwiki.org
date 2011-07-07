@@ -211,11 +211,10 @@ $(function() {
 });
 </script>
 
-<?php else: ?>
+<?php 
 
-	<div class="ui-state-error ui-corner-all" style="padding: 0 .7em; margin: 20px 0;"> 
-	    <p><span class="ui-icon ui-icon-alert" style="float: left; margin-right: .3em;"></span> 
-	    <?php echo _("You must be logged in to add pages."); ?></p>
-	</div>
-	
-<?php endif; ?>
+// Logged in?
+else:
+	error_sign(_("You must be logged in."), false);
+endif;
+?>

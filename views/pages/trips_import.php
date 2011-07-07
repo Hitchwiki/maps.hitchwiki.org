@@ -5,11 +5,12 @@ echo info_sign("This feature is under development and visible only for admins.",
 ?>
 
 
+<?php if($user["logged_in"]===true): ?>
+
 					<div style="width: 600px;">
 				
 					<h2>Import</h2>
-								
-					
+
 					<label>Do you want to create a trip from imported markers?</label><br />
 					<small class="note">Don't worry, you can adjust trips afterwards as you like.</small><br />
 					<input type="radio" value="0" checked="checked" name="create_trip" id="create_trip_no" /> <label for="create_trip_no" class="checkbox">No, keep them seperate</label><br />
@@ -36,36 +37,11 @@ echo info_sign("This feature is under development and visible only for admins.",
 
 							<div class="clear"><br /></div>
 							
-							<script type="text/javascript">
-							/*
-							$(function() {
-								$("#import_type_file").onoff_toggle({
-									onClickOff: function(){
-										$(".import_option.files").slideUp();
-									},
-									onClickOn: function(){
-										$(".import_option.files").slideDown();
-									}
-								});
-								
-								$("#import_type_google_latitude").onoff_toggle({
-									onClickOff: function(){
-										$(".import_option.files").slideUp();
-									},
-									onClickOn: function(){
-										$(".import_option.files").slideDown();
-									}
-								});
-							});
-							*/
-							</script>
-							
-							
 					<div class="clear"></div>
 					
 					<ol class="import_options">
 					
-						<li class="import_option selected files">
+						<li class="import_option selected files" style="display: none;">
 							
 							<ul class="filelist clean align_right" style="width: 300px; margin: 0 0 0 15px;">
 								<li>
@@ -88,29 +64,77 @@ echo info_sign("This feature is under development and visible only for admins.",
 							<div class="clear"></div>
 						</li>
 						
-						<li class="import_option google_latitude">
+						<li class="import_option google_latitude" style="display: none;">
 
-							<div style="width: 300px; height: 150px; background: #fff; float: right; margin: 0 0 0 15px;"></div>
-						
-						
-							<div style="width: 245px; float: left;">
+							<?php if(!empty($user["_____google_latitude"])): ?>
 							
-							<b>Google Latitude</b>
-							<br />
-							<input type="radio" name="glatitude_scale" id="glatitude_history_all" value="all" checked="checked" /> <label for="glatitude_history_all" class="checkbox">Import all un-imported history items</label><br />
-							<input type="radio" name="glatitude_scale" id="glatitude_history_last" value="last" /> <label for="glatitude_history_last" class="checkbox">Import only my recent location</label><br />
-							<input type="radio" name="glatitude_scale" id="glatitude_history_days" value="days" /> <label for="glatitude_history_days" class="checkbox">Import items between timerange:</label><br />
+								<div style="width: 300px; height: 150px; background: #fff; float: right; margin: 0 0 0 15px;"></div>
 								
-							<div class="settings_sub_box" id="glatitude_history_days_settings" style="display: none;">
-								<label for="glatitude_history_days_from">From</label> <input type="text" value="" size="10" maxlength="6" name="glatitude_history_days_from" /><br />
-								<label for="glatitude_history_days_to">To</label> <input type="text" value="20.3.2011" size="10" maxlength="6" name="glatitude_history_days_to" />
-							</div>
 								
-							</div>						
-		
-							<!--
-							<iframe src="http://www.google.com/latitude/apps/badge/api?user=8536713835748043793&type=iframe&maptype=roadmap" width="100%" height="200" frameborder="0"/>	
-							-->
+								<div style="width: 245px; float: left;">
+								
+								<b>Google Latitude</b>
+								<br />
+								<input type="radio" name="glatitude_scale" id="glatitude_history_all" value="all" checked="checked" /> <label for="glatitude_history_all" class="checkbox">Import all un-imported history items</label><br />
+								<input type="radio" name="glatitude_scale" id="glatitude_history_last" value="last" /> <label for="glatitude_history_last" class="checkbox">Import only my recent location</label><br />
+								<input type="radio" name="glatitude_scale" id="glatitude_history_days" value="days" /> <label for="glatitude_history_days" class="checkbox">Import items between timerange:</label><br />
+									
+								<div class="settings_sub_box" id="glatitude_history_days_settings" style="display: none;">
+									<label for="glatitude_history_days_from">From</label> <input type="text" value="" size="10" maxlength="6" name="glatitude_history_days_from" /><br />
+									<label for="glatitude_history_days_to">To</label> <input type="text" value="20.3.2011" size="10" maxlength="6" name="glatitude_history_days_to" />
+								</div>
+									
+								</div>						
+								
+								<!--
+								<iframe src="http://www.google.com/latitude/apps/badge/api?user=8536713835748043793&type=iframe&maptype=roadmap" width="100%" height="200" frameborder="0"/>	
+								-->
+								
+							<?php 
+							// No google latitude ID found, ask for it...
+							else: ?>
+							
+								<div class="ui-state-highlight ui-corner-all" style="padding: 0 .7em; margin: 20px 0;" id="info_123"> 
+		    					<p><span class="ui-icon ui-icon-info" style="float: left; margin-right: .3em;"></span>  
+		    					<span class="info_text">Before importing you need to enable Google Latitude.</span></p>
+		    					</div>
+								
+								<label for="google_latitude_id">Your Google Latitude ID</label><br />
+								<input type="text" name="google_latitude_id" id="google_latitude_id" value="" />
+								<br /><a href="#" class="tip">How do I find this?</a>
+								
+								<div class="or"><span>or</span></div>
+								
+								<label for="google_latitude_id" class="icon tag">Paste your Google Latitude badge code to here</label><br />
+								<textarea name="google_latitude_id" id="google_latitude_id"></textarea>
+								<br /><a href="#" class="tip">How do I find this?</a>
+								
+								<br />
+								<div class="clear"></div>
+								
+								<!-- update settings -->
+								<button id="btn_import_enable_glatitude" class="align_right smaller">Update settings</button>
+								
+								<script type="text/javascript">
+								$(function() {
+								
+									// Update settings
+								    $("#btn_import_enable_glatitude").button({
+								        icons: {
+								            primary: 'ui-icon-refresh'
+								        }
+								    }).click(function(e) {
+								    	e.preventDefault();
+								    	maps_debug("Update google latitude settings...");
+								
+								
+								    });
+									
+									
+								});
+								</script>
+
+							<?php endif; ?>
 							
 							
 							<div class="clear"></div>
@@ -120,17 +144,15 @@ echo info_sign("This feature is under development and visible only for admins.",
 					</ol>
 					<div class="clear"></div>
 					
-					<div class="ui-state-highlight ui-corner-all" style="padding: 0 .7em; margin: 20px 0;" id="info_123"> 
-		    		<p><span class="ui-icon ui-icon-info" style="float: left; margin-right: .3em;"></span>  
-		    		<span class="info_text">You will see all the places about to be imported and edit them before saving.</span></p>
-		    		</div>
+					<small>You will see all the places about to be imported and edit them before saving.</small>
 		    
 						    		
 					<!-- save/update -->
-					<button id="btn_import" class="align_right">Continue</button>
+					<button id="btn_import" class="align_right"><?php echo _("Continue"); ?></button>
 					
 					<!-- cancel -->
-					<button id="btn_import_cancel" class="ui-priority-secondary align_right">Cancel</button>
+					<button id="btn_import_cancel" class="ui-priority-secondary align_right"><?php echo _("Cancel"); ?></button>
+	
 	
 						<div class="clear"></div>
 					</div>
@@ -143,6 +165,25 @@ echo info_sign("This feature is under development and visible only for admins.",
 $(function() {
 
 		
+	$("#import_type_file").onoff_toggle({
+	    onClickOff: function(){
+	    	$(".import_option.files").slideUp();
+	    },
+	    onClickOn: function(){
+	    	$(".import_option.files").slideDown();
+	    }
+	});
+	
+	$("#import_type_google_latitude").onoff_toggle({
+	    onClickOff: function(){
+	    	$(".import_option.google_latitude").slideUp();
+	    },
+	    onClickOn: function(){
+	    	$(".import_option.google_latitude").slideDown();
+	    }
+	});
+	
+							
 	// Toggle more settings specific to Google Latitude dayrange
     $("input[name='glatitude_scale']").change(function() {
 		if($(this).attr("checked") && $(this).val() == "days" && $("#glatitude_history_days_settings").is(":hidden")) {
@@ -176,6 +217,7 @@ $(function() {
         }
     }).click(function(e) {
     	e.preventDefault();
+    	maps_debug("Continue...");
     	
     	
     });
@@ -195,3 +237,10 @@ $(function() {
 	
 });
 </script>
+
+<?php 
+// Logged in?
+else:
+	error_sign(_("You must be logged in."), false);
+endif;
+?>
