@@ -140,6 +140,7 @@ $(document).ready(function() {
 	$("#map_selector #selected_map").click(function(e){
 		e.preventDefault();
 		$("#map_selector #maplist").slideToggle('fast');
+		$(this).blur();
 	});
 	$("#map_selector #maplist li a").click(function(e){
 		e.preventDefault();
@@ -148,6 +149,7 @@ $(document).ready(function() {
 		$("#map_selector #selected_map .map_name").text(thisLink.text());
 		$("#map_selector #maplist li a").removeClass("selected");
 		thisLink.addClass("selected");
+		thisLink.blur();
 	});
 	
 		
