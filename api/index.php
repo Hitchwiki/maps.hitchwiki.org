@@ -19,7 +19,10 @@ else $settings["maintenance_api"] = true;
  * Put up a maintenance -sign
  */
 if($settings["maintenance_api"]===true && !in_array($_SERVER['REMOTE_ADDR'], $settings["non_maintenance_ip"])) {
-	// Should we echo something out in here?
+
+	if(isset($_GET["ping"])) echo '{"ping":"maintenance"}';
+	else echo '{"error":"true","error_description":"maintenance"}';
+
 	exit;
 }
 
@@ -84,8 +87,9 @@ elseif($api->format == "string") {
 
 /*
  * Get markers from a square area by coordinates
+ * Square corners, eg. 60.0066276,60.3266276,24.783508,25.103508 (Helsinki, Finland)
  */
-if(isset($_GET["bounds"]) && !empty($_GET["bounds"])) {
+elseif(isset($_GET["bounds"]) && !empty($_GET["bounds"])) {
 
 	// Get bounds from query
 	$bounds = explode(",", $_GET["bounds"]);
@@ -97,8 +101,18 @@ if(isset($_GET["bounds"]) && !empty($_GET["bounds"])) {
 	// Validate query
 	if(count($bounds) != 4 OR !is_numeric($bounds[0]) OR !is_numeric($bounds[1]) OR !is_numeric($bounds[2]) OR !is_numeric($bounds[3])) $api->API_error("Invalid query!");
 
-	// Square corners, eg. 60.0066276,60.3266276,24.783508,25.103508 (Helsinki, Finland)
-	echo $api->getMarkersByBound($bounds[0],$bounds[1],$bounds[2],$bounds[3],$description);
+	// Get markers only for trips
+	if(isset($_GET["trips"]) && isset($_GET["lines"])) {
+		if(isset($_GET["user_id"])) echo $api->getTripLinesByBound($_GET["user_id"], $bounds[0],$bounds[1],$bounds[2],$bounds[3]);
+		else echo $api->API_error("Missing user ID!");
+	}
+	// Get markers only for trips
+	elseif(isset($_GET["trips"])) {
+		if(isset($_GET["user_id"])) echo $api->getTripsByBound($_GET["user_id"], $bounds[0],$bounds[1],$bounds[2],$bounds[3]);
+		else echo $api->API_error("Missing user ID!");
+	}
+	// Get markers normally for hitchhiking places
+	else echo $api->getMarkersByBound($bounds[0],$bounds[1],$bounds[2],$bounds[3]);
 	
 }
 

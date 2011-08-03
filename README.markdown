@@ -2,8 +2,8 @@ Hitchwiki Maps
 ==============
 _Find good places for hitchhiking and add your favorites_
 
-Dev: [hitchwiki.org/devmaps/](http://hitchwiki.org/devmaps/)
 Current: [hitchwiki.org/maps](http://hitchwiki.org/maps/)
+Development version: [hitchwiki.org/devmaps/](http://hitchwiki.org/devmaps/)
 
 [Project translations](http://hitchwiki.org/translate/projects/maps)
 
@@ -24,6 +24,7 @@ Current: [hitchwiki.org/maps](http://hitchwiki.org/maps/)
 * [jQuery JSON](http://code.google.com/p/jquery-json/)
 * [Fam Fam Fam icons](http://www.famfamfam.com/lab/icons/)
 * [Aiga - Symbol Signs](http://www.aiga.org/content.cfm/symbol-signs)
+* [Uploadify](http://www.uploadify.com/)
 
 ### Services:
 * [IPInfoDB API](http://ipinfodb.com/)
@@ -41,7 +42,7 @@ Current: [hitchwiki.org/maps](http://hitchwiki.org/maps/)
 * [GeoPlugin](http://www.geoplugin.com/)
 
 ## jQuery UI
-1.8.7 (stable, for jQuery 1.4+) custom includes:
+Custom includes:
 
 #### UI Core
 * Core
