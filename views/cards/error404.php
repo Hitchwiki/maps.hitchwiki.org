@@ -1,0 +1,1 @@
+<?php include($views_path."views/view_404.php"); ?>

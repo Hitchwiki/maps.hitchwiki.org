@@ -803,6 +803,33 @@ if($place["error"] !== true):
 		</ul>
 	</li>
 
+	<?php 
+	/*
+	 * Facebook btn will be published only when webpage is at it's final destination, so we won't get wrong URL history to anywhere.
+	 *
+	 * Tried to publish it, but it just gives me "recommends Hitchwiki Maps" and link to /maps/ - not to the place. Trying again later. - 16.12.2010 Mikael
+	 */
+	?>
+	<li>
+		<ul>
+			<li title="<?php echo _("Recommend this place for your Facebook contacts"); ?>" id="share_place">
+				<!-- Facebook BTN -->
+				<?php /*
+				<div id="fb-root"></div>
+				<script src="http://connect.facebook.net/en_US/all.js#appId=171019199637706&amp;xfbml=1"></script>
+				*/ ?>
+				<fb:like href="<?php echo $place["link"]; ?>" send="true" layout="button_count" width="180" show_faces="false" action="recommend" font=""></fb:like>
+				<script type="text/javascript">
+					FB.XFBML.parse(document.getElementById('share_place'));
+				</script>
+				<?php /*
+					<iframe src="http://www.facebook.com/plugins/like.php?locale=<?php echo $settings["language"]; ?>&amp;href=<?php echo urlencode($place["link"]); ?>&amp;layout=button_count&amp;show_faces=true&amp;width=200&amp;action=recommend&amp;colorscheme=light&amp;height=21" scrolling="no" frameborder="0" style="border:none; overflow:hidden; width:200px; height:21px; margin: 7px 0;" allowTransparency="true"></iframe>
+				*/ ?>
+			</li>
+			
+		</ul>
+	</li>
+	
 
 	<!-- infolinks -->
 	<li>
@@ -1012,26 +1039,7 @@ if($place["error"] !== true):
 		
 		</ul>
 	</li>
-	<?php 
-	/*
-	 * Facebook btn will be published only when webpage is at it's final destination, so we won't get wrong URL history to anywhere.
-	 *
-	 * Tried to publish it, but it just gives me "recommends Hitchwiki Maps" and link to /maps/ - not to the place. Trying again later. - 16.12.2010 Mikael
-	 *
-	<li>
-		<ul>
-			<li title="<?php echo _("Recommend this place for your Facebook contacts"); ?>" id="share_place">
-				<!-- Facebook BTN -->
-				<fb:like href="<?php echo $place["link"]; ?>" layout="button_count" show_faces="false" width="100" action="recommend" font="arial"></fb:like>
-				
-				<?php */ /*
-					<iframe src="http://www.facebook.com/plugins/like.php?locale=<?php echo $settings["language"]; ?>&amp;href=<?php echo urlencode($place["link"]); ?>&amp;layout=button_count&amp;show_faces=true&amp;width=200&amp;action=recommend&amp;colorscheme=light&amp;height=21" scrolling="no" frameborder="0" style="border:none; overflow:hidden; width:200px; height:21px; margin: 7px 0;" allowTransparency="true"></iframe>
-					*/ /*?>
-			</li>
-			
-		</ul>
-	</li>
-*/ ?>
+
 
 	<?php 
 	// Show admin menu

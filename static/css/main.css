@@ -136,7 +136,7 @@ a.light, .light, .tip, .meta {
 }
 .smaller, .meta, .tip {
 	font-size: 11px;
-	line-height: 14px;
+	line-height: 12px;
 }
 .tip.checkbox {
 	padding-left: 24px;
@@ -584,13 +584,13 @@ html, body {
 		font-style: italic;
 	}
 
-ul#Navigation {
+ul.Navigation {
 	padding: 10px 0 0 0;
 	margin: 0;
 	list-style: none;
 	float: left;
 }
-	ul#Navigation li {
+	ul.Navigation li {
 		display: block;
 		padding: 3px 10px 0 0;
 		margin: 0;
@@ -709,7 +709,7 @@ ul.Sidebar {
 	right: 0;
 	min-width: 990px;
 	z-index: 1000 !important;
-	background: url(../gfx/footer_bg.gif) repeat-x;
+	background: #efd05c url(../gfx/footer_bg.gif) repeat-x;
 	font-size: 11px;
 	line-height: 15px;
 	padding: 0;
@@ -761,6 +761,16 @@ ul.Sidebar {
 		padding-bottom: 2px;
 	}
 
+.textbubble {
+	padding: 15px;
+	background: #ededed;
+	
+	margin: 10px 0;
+	
+	-webkit-border-radius: 3px;
+	-moz-border-radius: 3px;
+	border-radius: 3px;
+}
 
 .floatingPanel {
 	display: block;
@@ -1434,6 +1444,45 @@ ul li ul li #comments ol li.own_comment {
   		-moz-box-shadow: 1px 1px 3px #1f5f59;
   		-webkit-box-shadow: 1px 1px 3px #1f5f59;
 	}
+
+	/* Mobile */
+	.page#mobile { 
+		background: #000 url(../gfx/bg_universe.jpg) no-repeat; 
+		padding: 50px 30px 40px 50px;
+  		box-shadow: inset 0px 0px 5px #000;
+  		-moz-box-shadow: inset 0px 0px 5px #000;
+  		-webkit-box-shadow: inset 0px 0px 5px #000;
+	}
+	.page#mobile h2,
+	.page#mobile h3.sub-title { 
+		color: #fff;
+		text-shadow: 1px 1px 5px #000;
+		font-weight: normal;
+		padding: 0;
+		margin: 0 0 10px;
+		font-size: 30px;
+		line-height: 35px;
+	}
+	.page#mobile h3.sub-title {
+		font-size: 23px;
+		line-height: 29px;
+	}
+	.page#mobile .textbox { 
+		background: #fff;
+		
+		padding: 20px;
+		
+		width: 750px;
+		
+		-webkit-border-radius: 3px;
+		-moz-border-radius: 3px;
+		border-radius: 3px;
+		
+  		box-shadow: 1px 1px 3px #000;
+  		-moz-box-shadow: 1px 1px 3px #000;
+  		-webkit-box-shadow: 1px 1px 3px #000;
+	}
+
 	
 	/* Profile */
 	.page#profile .profile_card { 
@@ -1487,6 +1536,28 @@ ul li ul li #comments ol li.own_comment {
 		margin: 0 40px 20px 0; 
 		padding: 120px 35px 35px 35px; 
 		background: url(../gfx/bg_why_register.png) no-repeat;
+	}
+	
+	/* 404 error */
+	.page#error404 {
+		background: #000 url(../gfx/bg_universe.jpg) no-repeat; 
+		padding: 50px 30px 40px 50px;
+  		box-shadow: inset 0px 0px 5px #000;
+  		-moz-box-shadow: inset 0px 0px 5px #000;
+  		-webkit-box-shadow: inset 0px 0px 5px #000;
+		text-align: center;
+	}
+	.page#error404 strong,
+	.page#error404 h2 { 
+		color: #fff;
+		text-shadow: 1px 1px 5px #000;
+	}
+	.page#error404 h2 {
+		font-weight: normal;
+		padding: 0;
+		margin: 0 0 10px;
+		font-size: 30px;
+		line-height: 35px;
 	}
 
 #pages .close {

@@ -10,7 +10,6 @@
  * Settings
  */
 var debug = true; // enable / disable the log
-var show_log = false; // show log on start (toggle from footer)
 var mapEventlisteners = false; // These will be turned on when page stops loading and map is ready
 
 var proj4326 = new OpenLayers.Projection("EPSG:4326");
@@ -86,9 +85,9 @@ $(document).ready(function() {
 
 	// Search form
 	$("#search_form").submit(function(){ 
-  		search($("#search_form input#q").val());
-        return false; 
-    });
+	    search($("#search_form input#q").val());
+	    return false; 
+	});
 
 	// Autosuggest in search
 	$("#search_form input#q").autocomplete({
@@ -125,20 +124,25 @@ $(document).ready(function() {
 	    }
 	});
 	
+	
 	    
-    // Initialize page content area
+	// Initialize page content area
 	$("#pages .close").click(function(e){
 		e.preventDefault();
 		close_page();
 	});
-	$("#pages .page .content, #pages .page, #pages .close").hide();
-
+	if(open_page_at_start == false) {
+	    $("#pages .page .content, #pages .page, #pages .close").hide();
+	}
+	
+	$("#AddPlacePanel").hide();
 
 	// Map selector
 	$("#map_selector").show();
 	
 	$("#map_selector #selected_map").click(function(e){
 		e.preventDefault();
+		close_page();
 		$("#map_selector #maplist").slideToggle('fast');
 		$(this).blur();
 	});
@@ -238,9 +242,31 @@ $(document).ready(function() {
 	window.setInterval(function(){
 		var date = new Date();
 		loginRefresh.attr("src","http://hitchwiki.org/en/index.php?title=Maps.hitchwiki.org&redirect=no&action=render&ctype=text/plain&hitchwiki_maps_session_refresh");
-		maps_debug("Hitchwiki session refreshed "+date.getHours()+":"+date.getMinutes()+":"+date.getSeconds());
-	}, 300000); // run every 5mins
-
+		maps_debug("Session Refresh: session refreshed in iframe @ "+date.getHours()+":"+date.getMinutes()+":"+date.getSeconds());
+		
+	}, 30000); // run every 5mins 300000
+	
+	// Refresh some views on the page after iframe has finished loading
+	loginRefresh.load(function (){
+	    $.ajax({
+	      url: "ajax/header_login.php",
+	      cache: false,
+	      success: function(content){
+		$("#loginRefreshArea").html(content);
+	        maps_debug("Session Refresh: refreshed login area.");
+	      }
+	    });
+	    
+	    $.ajax({
+	      url: "ajax/header_navi.php",
+	      cache: false,
+	      success: function(content){
+		$("#Navigation2").html(content);
+	        maps_debug("Session Refresh: refreshed navi area.");
+	      }
+	    });
+	    
+	});
 });
 
 
@@ -906,7 +932,7 @@ function displaylocation(location) {
 		var show_nearby = false;
 		
 		// City
-		if(location.City != '' || location.City != undefined) { 
+		if(location.City != '' || location.City != 'undefined' || location.City != undefined) { 
 			$('#nearby .locality a')
 				.text(location.City + ', ')
 				.click(function(){ search(location.City + ', ' + location.CountryName); });
@@ -931,7 +957,7 @@ function displaylocation(location) {
 		}
 		*/
 		// Country
-		if(location.CountryName != '' || location.CountryName != undefined) { 
+		if(location.CountryName != '' || location.CountryName != 'undefined' || location.CountryName != undefined) { 
 			$('#nearby .country a')
 				.text(location.CountryName)
 				.click(function(){ search(location.CountryName); });
@@ -1688,14 +1714,16 @@ function showCountry(country_iso) {
 /* 
  * Open page
  */
-function open_page(name, variables) {
-	maps_debug("Open a page: "+name);
-	stats("pages/"+name+"/");
+function open_page(name, variables, open_at_start) {
+    maps_debug("Open a page: "+name);
+    stats("pages/"+name+"/");
+
+    if(open_at_start == false || open_at_start == undefined) {
 
 	if(variables == false || variables == undefined) { 
-		var variables = "";
+		variables = "";
 	} else {
-		var variables = "&"+variables;
+		variables = "&"+variables;
 	}
 
 	$.ajax({
@@ -1714,6 +1742,10 @@ function open_page(name, variables) {
 			return true;
       	}
 	});
+    }
+    else {
+	$("#pages .page").attr("id",name);
+    }
 	
 	// Close cards if open
 	if($("#cards .card").is(':visible')) { close_cards(); }
@@ -1728,7 +1760,7 @@ function open_page(name, variables) {
  */
 function close_page() {
 	maps_debug("Closing a page");
-	
+
 	if($("#pages .page").is(':visible')) {
 			$("#pages .page .content").hide('fast').text('');
 			$("#pages .close").fadeOut('fast');

@@ -13,6 +13,8 @@
  * - set_format()
  * - API_error()
  * - getMarker()
+ * - getTripsByBound()
+ * - getTripLinesByBound()
  * - getMarkersByBound()
  * - getMarkersByLocality()
  * - getMarkersByCountry()
@@ -130,29 +132,134 @@ class maps_api
 
 
 	/*
+	 * Get places of a trip by boundingbox coordinates
+	 * Requires user ID
+	 * Square corners, eg. 60.0066276,60.3266276,24.783508,25.103508 (Helsinki, Finland)
+	 */
+	function getTripsByBound($user_id, $lt, $lb, $rt, $rb) {
+		global $settings;
+
+		// Validate user & check for permissions
+		if(!is_id($user_id)) $user_info = false;
+		else $user_info = user_info($user_id);
+
+		// User validation failed
+		if($user_info["private_trips"] === true) return $this->API_error("No public trips for the user.");
+		elseif($user_info == false) return $this->API_error("Wrong user ID.");
+	
+	    	// Build a query
+	    	$query = "SELECT `id`,`lat`,`lon`,`fk_trip` FROM `t_trips_points` WHERE 
+					`lat` > ".mysql_real_escape_string($lt)." AND 
+					`lat` < ".mysql_real_escape_string($lb)." AND 
+					`lon` > ".mysql_real_escape_string($rt)." AND 
+					`lon` < ".mysql_real_escape_string($rb)." AND 
+					`fk_user` = ".$user_info["id"]." AND 
+					`hidden` IS NULL";
+
+		// Build an array
+   		$res = mysql_query($query);
+   		if(!$res) return $this->API_error("No results.");
+   		$i=0;
+		while($r = mysql_fetch_array($res, MYSQL_ASSOC)) {
+   		    $result[$i]["id"] = $r["id"];
+   		    $result[$i]["lat"] = $r["lat"];
+   		    $result[$i]["lon"] = $r["lon"];
+   		    $result[$i]["trip_id"] = $r["fk_trip"];
+   		    $i++;
+   		}
+   	
+   		// Return
+   		return $this->output($result, 'trips');
+    	
+	}
+
+
+	/*
+	 * Get lines of a trip by boundingbox coordinates
+	 * Requires user ID
+	 * Square corners, eg. 60.0066276,60.3266276,24.783508,25.103508 (Helsinki, Finland)
+	 */
+	function getTripLinesByBound($user_id, $lt, $lb, $rt, $rb) {
+		global $settings;
+
+		// Validate user & check for permissions
+		if(!is_id($user_id)) $user_info = false;
+		else $user_info = user_info($user_id);
+
+		// User validation failed
+		if($user_info["private_trips"] === true) return $this->API_error("No public trips for the user.");
+		elseif($user_info == false) return $this->API_error("Wrong user ID.");
+	
+	    	// Build a query
+/*
+	    	$query = "SELECT `id`,`fk_user`,`lat`,`lon`,`fk_trip` FROM `t_trips_points` WHERE 
+					`lat` > ".mysql_real_escape_string($lt)." AND 
+					`lat` < ".mysql_real_escape_string($lb)." AND 
+					`lon` > ".mysql_real_escape_string($rt)." AND 
+					`lon` < ".mysql_real_escape_string($rb)." AND
+					`fk_user` = ".$user_info["id"]." AND 
+					`hidden` IS NULL";
+*/
+		$query = "SELECT `id`,`fk_user`,`fk_trip`,`lat`,`lon`,`end_trip` FROM `t_trips_points` WHERE `fk_trip` IS NOT NULL AND `hidden` IS NULL AND `fk_user` = ".$user_info["id"]."";
+
+		// Build an array
+   		$res = mysql_query($query);
+   		if(!$res) return $this->API_error("No lines in result. ".$query);
+   		$i=0;
+		while($r = mysql_fetch_array($res, MYSQL_ASSOC)) {
+   		    $trips[$r["fk_trip"]][$i]["id"] = $r["id"];
+   		    $trips[$r["fk_trip"]][$i]["lat"] = $r["lat"];
+   		    $trips[$r["fk_trip"]][$i]["lon"] = $r["lon"];
+   		    $i++;
+   		}
+		
+		$orig = $trips;
+		
+		$i=0;
+		$previous_latlon = array();
+		$next_latlon = array();
+		foreach($trips as $trip_id => $trip) {
+			foreach ($trip as $trip_point) {
+
+			if(!empty($previous_latlon)) {
+				$result[$trip_id][$i]["from"] = $previous_latlon;
+				$result[$trip_id][$i]["to"]["lat"] = $trip_point["lat"];
+				$result[$trip_id][$i]["to"]["lon"] = $trip_point["lon"];
+				$result[$trip_id][$i]["to"]["id"] = $trip_point["id"];
+			}
+			$previous_latlon["lat"] = $trip_point["lat"];
+			$previous_latlon["lon"] = $trip_point["lon"];
+			$previous_latlon["id"] = $trip_point["id"];
+
+			$i++;
+			} // foreach trip point end
+			unset($previous_latlon);
+		}// foreach trip end
+   	
+   		// Return
+   		return $this->output($result, 'trips_lines');
+	}
+	
+
+
+	/*
 	 * Get places by boundingbox coordinates
 	 * Square corners, eg. 60.0066276,60.3266276,24.783508,25.103508 (Helsinki, Finland)
 	 */
-	function getMarkersByBound($lt, $lb, $rt, $rb) {//, $description=false) {
-    	global $settings;
+	function getMarkersByBound($lt, $lb, $rt, $rb) {
+	    	global $settings;
 
-
-		// Get description with markers?
-		//if(!isset($settings["valid_languages"][$description])) $description = false;
-
-    	// Build a query
-    	$query = "SELECT `id`,`type`,`lat`,`lon`,`rating`";
+	    	// Build a query
+	    	$query = "SELECT `id`,`type`,`lat`,`lon`,`rating`";
     	
-    	#if($description!=false) $query .= ",`".$description."`";
-    	
-    	$query .= " FROM `t_points` WHERE 
+	    	$query .= " FROM `t_points` WHERE 
 					`type` = 1 AND 
 					`lat` > ".mysql_real_escape_string($lt)." AND 
 					`lat` < ".mysql_real_escape_string($lb)." AND 
 					`lon` > ".mysql_real_escape_string($rt)." AND 
 					`lon` < ".mysql_real_escape_string($rb);
 
-	    // Build an array
+		// Build an array
    		$res = mysql_query($query);
    		if(!$res) return $this->API_error("No results.");
    		$i=0;
@@ -161,14 +268,8 @@ class maps_api
    		    $result[$i]["lat"] = $r["lat"];
    		    $result[$i]["lon"] = $r["lon"];
    		    $result[$i]["rating"] = $r["rating"];
-   		    /*
-   		    if(!empty($description) OR $description!=false) {
-   		    	$result[$i]["description"] = $r[$description];
-   		    }
-   		    */
    		    $i++;
    		}
-   	
    	
    		// Return
    		return $this->output($result, 'markers');

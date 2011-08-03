@@ -18,9 +18,9 @@
 	
 		<br /><br />
 		
-		<small><?php echo _("You can show your love to us and recommend Hitchwiki Maps to your hitchhiker mates in Facebook by pressing this cute little button with a familiar icon on it:"); ?></small>
+		<small><?php echo _("You can show your love to us and recommend Hitchwiki Maps to your hitchhiker mates in Facebook by pressing this cute little button with a familiar icon on it:"); ?><br /></small>
 		
-		<fb:like layout="standard" width="300" href="<?php echo urlencode($settings["base_url"]); ?>">
+		<fb:like layout="standard" send="false" width="300" href="<?php echo urlencode($settings["base_url"]); ?>">
 	
 		<script type="text/javascript">
 		    $(function() {
@@ -44,6 +44,9 @@
 	
 	<h3><?php echo _("Can I use HTML tags in descriptions and comments?"); ?></h3>
 	<p><?php echo _('No, but you can use <a href="http://en.wikipedia.org/wiki/Markdown" target="_blank">Markdown</a> syntax.'); ?></p>
+		
+	<h3><?php echo _("Is there a mobile version available?"); ?></h3>
+	<p><?php echo _("Yes there is!"); ?> <a href="./?page=mobile" onclick="open_page('mobile'); return false;"><?php echo _("Read more..."); ?></a></p>
 	
 
 	<h3><?php echo _("People involved"); ?></h3>
@@ -98,6 +101,7 @@
 		<li><a href="http://jqueryui.com/">jQuery UI</a></li>
 		<li><a href="http://plugins.jquery.com/project/cookie">jQuery Cookie Plugin</a></li>
 		<li><a href="http://plugins.jquery.com/project/pstrength">jQuery Password Strength Field Plugin</a></li>
+		<li><a href="http://www.gmarwaha.com/jquery/jcarousellite/">jCarousel Lite</a></li>
 		<li><a href="http://code.google.com/p/jquery-json/">jQuery JSON</a></li>
 		<li><a href="http://www.famfamfam.com/lab/icons/">Fam Fam Fam Silk &amp; Flag icons</a></li>
 		<li><a href="http://www.aiga.org/content.cfm/symbol-signs">Aiga - Symbol Signs</a></li>

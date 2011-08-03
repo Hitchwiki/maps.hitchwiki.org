@@ -1,0 +1,48 @@
+.with_footer #map {
+    bottom: 25px;
+}
+
+#footer {
+    display: block;
+    height: 25px;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    position: absolute;
+
+    -moz-box-shadow: 0 0 3px #888;
+    -webkit-box-shadow: 0 0 3px #888;
+    box-shadow: 0 0 3px #888;
+}
+    #footer,
+    #footer a {
+        color: #000;
+        font-size: 12px;
+	line-height: 14px;
+	text-decoration: none;
+    }
+    #footer a:link,
+    #footer a:visited,
+    #footer a:hover, 
+    #footer a:hover {
+	color: #e56100;
+    }
+    #footer a:hover, 
+    #footer a:active {
+	color: #cc5600;
+	text-decoration: underline;
+    }
+    #footer .current_location {
+	display: block;
+	float: left;
+	text-align: left;
+	background: url(../gfx/current_location_small.png) 8px 4px no-repeat;
+	padding: 5px 0 0 25px;
+    }
+    #footer .current_location .when {
+	color: #888;
+	padding-left: 4px;
+    }
+
+

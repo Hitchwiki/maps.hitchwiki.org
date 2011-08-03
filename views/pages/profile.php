@@ -114,9 +114,26 @@ if(!empty($profile)): ?>
     </tbody>
 </table>
 
+<?php if($profile["private_location"] > 1): ?>
 
-<?php if(!empty($profile["google_latitude"])): ?>
-<div class="location_map"><iframe src="http://www.google.com/latitude/apps/badge/api?user=<?php echo urlencode($profile["google_latitude"]); ?>&type=iframe&maptype=roadmap" width="400" height="400" frameborder="0"></iframe></div>
+    <?php if(!empty($profile["google_latitude"])): ?>
+	<div class="location_map"><iframe src="http://www.google.com/latitude/apps/badge/api?user=<?php echo urlencode($profile["google_latitude"]); ?>&type=iframe&maptype=roadmap" width="400" height="400" frameborder="0"></iframe></div>
+    <?php endif; ?>
+    
+    <?php // Visible only for admins
+	if($user["admin"]===true): ?>
+
+    <small class="note"><b>Your location info:</b> <?php
+	if($profile["private_location"] == 1) echo _("Private. Nobody but you can access your location info.");
+	elseif($profile["private_location"] == 2) echo _("Share only among registered users on the website.");
+	elseif($profile["private_location"] == 3) {
+	    echo _("Location info is open and public through widgets.");
+	    ?> <a href="#">Share your location on a blog or web site.</a><?php
+	}
+	?><small>
+    
+    <?php endif; /* only for admins end... */ ?>
+    
 <?php endif; ?>
 
 

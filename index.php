@@ -95,10 +95,11 @@ sm = new GeoExt.grid.FeatureSelectionModel({layers: layers});
 */
 }
 
+
 /*
  *  Build a title, image, slogan and description
  */
- 
+
 // Title
 // If place
 if(isset($show_place) && !isset($show_place_error)) {
@@ -110,19 +111,37 @@ if(isset($show_place) && !isset($show_place_error)) {
     $title .= $place["location"]["country"]["name"];
     $title .= ' - ';
 }
+if(isset($_GET["page"]) && !empty($_GET["page"]) && !empty($settings["views"]["pages"][$_GET["page"]]["title"])) {
+
+    $title .= htmlspecialchars($settings["views"]["pages"][$_GET["page"]]["title"]);
+    $title .= ' - ';
+}
 $title .= 'Hitchwiki '._("Maps");
- 
- 
+
 // Image
-$website_img[] = $settings["base_url"].'/badge.png'; 
 if(isset($show_place) && !isset($show_place_error)) $website_img[] = image_map($place["lat"],$place["lon"]);
-			
+$website_img[] = $settings["base_url"].'/badge.png'; 
+
 // Slogan
 $slogan = _("Find good places for hitchhiking and add your own");
 
 // Description
 if(isset($show_place) && !isset($show_place_error) && !empty($place["description"]["en_UK"]["description"])) $description = htmlspecialchars(strip_tags($place["description"]["en_UK"]["description"]));	
 else $description = $slogan;
+
+// OG:URL
+// OG:Type
+if(isset($show_place) && !isset($show_place_error)) {
+	/*
+	if(!empty($place["location"]["locality"])): $og_type = "city";
+	elseif(!empty($place["location"]["country"]["name"])): $og_type = "country";
+	else */$og_type = "landmark";
+
+	$og_url = $place["link"];
+} else {
+	$og_type = "website";
+	$og_url = $settings["base_url"];
+}
 
 
 ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -131,21 +150,21 @@ else $description = $slogan;
 	xmlns:og="http://opengraphprotocol.org/schema/" 
 	<?php 
 	// Load schema only if FB-tags are filled in config
-	if(!empty($settings["fb"])): ?>xmlns:fb="http://developers.facebook.com/schema/" <?php endif; ?>
-	dir="ltr" 
+	if(!empty($settings["fb"])) echo 'xmlns:fb="http://developers.facebook.com/schema/"'."\n"; ?>
+	dir="<?php echo langdir(); ?>" 
 	lang="<?php echo langcode(); ?>">
 	<head profile="http://gmpg.org/xfn/11">
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 		<title><?php echo $title; ?></title>
 		<link href="static/css/ui-lightness/jquery-ui.css" media="all" rel="stylesheet" type="text/css" />
 		<?php
-		
+
 		/*
 		 * Map Services
 		 * You need to enable these from init_map() in static/js/main.js 
 		 * Set API keys and such to the config.php
 		 */
-		 
+
 		 // Google maps
 		if(!empty($settings["google_maps_api_key"])) {
 			if($user["logged_in"]===true && empty($user["map_google"])) $print_map_google = false;
@@ -161,7 +180,7 @@ else $description = $slogan;
 			
 			if($print_map_yahoo) echo '<script src="http://api.maps.yahoo.com/ajaxymap?v=3.0&appid='.$settings["yahoo_maps_appid"].'" type="text/javascript"></script>'."\n\t\t";
 		}
-		
+
 		// MS VirtualEarth
 		if($settings["ms_virtualearth"]===true) {
 			if($user["logged_in"]===true && empty($user["map_vearth"])) $print_map_vearth = false;
@@ -169,7 +188,7 @@ else $description = $slogan;
 			
 			if($print_map_vearth) echo '<script src="http://dev.virtualearth.net/mapcontrol/mapcontrol.ashx?v=6.1&mkt='.str_replace("_", "-", $settings["language"]).'" type="text/javascript"></script>'."\n\t\t";
 		}
-		
+
 		?><script src="http://openlayers.org/api/OpenLayers.js" type="text/javascript"></script>
 
 		<link href="ajax/js-translation.json.php?c=<?php echo $settings["cache_buster"]; ?>&amp;lang=<?php echo $settings["language"]; ?>" lang="<?php echo $settings["language"]; ?>" rel="gettext"/>
@@ -188,6 +207,8 @@ else $description = $slogan;
 			var private_location = <?php echo (!empty($user["private_location"]) ? 'true' : 'false'); ?>;
 			var google_analytics = <?php echo (!empty($settings["google_analytics_id"]) ? 'true' : 'false'); ?>;
 			var piwik_analytics = <?php echo (!empty($settings["piwik_id"]) ? 'true' : 'false'); ?>;
+			var show_log = <?php echo (isset($_GET["show_log"]) ? 'true' : 'false'); ?>;
+			var open_page_at_start = <?php echo (isset($_GET["page"]) && !empty($_GET["page"]) ? 'true' : 'false'); ?>;
 
 			/*
 			 * Loaded Map layers
@@ -235,45 +256,17 @@ else $description = $slogan;
 		
 		<script type="text/javascript">
 		//<![CDATA[
-			<?php
-			
+		<?php
         	/*
         	 * Open JS-pages requested by GET 'page'
         	 */
-        	 
-        	// Allowed page names
-			$pages = array(
-				"help", 
-				"hitchability",
-				"statistics", 
-				"complete_statistics", 
-				"public_transport", 
-				"add_public_transport", 
-				"why_register", 
-				"translate", 
-				"countries", 
-				"lost_password", 
-				"api", 
-				"news", 
-				"settings", 
-				"profile",
-				"users",
-				"about",
-				"beta",
-				"trips",
-				"trips_import",
-				"log_all",
-				"log_trips",
-				"log_user"
-			);
-			?>
+		?>
 			$(document).ready(function() {
 
 				<?php // Open page
-				if(isset($_GET["page"]) && in_array($_GET["page"], $pages)): ?>
+				if(isset($_GET["page"]) && !empty($_GET["page"])): ?>
 
-					open_page("<?php echo htmlspecialchars($_GET["page"]); ?>");
-
+					open_page("<?php echo htmlspecialchars($_GET["page"]); ?>", false, true);
 				<?php endif; ?>
 				
 				<?php // Open marker
@@ -298,7 +291,7 @@ else $description = $slogan;
 				<?php // Show welcome text after a maintenance break
 				if(isset($_GET["post_maintenance"])): ?>
 				
-					info_dialog('<?php echo _('Sorry about that!').'<br /><br />'._('If something on the website seems wrong to you, please use "contact us" link at the bottom-left of the page.'); ?>', '<?php echo _("The maintenance break is now over"); ?>', false);
+					info_dialog('<?php echo _('Sorry about that!').'<br /><br />'._('If something on the website seems wrong to you, please use "contact us" link at the bottom of the page.'); ?>', '<?php echo _("The maintenance break is now over"); ?>', false);
 
 				<?php endif; ?>
 				
@@ -315,15 +308,15 @@ else $description = $slogan;
 		<meta property="og:title" content="<?php echo $title; ?>" />
 		<meta property="og:site_name" content="Hitchwiki.org" />
 		<meta property="og:description" content="<?php echo $description; ?>" />
-		<meta property="og:url" content="<?php echo $settings["base_url"]; ?>/"/>
-		<meta property="og:type" content="website" />
+		<meta property="og:url" content="<?php echo $og_url; ?>"/>
+		<meta property="og:type" content="<?php echo $og_type; ?>" />
 		<?php foreach($website_img as $img): ?><meta property="og:image" content="<?php echo $img; ?>" /><?php endforeach; ?>
 	<?php /*<meta property="og:email" content="<?php echo $settings["email"]; ?>" /> */ ?>
 	<?php if(isset($place)): ?>
 		<meta property="og:latitude" content="<?php echo $place["lat"]; ?>" />
 		<meta property="og:longitude" content="<?php echo $place["lon"]; ?>" />
-		<meta property="og:locality" content="<?php echo $place["location"]["locality"]; ?>" />
-		<meta property="og:country-name" content="<?php echo $place["location"]["country"]["name"]; ?>" />
+		<?php if(!empty($place["location"]["locality"])): ?><meta property="og:locality" content="<?php echo $place["location"]["locality"]; ?>" /><?php endif; ?>
+		<?php if(!empty($place["location"]["country"]["name"])): ?><meta property="og:country-name" content="<?php echo $place["location"]["country"]["name"]; ?>" /><?php endif; ?>
 		<meta name="geo.position" content="<?php echo $place["lat"].','.$place["lon"]; ?>" />
 	<?php endif; ?>
 
@@ -349,11 +342,7 @@ else $description = $slogan;
 		?>
 		
 		<!--[if lt IE 7]>
-		<style type="text/css"> 
-    	    .png,
-    	    .icon
-    	     { behavior: url(static/js/iepngfix.htc); }
-		</style>
+		<style type="text/css"> .png, .icon { behavior: url(static/js/iepngfix.htc); } </style>
 		<link rel="shortcut icon" href="<?php echo $settings["base_url"]; ?>/favicon.ico" type="image/x-icon" />
 		<link rel="bookmark icon" href="<?php echo $settings["base_url"]; ?>/favicon.ico" type="image/x-icon" />
 		<![endif]-->
@@ -363,11 +352,10 @@ else $description = $slogan;
 		init_google_analytics();
 	?>
     </head>
-    <body class="<?php echo $settings["language"]; ?>">
+    <body class="<?php echo $settings["language"]." ".langdir(); ?>">
 	<iframe src="http://hitchwiki.org/en/index.php?title=Maps.hitchwiki.org&redirect=no&action=render&ctype=text/plain" frameborder="0" width="0" height="0" scrolling="no" style="display: block; width: 0; height: 0; border:0; position: absolute; top:-100px; left: -100px;" id="loginRefresh" name="loginRefresh"></iframe>
 		<div id="Content">
 
-	
 		<div id="Header">
 			<div id="Logo">
 				<h1><a href="http://www.hitchwiki.org/"><span>Hitchwiki</span></a></h1>
@@ -381,98 +369,30 @@ else $description = $slogan;
 				</div>
 					
 				<div class="clear"></div>
-				<ul id="Navigation" role="navigation">
+				
+				<ul id="Navigation" class="Navigation" role="navigation">
 					<li><a href="#" id="add_place" class="icon add"><?php echo _("Add place"); ?></a></li>
 					<li><a href="./?page=countries" id="countries" class="icon world pagelink"><?php echo _("Countries"); ?></a></li>
 					<li><a href="./?page=public_transport" id="public_transport" class="icon pagelink underground"><?php echo _("Public transport"); ?></a></li>
-
-				<?php if($user["logged_in"]===true): ?>
-					<li><a href="./?page=users" id="users" class="icon user pagelink"><?php echo _("Members"); ?></a></li>
-				<?php else: ?>
-					<li><a href="./?page=help" id="help" class="icon help pagelink"><?php echo _("About"); ?></a></li>
-				<?php endif; ?>
-
-			    	<?php // Visible only for admins
-			    	if($user["admin"]===true): ?>
-					<!--<li><a href="#" id="streetview" class="icon eye cardlink"><?php echo _("Street view"); ?></a></li>-->
-					<li><a href="#" id="trips" class="icon flag_green pagelink"><?php echo _("My trips"); ?></a></li>
-					<li><a href="./?page=log" id="log_all" class="icon page_white_text pagelink"><?php echo _("Log"); ?></a></li>
-				<?php endif; ?>
+					<!--<div id="naviRefreshArea"><?php
+						#$naviRefreshArea = true;
+						#require_once("ajax/header_navi.php");
+					?></div>-->
 				</ul>
+				<ul id="Navigation2" class="Navigation" role="navigation"><?php
+					$naviRefreshArea = true;
+					require_once("ajax/header_navi.php");
+				?></ul>
 				
 			<!-- /Logo -->
 			</div>
 			
 			<div class="align_right">
-
-					<ul id="loginMenu" class="<?php
-							if($user["logged_in"]===true) echo 'logged_in';
-							else echo 'logged_out';
-						?>">
-						
-					<?php // User is logged in:
-					if($user["logged_in"]===true): ?>
-						<li><a href="http://hitchwiki.org/en/index.php?title=Special:UserLogout&returnto=Maps.hitchwiki.org" id="logout"><?php echo _("Logout"); ?></a></li>
-						<li><a href="./?page=settings" id="settings" class="pagelink"><?php echo _("Settings"); ?></a></li>
-						<li class="hello"><span class="icon <?php
-						
-						/*
-						 * Icon
-						 */
-						if($settings["language"]=='pirate') echo 'skull'; // Yarr!
-						elseif($user["admin"]===true) echo 'tux'; // ;-)
-						else echo 'user_orange'; // default
-						
-						echo '"'; //end class
-						
-						// Gravatar
-						//if($user["allow_gravatar"]=="1" && !empty($user["email"])) echo ' style="background-image: url(http://www.gravatar.com/avatar/'.md5($user["email"]).'/?s=16);"';
-						
-						echo '>'; //end tag
-						
-						
-						/*
-						 * Pick one random hello
-						 */
-						$hello = array(
-							"Hi!" => "GB",
-							"Hello!" => "GB",
-							"Tere!" => "EE",
-							"Hei!" => "FI",
-							"Moi!" => "FI",
-							"¡Hola!" => "ES",
-							"Shalom!" => "IL",
-							"Namaste!" => "NP",
-							"Namaste!" => "IN",
-							"Labas!" => "LT",
-							"Mambo!" => "CG",
-							"Bok!" => "HR",
-							"Hallo!" => "NL",
-							"Hallo!" => "DE",
-							"Moin!" => "DE",
-							"Servus!" => "DE",
-							"Grüß Gott!" => "AU",
-							"Hej!" => "DK",
-							"Hej!" => "SE",
-							"Hejsan!" => "SE",
-							"Ciào!" => "IT",
-							"Sveiki!" => "LV",
-							"Moïen!" => "LU",
-							"Salamaleikum," => "SN",
-							"Čau!" => "SK",
-							"Hoezit!" => "ZA",
-							"Jambo!" => "KE",
-							"Selam!" => "TR"
-						);
-						$hello_greeting = array_rand($hello,1);
-						
-						?><span title="<?php printf(_("Hello from %s"), ISO_to_country($hello[$hello_greeting])); ?>"><?php echo $hello_greeting; ?></span> <a href="./?page=profile" id="profile" class="pagelink" title="<?php echo _("Profile"); ?>"><?php echo $user["name"]; ?></a></span></span></li>
-					<?php else: ?>
-						<li class="login"><a href="http://hitchwiki.org/en/index.php?title=Special:UserLogin&amp;returnto=Maps.hitchwiki.org" id="loginOpener" class="icon lock align_right"><?php echo _("Login"); ?></a></li>
-						<li><a href="./?page=why_register" id="why_register" class="pagelink"><?php echo _("Why register?"); ?></a></li>
-						<li><a href="http://hitchwiki.org/en/index.php?title=Special:UserLogin&amp;type=signup&amp;returnto=Maps.hitchwiki.org" id="register"><?php echo _("Register!"); ?></a></li>
-					<?php endif; ?>
-					</ul>
+					
+					<div id="loginRefreshArea"><?php
+						#$loginRefreshArea = true;
+						#require_once("ajax/header_login.php");
+					?></div>
 					
 					<div id="search">
 					<form method="get" action="#" id="search_form" name="search" role="search">
@@ -514,7 +434,13 @@ else $description = $slogan;
 			<div id="pages">
 				<a href="#" class="close ui-button ui-corner-all ui-state-default ui-icon ui-icon-closethick" title="<?php echo _("Close"); ?>"><?php echo _("Close"); ?></a>
 				<div class="page">
-					<div class="content"> </div>
+					<div class="content"><?php
+						// Open page
+						if(isset($_GET["page"]) && !empty($_GET["page"])) {
+							$views_cold_include = true;
+							require_once("ajax/views.php");
+						}
+					?> </div>
 				</div>
 			</div>
 			<!-- /pages -->
@@ -639,15 +565,27 @@ else $description = $slogan;
 
 			<div id="maplist" class="ui-corner-top">
 				<ul>
-					<li class="first"><a href="#" name="mapnik" class="icon icon-osm<?php if($user["map_default_layer"]=='mapnik' OR empty($user["map_default_layer"]) OR !isset($user["map_default_layer"])) { echo ' selected'; } ?>"><?php echo $map_layers["osm"]["mapnik"]; ?></a></li>
-					<li><a href="#" name="osmarender" class="icon icon-osm<?php if($user["map_default_layer"]=='osmarender') { echo ' selected'; } ?>"><?php echo $map_layers["osm"]["osmarender"]; ?></a></li>
+					<li class="first"><a href="#" name="mapnik" class="icon icon-osm<?php
+						if($user["map_default_layer"]=='mapnik' OR empty($user["map_default_layer"]) OR !isset($user["map_default_layer"])) {
+							echo ' selected';
+							$selected_map_name = $map_layers["osm"]["mapnik"];
+						} ?>"><?php echo $map_layers["osm"]["mapnik"]; ?></a></li>
+					
+					<li><a href="#" name="osmarender" class="icon icon-osm<?php
+						if($user["map_default_layer"]=='osmarender') {
+							echo ' selected';
+							$selected_map_name = $map_layers["osm"]["osmarender"];
+						} ?>"><?php echo $map_layers["osm"]["osmarender"]; ?></a></li>
 					<?php
 					
 					// Google
 					if(!empty($settings["google_maps_api_key"]) && $print_map_google===true) {
 						foreach($map_layers["google"] as $map => $name) {
 				    		echo '<li><a href="#" name="'.$map.'" class="icon icon-google';
-				    		if($user["map_default_layer"]==$map) echo ' selected';
+				    		if($user["map_default_layer"]==$map) {
+							echo ' selected';
+							$selected_map_name = $name;
+						}
 				    		echo '">'.$name.'</a></li>';
 						}
 					}
@@ -656,7 +594,10 @@ else $description = $slogan;
 					if(!empty($settings["yahoo_maps_appid"]) && $print_map_yahoo===true) {
 						foreach($map_layers["yahoo"] as $map => $name) {
 				    		echo '<li><a href="#" name="'.$map.'" class="icon icon-yahoo';
-				    		if($user["map_default_layer"]==$map) echo ' selected';
+				    		if($user["map_default_layer"]==$map) {
+							echo ' selected';
+							$selected_map_name = $name;
+						}
 				    		echo '">'.$name.'</a></li>';
 						}
 					}
@@ -665,7 +606,10 @@ else $description = $slogan;
 					if($settings["ms_virtualearth"]===true && $print_map_vearth===true) {
 						foreach($map_layers["vearth"] as $map => $name) {
 				    		echo '<li><a href="#" name="'.$map.'" class="icon icon-bing';
-				    		if($user["map_default_layer"]==$map) echo ' selected';
+				    		if($user["map_default_layer"]==$map) {
+							echo ' selected';
+							$selected_map_name = $name;
+						}
 				    		echo '">'.$name.'</a></li>';
 						}
 					}
@@ -673,15 +617,14 @@ else $description = $slogan;
 				    ?>
 				</ul>
 			</div>
-			<button id="selected_map" class="ui-corner-bottom"><?php echo _("Map"); ?>: <span class="map_name">Open Street Map</span></button>
+			<button id="selected_map" class="ui-corner-bottom"><?php echo _("Map"); ?>: <span class="map_name"><?php echo htmlspecialchars($selected_map_name); ?></span></button>
 		</div>
 
-	       
-	       
+
 	       
 		<div id="Footer">
 			<div class="content">
-				
+
 				<ul class="ToolsNavigation">
 					<li><a href="#" id="download" class="icon page_white_put cardlink"><?php echo _("Download"); ?></a></li>
 					<li><a href="#" id="link_here" class="icon link cardlink"><?php echo _("Link here"); ?></a></li>
@@ -692,11 +635,11 @@ else $description = $slogan;
 				<ul class="MetaNavigation">
 			    		<!--<li><a href="#" id="news" class="icon new pagelink"><?php echo _("News"); ?></a></li>-->
 					<li><a href="#" id="toggleLanguages" title="<?php echo _("Choose language"); ?>">Language</a></li>
-					<li><a href="./?page=help" id="help" class="pagelink"><?php echo htmlspecialchars(_("Help & About")); ?></a></li>
-					<li><a href="./?page=statistics" id="statistics" class="pagelink"><?php echo _("Statistics"); ?></a></li>
+					<li><a href="./?page=about" class="pagelink" id="about"><?php echo htmlspecialchars(_("Help & About")); ?></a></li>
+					<li><a href="./?page=statistics" class="pagelink" id="statistics"><?php echo _("Statistics"); ?></a></li>
 					<li><a href="#" class="cardlink" id="contact"><?php echo _("Contact us!"); ?></a></li>
-			    		<!--<li><a href="http://github.com/Hitchwiki"><?php echo _("Developers"); ?></a></li>-->
-			    		<li><a href="#" id="api" class="pagelink" title="<?php echo _("Developers"); ?>"><?php echo _("API"); ?></a></li>
+					<li><a href="./?page=mobile" class="pagelink" id="mobile"><?php echo _("Mobile"); ?></a></li>
+			    		<li><a href="./?page=api" class="pagelink" id="api" title="<?php echo _("Developers"); ?>"><?php echo _("API"); ?></a></li>
 
 			    	<?php // Visible only for admins
 			    	if($user["admin"]===true): ?>

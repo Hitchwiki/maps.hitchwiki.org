@@ -4,6 +4,7 @@ html, body {
     width: 100%;
     font-family: arial,sans-serif;
     text-align: center;
+    overflow: hidden;
 }
 
 #map {

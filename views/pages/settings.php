@@ -178,23 +178,18 @@ if($user["logged_in"]===true): ?>
 	
 	<?php echo info_sign("This feature is under development and visible only for admins.",false); ?>
 
+
 	<input type="checkbox" name="centered_glatitude" id="centered_glatitude" value="true" <?php if(isset($user["centered_glatitude"]) && $user["centered_glatitude"] == "1") echo 'checked="checked" '; ?>/> <label for="centered_glatitude" class="checkbox"><?php echo _("Keep map centered to my current location"); ?></label>
 	
 	<br /><br />
 	
+	<!--
 	<input type="checkbox" class="checkbox" name="public_by_default" id="public_by_default" /> <label for="public_by_default" class="checkbox"><?php echo _("Publish my trips automatically"); ?></label>
 	<br /><small class="tip checkbox"><?php echo _("If not, you need to manually publish them from your trips page."); ?></small>
 	
 	<br />
-	
-	<input type="checkbox" class="checkbox" name="show_location" id="show_location" /> <label for="show_location" class="checkbox"><?php echo _("Share my latest location on my profile page"); ?></label>
-	
-	<br /><br />
-	
-	<input type="checkbox" class="checkbox" name="only_registered" id="only_registered" /> <label for="only_registered" class="checkbox"><?php echo _("Share my location and trips only with registered users"); ?></label>
-	
-	<br /><br />
-	
+	-->
+
 	<input type="checkbox" class="checkbox" name="fetch_google_latitude" id="fetch_google_latitude" /> <label for="fetch_google_latitude" class="checkbox"><?php echo _("Automatically fetch my location from Google Latitude"); ?></label>
 	
 	<div class="settings_sub_box" id="google_latitude_settings" style="display:none;">
@@ -209,6 +204,18 @@ if($user["logged_in"]===true): ?>
 	</div>
 				
 	<br /><br />
+	
+	
+	<strong><?php echo _("Publicity of my trips and latest location"); ?></strong>
+	<br />
+	<input type="radio" class="radio" name="location_privacy" value="1" id="location_privacy_1" /> <label for="location_privacy_1" class="radio"><?php echo _("Private. Nobody but you can access your location info."); ?></label>
+	<br /><input type="radio" class="radio" name="location_privacy" value="2" id="location_privacy_2" /> <label for="location_privacy_2" class="radio"><?php echo _("Share only among registered users on the website."); ?></label>
+	<br /><input type="radio" class="radio" name="location_privacy" value="3" id="location_privacy_3" /> <label for="location_privacy_3" class="radio"><?php echo _("Location info is open and public through widgets."); ?></label>
+ 
+	<br /><small class="tip checkbox"><?php echo _("Note that if enabled, all your location history and current location will be visible to everyone."); ?> <?php echo _("Required if you want to publish your location on your own website."); ?></small>
+	
+	<br />
+
 	
 	</div><!-- /#recorder_settings -->
 	<?php endif; ?>	

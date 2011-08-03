@@ -110,6 +110,7 @@ else:
     		<li><a href="../stats/">Stats</a></li>
     		<li><a href="./?page=places">Places</a></li>
     		<li><a href="./?page=users">Users</a></li>
+    		<li><a href="./?page=sitemap">Update sitemap.xml</a></li>
     		<li><a href="./?page=js_minify">Minify JavaScript</a></li>
     		<li><a href="./?page=new_language">Add new language</a></li>
     		<li><a href="./?page=translate_countrynames">Translate countries</a></li>

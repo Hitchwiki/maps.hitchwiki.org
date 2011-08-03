@@ -105,7 +105,7 @@
 
 <div id="public_t">
 	
-	<p><?php echo _("Find timetables for the public transport."); ?></p>
+	<p><?php echo _("Got stuck somewhere?")." "._("Find timetables for the public transport."); ?></p>
 
 </div>
 

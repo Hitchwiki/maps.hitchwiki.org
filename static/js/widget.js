@@ -15,8 +15,7 @@ $(document).ready(function() {
 
 	// Remove JS-required alert	
 	$("#map").text('');
-	
-	
+
 	// Custom images from our own server
 	OpenLayers.ImgPath = "../static/gfx/openlayers/";
 	
@@ -30,7 +29,7 @@ $(document).ready(function() {
 		maxExtent: new OpenLayers.Bounds(-20037508, -20037508, 20037508, 20037508.34),
 		
 		eventListeners: {
-		    "moveend": refreshMapMarkers,
+		    "moveend": refreshMapMarkers
 		}
 	    
 	});
