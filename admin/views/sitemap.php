@@ -74,8 +74,11 @@ else error_sign("Couldn't creat a sitemap file! (".$sitemap_filepath.$sitemap_fi
 
 #if(file_exists($sitemap_filepath.$sitemap_file))
 
-    $google = readURL('http://www.google.com/webmasters/tools/ping?sitemap='.urlencode($settings["base_url"].$sitemap_file));
-    echo "Google's responce: ".$google.'<br /><br />';
+    $google_ping = 'http://www.google.com/webmasters/tools/ping?sitemap='.urlencode($settings["base_url"].$sitemap_file);
+
+    #$google = readURL();
+    
+    echo '<iframe src="'.$google_ping.'" style="border: 1px solid #000; margin: 20px 0; width: 600px; height: 400px;"></iframe>';
     
 } //creating the sitemap
 
