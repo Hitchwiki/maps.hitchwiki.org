@@ -2,13 +2,150 @@
 # This file is distributed under the same license as the Maps package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2011-08-03 22:00:02+0000\n"
+"PO-Revision-Date: 2011-08-09 14:30:02+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 "X-Generator: GlotPress/0.1\n"
 "Project-Id-Version: Maps\n"
+
+#: views/pages/mobile.php:2
+msgid "In your hands!"
+msgstr ""
+
+#: views/pages/mobile.php:40
+msgid "Get Hitchwiki Maps and its %s marked and rated spots with you when you're on the road!"
+msgstr ""
+
+#: views/pages/mobile.php:32
+msgid "We would love to see Hitchwiki Maps in as many platforms as possible. We have an API to help you to do just that."
+msgstr ""
+
+#: views/pages/mobile.php:31
+msgid "Are you a mobile developer?"
+msgstr ""
+
+#: views/pages/mobile.php:1
+msgid "Hitchhikers guide to the galaxy"
+msgstr ""
+
+#: views/pages/about.php:49
+msgid "Yes there is!"
+msgstr ""
+
+#: views/pages/mobile.php:50
+msgid "Can be used offline"
+msgstr ""
+
+#: ajax/place.php:815
+msgid "Recommend this place for your Facebook contacts"
+msgstr ""
+
+#: views/pages/mobile.php:41
+msgid "Also a mobile version of <i>Hitchwiki</i> is available at <a href=\"http://m.hitchwiki.org\">m.hitchwiki.org</a>"
+msgstr ""
+
+#: views/pages/about.php:48
+msgid "Is there a mobile version available?"
+msgstr ""
+
+#: views/pages/profile.php:127 views/pages/settings.php:211
+msgid "Private. Nobody but you can access your location info."
+msgstr ""
+
+#: views/pages/public_transport.php:108
+msgid "Got stuck somewhere?"
+msgstr ""
+
+#: index.php:294
+msgid "If something on the website seems wrong to you, please use \"contact us\" link at the bottom of the page."
+msgstr ""
+
+#: index.php:631
+msgid "More tools"
+msgstr ""
+
+#: widget/trip.php:82
+msgid "Trips"
+msgstr ""
+
+#: views/pages/mobile.php:48
+msgid "Features"
+msgstr ""
+
+#: views/pages/mobile.php:44
+msgid "Get the app for free"
+msgstr ""
+
+#: views/pages/settings.php:209
+msgid "Publicity of my trips and latest location"
+msgstr ""
+
+#: views/pages/mobile.php:51
+msgid "Preview each and every spot on the map"
+msgstr ""
+
+#: views/pages/mobile.php:51
+msgid "requires Internet connection such as wifi, 3G or other"
+msgstr ""
+
+#: views/pages/mobile.php:52
+msgid "Search by location and distance"
+msgstr ""
+
+#: views/pages/mobile.php:53
+msgid "See the rating and description of the spot"
+msgstr ""
+
+#: views/pages/mobile.php:54
+msgid "Application is available in:"
+msgstr ""
+
+#: views/pages/mobile.php:54 views/pages/mobile.php:61
+#: views/pages/mobile.php:62
+msgid "and"
+msgstr ""
+
+#: views/pages/mobile.php:60
+msgid "App should work on following phone models:"
+msgstr ""
+
+#: views/pages/mobile.php:65
+msgid "Got suggestions or want to report a bug?"
+msgstr ""
+
+#: views/pages/profile.php:128 views/pages/settings.php:212
+msgid "Share only among registered users on the website."
+msgstr ""
+
+#: views/pages/profile.php:130 views/pages/settings.php:213
+msgid "Location info is open and public through widgets."
+msgstr ""
+
+#: views/pages/settings.php:215
+msgid "Note that if enabled, all your location history and current location will be visible to everyone."
+msgstr ""
+
+#: views/pages/settings.php:215
+msgid "Required if you want to publish your location on your own website."
+msgstr ""
+
+#: views/pages/trips_import.php:151
+msgid "Continue"
+msgstr ""
+
+#: config.php:218 index.php:641
+msgid "Mobile"
+msgstr ""
+
+#: ajax/add_place.php:43
+msgid "Getting info about the place..."
+msgstr ""
+
+#: lib/functions_trips.php:318
+msgid "Show on the map"
+msgstr ""
 
 #: views/pages/own_places.php:8
 msgid "Own places"
@@ -38,7 +175,7 @@ msgid_plural "See %d votes"
 msgstr[0] ""
 msgstr[1] ""
 
-#: views/pages/log_user.php:104
+#: views/pages/add_public_transport.php:218
 msgid "You must be logged in."
 msgstr ""
 
@@ -60,7 +197,7 @@ msgstr[1] ""
 msgid "User hasn't been poking around the site yet."
 msgstr ""
 
-#: views/pages/settings.php:199
+#: views/pages/settings.php:187
 msgid "Publish my trips automatically"
 msgstr ""
 
@@ -72,8 +209,7 @@ msgstr ""
 msgid "Oh! Nothing has changed. Only the desert wind is moving some bits around..."
 msgstr ""
 
-#: views/pages/log_all.php:51 views/pages/log_place.php:61
-#: views/pages/log_user.php:56
+#: views/pages/log_all.php:51
 msgid "%1$s waited for a ride in here for %2$s"
 msgstr ""
 
@@ -81,7 +217,7 @@ msgstr ""
 msgid "Before 27. November 2010"
 msgstr ""
 
-#: views/pages/log_all.php:63 views/pages/log_user.php:68
+#: views/pages/log_all.php:63
 msgid "%1$s added a link to the public transportation catalog for %2$s"
 msgstr ""
 
@@ -89,18 +225,15 @@ msgstr ""
 msgid "Actions on the website during the last %d days."
 msgstr ""
 
-#: views/pages/log_all.php:44 views/pages/log_place.php:54
-#: views/pages/log_user.php:49
+#: views/pages/log_all.php:44
 msgid "%s added a new place"
 msgstr ""
 
-#: views/pages/log_all.php:47 views/pages/log_place.php:57
-#: views/pages/log_user.php:52
+#: views/pages/log_all.php:47
 msgid "%s commented place"
 msgstr ""
 
-#: views/pages/log_all.php:54 views/pages/log_place.php:64
-#: views/pages/log_user.php:59
+#: views/pages/log_all.php:54
 msgid "%1$s rated \"%2$s\" for this place"
 msgstr ""
 
@@ -108,7 +241,7 @@ msgstr ""
 msgid "Edit history for the place"
 msgstr ""
 
-#: views/pages/log_all.php:66 views/pages/log_user.php:71
+#: views/pages/log_all.php:66
 msgid "%s started using Maps"
 msgstr ""
 
@@ -128,15 +261,15 @@ msgstr ""
 msgid "Trip recorder"
 msgstr ""
 
-#: views/pages/trips.php:5 views/pages/trips.php:7 index.php:587
+#: ajax/header_navi.php:19
 msgid "My trips"
 msgstr ""
 
-#: index.php:302
+#: index.php:294
 msgid "Sorry about that!"
 msgstr ""
 
-#: views/pages/log_all.php:8 views/pages/log_trips.php:7
+#: ajax/header_navi.php:20
 msgid "Log"
 msgstr ""
 
@@ -144,73 +277,62 @@ msgstr ""
 msgid "Toggle trip recorder on/off"
 msgstr ""
 
-#: views/pages/settings.php:187
+#: views/pages/settings.php:173
 msgid "Clear your recorded trips"
 msgstr ""
 
-#: views/pages/settings.php:195
+#: views/pages/settings.php:182
 msgid "Keep map centered to my current location"
 msgstr ""
 
-#: views/pages/settings.php:200
+#: views/pages/settings.php:188
 msgid "If not, you need to manually publish them from your trips page."
 msgstr ""
 
-#: views/pages/settings.php:204
-msgid "Share my latest location on my profile page"
-msgstr ""
-
-#: views/pages/settings.php:208
-msgid "Share my location and trips only with registered users"
-msgstr ""
-
-#: views/pages/settings.php:212
+#: views/pages/settings.php:193
 msgid "Automatically fetch my location from Google Latitude"
 msgstr ""
 
-#: views/pages/settings.php:215
+#: views/pages/settings.php:196
 msgid "Paste your \"Google Public Location Badge\" code to here"
 msgstr ""
 
-#: views/pages/settings.php:217
+#: views/pages/settings.php:198
 msgid "First enable <a href=\"%s\" target=\"_blank\">Google Public Location Badge</a>. Then copy and paste the HTML snippet from the textarea onto textarea above."
 msgstr ""
 
-#: views/pages/trips.php:8
+#: views/pages/trips.php:8 views/pages/trips_countries.php:5
+#: views/pages/trips_countries.php:8
 msgid "Countries visited"
 msgstr ""
 
-#: views/pages/trips.php:10
+#: views/pages/trips.php:10 views/pages/trips_countries.php:10
 msgid "Import"
 msgstr ""
 
-#: views/pages/trips.php:28
+#: views/pages/trips.php:28 views/pages/trips_countries.php:28
 msgid "From"
 msgstr ""
 
-#: views/pages/trips.php:30
+#: views/pages/trips.php:30 views/pages/trips_countries.php:30
 msgid "To"
 msgstr ""
 
 #: views/pages/trips.php:36 views/pages/trips.php:37 views/pages/trips.php:38
-#: views/pages/trips.php:39 views/pages/trips.php:236 views/pages/trips.php:237
-#: views/pages/trips.php:238 views/pages/trips.php:239
+#: views/pages/trips.php:39 views/pages/trips.php:168 views/pages/trips.php:169
+#: views/pages/trips.php:170 views/pages/trips.php:171
+#: views/pages/trips_countries.php:36 views/pages/trips_countries.php:37
+#: views/pages/trips_countries.php:38 views/pages/trips_countries.php:39
+#: views/pages/trips_countries.php:130 views/pages/trips_countries.php:131
+#: views/pages/trips_countries.php:132 views/pages/trips_countries.php:133
 msgid "%d per page"
-msgstr ""
-
-#: views/pages/trips.php:69
-msgid "No thanks"
 msgstr ""
 
 #: views/pages/trips_place.php:11
 msgid "Back to listing"
 msgstr ""
 
-#: index.php:302
-msgid "If something on the website seems wrong to you, please use \"contact us\" link at the bottom-left of the page."
-msgstr ""
-
-#: index.php:302
+#: index.php:294
 msgid "The maintenance break is now over"
 msgstr ""
 
@@ -226,7 +348,7 @@ msgstr ""
 msgid "Click to edit"
 msgstr ""
 
-#: views/cards/contact.php:71
+#: views/cards/contact.php:71 views/pages/about.php:59
 msgid "Thank you very much!"
 msgstr ""
 
@@ -313,19 +435,19 @@ msgstr ""
 msgid "Average elevation"
 msgstr ""
 
-#: ajax/place.php:999
+#: ajax/place.php:1026
 msgid "Download marker as a file"
 msgstr ""
 
-#: ajax/place.php:837
+#: ajax/place.php:864
 msgid "No weather info..."
 msgstr ""
 
-#: ajax/place.php:914
+#: ajax/place.php:941
 msgid "Elevation"
 msgstr ""
 
-#: ajax/place.php:914
+#: ajax/place.php:941
 msgid "meters"
 msgstr ""
 
@@ -341,13 +463,13 @@ msgstr ""
 msgid "Lowest place"
 msgstr ""
 
-#: lib/functions.php:1919
+#: lib/functions.php:475
 msgid "%d vote"
 msgid_plural "%d votes"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/functions.php:1943
+#: lib/functions.php:499
 msgid "Place in Hitchwiki Maps"
 msgstr ""
 
@@ -355,11 +477,11 @@ msgstr ""
 msgid "Waiting time varies from %s to %s."
 msgstr ""
 
-#: views/pages/about.php:67
+#: views/pages/about.php:70
 msgid "Italian"
 msgstr ""
 
-#: index.php:586
+#: ajax/header_navi.php:18
 msgid "Street view"
 msgstr ""
 
@@ -375,67 +497,67 @@ msgstr "Creative-Commons-Lizenz"
 msgid "You can show your love to us and recommend Hitchwiki Maps to your hitchhiker mates in Facebook by pressing this cute little button with a familiar icon on it:"
 msgstr ""
 
-#: index.php:416
+#: index.php:366
 msgid "http://hitchwiki.org/en/"
 msgstr "http://hitchwiki.org/de/"
 
-#: views/pages/about.php:58 views/pages/about.php:75
+#: views/pages/about.php:61 views/pages/about.php:78
 msgid "English"
 msgstr "Englisch"
 
-#: views/pages/about.php:72
+#: views/pages/about.php:75
 msgid "Latvian"
 msgstr "Lettisch"
 
-#: views/pages/about.php:75
+#: views/pages/about.php:78
 msgid "Pirate"
 msgstr "Piratensprache"
 
-#: ajax/place.php:860
+#: ajax/place.php:887
 msgid "Wind"
 msgstr "Wind"
 
-#: ajax/place.php:858
+#: ajax/place.php:885
 msgid "Temperature"
 msgstr "Temperatur"
 
-#: ajax/place.php:859
+#: ajax/place.php:886
 msgid "Humidity"
 msgstr "Luftfeuchtigkeit"
 
-#: ajax/place.php:860
+#: ajax/place.php:887
 msgid "Intensity"
 msgstr "Intensität"
 
-#: ajax/place.php:860
+#: ajax/place.php:887
 msgid "Direction"
 msgstr "Richtung"
 
-#: ajax/place.php:924
+#: ajax/place.php:951
 msgid "Weather near %s"
 msgstr "Das Wetter in der Nähe von %s"
 
-#: ajax/place.php:861
+#: ajax/place.php:888
 msgid "Air pressure"
 msgstr "Luftdruck"
 
-#: ajax/place.php:927
+#: ajax/place.php:954
 msgid "Weather from Wunderground.com"
 msgstr "Das Wetter von Wunderground.com"
 
-#: views/pages/about.php:65
+#: views/pages/about.php:68
 msgid "Chinese"
 msgstr "Chinesisch"
 
-#: ajax/place.php:860
+#: ajax/place.php:887
 msgid "m/s"
 msgstr "m/s"
 
-#: ajax/add_place.php:188
+#: ajax/add_place.php:189
 msgid "End date"
 msgstr "Enddatum"
 
-#: ajax/add_place.php:185
+#: ajax/add_place.php:186
 msgid "Start date"
 msgstr "Anfangsdatum"
 
@@ -443,11 +565,11 @@ msgstr "Anfangsdatum"
 msgid "Try searching by English city names or/and add a country name with cities."
 msgstr "Versuche nach englischen Städtenamen, oder Land- + Städtename."
 
-#: ajax/add_place.php:240
+#: ajax/add_place.php:241
 msgid "I don't know"
 msgstr "Ich habe keine Ahnung"
 
-#: ajax/add_place.php:251
+#: ajax/add_place.php:252
 msgid "Just add what you've experienced. You can add multiple timings after saving and we will calculate an average out of them."
 msgstr "Gib deine persönlichen Erfahrungswerte an. Mehrere Werte möglich."
 
@@ -487,7 +609,7 @@ msgstr "Bist du sicher, dass du diesen Kommentar löschen möchtest?"
 msgid "Updating description failed."
 msgstr "Beschreibung aktualisieren fehlgeschlagen."
 
-#: lib/functions.php:1938
+#: lib/functions.php:494
 msgid "Description written %s"
 msgstr ""
 
@@ -499,47 +621,47 @@ msgstr "Du musst dich <a href=\"%s\">einloggen</a> um Einträge hinzuzufügen od
 msgid "Send"
 msgstr "Senden"
 
-#: index.php:121
+#: index.php:126
 msgid "Find good places for hitchhiking and add your own"
 msgstr "Finde gute Trampstellen und füge deine hinzu"
 
-#: views/pages/about.php:62
+#: views/pages/about.php:65
 msgid "Russian"
 msgstr "Russisch"
 
-#: views/pages/about.php:60
+#: views/pages/about.php:63
 msgid "German"
 msgstr "Deutsch"
 
-#: views/pages/about.php:61
+#: views/pages/about.php:64
 msgid "Dutch"
 msgstr "Niederländisch"
 
-#: views/pages/about.php:68
+#: views/pages/about.php:71
 msgid "Polish"
 msgstr "Polnisch"
 
-#: views/pages/about.php:70
+#: views/pages/about.php:73
 msgid "French"
 msgstr "Französisch"
 
-#: views/pages/about.php:66
+#: views/pages/about.php:69
 msgid "Lithuanian"
 msgstr "Litauisch"
 
-#: views/pages/about.php:73
+#: views/pages/about.php:76
 msgid "Swedish"
 msgstr "Schwedisch"
 
-#: views/pages/about.php:69
+#: views/pages/about.php:72
 msgid "Spanish"
 msgstr "Spanisch"
 
-#: views/pages/about.php:64
+#: views/pages/about.php:67
 msgid "Portuguese"
 msgstr "Portugiesisch"
 
-#: views/pages/about.php:63
+#: views/pages/about.php:66
 msgid "Romanian"
 msgstr "Rumänisch"
 
@@ -567,13 +689,11 @@ msgstr "Die meisten Markierungen auf dieser Karte befinden sich in Europa. Sobal
 msgid "When logged in, you will have some more features on this site:"
 msgstr "Wenn du eingeloggt bist, hast du mehr Features auf der Seite:"
 
-#: ajax/hitchability_log.php:160 ajax/place.php:371
-#: ajax/waitingtimes_log.php:149
+#: ajax/hitchability_log.php:160
 msgid "Are you sure you want to remove this record?"
 msgstr "Möchtest du diesen Eintrag wirklich löschen?"
 
-#: ajax/hitchability_log.php:177 ajax/place.php:394
-#: ajax/waitingtimes_log.php:166
+#: ajax/hitchability_log.php:177
 msgid "Could not remove a record due to an error. Please try again!"
 msgstr "Eintrag konnte nicht gelöscht werden, da ein Fehler aufgetreten ist. Bitte versuch es noch einmal!"
 
@@ -589,27 +709,27 @@ msgstr "Bitte erst deine Wartezeit angeben."
 msgid "No description available for this language."
 msgstr "Keine Beschreibung in dieser Sprache verfügbar."
 
-#: ajax/add_place.php:383
+#: ajax/add_place.php:384
 msgid "Could not add place due to an error."
 msgstr "Konnte nicht gespeichert werden, da ein Fehler aufgetreten ist."
 
-#: ajax/add_place.php:270
+#: ajax/add_place.php:271
 msgid "Your name <i>\"%s\"</i> will be visible for this place."
 msgstr "Dein Name <i>\"%s\"</i> wird an dieser Markierung angegeben."
 
-#: lib/functions.php:2134
+#: lib/functions_public_transport.php:147
 msgid "In-city transportation"
 msgstr "Öffentlicher Nahverkehr"
 
-#: lib/functions.php:2086
+#: lib/functions_public_transport.php:99
 msgid "Go to site"
 msgstr "Zur Seite gehen"
 
-#: lib/functions.php:2135
+#: lib/functions_public_transport.php:148
 msgid "Inter-city / international transportation"
 msgstr "Öffentlicher Fernverkehr"
 
-#: views/pages/about.php:40
+#: ajax/header_login.php:77
 msgid "Why register?"
 msgstr "Warum registrieren?"
 
@@ -617,19 +737,19 @@ msgstr "Warum registrieren?"
 msgid "http://creativecommons.org/licenses/by-sa/3.0/"
 msgstr "http://creativecommons.org/licenses/by-sa/3.0/deed.de"
 
-#: index.php:567
+#: index.php:629
 msgid "Download"
 msgstr "Herunterladen"
 
-#: index.php:568
+#: index.php:630
 msgid "Link here"
 msgstr "Link hierher."
 
-#: lib/functions.php:2140
+#: lib/functions_public_transport.php:153
 msgid "No public transport found for this country."
 msgstr "Keine Verkehrsinformationen für dieses Land gefunden."
 
-#: ajax/add_place.php:374
+#: ajax/add_place.php:375
 msgid "Place successfully added to the map."
 msgstr "Markierung erfolgreich zur Karte hinzugefügt."
 
@@ -649,156 +769,156 @@ msgstr "Zusätzliche Kartenlayer ein- oder ausschalten"
 msgid "...and more!"
 msgstr "...und mehr!"
 
-#: lib/api.php:513 lib/functions.php:1430 lib/functions.php:1440
-#: lib/functions.php:1442
+#: lib/api.php:614 lib/functions_users.php:22 lib/functions_users.php:32
+#: lib/functions_users.php:34
 msgid "Anonymous"
 msgstr "Anonym"
 
-#: lib/functions.php:951
+#: lib/functions_lists.php:277
 msgid "Asia"
 msgstr "Asien"
 
-#: lib/functions.php:955
+#: lib/functions_lists.php:281
 msgid "Africa"
 msgstr "Afrika"
 
-#: lib/functions.php:959
+#: lib/functions_lists.php:285
 msgid "North America"
 msgstr "Nordamerika"
 
-#: lib/functions.php:963
+#: lib/functions_lists.php:289
 msgid "South America"
 msgstr "Südamerika"
 
-#: lib/functions.php:967
+#: lib/functions_lists.php:293
 msgid "Antarctica"
 msgstr "Antarktis"
 
-#: lib/functions.php:971
+#: lib/functions_lists.php:297
 msgid "Europe"
 msgstr "Europa"
 
-#: lib/functions.php:975
+#: lib/functions_lists.php:301
 msgid "Australia and Oceania"
 msgstr "Australien und Ozeanien"
 
-#: lib/functions.php:1452
+#: lib/functions_strings.php:250
 msgid "Very good"
 msgstr "Sehr gut"
 
-#: lib/functions.php:1453
+#: lib/functions_strings.php:251
 msgid "Good"
 msgstr "Gut"
 
-#: lib/functions.php:1454 lib/functions.php:1929
+#: lib/functions.php:485 lib/functions_strings.php:252
 msgid "Average"
 msgstr "Mittel"
 
-#: lib/functions.php:1455
+#: lib/functions_strings.php:253
 msgid "Bad"
 msgstr "Schlecht"
 
-#: lib/functions.php:1456
+#: lib/functions_strings.php:254
 msgid "Senseless"
 msgstr "Unmöglich"
 
-#: lib/functions.php:1457 lib/functions.php:1470
+#: lib/functions_strings.php:255 lib/functions_strings.php:287
 msgid "Unknown"
 msgstr "Unbekannt"
 
-#: lib/functions.php:1471 lib/functions.php:1478
+#: lib/functions_strings.php:288 lib/functions_strings.php:295
 msgid "min"
 msgstr "min"
 
-#: lib/functions.php:1474
+#: lib/functions_strings.php:291
 msgid "h"
 msgstr "Std"
 
-#: lib/functions.php:2002
+#: lib/functions_public_transport.php:15
 msgid "Other"
 msgstr "Andere"
 
-#: lib/functions.php:2003
+#: lib/functions_public_transport.php:16
 msgid "Local bus"
 msgstr "Stadtbus"
 
-#: lib/functions.php:2004
+#: lib/functions_public_transport.php:17
 msgid "Trolleybus"
 msgstr "O-Bus"
 
-#: lib/functions.php:2005
+#: lib/functions_public_transport.php:18
 msgid "Tram"
 msgstr "Straßenbahn"
 
-#: lib/functions.php:2006
+#: lib/functions_public_transport.php:19
 msgid "Metro"
 msgstr "U-Bahn"
 
-#: lib/functions.php:2007
+#: lib/functions_public_transport.php:20
 msgid "Commuter train"
 msgstr "S-Bahn"
 
-#: lib/functions.php:2008
+#: lib/functions_public_transport.php:21
 msgid "Taxi"
 msgstr "Taxi"
 
-#: lib/functions.php:2009
+#: lib/functions_public_transport.php:22
 msgid "Long distance bus"
 msgstr "Fernbus"
 
-#: lib/functions.php:2010
+#: lib/functions_public_transport.php:23
 msgid "Long distance train"
 msgstr "Fernzug"
 
-#: lib/functions.php:2011
+#: lib/functions_public_transport.php:24
 msgid "Airline"
 msgstr "Fluglinie"
 
-#: lib/functions.php:2012
+#: lib/functions_public_transport.php:25
 msgid "Shipping"
 msgstr "Schifffahrt"
 
-#: lib/functions.php:2013
+#: lib/functions_public_transport.php:26
 msgid "Carsharing"
 msgstr "Carsharing"
 
-#: lib/functions.php:2014
+#: lib/functions_public_transport.php:27
 msgid "Car rental"
 msgstr "Autovermietung"
 
-#: lib/functions.php:2064 ajax/country.php:167
+#: lib/functions_public_transport.php:77
 msgid "City"
 msgstr "Stadt"
 
-#: lib/functions.php:2065
+#: lib/functions_public_transport.php:78
 msgid "Site"
 msgstr "Seite"
 
-#: lib/functions.php:2066 ajax/add_place.php:81
+#: lib/functions_public_transport.php:79
 msgid "Type"
 msgstr "Typ"
 
-#: lib/functions.php:2068
+#: lib/functions_public_transport.php:81
 msgid "Manage"
 msgstr ""
 
-#: lib/functions.php:2104
+#: lib/functions_public_transport.php:117
 msgid "Remove page permanently"
 msgstr "Seite endgültig löschen"
 
-#: lib/functions.php:2105
+#: lib/functions_public_transport.php:118
 msgid "Edit page"
 msgstr "Seite bearbeiten"
 
-#: lib/functions.php:2124
+#: lib/functions_public_transport.php:137
 msgid "Are you sure?"
 msgstr "Bist du sicher?"
 
-#: lib/functions.php:2140
+#: lib/functions_public_transport.php:153
 msgid "Add some?"
 msgstr "Hinzufügen?"
 
-#: ajax/add_place.php:32 ajax/add_place.php:263
+#: ajax/add_place.php:32 ajax/add_place.php:264
 msgid "Add place"
 msgstr "Markierung hinzufügen"
 
@@ -806,71 +926,71 @@ msgstr "Markierung hinzufügen"
 msgid "Close"
 msgstr "Schließen"
 
-#: ajax/add_place.php:43
+#: ajax/add_place.php:44
 msgid "Loading"
 msgstr "Lädt"
 
-#: ajax/add_place.php:68
+#: ajax/add_place.php:69
 msgid "Country"
 msgstr "Land"
 
-#: ajax/add_place.php:68
+#: ajax/add_place.php:69
 msgid "Required"
 msgstr "Erforderlich"
 
-#: ajax/add_place.php:70
+#: ajax/add_place.php:71
 msgid "Select"
 msgstr "Auswählen"
 
-#: ajax/add_place.php:83
+#: ajax/add_place.php:84 ajax/js-translation.json.php:57
 msgid "Hitchhiking spot"
 msgstr "Trampstelle"
 
-#: ajax/add_place.php:84
+#: ajax/add_place.php:85
 msgid "Event / Meeting / Gathering"
 msgstr "Veranstaltung / Treffen / Versammlung"
 
-#: ajax/add_place.php:123
+#: ajax/add_place.php:124
 msgid "Description"
 msgstr "Beschreibung"
 
-#: ajax/add_place.php:149
+#: ajax/add_place.php:150
 msgid "Please fill as many different language descriptions as you can."
 msgstr "Bitte fülle die Beschreibung in so vielen Sprachen wie möglich aus."
 
-#: ajax/add_place.php:185 ajax/add_place.php:188
+#: ajax/add_place.php:186 ajax/add_place.php:189
 msgid "Clear"
 msgstr "Löschen"
 
-#: lib/functions.php:1918 ajax/add_place.php:215
+#: lib/functions.php:474
 msgid "Hitchability"
 msgstr "Trampbarkeit"
 
-#: ajax/add_place.php:215
+#: ajax/add_place.php:216
 msgid "About Hitchability"
 msgstr "Über Trampbarkeit"
 
-#: ajax/add_place.php:264
+#: ajax/add_place.php:265
 msgid "Cancel"
 msgstr "Abbrechen"
 
-#: ajax/add_place.php:374
+#: ajax/add_place.php:375
 msgid "Thank you!"
 msgstr "Danke!"
 
-#: ajax/add_place.php:374
+#: ajax/add_place.php:375
 msgid "Place added successfully"
 msgstr "Markierung erfolgreich hinzugefügt"
 
-#: ajax/add_place.php:383
+#: ajax/add_place.php:384 ajax/js-translation.json.php:56
 msgid "Please try again!"
 msgstr "Bitte versuche es noch einmal!"
 
-#: lib/functions.php:1836 ajax/add_place.php:383
+#: lib/functions.php:411
 msgid "Error"
 msgstr "Fehler"
 
-#: ajax/country.php:80
+#: ajax/country.php:80 ajax/header_navi.php:13
 msgid "About"
 msgstr "Über"
 
@@ -906,7 +1026,8 @@ msgstr "Währung"
 msgid "Top %s cities"
 msgstr "Top %s Städte"
 
-#: ajax/country.php:168
+#: ajax/country.php:168 ajax/map_statistics.php:47 ajax/map_statistics.php:137
+#: ajax/map_statistics.php:185
 msgid "Places"
 msgstr "Markierungen"
 
@@ -926,7 +1047,7 @@ msgstr "Experimentell, könnte langsam sein."
 msgid "Public transport"
 msgstr "Öffentliche Verkehrsmittel"
 
-#: ajax/map_statistics.php:17 admin/index.php:53 admin/index.php:95
+#: ajax/map_statistics.php:17
 msgid "Maps"
 msgstr "Karten"
 
@@ -942,15 +1063,15 @@ msgstr "Füge eine Beschreibung hinzu!"
 msgid "Save"
 msgstr "Speichern"
 
-#: ajax/place.php:900
+#: ajax/place.php:927
 msgid "Added by"
 msgstr "Hinzugefügt von "
 
-#: ajax/place.php:904
+#: ajax/place.php:931
 msgid "Added at"
 msgstr "Hinzugefügt um"
 
-#: lib/functions.php:1923 lib/functions.php:1924
+#: lib/functions.php:479 lib/functions.php:480
 msgid "Vote distribution"
 msgstr "Stimmenverteilung"
 
@@ -970,25 +1091,25 @@ msgstr "Bewertung fehlgeschlagen, versuche es bitte erneut."
 msgid "Rating failed"
 msgstr "Bewertung fehlgeschlagen"
 
-#: lib/functions.php:1929 ajax/add_place.php:232
+#: lib/functions.php:485
 msgid "Waiting time"
 msgstr "Wartezeit"
 
-#: ajax/place.php:352 ajax/place.php:502 ajax/place.php:917
+#: ajax/place.php:352 ajax/place.php:502 ajax/place.php:944
 msgid "Show log"
 msgstr "Log anzeigen"
 
-#: lib/functions.php:1931
+#: lib/functions.php:487
 msgid "%d experience"
 msgid_plural "%d experiences"
 msgstr[0] "%d Erfahrungswert"
 msgstr[1] "%d Erfahrungswerte"
 
-#: ajax/add_place.php:235
+#: ajax/add_place.php:236
 msgid "hours"
 msgstr "Stunden"
 
-#: ajax/add_place.php:236
+#: ajax/add_place.php:237
 msgid "minutes"
 msgstr "Minuten"
 
@@ -996,7 +1117,7 @@ msgstr "Minuten"
 msgid "Your experience..."
 msgstr "Deine Erfahrung..."
 
-#: ajax/add_place.php:248
+#: ajax/add_place.php:249
 msgid "Other..."
 msgstr "Andere..."
 
@@ -1004,7 +1125,7 @@ msgstr "Andere..."
 msgid "Add"
 msgstr "Hinzufügen"
 
-#: ajax/add_place.php:297
+#: ajax/add_place.php:298
 msgid "Adding..."
 msgstr "Füge hinzu..."
 
@@ -1044,43 +1165,43 @@ msgstr "Kein Kommentar vorhanden"
 msgid "Sending..."
 msgstr "Senden...."
 
-#: ajax/place.php:811
+#: ajax/place.php:838
 msgid "More about this place"
 msgstr "Näheres über diese Markierung"
 
-#: ajax/place.php:812 ajax/place.php:1039
+#: ajax/place.php:839 ajax/place.php:1051
 msgid "Toggle"
 msgstr "Umschalten"
 
-#: ajax/place.php:934
+#: ajax/place.php:961
 msgid "Link to this place:"
 msgstr "Link hierher:"
 
-#: ajax/place.php:981
+#: ajax/place.php:1008
 msgid "Latitude"
 msgstr "Latitude"
 
-#: ajax/place.php:982
+#: ajax/place.php:1009
 msgid "Longitude"
 msgstr "Logitude"
 
-#: ajax/place.php:1082
+#: ajax/place.php:1094
 msgid "Remove place"
 msgstr "Markierung entfernen"
 
-#: ajax/place.php:1083
+#: ajax/place.php:1095
 msgid "Edit place"
 msgstr "Markierung bearbeiten"
 
-#: ajax/place.php:1084
+#: ajax/place.php:1096
 msgid "See user"
 msgstr "Benutzer anzeigen"
 
-#: ajax/place.php:23 ajax/place.php:1100
+#: ajax/place.php:23 ajax/place.php:1115
 msgid "Sorry, but the place cannot be found.<br /><br />The place you are looking for might have been removed or is temporarily unavailable."
 msgstr "Es tut uns Leid, aber die Markierung kann nicht gefunden werden.<br /><br />Die Markierung die du suchst wurde wahrscheinlich entfernt oder ist kurzfristig nicht erreichbar."
 
-#: ajax/place.php:1100
+#: ajax/place.php:1115
 msgid "The place cannot be found"
 msgstr "Die Markierung kann nicht gefunden werden"
 
@@ -1104,27 +1225,27 @@ msgstr "Ungültiger Ländercode;"
 msgid "Oops! Something went wrong! Try again."
 msgstr "Ups! Da lief etwas schief! Bitte versuche es noch einmal."
 
-#: ajax/views.php:39
+#: views/view_404.php:7
 msgid "Error 404 - page not found"
 msgstr "Fehler 404 - Seite nicht gefunden"
 
-#: ajax/hitchability_log.php:95 ajax/waitingtimes_log.php:86
+#: ajax/hitchability_log.php:95
 msgid "Date"
 msgstr "Datum"
 
-#: ajax/hitchability_log.php:97 ajax/waitingtimes_log.php:88
+#: ajax/hitchability_log.php:97
 msgid "User"
 msgstr "Benutzer"
 
-#: ajax/hitchability_log.php:137 ajax/waitingtimes_log.php:126
+#: ajax/hitchability_log.php:137
 msgid "Remove record"
 msgstr "Eintrag entfernen"
 
-#: admin/index.php:53
+#: admin/index.php:53 admin/views/users.php:187
 msgid "Admin"
 msgstr "Administrator"
 
-#: admin/index.php:98
+#: index.php:366 admin/index.php:98
 msgid "Wiki"
 msgstr "Wiki"
 
@@ -1132,16 +1253,15 @@ msgstr "Wiki"
 msgid "Blogs"
 msgstr "Blogs"
 
-#: admin/index.php:98
+#: index.php:368 admin/index.php:98
 msgid "Planet"
 msgstr "Planet"
 
-#: ajax/place.php:1038 admin/index.php:101
+#: ajax/place.php:1050
 msgid "Administration"
 msgstr "Administration"
 
-#: admin/views/new_language.php:12 admin/views/new_language.php:24
-#: admin/views/places.php:13 admin/views/users.php:116
+#: views/pages/add_public_transport.php:7
 msgid "Alert"
 msgstr "Alarm"
 
@@ -1149,11 +1269,12 @@ msgstr "Alarm"
 msgid "We have %s registered hitchhikers!"
 msgstr "Es sind %s Tramper angemeldet!"
 
-#: admin/views/users.php:180
+#: views/pages/profile.php:25
 msgid "Member since"
 msgstr "Mitglied seit"
 
-#: admin/views/users.php:181
+#: views/pages/profile.php:40 views/pages/settings.php:132
+#: views/pages/users.php:30
 msgid "Location"
 msgstr "Ort"
 
@@ -1161,11 +1282,11 @@ msgstr "Ort"
 msgid "Email"
 msgstr "E-Mail"
 
-#: admin/views/users.php:184
+#: views/pages/log_all.php:59
 msgid "Language"
 msgstr "Sprache"
 
-#: ajax/hitchability_log.php:123 ajax/waitingtimes_log.php:113
+#: ajax/hitchability_log.php:123
 msgid "That's you!"
 msgstr "Das bist du!"
 
@@ -1185,7 +1306,7 @@ msgstr "Markierungen"
 msgid "Visible area on the map"
 msgstr "Auf der Karte sichtbarer Bereich"
 
-#: ajax/place.php:1004
+#: ajax/place.php:1031
 msgid "Zipped"
 msgstr "Gezippt"
 
@@ -1213,7 +1334,7 @@ msgstr "Code zum einbinden"
 msgid "You can embed a map to your own blog for example."
 msgstr "Du kannst die Karte zum Beispiel in dein Blog einbinden."
 
-#: views/pages/add_public_transport.php:1 views/pages/public_transport.php:117
+#: views/pages/add_public_transport.php:1
 msgid "Add a page to the catalog"
 msgstr "Seite zum Katalog hinzufügen"
 
@@ -1254,10 +1375,6 @@ msgstr "Seite zum Katalog hinzugefügt."
 msgid "Error adding page to the catalog. Check required fields and try again."
 msgstr "Beim hinzufügen der Seite in den Katalog ist ein Fehler aufgetreten. Bitte kontrolliere die erforderlichen Felder und versuche es erneut."
 
-#: views/pages/add_public_transport.php:218
-msgid "You must be logged in to add pages."
-msgstr "Du musst eingeloggt sein um Seiten hinzuzufügen."
-
 #: views/pages/api.php:1
 msgid "API Documentation"
 msgstr "API-Dokumentation"
@@ -1294,12 +1411,11 @@ msgstr "Top Städte"
 msgid "Countries"
 msgstr "Länder"
 
-#: views/cards/contact.php:51
+#: views/cards/contact.php:51 views/pages/countries.php:27
 msgid "Loading..."
 msgstr "Lädt..."
 
 #: views/pages/countries.php:60 views/pages/countries.php:71
-#: views/pages/public_transport.php:82 views/pages/public_transport.php:93
 msgid "Couldn't load info. Please try again."
 msgstr "Konnte Informationen leider nicht laden. Bitte versuche es erneut."
 
@@ -1343,31 +1459,31 @@ msgstr "Wenn du eingeloggt bist, hast du mehr Möglichkeiten. Zum Beispiel kanns
 msgid "About Hitchwiki Maps"
 msgstr "Über Hitchwiki Maps"
 
-#: views/pages/about.php:83 views/pages/about.php:120
+#: views/pages/about.php:86 views/pages/about.php:124
 msgid "Used technologies"
 msgstr "Benutzte Technologien"
 
-#: views/pages/about.php:85
+#: views/pages/about.php:88
 msgid "Server side"
 msgstr "Serverseitig"
 
-#: views/pages/about.php:94
+#: views/pages/about.php:97
 msgid "Client side"
 msgstr "Clientseitig"
 
-#: views/pages/about.php:106
+#: views/pages/about.php:110
 msgid "Services"
 msgstr "Raststätten"
 
-#: views/pages/about.php:49
+#: views/pages/about.php:52
 msgid "People involved"
 msgstr "Leute, die mitmachen"
 
-#: views/pages/about.php:56
+#: views/pages/about.php:59
 msgid "Translators"
 msgstr "Übersetzer"
 
-#: views/pages/about.php:59
+#: views/pages/about.php:62
 msgid "Finnish"
 msgstr "Finnisch"
 
@@ -1379,7 +1495,7 @@ msgstr "Neuigkeiten"
 msgid "This is your profile as others see it."
 msgstr "Dein Profil, so wie andere es sehen."
 
-#: views/pages/profile.php:33
+#: views/pages/profile.php:33 views/pages/users.php:29
 msgid "Last seen"
 msgstr "Zuletzt gesehen "
 
@@ -1399,12 +1515,11 @@ msgstr ""
 msgid "Find timetables for the public transport."
 msgstr "Finde Fahrpläne für den Öffentlichen Nahverkehr."
 
-#: views/pages/settings.php:8 index.php:436
+#: ajax/header_login.php:18
 msgid "Settings"
 msgstr "Einstellungen"
 
-#: views/pages/settings.php:33 views/pages/translate.php:9 index.php:431
-#: index.php:714
+#: views/pages/settings.php:33 views/pages/translate.php:9
 msgid "Choose language"
 msgstr "Sprache auswählen"
 
@@ -1420,7 +1535,7 @@ msgstr "Benutze Kartendienste"
 msgid "Default map layer"
 msgstr "Standardkartenansicht"
 
-#: views/pages/settings.php:61 index.php:695
+#: views/pages/settings.php:61
 msgid "Default"
 msgstr "Standard"
 
@@ -1440,7 +1555,7 @@ msgstr "Erlaube Hitchwiki Maps meinen Gravatar zu benutzen"
 msgid "We would show information from your %s page, if you have one."
 msgstr "Hier wäre deine Benutzerseite, wenn du eine hättest."
 
-#: views/pages/settings.php:147 views/pages/settings.php:221
+#: views/pages/settings.php:147 views/pages/settings.php:202
 msgid "Google Latitude user ID"
 msgstr "Google Latitude Benutzer-ID"
 
@@ -1452,55 +1567,55 @@ msgstr "Bitte zuerst <a href=\"%s\" target=\"_blank\">Google Latitude aktivieren
 msgid "Your location will be published also on your profile page."
 msgstr "Dein Standort wird auch auf deiner Profilseite angezeigt."
 
-#: views/pages/settings.php:231
+#: views/pages/settings.php:224
 msgid "Update"
 msgstr "Aktualisieren"
 
-#: views/pages/settings.php:237
+#: views/pages/settings.php:230
 msgid "Reset your profile"
 msgstr "Profil zurücksetzen"
 
-#: views/pages/settings.php:452
+#: views/pages/settings.php:458
 msgid "Settings updated!"
 msgstr "Einstellungen gespeichert!"
 
-#: views/pages/settings.php:452
+#: views/pages/settings.php:458
 msgid "Some settings might require refreshing the page."
 msgstr "Einige Einstellungen erfordern es die Seite neu zu laden."
 
-#: views/pages/settings.php:464
+#: views/pages/settings.php:470
 msgid "Updating settings failed:"
 msgstr "Aktualisierung der Einstellungen fehlgeschlagen:"
 
-#: views/pages/settings.php:479
+#: views/pages/settings.php:485
 msgid "Are you sure you want to reset your profile? You cannot undo this action!"
 msgstr "Bist du sicher das du dein Profil zurücksetzen möchtest? Du kannst diese Aktion nicht rückgängig machen!"
 
-#: views/pages/settings.php:489
+#: views/pages/settings.php:495
 msgid "Your profile was reset permanently."
 msgstr "Dein Profil wurde permanent zurückgesetzt."
 
-#: views/pages/settings.php:489
+#: views/pages/settings.php:495
 msgid "Profile reset"
 msgstr "Profil zurücksetzen"
 
-#: views/pages/settings.php:492
+#: views/pages/settings.php:498
 msgid "Profile was NOT reset"
 msgstr "Profil wurde NICHT zurückgesetzt"
 
-#: views/pages/settings.php:500
+#: views/pages/settings.php:506
 msgid "You cancelled your profile reset."
 msgstr "Du hast das zurücksetzen deines Profils abgebrochen."
 
-#: views/pages/settings.php:500
+#: views/pages/settings.php:506
 msgid "Reset cancelled"
 msgstr "Zurücksetzen abgebrochen"
 
-#: views/pages/own_places.php:20
+#: views/pages/own_places.php:20 views/pages/settings.php:521
 msgid "You must be logged in to edit settings."
 msgstr "Du musst eingeloggt sein, um die Einstellungen zu bearbeiten."
 
-#: views/pages/statistics.php:1 index.php:575
+#: views/pages/statistics.php:1
 msgid "Statistics"
 msgstr "Statistiken"
 
@@ -1524,7 +1639,7 @@ msgstr "Markierungsdichte"
 msgid "Hitchwiki Maps is currently available in %s languages"
 msgstr "Hitchwiki Maps ist derzeit in %s Sprachen verfügbar"
 
-#: views/pages/about.php:78
+#: views/pages/about.php:81
 msgid "Help us with translating!"
 msgstr "Hilf uns beim Übersetzen!"
 
@@ -1532,60 +1647,56 @@ msgstr "Hilf uns beim Übersetzen!"
 msgid "If you would like to add content in your own language, or translate all visible interface texts, contact us so we can put up a new language."
 msgstr "Falls du Inhalte in deine Muttersprache übersetzen möchtest und diese noch nicht verfügbar ist, kontaktiere uns!"
 
-#: views/pages/users.php:23
+#: views/pages/users.php:22
 msgid "We have %s registered hitchhikers using Maps!"
 msgstr "Wir haben bereits %s registrierte Tramper die Maps benutzen!"
 
-#: views/pages/users.php:29
+#: views/pages/users.php:28
 msgid "Using Maps since"
 msgstr "Benutzt Hitchwiki Maps seit"
 
-#: views/pages/users.php:35
+#: views/pages/users.php:34
 msgid "Visible only for admins"
 msgstr "Sichtbar nur für Administratoren"
 
-#: views/pages/users.php:35 index.php:584
+#: views/pages/users.php:34
 msgid "Admins"
 msgstr "Administratoren"
 
-#: views/pages/users.php:84
+#: views/pages/users.php:83
 msgid "Remove user permanently"
 msgstr "Benutzer endgültig löschen"
 
-#: views/pages/users.php:85
+#: views/pages/users.php:84
 msgid "Edit user"
 msgstr "Benutzer bearbeiten"
 
-#: views/pages/users.php:128
-msgid "You must be logged in to view users."
-msgstr "Du musst eingeloggt sein, um die Benutzer zu sehen."
-
-#: config.empty.php:113 config.empty.php:120 config.php:122 config.php:129
+#: config.empty.php:113 config.empty.php:120 config.php:147 config.php:154
 msgid "Satellite"
 msgstr "Satellit"
 
 #: config.empty.php:114 config.empty.php:119 config.empty.php:124
-#: config.php:123 config.php:128 config.php:133
+#: config.php:148 config.php:153 config.php:158
 msgid "Hybrid"
 msgstr "Hybrid"
 
-#: config.empty.php:115 config.php:124
+#: config.empty.php:115 config.php:149
 msgid "Streets"
 msgstr "Straßen"
 
-#: config.empty.php:116 config.php:125
+#: config.empty.php:116 config.php:150
 msgid "Physical"
 msgstr "Topografisch"
 
-#: config.empty.php:121 config.php:130
+#: config.empty.php:121 config.php:155
 msgid "Street"
 msgstr "Straße"
 
-#: config.empty.php:125 config.php:134
+#: config.empty.php:125 config.php:159
 msgid "Aerial"
 msgstr "Luftbilder"
 
-#: config.empty.php:126 config.php:135
+#: config.empty.php:126 config.php:160
 msgid "Roads"
 msgstr "Straßen"
 
@@ -1593,71 +1704,63 @@ msgstr "Straßen"
 msgid "a Hitchhiking spot in"
 msgstr "Trampstelle in "
 
-#: index.php:288
+#: index.php:280
 msgid "Sorry, but the place cannot be found."
 msgstr "Sorry, der Ort konnte leider nicht gefunden werden."
 
-#: index.php:288
+#: index.php:280
 msgid "The place you are looking for might have been removed or is temporarily unavailable."
 msgstr "Der Ort den du suchst ist vorrübergehend nicht erreichbar."
 
-#: index.php:339 index.php:574
+#: config.php:194 index.php:331 index.php:638
 msgid "Help & About"
 msgstr "Hilfe & Info"
 
-#: index.php:416
+#: index.php:367
 msgid "Community"
 msgstr "Community"
 
-#: lib/functions.php:1436
+#: lib/functions_users.php:28
 msgid "Profile"
 msgstr "Profil"
 
-#: index.php:439 index.php:507
+#: ajax/header_login.php:17
 msgid "Logout"
 msgstr "Abmelden"
 
-#: index.php:506
+#: ajax/header_login.php:73
 msgid "Hello from %s"
 msgstr "Hallo von %s"
 
-#: views/pages/why_register.php:19 index.php:444
+#: ajax/header_login.php:78
 msgid "Register!"
 msgstr "Anmelden!"
 
-#: index.php:513
+#: ajax/header_login.php:76
 msgid "Login"
 msgstr "Einloggen"
 
-#: index.php:537
-msgid "Find places"
-msgstr "Trampstellen finden"
-
-#: index.php:542
+#: index.php:401
 msgid "Search"
 msgstr "Suche"
 
-#: index.php:550
-msgid "Nearby places from"
-msgstr "Plätze in der Nähe von"
-
-#: index.php:552
+#: index.php:408
 msgid "Show the city on the map"
 msgstr "Stadt auf der Karte anzeigen"
 
-#: index.php:553
+#: index.php:409
 msgid "Show the state on the map"
 msgstr "Zeige das Bundesland auf der Karte"
 
-#: index.php:554
+#: index.php:410
 msgid "Show the country on the map"
 msgstr "Land auf der Karte anzeigen"
 
-#: index.php:566 index.php:658
+#: index.php:470
 msgid "Tools"
 msgstr "Werkzeuge"
 
-#: views/pages/users.php:1 index.php:571
+#: ajax/header_navi.php:11
 msgid "Members"
 msgstr "Mitglieder"
 
@@ -1669,63 +1772,63 @@ msgstr "Dieses Werk und die Inhalte sind lizensiert unter einer Creative Commons
 msgid "Contact us!"
 msgstr "Kontakt!"
 
-#: index.php:606
+#: index.php:642
 msgid "Developers"
 msgstr "Entwickler"
 
-#: index.php:608
+#: views/pages/mobile.php:33
 msgid "API"
 msgstr "API"
 
-#: index.php:645
+#: index.php:457
 msgid "Turn JavaScript on from your browser."
 msgstr "Bitte aktiviere Javascript in deinem Browser."
 
-#: index.php:665
+#: index.php:477
 msgid "Navigate"
 msgstr "Navigieren"
 
-#: index.php:670
+#: index.php:482
 msgid "Measure distance"
 msgstr "Entfernungen abmessen"
 
-#: index.php:675
+#: index.php:487
 msgid "Measure area"
 msgstr "Fläche abmessen"
 
-#: index.php:688
+#: index.php:500
 msgid "Measure"
 msgstr "Messung"
 
-#: index.php:692
+#: index.php:504
 msgid "Show markers after zoom level"
 msgstr "Markierungen anzeigen ab Zoomlevel"
 
-#: index.php:698
+#: index.php:510
 msgid "Continent level"
 msgstr "Kontintentenansicht"
 
-#: index.php:699
+#: index.php:511
 msgid "Country level"
 msgstr "Länderansicht"
 
-#: index.php:700
+#: index.php:512
 msgid "City level"
 msgstr "Stadtansicht"
 
-#: index.php:701
+#: index.php:513
 msgid "Street level"
 msgstr "Straßenansicht"
 
-#: index.php:753
+#: index.php:620
 msgid "Map"
 msgstr "Karte"
 
-#: views/pages/about.php:40
+#: views/pages/about.php:40 views/pages/about.php:49
 msgid "Read more..."
 msgstr "Mehr lesen..."
 
-#: widget/index.php:107
+#: widget/index.php:91
 msgid "Requested country could not be found!"
 msgstr "Das Land konnte nicht gefunden werden!"
 
@@ -1737,6 +1840,6 @@ msgstr "Dies ist nur eine Vorschau. Gehe zu %s um den aktuellen Service zu nutze
 msgid "Toggle log"
 msgstr "Log umschalten"
 
-#: views/pages/settings.php:492
+#: views/pages/settings.php:498
 msgid "Error while trying to reset your profile. Please try again!"
 msgstr "Beim zurücksetzen deines Profiles ist ein Fehler aufgetreten. Versuche es bitte erneut!"

@@ -78,7 +78,7 @@ else error_sign("Couldn't creat a sitemap file! (".$sitemap_filepath.$sitemap_fi
     $google = readURL($google_ping);
     
     #echo '<iframe src="'.$google_ping.'" style="border: 1px solid #000; margin: 20px 0; width: 600px; height: 400px;"></iframe>';
-    echo '<div style="overflow: scroll; border: 1px solid #000; margin: 20px 0; width: 600px; height: 400px;">'.$google.'</div>';
+    echo '<div style="overflow: scroll; border: 1px solid #000; margin: 20px 0; width: 550px; height: 230px; padding: 20px;">'.$google.'</div>';
     
     
 } //creating the sitemap
@@ -88,9 +88,9 @@ else error_sign("Couldn't creat a sitemap file! (".$sitemap_filepath.$sitemap_fi
 <div class="ui-state-highlight ui-corner-all" style="padding: 0 .7em; margin: 20px 0;" id="info_bubble"> 
     <p><span class="ui-icon ui-icon-circle-check" style="float: left; margin-right: .3em;"></span>
     <?php if(isset($_POST["create_sitemap"])): ?>
-    Create a <a href="<?php echo $sitemap_filepath.$sitemap_file; ?>" target="_blank">sitemap</a> and send it to <a href="http://www.google.com/support/webmasters/bin/answer.py?answer=183669">Google</a>?
+    Created a <a href="<?php echo $sitemap_filepath.$sitemap_file; ?>" target="_blank">sitemap</a> file and submited it to <a href="http://www.google.com/support/webmasters/bin/answer.py?answer=183669">Google</a>. Re-do the task?
     <?php else: ?>
-    Created a <a href="<?php echo $sitemap_filepath.$sitemap_file; ?>" target="_blank">sitemap</a> file and submited it to <a href="http://www.google.com/support/webmasters/bin/answer.py?answer=183669">Google</a>. Re-do task?
+     Create a <a href="<?php echo $sitemap_filepath.$sitemap_file; ?>" target="_blank">sitemap</a> and send it to <a href="http://www.google.com/support/webmasters/bin/answer.py?answer=183669">Google</a>?
     <?php endif; ?>
     <form method="post" action="./?page=sitemap" style="display:inline;" id="create_sitemap_form">
     <input type="hidden" name="create_sitemap" value="yes" />

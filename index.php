@@ -166,23 +166,23 @@ if(isset($show_place) && !isset($show_place_error)) {
 		 */
 
 		 // Google maps
-		if(!empty($settings["google_maps_api_key"])) {
+		if(!empty($settings["google"]["api"]["maps_key"])) {
 			if($user["logged_in"]===true && empty($user["map_google"])) $print_map_google = false;
 			else $print_map_google = true;
 			
-			if($print_map_google) echo '<script src="http://maps.google.com/maps?file=api&l='.shortlang().'&v=2&key='.$settings["google_maps_api_key"].'"></script>'."\n\t\t";
+			if($print_map_google) echo '<script src="http://maps.google.com/maps?file=api&l='.shortlang().'&v=2&key='.$settings["google"]["api"]["maps_key"].'"></script>'."\n\t\t";
 		}
 
 		// Yahoo
-		if(!empty($settings["yahoo_maps_appid"])) {
+		if(!empty($settings["yahoo"]["maps_appid"])) {
 			if($user["logged_in"]===true && empty($user["map_yahoo"])) $print_map_yahoo = false;
 			else $print_map_yahoo = true;
 			
-			if($print_map_yahoo) echo '<script src="http://api.maps.yahoo.com/ajaxymap?v=3.0&appid='.$settings["yahoo_maps_appid"].'" type="text/javascript"></script>'."\n\t\t";
+			if($print_map_yahoo) echo '<script src="http://api.maps.yahoo.com/ajaxymap?v=3.0&appid='.$settings["yahoo"]["maps_appid"].'" type="text/javascript"></script>'."\n\t\t";
 		}
 
 		// MS VirtualEarth
-		if($settings["ms_virtualearth"]===true) {
+		if($settings["ms"]["virtualearth"]===true) {
 			if($user["logged_in"]===true && empty($user["map_vearth"])) $print_map_vearth = false;
 			else $print_map_vearth = true;
 			
@@ -205,17 +205,17 @@ if(isset($show_place) && !isset($show_place_error)) {
 			var geolocation_cookieoptions = { path: '/', expires: 6 }; // expires: hours
 			var locale = "<?php echo $settings["language"]; ?>";
 			var private_location = <?php echo (!empty($user["private_location"]) ? 'true' : 'false'); ?>;
-			var google_analytics = <?php echo (!empty($settings["google_analytics_id"]) ? 'true' : 'false'); ?>;
-			var piwik_analytics = <?php echo (!empty($settings["piwik_id"]) ? 'true' : 'false'); ?>;
+			var google_analytics = <?php echo (!empty($settings["google"]["analytics_id"]) ? 'true' : 'false'); ?>;
+			var piwik_analytics = <?php echo (!empty($settings["piwik"]["id"]) ? 'true' : 'false'); ?>;
 			var show_log = <?php echo (isset($_GET["show_log"]) ? 'true' : 'false'); ?>;
 			var open_page_at_start = <?php echo (isset($_GET["page"]) && !empty($_GET["page"]) ? 'true' : 'false'); ?>;
 
 			/*
 			 * Loaded Map layers
 			 */
-			var layer_google = <?php echo (!empty($settings["google_maps_api_key"]) && $print_map_google===true) ? "true": "false"; ?>;
-			var layer_yahoo  = <?php echo (!empty($settings["yahoo_maps_appid"]) && $print_map_yahoo===true) ? "true": "false"; ?>;
-			var layer_vearth = <?php echo ($settings["ms_virtualearth"]===true && $print_map_vearth===true) ? "true": "false"; ?>;
+			var layer_google = <?php echo (!empty($settings["google"]["api"]["maps_key"]) && $print_map_google===true) ? "true": "false"; ?>;
+			var layer_yahoo  = <?php echo (!empty($settings["yahoo"]["maps_appid"]) && $print_map_yahoo===true) ? "true": "false"; ?>;
+			var layer_vearth = <?php echo ($settings["ms"]["virtualearth"]===true && $print_map_vearth===true) ? "true": "false"; ?>;
 			var layer_default = "<?php echo (isset($user["map_default_layer"]) && !empty($user["map_default_layer"])) ? htmlspecialchars($user["map_default_layer"]): 'mapnik'; ?>";
 
 			/*
@@ -267,6 +267,7 @@ if(isset($show_place) && !isset($show_place_error)) {
 				if(isset($_GET["page"]) && !empty($_GET["page"])): ?>
 
 					open_page("<?php echo htmlspecialchars($_GET["page"]); ?>", false, true);
+
 				<?php endif; ?>
 				
 				<?php // Open marker
@@ -579,7 +580,7 @@ if(isset($show_place) && !isset($show_place_error)) {
 					<?php
 					
 					// Google
-					if(!empty($settings["google_maps_api_key"]) && $print_map_google===true) {
+					if(!empty($settings["google"]["api"]["maps_key"]) && $print_map_google===true) {
 						foreach($map_layers["google"] as $map => $name) {
 				    		echo '<li><a href="#" name="'.$map.'" class="icon icon-google';
 				    		if($user["map_default_layer"]==$map) {
@@ -591,7 +592,7 @@ if(isset($show_place) && !isset($show_place_error)) {
 					}
 					
 					// Yahoo
-					if(!empty($settings["yahoo_maps_appid"]) && $print_map_yahoo===true) {
+					if(!empty($settings["yahoo"]["maps_appid"]) && $print_map_yahoo===true) {
 						foreach($map_layers["yahoo"] as $map => $name) {
 				    		echo '<li><a href="#" name="'.$map.'" class="icon icon-yahoo';
 				    		if($user["map_default_layer"]==$map) {
@@ -603,7 +604,7 @@ if(isset($show_place) && !isset($show_place_error)) {
 					}
 					
 					// Virtual Earth
-					if($settings["ms_virtualearth"]===true && $print_map_vearth===true) {
+					if($settings["ms"]["virtualearth"]===true && $print_map_vearth===true) {
 						foreach($map_layers["vearth"] as $map => $name) {
 				    		echo '<li><a href="#" name="'.$map.'" class="icon icon-bing';
 				    		if($user["map_default_layer"]==$map) {

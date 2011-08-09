@@ -99,6 +99,7 @@
 		<li><a href="http://openlayers.org/">Open Layers</a></li>
 		<li><a href="http://jquery.com/">jQuery</a></li>
 		<li><a href="http://jqueryui.com/">jQuery UI</a></li>
+		<li><a href="http://code.google.com/p/google-api-php-client/">Google APIs Client Library</a></li>
 		<li><a href="http://plugins.jquery.com/project/cookie">jQuery Cookie Plugin</a></li>
 		<li><a href="http://plugins.jquery.com/project/pstrength">jQuery Password Strength Field Plugin</a></li>
 		<li><a href="http://www.gmarwaha.com/jquery/jcarousellite/">jCarousel Lite</a></li>

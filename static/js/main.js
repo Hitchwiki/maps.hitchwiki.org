@@ -244,7 +244,7 @@ $(document).ready(function() {
 		loginRefresh.attr("src","http://hitchwiki.org/en/index.php?title=Maps.hitchwiki.org&redirect=no&action=render&ctype=text/plain&hitchwiki_maps_session_refresh");
 		maps_debug("Session Refresh: session refreshed in iframe @ "+date.getHours()+":"+date.getMinutes()+":"+date.getSeconds());
 		
-	}, 30000); // run every 5mins 300000
+	}, 300000); // run every 5mins 300000
 	
 	// Refresh some views on the page after iframe has finished loading
 	loginRefresh.load(function (){

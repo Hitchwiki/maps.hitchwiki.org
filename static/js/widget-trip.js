@@ -20,7 +20,7 @@ $(document).ready(function() {
 	OpenLayers.ImgPath = basehref+"static/gfx/openlayers/";
 	
 	// Create map with controls	
-	map = new OpenLayers.Map('map', {		
+	map = new OpenLayers.Map('map', {
 		projection: proj4326,
 		displayProjection: projmerc,
 		units: "m",
