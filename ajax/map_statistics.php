@@ -53,7 +53,7 @@ if(isset($_GET["map"]) && $_GET["map"] == "1"): ?>
       foreach($data as $country) {
       	echo "\t data.setValue(".$i.", 0, '".$country["iso"]."');\n";
       	echo "\t data.setValue(".$i.", 1, ".rand(1,5).");\n";
-      	echo "\t data.setValue(".$i.", 2, ".$country["places"].");\n\n";
+      	echo "\t data.setValue(".$i.", 2, ".addslashes($country["places"]).");\n\n";
 		$i++;
       }
       ?>

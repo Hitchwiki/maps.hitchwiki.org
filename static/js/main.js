@@ -238,20 +238,7 @@ $(document).ready(function() {
 	// Refresh login session
 	// Keep Hitchwiki user session fresh by refreshing an iframe with hitchwiki-page in it
 	// Otherwice it'll just dissapear and Maps cannot reach it anymore, even user would be logged in
-	var loginRefresh = $("iframe#loginRefresh");
-	window.setInterval(function(){
-		var date = new Date();
-		loginRefresh.attr("src","http://hitchwiki.org/en/index.php?title=Maps.hitchwiki.org&redirect=no&action=render&ctype=text/plain&hitchwiki_maps_session_refresh");
-		maps_debug("Session Refresh: session refreshed in iframe @ "+date.getHours()+":"+date.getMinutes()+":"+date.getSeconds());
-		
-	}, 300000); // run every 5mins = 300000 milliseconds
-	
-	// Refresh some views on the page after iframe has finished loading
-	loginRefresh.load(function (){
-	    loginRefreshAreas();   
-	});
-	
-	function loginRefreshAReas() {
+	function loginRefreshAreas() {
 	    
 	    $.ajax({
 	      url: "ajax/header_login.php",
@@ -271,6 +258,20 @@ $(document).ready(function() {
 	      }
 	    });
 	}
+
+	var loginRefresh = $("iframe#loginRefresh");
+	window.setInterval(function(){
+		var date = new Date();
+		loginRefresh.attr("src","http://hitchwiki.org/en/index.php?title=Maps.hitchwiki.org&redirect=no&action=render&ctype=text/plain&hitchwiki_maps_session_refresh");
+		maps_debug("Session Refresh: session refreshed in iframe @ "+date.getHours()+":"+date.getMinutes()+":"+date.getSeconds());
+		
+	}, 300000); // run every 5mins = 300000 milliseconds
+	
+	// Refresh some views on the page after iframe has finished loading
+	loginRefresh.load(function (){
+	    loginRefreshAreas();   
+	});
+	
 	loginRefreshAreas();
 });
 

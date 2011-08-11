@@ -86,7 +86,7 @@ function parse_XFBML($element=false, $script_tags=true) {
 function init_google_analytics() {
 	global $settings;
 
-	if(isset($settings["google_analytics_id"]) && !empty($settings["google_analytics_id"])) {
+	if(isset($settings["google"]["analytics_id"]) && !empty($settings["google"]["analytics_id"])) {
 	?>
 	<script type="text/javascript">
 	
@@ -114,7 +114,7 @@ function init_piwik_analytics() {
 	global $settings;
 
 
-	if(isset($settings["piwik_id"]) && !empty($settings["piwik_id"])) {
+	if(isset($settings["piwik"]["id"]) && !empty($settings["piwik"]["id"])) {
 	?>
 	<!-- Piwik -->
 	<script type="text/javascript">
