@@ -35,6 +35,12 @@ $api = new maps_api("json");
  */
 if(isset($_GET["format"])) $api->set_format($_GET["format"]);
 
+/*
+ * Set respond in JSONP format if requested
+ * http://en.wikipedia.org/wiki/JSONP
+ */
+if(isset($_GET["jsonp"])) $api->jsonp($_GET["jsonp"]);
+elseif(isset($_GET["callback"])) $api->jsonp($_GET["callback"]);
 
  
 /*
@@ -368,10 +374,10 @@ if(isset($_GET["add_public_transport"])) {
 
 
 // Return "pong"
-if(isset($_GET["ping"])) echo '{"ping":"pong"}';
+if(isset($_GET["ping"])) echo $api->output(array("ping"=>"pong"));#echo '{"ping":"pong"}';
 
 // forward to the infopage if nothing was requested
-if(empty($_GET) && empty($_POST)) header("Location: ../?page=api");
+if(empty($_GET) && empty($_POST)) echo $api->API_error(); //header("Location: ../?page=api");
 
 
 ?>

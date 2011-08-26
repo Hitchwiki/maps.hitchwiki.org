@@ -11,6 +11,7 @@
  *
  * Methods:
  * - set_format()
+ * - jsonp()
  * - API_error()
  * - getMarker()
  * - getTripsByBound()
@@ -46,7 +47,7 @@ class maps_api
 {
 
 	public $format = 'json'; // json (default) | kml | gpx | array | string
-
+	public $callback = false; // false for not using or a string (works only when format is json)
 
 	/*
 	 * Construct
@@ -77,6 +78,18 @@ class maps_api
 
 
 	/*
+	 * Set respond to be in JSONP format if requested
+	 * http://en.wikipedia.org/wiki/JSONP
+	 */
+	public function jsonp($callback="?") {
+		if($callback != "" && $callback !== false){// && preg_match ("/^([a-zA-Z0-9_-]+)$/", $callback)) {			
+			$this->callback = $callback;
+		}
+		else $this->callback = false;
+	}
+
+
+	/*
 	 * Function to stop API
 	 */
 	function API_error($msg=false, $error_format=false) {
@@ -95,7 +108,7 @@ class maps_api
    
 		exit;
 	}
-	
+
 
 	/*
 	 * Output an API result:
@@ -105,7 +118,10 @@ class maps_api
 	function output( $result = array(), $model = false ) {
 
 		if(empty($result)) return $this->API_error("No results.");
-   		elseif($this->format=="json") return json_encode($result);
+   		elseif($this->format=="json") {
+			if($this->callback !== false) return $this->callback."(".json_encode($result).")";
+			else return json_encode($result);
+		}
    		elseif($this->format=="kml") return $this->array2kml($result, $model);
    		elseif($this->format=="kmz") return $this->array2kml($result, $model);
    		elseif($this->format=="gpx") return $this->array2gpx($result, $model);

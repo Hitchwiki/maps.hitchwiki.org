@@ -2,7 +2,7 @@
 # This file is distributed under the same license as the Maps package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2011-08-11 09:00:04+0000\n"
+"PO-Revision-Date: 2011-08-26 12:30:04+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -12,31 +12,31 @@ msgstr ""
 
 #: views/pages/mobile.php:2
 msgid "In your hands!"
-msgstr ""
+msgstr "В вашем кармане!"
 
 #: views/pages/mobile.php:40
 msgid "Get Hitchwiki Maps and its %s marked and rated spots with you when you're on the road!"
-msgstr ""
+msgstr "Используйте карты АвтостопВики с %s отмеченными позициями на дороге по время путешествий."
 
 #: views/pages/mobile.php:32
 msgid "We would love to see Hitchwiki Maps in as many platforms as possible. We have an API to help you to do just that."
-msgstr ""
+msgstr "Мы хотели бы видеть карты АвтостопВики на как можно большем количестве платформ. Мы имеем API для помощи в разработке."
 
 #: views/pages/mobile.php:31
 msgid "Are you a mobile developer?"
-msgstr ""
+msgstr "Вы разработчик мобильных приложений?"
 
 #: views/pages/mobile.php:1
 msgid "Hitchhikers guide to the galaxy"
-msgstr ""
+msgstr "Автостопом по галактике!"
 
 #: views/pages/about.php:49
 msgid "Yes there is!"
-msgstr ""
+msgstr "Да, конечно!"
 
 #: views/pages/mobile.php:50
 msgid "Can be used offline"
-msgstr ""
+msgstr "оффлайн режим работы"
 
 #: ajax/place.php:815
 msgid "Recommend this place for your Facebook contacts"
@@ -44,11 +44,11 @@ msgstr ""
 
 #: views/pages/mobile.php:41
 msgid "Also a mobile version of <i>Hitchwiki</i> is available at <a href=\"http://m.hitchwiki.org\">m.hitchwiki.org</a>"
-msgstr ""
+msgstr "Также мобильная версия <i>АвтостопВики</i> доступна на <a href=\"http://m.hitchwiki.org\">m.hitchwiki.org</a>"
 
 #: views/pages/about.php:48
 msgid "Is there a mobile version available?"
-msgstr ""
+msgstr "Есть ли мобильная версия карт?"
 
 #: views/pages/profile.php:127 views/pages/settings.php:211
 msgid "Private. Nobody but you can access your location info."
@@ -56,7 +56,7 @@ msgstr ""
 
 #: views/pages/public_transport.php:108
 msgid "Got stuck somewhere?"
-msgstr ""
+msgstr "Зависли где-нибудь?"
 
 #: index.php:294
 msgid "If something on the website seems wrong to you, please use \"contact us\" link at the bottom of the page."
@@ -64,7 +64,7 @@ msgstr ""
 
 #: index.php:631
 msgid "More tools"
-msgstr ""
+msgstr "Больше инструментов"
 
 #: widget/trip.php:82
 msgid "Trips"
@@ -72,7 +72,7 @@ msgstr ""
 
 #: views/pages/mobile.php:48
 msgid "Features"
-msgstr ""
+msgstr "Описание возможностей"
 
 #: views/pages/mobile.php:44
 msgid "Get the app for free"
@@ -84,11 +84,11 @@ msgstr ""
 
 #: views/pages/mobile.php:51
 msgid "Preview each and every spot on the map"
-msgstr ""
+msgstr "указана каждая позиция на карте"
 
 #: views/pages/mobile.php:51
 msgid "requires Internet connection such as wifi, 3G or other"
-msgstr ""
+msgstr "требуется интернет соединение wifi, 3G или любое другое"
 
 #: views/pages/mobile.php:52
 msgid "Search by location and distance"
@@ -96,11 +96,11 @@ msgstr ""
 
 #: views/pages/mobile.php:53
 msgid "See the rating and description of the spot"
-msgstr ""
+msgstr "изучайте описание позиции и её оценки другими пользователями"
 
 #: views/pages/mobile.php:54
 msgid "Application is available in:"
-msgstr ""
+msgstr "Приложение доступно на "
 
 #: views/pages/mobile.php:54 views/pages/mobile.php:61
 #: views/pages/mobile.php:62
@@ -109,11 +109,11 @@ msgstr ""
 
 #: views/pages/mobile.php:60
 msgid "App should work on following phone models:"
-msgstr ""
+msgstr "Приложение должно работать на перечисленных моделях телефонов:"
 
 #: views/pages/mobile.php:65
 msgid "Got suggestions or want to report a bug?"
-msgstr ""
+msgstr "Есть предложения или баг-репорт?"
 
 #: views/pages/profile.php:128 views/pages/settings.php:212
 msgid "Share only among registered users on the website."
@@ -179,7 +179,7 @@ msgstr[2] "Посмотреть %d голосов"
 
 #: views/pages/add_public_transport.php:218
 msgid "You must be logged in."
-msgstr ""
+msgstr "Уважаемый анонимус, залогиньтесь!"
 
 #: ajax/hitchability_log.php:190
 msgid "No ratings for this place added yet."
@@ -1034,7 +1034,7 @@ msgstr "Топ %s городов"
 #: ajax/country.php:168 ajax/map_statistics.php:47 ajax/map_statistics.php:137
 #: ajax/map_statistics.php:185
 msgid "Places"
-msgstr "Места"
+msgstr "Описано позиций"
 
 #: ajax/country.php:201
 msgid "Map started to load. This might take some time."

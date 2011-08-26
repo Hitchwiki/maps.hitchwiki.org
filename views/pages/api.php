@@ -291,10 +291,19 @@ Variables you can use with all API calls:
 			}
 		?>
 		</ul>
+		<br /><br />
 	</li>
-	<li><strong class="highlight">format</strong>: not required. By default API returns a JSON string, but you can ask for: <span class="highlight" title="JavaScript Object Notation">json</span>, <span class="highlight" title="Keyhole Markup Language">kml</span> and <span class="highlight">string</span> (for testing - it's just human readable rather than computer). NOTICE: KML format not functional yet.</li>
-	<li><strong class="highlight">download</strong>: force to download as a file. If you add content to it, it's used as a filename. Eg. <span class="highlight">download=filename</span>. Default filename is "places" and ".json/kml/txt" will be added depending on requested format. Valid characters are "<i>a-zA-Z0-9._-</i>" and max 255 of them.</li>
-	<li><strong class="highlight">who</strong>: it's not required, but would be lovely to see who uses our API. You can add unique string like service name, URL or email to this.</li>
+	<li><strong class="highlight">format</strong>: not required. By default API returns a JSON string, but you can ask for: <span class="highlight" title="JavaScript Object Notation">json</span>, <span class="highlight" title="Keyhole Markup Language">kml</span> and <span class="highlight">string</span> (for testing - it's just human readable rather than computer). NOTICE: KML format not functional yet.<br /><br /></li>
+
+	<li><strong class="highlight">download</strong>: force to download as a file. If you add content to it, it's used as a filename. Eg. <span class="highlight">download=filename</span>. Default filename is "places" and ".json/kml/txt" will be added depending on requested format. Valid characters are "<i>a-zA-Z0-9._-</i>" and max 255 of them.<br /><br /></li>
+
+	<li><strong class="highlight">who</strong>: it's not required, but would be lovely to see who uses our API. You can add unique string like service name, URL or email to this.<br /><br /></li>
+
+	<li><strong class="highlight">callback</strong>: if you're using JSON format with javascript from your own server, you'll hit browser's cross domain policy. Work around this is to use so called <a href="http://en.wikipedia.org/wiki/JSONP">JSONP</a> technique. Add a callback to your API-call and response will be wrapped with function you choose, eg. <span class="highlight">/api/?ping&amp;callback=demo</span> will produce:
+	<br />
+	<code class="example"><pre>demo({"ping":"pong"})</pre></code>
+	<br />This you can just include to your webpage with &lt;script&gt; tag, since cross domain policy won't apply for it.
+	<br /><br /></li>
 </ul>
 <br /><br />
 Example, download a file "testfile.kml" with a place on it in Finnish:

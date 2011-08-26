@@ -143,7 +143,7 @@ elseif(isset($_GET["map"]) && $_GET["map"] == "3"): ?>
 
 		// a Fix, Google doesn't regognice "Russian Federation" :P
 		if(trim($codes[$country["iso"]]) == "Russian Federation") echo "\t data.setValue(".$i.", 0, 'Russia');\n";
-		else echo "\t data.setValue(".$i.", 0, '".trim($codes[$country["iso"]])."');\n";
+		else echo "\t data.setValue(".$i.", 0, '".addslashes(trim($codes[$country["iso"]]))."');\n";
 		
       	echo "\t data.setValue(".$i.", 1, ".$country["places"].");\n\n";
 
@@ -206,7 +206,7 @@ dataTable.setValue(0,3,"Hello World!");
 	  $i=0;
       foreach($data as $city) {
 
-      	echo "\t data.setValue(".$i.", 0, '".utf8_encode($city["locality"]).", ".$country."');\n";
+      	echo "\t data.setValue(".$i.", 0, '".addslashes(utf8_encode($city["locality"])).", ".addslashes($country)."');\n";
       	echo "\t data.setValue(".$i.", 1, ".$city["places"].");\n\n";
 
 		$i++;
