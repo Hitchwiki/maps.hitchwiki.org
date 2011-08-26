@@ -21,6 +21,7 @@
 	<li><a href="#countries">List of countries</a></li>
 	<li><a href="#languages">List of languages</a></li>
 	<li><a href="#custom">Custom variables</a></li>
+	<li><a href="#test">Test API</a></li>
 	<li><a href="#errors">Errors</a></li>
 	<li><a href="#license">License</a></li>
 </ul>
@@ -264,6 +265,13 @@ JSON Example:<br />
 }</pre></code>
 <br /><br />
 
+<h3 id="test">Test API</h3>
+To test if you can connect to the API, just ask /api/?ping
+<br /><br />
+JSON Example:<br />
+<code class="example"><pre>{"ping":"pong"}</pre></code>
+<br /><br />
+
 <h3 id="errors">In case of error</h3>
 If API produces an error, it returns "error":"true" and possible error description. 
 <br /><br />
@@ -274,6 +282,7 @@ JSON Example where calling /api/?place=351 didn't find a place with this ID:<br 
 	"error_description":"Place not found."
 }</pre></code>
 <br /><br />
+
 
 <h3 id="custom">Custom variables</h3>
 Variables you can use with all API calls:
