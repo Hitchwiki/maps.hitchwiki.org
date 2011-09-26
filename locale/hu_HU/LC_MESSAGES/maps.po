@@ -1,8 +1,8 @@
-# Translation of Maps in Portuguese (Portugal)
+# Translation of Maps in Hungarian
 # This file is distributed under the same license as the Maps package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2011-09-26 08:00:04+0000\n"
+"PO-Revision-Date: 2011-09-26 08:00:06+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -12,63 +12,63 @@ msgstr ""
 
 #: views/pages/mobile.php:2
 msgid "In your hands!"
-msgstr ""
+msgstr "A kezedben!"
 
 #: views/pages/mobile.php:40
 msgid "Get Hitchwiki Maps and its %s marked and rated spots with you when you're on the road!"
-msgstr ""
+msgstr "Legyen veled az úton is a Hitchwiki %s bejegyzett és értékelt stopphelye!"
 
 #: views/pages/mobile.php:32
 msgid "We would love to see Hitchwiki Maps in as many platforms as possible. We have an API to help you to do just that."
-msgstr ""
+msgstr "Tök jó lenne, ha minél több platformon elérhető lenne a Hitchwiki térkép. "
 
 #: views/pages/mobile.php:31
 msgid "Are you a mobile developer?"
-msgstr ""
+msgstr "Esetleg mobil fejlesztő vagy?"
 
 #: views/pages/mobile.php:1
 msgid "Hitchhikers guide to the galaxy"
-msgstr ""
+msgstr "Galaxis útikalauz stopposoknak"
 
 #: views/pages/about.php:49
 msgid "Yes there is!"
-msgstr ""
+msgstr "Még jó, hogy van!"
 
 #: views/pages/mobile.php:50
 msgid "Can be used offline"
-msgstr ""
+msgstr "Használható offline"
 
 #: ajax/place.php:815
 msgid "Recommend this place for your Facebook contacts"
-msgstr ""
+msgstr "Ajánld a helyet ismerőseidnek Facebookon"
 
 #: views/pages/mobile.php:41
 msgid "Also a mobile version of <i>Hitchwiki</i> is available at <a href=\"http://m.hitchwiki.org\">m.hitchwiki.org</a>"
-msgstr ""
+msgstr "A <i>Hitchwiki</i> mobil változata elérhető a <a href=\"http://m.hitchwiki.org\">m.hitchwiki.org</a> címen"
 
 #: views/pages/about.php:48
 msgid "Is there a mobile version available?"
-msgstr ""
+msgstr "Létezik mobiltelefonon elérhető változat?"
 
 #: views/pages/profile.php:127 views/pages/settings.php:211
 msgid "Private. Nobody but you can access your location info."
-msgstr ""
+msgstr "Privát. Rajtad kívül senki nem láthatja tartózkodási helyed."
 
 #: views/pages/public_transport.php:108
 msgid "Got stuck somewhere?"
-msgstr ""
+msgstr "Ottragadtál valahol?"
 
 #: index.php:294
 msgid "If something on the website seems wrong to you, please use \"contact us\" link at the bottom of the page."
-msgstr ""
+msgstr "Ha bármi hibára lelsz az oldalon, használd a \"kapcsolat\" linket a lap alján."
 
 #: index.php:631
 msgid "More tools"
-msgstr ""
+msgstr "További eszközök"
 
 #: widget/trip.php:82
 msgid "Trips"
-msgstr ""
+msgstr "Túrák"
 
 #: views/pages/mobile.php:48
 msgid "Features"
@@ -80,23 +80,23 @@ msgstr ""
 
 #: views/pages/settings.php:209
 msgid "Publicity of my trips and latest location"
-msgstr ""
+msgstr "Legutóbbi túráim és helyzetem publikussága"
 
 #: views/pages/mobile.php:51
 msgid "Preview each and every spot on the map"
-msgstr ""
+msgstr "Minden egyes hely előnézete a térképen"
 
 #: views/pages/mobile.php:51
 msgid "requires Internet connection such as wifi, 3G or other"
-msgstr ""
+msgstr "wifi, 3G vagy hasonló internetkapcsolat szükséges"
 
 #: views/pages/mobile.php:52
 msgid "Search by location and distance"
-msgstr ""
+msgstr "Hely és távolság szerinti keresés"
 
 #: views/pages/mobile.php:53
 msgid "See the rating and description of the spot"
-msgstr ""
+msgstr "A helyhez tartozó értékelés és leírás megtrekintése"
 
 #: views/pages/mobile.php:54
 msgid "Application is available in:"
@@ -105,7 +105,7 @@ msgstr ""
 #: views/pages/mobile.php:54 views/pages/mobile.php:61
 #: views/pages/mobile.php:62
 msgid "and"
-msgstr ""
+msgstr "és"
 
 #: views/pages/mobile.php:60
 msgid "App should work on following phone models:"
@@ -113,11 +113,11 @@ msgstr ""
 
 #: views/pages/mobile.php:65
 msgid "Got suggestions or want to report a bug?"
-msgstr ""
+msgstr "Ötleted van? Hibát jelentenél?"
 
 #: views/pages/profile.php:128 views/pages/settings.php:212
 msgid "Share only among registered users on the website."
-msgstr ""
+msgstr "Oszd meg az oldal regisztrált felhasználóival."
 
 #: views/pages/profile.php:130 views/pages/settings.php:213
 msgid "Location info is open and public through widgets."
@@ -133,11 +133,11 @@ msgstr ""
 
 #: views/pages/trips_import.php:151
 msgid "Continue"
-msgstr ""
+msgstr "Tovább"
 
 #: config.php:218 index.php:641
 msgid "Mobile"
-msgstr ""
+msgstr "Mobil"
 
 #: ajax/add_place.php:43
 msgid "Getting info about the place..."
@@ -145,47 +145,47 @@ msgstr ""
 
 #: lib/functions_trips.php:318
 msgid "Show on the map"
-msgstr ""
+msgstr "Mutasd a térképen"
 
 #: views/pages/own_places.php:8
 msgid "Own places"
-msgstr ""
+msgstr "Saját helyek"
 
 #: views/pages/log_place.php:94
 msgid "Nobody did anything for this place! Is it that good?"
-msgstr ""
+msgstr "Ezzel a hellyel senki nem kezdett semmit. Jót jelent ez?"
 
 #: views/pages/profile.php:15
 msgid "Welcome home, %s"
-msgstr ""
+msgstr "Helló itthon, %s"
 
 #: ajax/place.php:333
 msgid "Remove my rating"
-msgstr ""
+msgstr "Értékelésem eltávolítása"
 
 #: ajax/place.php:503
 msgid "See %d experience"
 msgid_plural "See %d experiences"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Mutasd %d tapasztalatát"
+msgstr[1] "Mutasd %d tapasztalatait"
 
 #: ajax/place.php:352
 msgid "See %d vote"
 msgid_plural "See %d votes"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Mutasd %d szavazatát"
+msgstr[1] "Mutasd %d szavazatait"
 
 #: views/pages/add_public_transport.php:218
 msgid "You must be logged in."
-msgstr ""
+msgstr "Nem vagy bejelentkezve."
 
 #: ajax/hitchability_log.php:190
 msgid "No ratings for this place added yet."
-msgstr ""
+msgstr "Ennek a helynek még nincs értékelése."
 
 #: views/pages/log_user.php:12
 msgid "Hey %s, welcome to your stuff!"
-msgstr ""
+msgstr "Csá %s, üdv az cuccaid között!"
 
 #: ajax/country.php:160
 msgid "Top %d city"
@@ -195,11 +195,11 @@ msgstr[1] ""
 
 #: views/pages/log_user.php:95
 msgid "User hasn't been poking around the site yet."
-msgstr ""
+msgstr "A felhasználó még nem sertepertélt az oldalon."
 
 #: views/pages/settings.php:187
 msgid "Publish my trips automatically"
-msgstr ""
+msgstr "Utazásaim automatikus publikálása"
 
 #: views/pages/log_trips.php:12
 msgid "Recorder hasn't recorded anything yet."
@@ -211,11 +211,11 @@ msgstr ""
 
 #: views/pages/log_all.php:51
 msgid "%1$s waited for a ride in here for %2$s"
-msgstr ""
+msgstr "%1$s %2$s ideig várt fuvarra ezen a helyen"
 
 #: views/pages/log_place.php:79 views/pages/log_user.php:80
 msgid "Before 27. November 2010"
-msgstr ""
+msgstr "2010. november 27. előtt"
 
 #: views/pages/log_all.php:63
 msgid "%1$s added a link to the public transportation catalog for %2$s"
@@ -223,11 +223,11 @@ msgstr ""
 
 #: views/pages/log_all.php:11
 msgid "Actions on the website during the last %d days."
-msgstr ""
+msgstr "Történések az oldalon a legutóbbi %d napban."
 
 #: views/pages/log_all.php:44
 msgid "%s added a new place"
-msgstr ""
+msgstr "%s új helyet adott hozzá"
 
 #: views/pages/log_all.php:47
 msgid "%s commented place"
@@ -235,11 +235,11 @@ msgstr ""
 
 #: views/pages/log_all.php:54
 msgid "%1$s rated \"%2$s\" for this place"
-msgstr ""
+msgstr "%1$s így értékelte a helyet: \"%2$s\""
 
 #: views/pages/log_place.php:1
 msgid "Edit history for the place"
-msgstr ""
+msgstr "A hely előzményeinek szerkesztése"
 
 #: views/pages/log_all.php:66
 msgid "%s started using Maps"
@@ -247,7 +247,7 @@ msgstr ""
 
 #: views/pages/profile.php:14
 msgid "Edit your profile"
-msgstr ""
+msgstr "Profil szerkesztése"
 
 #: views/pages/log_user.php:14 views/pages/profile.php:82
 msgid "%s's activity log"
@@ -255,19 +255,19 @@ msgstr ""
 
 #: views/pages/settings.php:127
 msgid "The map will be centered to here."
-msgstr ""
+msgstr "Ez legyen a térkép közepén!"
 
 #: views/pages/settings.php:167
 msgid "Trip recorder"
-msgstr ""
+msgstr "Túrák rögzítése"
 
 #: ajax/header_navi.php:19
 msgid "My trips"
-msgstr ""
+msgstr "Utazásaim"
 
 #: index.php:294
 msgid "Sorry about that!"
-msgstr ""
+msgstr "Bocsi"
 
 #: ajax/header_navi.php:20
 msgid "Log"
@@ -279,11 +279,11 @@ msgstr ""
 
 #: views/pages/settings.php:173
 msgid "Clear your recorded trips"
-msgstr ""
+msgstr "Bevitt utazások törlése"
 
 #: views/pages/settings.php:182
 msgid "Keep map centered to my current location"
-msgstr ""
+msgstr "A térkép alapértelmezett helye maradjon a jelenlegi"
 
 #: views/pages/settings.php:188
 msgid "If not, you need to manually publish them from your trips page."
@@ -304,7 +304,7 @@ msgstr ""
 #: views/pages/trips.php:8 views/pages/trips_countries.php:5
 #: views/pages/trips_countries.php:8
 msgid "Countries visited"
-msgstr ""
+msgstr "Megjárt országok"
 
 #: views/pages/trips.php:10 views/pages/trips_countries.php:10
 msgid "Import"
@@ -312,7 +312,7 @@ msgstr ""
 
 #: views/pages/trips.php:28 views/pages/trips_countries.php:28
 msgid "From"
-msgstr ""
+msgstr "Honnan"
 
 #: views/pages/trips.php:30 views/pages/trips_countries.php:30
 msgid "To"
@@ -326,11 +326,11 @@ msgstr ""
 #: views/pages/trips_countries.php:130 views/pages/trips_countries.php:131
 #: views/pages/trips_countries.php:132 views/pages/trips_countries.php:133
 msgid "%d per page"
-msgstr ""
+msgstr "%d oldalanként"
 
 #: views/pages/trips_place.php:11
 msgid "Back to listing"
-msgstr ""
+msgstr "Vissza a listázáshoz"
 
 #: index.php:294
 msgid "The maintenance break is now over"
@@ -338,31 +338,31 @@ msgstr ""
 
 #: ajax/place.php:162
 msgid "History"
-msgstr ""
+msgstr "Előzmények"
 
 #: ajax/place.php:161
 msgid "Description edited %s"
-msgstr ""
+msgstr "Leírás szerkesztve %s"
 
 #: ajax/place.php:140
 msgid "Click to edit"
-msgstr ""
+msgstr "Szerkesztéshez kattints ide"
 
 #: views/cards/contact.php:71 views/pages/about.php:59
 msgid "Thank you very much!"
-msgstr ""
+msgstr "Köszi szépen!"
 
 #: ajax/place.php:150
 msgid "Undo changes"
-msgstr ""
+msgstr "Változtatások visszavonása"
 
 #: views/cards/contact.php:71
 msgid "Your message was sent"
-msgstr ""
+msgstr "Az üzenet elküldve"
 
 #: views/cards/contact.php:2
 msgid "Drop us an email to %s or use this form"
-msgstr ""
+msgstr "Írj nekünk e-mailt (%s) vagy használd az alábbi űrlapot"
 
 #: views/cards/contact.php:8
 msgid "From: %s"
@@ -370,19 +370,19 @@ msgstr ""
 
 #: views/cards/contact.php:10
 msgid "Your email"
-msgstr ""
+msgstr "E-mail címed"
 
 #: views/cards/contact.php:18
 msgid "Message"
-msgstr ""
+msgstr "Üzenet"
 
 #: ajax/place.php:785
 msgid "Adding a comment failed."
-msgstr ""
+msgstr "Nem sikerült a hozzászólást közzétenni."
 
 #: ajax/place.php:585
 msgid "Adding a waiting time failed."
-msgstr ""
+msgstr "Nem sikerült a várakozási időt hozzáadni."
 
 #: views/cards/contact.php:23
 msgid "Include an usage log"
@@ -390,15 +390,15 @@ msgstr ""
 
 #: views/cards/contact.php:75
 msgid "Sending your message failed."
-msgstr ""
+msgstr "Nem sikerült elküldeni az üzeneted."
 
 #: views/cards/contact.php:23
 msgid "Show"
-msgstr ""
+msgstr "Mutasd!"
 
 #: views/cards/contact.php:14
 msgid "So we can reply to you"
-msgstr ""
+msgstr "Hogy válaszolni tudjunk"
 
 #: views/pages/settings.php:105
 msgid "No \"Nearby places from\" for you, then."
@@ -407,8 +407,8 @@ msgstr ""
 #: views/pages/hitchability.php:8
 msgid "%d vote in total."
 msgid_plural "%d votes in total."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Összesen %d szavazat."
+msgstr[1] "Összesen %d szavazat."
 
 #: views/cards/download.php:72
 msgid "Read about converting data between formats"
@@ -420,20 +420,20 @@ msgstr ""
 
 #: api/templates/gpx.php:32 api/templates/kml.php:34 api/templates/kml.php:44
 msgid "Hitchhiking places"
-msgstr ""
+msgstr "Stopphelyek"
 
 #: views/cards/download.php:22
 msgid "Format"
-msgstr ""
+msgstr "Formátum"
 
 #: views/pages/statistics.php:115 views/pages/statistics.php:116
 #: views/pages/statistics.php:117
 msgid "m"
-msgstr ""
+msgstr "m"
 
 #: views/pages/statistics.php:87
 msgid "Average elevation"
-msgstr ""
+msgstr "Átlagos emelkedés"
 
 #: ajax/place.php:1026
 msgid "Download marker as a file"
@@ -441,33 +441,33 @@ msgstr ""
 
 #: ajax/place.php:864
 msgid "No weather info..."
-msgstr ""
+msgstr "Nincs az időjárásról információ..."
 
 #: ajax/place.php:941
 msgid "Elevation"
-msgstr ""
+msgstr "Emelkedés"
 
 #: ajax/place.php:941
 msgid "meters"
-msgstr ""
+msgstr "méter"
 
 #: views/pages/statistics.php:86
 msgid "Highest place"
-msgstr ""
+msgstr "Legmagasabban fekvő stopphelyek"
 
 #: views/pages/statistics.php:81
 msgid "Highest hitchhiking places"
-msgstr ""
+msgstr "Legmagasabban fekvő stopphelyek"
 
 #: views/pages/statistics.php:88
 msgid "Lowest place"
-msgstr ""
+msgstr "Legalacsonyabb fekvésű hely"
 
 #: lib/functions.php:475
 msgid "%d vote"
 msgid_plural "%d votes"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d szavazat"
+msgstr[1] "%d szavazat"
 
 #: lib/functions.php:499
 msgid "Place in Hitchwiki Maps"
@@ -475,15 +475,15 @@ msgstr ""
 
 #: ajax/waitingtimes_log.php:80
 msgid "Waiting time varies from %s to %s."
-msgstr ""
+msgstr "Várakozási idő valahol %s és %s között mozog."
 
 #: views/pages/about.php:70
 msgid "Italian"
-msgstr ""
+msgstr "Olasz"
 
 #: ajax/header_navi.php:18
 msgid "Street view"
-msgstr ""
+msgstr "Utcanézet"
 
 #: views/pages/api.php:306
 msgid "License"
@@ -491,7 +491,7 @@ msgstr ""
 
 #: views/pages/api.php:307
 msgid "Creative Commons License"
-msgstr ""
+msgstr "Creative Commons"
 
 #: views/pages/about.php:21
 msgid "You can show your love to us and recommend Hitchwiki Maps to your hitchhiker mates in Facebook by pressing this cute little button with a familiar icon on it:"
@@ -499,31 +499,31 @@ msgstr ""
 
 #: index.php:366
 msgid "http://hitchwiki.org/en/"
-msgstr "http://hitchwiki.org/pt/"
+msgstr "http://hitchwiki.org/en/"
 
 #: views/pages/about.php:61 views/pages/about.php:78
 msgid "English"
-msgstr ""
+msgstr "Angol"
 
 #: views/pages/about.php:75
 msgid "Latvian"
-msgstr ""
+msgstr "Lett"
 
 #: views/pages/about.php:78
 msgid "Pirate"
-msgstr ""
+msgstr "Kalóz nyelv"
 
 #: ajax/place.php:887
 msgid "Wind"
-msgstr ""
+msgstr "Szél"
 
 #: ajax/place.php:885
 msgid "Temperature"
-msgstr ""
+msgstr "Hőmérséklet"
 
 #: ajax/place.php:886
 msgid "Humidity"
-msgstr ""
+msgstr "Páratartalom"
 
 #: ajax/place.php:887
 msgid "Intensity"
@@ -531,27 +531,27 @@ msgstr ""
 
 #: ajax/place.php:887
 msgid "Direction"
-msgstr ""
+msgstr "Útvonalak"
 
 #: ajax/place.php:951
 msgid "Weather near %s"
-msgstr ""
+msgstr "Időjárás %s környékén"
 
 #: ajax/place.php:888
 msgid "Air pressure"
-msgstr ""
+msgstr "Légnyomás"
 
 #: ajax/place.php:954
 msgid "Weather from Wunderground.com"
-msgstr ""
+msgstr "Időjárás (Wunderground.com)"
 
 #: views/pages/about.php:68
 msgid "Chinese"
-msgstr ""
+msgstr "Kínai"
 
 #: ajax/place.php:887
 msgid "m/s"
-msgstr ""
+msgstr "m/s"
 
 #: ajax/add_place.php:189
 msgid "End date"
@@ -563,15 +563,15 @@ msgstr ""
 
 #: ajax/js-translation.json.php:52
 msgid "Try searching by English city names or/and add a country name with cities."
-msgstr ""
+msgstr "Próbálj angol város- és/vagy országnévre keresni."
 
 #: ajax/add_place.php:241
 msgid "I don't know"
-msgstr ""
+msgstr "Nem tudom"
 
 #: ajax/add_place.php:252
 msgid "Just add what you've experienced. You can add multiple timings after saving and we will calculate an average out of them."
-msgstr ""
+msgstr "Add hozzá saját tapasztalatod. Több várakozási időt is hozzáadhatsz, ezekből adódik össze a helyen tapasztalt átlagos várakozási idő."
 
 #: ajax/js-translation.json.php:44
 msgid "places"
@@ -579,667 +579,667 @@ msgstr ""
 
 #: ajax/js-translation.json.php:45
 msgid "Zoom closer to see them."
-msgstr ""
+msgstr "Közelíts be, hogy láthasd ezeket."
 
 #: ajax/js-translation.json.php:46
 msgid "Searching..."
-msgstr ""
+msgstr "Keresés..."
 
 #: ajax/js-translation.json.php:47 ajax/js-translation.json.php:51
 msgid "Your search did not match any places."
-msgstr ""
+msgstr "Keresésed nem vezetett sikerre."
 
 #: ajax/js-translation.json.php:48
 msgid "Try searching in English and add a country name in to your search."
-msgstr ""
+msgstr "Próbálj meg angol nyelven keresni és adj a kereséshez hozzá országnevet is!"
 
 #: ajax/js-translation.json.php:49
 msgid "Example:"
-msgstr ""
+msgstr "Példa:"
 
 #: ajax/js-translation.json.php:50
 msgid "Not found"
-msgstr ""
+msgstr "Nem található"
 
 #: ajax/js-translation.json.php:53
 msgid "Are you sure you want to remove this comment?"
-msgstr ""
+msgstr "Biztos, hogy el akarod távolítani a hozzászólást?"
 
 #: ajax/js-translation.json.php:55
 msgid "Updating description failed."
-msgstr ""
+msgstr "Leírás frissítése nem sikerült."
 
 #: lib/functions.php:494
 msgid "Description written %s"
-msgstr ""
+msgstr "Leírás megírva %s"
 
 #: ajax/place.php:204
 msgid "You need to be <a href=\"%s\">logged in</a> to add or edit descriptions."
-msgstr ""
+msgstr "<a href=\"%s\">Lépj be</a> leírás hozzáadásához vagy szerkesztéséhez."
 
 #: views/cards/contact.php:27
 msgid "Send"
-msgstr "Enviar"
+msgstr "Elküldés"
 
 #: index.php:126
 msgid "Find good places for hitchhiking and add your own"
-msgstr "Encontra bons lugares para apanhar boleia e adiciona os que tu conheces"
+msgstr "Találd meg a jó stopphelyeket és add hozzá sajátjaidat"
 
 #: views/pages/about.php:65
 msgid "Russian"
-msgstr "Russo"
+msgstr "Orosz"
 
 #: views/pages/about.php:63
 msgid "German"
-msgstr "Alemão"
+msgstr "Német"
 
 #: views/pages/about.php:64
 msgid "Dutch"
-msgstr "Holandês / Flamengo"
+msgstr "Holland"
 
 #: views/pages/about.php:71
 msgid "Polish"
-msgstr "Polaco"
+msgstr "Lengyel"
 
 #: views/pages/about.php:73
 msgid "French"
-msgstr "Francês"
+msgstr "Francia"
 
 #: views/pages/about.php:69
 msgid "Lithuanian"
-msgstr "Lituano"
+msgstr "Litván"
 
 #: views/pages/about.php:76
 msgid "Swedish"
-msgstr "Sueco"
+msgstr "Svéd"
 
 #: views/pages/about.php:72
 msgid "Spanish"
-msgstr "Espanhol"
+msgstr "Spanyol"
 
 #: views/pages/about.php:67
 msgid "Portuguese"
-msgstr "Português"
+msgstr "Portugál"
 
 #: views/pages/about.php:66
 msgid "Romanian"
-msgstr "Romeno"
+msgstr "Román"
 
 #: views/pages/why_register.php:13
 msgid "Set up a new center point, so that the map will be centered to there every time you login"
-msgstr "Define um novo ponto central, para que o mapa fique aí centrado cada vez que te logares"
+msgstr "Állíts be egy új középpontot, ami a térkép középpontja lesz"
 
 #: views/pages/translate.php:22
 msgid "You can see the current status of translations from %s"
-msgstr "Podes ver o estado atual da tradução de %s"
+msgstr ""
 
 #: views/pages/why_register.php:7
 msgid "Hitcwiki Maps works with your Hitchwiki-account, so with one login you can access <a href=\"http://hitchwiki.org/\">Wiki</a>, <a href=\"http://hitchwiki.org/community/\">Community</a> and Maps."
-msgstr "O Hitcwiki Maps funciona com a tua Hitchwiki-conta, por isso com um login podes aceder <a href=\"http://hitchwiki.org/\">Wiki</a>, <a href=\"http://hitchwiki.org/community/\">à Communidade</a> e aos Mapas."
+msgstr ""
 
 #: views/pages/about.php:42
 msgid "Why is the map always centered on Europe?"
-msgstr "Porque é que o mapa está sempre centrado na Europa?"
+msgstr "Miért Európához van igazítva a térkép?"
 
 #: views/pages/about.php:43
 msgid "Most of this maps hitchhiking places are in Europe. If you have registered, you can set a point of your current country from settings. The map will center there whenever you log in."
-msgstr "A maior parte dos lugares para encontrar boleia são na Europa. Se te registaste, podes definir um ponto no teu país, nas definições. O mapa ficará centrado aí, sempre que te logares."
+msgstr "A térképen megjelenő pontok többsége Európában található. Amennyiben regisztrálsz, lehetőséged lesz beállítani országod egy pontját, amely ezentúl a térkép középpontjaként fog megjelenni."
 
 #: views/pages/why_register.php:9
 msgid "When logged in, you will have some more features on this site:"
-msgstr "Uma vez logado, terás acesso a mais funcionalidades neste site:"
+msgstr ""
 
 #: ajax/hitchability_log.php:160
 msgid "Are you sure you want to remove this record?"
-msgstr "Tens a certeza de que queres remover este registo?"
+msgstr "Biztosan el akarod távolítani ezt a feljegyzést?"
 
 #: ajax/hitchability_log.php:177
 msgid "Could not remove a record due to an error. Please try again!"
-msgstr "Não foi possível remover um registo devido a um erro. Porr favor tenta de novo!"
+msgstr ""
 
 #: ajax/place.php:704
 msgid "You are logged in. Your name will be visible for others."
-msgstr "Está logado. O seu nome estará visível para outros."
+msgstr "Be vagy jelentkezve. Neved látható mások számára."
 
 #: ajax/place.php:592
 msgid "Please add your waiting time first."
-msgstr "Por favor, primeiro adicione o seu tempo de espera."
+msgstr "Előbb várakozási időt adj hozzá"
 
 #: ajax/place.php:181 ajax/place.php:202
 msgid "No description available for this language."
-msgstr "Não há uma descrição disponível nesta linguagem."
+msgstr "Ehhez a nyelvhez nem tartozik leírás"
 
 #: ajax/add_place.php:384
 msgid "Could not add place due to an error."
-msgstr "O local não pode ser adicionado devido a um erro."
+msgstr "Hiba folytán nem sikerült a helyet rögzíteni."
 
 #: ajax/add_place.php:271
 msgid "Your name <i>\"%s\"</i> will be visible for this place."
-msgstr "O seu nome <i>\"%s\"</i> ficará visível para este lugar."
+msgstr "A neved, <i>\"%s\"</i>, meg fog jellenni ennél a helynél."
 
 #: lib/functions_public_transport.php:147
 msgid "In-city transportation"
-msgstr "Transporte dentro da cidade"
+msgstr "Városi közlekedés"
 
 #: lib/functions_public_transport.php:99
 msgid "Go to site"
-msgstr "Visitar o sítio web"
+msgstr ""
 
 #: lib/functions_public_transport.php:148
 msgid "Inter-city / international transportation"
-msgstr "Inter-cidades / transporte internacional"
+msgstr "Városon belüli / nemzetközi közlekedés"
 
 #: ajax/header_login.php:77
 msgid "Why register?"
-msgstr "Porquê registar?"
+msgstr "Mire jó a regisztráció?"
 
 #: views/pages/api.php:307 views/pages/api.php:309
 msgid "http://creativecommons.org/licenses/by-sa/3.0/"
-msgstr "http://creativecommons.org/licenses/by-sa/3.0/deed.pt"
+msgstr "http://creativecommons.org/licenses/by-sa/3.0/"
 
 #: index.php:629
 msgid "Download"
-msgstr "Download / baixar"
+msgstr "Letöltés"
 
 #: index.php:630
 msgid "Link here"
-msgstr "Link aqui"
+msgstr "Link"
 
 #: lib/functions_public_transport.php:153
 msgid "No public transport found for this country."
-msgstr "Não foi encontrado transporte público para este país."
+msgstr "Nem található tömegközlekedési információ ehhez az országhoz."
 
 #: ajax/add_place.php:375
 msgid "Place successfully added to the map."
-msgstr "Local adicionado com sucesso ao mapa."
+msgstr "A stopphelyet sikerrel felkerült a térképre."
 
 #: ajax/waitingtimes_log.php:179
 msgid "No waiting time for this place added yet."
-msgstr "Ainda não foi adicionado um \"tempo de espera\" para este local."
+msgstr "Várakozási időt még senki nem adott ehhez a helyhez."
 
 #: views/pages/why_register.php:12
 msgid "Edit places and see all the places you added"
-msgstr "Editar os locais e ver todos os locais que você adicionou"
+msgstr "Helyek szerkesztése és saját helyek megtekintése"
 
 #: views/pages/why_register.php:14
 msgid "Enable/disable additional map layers and choose your default"
-msgstr "Activar/desactivar camadas adicionais dos mapas e escolher as que aparecem por defeito"
+msgstr "Egyéb térképfelületek engedélyezése/tiltása és az alapértelmezett kiválasztása"
 
 #: views/pages/why_register.php:15
 msgid "...and more!"
-msgstr "...e mais!"
+msgstr "... és több és több!"
 
 #: lib/api.php:614 lib/functions_users.php:22 lib/functions_users.php:32
 #: lib/functions_users.php:34
 msgid "Anonymous"
-msgstr "Anónimo"
+msgstr "Anonymous"
 
 #: lib/functions_lists.php:277
 msgid "Asia"
-msgstr "Ásia"
+msgstr "Ázsia"
 
 #: lib/functions_lists.php:281
 msgid "Africa"
-msgstr "África"
+msgstr "Afrika"
 
 #: lib/functions_lists.php:285
 msgid "North America"
-msgstr "América do Norte"
+msgstr "Észak-Amerika"
 
 #: lib/functions_lists.php:289
 msgid "South America"
-msgstr "América do Sul"
+msgstr "Dél-Amerika"
 
 #: lib/functions_lists.php:293
 msgid "Antarctica"
-msgstr "Antártica"
+msgstr "Antarktisz"
 
 #: lib/functions_lists.php:297
 msgid "Europe"
-msgstr "Europa"
+msgstr "Európa"
 
 #: lib/functions_lists.php:301
 msgid "Australia and Oceania"
-msgstr "Austrália e Oceania"
+msgstr "Ausztrália és Óceánia"
 
 #: lib/functions_strings.php:250
 msgid "Very good"
-msgstr "Muito bom"
+msgstr "Nagyon jó"
 
 #: lib/functions_strings.php:251
 msgid "Good"
-msgstr "Bom"
+msgstr "Jó"
 
 #: lib/functions.php:485 lib/functions_strings.php:252
 msgid "Average"
-msgstr "Médio"
+msgstr "Átlagos"
 
 #: lib/functions_strings.php:253
 msgid "Bad"
-msgstr "Mau"
+msgstr "Rossz"
 
 #: lib/functions_strings.php:254
 msgid "Senseless"
-msgstr "Indiferente"
+msgstr "Reménytelen"
 
 #: lib/functions_strings.php:255 lib/functions_strings.php:287
 msgid "Unknown"
-msgstr "Desconhecido"
+msgstr "Ismeretlen"
 
 #: lib/functions_strings.php:288 lib/functions_strings.php:295
 msgid "min"
-msgstr "min"
+msgstr "perc"
 
 #: lib/functions_strings.php:291
 msgid "h"
-msgstr "h"
+msgstr "ó"
 
 #: lib/functions_public_transport.php:15
 msgid "Other"
-msgstr "Outro"
+msgstr "Egyéb"
 
 #: lib/functions_public_transport.php:16
 msgid "Local bus"
-msgstr "Autocarro local"
+msgstr "Helyi buszjárat"
 
 #: lib/functions_public_transport.php:17
 msgid "Trolleybus"
-msgstr "Autocarro-eletrificado"
+msgstr "Troli"
 
 #: lib/functions_public_transport.php:18
 msgid "Tram"
-msgstr "Elétrico"
+msgstr "Villamos"
 
 #: lib/functions_public_transport.php:19
 msgid "Metro"
-msgstr "Metro"
+msgstr "Metró"
 
 #: lib/functions_public_transport.php:20
 msgid "Commuter train"
-msgstr "Comboio sub-urbano"
+msgstr "HÉV"
 
 #: lib/functions_public_transport.php:21
 msgid "Taxi"
-msgstr "Táxi"
+msgstr "Taxi"
 
 #: lib/functions_public_transport.php:22
 msgid "Long distance bus"
-msgstr "Autocarro de longa distância"
+msgstr "Távolsági busz"
 
 #: lib/functions_public_transport.php:23
 msgid "Long distance train"
-msgstr "Comboio de longa distância"
+msgstr "Távolsági vasút"
 
 #: lib/functions_public_transport.php:24
 msgid "Airline"
-msgstr "Companhia Aérea"
+msgstr "Légitársaság"
 
 #: lib/functions_public_transport.php:25
 msgid "Shipping"
-msgstr "Encomenda"
+msgstr ""
 
 #: lib/functions_public_transport.php:26
 msgid "Carsharing"
-msgstr "Carsharing (Partilha do Carro)"
+msgstr "Telekocsi"
 
 #: lib/functions_public_transport.php:27
 msgid "Car rental"
-msgstr "Rent-a-Car (Aluguer de Carros)"
+msgstr "Autókölcsönző"
 
 #: lib/functions_public_transport.php:77
 msgid "City"
-msgstr "Cidade"
+msgstr "Város"
 
 #: lib/functions_public_transport.php:78
 msgid "Site"
-msgstr "Sítio"
+msgstr "Honlap"
 
 #: lib/functions_public_transport.php:79
 msgid "Type"
-msgstr "Tipo"
+msgstr "Típus"
 
 #: lib/functions_public_transport.php:81
 msgid "Manage"
-msgstr "Conseguir"
+msgstr ""
 
 #: lib/functions_public_transport.php:117
 msgid "Remove page permanently"
-msgstr "Remover de vez"
+msgstr ""
 
 #: lib/functions_public_transport.php:118
 msgid "Edit page"
-msgstr "Editar página"
+msgstr "Oldal szerkesztése"
 
 #: lib/functions_public_transport.php:137
 msgid "Are you sure?"
-msgstr "Tem a certeza?"
+msgstr "Biztos vagy benne?"
 
 #: lib/functions_public_transport.php:153
 msgid "Add some?"
-msgstr "Adicionar alguns?"
+msgstr "Hozzáadnál?"
 
 #: ajax/add_place.php:32 ajax/add_place.php:264
 msgid "Add place"
-msgstr "Adicionar lugar?"
+msgstr "Hely hozzáadása"
 
 #: ajax/add_place.php:34
 msgid "Close"
-msgstr "Fechar"
+msgstr "Becsuk"
 
 #: ajax/add_place.php:44
 msgid "Loading"
-msgstr "Carregando"
+msgstr "Betöltés"
 
 #: ajax/add_place.php:69
 msgid "Country"
-msgstr "País"
+msgstr "Ország"
 
 #: ajax/add_place.php:69
 msgid "Required"
-msgstr "Necessário"
+msgstr "Szükséges"
 
 #: ajax/add_place.php:71
 msgid "Select"
-msgstr "Escolha"
+msgstr "Kiválaszt"
 
 #: ajax/add_place.php:84 ajax/js-translation.json.php:57
 msgid "Hitchhiking spot"
-msgstr "Ponto para apanhar Boleia"
+msgstr "Stopphely"
 
 #: ajax/add_place.php:85
 msgid "Event / Meeting / Gathering"
-msgstr "Evento / Encontro"
+msgstr "Esemény / Találkozó / Dzsembori"
 
 #: ajax/add_place.php:124
 msgid "Description"
-msgstr "Descrição"
+msgstr "Leírás"
 
 #: ajax/add_place.php:150
 msgid "Please fill as many different language descriptions as you can."
-msgstr "Por favor escreve em tantas línguas diferentes quanto possível."
+msgstr "Lehetőség szerint minél több nyelven töltsd ki"
 
 #: ajax/add_place.php:186 ajax/add_place.php:189
 msgid "Clear"
-msgstr "Limpo"
+msgstr "Törlés"
 
 #: lib/functions.php:474
 msgid "Hitchability"
-msgstr "Facilidade de apanhar Boleia"
+msgstr "Stoppolhatóság"
 
 #: ajax/add_place.php:216
 msgid "About Hitchability"
-msgstr "Sobre a \"Facilidade de apanhar Boleia\""
+msgstr "Stoppolhatóságról"
 
 #: ajax/add_place.php:265
 msgid "Cancel"
-msgstr "Cancelar"
+msgstr "Mégse"
 
 #: ajax/add_place.php:375
 msgid "Thank you!"
-msgstr "Obrigado!"
+msgstr "Köszi!"
 
 #: ajax/add_place.php:375
 msgid "Place added successfully"
-msgstr "Local adicionado com sucesso"
+msgstr "Hely sikeresen hozzáadva"
 
 #: ajax/add_place.php:384 ajax/js-translation.json.php:56
 msgid "Please try again!"
-msgstr "Por favor tente de novo!"
+msgstr "Próbáld újra!"
 
 #: lib/functions.php:411
 msgid "Error"
-msgstr "Erro"
+msgstr "Hiba"
 
 #: ajax/country.php:80 ajax/header_navi.php:13
 msgid "About"
-msgstr "Sobre"
+msgstr "Névjegy"
 
 #: ajax/country.php:91
 msgid "Places in Maps"
-msgstr "Locais no Mapa"
+msgstr "Stopphelyek a térképen"
 
 #: ajax/country.php:95
 msgid "Cities in Maps"
-msgstr "Cidades no Mapa"
+msgstr "Városok a térképen"
 
 #: ajax/country.php:101
 msgid "Capital"
-msgstr "Capital"
+msgstr "Főváros"
 
 #: ajax/country.php:113
 msgid "Continent"
-msgstr "Continente"
+msgstr "Földrész"
 
 #: ajax/country.php:117
 msgid "Area"
-msgstr "Área"
+msgstr "Terület"
 
 #: ajax/country.php:123
 msgid "Population"
-msgstr "População"
+msgstr "Népesség"
 
 #: ajax/country.php:130
 msgid "Currency"
-msgstr "Moeda Local"
+msgstr "Pénznem"
 
 #: views/pages/statistics.php:29
 msgid "Top %s cities"
-msgstr "Cidades Top %s"
+msgstr ""
 
 #: ajax/country.php:168 ajax/map_statistics.php:47 ajax/map_statistics.php:137
 #: ajax/map_statistics.php:185
 msgid "Places"
-msgstr "Locais"
+msgstr "Helyek"
 
 #: ajax/country.php:201
 msgid "Map started to load. This might take some time."
-msgstr "O mapa começou a carregar. Isto pode levar algum tempo."
+msgstr "Töltöm a térképet. Türelem, eltarthat egy ideig."
 
 #: ajax/country.php:201
 msgid "Show cities on the map"
-msgstr "Mostrar as cidades no mapa"
+msgstr "Mutasd a városokat a térképen"
 
 #: ajax/country.php:201
 msgid "Experimental, might be slow."
-msgstr "Experimental, talvez seja lento."
+msgstr "Kísérleti, ezért lehet, hogy lassú."
 
 #: ajax/country.php:206
 msgid "Public transport"
-msgstr "Transporte público"
+msgstr "Tömegközlekedés"
 
 #: ajax/map_statistics.php:17
 msgid "Maps"
-msgstr "Mapas"
+msgstr "Térkép"
 
 #: ajax/place.php:54
 msgid "Zoom in"
-msgstr "Aproximar (Zoom in)"
+msgstr "Közelítés"
 
 #: ajax/place.php:181
 msgid "Write one?"
-msgstr "Escrever uma?"
+msgstr "Írnál egyet?"
 
 #: ajax/place.php:149 ajax/place.php:182
 msgid "Save"
-msgstr "Guardar"
+msgstr "Mentés"
 
 #: ajax/place.php:927
 msgid "Added by"
-msgstr "Adicionado por"
+msgstr "Hozzáadta"
 
 #: ajax/place.php:931
 msgid "Added at"
-msgstr "Adicionado em"
+msgstr "Hozzáadva ekkor: "
 
 #: lib/functions.php:479 lib/functions.php:480
 msgid "Vote distribution"
-msgstr "Votar distribuição"
+msgstr "Szavazatok eredménye"
 
 #: ajax/place.php:331
 msgid "Your opinion..."
-msgstr "A tua opinião..."
+msgstr "Véleményed..."
 
 #: ajax/place.php:349
 msgid "You rated for this place"
-msgstr "Classificaste este local"
+msgstr "Értékelted ezt a helyet"
 
 #: ajax/place.php:423
 msgid "Rating failed, please try again."
-msgstr "Classificação falhou, por favor tenta novamente."
+msgstr "Értékelés nem sikerült, próbáld újra."
 
 #: ajax/place.php:423
 msgid "Rating failed"
-msgstr "Classificação falhou"
+msgstr "Értékelés nem sikerült"
 
 #: lib/functions.php:485
 msgid "Waiting time"
-msgstr "Tempo de espera"
+msgstr "Várakozási idő"
 
 #: ajax/place.php:352 ajax/place.php:502 ajax/place.php:944
 msgid "Show log"
-msgstr "Mostrar log (registo)"
+msgstr ""
 
 #: lib/functions.php:487
 msgid "%d experience"
 msgid_plural "%d experiences"
-msgstr[0] "%d experiência"
-msgstr[1] "%d experiências"
+msgstr[0] ""
+msgstr[1] ""
 
 #: ajax/add_place.php:236
 msgid "hours"
-msgstr "horas"
+msgstr "óra"
 
 #: ajax/add_place.php:237
 msgid "minutes"
-msgstr "minutos"
+msgstr "perc"
 
 #: ajax/place.php:488
 msgid "Your experience..."
-msgstr "A tua experiência..."
+msgstr "Tapasztalatod..."
 
 #: ajax/add_place.php:249
 msgid "Other..."
-msgstr "Outro..."
+msgstr "Egyéb..."
 
 #: ajax/place.php:498 ajax/place.php:509
 msgid "Add"
-msgstr "Adicionar"
+msgstr ""
 
 #: ajax/add_place.php:298
 msgid "Adding..."
-msgstr "Adicionando..."
+msgstr ""
 
 #: ajax/place.php:631
 msgid "Comments"
-msgstr "Comentários"
+msgstr "Hozzászólások"
 
 #: ajax/place.php:658 ajax/place.php:664 ajax/place.php:778
 msgid "Remove comment permanently"
-msgstr "Remove o comentário de vez."
+msgstr "Hozzászólás végleges eltávolítása"
 
 #: ajax/place.php:659
 msgid "Edit comment"
-msgstr "Editar comentário"
+msgstr "Hozzászólás szerkesztése"
 
 #: ajax/place.php:676
 msgid "Leave a comment..."
-msgstr "Deixar um comentário..."
+msgstr "Hozzászólás..."
 
 #: ajax/place.php:702 ajax/place.php:712 ajax/place.php:754
 msgid "Nickname"
-msgstr "Nickname"
+msgstr "Becenév"
 
 #: ajax/place.php:707
 msgid "Comment"
-msgstr "Comentário"
+msgstr "Hozzászólás"
 
 #: ajax/place.php:728
 msgid "Please write a comment first."
-msgstr "Por favor primeiro escreva um comentário."
+msgstr "Előbb írj hozzászólást."
 
 #: ajax/place.php:728
 msgid "Comment missing"
-msgstr "Comentário em falta."
+msgstr "Hiányzik a szöveg"
 
 #: ajax/place.php:738
 msgid "Sending..."
-msgstr "Enviando..."
+msgstr "Elküldés..."
 
 #: ajax/place.php:838
 msgid "More about this place"
-msgstr "Mais acerca deste local"
+msgstr "Több erről a helyről"
 
 #: ajax/place.php:839 ajax/place.php:1051
 msgid "Toggle"
-msgstr "Mudar"
+msgstr ""
 
 #: ajax/place.php:961
 msgid "Link to this place:"
-msgstr "Link para este local:"
+msgstr "Link erre a helyre:"
 
 #: ajax/place.php:1008
 msgid "Latitude"
-msgstr "Latitude"
+msgstr "Szélességi fok"
 
 #: ajax/place.php:1009
 msgid "Longitude"
-msgstr "Longitude"
+msgstr "Hosszúsági fok"
 
 #: ajax/place.php:1094
 msgid "Remove place"
-msgstr "Remover local"
+msgstr ""
 
 #: ajax/place.php:1095
 msgid "Edit place"
-msgstr "Editar local"
+msgstr "Hely szerkesztése"
 
 #: ajax/place.php:1096
 msgid "See user"
-msgstr "Ver user"
+msgstr ""
 
 #: ajax/place.php:23 ajax/place.php:1115
 msgid "Sorry, but the place cannot be found.<br /><br />The place you are looking for might have been removed or is temporarily unavailable."
-msgstr "Desculpe, mas o lugarl não pôde ser encontrado. <br /><br />O lugar que procura talvez tenha sido removido ou está temporariamente indisponível."
+msgstr "Bocsi, de a hely nem található.<br /><br /> A hely, amit keresel valószínűleg időlegesen nem elérhető vagy el lett távolítva."
 
 #: ajax/place.php:1115
 msgid "The place cannot be found"
-msgstr "O lugar não pôde ser encontrado"
+msgstr "A hely nem található"
 
 #: ajax/user_settings.php:22
 msgid "Invalid user ID."
-msgstr "User ID inválido."
+msgstr ""
 
 #: ajax/user_settings.php:28
 msgid "Missing user ID."
-msgstr "User ID em falta."
+msgstr "Hiányzó felhasználónév."
 
 #: ajax/user_settings.php:33
 msgid "Illegal language code; "
-msgstr "Código de linguagem ilegal;"
+msgstr ""
 
 #: ajax/user_settings.php:48
 msgid "Illegal country code; "
-msgstr "Código de país ilegal;"
+msgstr "Érvénytelen országkód;"
 
 #: ajax/user_settings.php:112
 msgid "Oops! Something went wrong! Try again."
-msgstr "Oops! Algo correu errado! Tenta de novo."
+msgstr "Hoppá, valami bibi van. Próbáld újra!"
 
 #: views/view_404.php:7
 msgid "Error 404 - page not found"
-msgstr "Erro 404 - página não encontrada"
+msgstr "Error 404 - az oldal nem található"
 
 #: ajax/hitchability_log.php:95
 msgid "Date"
-msgstr "Data"
+msgstr "Dátum"
 
 #: ajax/hitchability_log.php:97
 msgid "User"
-msgstr "User"
+msgstr "Felhasználó"
 
 #: ajax/hitchability_log.php:137
 msgid "Remove record"
-msgstr "Remover registo"
+msgstr ""
 
 #: admin/index.php:53 admin/views/users.php:187
 msgid "Admin"
@@ -1251,32 +1251,32 @@ msgstr "Wiki"
 
 #: admin/index.php:98
 msgid "Blogs"
-msgstr "Blogs"
+msgstr "Blogok"
 
 #: index.php:368 admin/index.php:98
 msgid "Planet"
-msgstr "Planeta"
+msgstr "Földbolygó"
 
 #: ajax/place.php:1050
 msgid "Administration"
-msgstr "Administração"
+msgstr "Beállítások"
 
 #: views/pages/add_public_transport.php:7
 msgid "Alert"
-msgstr "Alerta"
+msgstr ""
 
 #: admin/views/users.php:173
 msgid "We have %s registered hitchhikers!"
-msgstr "Temos %s pessoas para ir de boleia registadas!"
+msgstr "Már %s regisztrált stopposunk van!"
 
 #: views/pages/profile.php:25
 msgid "Member since"
-msgstr "Membro desde"
+msgstr ""
 
 #: views/pages/profile.php:40 views/pages/settings.php:132
 #: views/pages/users.php:30
 msgid "Location"
-msgstr "Localização"
+msgstr "Tartózkodási hely"
 
 #: admin/views/users.php:183
 msgid "Email"
@@ -1284,497 +1284,497 @@ msgstr "E-mail"
 
 #: views/pages/log_all.php:59
 msgid "Language"
-msgstr "Língua"
+msgstr "Nyelv"
 
 #: ajax/hitchability_log.php:123
 msgid "That's you!"
-msgstr "És tu!"
+msgstr "Ez te vagy!"
 
 #: opensearch/suggestions.php:19
 msgid "Results from Hitchwiki Maps"
-msgstr "Resultados do Hitchwiki Maps"
+msgstr "Eredmények a Hitchwiki térképről"
 
 #: views/cards/download.php:10
 msgid "World"
-msgstr "Mundo"
+msgstr ""
 
 #: views/cards/download.php:10 views/cards/download.php:11
 msgid "markers"
-msgstr "marcadores"
+msgstr ""
 
 #: views/cards/download.php:11
 msgid "Visible area on the map"
-msgstr "Área visível no mapa"
+msgstr "Térképen látható terület"
 
 #: ajax/place.php:1031
 msgid "Zipped"
-msgstr "Zippado"
+msgstr "Tömörítve"
 
 #: views/cards/download.php:74
 msgid "Use Open Street Map Export tool"
-msgstr "Usa a ferramenta de Exportar o Open Street Map"
+msgstr ""
 
 #: views/cards/link_here.php:2
 msgid "Link to this view"
-msgstr "Links para esta vista"
+msgstr "Link ehhez a nézethez"
 
 #: views/cards/link_here.php:4
 msgid "Weblink"
-msgstr "Weblink"
+msgstr ""
 
 #: views/cards/link_here.php:9
 msgid "Code for hitchwiki"
-msgstr "Código para o hitchwiki"
+msgstr "Forráskód a Hitchwikihez"
 
 #: views/cards/link_here.php:14
 msgid "Code for embedding"
-msgstr "Código para incorporar"
+msgstr "Beágyazás"
 
 #: views/cards/link_here.php:16
 msgid "You can embed a map to your own blog for example."
-msgstr "Podes incorporar um mapa no teu blog por exemplo."
+msgstr "Térképet ágyazhatsz be többek között a blogodra is."
 
 #: views/pages/add_public_transport.php:1
 msgid "Add a page to the catalog"
-msgstr "Adicionar uma página ao catálogo"
+msgstr "Oldal hozzáadása a katalógushoz"
 
 #: views/pages/add_public_transport.php:14
 msgid "Title"
-msgstr "Título"
+msgstr "Cím"
 
 #: views/pages/add_public_transport.php:14
 msgid "In English."
-msgstr "Em Inglês."
+msgstr "Angolul."
 
 #: views/pages/add_public_transport.php:19
 msgid "Webpage"
-msgstr "Página Web"
+msgstr "Honlap"
 
 #: views/pages/add_public_transport.php:19
 #: views/pages/add_public_transport.php:30
 msgid "Required."
-msgstr "Necessário."
+msgstr "Szükséges megadni"
 
 #: views/pages/add_public_transport.php:19
 msgid "Please try to add an English version of the page."
-msgstr "Por favor tente adicionar uma versão em Inglês da página."
+msgstr ""
 
 #: views/pages/add_public_transport.php:54
 msgid "Add page"
-msgstr "Adicionar página"
+msgstr "Oldal hozzáadása"
 
 #: views/pages/add_public_transport.php:147
 msgid "Please fill all required fields!"
-msgstr "Por favor preencha todos os campos necessários."
+msgstr "Tölts ki minden szükséges mezőt!"
 
 #: views/pages/add_public_transport.php:190
 msgid "Page added to the catalog."
-msgstr "Página adicionada ao catálogo."
+msgstr ""
 
 #: views/pages/add_public_transport.php:198
 msgid "Error adding page to the catalog. Check required fields and try again."
-msgstr "Erro ao adicionar a página ao catálogo. Verifique os campos necessários e tente de novo."
+msgstr "Nem sikerült az oldal hozzáadása. Nézz rá a szükségesen kitöltendő mezőkre és próbáld újra!"
 
 #: views/pages/api.php:1
 msgid "API Documentation"
-msgstr "Documentação da API"
+msgstr ""
 
 #: views/pages/api.php:13
 msgid "List of API-calls"
-msgstr "Lista de chamadas da API"
+msgstr ""
 
 #: views/pages/api.php:288
 msgid "default"
-msgstr "defeito"
+msgstr "alapbeállítás"
 
 #: views/pages/complete_statistics.php:1
 msgid "Complete statistics"
-msgstr "Estatísticas completas"
+msgstr "Bővebb statisztika"
 
 #: views/pages/complete_statistics.php:3
 msgid "There are currently %s places marked."
-msgstr "Existem atualmente %s lugares marcados."
+msgstr "Jelenleg %s bejegyzett helyet találsz a térképen."
 
 #: views/pages/complete_statistics.php:3
 msgid "See more compact statistics."
-msgstr "Veja mais estatísticas compactas."
+msgstr "Összetettebb statisztikák megtekintése."
 
 #: views/pages/complete_statistics.php:7
 msgid "Top countries"
-msgstr "Top países"
+msgstr "Top országok"
 
 #: views/pages/complete_statistics.php:25
 msgid "Top cities"
-msgstr "Top cidades"
+msgstr ""
 
 #: views/pages/countries.php:1
 msgid "Countries"
-msgstr "Países"
+msgstr "Országok"
 
 #: views/cards/contact.php:51 views/pages/countries.php:27
 msgid "Loading..."
-msgstr "Carregando..."
+msgstr "Tölt..."
 
 #: views/pages/countries.php:60 views/pages/countries.php:71
 msgid "Couldn't load info. Please try again."
-msgstr "A informação não pôde ser carregada. Por favor tente de novo."
+msgstr "Az adat betöltése nem sikerült. Próbáld újra!"
 
 #: views/pages/countries.php:86
 msgid "I haven't been everywhere, but it's on my list."
-msgstr "Não estive em todo o lado, mas está na minha lista."
+msgstr "Még mindenhol nem jártam, de a listámon fent van."
 
 #: views/pages/about.php:33
 msgid "What is this?"
-msgstr "O que é isto?"
+msgstr "Mi ez?"
 
 #: views/pages/about.php:34
 msgid "This is supposed to be a worldmap for hitchhikers, showing good and bad hitching places. Feel free to add all your favourite hitching places (or even more) to the map."
-msgstr "Pretende-se que este seja um mapa-mundo para quem anda de boleia, mostrando os lugares bons e maus para apanhar boleia. Fica à vontade para adicionar ao mapa todos os teus lugares favoritos para encontrar boleia (ou mais lugares ainda)."
+msgstr "Egy olyan térképet látsz, amely a világ jó és rossz stopphelyeit hivatott mutatni. Add hozzá bátran kedvenc helyeidet!"
 
 #: views/pages/about.php:36
 msgid "How can I add places?"
-msgstr "Como posso adicionar lugares?"
+msgstr "Hogyan tudok helyeket hozzáadni?"
 
 #: views/pages/about.php:37
 msgid "Just click on <i>Add place</i> in the menu. Set the orange marker to the place and click on <i>Add place</i>. Make sure to zoom as close as possible, so the point will be more accurate. It is also helpful if you give your points a rating and maybe a little description (i.e. what kind of place this is or how to get there). Please write description at least in English."
-msgstr "Apenas clica no <i>Adicionar lugar</i> no menú. Marca o lugar com o marcador laranja e clica em <i>Adicionar lugar</i>. Certifica-te de fazer o zoom o mais perto possível, de modo a que o ponto seja o mais preciso possível. É também positivo se classificares os teus lugares para apanhar boleia, e talvez escrever uma pequena descrição (i.e. qual o tipo de lugar que é e como chegar lá). Escreve, por favor, a descrição pelo menos em Inglês."
+msgstr ""
 
 #: views/pages/about.php:45
 msgid "Can I use HTML tags in descriptions and comments?"
-msgstr "Posso usar tags HTML nas descrições e comentários?"
+msgstr "Használhatok-e HTML kódokat a leírásokban, hozzászólásokban?"
 
 #: views/pages/about.php:46
 msgid "No, but you can use <a href=\"http://en.wikipedia.org/wiki/Markdown\" target=\"_blank\">Markdown</a> syntax."
-msgstr "Não, mas podes usar a sintaxe <a href=\"http://en.wikipedia.org/wiki/Markdown\" target=\"_blank\">Markdown</a>."
+msgstr ""
 
 #: views/pages/about.php:39
 msgid "Why should I sign up?"
-msgstr "Porque devo registar-me?"
+msgstr "Miért regisztráljak?"
 
 #: views/pages/about.php:40
 msgid "If you are logged in, you will have some more features on this site. I.e. you will be able to modify your places later, and your nickname will be shown on each of your places and comments."
-msgstr "Se estás logado, poderás utilizar mais algumas funcionalidades do site. Por exemplo, poderás modificar o teus lugares mais tarde, e o teu nickname será mostrado em cada um dos teus lugares e comentários."
+msgstr "Ha bejelentkezel olyan fícsörökhöz férhetsz hozzá, mithogy saját stopphelyek módosítása és a neved is megjelenik a helyeknél, hozzászólásoknál és értékeléseknél."
 
 #: views/pages/about.php:1
 msgid "About Hitchwiki Maps"
-msgstr "Acerca de Hitchwiki Maps"
+msgstr "A Hitchwiki térkép névjegye"
 
 #: views/pages/about.php:86 views/pages/about.php:124
 msgid "Used technologies"
-msgstr "Tecnologias utilizadas"
+msgstr "Felhasznált technikák"
 
 #: views/pages/about.php:88
 msgid "Server side"
-msgstr "Lado do servidor (server side)"
+msgstr ""
 
 #: views/pages/about.php:97
 msgid "Client side"
-msgstr "Lado do cliente (client side)"
+msgstr ""
 
 #: views/pages/about.php:110
 msgid "Services"
-msgstr "Serviços"
+msgstr ""
 
 #: views/pages/about.php:52
 msgid "People involved"
-msgstr "Pessoas envolvidas"
+msgstr "Résztvevők"
 
 #: views/pages/about.php:59
 msgid "Translators"
-msgstr "Tradutores"
+msgstr "Fordítók"
 
 #: views/pages/about.php:62
 msgid "Finnish"
-msgstr "Finlandês"
+msgstr "Finn"
 
 #: views/pages/news.php:1
 msgid "News"
-msgstr "Notícias"
+msgstr "Hírek"
 
 #: views/pages/profile.php:14
 msgid "This is your profile as others see it."
-msgstr "Este é o seu perfil, tal como os outros o vêm."
+msgstr "Így látják mások a profilodat."
 
 #: views/pages/profile.php:33 views/pages/users.php:29
 msgid "Last seen"
-msgstr "Última vez logado"
+msgstr ""
 
 #: views/pages/profile.php:74
 msgid "Administrator"
-msgstr "Administrador"
+msgstr ""
 
 #: views/pages/profile.php:106
 msgid "Image from your %s"
-msgstr "Imagem do teu %s"
+msgstr ""
 
 #: views/pages/public_transport.php:1
 msgid "Public transport catalog"
-msgstr "Catálogo do Transporte público"
+msgstr "Tömegközlekedési nagykönyv"
 
 #: views/pages/public_transport.php:108
 msgid "Find timetables for the public transport."
-msgstr "Encontrar horários para o transporte público"
+msgstr "Tömegközlekedés menetrend."
 
 #: ajax/header_login.php:18
 msgid "Settings"
-msgstr "Definições"
+msgstr "Beállítások"
 
 #: views/pages/settings.php:33 views/pages/translate.php:9
 msgid "Choose language"
-msgstr "Escolher linguagem"
+msgstr "Válassz nyelvet"
 
 #: views/pages/settings.php:135
 msgid "Can be anything, most likely a city."
-msgstr "Pode ser qualquer coisa, muito provavelmente uma cidade."
+msgstr "Bármi lehet, leginkább talán város."
 
 #: views/pages/settings.php:50
 msgid "Used map services"
-msgstr "Serviços do mapa usados"
+msgstr ""
 
 #: views/pages/settings.php:57
 msgid "Default map layer"
-msgstr "Camada do mapa por defeito"
+msgstr "Alapértelmezett térképnézet"
 
 #: views/pages/settings.php:61
 msgid "Default"
-msgstr "Defeito"
+msgstr "Alapbeállítás"
 
 #: views/pages/settings.php:104
 msgid "Don't try to recognize my location"
-msgstr "Não tentar reconhecer a minha localização"
+msgstr "Ne próbáld a helyzetemet meghatározni"
 
 #: views/pages/settings.php:114
 msgid "I'd rather not tell"
-msgstr "Prefiro não dizer"
+msgstr "Inkább nem árulom el"
 
 #: views/pages/settings.php:140
 msgid "Allow Hitchwiki Maps to use your Gravatar"
-msgstr "Permitir o Hitchwiki Maps usar o teu Gravatar"
+msgstr "Hozzájárulás, hogy a Hitchwiki használja a Gravatarod"
 
 #: views/pages/settings.php:141
 msgid "We would show information from your %s page, if you have one."
-msgstr "Mostraríamos informação da tua página %s, se tiveres uma."
+msgstr ""
 
 #: views/pages/settings.php:147 views/pages/settings.php:202
 msgid "Google Latitude user ID"
-msgstr "User ID do Google Latitude"
+msgstr ""
 
 #: views/pages/settings.php:153
 msgid "<a href=\"%s\" target=\"_blank\">Enable Google Latitude</a> first and copy here your 20-digit user ID from the bottom of the page, visible in a textbox."
-msgstr "<a href=\"%s\" target=\"_blank\">Ativar Google Latitude</a> copia para aqui o teu user ID de 20 dígitos do fundo da página, visível numa caixa de texto."
+msgstr ""
 
 #: views/pages/settings.php:153
 msgid "Your location will be published also on your profile page."
-msgstr "A sua localização também será publicada na sua página de perfil."
+msgstr "Tartózkodási helyed megjelenik majd a profiloldaladon is."
 
 #: views/pages/settings.php:224
 msgid "Update"
-msgstr "Atualizar"
+msgstr "Frissíts!"
 
 #: views/pages/settings.php:230
 msgid "Reset your profile"
-msgstr "Fazer reset ao seu perfil"
+msgstr "Profilod törlése"
 
 #: views/pages/settings.php:458
 msgid "Settings updated!"
-msgstr "Definições atualizadas!"
+msgstr "Beállítások frissítve"
 
 #: views/pages/settings.php:458
 msgid "Some settings might require refreshing the page."
-msgstr "Para algumas definições poderá ser necessário refrescar a página."
+msgstr "Egyes beállítások az oldal frissítését igényelhetik."
 
 #: views/pages/settings.php:470
 msgid "Updating settings failed:"
-msgstr "Atualização das definições falhou:"
+msgstr "A beállítások frissítése nem sikerült:"
 
 #: views/pages/settings.php:485
 msgid "Are you sure you want to reset your profile? You cannot undo this action!"
-msgstr "Tens a certeza que queres fazer reset ao teu perfil? Não podes voltar atrás e desfazer esta ação!"
+msgstr "Tuti, hogy visszavonhatatlanul törölni akarod a profilod?"
 
 #: views/pages/settings.php:495
 msgid "Your profile was reset permanently."
-msgstr "O seu perfil foi resetado de vez."
+msgstr "Profilod visszavonhatatlanul törlésre került."
 
 #: views/pages/settings.php:495
 msgid "Profile reset"
-msgstr "Reset ao perfil"
+msgstr "Profil törlése"
 
 #: views/pages/settings.php:498
 msgid "Profile was NOT reset"
-msgstr "NÃO foi feito reset ao perfil"
+msgstr ""
 
 #: views/pages/settings.php:506
 msgid "You cancelled your profile reset."
-msgstr "Cancelou o reset ao seu perfil."
+msgstr "Visszavontad a profilod törlését"
 
 #: views/pages/settings.php:506
 msgid "Reset cancelled"
-msgstr "Reset cancelado"
+msgstr "Törlés visszavonva"
 
 #: views/pages/own_places.php:20 views/pages/settings.php:521
 msgid "You must be logged in to edit settings."
-msgstr "Tens que estar logado para editar as definições."
+msgstr "A beállítások módosításához lépj be"
 
 #: views/pages/statistics.php:1
 msgid "Statistics"
-msgstr "Estatísticas"
+msgstr "Statisztika"
 
 #: views/pages/statistics.php:3
 msgid "See more complete statistics."
-msgstr "Ver mais estatísticas completas."
+msgstr "Bővebb statisztikák megtekintése."
 
 #: views/pages/statistics.php:9
 msgid "Top %s countries"
-msgstr "Top %s países"
+msgstr ""
 
 #: views/pages/statistics.php:50
 msgid "By continents"
-msgstr "Por continentes"
+msgstr "Földrészek szerint"
 
 #: views/pages/statistics.php:166
 msgid "Place density"
-msgstr "Densidade de lugares"
+msgstr "Sűrűség"
 
 #: views/pages/translate.php:2
 msgid "Hitchwiki Maps is currently available in %s languages"
-msgstr "O Hitchwiki Maps está disponível atualmente em %s línguas"
+msgstr "A Hitchwiki térkép jelenleg %s nyelven érhető el"
 
 #: views/pages/about.php:81
 msgid "Help us with translating!"
-msgstr "Ajuda-nos com as traduções!"
+msgstr "Segíts a fordításban!"
 
 #: views/pages/translate.php:18
 msgid "If you would like to add content in your own language, or translate all visible interface texts, contact us so we can put up a new language."
-msgstr "Se gostarias de adicionar conteúdo na tua língua, ou traduzir todos os textos de interface, visíveis, contacta-nos de modo a que possamos inserir uma língua nova."
+msgstr "Amennyiben saját nyelveden adnál hozzá tartalmat vagy esetleg a kezelőfelület fordításában segítenél, írj nekünk és megoldjuk."
 
 #: views/pages/users.php:22
 msgid "We have %s registered hitchhikers using Maps!"
-msgstr "Há %s utilizadores registados a usar o Maps!"
+msgstr "%s regisztrált felhasználó használja a térképet!"
 
 #: views/pages/users.php:28
 msgid "Using Maps since"
-msgstr "A usar o Maps desde"
+msgstr "A térképet ekkortól használja"
 
 #: views/pages/users.php:34
 msgid "Visible only for admins"
-msgstr "Visível apenas para admins"
+msgstr "Csak adminok számára látható"
 
 #: views/pages/users.php:34
 msgid "Admins"
-msgstr "Admins"
+msgstr ""
 
 #: views/pages/users.php:83
 msgid "Remove user permanently"
-msgstr "Remover utilizador de vez"
+msgstr "Felhasználói fiók végleges törlése"
 
 #: views/pages/users.php:84
 msgid "Edit user"
-msgstr "Editar utilizador"
+msgstr "Felhasználó szerkesztése"
 
 #: config.empty.php:113 config.empty.php:120 config.php:147 config.php:154
 msgid "Satellite"
-msgstr "Satélite"
+msgstr "Műhold"
 
 #: config.empty.php:114 config.empty.php:119 config.empty.php:124
 #: config.php:148 config.php:153 config.php:158
 msgid "Hybrid"
-msgstr "Híbrido"
+msgstr "Hibrid"
 
 #: config.empty.php:115 config.php:149
 msgid "Streets"
-msgstr "Ruas"
+msgstr "Utak"
 
 #: config.empty.php:116 config.php:150
 msgid "Physical"
-msgstr "Físico"
+msgstr ""
 
 #: config.empty.php:121 config.php:155
 msgid "Street"
-msgstr "Rua"
+msgstr "Út"
 
 #: config.empty.php:125 config.php:159
 msgid "Aerial"
-msgstr "Aéreo"
+msgstr "Madártávlati"
 
 #: config.empty.php:126 config.php:160
 msgid "Roads"
-msgstr "Estradas"
+msgstr "Utak"
 
 #: api/templates/gpx.php:68 api/templates/kml.php:110
 msgid "a Hitchhiking spot in"
-msgstr "um ponto para apanhar Boleia em"
+msgstr "stopphely itt:"
 
 #: index.php:280
 msgid "Sorry, but the place cannot be found."
-msgstr "Desculpe, mas o lugar não pode ser encontrado."
+msgstr "Bocs, de a hely nem található."
 
 #: index.php:280
 msgid "The place you are looking for might have been removed or is temporarily unavailable."
-msgstr "O lugar que procura pode ter sido removido ou está temporariamente indisponível."
+msgstr "A hely, amit keresel el lett távolítva, szerencsésebb esetben ideiglenesen nem elérhető."
 
 #: config.php:194 index.php:331 index.php:638
 msgid "Help & About"
-msgstr "Ajuda & Sobre"
+msgstr ""
 
 #: index.php:367
 msgid "Community"
-msgstr "Comunidade"
+msgstr "Közösség"
 
 #: lib/functions_users.php:28
 msgid "Profile"
-msgstr "Perfil"
+msgstr "Profil"
 
 #: ajax/header_login.php:17
 msgid "Logout"
-msgstr "Sair"
+msgstr "Kijelentkezés"
 
 #: ajax/header_login.php:73
 msgid "Hello from %s"
-msgstr "Olá do %s"
+msgstr "Hello! Mizujs %s felé?"
 
 #: ajax/header_login.php:78
 msgid "Register!"
-msgstr "Regista-te!"
+msgstr "Regisztrálj!"
 
 #: ajax/header_login.php:76
 msgid "Login"
-msgstr "Inicia sessão"
+msgstr "Belépés"
 
 #: index.php:401
 msgid "Search"
-msgstr "Procura"
+msgstr "Keresés"
 
 #: index.php:408
 msgid "Show the city on the map"
-msgstr "Mostra a cidade no mapa"
+msgstr "Mutasd a várost a térképen!"
 
 #: index.php:409
 msgid "Show the state on the map"
-msgstr "Mostra o estado no mapa"
+msgstr "Állam megjelenítése a térképen"
 
 #: index.php:410
 msgid "Show the country on the map"
-msgstr "Mostra o país no mapa"
+msgstr "Mutasd térképen az országot"
 
 #: index.php:470
 msgid "Tools"
-msgstr "Ferramentas"
+msgstr "Eszközök"
 
 #: ajax/header_navi.php:11
 msgid "Members"
-msgstr "Membros"
+msgstr "Tagok"
 
 #: views/pages/api.php:309
 msgid "Licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License"
-msgstr "Com uma Licença Creative Commons Attribuição-Partilha nos Mesmos Termos 3.0 Unported"
+msgstr ""
 
 #: views/pages/about.php:9
 msgid "Contact us!"
-msgstr "Contate-nos!"
+msgstr "Kapcsolat"
 
 #: index.php:642
 msgid "Developers"
-msgstr "Programadores"
+msgstr "Fejlesztők"
 
 #: views/pages/mobile.php:33
 msgid "API"
@@ -1782,59 +1782,59 @@ msgstr "API"
 
 #: index.php:457
 msgid "Turn JavaScript on from your browser."
-msgstr "Ligue o JavaScript no seu browser."
+msgstr "Kapcsold be böngésződben a JavaScriptet."
 
 #: index.php:477
 msgid "Navigate"
-msgstr "Navegar"
+msgstr "Navigáció"
 
 #: index.php:482
 msgid "Measure distance"
-msgstr "Medir distância"
+msgstr "Távolság mérése"
 
 #: index.php:487
 msgid "Measure area"
-msgstr "Medir área"
+msgstr ""
 
 #: index.php:500
 msgid "Measure"
-msgstr "Medir"
+msgstr "Mérce"
 
 #: index.php:504
 msgid "Show markers after zoom level"
-msgstr "Mostrar marcadores depois do nível de zoom"
+msgstr ""
 
 #: index.php:510
 msgid "Continent level"
-msgstr "Nível de continente"
+msgstr "Földrajz nézet"
 
 #: index.php:511
 msgid "Country level"
-msgstr "Nível de país"
+msgstr "Ország szint"
 
 #: index.php:512
 msgid "City level"
-msgstr "Nível de cidade"
+msgstr "Város nézet"
 
 #: index.php:513
 msgid "Street level"
-msgstr "Nível de rua"
+msgstr "Utcaszint"
 
 #: index.php:620
 msgid "Map"
-msgstr "Mapa"
+msgstr "Térkép"
 
 #: views/pages/about.php:40 views/pages/about.php:49
 msgid "Read more..."
-msgstr "Ler mais..."
+msgstr "Több..."
 
 #: widget/index.php:91
 msgid "Requested country could not be found!"
-msgstr "País procurado não pôde ser encontrado!"
+msgstr "A kért ország nem található."
 
 #: ajax/map_statistics.php:260
 msgid "This is just a preview map. Go to %s for the actual service."
-msgstr "Este é apenas um mapa temporário (de preview). Vá a %s para o serviço real."
+msgstr "Ez csak előnézet. Aktuális állapotot lásd itt: %s"
 
 #: ajax/js-translation.json.php:43
 msgid "Toggle log"
@@ -1842,4 +1842,4 @@ msgstr ""
 
 #: views/pages/settings.php:498
 msgid "Error while trying to reset your profile. Please try again!"
-msgstr "Erro enquanto estávamos a fazer reset ao seu perfil. Por favor tente de novo!"
+msgstr ""
