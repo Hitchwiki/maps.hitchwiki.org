@@ -371,12 +371,14 @@ textarea.icon {
 /* Icons / services */
 .icon-osm 			{ background-image: url(../gfx/icons/osm.png) !important; }
 .icon-google 			{ background-image: url(../gfx/icons/google.gif) !important; }
-.icon-google-latitude		{ background-image: url(../gfx/icons/google_latitude.png) !important; }
+.icon-google-latitude	{ background-image: url(../gfx/icons/google_latitude.png) !important; }
 .icon-yahoo 			{ background-image: url(../gfx/icons/yahoo.png) !important; }
-.icon-bing 			{ background-image: url(../gfx/icons/bing.gif) !important; }
-.icon-ww 			{ background-image: url(../gfx/icons/nasa.png) !important; }
-.icon.facebook 			{ background-image: url(../gfx/facebook_small.png); padding-left: 17px; }
+.icon-bing 				{ background-image: url(../gfx/icons/bing.gif) !important; }
+.icon-ww 				{ background-image: url(../gfx/icons/nasa.png) !important; }
+.icon.facebook 			{ background-image: url(../gfx/icons/facebook.png); }
 .icon.gravatar 			{ background-image: url(../gfx/icons/gravatar.gif); }
+
+.icon.facebook-mono		{ background-image: url(../gfx/facebook_small.png); padding-left: 17px; }
 
 /* Icons / fileformats */
 .icon.gpx 				{ background-image: url(../gfx/icons/gpx.png); }

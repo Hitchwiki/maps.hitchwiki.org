@@ -2,7 +2,6 @@
 /* Hitchwiki - maps
  * User functions
  * - username()
- * - available_nick()
  * - current_user()
  * - user_info()
  * - get_user()
@@ -32,30 +31,6 @@ function username($id, $link=false) {
 		else return _("Anonymous");
 	}
 	else return _("Anonymous");
-}
-
-
-/* 
- * Check if nick is available and ok in other ways too
- */
-function available_nick($nick=false) {
-	
-	// Pre non allowed nicks (keep them lowercase)
-	$taken_nicks = array(
-		"anonymoys",
-		"admin",
-		"administrator",
-		"unknown",
-		"nickname",
-		"nick",
-		"name",
-		"hitchwiki",
-		"hitchwiki_maps"
-	);
-
-	// Check if nick is ok and return
-	if(strlen(trim($nick)) <= 3 OR strlen(trim($nick)) > 255 OR empty($nick) OR in_array(strtolower($nick), $taken_nicks)) return false;
-	else return true;
 }
 
 
@@ -102,6 +77,7 @@ function user_info($user_id) {
 			$user["google_latitude"] = $r["google_latitude"];
 			$user["centered_glatitude"] = $r["centered_glatitude"];
 			$user["allow_gravatar"] = $r["allow_gravatar"];
+			$user["disallow_facebook"] = $r["disallow_facebook"];
 			$user["map_google"] = $r["map_google"];
 			$user["map_yahoo"] = $r["map_yahoo"];
 			$user["map_vearth"] = $r["map_vearth"];
@@ -152,6 +128,7 @@ function get_user($session=false) {
 			$user["google_latitude"] = $r["google_latitude"];
 			$user["centered_glatitude"] = $r["centered_glatitude"];
 			$user["allow_gravatar"] = $r["allow_gravatar"];
+			$user["disallow_facebook"] = $r["disallow_facebook"];
 			$user["map_google"] = $r["map_google"];
 			$user["map_yahoo"] = $r["map_yahoo"];
 			$user["map_vearth"] = $r["map_vearth"];
@@ -162,7 +139,7 @@ function get_user($session=false) {
 			else $user["admin"] = false;
 			
 			// If the name in the session was different than the one in DB, update DB
-			if($r["name"] != $session["wsUserName"]) {
+			if($r["name"] != $session["wsUserName"] && !empty($session["wsUserName"])) {
 				$res = mysql_query("UPDATE `t_users` SET `name` = '".mysql_real_escape_string($session["wsUserName"])."' WHERE `id` = ".mysql_real_escape_string($session["wsUserID"])." LIMIT 1");
 			}
 			

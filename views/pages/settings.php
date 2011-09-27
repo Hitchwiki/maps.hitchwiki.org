@@ -3,8 +3,6 @@
  * Hitchwiki Maps: settings.php
  */
 
-
-
 echo '<h2 class="icon wrench">'._("Settings").'</h2>';
 
 // Show only when logged in
@@ -49,9 +47,9 @@ if($user["logged_in"]===true): ?>
 	
 	<label><?php echo _("Used map services"); ?></label><br />
 	<input type="checkbox" name="map_osm" id="map_osm" disabled="disabled" checked="checked" value="true" /><label for="map_osm" class="icon icon-osm">Open Street Maps</label><br />
-	<?php if(!empty($settings["google_maps_api_key"])): ?><input type="checkbox" name="map_google" id="map_google" value="true" <?php if($user["map_google"]=='1') echo 'checked="checked" '; ?>/><label for="map_google" class="icon icon-google">Google Maps</label><br /><?php endif; ?>
-	<?php if(!empty($settings["yahoo_maps_appid"])): ?><input type="checkbox" name="map_yahoo" id="map_yahoo" value="true" <?php if($user["map_yahoo"]=='1') echo 'checked="checked" '; ?>/><label for="map_yahoo" class="icon icon-yahoo">Yahoo Maps</label><br /><?php endif; ?>
-	<?php if($settings["ms_virtualearth"]===true): ?><input type="checkbox" name="map_vearth" id="map_vearth" value="true" <?php if($user["map_vearth"]=='1') echo 'checked="checked" '; ?>/><label for="map_vearth" class="icon icon-bing">Microsoft Virtual Earth</label><br /><?php endif; ?>
+	<?php if(!empty($settings["google"]["api"]["maps_key"])): ?><input type="checkbox" name="map_google" id="map_google" value="true" <?php if($user["map_google"]==1) echo 'checked="checked" '; ?>/><label for="map_google" class="icon icon-google">Google Maps</label><br /><?php endif; ?>
+	<?php if(!empty($settings["yahoo"]["maps_appid"])): ?><input type="checkbox" name="map_yahoo" id="map_yahoo" value="true" <?php if($user["map_yahoo"]==1) echo 'checked="checked" '; ?>/><label for="map_yahoo" class="icon icon-yahoo">Yahoo Maps</label><br /><?php endif; ?>
+	<?php if($settings["ms"]["virtualearth"]===true): ?><input type="checkbox" name="map_vearth" id="map_vearth" value="true" <?php if($user["map_vearth"]==1) echo 'checked="checked" '; ?>/><label for="map_vearth" class="icon icon-bing">Microsoft Virtual Earth</label><br /><?php endif; ?>
 	<br />
 	
 	<label for="map_default_layer"><?php echo _("Default map layer"); ?></label><br />
@@ -64,7 +62,7 @@ if($user["logged_in"]===true): ?>
 		<?php
 
 		// Google
-		if(!empty($settings["google_maps_api_key"])) {
+		if(!empty($settings["google"]["api"]["maps_key"]) && $user["map_google"] == 1) {
 			echo '<optgroup label="Google">';
 		    foreach($map_layers["google"] as $map => $name) {
 		    	echo '<option class="map_google" value="'.$map.'"';
@@ -75,7 +73,7 @@ if($user["logged_in"]===true): ?>
 		}
 
 		// Yahoo
-		if(!empty($settings["yahoo_maps_appid"])) {
+		if(!empty($settings["yahoo"]["maps_appid"]) && $user["map_yahoo"] == 1) {
 			echo '<optgroup label="Yahoo">';
 		    foreach($map_layers["yahoo"] as $map => $name) {
 		    	echo '<option class="map_yahoo" value="'.$map.'"';
@@ -86,7 +84,7 @@ if($user["logged_in"]===true): ?>
 		}
 
 		// Virtual Earth
-		if($settings["ms_virtualearth"]===true) {
+		if($settings["ms"]["virtualearth"]===true && $user["map_vearth"] == 1) {
 			echo '<optgroup label="Virtual Earth">';
 		    foreach($map_layers["vearth"] as $map => $name) {
 		    	echo '<option class="map_vearth" value="'.$map.'"';
@@ -139,6 +137,11 @@ if($user["logged_in"]===true): ?>
 	
 	<input type="checkbox" name="allow_gravatar" id="allow_gravatar" value="true" <?php if(isset($user["allow_gravatar"]) && $user["allow_gravatar"] == "1") echo 'checked="checked" '; ?>/> <label for="allow_gravatar" class="icon gravatar"><?php echo _("Allow Hitchwiki Maps to use your Gravatar"); ?></label>
 	<br /><small class="tip checkbox"><?php printf(_('We would show information from your %s page, if you have one.'), '<a href="http://www.gravatar.com" target="_blank">Gravatar</a>'); ?></small>
+	
+	<br />
+	
+	<input type="checkbox" name="disallow_facebook" id="disallow_facebook" value="true" <?php if(isset($user["disallow_facebook"]) && $user["disallow_facebook"] == "1") echo 'checked="checked" '; ?>/> <label for="disallow_facebook" class="icon facebook"><?php echo _("Don't use Facebook"); ?></label>
+	<br /><small class="tip checkbox"><?php echo _("Don't like Big Blue? Choose to remove all content coming from Facebook on Maps."); ?></small>
 	
 	
 	<!--	
@@ -384,7 +387,7 @@ $(function() {
 			var p_map_default_layer = $("#profile_form #map_default_layer").val();
 			
 			
-			<?php if(!empty($settings["google_maps_api_key"])): ?>
+			<?php if(!empty($settings["google"]["api"]["maps_key"])): ?>
 			if($("#profile_form #map_google").is(":checked")) {
 				var p_map_google = "true";
 			} else {
@@ -392,7 +395,7 @@ $(function() {
 			}
 			<?php endif; ?>
 			
-			<?php if(!empty($settings["yahoo_maps_appid"])): ?>
+			<?php if(!empty($settings["yahoo"]["maps_appid"])): ?>
 			if($("#profile_form #map_yahoo").is(":checked")) {
 				var p_map_yahoo = "true";
 			} else {
@@ -400,7 +403,7 @@ $(function() {
 			}
 			<?php endif; ?>
 			
-			<?php if($settings["ms_virtualearth"]===true): ?>
+			<?php if($settings["ms"]["virtualearth"]===true): ?>
 			if($("#profile_form #map_vearth").is(":checked")) {
 				var p_map_vearth = "true";
 			} else {
@@ -426,6 +429,12 @@ $(function() {
 				var p_allow_gravatar = "false";
 			}
 			
+			if($("#profile_form #disallow_facebook").is(":checked")) {
+				var p_disallow_facebook = "true";
+			} else {
+				var p_disallow_facebook = "false";
+			}
+			
 			$.post('ajax/user_settings.php', { 
 				    email: p_email, 
 				    name: p_name,  
@@ -436,9 +445,10 @@ $(function() {
 				    private_location: p_private_location,
 				    google_latitude: p_google_latitude,
 				    allow_gravatar: p_allow_gravatar,
-				    <?php if(!empty($settings["google_maps_api_key"])): ?>map_google: p_map_google,<?php endif; ?>
-				    <?php if(!empty($settings["yahoo_maps_appid"])): ?>map_yahoo: p_map_yahoo,<?php endif; ?>
-				    <?php if($settings["ms_virtualearth"]===true): ?>map_vearth: p_map_vearth,<?php endif; ?>
+				    disallow_facebook: p_disallow_facebook,
+				    <?php if(!empty($settings["google"]["api"]["maps_key"])): ?>map_google: p_map_google,<?php endif; ?>
+				    <?php if(!empty($settings["yahoo"]["maps_appid"])): ?>map_yahoo: p_map_yahoo,<?php endif; ?>
+				    <?php if($settings["ms"]["virtualearth"]===true): ?>map_vearth: p_map_vearth,<?php endif; ?>
 				    map_default_layer: p_map_default_layer,
 				    centered_glatitude: p_centered_glatitude,
 				    country: p_country<?php

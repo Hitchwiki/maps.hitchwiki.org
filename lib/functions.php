@@ -51,12 +51,12 @@ function start_sql() {
 		
 		// In case of error, email admins
 		if(isset($sql_error)) {
-		    
+
 			$headers = 'From: ' . $settings["email"] . "\r\n" .
 			    'Reply-To: ' . $settings["email"] . "\r\n" .
 			    'X-Mailer: PHP/' . phpversion();
 
-			@mail('mikael@ihminen.org', 'Hitchwiki Maps MySQL error!', $sql_error, $headers);
+			@mail('mikael.korpela@gmail.com', 'Hitchwiki Maps MySQL error!', $sql_error, $headers);
 			
 			// Show maintenance screen
 			require_once('maintenance_page.php');
@@ -80,6 +80,8 @@ function start_sql() {
  * - place creations
  */
 function gather_log($id=false,$type="place") {
+
+	start_sql();
 
 	$log = array();
 	

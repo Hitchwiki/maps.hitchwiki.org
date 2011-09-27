@@ -38,8 +38,7 @@ start_sql();
 	
 	
 	// Location
-	if(!empty($_POST["location"])) $location = "'".mysql_real_escape_string($_POST["location"])."'";
-	else $location = 'NULL';
+	$location = (!empty($_POST["location"])) ? "'".mysql_real_escape_string($_POST["location"])."'": 'NULL';
 	
 	
 	// Country
@@ -53,36 +52,32 @@ start_sql();
 	
 	
 	// Private location
-	if($_POST["private_location"] == "true") $private_location = '1';
-	else $private_location = 'NULL';
+	$private_location = ($_POST["private_location"] == "true") ? '1': 'NULL';
 	
 	// Google Latitude
 	if(!empty($_POST["google_latitude"])) $google_latitude = "'".mysql_real_escape_string($_POST["google_latitude"])."'";
 	else $google_latitude = 'NULL';
 	
 	// Centered to Google Latitude
-	if($_POST["centered_glatitude"] == "true") $centered_glatitude = '1';
-	else $centered_glatitude = 'NULL';
+	$centered_glatitude = ($_POST["centered_glatitude"] == "true") ? '1': 'NULL';
 	
 	// Allow Gravatar
-	if($_POST["allow_gravatar"] == "true") $allow_gravatar = '1';
-	else $allow_gravatar = 'NULL';
+	$allow_gravatar = ($_POST["allow_gravatar"] == "true") ? '1': 'NULL';
+	
+	// Disallow Facebook
+	$disallow_facebook = ($_POST["disallow_facebook"] == "true") ? '1': 'NULL';
 	
 	// Map layer: google
-	if($_POST["map_google"] == "true") $map_google = '1';
-	else $map_google = 'NULL';
+	$map_google = ($_POST["map_google"] == "true") ? '1': 'NULL';
 	
 	// Map layer: yahoo
-	if($_POST["map_yahoo"] == "true") $map_yahoo = '1';
-	else $map_yahoo = 'NULL';
+	$map_yahoo = ($_POST["map_yahoo"] == "true") ? '1': 'NULL';
 	
 	// Map layer: virtual earth
-	if($_POST["map_vearth"] == "true") $map_vearth = '1';
-	else $map_vearth = 'NULL';
+	$map_vearth = ($_POST["map_vearth"] == "true") ? '1': 'NULL';
 	
 	// Default map layer
-	if(!empty($_POST["map_default_layer"])) $map_default_layer = "'".mysql_real_escape_string($_POST["map_default_layer"])."'";
-	else $map_default_layer = 'NULL';
+	$map_default_layer = (!empty($_POST["map_default_layer"])) ? "'".mysql_real_escape_string($_POST["map_default_layer"])."'": 'NULL';
 
 
 /*
@@ -102,6 +97,7 @@ start_sql();
 	    		`google_latitude` = ".$google_latitude.",
 	    		`centered_glatitude` = ".$centered_glatitude.",
 	    		`allow_gravatar` = ".$allow_gravatar.",
+	    		`disallow_facebook` = ".$disallow_facebook.",
 				`map_google` = ".$map_google.",
 				`map_yahoo` = ".$map_yahoo.",
 				`map_vearth` = ".$map_vearth.",

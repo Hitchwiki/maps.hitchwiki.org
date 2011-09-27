@@ -22,9 +22,10 @@
 	Polish: Robert, Iza
 	Spanish: Prino
 	French: Perilisk
+	Hungarian — pite, sipmester
 	English (Pirate): Mikael (Yarr!)
 
 /* SITE */
 	Doctype: XHTML 1.0 Transitional
 	Contact: maps [at] hitchwiki.org
-	IDE: Coda, Photoshop
+	IDE: Panic Coda, Adobe Photoshop

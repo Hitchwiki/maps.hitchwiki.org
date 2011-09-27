@@ -78,21 +78,6 @@ if(isset($_GET["place"]) && $_GET["place"] != "" && preg_match ("/^([0-9]+)$/", 
 		$show_place_error = true;
 		unset($place);
 	}
-/* 
-#Maybe here is a key to select one vector from a stack (JS)? (TODO)
-
-sm = new GeoExt.grid.FeatureSelectionModel({layers: layers});
-            t.ok(OpenLayers.Util.indexOf(layer.selectedFeatures,
-272	                                         features[0]) < 0,
-273	                 "click on row 0 does not select feature 0");
-274	            
-275	            // select feature 1
-276	            // test that the second row is not selected
-277	            sm.selectControl.select(features[1]);
-278	            t.ok(!sm.isSelected(1),
-279	                 "selecting feature 1 does not select row 1");
-
-*/
 }
 
 
@@ -644,10 +629,10 @@ if(isset($show_place) && !isset($show_place_error)) {
 
 			    	<?php // Visible only for admins
 			    	if($user["admin"]===true): ?>
-					<!--<?php if($settings["debug"] == true) { echo '<li><a href="#" class="toggle_log">'._("Toggle log").'</a></li>'; } ?>-->
+					    <?php if($settings["debug"] == true) { echo '<li><a href="#" class="toggle_log">'._("Toggle log").'</a></li>'; } ?>
 			    		<li><a href="./admin/"><?php echo _("Admins"); ?></a></li>
-				<?php endif; ?>
-					<li><a href="http://www.facebook.com/Hitchwiki" class="icon facebook" title="Facebook" style="float: left; padding: 0; margin: 0; width: 16px; height: 16px;"><span class="hidden">Facebook</span></a></li>
+					<?php endif; ?>
+					<?php if(!isset($user["disallow_facebook"]) && $user["disallow_facebook"] != 1): ?><li><a href="http://www.facebook.com/Hitchwiki" class="icon facebook" title="Hitchwiki @ Facebook" style="float: left; padding: 0; margin: 0; width: 16px; height: 16px;"><span class="hidden">Hitchwiki @ Facebook</span></a></li><?php endif; ?>
 					<li><a rel="license" href="<?php echo _("http://creativecommons.org/licenses/by-sa/3.0/"); ?>" title="<?php echo _("Licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License"); ?>"><img alt="<?php echo _("Creative Commons License"); ?>" src="static/gfx/cc-by-sa.png" width="48" height="15"/></a></li>
 				</ul>
 			</div>

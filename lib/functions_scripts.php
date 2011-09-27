@@ -12,36 +12,49 @@
  * http://developers.facebook.com/docs/reference/javascript/
  */
 function init_FB() {
-	global $settings;
+	global $settings, $user;
 	
-	if(isset($settings["fb"]["app"]["id"]) && !empty($settings["fb"]["app"]["id"])) {
-	?>
-	<div id="fb-root"></div>
-	<script>
-	  window.fbAsyncInit = function() {
-	    FB.init({
-			appId: '<?php echo $settings["fb"]["app"]["id"]; ?>', 
-			status: true, 
-			cookie: true,
-			xfbml: true
-		});
-	  };
-	  (function() {
-	    var e = document.createElement('script'); e.async = true;
-	    e.src = document.location.protocol +
-	      '//connect.facebook.net/<?php
-		      	
-		      	// Localization + a little language fix
-		      	if($settings["language"] == "en_UK") echo 'en_US';
-		      	else echo $settings["language"]; 
-		      	
-		      ?>/all.js';
-	    document.getElementById('fb-root').appendChild(e);
-	  }());
-	</script>
-	<?php
-	}
+	// Get user's settings
+	// Returns an info-array about logged in user (or false if not logged in) 
+	if(!isset($user)) $user = current_user();
+
+	// Are we allowed to show FB scripts?
+	if(!isset($user["disallow_facebook"]) && $user["disallow_facebook"] != 1) {
+	
+		// Print script out
+		if(isset($settings["fb"]["app"]["id"]) && !empty($settings["fb"]["app"]["id"])) {
+		?>
+		<div id="fb-root"></div>
+		<script>
+		  window.fbAsyncInit = function() {
+		    FB.init({
+				appId: '<?php echo $settings["fb"]["app"]["id"]; ?>', 
+				status: true, 
+				cookie: true,
+				xfbml: true
+			});
+		  };
+		  (function() {
+		    var e = document.createElement('script'); e.async = true;
+		    e.src = document.location.protocol +
+		      '//connect.facebook.net/<?php
+			      	
+			      	// Localization + a little language fix
+			      	if($settings["language"] == "en_UK") echo 'en_US';
+			      	else echo $settings["language"]; 
+			      	
+			      ?>/all.js';
+		    document.getElementById('fb-root').appendChild(e);
+		  }());
+		</script>
+		<?php
+		}
+
+	} // disallow_facebook
+
 }
+
+
 
 /*
  * Print out JS that renders XFBML elements on the page
@@ -50,7 +63,7 @@ function init_FB() {
  * - You can leave <script> wrapper out by setting $script_tags to 'false'.
  */
 function parse_XFBML($element=false, $script_tags=true) {
-	global $settings;
+#	global $settings;
 /*	
 	echo '<div style="border:1px solid red;">';
 	

@@ -1,4 +1,7 @@
-<h2><?php echo _("About Hitchwiki Maps"); ?></h2>
+<?php
+
+
+?><h2><?php echo _("About Hitchwiki Maps"); ?></h2>
 
 <div class="textbox">
 
@@ -9,6 +12,8 @@
 		<p><a href="#" class="bigger icon email" onclick="javascript:open_card('contact','<?php echo _("Contact us!"); ?>'); return false;"><?php echo _("Contact us!"); ?></a></p>
 		
 		<br />
+
+<?php if(!isset($user["disallow_facebook"]) && $user["disallow_facebook"] != 1): ?>
 
 		<fb:like-box profile_id="133644853341506" width="300" connections="5" stream="true" header="true"></fb:like-box>
 		
@@ -27,6 +32,9 @@
 		    	FB.XFBML.parse(document.getElementById('pages'));
 		    });
 		</script>
+
+<?php endif; ?>
+
 	</div>
 
 
@@ -71,11 +79,12 @@
 		<li><?php echo _("Polish"); ?> &mdash; Robert, Iza</li>
 		<li><?php echo _("Spanish"); ?> &mdash; Prino</li>
 		<li><?php echo _("French"); ?> &mdash; Perilisk</li>
+		<li><?php echo _("Hungarian"); ?> &mdash; pite, sipmester</li>
 		<!-- 
 		<li><?php echo _("Latvian"); ?> &mdash; Reinis</li>
 		<li><?php echo _("Swedish"); ?> &mdash; </li>
-		-->
 		<li><?php echo _("English")." ("._("Pirate").")"; ?> &mdash; Mikael <em>(Yarr!)</em></li>
+		-->
 	</ul>
 	
 	<p><a href="#" onclick="open_page('translate'); return false;" class="icon world"><?php echo _("Help us with translating!"); ?></a><br /></p>

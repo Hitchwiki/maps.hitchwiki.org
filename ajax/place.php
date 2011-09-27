@@ -100,7 +100,6 @@ if($place["error"] !== true):
 			</li>
 				
 				
-			<?php if(!empty($place["description"])): ?>
 			<li>
 				
 				<!-- description in different languages -->
@@ -291,7 +290,6 @@ if($place["error"] !== true):
 				
 				</script>
 			</li>
-			<?php endif; /* end if empty description */ ?>
 			
 		</ul>
 	</li>
@@ -809,11 +807,12 @@ if($place["error"] !== true):
 	 *
 	 * Tried to publish it, but it just gives me "recommends Hitchwiki Maps" and link to /maps/ - not to the place. Trying again later. - 16.12.2010 Mikael
 	 */
-	?>
+	
+	if(!isset($user["disallow_facebook"]) && $user["disallow_facebook"] != 1): ?>
+	<!-- Facebook BTN -->
 	<li>
 		<ul>
-			<li title="<?php echo _("Recommend this place for your Facebook contacts"); ?>" id="share_place">
-				<!-- Facebook BTN -->
+			<li id="share_place">
 				<?php /*
 				<div id="fb-root"></div>
 				<script src="http://connect.facebook.net/en_US/all.js#appId=171019199637706&amp;xfbml=1"></script>
@@ -829,6 +828,7 @@ if($place["error"] !== true):
 			
 		</ul>
 	</li>
+	<?php endif; ?>
 	
 
 	<!-- infolinks -->
