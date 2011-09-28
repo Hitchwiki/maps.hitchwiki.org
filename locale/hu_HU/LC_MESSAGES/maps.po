@@ -2,7 +2,7 @@
 # This file is distributed under the same license as the Maps package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2011-09-27 05:00:06+0000\n"
+"PO-Revision-Date: 2011-09-28 10:00:08+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -334,7 +334,7 @@ msgstr "Vissza a listázáshoz"
 
 #: index.php:294
 msgid "The maintenance break is now over"
-msgstr ""
+msgstr "Átmeneti leállásnak immáron vége"
 
 #: ajax/place.php:162
 msgid "History"
@@ -936,7 +936,7 @@ msgstr "Ország"
 
 #: ajax/add_place.php:69
 msgid "Required"
-msgstr "Kitöltendő"
+msgstr "(valamit muszáj)"
 
 #: ajax/add_place.php:71
 msgid "Select"
@@ -1081,7 +1081,7 @@ msgstr "Véleményed..."
 
 #: ajax/place.php:349
 msgid "You rated for this place"
-msgstr "Értékelted ezt a helyet"
+msgstr "A helyet értékelted"
 
 #: ajax/place.php:423
 msgid "Rating failed, please try again."
@@ -1271,7 +1271,7 @@ msgstr "Már %s regisztrált stopposunk van!"
 
 #: views/pages/profile.php:25
 msgid "Member since"
-msgstr ""
+msgstr "Amióta tag"
 
 #: views/pages/profile.php:40 views/pages/settings.php:132
 #: views/pages/users.php:30
@@ -1344,7 +1344,7 @@ msgstr "Cím"
 
 #: views/pages/add_public_transport.php:14
 msgid "In English."
-msgstr "Angolul."
+msgstr "magyarul"
 
 #: views/pages/add_public_transport.php:19
 msgid "Webpage"
@@ -1357,7 +1357,7 @@ msgstr "Kitöltendő"
 
 #: views/pages/add_public_transport.php:19
 msgid "Please try to add an English version of the page."
-msgstr ""
+msgstr "Amennyiben létezik, a honlap magyar nyelvű változatát, kérlek."
 
 #: views/pages/add_public_transport.php:54
 msgid "Add page"
@@ -1369,7 +1369,7 @@ msgstr "Tölts ki minden kitöltendő mezőt!"
 
 #: views/pages/add_public_transport.php:190
 msgid "Page added to the catalog."
-msgstr ""
+msgstr "Oldalt hozzáadtuk a listához. Köszi!"
 
 #: views/pages/add_public_transport.php:198
 msgid "Error adding page to the catalog. Check required fields and try again."
@@ -1529,7 +1529,7 @@ msgstr "Bármi lehet, leginkább talán város."
 
 #: views/pages/settings.php:50
 msgid "Used map services"
-msgstr ""
+msgstr "Alkalmazott térképek"
 
 #: views/pages/settings.php:57
 msgid "Default map layer"
@@ -1577,11 +1577,11 @@ msgstr "Profilod törlése"
 
 #: views/pages/settings.php:458
 msgid "Settings updated!"
-msgstr "Beállítások frissítve"
+msgstr "Beállítások frissítve."
 
 #: views/pages/settings.php:458
 msgid "Some settings might require refreshing the page."
-msgstr "Egyes beállítások az oldal frissítését igényelhetik."
+msgstr "Egyes beállítások megjelenítéséhez újra kell tölreni az oldalt."
 
 #: views/pages/settings.php:470
 msgid "Updating settings failed:"
@@ -1589,7 +1589,7 @@ msgstr "A beállítások frissítése nem sikerült:"
 
 #: views/pages/settings.php:485
 msgid "Are you sure you want to reset your profile? You cannot undo this action!"
-msgstr "Tuti, hogy visszavonhatatlanul törölni akarod a profilod?"
+msgstr "Tuti, hogy véglegesen törölni akarod a profilod?"
 
 #: views/pages/settings.php:495
 msgid "Your profile was reset permanently."

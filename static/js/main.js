@@ -1720,41 +1720,49 @@ function showCountry(country_iso) {
 /* 
  * Open page
  */
-function open_page(name, variables, open_at_start) {
-    maps_debug("Open a page: "+name);
-    stats("pages/"+name+"/");
+function open_page(page_name, variables, open_at_start) {
+    maps_debug("Open a page: "+page_name);
+    stats("pages/"+page_name+"/");
 
     if(open_at_start == false || open_at_start == undefined) {
 
-	if(variables == false || variables == undefined) { 
-		variables = "";
-	} else {
-		variables = "&"+variables;
-	}
-
-	$.ajax({
-		url: "ajax/views.php?type=page&lang="+locale+"&page=" + name + variables,
-		async: false,
-		success: function(content){
-			// If pages not opened yet
-			if($("#pages .page").is(':hidden')) {
-				$("#pages .page .content").html(content).show();
-				$("#pages .page").attr("id",name).slideDown('fast');
-				$("#pages .close").fadeIn();
-			} else {
-				$("#pages .page .content").html(content);
-				$("#pages .page").attr("id",name).attr({ scrollTop: 0 });
-			}
-			return true;
-      	}
-	});
-    }
-    else {
-	$("#pages .page").attr("id",name);
-    }
+		if(variables == false || variables == undefined) { 
+			variables = "";
+		} else {
+			variables = "&"+variables;
+		}
+		
+		// Close cards if open
+		close_cards();
 	
-	// Close cards if open
-	if($("#cards .card").is(':visible')) { close_cards(); }
+		$.ajax({
+			url: "ajax/views.php?type=page&lang="+locale+"&page=" + page_name + variables,
+			async: false,
+			success: function(content){
+
+				var page = $("#pages .page");
+	
+				// If page area is hidden
+				if(page.is(':hidden')) {
+					page.attr("id", page_name);
+					$("#pages .page .content").html(content).show();
+					page.slideDown('fast');
+					$("#pages .close").fadeIn();
+				// Page area visible, just load new content in it
+				} else {
+					page.attr("id", page_name);
+					$("#pages .page .content").html(content);
+					page.attr({ scrollTop: 0 });
+				}
+				return true;
+    	  	}
+		});
+    }
+	// Page content was already loaded at the php parser, this function needs just to set correct css attribute
+    else {
+		$("#pages .page").attr("id", page_name);
+		return true;
+    }
 
 }
 
@@ -1779,25 +1787,9 @@ function close_page() {
 /* 
  * Open card
  */
-function open_card(name, title) { //, x_coord, y_coord, width
+function open_card(name, title) {
 	maps_debug("Open a card: "+name);
 	stats("cards/"+name+"/");
-	
-	/*
-	if(x_coord = undefined) { var x_coord = '300'; } 
-	if(y_coord = undefined) { var y_coord = '300'; }
-	if(width = undefined) { var width = '200'; }
-	*/
-
-
-	// Allow only one card per type
-	/*
-	if($("#card_"+name).size()) {
-		$("#card_"+name).dialog("close");
-	}
-	*/
-	
-	//$(".card").dialog("destroy");
 		
 	close_cards();
     
@@ -1805,8 +1797,7 @@ function open_card(name, title) { //, x_coord, y_coord, width
 	    url: "ajax/views.php?type=card&lang="+locale+"&page=" + name,
 	    async: false,
 	    success: function(content){
-	
-		    
+
 	    	$("#cards").html('<div class="card" id="card_'+name+'" title="'+title+'">'+content+'</div>');
 	    	$("#cards .card").dialog({
 						position: [100,100],
@@ -1817,21 +1808,6 @@ function open_card(name, title) { //, x_coord, y_coord, width
 	    				show: 'slide'
 			});
 			$("#cards .card a").blur();
-	    	
-	    	// If pages not opened yet
-	    	/*
-	    	if($("#cards .card").is(':hidden')) {
-	    		$("#cards .card .content").html(content).show();
-	    		$("#cards .card").slideDown('fast');
-	    	} else {
-	    		$("#cards .card .content").html(content);
-	    	}
-	    	//$("#cards").attr('css','top:'+x_coord+'px; left:'+y_coord+'+px; width:'+width+'px;')
-	    	$("#cards .card").draggable({ cursor: 'move', handle: '.dragArea', containment: 'parent' });
-	    	$("#cards .card").resizable({
-				containment: 'parent'
-			});
-			*/
       	}
 	});
 	
@@ -1842,14 +1818,13 @@ function open_card(name, title) { //, x_coord, y_coord, width
 
 
 /* 
- * Close all cards
- * TODO: Not quite working yet... :-)
- * Maybe some foreach loop inside #cards ?
+ * Close all open cards
  */
 function close_cards() {
-	maps_debug("Closing all cards...");
-	$(".card").dialog("close");
-	return true;
+	//if($("#cards .card").is(':visible')) {
+		//maps_debug("Closing all cards...");
+		$(".card:visible").dialog("close");
+	//}
 }
 
 

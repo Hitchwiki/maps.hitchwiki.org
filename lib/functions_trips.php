@@ -31,7 +31,7 @@
     At least values "lat", "lon" are required.
  */
 function save_location($data, $user_id=false) {
-
+	
     if(!is_id($user_id) OR !is_array($data) OR empty($data)) return false;
 
     // If received data isn't divided into sub arrays, make it so
@@ -110,27 +110,57 @@ function save_location($data, $user_id=false) {
 
 }
 
+
+
 /*
  * Check database in case of dublicates when adding user's locations
  */
-function check_location_dublicates($data, $user_id=false) {
+function trips_check_for_dublicates($data, $user_id=false) {
 
-    if(!is_id($user_id) OR !is_array($data) OR empty($data)) return false;
+    if(!is_id($user_id) OR !is_array($data) OR empty($data)) return array("error"=>"Invalid data or user ID.");
 
     // If received data isn't divided into sub arrays, make it so
     if(count($data) == 1 && !isset($data[0]["lat"])) $data = array(0 => $data);
 
     start_sql();
 
-        
+	$query = "SELECT `lat`,`lon`,`fk_user`,`datetime` FROM `t_trips_points` WHERE `fk_user` = ".mysql_real_escape_string($user_id)." AND `hidden` IS NULL";
 
+	// Build an array
+	$res = mysql_query($query);
+	if(!$res) return array("error"=>"SQL Error.");
 
+		$locations_in_db = array();
+		while($r = mysql_fetch_array($res, MYSQL_ASSOC)) {
+
+		    $locations_in_db[] = $r["lat"].$r["lon"].$r["datetime"];
+
+		}
+		
+		$return["trapped_places"] = array();
+		foreach($data as $place_index => $place) {
+
+			if(in_array($place["lat"].$place["lon"].$place["datetime"], $locations_in_db)) {
+				$return["trapped_places"][] = $data[$place_index];
+				unset($data[$place_index]);
+			}
+
+		}
+		
+		$return["data"] = array_values($data);
+		$return['success'] = true;
+		
+		return $return;
 }
+
+
+
 
 /*
  * Fill location array
  */
 function fill_location($data) {
+
     
     if(is_array($data) && !empty($data)) {
 
@@ -313,8 +343,8 @@ function user_current_location_link($user_id=false, $show_when=true) {
 
 	if(isset($location["error"])) return false;
 	else {
-                $random_id = time().rand(100,999);
-                
+		$random_id = time().rand(100,999);
+        
 		$return = '<a href="./trip.php?user_id='.$user_id.'" title="'._("Show on the map").'" class="location_link" id="location_link-'.$random_id.'">';
                 
                 if(!empty($location["location"]["city"])) $return .= $location["location"]["city"];
@@ -359,12 +389,13 @@ function user_current_location($user_id=false, $more=false) {
 	else return array("error"=>"No user ID given and no user logged in right now.");
 
 	if($user === false) return array("error"=>"User not found.");
-	elseif($user["private_location"] == 1) return array("error"=>"User's location is private. (".$user["private_location"].")");
+	elseif($user["private_location"] == 1) return array("private_location" => true, "error"=>"User's location is private.");
+	elseif($user["private_location"] == 2) return array("private_location" => true, "error"=>"User's location is visible only for registered users.");
 	else {
 
 		start_sql();
 
-	    	$query = "SELECT * FROM `t_trips_points` WHERE `fk_user` = ".mysql_real_escape_string($user["id"])." AND `hidden` IS NULL ORDER BY `datetime` DESC LIMIT 1";
+		$query = "SELECT * FROM `t_trips_points` WHERE `fk_user` = ".mysql_real_escape_string($user["id"])." AND `hidden` IS NULL ORDER BY `datetime` DESC LIMIT 1";
 
 		// Build an array
    		$res = mysql_query($query);

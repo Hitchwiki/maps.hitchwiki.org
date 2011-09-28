@@ -21,21 +21,23 @@ if($view_type == "cards") {
 
 $view_file = $views_path."views/".$view_type."/".$view_name.".php";
 
+
 /*
  * Show page
  */
 if(file_exists($view_file)): //!ereg('[^0-9A-Za-z_-]', $_GET["page"]) &&  (Function ereg() is deprecated)
 
-        if(!isset($views_cold_include)) $user = current_user(); // Returns an info-array about logged in user (or false if not logged in) 
+    if(!isset($views_cold_include)) $user = current_user(); // Returns an info-array about logged in user (or false if not logged in) 
 
 	if($settings["debug"]==true) include($view_file);
 	else @include($view_file);
 
+
 /*
- * Not found error
+ * Not found -error
  */
 else:
-        include($views_path."views/view_404.php");
+    include($views_path."views/view_404.php");
         
 	// For debugging:
 	if($settings["debug"]==true) echo '<p><small>Page: '.htmlspecialchars($_GET["page"]).' | Type: '.$view_type.' | Lang: '.$settings["language"].'</small></p>';

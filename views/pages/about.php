@@ -1,19 +1,14 @@
-<?php
-
-
-?><h2><?php echo _("About Hitchwiki Maps"); ?></h2>
+<h2><?php echo _("About Hitchwiki Maps"); ?></h2>
 
 <div class="textbox">
 
-	<div class="align_right" style="width: 300px; margin-left: 30px;">
-	
-		<!--<img src="badge.png" alt="" class="align_right" style="margin: 0 0 20px 20px;" />-->
-		
+	<div class="align_right" style="width: 300px; margin: 0 0 30px 30px;">
+
 		<p><a href="#" class="bigger icon email" onclick="javascript:open_card('contact','<?php echo _("Contact us!"); ?>'); return false;"><?php echo _("Contact us!"); ?></a></p>
 		
 		<br />
 
-<?php if(!isset($user["disallow_facebook"]) && $user["disallow_facebook"] != 1): ?>
+	<?php if($user["disallow_facebook"] != 1): ?>
 
 		<fb:like-box profile_id="133644853341506" width="300" connections="5" stream="true" header="true"></fb:like-box>
 		
@@ -33,7 +28,7 @@
 		    });
 		</script>
 
-<?php endif; ?>
+	<?php endif; ?>
 
 	</div>
 
@@ -80,14 +75,14 @@
 		<li><?php echo _("Spanish"); ?> &mdash; Prino</li>
 		<li><?php echo _("French"); ?> &mdash; Perilisk</li>
 		<li><?php echo _("Hungarian"); ?> &mdash; pite, sipmester</li>
-		<!-- 
+		<!-- Not yet published, but we want translators to translate language names alrady...
 		<li><?php echo _("Latvian"); ?> &mdash; Reinis</li>
 		<li><?php echo _("Swedish"); ?> &mdash; </li>
 		<li><?php echo _("English")." ("._("Pirate").")"; ?> &mdash; Mikael <em>(Yarr!)</em></li>
 		-->
 	</ul>
 	
-	<p><a href="#" onclick="open_page('translate'); return false;" class="icon world"><?php echo _("Help us with translating!"); ?></a><br /></p>
+	<p><a href="./?page=translate" onclick="open_page('translate'); return false;" class="icon world"><?php echo _("Help us with translating!"); ?></a><br /></p>
 	
 	
 	
@@ -97,12 +92,12 @@
 	<h4><?php echo _("Server side"); ?></h4>
 	<ul>
 		<li><a href="http://sourceforge.net/projects/phpolait/">PHPOLait</a></li>
-		<li><a href="http://sourceforge.net/projects/snoopy/">Snoopy</a></li>
+		<!--<li><a href="http://sourceforge.net/projects/snoopy/">Snoopy</a></li>-->
 		<li><a href="http://curl.haxx.se/">cURL</a></li>
 		<li><a href="http://www.gnu.org/software/gettext/">Gettext</a></li>
 		<li><a href="http://michelf.com/projects/php-markdown/">Markdown</a></li>
 	</ul>
-	
+
 	<h4><?php echo _("Client side"); ?></h4>
 	<ul>
 		<li><a href="http://openlayers.org/">Open Layers</a></li>
@@ -116,7 +111,7 @@
 		<li><a href="http://www.famfamfam.com/lab/icons/">Fam Fam Fam Silk &amp; Flag icons</a></li>
 		<li><a href="http://www.aiga.org/content.cfm/symbol-signs">Aiga - Symbol Signs</a></li>
 	</ul>
-	
+
 	<h4><?php echo _("Services"); ?></h4>
 	<ul>
 		<li><a href="http://ipinfodb.com/">IPInfoDB API</a></li>

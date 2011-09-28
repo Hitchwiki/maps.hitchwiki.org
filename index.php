@@ -22,7 +22,7 @@ if($settings["maintenance_page"]===true && !in_array($_SERVER['REMOTE_ADDR'], $s
 
 
 /*
- * Redirect to clean "rdfrom" away
+ * Redirect to clean "rdfrom" set by mediawiki
  */
 if(isset($_GET["rdfrom"])) {
 	header("Location: ".$settings["base_url"]);

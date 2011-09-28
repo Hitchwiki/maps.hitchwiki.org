@@ -23,6 +23,8 @@ if($settings["maintenance_page"]===true && !in_array($_SERVER['REMOTE_ADDR'], $s
 if(!isset($_GET["user_id"]) OR empty($_GET["user_id"])) $user_info = false;
 else $user_info = user_info($_GET["user_id"]);
 
+
+
 // User validation failed
 if($user_info == false OR $user_info["private_trips"] === true) {
 
@@ -43,25 +45,29 @@ $current_location = user_current_location($user_info["id"]);
  */
 
 // Defaults (in Germany)
-$d_zoom = '6';
-$d_lat = '51';
-$d_lon = '9';
+$zoom = '6';
+$lat = '51';
+$lon = '9';
+
 
 // Location to the root: 
 $basehref = "../";
 
+
 // User's latest location
-if($user_info["private_location"] > 1 && $current_location != false) {
+if($user_info["private_location"] != 1 && $current_location != false && !isset($current_location["error"])) {
 	//$user_info["location"] = user_location($user_info["id"]);
 	$zoom = '8';
 	$lat = $current_location["lat"];
 	$lon = $current_location["lon"];
 }
 
+
 // Show free spot -Zoom, lat, lon
-if(isset($_GET["zoom"])) $zoom = (isset($_GET["zoom"]) && ctype_digit($_GET["zoom"])) ? $_GET["zoom"] : $d_zoom;
-if(isset($_GET["lat"])) $lat = (isset($_GET["lat"]) && is_numeric($_GET["lat"])) ? $_GET["lat"] : $d_lat;
-if(isset($_GET["lon"])) $lon = (isset($_GET["lon"]) && is_numeric($_GET["lon"])) ? $_GET["lon"] : $d_lon;
+if(isset($_GET["zoom"]) && !empty($_GET["zoom"]) && ctype_digit($_GET["zoom"])) $zoom = $_GET["zoom"];
+if(isset($_GET["lat"]) && !empty($_GET["lat"]) && is_numeric($_GET["lat"])) $lat = $_GET["lat"];
+if(isset($_GET["lon"]) && !empty($_GET["lon"]) && is_numeric($_GET["lon"])) $lon = $_GET["lon"];
+
 
 // Selecting map layer
 if($_GET["layer"] == "gmap"
