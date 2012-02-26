@@ -44,10 +44,9 @@ else:
 		
 		// START
 		echo '<li id="log-'.$line["log_type"].'-'.$line["id"].'" class="log_'.$line["id"].' icon '.$icon.'">';
-	
+
 		// Who
-		if(!empty($line["fk_user"])) $who = '<strong>'.username($line["fk_user"], true).'</strong>';
-		else $who = _("Anonymous");
+		$who = (!empty($line["fk_user"])) ? '<strong>'.username($line["fk_user"], true).'</strong>': _("Anonymous");
 
 		// What
 		if($line["log_type"] == "place") { 

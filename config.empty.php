@@ -9,39 +9,48 @@
  * SETTINGS you might want to adjust:
  */
  
-// Tools for devs:
 $settings["cache_buster"] = 			''; // Force user's browser to refresh JS and CSS files by changing this to something new
-$settings["debug"] = 					false;
-$settings["allow_admins"] = 			false; // Set false to temporarily take off all admin priviliges
+$settings["debug"] = 					true;
+$settings["allow_admins"] = 			true; // Set false to temporarily take off all admin priviliges
 $settings["maintenance_page"] = 		false; // Set true to close down visible page
 $settings["maintenance_api"] = 			false; // Set true to close down API
 $settings["non_maintenance_ip"] = 		array(); // Add IP addresses to whom show a normal page while in maintenance mode.
 
-// API-keys:
-$settings["google_maps_api_key"] = 		""; // API key to enable
-$settings["yahoo_maps_appid"] = 		""; // APP ID to enable
-$settings["ms_virtualearth"] = 			false; // false|true to enable
+// General settings
+$settings["email"] = 					"";
+$settings["cookie_prefix"] = 			"hitchwiki_maps_";
+$settings["hitchability_colors"] = 		array('ffffff','00ad00','96ad00','ffff00','ff8d00','ff0000'); // Rating => hex color without # (0-5)
+
+// Services
+$settings["google"]["api"]["maps_key"] = 	""; // API key to enable
+$settings["yahoo"]["maps_appid"] = 			""; // APP ID to enable
+$settings["ms"]["virtualearth"] = 			false; // false|true to enable
+$settings["geonames"]["user"] = 			""; // User account for geonames.org
+$settings["geonames"]["email"] = 			""; // Email for geonames.org
 
 // OAuth 2 Credentials for Google Latitude API
-$settings["google_latitude_client_id"] = 		"";
-$settings["google_latitude_client_secret"] = 	"";
-$settings["google_latitude_access_key"] = 		"";
+$settings["google"]["api"]["client_id"] =         "";
+$settings["google"]["api"]["client_secret"] =     "";
+$settings["google"]["api"]["api_key"] =           "";
+$settings["google"]["api"]["latitude_callback"] = "http://hitchwiki.org/maps/oauth2";
 
 // Analytic tools
-$settings["google_analytics_id"] =		""; // ID to enable
-$settings["piwik_id"] = 				""; // ID to enable
+$settings["google"]["analytics_id"] =		""; // ID to enable
+$settings["piwik"]["id"] = 					""; // ID to enable
 
+// Facebook
 // fb:admins or fb:app_id - A comma-separated list of either the Facebook IDs of page administrators or a Facebook Platform application ID. At a minimum, include only your own Facebook ID.
 $settings["fb"]["admins"] = 			"";
 $settings["fb"]["page_id"] = 			"";
-
 $settings["fb"]["app"]["id"] = 			"";
 $settings["fb"]["app"]["api"] = 		"";
 $settings["fb"]["app"]["secret"] = 		"";
 
-$settings["email"] = 					"maps@hitchwiki.org";
-$settings["cookie_prefix"] = 			"hitchwiki_maps_";
-$settings["hitchability_colors"] = 		array('ffffff','00ad00','96ad00','ffff00','ff8d00','ff0000'); // Rating = key (0-5)
+// Email credientals for reading incoming mails
+$settings["imap"]["server"] =                       "{server:port/imap/ssl/novalidate-cert}INBOX";
+$settings["imap"]["username"] =                     "";
+$settings["imap"]["password"] =                     "";
+
 
 // Languages
 // See ./admin/ to set up new languages
@@ -124,6 +133,131 @@ $map_layers = array(
     		"vehyb" => "Virtual Earth "._("Hybrid"),
     		"veaer" => "Virtual Earth "._("Aerial"),
     		"veroad" => "Virtual Earth "._("Roads")
+    )
+);
+
+
+/*
+ * Allowed page/card names and their settings
+ */
+$settings["views"] = array(
+    "pages" => array(
+        "about" => array(
+                    "title" => _("About"),
+                    "public" => true
+                ),
+        "add_public_transport" => array(
+                    "title" => _("Add a page to the catalog"),
+                    "public" => false
+                ), 
+        "api" => array(
+                    "title" => _("API"),
+                    "public" => true
+                ), 
+        "beta" => array(
+                    "title" => "",
+                    "public" => false
+                ),
+        "complete_statistics" => array(
+                    "title" => _("Complete statistics"),
+                    "public" => true
+                ), 
+        "countries" => array(
+                    "title" => _("Countries"),
+                    "public" => true
+                ), 
+        "help" => array(
+                    "title" => _("Help & About"),
+                    "public" => true
+                ), 
+        "hitchability" => array(
+                    "title" => _("Hitchability"),
+                    "public" => true
+                ),
+        "log_all" => array(
+                    "title" => _("Log"),
+                    "public" => false
+                ),
+        "log_place" => array(
+                    "title" => _("Log"),
+                    "public" => false
+                ),
+        "log_trips" => array(
+                    "title" => _("Log"),
+                    "public" => false
+                ),
+        "log_user" => array(
+                    "title" => _("Log"),
+                    "public" => false
+                ),
+        "mobile" => array(
+                    "title" => _("Mobile"),
+                    "public" => true
+                ),
+        "news" => array(
+                    "title" => _("News"),
+                    "public" => true
+                ), 
+        "own_places" => array(
+                    "title" => "",
+                    "public" => false
+                ), 
+        "profile" => array(
+                    "title" => _("Profile"),
+                    "public" => false
+                ),
+        "public_transport" => array(
+                    "title" => _("Public transport catalog"),
+                    "public" => true
+                ), 
+        "settings" => array(
+                    "title" => _("Settings"),
+                    "public" => false
+                ),         
+        "statistics" => array(
+                    "title" => _("Statistics"),
+                    "public" => true
+                ),
+        "translate" => array(
+                    "title" => _("Help us with translating!"),
+                    "public" => true
+                ), 
+        "trips" => array(
+                    "title" => "",
+                    "public" => false
+                ),
+        "trips_countries" => array(
+                    "title" => "",
+                    "public" => false
+                ),
+        "trips_import" => array(
+                    "title" => "",
+                    "public" => false
+                ),
+        "trips_place" => array(
+                    "title" => "",
+                    "public" => false
+                ),
+        "users" => array(
+                    "title" => _("Members"),
+                    "public" => false
+                ),
+        "why_register" => array(
+                    "title" => _("Why register?"),
+                    "public" => true
+                ),
+        "error404" => array(
+                    "title" => _("Error 404 - page not found"),
+                    "public" => true
+                )
+    ),
+
+    "cards" => array(
+        "contact",
+        "download",
+        "link_here",
+        "streetview",
+        "error404"
     )
 );
 

@@ -13,9 +13,10 @@ if(!$naviRefreshArea) {
 					<li><a href="./?page=about" id="about" class="icon help" onclick="open_page('about'); return false;"><?php echo _("About"); ?></a></li>
 				<?php endif; ?>
 
-			    	<?php // Visible only for admins
+		    	<?php // Visible only for admins
 			    	if($user["admin"]===true): ?>
 					<!--<li><a href="#" id="streetview" class="icon eye cardlink"><?php echo _("Street view"); ?></a></li>-->
 					<li><a href="./?page=trips" id="trips" class="icon flag_green" onclick="open_page('trips'); return false;"><?php echo _("My trips"); ?></a></li>
-					<li><a href="./?page=log" id="log_all" class="icon page_white_text" onclick="open_page('log'); return false;"><?php echo _("Log"); ?></a></li>
 				<?php endif; ?>
+
+					<li><a href="./?page=log_all" id="log_all" class="icon page_white_text" onclick="open_page('log_all'); return false;"><?php echo _("Log"); ?></a></li>

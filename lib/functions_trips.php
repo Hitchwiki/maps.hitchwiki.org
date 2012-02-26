@@ -215,6 +215,19 @@ function fill_location($data) {
     
 }
 
+
+function read_csv($data) {
+/*
+INDEX,RCR,DATE,TIME,VALID,LATITUDE,N/S,LONGITUDE,E/W,HEIGHT,SPEED,HEADING,HDOP,DISTANCE,
+1,TD,2011/08/23,04:11:07,SPS,20.077517,N,102.094649,E,150.477 M,12.808 km/h,269.932129,1.94,24611.20 M,
+*/
+
+#$lines = explode(")
+	return true;
+}
+
+
+
 function read_gpx($data) {
     
     $xml = new SimpleXmlElement($data);//LIBXML_NOCDATA
@@ -381,16 +394,18 @@ function user_current_location_link($user_id=false, $show_when=true) {
 function user_current_location($user_id=false, $more=false) {
 	global $settings;
 
-	// Get current logged in user's info if no id given
-	if($user_id === false) $user = current_user();
+	if($user_id === false) $user = current_user(); // Get current logged in user's info if no id given
+	elseif(is_id($user_id)) $user = user_info($user_id); // Get user's info for given ID
+	else return array("error"=>"No user ID given and no user logged in right now."); // We really need user ID for this stuff...
 
-	// Get user's info for given ID
-	elseif(is_id($user_id)) $user = user_info($user_id);
-	else return array("error"=>"No user ID given and no user logged in right now.");
+	// For checking private location permissions, we might need to get current logged in user - but not always!
+	if($user["private_location"] <= 2 && $user_id === false) $logged_user = $user; // Current user is already stored in $user
+	elseif($user["private_location"] <= 2) $logged_user = current_user();
 
+	// Check for user's privacy permissions
 	if($user === false) return array("error"=>"User not found.");
-	elseif($user["private_location"] == 1) return array("private_location" => true, "error"=>"User's location is private.");
-	elseif($user["private_location"] == 2) return array("private_location" => true, "error"=>"User's location is visible only for registered users.");
+	elseif($user["private_location"] <= 2 && $logged_user === false) return array("private_location" => true, "error"=>"User's location is private.");
+	elseif($user["private_location"] == 1 && $user["id"] != $logged_user["id"]) return array("private_location" => true, "error"=>"User's location is private.");
 	else {
 
 		start_sql();

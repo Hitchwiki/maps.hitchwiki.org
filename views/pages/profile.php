@@ -8,14 +8,20 @@ if(isset($_GET["user_id"]) && !empty($_GET["user_id"])) $profile = user_info($_G
 else $profile = $user;
 
 
-if(!empty($profile)): ?>
+if(!empty($profile)):
 
+	// Get countryname, we'll need it
+	if(!empty($profile["country"])) $countryname = ISO_to_country($profile["country"]);
+	
+?>
+<header>
 <?php if($user["id"] == $profile["id"]): ?>
-	<small class="tip white"><em><?php echo _("This is your profile as others see it."); ?> &mdash; <a href="#" onclick="open_page('settings'); return false;"><?php echo _("Edit your profile"); ?></a></em></small>
 	<h2><?php printf(_("Welcome home, %s"), $profile["name"]); ?></h2>
+	<?php if(!empty($profile["country"])): ?><em><strong class="white"><?php printf(_("How's the weather in %s?"), $countryname); ?></strong></em><br/><?php endif; ?>
 <?php else: ?>
 	<h2><?php echo $profile["name"]; ?></h2>
 <?php endif; ?>
+</header>
 
 <table class="infotable profile_card" cellspacing="0" cellpadding="0">
     <tbody>
@@ -46,7 +52,6 @@ if(!empty($profile)): ?>
     	<?php if(!empty($profile["country"])): ?>
     	<tr>
     		<td><b><?php echo _("Country"); ?></b></td>
-    		<?php $countryname = ISO_to_country($profile["country"]); ?>
     		<td><a href="./?q=<?php echo urlencode($countryname); ?>" id="search_for_this"><?php echo $countryname; ?></a> <img class="flag" alt="" src="static/gfx/flags/<?php echo strtolower($profile["country"]); ?>.png" /></td>
     	</tr>
     	<?php endif; ?>
@@ -123,7 +128,7 @@ if(!empty($profile)): ?>
     <?php // Visible only for admins
 	if($user["admin"]===true): ?>
 
-    <small class="note"><b>Your location info:</b> <?php
+    <small class="tip white"><b>Your location info:</b> <?php
 	if($profile["private_location"] == 1) echo _("Private. Nobody but you can access your location info.");
 	elseif($profile["private_location"] == 2) echo _("Share only among registered users on the website.");
 	elseif($profile["private_location"] == 3) {
@@ -136,8 +141,12 @@ if(!empty($profile)): ?>
     
 <?php endif; ?>
 
-
 <div class="clear"></div>
+<br/><br/>
+
+<?php if($user["id"] == $profile["id"]): ?>
+	<small class="tip white"><em><?php echo _("This is your profile as others see it."); ?> &mdash; <a href="#" onclick="open_page('settings'); return false;"><?php echo _("Edit your profile"); ?></a></em></small>
+<?php endif; ?>
 
 
 

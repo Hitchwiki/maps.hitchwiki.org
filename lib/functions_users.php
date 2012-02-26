@@ -13,7 +13,7 @@
  */
 function username($id, $link=false) {
 
-	if(!empty($id) && is_numeric($id)) {
+	if(is_id($id)) {
 		start_sql();
 		
 		// Get users name from database
@@ -102,18 +102,20 @@ function user_info($user_id) {
  */
 function get_user($session=false) {
 	global $settings;
-	start_sql();
 
+	if(empty($session["wsUserID"]) OR $session === false) return false;
+	
+	start_sql();
 	$res = @mysql_query("SELECT * FROM `t_users` WHERE `id` = '".mysql_real_escape_string($session["wsUserID"])."' LIMIT 1");
    	
    	if(!$res) return false;
 			
 	// If we have a result, continue gathering user array
-	if(mysql_num_rows($res) > 0) {
+	if(@mysql_num_rows($res) > 0) {
 
 		$last_seen = @mysql_query("UPDATE `t_users` SET `last_seen` = NOW() WHERE `id` = ".mysql_real_escape_string($session["wsUserID"])." LIMIT 1");
 
-		while($r = mysql_fetch_array($res, MYSQL_ASSOC)) {
+		while($r = @mysql_fetch_array($res, MYSQL_ASSOC)) {
 
 			$user["logged_in"] = true;
 			$user["id"] = $session["wsUserID"];
@@ -156,7 +158,7 @@ function get_user($session=false) {
 		$mw_link = @mysql_connect($mysql_conf['host'], $mysql_conf['user'], $mysql_conf['password']);
 		@mysql_select_db($mysql_conf["mediawiki_db"], $mw_link);
 
-		$mw_res = @mysql_query("SELECT `user_id`,`user_name`,`user_email`,`user_email` FROM `".$mysql_conf["mediawiki_db"]."`.`user` WHERE user_id = ".mysql_real_escape_string($session["wsUserID"])." LIMIT 1");
+		$mw_res = @mysql_query("SELECT `user_id`,`user_name`,`user_email` FROM `".$mysql_conf["mediawiki_db"]."`.`user` WHERE user_id = ".mysql_real_escape_string($session["wsUserID"])." LIMIT 1");
 
 		if(@mysql_num_rows($mw_res) > 0) {
 			while($mw_r = @mysql_fetch_array($mw_res, MYSQL_ASSOC)) {
@@ -169,7 +171,7 @@ function get_user($session=false) {
 		/*
 		 * Add new user to the Maps DB
 		 */
-		if($session["wsUserName"] != "") {
+		if(!empty($session["wsUserName"])) {
 			start_sql();
 			$query = "INSERT INTO `".$mysql_conf['database']."`.`t_users` (
 					`id`,

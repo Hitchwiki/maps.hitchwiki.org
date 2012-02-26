@@ -1393,6 +1393,15 @@ ul li ul li #comments ol li.own_comment {
 	.page#profile { 
 		background: #167c72 url(../gfx/bg_marshmellow.jpg) -400px -100px no-repeat; 
 	}
+	.page#profile header {
+		display: block;
+		clear: both;
+		padding: 0 0 20px 0;
+	}
+	.page#profile header h2 {
+		margin: 5px 0;
+	}
+	 
 	/* Countries */
 	.page#countries { 
 		background: #000 url(../gfx/bg_globe.jpg) no-repeat; 
@@ -1717,7 +1726,6 @@ ul li ul li #comments ol li.own_comment {
 		max-width: 680px;
 		overflow-y: auto;
 		overflow-x: hidden;
-		
 	}
 	#log li {
 		color: #969696;

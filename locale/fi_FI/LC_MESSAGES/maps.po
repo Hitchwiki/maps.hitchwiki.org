@@ -2,7 +2,7 @@
 # This file is distributed under the same license as the Maps package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2011-09-28 10:00:04+0000\n"
+"PO-Revision-Date: 2012-02-26 11:30:03+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -16,7 +16,7 @@ msgstr "Käsissäsi!"
 
 #: views/pages/mobile.php:40
 msgid "Get Hitchwiki Maps and its %s marked and rated spots with you when you're on the road!"
-msgstr ""
+msgstr "Ota Hitchwiki Kartat ja sen %s merkittyä ja arvosteltua paikkaa mukaan matkalle!"
 
 #: views/pages/mobile.php:32
 msgid "We would love to see Hitchwiki Maps in as many platforms as possible. We have an API to help you to do just that."
@@ -36,7 +36,7 @@ msgstr "Kyllä on!"
 
 #: views/pages/mobile.php:50
 msgid "Can be used offline"
-msgstr ""
+msgstr "Toimii myös ilman yhteyttä."
 
 #: ajax/place.php:815
 msgid "Recommend this place for your Facebook contacts"
@@ -52,7 +52,7 @@ msgstr "Onko mobiiliversiota olemassa?"
 
 #: views/pages/profile.php:127 views/pages/settings.php:211
 msgid "Private. Nobody but you can access your location info."
-msgstr ""
+msgstr "Yksityinen. Kukaan paitsi sinä ei näe sijaintiasi."
 
 #: views/pages/public_transport.php:108
 msgid "Got stuck somewhere?"
@@ -60,7 +60,7 @@ msgstr "Jäitkö jumiin jonnekkin?"
 
 #: index.php:294
 msgid "If something on the website seems wrong to you, please use \"contact us\" link at the bottom of the page."
-msgstr ""
+msgstr "Jos jokin sivuilla vaikuttaa olevan väärin, käytäthän \"ota yhteyttä\" linkkiä sivun alalaidassa."
 
 #: index.php:631
 msgid "More tools"
@@ -84,11 +84,11 @@ msgstr ""
 
 #: views/pages/mobile.php:51
 msgid "Preview each and every spot on the map"
-msgstr ""
+msgstr "Näyttää kaikki paikat kartalla"
 
 #: views/pages/mobile.php:51
 msgid "requires Internet connection such as wifi, 3G or other"
-msgstr ""
+msgstr "Vaatii Internet yhteyden kuten wifin, 3G:n tai vastaavan"
 
 #: views/pages/mobile.php:52
 msgid "Search by location and distance"
@@ -100,7 +100,7 @@ msgstr ""
 
 #: views/pages/mobile.php:54
 msgid "Application is available in:"
-msgstr ""
+msgstr "Ohjelma on saatavilla:"
 
 #: views/pages/mobile.php:54 views/pages/mobile.php:61
 #: views/pages/mobile.php:62
@@ -109,7 +109,7 @@ msgstr "ja"
 
 #: views/pages/mobile.php:60
 msgid "App should work on following phone models:"
-msgstr ""
+msgstr "Ohjelman pitäisi toimia seuraavissa puhelinmalleissa:"
 
 #: views/pages/mobile.php:65
 msgid "Got suggestions or want to report a bug?"
@@ -141,7 +141,7 @@ msgstr "Mobiili"
 
 #: ajax/add_place.php:43
 msgid "Getting info about the place..."
-msgstr ""
+msgstr "Haetaan tietoja paikasta..."
 
 #: lib/functions_trips.php:318
 msgid "Show on the map"
@@ -153,7 +153,7 @@ msgstr "Omat paikat"
 
 #: views/pages/log_place.php:94
 msgid "Nobody did anything for this place! Is it that good?"
-msgstr ""
+msgstr "Kukaan ei tehnyt mitään tälle paikalle! Onko se niin hyvä?"
 
 #: views/pages/profile.php:15
 msgid "Welcome home, %s"
@@ -207,7 +207,7 @@ msgstr "Nauhuri ei ole vielä nauhoittanut mitään."
 
 #: views/pages/log_all.php:89
 msgid "Oh! Nothing has changed. Only the desert wind is moving some bits around..."
-msgstr ""
+msgstr "Oho! Mitään ei ole muutettu. Vain aavikkotuuli liikuttelee bittejä ympäriinsä..."
 
 #: views/pages/log_all.php:51
 msgid "%1$s waited for a ride in here for %2$s"
@@ -219,7 +219,7 @@ msgstr "Ennen 27. marraskuuta 2010"
 
 #: views/pages/log_all.php:63
 msgid "%1$s added a link to the public transportation catalog for %2$s"
-msgstr ""
+msgstr "%1$s lisäsi linkin joukkoliikennekatalogiin maalle %2$s"
 
 #: views/pages/log_all.php:11
 msgid "Actions on the website during the last %d days."
@@ -259,15 +259,15 @@ msgstr "Kartta keskitetään tänne."
 
 #: views/pages/settings.php:167
 msgid "Trip recorder"
-msgstr ""
+msgstr "Matkanauhuri"
 
 #: ajax/header_navi.php:19
 msgid "My trips"
-msgstr ""
+msgstr "Matkani"
 
 #: index.php:294
 msgid "Sorry about that!"
-msgstr ""
+msgstr "Pahoittelut!"
 
 #: ajax/header_navi.php:20
 msgid "Log"
@@ -279,7 +279,7 @@ msgstr ""
 
 #: views/pages/settings.php:173
 msgid "Clear your recorded trips"
-msgstr ""
+msgstr "Poista tallennetut matkat"
 
 #: views/pages/settings.php:182
 msgid "Keep map centered to my current location"
@@ -304,7 +304,7 @@ msgstr ""
 #: views/pages/trips.php:8 views/pages/trips_countries.php:5
 #: views/pages/trips_countries.php:8
 msgid "Countries visited"
-msgstr ""
+msgstr "Vieraillut maat"
 
 #: views/pages/trips.php:10 views/pages/trips_countries.php:10
 msgid "Import"

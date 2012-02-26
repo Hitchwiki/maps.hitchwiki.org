@@ -13,7 +13,7 @@
  * id: INT (required)
  * wide: true | false (default) - gets more info than just basics
  */
-function get_place($id=false, $more=false) {
+function get_place($id=false, $more=false, $counter=false) {
 	global $settings;
 	start_sql();
 
@@ -177,6 +177,33 @@ function get_place($id=false, $more=false) {
 		// ID wasn't valid
 		return false;
 	}
+
+}
+
+
+/*
+ * Returns nice placename with optional link
+ */
+function place_name($place_id, $link=false) {
+
+	$place = get_place($place_id, true);
+
+	if($place !== false) {
+	
+		if($link) $return .= '<a href="'.$place["link"].'" onclick="open_place('.$place["id"].'); return false;">';
+
+		if(!empty($place["location"]["locality"])) $return .= $place["location"]["locality"];
+		
+		if(!empty($place["location"]["locality"]) && !empty($place["location"]["country"]["name"])) $return .= ', ';
+		
+		if(!empty($place["location"]["country"]["name"])) $return .= $place["location"]["country"]["name"];
+		
+		if($link) $return .= '</a>';
+		
+		return $return;
+	
+	}
+	else return false;
 
 }
 

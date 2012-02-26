@@ -270,7 +270,7 @@ if(isset($show_place) && !isset($show_place_error)) {
 				<?php // Perform search
 				if(isset($_GET["q"]) && !empty($_GET["q"])): ?>
 
-					search("<?php echo strip_tags($_GET["q"]); ?>");
+					search("<?php echo htmlspecialchars(strip_tags($_GET["q"])); ?>");
 
 				<?php endif; ?>
 				
@@ -284,18 +284,39 @@ if(isset($show_place) && !isset($show_place_error)) {
 			});
 		//]]>
 		</script>
+		<!-- For Google:
+		<link rel="icon" href="<?php echo $settings["base_url"]; ?>/static/gfx/badge-32x32.png" sizes="32x32" />
+		<link rel="icon" href="<?php echo $settings["base_url"]; ?>/static/gfx/badge-48x48.png" sizes="48x48" />
+		<meta name="application-name" content="Hitchwiki <?php echo _("Maps"); ?>"/>
+		<meta name="application-url" content="<?php echo $settings["base_url"]; ?>"/>
+		-->
+
+		<!-- For Apple -->
+		<link rel="apple-touch-icon" href="<?php echo $settings["base_url"]; ?>/static/gfx/badge-57x57.png" />
+
 		<link rel="shortcut icon" href="<?php echo $settings["base_url"]; ?>/favicon.png" type="image/png" />
 		<link rel="bookmark icon" href="<?php echo $settings["base_url"]; ?>/favicon.png" type="image/png" />
-		<?php foreach($website_img as $img): ?><link rel="image_src" href="<?php echo $img; ?>" /><?php endforeach; ?>
-		<link rel="apple-touch-icon" href="<?php echo $settings["base_url"]; ?>/static/gfx/badge-57x57.png" />
 		<meta name="description" content="<?php echo $description; ?>" />
-		
+
 		<!-- The Open Graph Protocol - http://opengraphprotocol.org/ -->
 		<meta property="og:title" content="<?php echo $title; ?>" />
 		<meta property="og:site_name" content="Hitchwiki.org" />
 		<meta property="og:description" content="<?php echo $description; ?>" />
 		<meta property="og:url" content="<?php echo $og_url; ?>"/>
 		<meta property="og:type" content="<?php echo $og_type; ?>" />
+		<?php
+			/*
+			 * Language versions of the frontpage
+			 */ 
+			foreach($settings["valid_languages"] as $code => $name) {
+				echo '<meta property="og:locale';
+				
+				if($settings["language"] != $code) echo ':alternate';
+				
+				echo '" content="'.$code.'" />'."\n\t\t";
+				
+			}
+		?>
 		<?php foreach($website_img as $img): ?><meta property="og:image" content="<?php echo $img; ?>" /><?php endforeach; ?>
 	<?php /*<meta property="og:email" content="<?php echo $settings["email"]; ?>" /> */ ?>
 	<?php if(isset($place)): ?>
@@ -315,7 +336,7 @@ if(isset($show_place) && !isset($show_place_error)) {
 		?>
 		<link rel="home" href="<?php echo $settings["base_url"]; ?>/" title="Hitchwiki <?php echo _("Maps"); ?>" />
 		<link rel="help" href="<?php echo $settings["base_url"]; ?>/?page=about" title="Hitchwiki <?php echo htmlspecialchars(_("Help & About")); ?>" />
-		<link rel="search" type="application/opensearchdescription+xml" href="<?php echo $settings["base_url"]; ?>/opensearch/" title="Hitchwiki <?php echo _("Maps"); ?>" />
+		<link rel="search" type="application/opensearchdescription+xml" href="<?php echo $settings["base_url"]; ?>/opensearch/?lang=<?php echo $settings["language"]; ?>" title="Hitchwiki <?php echo _("Maps"); ?>" />
 		<link rel="author" href="<?php echo $settings["base_url"]; ?>/humans.txt" type="text/plain" />
 		<?php
 		/*
@@ -323,7 +344,7 @@ if(isset($show_place) && !isset($show_place_error)) {
 		 */ 
 		foreach($settings["valid_languages"] as $code => $name) {
 			// Don't print current in-use-language page
-			if($settings["language"] != $code) echo '<link type="text/html" rel="alternate" hreflang="'.shortlang($code).'" href="'.$settings["base_url"].'/?lang='.$code.'" title="'.$name.'" />'."\n";
+			if($settings["language"] != $code) echo '<link type="text/html" rel="alternate" hreflang="'.shortlang($code).'" href="'.$settings["base_url"].'/?lang='.$code.'" title="'.$name.'" />'."\n\t";
 		}
 		?>
 		
@@ -383,7 +404,7 @@ if(isset($show_place) && !isset($show_place_error)) {
 					<div id="search">
 					<form method="get" action="#" id="search_form" name="search" role="search">
 						<div class="ui-widget">
-						<input type="text" value="" id="q" name="q" />
+						<input type="text" value="<?php if(isset($_GET["q"]) && !empty($_GET["q"])) echo htmlspecialchars(strip_tags($_GET["q"])); ?>" id="q" name="q" />
 						<button type="submit" class="search_submit button" title="<?php echo _("Search"); ?>"> <span class="icon magnifier">&nbsp;</span><span class="hidden"><?php echo _("Search"); ?></span></button>
 						<div class="clear"></div>
 						</div>

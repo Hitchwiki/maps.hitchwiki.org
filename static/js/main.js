@@ -1476,7 +1476,7 @@ function update_add_place(q_lon, q_lat, needsConverting) {
 		// Define AJAX properties.
 		method: "get",
 		url: 'ajax/geocoder.php?mode=reverse&q=' + g_lonLat.lat + ',' + g_lonLat.lon, // + '&c=' + Math.random()
-		dataType: "json",
+		dataType: "json", 
 		timeout: 10000, // timeout in milliseconds; 1s = 1000ms
 	 
 		// Got a place

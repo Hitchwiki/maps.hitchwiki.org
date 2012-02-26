@@ -19,18 +19,29 @@ if($settings["maintenance_page"]===true && !in_array($_SERVER['REMOTE_ADDR'], $s
 } // end of maintenance
 
 
-// Validate user and permitted to publish trips?
-if(!isset($_GET["user_id"]) OR empty($_GET["user_id"])) $user_info = false;
+// Validate user
+if(!isset($_GET["user_id"]) OR !is_id($_GET["user_id"])) $user_info = false;
 else $user_info = user_info($_GET["user_id"]);
 
 
+// Check for trips publicity settings
+if($user_info["private_location"] <= 2) {
+	
+	$logged_user = current_user();
 
-// User validation failed
-if($user_info == false OR $user_info["private_trips"] === true) {
+	if($user["private_location"] <= 2 && $logged_user === false) $error["private_trips"] = $user["private_location"];
+	elseif($user["private_location"] == 1 && $user["id"] != $logged_user["id"]) $error["private_trips"] = 1;
+
+}
+
+
+// User validation failed or no permissions for user's trips
+if($user_info === false OR isset($error["private_trips"])) {
 
 	//if($user_info["private_location"] === true) $maintenance_text = "";
-	if($user_info["private_trips"] === true) $maintenance_text = "User's trips are not public.";
-	else $maintenance_text = "Oops! Something went wrong. Try again later!";
+	if($error["private_trips"] == 1) $maintenance_text = _("User's trips are not public.");
+	elseif($error["private_trips"] == 2) $maintenance_text = _("User's trips are not public.").'<br /><br /><a href="http://hitchwiki.org/en/index.php?title=Special:UserLogin&amp;returnto=Maps.hitchwiki.org" target="_blank">'._("Login").'</a>';
+	else $maintenance_text = _("Oops! Something went wrong. Try again later!");
 
 	include("maintenance_widget.php");
 	exit;

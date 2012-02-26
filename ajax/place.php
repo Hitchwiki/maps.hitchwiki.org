@@ -16,7 +16,7 @@ start_sql();
  */
 if(isset($_GET["id"]) && is_numeric($_GET["id"])) {
 
-	$place = get_place($_GET["id"],true);
+	$place = get_place($_GET["id"],true,true);
 
 }
 else {
@@ -128,7 +128,6 @@ if($place["error"] !== true):
 				    // Print out lang textareas
 				    foreach($settings["valid_languages"] as $code => $name) {
 				        echo '<div id="tab-'.$code.'" class="description">';
-				    	echo '<p>';
 				    	
 				    	if(!empty($place["description"][$code])) {
 				    		
@@ -139,6 +138,7 @@ if($place["error"] !== true):
 				    		if($user!==false && $allow_editing == true) echo '<a href="#" class="edit_description" id="description_'.$code.'" lang="'.langcode($code).'" title="'._("Click to edit").'">';
 
 				    		echo Markdown($place["description"][$code]["description"]);
+				    		
 				    		//'.langcode($code).'
 				    		if($user!==false && $allow_editing == true) {
 				    			echo '</a><div class="edit_description_editing" id="edit_description_editing_'.langcode($code).'" style="display: none;" lang="'.langcode($code).'">';
@@ -204,7 +204,7 @@ if($place["error"] !== true):
 				    		}
 				        }
 				        
-				        echo '</p></div>';
+				        echo '</div><!-- /.description -->'; 
 				    }
 				    ?>
 				</div>

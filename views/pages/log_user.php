@@ -40,9 +40,11 @@ if($user["id"] == $profile["id"]): ?>
 		// START
 		echo '<li id="log-'.$line["log_type"].'-'.$line["id"].'" class="log_'.$line["id"].' icon '.$icon.'">';
 	
+		// Place
+		$place = (!empty($line["fk_point"])) ? place_name($line["fk_point"], true): false;
+		
 		// Who
-		if(!empty($line["fk_user"])) $who = '<strong>'.username($line["fk_user"], true).'</strong>';
-		else $who = _("Anonymous");
+		$who = '<strong>'.$profile["name"].'</strong>';//(!empty($line["fk_user"])) ? '<strong>'.username($line["fk_user"], true).'</strong>': _("Anonymous");
 
 		// What
 		if($line["log_type"] == "place") { 
@@ -74,6 +76,9 @@ if($user["id"] == $profile["id"]): ?>
 
 		// Start meta
 		echo '<br /><small>';
+		
+			// Place
+			if($place !== false && !empty($place)) echo $place.'<br />';
 
 			// When
 			if(!empty($line["datetime"])) echo '<a href="./?page=place_history&amp;place='.$place["id"].'#log-'.$line["log_type"].'-'.$line["id"].'" title="'.date(DATE_RFC822,strtotime($line["datetime"])).'">'.date("j.n.Y H:i",strtotime($line["datetime"])).'</a>';

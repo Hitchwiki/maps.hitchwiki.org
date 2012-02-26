@@ -8,7 +8,7 @@
 		
 		<br />
 
-	<?php if($user["disallow_facebook"] != 1): ?>
+	<?php if($user === false OR $user["disallow_facebook"] != 1): ?>
 
 		<fb:like-box profile_id="133644853341506" width="300" connections="5" stream="true" header="true"></fb:like-box>
 		
@@ -51,7 +51,25 @@
 	<h3><?php echo _("Is there a mobile version available?"); ?></h3>
 	<p><?php echo _("Yes there is!"); ?> <a href="./?page=mobile" onclick="open_page('mobile'); return false;"><?php echo _("Read more..."); ?></a></p>
 	
-
+	<h3><?php echo _("Are there any browser extensions?"); ?></h3>
+	<p><?php echo _("You can install our search to your browser."); ?></p>
+	<p>
+	<ul>
+		<li><a href="javascript:window.external.AddSearchProvider('<?php echo $settings["base_url"]; ?>/opensearch/?lang=<?php echo urlencode($settings["language"]); ?>');"><b>Firefox</b>, <b>Google Chrome</b> &amp; <b>Internet Explorer</b></a></li>
+		<li><b>Opera</b>
+			<br /><?php echo _("Add this to your search engines list:"); ?> 
+			<br /><span class="highlight"><?php echo $settings["base_url"]; ?>/?src=opera&amp;lang=<?php echo urlencode($settings["language"]); ?>&amp;q=%s</span> 
+			<br /><small>(press ctrl+F12 in PC or cmd+F12 in OS-X)</small>
+			</li>
+		<li><b>Safari</b>
+			<br /><?php echo sprintf(_("Install %s."), '<a href="http://www.machangout.com/" target="_blank">Glims</a>')." "._("Add this to your search engines list:"); ?>
+			<br /><span class="highlight"><?php echo $settings["base_url"]; ?>/?src=safari&amp;lang=<?php echo urlencode($settings["language"]); ?>&amp;q=</span> 
+			<br /><small>(<a href="http://www.machangout.com/tutorials/addsearchengine" target="_blank"><?php echo _("Open tutorial"); ?></a>)</small>
+			</li>
+	</ul>
+	</p>
+	
+	
 	<h3><?php echo _("People involved"); ?></h3>
 	<ul>
 		<li><a href="http://www.ihminen.org">Mikael Korpela</a></li>

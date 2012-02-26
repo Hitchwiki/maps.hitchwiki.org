@@ -2,7 +2,7 @@
 # This file is distributed under the same license as the Maps package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2011-09-28 10:00:06+0000\n"
+"PO-Revision-Date: 2012-02-26 11:30:05+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -48,7 +48,7 @@ msgstr ""
 
 #: views/pages/about.php:48
 msgid "Is there a mobile version available?"
-msgstr ""
+msgstr "Ar galima mobili versija?"
 
 #: views/pages/profile.php:127 views/pages/settings.php:211
 msgid "Private. Nobody but you can access your location info."
@@ -270,7 +270,7 @@ msgstr "Mano kelionės"
 
 #: index.php:294
 msgid "Sorry about that!"
-msgstr ""
+msgstr "Atsiprašome!"
 
 #: ajax/header_navi.php:20
 msgid "Log"
@@ -337,7 +337,7 @@ msgstr ""
 
 #: index.php:294
 msgid "The maintenance break is now over"
-msgstr ""
+msgstr "Techinė priežiūra baigta"
 
 #: ajax/place.php:162
 msgid "History"
@@ -381,7 +381,7 @@ msgstr ""
 
 #: ajax/place.php:785
 msgid "Adding a comment failed."
-msgstr ""
+msgstr "Pridėti komentaro nepavyko."
 
 #: ajax/place.php:585
 msgid "Adding a waiting time failed."
@@ -496,7 +496,7 @@ msgstr ""
 
 #: views/pages/api.php:307
 msgid "Creative Commons License"
-msgstr ""
+msgstr "Creative Commons Licencija"
 
 #: views/pages/about.php:21
 msgid "You can show your love to us and recommend Hitchwiki Maps to your hitchhiker mates in Facebook by pressing this cute little button with a familiar icon on it:"
@@ -600,7 +600,7 @@ msgstr ""
 
 #: ajax/js-translation.json.php:49
 msgid "Example:"
-msgstr "Pavyzdžiui:"
+msgstr "Pavyzdys:"
 
 #: ajax/js-translation.json.php:50
 msgid "Not found"
@@ -704,7 +704,7 @@ msgstr "Nepavyko ištrinti šio įrašo. Prašome pabandyti dar kartą!"
 
 #: ajax/place.php:704
 msgid "You are logged in. Your name will be visible for others."
-msgstr "Jūs esate prisijungęs (-usi). Jūsų vardas bus matomas kities nariams."
+msgstr "Jūs prisijungęs. Jūsų vardas bus matomas kitiems."
 
 #: ajax/place.php:592
 msgid "Please add your waiting time first."
@@ -736,7 +736,7 @@ msgstr "Tarpmiestinis / tarptautinis transportas"
 
 #: ajax/header_login.php:77
 msgid "Why register?"
-msgstr "Kodėl verta registruotis?"
+msgstr "Kodėl registruotis?"
 
 #: views/pages/api.php:307 views/pages/api.php:309
 msgid "http://creativecommons.org/licenses/by-sa/3.0/"
@@ -744,7 +744,7 @@ msgstr "http://creativecommons.org/licenses/by-sa/3.0/deed.lt"
 
 #: index.php:629
 msgid "Download"
-msgstr "Atsisųsti"
+msgstr "Atsisiųsti"
 
 #: index.php:630
 msgid "Link here"
@@ -1229,11 +1229,11 @@ msgstr "Nelegali šalies kodas;"
 
 #: ajax/user_settings.php:112
 msgid "Oops! Something went wrong! Try again."
-msgstr "Oi! Kažkas nutiko! Bandykite dar kartą."
+msgstr "Oj! Įvyko klaida! Pabandykite dar kartą!"
 
 #: views/view_404.php:7
 msgid "Error 404 - page not found"
-msgstr "Klaida (404): puslapis nerastas"
+msgstr "Puslapis nerastas"
 
 #: ajax/hitchability_log.php:95
 msgid "Date"
@@ -1359,7 +1359,7 @@ msgstr "Internetinis puslapis"
 #: views/pages/add_public_transport.php:19
 #: views/pages/add_public_transport.php:30
 msgid "Required."
-msgstr "Privalomas"
+msgstr "Privalomas."
 
 #: views/pages/add_public_transport.php:19
 msgid "Please try to add an English version of the page."
@@ -1772,7 +1772,7 @@ msgstr "Nariai"
 
 #: views/pages/api.php:309
 msgid "Licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License"
-msgstr ""
+msgstr "Taikoma Creative Commons Attribution-ShareAlike 3.0 Unported Licencija"
 
 #: views/pages/about.php:9
 msgid "Contact us!"

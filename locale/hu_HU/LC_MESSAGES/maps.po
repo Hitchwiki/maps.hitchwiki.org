@@ -2,7 +2,7 @@
 # This file is distributed under the same license as the Maps package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2011-09-28 10:00:08+0000\n"
+"PO-Revision-Date: 2012-02-26 11:30:06+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -125,7 +125,7 @@ msgstr ""
 
 #: views/pages/settings.php:215
 msgid "Note that if enabled, all your location history and current location will be visible to everyone."
-msgstr ""
+msgstr "Amennyiben engedélyezed, a jelenlegi és korábbi helyzetedre vonatkozó adatok publikussakká lesznek."
 
 #: views/pages/settings.php:215
 msgid "Required if you want to publish your location on your own website."
@@ -207,7 +207,7 @@ msgstr ""
 
 #: views/pages/log_all.php:89
 msgid "Oh! Nothing has changed. Only the desert wind is moving some bits around..."
-msgstr ""
+msgstr "Mi sem változott errefelé. Avagy \"most tél van és csend és hó és halál\"."
 
 #: views/pages/log_all.php:51
 msgid "%1$s waited for a ride in here for %2$s"
@@ -366,7 +366,7 @@ msgstr "Írj nekünk e-mailt (%s) vagy használd az alábbi űrlapot"
 
 #: views/cards/contact.php:8
 msgid "From: %s"
-msgstr ""
+msgstr "Kitől: %s"
 
 #: views/cards/contact.php:10
 msgid "Your email"
@@ -386,7 +386,7 @@ msgstr "Nem sikerült a várakozási időt hozzáadni."
 
 #: views/cards/contact.php:23
 msgid "Include an usage log"
-msgstr ""
+msgstr "Csatolja, hogy mit csináltam az oldalon."
 
 #: views/cards/contact.php:75
 msgid "Sending your message failed."
@@ -453,7 +453,7 @@ msgstr "méter"
 
 #: views/pages/statistics.php:86
 msgid "Highest place"
-msgstr "Legmagasabban fekvő stopphelyek"
+msgstr "Legmagasabb stopphely"
 
 #: views/pages/statistics.php:81
 msgid "Highest hitchhiking places"
@@ -495,7 +495,7 @@ msgstr "Creative Commons"
 
 #: views/pages/about.php:21
 msgid "You can show your love to us and recommend Hitchwiki Maps to your hitchhiker mates in Facebook by pressing this cute little button with a familiar icon on it:"
-msgstr ""
+msgstr "Ajánlhatod stoppos pajtijaidnak a Hitchwiki térképet Facebookon - ezzel melengetve a készítők lelkét. Csak nyomd meg az ismert cuki kis gombot itt ni:"
 
 #: index.php:366
 msgid "http://hitchwiki.org/en/"
@@ -675,7 +675,7 @@ msgstr "A fordítások jelenlegi állását megtekintheted itt: %s"
 
 #: views/pages/why_register.php:7
 msgid "Hitcwiki Maps works with your Hitchwiki-account, so with one login you can access <a href=\"http://hitchwiki.org/\">Wiki</a>, <a href=\"http://hitchwiki.org/community/\">Community</a> and Maps."
-msgstr ""
+msgstr "A Hitchwiki térkép Hitchwiki fiókkal működik. Egy felhasználónévvel tudod használni mind a <a href=\"http://hitchwiki.org/\">Wiki</a>t, a <a href=\"http://hitchwiki.org/community/\">Community</a>-t és a térképet."
 
 #: views/pages/about.php:42
 msgid "Why is the map always centered on Europe?"
@@ -687,7 +687,7 @@ msgstr "A térképen megjelenő pontok többsége Európában található. Amenn
 
 #: views/pages/why_register.php:9
 msgid "When logged in, you will have some more features on this site:"
-msgstr ""
+msgstr "Ha bejelentkezel, a következő szolgáltatásokat tudsz használni:"
 
 #: ajax/hitchability_log.php:160
 msgid "Are you sure you want to remove this record?"
@@ -904,7 +904,7 @@ msgstr "Szerkesztés"
 
 #: lib/functions_public_transport.php:117
 msgid "Remove page permanently"
-msgstr ""
+msgstr "Oldal végleges eltávolítása"
 
 #: lib/functions_public_transport.php:118
 msgid "Edit page"
@@ -1024,12 +1024,12 @@ msgstr "Pénznem"
 
 #: views/pages/statistics.php:29
 msgid "Top %s cities"
-msgstr ""
+msgstr "Top %s város"
 
 #: ajax/country.php:168 ajax/map_statistics.php:47 ajax/map_statistics.php:137
 #: ajax/map_statistics.php:185
 msgid "Places"
-msgstr "Helyek"
+msgstr "Db."
 
 #: ajax/country.php:201
 msgid "Map started to load. This might take some time."
@@ -1102,8 +1102,8 @@ msgstr "Előzmények"
 #: lib/functions.php:487
 msgid "%d experience"
 msgid_plural "%d experiences"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d tapasztalat"
+msgstr[1] "%d tapasztalat"
 
 #: ajax/add_place.php:236
 msgid "hours"
@@ -1187,7 +1187,7 @@ msgstr "Hosszúsági fok"
 
 #: ajax/place.php:1094
 msgid "Remove place"
-msgstr ""
+msgstr "Hely eltávolítása"
 
 #: ajax/place.php:1095
 msgid "Edit place"
@@ -1405,7 +1405,7 @@ msgstr "Top országok"
 
 #: views/pages/complete_statistics.php:25
 msgid "Top cities"
-msgstr ""
+msgstr "Top városok"
 
 #: views/pages/countries.php:1
 msgid "Countries"
@@ -1601,7 +1601,7 @@ msgstr "Profil törlése"
 
 #: views/pages/settings.php:498
 msgid "Profile was NOT reset"
-msgstr ""
+msgstr "A profil NEM lett törölve."
 
 #: views/pages/settings.php:506
 msgid "You cancelled your profile reset."
@@ -1686,7 +1686,7 @@ msgstr "Utak"
 
 #: config.empty.php:116 config.php:150
 msgid "Physical"
-msgstr ""
+msgstr "Domborzat"
 
 #: config.empty.php:121 config.php:155
 msgid "Street"
@@ -1842,4 +1842,4 @@ msgstr ""
 
 #: views/pages/settings.php:498
 msgid "Error while trying to reset your profile. Please try again!"
-msgstr ""
+msgstr "Hiba a profilod törlése során. Próbáld újra!"

@@ -1,9 +1,7 @@
+<?php 
 
-<?= info_sign("This feature is under development and visible only for admins.",false); ?>
-
-<?php
-
-	$lines = gather_log();
+// Receive an array of log events
+$lines = gather_log(); 
 
 ?><h2><?php echo _("Log"); ?></h2>
 
@@ -15,13 +13,11 @@
 
 	if(is_array($lines) && !empty($lines)) {
 	foreach($lines as $line) {
-	
-		#echo '<pre>'.print_r($line,true).'</pre>';
-		
+
 		// empty datetime?
 		// Try to get rid of these already at the query...
 		if(!empty($line["datetime"])){
-		
+
 		// Icon
 		if($line["log_type"] == "comment") $icon = 'comment';
 		elseif($line["log_type"] == "place") $icon = 'map';
@@ -31,13 +27,15 @@
 		elseif($line["log_type"] == "public_transport") $icon = 'underground';
 		elseif($line["log_type"] == "user") $icon = 'user';
 		else $icon = 'tag';
-		
+
 		// START
 		echo '<li id="log-'.$line["log_type"].'-'.$line["id"].'" class="log_'.$line["id"].' icon '.$icon.'">';
-	
+
+		// Place
+		$place = (!empty($line["fk_point"])) ? place_name($line["fk_point"], true): false;
+		
 		// Who
-		if(!empty($line["fk_user"])) $who = '<strong>'.username($line["fk_user"], true).'</strong>';
-		else $who = _("Anonymous");
+		$who = (!empty($line["fk_user"])) ? '<strong>'.username($line["fk_user"], true).'</strong>': _("Anonymous");
 
 		// What
 		if($line["log_type"] == "place") { 
@@ -68,6 +66,9 @@
 
 		// Start meta
 		echo '<br /><small>';
+		
+			// Place
+			if($place !== false && !empty($place)) echo $place.'<br />';
 
 			// When
 			echo '<a href="./?page=place_history&amp;place='.$place["id"].'#log-'.$line["log_type"].'-'.$line["id"].'" title="'.date(DATE_RFC822,strtotime($line["datetime"])).'">'.date("j.n.Y H:i",strtotime($line["datetime"])).'</a>';

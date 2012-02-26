@@ -314,7 +314,7 @@ function nicetime($minutes) {
 *           format = (optional) a php date format (for dates over 1 year)
 * -------------------------------------------------------------
 */
-function relative_date ($timestamp, $days = false, $format = "M j, Y")
+function relative_date ($timestamp, $days = false, $format = "j.n.Y")
 {
     if (!is_numeric($timestamp)) {
         // It's not a time stamp, so try to convert it...
@@ -331,44 +331,50 @@ function relative_date ($timestamp, $days = false, $format = "M j, Y")
 
     // Check if we only want to calculate based on the day
     if ($days && $difference < (60*60*24)) {
-        return "Today";
+        return _("Today");
     }
     if ($difference < 3) {
-        return "Just now";
+        return _("Just now");
     }
     if ($difference < 60) {
-        return $difference . " seconds ago";
+        return sprintf(_("%d seconds ago"), $difference);
     }
     if ($difference < (60*2)) {
-        return "1 minute ago";
+          return sprintf(ngettext("%d minute ago", "%d minutes ago", 1, 1));
     }
     if ($difference < (60*60)) {
-        return intval($difference / 60) . " minutes ago";
+    	  $time = intval($difference / 60);
+          return sprintf(ngettext("%d minute ago", "%d minutes ago", $time, $time));
     }
     if ($difference < (60*60*2)) {
-        return "1 hour ago";
+          return sprintf(ngettext("%d hour ago", "%d hours ago", 1, 1));
     }
-    if ($difference < (60*60*24)) {
-        return intval($difference / (60*60)) . " hours ago";
+    if ($difference < (60*60*24)) {        
+    	  $time = intval($difference / (60*60));
+          return sprintf(ngettext("%d hour ago", "%d hours ago", $time, $time));
     }
     if ($difference < (60*60*24*2)) {
-        return "1 day ago";
+          return sprintf(ngettext("%d day ago", "%d days ago", 1, 1));
     }
     if ($difference < (60*60*24*7)) {
-        return intval($difference / (60*60*24)) . " days ago";
+    	  $time =  intval($difference / (60*60*24));
+          return sprintf(ngettext("%d day ago", "%d days ago", $time, $time));
     }
     if ($difference < (60*60*24*7*2)) {
-        return "1 week ago";
+          return sprintf(ngettext("%d week ago", "%d weeks ago", 1, 1));
     }
     if ($difference < (60*60*24*7*(52/12))) {
-        return intval($difference / (60*60*24*7)) . " weeks ago";
+    	  $time = intval($difference / (60*60*24*7));
+          return sprintf(ngettext("%d week ago", "%d weeks ago", $time, $time));
     }
     if ($difference < (60*60*24*7*(52/12)*2)) {
-        return "1 month ago";
+          return sprintf(ngettext("%d month ago", "%d months ago", 1, 1));
     }
     if ($difference < (60*60*24*364)) {
-        return intval($difference / (60*60*24*7*(52/12))) . " months ago";
+    	  $time = intval($difference / (60*60*24*7*(52/12)));
+          return sprintf(ngettext("%d month ago", "%d months ago", $time, $time));
     }
+
 
     // More than a year ago, just return the formatted date
     return @date($format, $timestamp);

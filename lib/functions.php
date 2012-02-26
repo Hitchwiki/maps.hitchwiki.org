@@ -3,6 +3,13 @@
 /* Hitchwiki - maps
  * Global Maps functions
  * 
+ * - readURL()
+ * - start_sql()
+ * - gather_log()
+ * - image_map()
+ * - error_sign()
+ * - info_sign()
+ * - bubble_description_html()
  */
 require_once("functions_lists.php"); // Lists and statistical
 require_once("functions_public_transport.php"); // Public transportation
@@ -91,7 +98,7 @@ function gather_log($id=false,$type="place") {
 	$query = "
 		SELECT * FROM 
 		(
-				SELECT `id`,`ip`,`datetime`,`fk_user`,
+				SELECT `id`,`ip`,`datetime`,`fk_user`,`fk_point`,
 					 `description` AS `log_entry`,
 					 `language` AS `log_meta`,
 					 'description' AS `log_type`
@@ -101,7 +108,7 @@ function gather_log($id=false,$type="place") {
 
 			UNION ALL
 
-				SELECT `id`,`ip`,`datetime`,`fk_user`,
+				SELECT `id`,`ip`,`datetime`,`fk_user`,`fk_point`,
 					 `rating` AS `log_entry`,
 					 '' AS `log_meta`,
 					 'rating' AS `log_type`
@@ -112,7 +119,7 @@ function gather_log($id=false,$type="place") {
 
 			UNION ALL
 
-				SELECT `id`,`ip`,`datetime`,`fk_user`,
+				SELECT `id`,`ip`,`datetime`,`fk_user`,`fk_point`,
 					 `waitingtime` AS `log_entry`,
 					 '' AS `log_meta`,
 					 'waitingtime' AS `log_type`
@@ -124,6 +131,7 @@ function gather_log($id=false,$type="place") {
 			UNION ALL
 				
 				SELECT `id`,`ip`,`datetime`,`fk_user`,
+					 `fk_place` AS `fk_point`,
 					 `comment` AS `log_entry`,
 					 '' AS `log_meta`,
 					 'comment' AS `log_type`
@@ -135,7 +143,8 @@ function gather_log($id=false,$type="place") {
 			UNION ALL
 
 				SELECT 
-					`id` AS `id`, 
+					`id` AS `id`,
+					`id` AS `fk_point`,
 					'' AS `ip`, 
 					`datetime`, 
 					`user` AS `fk_user`,
@@ -193,7 +202,7 @@ function gather_log($id=false,$type="place") {
 	$query = "
 		SELECT * FROM 
 		(
-				SELECT `id`,`ip`,`datetime`,`fk_user`,
+				SELECT `id`,`ip`,`datetime`,`fk_user`,`fk_point`,
 					 `description` AS `log_entry`,
 					 `language` AS `log_meta`,
 					 'description' AS `log_type`
@@ -203,7 +212,7 @@ function gather_log($id=false,$type="place") {
 
 			UNION ALL
 
-				SELECT `id`,`ip`,`datetime`,`fk_user`,
+				SELECT `id`,`ip`,`datetime`,`fk_user`,`fk_point`,
 					 `rating` AS `log_entry`,
 					 '' AS `log_meta`,
 					 'rating' AS `log_type`
@@ -214,7 +223,7 @@ function gather_log($id=false,$type="place") {
 
 			UNION ALL
 
-				SELECT `id`,`ip`,`datetime`,`fk_user`,
+				SELECT `id`,`ip`,`datetime`,`fk_user`,`fk_point`,
 					 `waitingtime` AS `log_entry`,
 					 '' AS `log_meta`,
 					 'waitingtime' AS `log_type`
@@ -226,6 +235,7 @@ function gather_log($id=false,$type="place") {
 			UNION ALL
 				
 				SELECT `id`,`ip`,`datetime`,`fk_user`,
+					 `fk_place` AS `fk_point`,
 					 `comment` AS `log_entry`,
 					 '' AS `log_meta`,
 					 'comment' AS `log_type`
@@ -238,6 +248,7 @@ function gather_log($id=false,$type="place") {
 
 				SELECT 
 					`id` AS `id`, 
+					`id` AS `fk_point`,
 					'' AS `ip`, 
 					`datetime`, 
 					`user` AS `fk_user`,
@@ -293,7 +304,8 @@ function gather_log($id=false,$type="place") {
 			UNION ALL
 
 
-				SELECT `id`,`ip`,`datetime`,`fk_user`,`fk_place` AS `fk_point`,
+				SELECT `id`,`ip`,`datetime`,`fk_user`,
+					 `fk_place` AS `fk_point`,
 					 `comment` AS `log_entry`,
 					 '' AS `log_meta`,
 					 'comment' AS `log_type`
