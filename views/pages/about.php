@@ -22,11 +22,7 @@
 		
 		<fb:like layout="standard" send="false" width="300" href="<?php echo urlencode($settings["base_url"]); ?>">
 	
-		<script type="text/javascript">
-		    $(function() {
-		    	FB.XFBML.parse(document.getElementById('pages'));
-		    });
-		</script>
+		<script type="text/javascript"> FB.XFBML.parse(document.getElementById('pages')); </script>
 
 	<?php endif; ?>
 
@@ -79,30 +75,29 @@
 	
 	<h3><?php echo _("Translators"); ?> &mdash; <em><?php echo _("Thank you very much!"); ?></em></h3>
 	<ul>
+		<li><?php echo _("Chinese"); ?> &mdash; Mipplor</li>
+		<li><?php echo _("Dutch"); ?> &mdash; Platschi</li>
 		<li><?php echo _("English"); ?> &mdash; Mikael, Platschi</li>
 		<li><?php echo _("Finnish"); ?> &mdash; Mikael</li>
-		<li><?php echo _("German"); ?> &mdash; MrTweek, Platschi</li>
-		<li><?php echo _("Dutch"); ?> &mdash; Platschi</li>
-		<li><?php echo _("Russian"); ?> &mdash; Siberian explorer, Platschi, rAndoM</li>
-		<li><?php echo _("Romanian"); ?> &mdash; montaniard</li>
-		<li><?php echo _("Portuguese"); ?> &mdash; Joao</li>
-		<li><?php echo _("Chinese"); ?> &mdash; Mipplor</li>
-		<li><?php echo _("Lithuanian"); ?> &mdash; Mindo, Prino</li>
-		<li><?php echo _("Italian"); ?> &mdash; Maurizio</li>
-		<li><?php echo _("Polish"); ?> &mdash; Robert, Iza</li>
-		<li><?php echo _("Spanish"); ?> &mdash; Prino</li>
 		<li><?php echo _("French"); ?> &mdash; Perilisk</li>
+		<li><?php echo _("German"); ?> &mdash; MrTweek, Platschi</li>
 		<li><?php echo _("Hungarian"); ?> &mdash; pite, sipmester</li>
+		<li><?php echo _("Italian"); ?> &mdash; Maurizio</li>
+		<li><?php echo _("Lithuanian"); ?> &mdash; Mindo, Prino</li>
+		<li><?php echo _("Polish"); ?> &mdash; Robert, Iza</li>
+		<li><?php echo _("Portuguese"); ?> &mdash; Joao</li>
+		<li><?php echo _("Romanian"); ?> &mdash; montaniard</li>
+		<li><?php echo _("Russian"); ?> &mdash; Siberian explorer, Platschi, rAndoM</li>
+		<li><?php echo _("Spanish"); ?> &mdash; Prino</li>
+		
 		<!-- Not yet published, but we want translators to translate language names alrady...
 		<li><?php echo _("Latvian"); ?> &mdash; Reinis</li>
-		<li><?php echo _("Swedish"); ?> &mdash; </li>
 		<li><?php echo _("English")." ("._("Pirate").")"; ?> &mdash; Mikael <em>(Yarr!)</em></li>
+		<li><?php echo _("Swedish"); ?> &mdash; </li>
 		-->
 	</ul>
-	
+
 	<p><a href="./?page=translate" onclick="open_page('translate'); return false;" class="icon world"><?php echo _("Help us with translating!"); ?></a><br /></p>
-	
-	
 	
 	<div id="used_tech" style="display: none;">
 	<h3><?php echo _("Used technologies"); ?></h3>
@@ -132,16 +127,15 @@
 
 	<h4><?php echo _("Services"); ?></h4>
 	<ul>
-		<li><a href="http://ipinfodb.com/">IPInfoDB API</a></li>
 		<li><a href="http://www.openstreetmap.org/">Open Street Map</a></li>
-		<li><a href="http://maps.google.com/">Google Maps</a></li>
-		<!--
-		<li><a href="http://maps.bing.com/">Bing Maps</a></li>
-		-->
+		<li><a href="http://code.google.com/apis/maps/index.html">Google Maps</a></li>
+		<li><a href="https://www.bingmapsportal.com/">Bing Maps</a></li>
+		<li><a href="http://api.maps.ovi.com/">Nokia Ovi Maps</a></li>
 		<li><a href="http://www.geonames.org/">Geonames</a></li>
 		<li><a href="http://wiki.openstreetmap.org/wiki/Nominatim">Nominatim</a></li>
-		<li><a href="http://en.gravatar.com/">Gravatar</a></li>
-		<li><a href="http://latitude.google.com/">Google Latitude</a></li>
+		<li><a href="http://ipinfodb.com/">IPInfoDB API</a></li>
+		<li><a href="http://en.gravatar.com/site/implement">Gravatar</a></li>
+		<li><a href="http://www.google.com/latitude/api.html">Google Latitude</a></li>
 	</ul>
 	</div>
 	<a href="#" id="used_tech_link" class="icon wrench"><?php echo _("Used technologies"); ?></a>
@@ -153,10 +147,6 @@
 	    	});
 	    });
 	</script>
-	
-	
 
 <div class="clear"></div>
 </div><!-- /textblock -->
-
-

@@ -75,6 +75,7 @@ $basehref = "../";
         
         <script src="../static/js/jquery.min.js" type="text/javascript"></script>
         <script src="http://openlayers.org/api/OpenLayers.js" type="text/javascript"></script>
+		<script src="<?php echo $settings["base_url"]; ?>/ajax/js-translation.json.php?c=<?php echo $settings["cache_buster"]; ?>&amp;lang=<?php echo $settings["language"]; ?>" lang="<?php echo $settings["language"]; ?>" rel="gettext"></script>
         <script type="text/javascript">
 		//<![CDATA[
 
@@ -92,16 +93,12 @@ $basehref = "../";
 		//]]>
         </script>
 		<script src="../static/js/widget.js<?php if($settings["debug"]==true) echo '?cache='.date("jnYHis"); ?>" type="text/javascript"></script>
-		
 		<meta name="description" content="<?php printf(_("This is just a preview map. Go to %s for the actual service."), $settings["base_url"]."/"); ?>" />
 	</head>
 	<body>
 	    <small id="loading-bar"><?php echo _("Loading..."); ?></small>
 
-		<div id="map">
-			<br /><br />
-			<?php echo _("Loading..."); ?>
-		</div>
+		<div id="map"></div>
 
 		<ul id="log" style="display:none;"></ul>
 

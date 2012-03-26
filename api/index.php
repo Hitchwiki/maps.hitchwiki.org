@@ -197,17 +197,34 @@ if(isset($_GET["countries"])) {
 	// List with coordinates?	
 	$coordinates = (isset($_GET["coordinates"])) ? true: false;
 	
+	// List countries from this continent only
+	$by_continent = (isset($_GET["by_continent"]) && strlen($_GET["by_continent"]) == 2) ? strtoupper($_GET["by_continent"]): false;
 	
 	// List stuff out
-	if($_GET["countries"]=="all") echo $api->getCountries(true, $coordinates); // List all countries
-	else echo $api->getCountries(false, $coordinates); // List only countries with places
+	if($_GET["countries"]=="all") echo $api->getCountries(true, $coordinates, $by_continent); // List all countries
+	else echo $api->getCountries(false, $coordinates, $by_continent); // List only countries with places
+
+}
+
+
+/*
+ * Get a list of cities
+ */
+if(isset($_GET["cities"])) {
+
+	// List countries from this continent only
+	$by_country = (isset($_GET["by_country"]) && strlen($_GET["by_country"]) == 2) ? strtoupper($_GET["by_country"]): false;
+	
+	// List stuff out
+	echo $api->getCities($by_country); // List only countries with places
 
 }
 
 
 
+
 /*
- * Get a list of countries
+ * Get country
  */
 if(isset($_GET["country_info"])) {
 

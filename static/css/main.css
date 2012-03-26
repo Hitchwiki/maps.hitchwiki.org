@@ -269,6 +269,7 @@ input[disabled='disabled'] {
 	#map_selector #maplist {
 		margin: 0 0 1px 0;
 		display: block;
+		overflow: hidden;
 		padding: 5px;
 		display: none;
 		z-index: 99997;
@@ -282,24 +283,80 @@ input[disabled='disabled'] {
 			margin: 0;
 			padding: 0;
 		}
-		#map_selector #maplist ul li {
-			padding: 3px 5px;
-			margin: 0;
-			display: block;
-			border-top: 1px solid #ccc4a0;
-		}
-		#map_selector #maplist ul li.first {
-			border: 0;
-		}
-		#map_selector #maplist ul li a.selected {
+			#map_selector #maplist ul li {
+				padding: 4px 0 10px 0;
+				margin: 0;
+				display: block;
+				clear: both;
+				
+				background: transparent url(../gfx/line.gif) 50% 8px repeat-x;
+			}
+				#map_selector #maplist ul li h4 {
+					display: inline;
+					clear: both;
+					background-color: #faf9f3;
+					font-size: 11px;
+					line-height: 12px;
+					text-transform: uppercase;
+					margin: 0;
+					padding: 2px 5px 2px 20px;
+				}
+				#map_selector #maplist ul li ul.map_options {
+					display: block;
+					list-style: none;
+					margin: 0;
+					padding: 5px 0 0 0;
+					clear: both;
+					overflow: hidden;
+				}
+					#map_selector #maplist ul li ul.map_options li {
+						display: block;
+						list-style: none;
+						margin: 1px 2px;
+						padding: 0;
+						float: left;
+						clear: none;
+					}
+						#map_selector #maplist ul li ul.map_options li a {
+						    display: block;
+						    margin: 0;
+						    padding: 2px;
+						    height: 13px;
+						    font-size: 10px;
+						    line-height: 10px;
+						
+						    -webkit-border-radius: 3px;
+						    -moz-border-radius: 3px;
+						    border-radius: 3px;
+						    
+						    background: #f2e9d0;
+						    color: #786238;
+							
+							box-shadow: 1px 1px 1px #fff, inset 1px 1px 0 #dfd7cb;
+							-moz-box-shadow: 1px 1px 1px #fff, inset 1px 1px 0 #dfd7cb;
+							-webkit-box-shadow: 1px 1px 1px #fff, inset 1px 1px 0 #dfd7cb;
+						    
+						}
+						#map_selector #maplist ul li ul.map_options li a:hover,
+						#map_selector #maplist ul li ul.map_options li a:active  {
+						    color: #927846;
+						    background: #f8f1de;
+						}
+						#map_selector #maplist ul li ul.map_options li a.selected{
+						    background: #f2d996;
+						    color: #885900;
+						    
+							box-shadow: 1px 1px 1px #fff, inset 1px 1px 0 #ceb46e;
+							-moz-box-shadow: 1px 1px 1px #fff, inset 1px 1px 0 #ceb46e;
+							-webkit-box-shadow: 1px 1px 1px #fff, inset 1px 1px 0 #ceb46e;
+						}
+/*
 			font-weight: bold;
 			color: #46350b;
-		}
-		#map_selector #maplist ul li a {
-			display: block;
-			margin: 0;
-		}
-
+			
+			border-top: 1px solid #ccc4a0;
+			*/
+			
 textarea.copypaste, 
 input.copypaste {
 	width: 100%;
@@ -369,11 +426,11 @@ textarea.icon {
 }
 
 /* Icons / services */
-.icon-osm 			{ background-image: url(../gfx/icons/osm.png) !important; }
+.icon-osm 				{ background-image: url(../gfx/icons/osm.png) !important; }
 .icon-google 			{ background-image: url(../gfx/icons/google.gif) !important; }
 .icon-google-latitude	{ background-image: url(../gfx/icons/google_latitude.png) !important; }
-.icon-yahoo 			{ background-image: url(../gfx/icons/yahoo.png) !important; }
-.icon-bing 				{ background-image: url(../gfx/icons/bing.gif) !important; }
+.icon-nokia_ovi 		{ background-image: url(../gfx/icons/nokia_ovi.png) !important; }
+.icon-bing 				{ background-image: url(../gfx/icons/bing.png) !important; }
 .icon-ww 				{ background-image: url(../gfx/icons/nasa.png) !important; }
 .icon.facebook 			{ background-image: url(../gfx/icons/facebook.png); }
 .icon.gravatar 			{ background-image: url(../gfx/icons/gravatar.gif); }
@@ -689,7 +746,7 @@ ul.Sidebar {
 		padding: 0;
 		font-size: 13px;
 		line-height: 13px;
-		background: transparent;
+		background-color: #fff !important;
 		border: 0;
 		/*
 		-webkit-border-top-left-radius: 0;
@@ -753,7 +810,8 @@ ul.Sidebar {
 
 
 #nearby {
-	padding: 1px 3px 0 19px;
+	padding: 1px 3px 0 13px;
+	background: url(../gfx/location.png) 0 1px no-repeat;
 	height: 16px;
 	float: right;
 	font-size: 11px;
@@ -1229,6 +1287,7 @@ ol.trips {
 
 
 #PlacePanel {
+	overflow: auto;
 	overflow-x: hidden;
 	display: block;
 	width: 250px;

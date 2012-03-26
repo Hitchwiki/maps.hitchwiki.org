@@ -13,9 +13,6 @@ var map, places, map_center;
 
 $(document).ready(function() {
 
-	// Remove JS-required alert	
-	$("#map").text('');
-
 	// Custom images from our own server
 	OpenLayers.ImgPath = "../static/gfx/openlayers/";
 	
@@ -33,22 +30,6 @@ $(document).ready(function() {
 		}
 	    
 	});
-	
-	/*
-	// Custom images from our own server
-	OpenLayers.ImgPath = "static/gfx/openlayers/";
-	
-	// Create map with controls	
-	map = new OpenLayers.Map('map', {
-		projection: new OpenLayers.Projection("EPSG:4326"),
-		displayProjection: new OpenLayers.Projection("EPSG:4326"),
-		eventListeners: {
-		    "moveend": refreshMapMarkers
-		},
-	    numZoomLevels: 6
-	    
-	});
-	*/
  
  	// Different colors for markers depending on their rating
 	var colors = [	
@@ -270,12 +251,4 @@ function hide_loading_bar() {
 	if($("#loading-bar").is(":visible") == true) {
 		$("#loading-bar").hide();
 	}
-}
-
-
-/*
- * JS Gettext
- */
-function _(str) {
-	return str;
 }

@@ -2,7 +2,7 @@
 
 <a target="_blank" href="http://www.sxc.hu/photo/85875" title="Photo from SXC.hu by hiphop."><img src="static/gfx/api.jpg" alt="" class="align_right" style="margin: 0 0 20px 20px;" /></a>
 
-<p>w00t? Yeah, you can now read Hitchwiki Maps database trough an open API! It's the same API we use at our JavaScript frontend.</p>
+<p>w00t? Yeah, you can now read Hitchwiki Maps database trough an open API! It's the same API we use at our JavaScript frontend for web and mobile.</p>
 
 <p>API call base URL: <code class="highlight"><?php echo $settings["base_url"]; ?>/api/</code></p>
 

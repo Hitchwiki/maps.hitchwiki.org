@@ -70,11 +70,11 @@ start_sql();
 	// Map layer: google
 	$map_google = ($_POST["map_google"] == "true") ? '1': 'NULL';
 	
-	// Map layer: yahoo
-	$map_yahoo = ($_POST["map_yahoo"] == "true") ? '1': 'NULL';
+	// Map layer: bing
+	$map_bing = ($_POST["map_bing"] == "true") ? '1': 'NULL';
 	
-	// Map layer: virtual earth
-	$map_vearth = ($_POST["map_vearth"] == "true") ? '1': 'NULL';
+	// Map layer: ovi
+	$map_ovi = ($_POST["map_ovi"] == "true") ? '1': 'NULL';
 	
 	// Default map layer
 	$map_default_layer = (!empty($_POST["map_default_layer"])) ? "'".mysql_real_escape_string($_POST["map_default_layer"])."'": 'NULL';
@@ -99,8 +99,8 @@ start_sql();
 	    		`allow_gravatar` = ".$allow_gravatar.",
 	    		`disallow_facebook` = ".$disallow_facebook.",
 				`map_google` = ".$map_google.",
-				`map_yahoo` = ".$map_yahoo.",
-				`map_vearth` = ".$map_vearth.",
+				`map_bing` = ".$map_bing.",
+				`map_ovi` = ".$map_ovi.",
 				`map_default_layer` = ".$map_default_layer."
 	    	WHERE `id` = ".mysql_real_escape_string($_POST["user_id"])." LIMIT 1;";
 	

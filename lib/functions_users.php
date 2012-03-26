@@ -72,15 +72,15 @@ function user_info($user_id) {
 			$user["language"] = $r["language"];
 			$user["registered"] = $r["registered"];
 			$user["last_seen"] = $r["last_seen"];
-			$user["private_location"] = (empty($r["private_location"]) OR !is_numeric($r["private_location"])) ? 1: $r["private_location"];
+			$user["private_location"] = $r["private_location"];
 			#$user["private_trips"] = false;
 			$user["google_latitude"] = $r["google_latitude"];
 			$user["centered_glatitude"] = $r["centered_glatitude"];
 			$user["allow_gravatar"] = $r["allow_gravatar"];
 			$user["disallow_facebook"] = $r["disallow_facebook"];
 			$user["map_google"] = $r["map_google"];
-			$user["map_yahoo"] = $r["map_yahoo"];
-			$user["map_vearth"] = $r["map_vearth"];
+			$user["map_ovi"] = $r["map_ovi"];
+			$user["map_bing"] = $r["map_bing"];
 			$user["map_default_layer"] = $r["map_default_layer"];
 			
 			// Admin?
@@ -125,15 +125,15 @@ function get_user($session=false) {
 			$user["language"] = $r["language"];
 			$user["registered"] = $r["registered"];
 			$user["last_seen"] = $r["last_seen"];
-			$user["private_location"] = (empty($r["private_location"]) OR !is_numeric($r["private_location"])) ? 1: $r["private_location"];
+			$user["private_location"] = $r["private_location"];
 			#$user["private_trips"] = false;
 			$user["google_latitude"] = $r["google_latitude"];
 			$user["centered_glatitude"] = $r["centered_glatitude"];
 			$user["allow_gravatar"] = $r["allow_gravatar"];
 			$user["disallow_facebook"] = $r["disallow_facebook"];
 			$user["map_google"] = $r["map_google"];
-			$user["map_yahoo"] = $r["map_yahoo"];
-			$user["map_vearth"] = $r["map_vearth"];
+			$user["map_ovi"] = $r["map_ovi"];
+			$user["map_bing"] = $r["map_bing"];
 			$user["map_default_layer"] = $r["map_default_layer"];
 			
 			// Admin?

@@ -47,9 +47,9 @@ if($user["logged_in"]===true): ?>
 	
 	<label><?php echo _("Used map services"); ?></label><br />
 	<input type="checkbox" name="map_osm" id="map_osm" disabled="disabled" checked="checked" value="true" /><label for="map_osm" class="icon icon-osm">Open Street Maps</label><br />
-	<?php if(!empty($settings["google"]["api"]["maps_key"])): ?><input type="checkbox" name="map_google" id="map_google" value="true" <?php if($user["map_google"]==1) echo 'checked="checked" '; ?>/><label for="map_google" class="icon icon-google">Google Maps</label><br /><?php endif; ?>
-	<?php if(!empty($settings["yahoo"]["maps_appid"])): ?><input type="checkbox" name="map_yahoo" id="map_yahoo" value="true" <?php if($user["map_yahoo"]==1) echo 'checked="checked" '; ?>/><label for="map_yahoo" class="icon icon-yahoo">Yahoo Maps</label><br /><?php endif; ?>
-	<?php if($settings["ms"]["virtualearth"]===true): ?><input type="checkbox" name="map_vearth" id="map_vearth" value="true" <?php if($user["map_vearth"]==1) echo 'checked="checked" '; ?>/><label for="map_vearth" class="icon icon-bing">Microsoft Virtual Earth</label><br /><?php endif; ?>
+	<?php if($settings["google"]["api"]["maps"]===true): ?><input type="checkbox" name="map_google" id="map_google" value="true" <?php if($user["map_google"]==1) echo 'checked="checked" '; ?>/><label for="map_google" class="icon icon-google">Google Maps</label><br /><?php endif; ?>
+	<?php if($settings["ovi"]["maps"]===true): ?><input type="checkbox" name="map_ovi" id="map_ovi" value="true" <?php if($user["map_ovi"]==1) echo 'checked="checked" '; ?>/><label for="map_ovi" class="icon icon-nokia_ovi">Nokia Ovi Maps</label><br /><?php endif; ?>
+	<?php if(!empty($settings["bing"]["maps_api"])): ?><input type="checkbox" name="map_bing" id="map_bing" value="true" <?php if($user["map_bing"]==1) echo 'checked="checked" '; ?>/><label for="map_bing" class="icon icon-bing">Microsoft Bing Maps</label><br /><?php endif; ?>
 	<br />
 	
 	<label for="map_default_layer"><?php echo _("Default map layer"); ?></label><br />
@@ -62,7 +62,7 @@ if($user["logged_in"]===true): ?>
 		<?php
 
 		// Google
-		if(!empty($settings["google"]["api"]["maps_key"]) && $user["map_google"] == 1) {
+		if($settings["google"]["api"]["maps"] === true && $user["map_google"] == 1) {
 			echo '<optgroup label="Google">';
 		    foreach($map_layers["google"] as $map => $name) {
 		    	echo '<option class="map_google" value="'.$map.'"';
@@ -72,22 +72,22 @@ if($user["logged_in"]===true): ?>
 			echo '</optgroup>';
 		}
 
-		// Yahoo
-		if(!empty($settings["yahoo"]["maps_appid"]) && $user["map_yahoo"] == 1) {
-			echo '<optgroup label="Yahoo">';
-		    foreach($map_layers["yahoo"] as $map => $name) {
-		    	echo '<option class="map_yahoo" value="'.$map.'"';
+		// Nokia Ovi
+		if($settings["ovi"]["maps"]===true && $user["map_ovi"] == 1) {
+			echo '<optgroup label="Nokia Ovi">';
+		    foreach($map_layers["ovi"] as $map => $name) {
+		    	echo '<option class="map_ovi" value="'.$map.'"';
 		    	if($user["map_default_layer"]==$map) echo ' selected="selected"';
 		    	echo '>'.$name.'</option>';
 		    }
 			echo '</optgroup>';
 		}
 
-		// Virtual Earth
-		if($settings["ms"]["virtualearth"]===true && $user["map_vearth"] == 1) {
-			echo '<optgroup label="Virtual Earth">';
-		    foreach($map_layers["vearth"] as $map => $name) {
-		    	echo '<option class="map_vearth" value="'.$map.'"';
+		// Bing
+		if(!empty($settings["bing"]["maps_api"]) && $user["map_bing"] == 1) {
+			echo '<optgroup label="Bing">';
+		    foreach($map_layers["bing"] as $map => $name) {
+		    	echo '<option class="map_bing" value="'.$map.'"';
 		    	if($user["map_default_layer"]==$map) echo ' selected="selected"';
 		    	echo '>'.$name.'</option>';
 		    }
@@ -292,11 +292,11 @@ $(function() {
 		if($("#profile_form #map_default_layer option[value='"+selected_layer+"']").hasClass("map_google")) {
 			$("#profile_form input[name='map_google']").attr('checked', true);
 		}
-		else if($("#profile_form #map_default_layer option[value='"+selected_layer+"']").hasClass("map_yahoo")) {
-			$("#profile_form input[name='map_yahoo']").attr('checked', true);
+		else if($("#profile_form #map_default_layer option[value='"+selected_layer+"']").hasClass("map_ovi")) {
+			$("#profile_form input[name='map_ovi']").attr('checked', true);
 		}
-		else if($("#profile_form #map_default_layer option[value='"+selected_layer+"']").hasClass("map_vearth")) {
-			$("#profile_form input[name='map_vearth']").attr('checked', true);
+		else if($("#profile_form #map_default_layer option[value='"+selected_layer+"']").hasClass("map_bing")) {
+			$("#profile_form input[name='map_bing']").attr('checked', true);
 		}
 		
 	});
@@ -387,7 +387,7 @@ $(function() {
 			var p_map_default_layer = $("#profile_form #map_default_layer").val();
 			
 			
-			<?php if(!empty($settings["google"]["api"]["maps_key"])): ?>
+			<?php if($settings["google"]["api"]["maps"]===true): ?>
 			if($("#profile_form #map_google").is(":checked")) {
 				var p_map_google = "true";
 			} else {
@@ -395,19 +395,19 @@ $(function() {
 			}
 			<?php endif; ?>
 			
-			<?php if(!empty($settings["yahoo"]["maps_appid"])): ?>
-			if($("#profile_form #map_yahoo").is(":checked")) {
-				var p_map_yahoo = "true";
+			<?php if($settings["ovi"]["maps"]===true): ?>
+			if($("#profile_form #map_ovi").is(":checked")) {
+				var p_map_ovi = "true";
 			} else {
-				var p_map_yahoo = "false";
+				var p_map_ovi = "false";
 			}
 			<?php endif; ?>
 			
-			<?php if($settings["ms"]["virtualearth"]===true): ?>
-			if($("#profile_form #map_vearth").is(":checked")) {
-				var p_map_vearth = "true";
+			<?php if(!empty($settings["bing"]["maps_api"])): ?>
+			if($("#profile_form #map_bing").is(":checked")) {
+				var p_map_bing = "true";
 			} else {
-				var p_map_vearth = "false";
+				var p_map_bing = "false";
 			}
 			<?php endif; ?>
 			
@@ -446,9 +446,9 @@ $(function() {
 				    google_latitude: p_google_latitude,
 				    allow_gravatar: p_allow_gravatar,
 				    disallow_facebook: p_disallow_facebook,
-				    <?php if(!empty($settings["google"]["api"]["maps_key"])): ?>map_google: p_map_google,<?php endif; ?>
-				    <?php if(!empty($settings["yahoo"]["maps_appid"])): ?>map_yahoo: p_map_yahoo,<?php endif; ?>
-				    <?php if($settings["ms"]["virtualearth"]===true): ?>map_vearth: p_map_vearth,<?php endif; ?>
+				    <?php if($settings["google"]["api"]["maps"]===true): ?>map_google: p_map_google,<?php endif; ?>
+				    <?php if($settings["ovi"]["maps"]===true): ?>map_ovi: p_map_ovi,<?php endif; ?>
+				    <?php if(!empty($settings["bing"]["maps_api"])): ?>map_bing: p_map_bing,<?php endif; ?>
 				    map_default_layer: p_map_default_layer,
 				    centered_glatitude: p_centered_glatitude,
 				    country: p_country<?php

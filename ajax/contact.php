@@ -25,6 +25,8 @@ if(isset($_POST) && !empty($_POST)) {
 	
 	$message .= '<p><a href="'.$settings["base_url"].'">'.$settings["base_url"].'</a></p></body></html>';
 	
+	if(isset($_POST["source"]) && !empty($_POST["source"])) $message .= "<h4>Sent from:</h4>\n\n".stripslashes($_POST["source"])."<br /><br />\n\n";
+	
 	// From + send it
 	if(isset($_POST["email"]) && !empty($_POST["email"])) $from = $_POST["email"].",";
 	else $from = "";
@@ -44,6 +46,6 @@ if(isset($_POST) && !empty($_POST)) {
 }
 else $output["error"] = true;
 
-echo json_encode($output);
+if(!$ajax_include) echo json_encode($output);
 
 ?>

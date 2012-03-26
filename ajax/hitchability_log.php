@@ -83,7 +83,6 @@ if(mysql_affected_rows() >= 1):
 	
 	if(isset($_GET["stats"])): ?>
 	    <br /><small><?php echo _("Vote distribution"); ?>:</small><br />
-	    <!--<img src="<?php echo rating_chart($place["rating_stats"], 220); ?>" alt="<?php echo _("Vote distribution"); ?>" />-->
 	    <?php echo rating_chart_html($place["rating_stats"]); ?>
 	<?php endif; ?>
 
@@ -115,19 +114,28 @@ if(mysql_affected_rows() >= 1):
 		
 		// Username
 		echo '<td>';
-		if(!empty($user["id"]) && $user["id"] == $rating["user_id"]) echo '<strong>';
-		
+
 		if(!empty($rating["user_id"])) {
+			
+			
+			// You?
+			if(!empty($user["id"]) && $user["id"] == $rating["user_id"]) echo '<strong>';
+		
+			// Profile link
 			echo '<a href="./?page=profile&amp;user_id='.$rating["user_id"].'" onclick="open_page(\'profile\', \'user_id='.$rating["user_id"].'\'); return false;" title="';
-	
+		
 			if(!empty($user["id"]) && $user["id"] == $rating["user_id"]) echo _("That's you!");
 			else echo _("Profile");
 		
-			echo '">'.$rating["username"];
+			echo '">'.$rating["username"].'</a>';
+			
+			// You?
+			if(!empty($user["id"]) && $user["id"] == $rating["user_id"]) echo '</strong>';
 		
-		} else echo $rating["username"];
+		} 
+		// Not registered user...
+		else echo $rating["username"];
 		
-		if(!empty($user["id"]) && $user["id"] == $rating["user_id"]) echo '<strong>';
 		echo '</td>';
 		
 		

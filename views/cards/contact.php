@@ -1,5 +1,5 @@
 
-<h4><?php printf(_("Drop us an email to %s or use this form"), '<a href="'.$settings["email"].'">'.$settings["email"].'</a>'); ?></h4>
+<h4><?php printf(_("Drop us an email to %s or use this form"), '<a href="mailto:'.$settings["email"].'">'.$settings["email"].'</a>'); ?></h4>
 
 <form id="contact_form" action="#">
 <?php

@@ -75,7 +75,123 @@ function start_sql() {
 } 
 
 
+/* Mobile icons and startup screens
+ * HTML Header function
+ */
+function mobile_meta($mobile_device=true) {
+	global $settings;
 
+	$end = "\n\t";
+
+	$app_icons_and_screens = $settings["base_url"].'/static/mobile/gfx/app_icons-screens/';
+
+	/*
+	 * Mobile browsers
+	 */
+	echo '<link rel="shortcut icon" href="'.$settings["base_url"].'/favicon.png" type="image/png" />'.$end;
+	echo '<link rel="bookmark icon" href="'.$settings["base_url"].'/favicon.png" type="image/png" />'.$end;
+
+
+	/*
+	 * Apple devices -- Mobile meta & links
+	 * Original https://gist.github.com/472519 by jdaihl
+	 *
+
+	Reference:
+	
+		Custom Icon and Image Creation Guidelines:
+		http://developer.apple.com/library/safari/#documentation/UserExperience/Conceptual/MobileHIG/IconsImages/IconsImages.html
+		
+		Configuring Web Applications:
+		http://developer.apple.com/library/safari/#documentation/appleapplications/reference/safariwebcontent/configuringwebapplications/configuringwebapplications.html
+		
+		Configuring the Viewport:
+		http://developer.apple.com/library/safari/#documentation/appleapplications/reference/safariwebcontent/UsingtheViewport/UsingtheViewport.html
+		
+		Optimizing Web Content:
+		http://developer.apple.com/library/safari/#documentation/appleapplications/reference/safariwebcontent/OptimizingforSafarioniPhone/OptimizingforSafarioniPhone.html
+	*/
+	
+	// These only for truly mobile devices
+	if($mobile_device) {
+	
+		// VIEWPORT
+	
+		// optimized for mobile
+		echo '<meta name="viewport" content="width=device-width, initial-scale=1" />'.$end;
+		
+		// optimized for mobile, zoom/scaling disabled
+		echo '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />'.$end;
+		
+		
+		// BROWSER CHROME
+		
+		// status bar styles: default, black, or black-translucent
+		echo '<meta name="apple-mobile-web-app-status-bar-style" content="black" />'.$end;
+		
+		// hides browser chrome
+		echo '<meta name="apple-mobile-web-app-capable" content="yes" />'.$end;
+	}
+	
+	// HOME SCREEN ICONS
+
+	// home screen icon
+	echo '<link rel="apple-touch-icon" href="'.$app_icons_and_screens.'icon_57x57.png" />'.$end;
+	
+	// home screen icon - ipad
+	//echo '<link rel="apple-touch-icon" href="'.$app_icons_and_screens.'icon_72x72.png" media="screen and (min-device-width: 481px) and (max-device-width: 1024px)" />'.$end;
+	// -- or --
+	echo '<link rel="apple-touch-icon" sizes="72x72" href="'.$app_icons_and_screens.'icon_72x72.png" />'.$end;
+	
+	// home screen icon - high res
+	//echo '<link rel="apple-touch-icon" href="/customIcon.png" media="screen and (-webkit-min-device-pixel-ratio: 2)" />'.$end;
+	// -- or --
+	echo '<link rel="apple-touch-icon" sizes="114x114" href="/icon_114x114.png" />'.$end;
+	
+	// home screen icon, omits iOS embellishments, works in Android
+	//echo '<link rel="apple-touch-icon-precomposed" href="/customIcon.png" />'.$end;
+	
+	// home screen icon, omits iOS embellishments - ipad
+	//echo '<link rel="apple-touch-icon-precomposed" href="/customIcon.png" media="screen and (min-device-width: 481px) and (max-device-width: 1024px)" />'.$end;
+	// -- or --
+	//echo '<link rel="apple-touch-icon-precomposed" sizes="72x72" href="/customIcon.png" />'.$end;
+	
+	// home screen icon, omits iOS embellishments - high res
+	//echo '<link rel="apple-touch-icon-precomposed" href="/customIcon.png" media="screen and (-webkit-min-device-pixel-ratio: 2)" />'.$end;
+	// -- or --
+	//echo '<link rel="apple-touch-icon-precomposed" sizes="114x114" href="'.$app_icons_and_screens.'icon-72x72.png" />'.$end;
+	
+	
+	// These only for truly mobile devices
+	if($mobile_device) {
+	
+	// STARTUP IMAGES
+	
+	// startup image for web apps - iPad - landscape (748x1024) 
+	//     Note: iPad landscape startup image has to be exactly 748x1024 pixels (portrait, with contents rotated).-->
+	echo '<link rel="apple-touch-startup-image" href="'.$app_icons_and_screens.'startup-landscape_748x1024.png" media="screen and (min-device-width: 481px) and (max-device-width: 1024px) and (orientation:landscape)" />'.$end;
+	
+	// startup image for web apps - iPad - portrait (768x1004)
+	echo '<link rel="apple-touch-startup-image" href="'.$app_icons_and_screens.'startup-portrait_748x1004.png" media="screen and (min-device-width: 481px) and (max-device-width: 1024px) and (orientation:portrait)" />'.$end;
+	
+	// startup image for web apps (320x460)
+	echo '<link rel="apple-touch-startup-image" href="'.$app_icons_and_screens.'startup-portrait_320x460.png" media="screen and (max-device-width: 320px)" />'.$end;
+
+	// startup image for web apps iPod/Iphone high res (640x920)
+	// note that in docs mentioned size is 640x960, but it's actually 640x920
+	echo '<link rel="apple-touch-startup-image" href="'.$app_icons_and_screens.'startup-portrait_640x920.png" media="(max-device-width: 480px) and (-webkit-min-device-pixel-ratio: 2)" />'.$end;
+
+	}
+
+	/*
+	 * Google Devices -- Mobile meta & links
+	 */
+	echo '<link rel="icon" href="'.$app_icons_and_screens.'icon_32x32.png" sizes="32x32" />'.$end;
+	echo '<link rel="icon" href="'.$app_icons_and_screens.'icon_48x48.png" sizes="48x48" />'.$end;
+	echo '<meta name="application-name" content="Hitchwiki '._("Maps").'"/>'.$end;
+	echo '<meta name="application-url" content="'.$settings["mobile_url"].'"/>'.$end;
+
+}
 
 
 /*
@@ -394,23 +510,28 @@ function gather_log($id=false,$type="place") {
  *
  * Optional:
  * - zoom
- * - format (png|jpg)
- * - width
- * - height
+ * - format (png|jpg|gif)
+ * - width (in px, max 2048)
+ * - height (in px, max 2048)
  *
- * returns an url to the image from openstreetmap
- * e.g. http://tah.openstreetmap.org/MapOf/?lat=62&long=23&z=13&w=500&h=500&skip_attr=on&format=jpeg
+ * returns an url to the image from openstreetmap via open mapquestapi
+ * http://open.mapquestapi.com/staticmap/
  */
-function image_map($lat, $lon, $zoom=15, $format='png', $width=150, $height=150) {
+function image_map($lat, $lon, $zoom=15, $format='png', $width=150, $height=150, $type='map') {
 
 	if(!validate_lon($lon) OR !validate_lat($lat) OR $zoom===false OR $zoom < 0 OR $width <= 0 OR $height <= 0) 
 	  return false;
 
-	elseif($format != 'png' && $format != 'jpeg') 
+	elseif($format != 'png' && $format != 'jpeg' && $format != 'jpg' && $format != 'gif') 
 	  return false;
 
-	else 
-	  return 'http://tah.openstreetmap.org/MapOf/?lat='.urlencode($lat).'&long='.urlencode($lon).'&z='.urlencode($zoom).'&w='.urlencode($width).'&h='.urlencode($height).'&skip_attr=on&format='.urlencode($format);
+	elseif($type != 'map' && $type != 'sat' && $type != 'hyb') 
+	  return false;
+
+	else
+	//		   'http://open.mapquestapi.com/staticmap/v3/getmap?size=600,200&zoom=14&shapeformat=cmp&center=40.770021,-73.984003&shape=y_zwFjsrbMxWkz@??}DoC??a@}CyBt@ySiN??fDeP&scenter=40.77069,-73.992378&ecenter=40.770935,-73.97644';
+		return 'http://open.mapquestapi.com/staticmap/v3/getmap?size='.urlencode($width).','.urlencode($height).'&zoom='.urlencode($zoom).'&center='.urlencode($lat).','.urlencode($lon).'&type='.$type.'&imageType='.$format; 
+	  //return 'http://tah.openstreetmap.org/MapOf/?lat='.urlencode($lat).'&long='.urlencode($lon).'&z='.urlencode($zoom).'&w='.urlencode($width).'&h='.urlencode($height).'&skip_attr=on&format='.urlencode($format);
 
 }
 
@@ -419,7 +540,8 @@ function image_map($lat, $lon, $zoom=15, $format='png', $width=150, $height=150)
  * Print out an error sign
  */
 function error_sign($msg=false, $hide=true) {
-
+	global $settings;
+	
 	$random = time();
 	
 	$title = _("Error");
@@ -429,10 +551,16 @@ function error_sign($msg=false, $hide=true) {
 	} else $msg = "";
 	
 	// Print error sign
-	echo '<div class="ui-state-error ui-corner-all" style="padding: 0 .7em; margin: 10px 0;" id="error_'.$random.'">'. 
-	    '<p><span class="ui-icon ui-icon-alert" style="float: left; margin-right: .3em;"></span> '.
-	    '<strong>'.$title.'</strong> <span class="error_text">'.$msg.'</span></p>'.
-	    '</div>';
+	if($settings["mobile"]) {
+		echo '<div class="ui-body ui-body-e" style="padding: 0 .7em; margin: 10px 0;" id="error_'.$random.'">'. 
+		    '<p><strong>'.$title.'</strong><br/><span class="error_text">'.$msg.'</span></p>'.
+		    '</div>';
+	} else {
+		echo '<div class="ui-state-error ui-corner-all" style="padding: 0 .7em; margin: 10px 0;" id="error_'.$random.'">'. 
+		    '<p><span class="ui-icon ui-icon-alert" style="float: left; margin-right: .3em;"></span> '.
+		    '<strong>'.$title.'</strong> <span class="error_text">'.$msg.'</span></p>'.
+		    '</div>';
+	}
 	
 	// Hides error
 	if($hide==true) {
@@ -450,15 +578,21 @@ function error_sign($msg=false, $hide=true) {
 function info_sign($msg=false, $hide=true) {
 
 	$random = time();
-	
+
 	if(!empty($msg)) {
-	
+
 		// Print info sign
-		echo '<div class="ui-state-highlight ui-corner-all" style="padding: 0 .7em; margin: 20px 0;" id="info_'.$random.'">'. 
-		    '<p><span class="ui-icon ui-icon-info" style="float: left; margin-right: .3em;"></span>  '.
-		    '<span class="info_text">'.htmlspecialchars($msg).'</span></p>'.
-		    '</div>';
-		
+		if($settings["mobile"]) {
+			echo '<div class="ui-body ui-body-e" style="padding: 0 .7em; margin: 10px 0;" id="info_'.$random.'">'. 
+			    '<p><span class="info_text">'.htmlspecialchars($msg).'</span></p>'.
+			    '</div>';
+		} else {
+			echo '<div class="ui-state-highlight ui-corner-all" style="padding: 0 .7em; margin: 20px 0;" id="info_'.$random.'">'. 
+			    '<p><span class="ui-icon ui-icon-info" style="float: left; margin-right: .3em;"></span>  '.
+			    '<span class="info_text">'.htmlspecialchars($msg).'</span></p>'.
+			    '</div>';
+		}
+
 		// Hides info
 		if($hide==true) {
 			echo '<script type="text/javascript">'.

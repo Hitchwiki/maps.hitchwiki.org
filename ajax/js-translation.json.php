@@ -28,7 +28,12 @@ $strings = array(
 	"Error",
 	"Updating description failed.",
 	"Please try again!",
-	"Hitchhiking spot"
+	"Hitchhiking spot",
+	"Satellite",
+	"Hybrid",
+	"Streets",
+	"Physical",
+	"Transit"
 );
 
 
@@ -54,10 +59,14 @@ $poedit = array(
 	_("Error"),
 	_("Updating description failed."),
 	_("Please try again!"),
-	_("Hitchhiking spot")
+	_("Hitchhiking spot"),
+	_("Satellite"),
+	_("Hybrid"),
+	_("Streets"),
+	_("Physical"),
+	_("Transit")
 );
-
-
+unset($poedit);
 
 $translated_strings = array();
 
@@ -68,6 +77,21 @@ foreach($strings as $string) {
 
 }
 
-echo json_encode($translated_strings);
-
 ?>
+/*
+ * Simple JS Gettext
+ */
+var translations = <?= json_encode($translated_strings); ?>;
+
+if(typeof _ == 'function'){ 
+	function _(str) {
+	
+		// Debug if debugger available
+		//if(typeof maps_debug == 'function'){ maps_debug("Init JS translations."); }
+
+		// Translate
+		if(translations[str]) { return translations[str]; }
+		else { return str; }
+		
+	} //_
+}// _ exists yet?

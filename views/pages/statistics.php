@@ -47,7 +47,7 @@
 <div class="align_left" style="margin: 0 40px 20px 0;">
 
 	<!-- top continents -->
-	<h3 class="icon world"><?php printf( _( 'By continents' ), "20" ); ?></h3>
+	<h3 class="icon world"><?php echo _( 'By continents' ); ?></h3>
 	<table class="infotable" cellspacing="0" cellpadding="0">
 		<thead>
 			<tr>

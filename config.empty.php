@@ -22,7 +22,7 @@ $settings["cookie_prefix"] = 			"hitchwiki_maps_";
 $settings["hitchability_colors"] = 		array('ffffff','00ad00','96ad00','ffff00','ff8d00','ff0000'); // Rating => hex color without # (0-5)
 
 // Services
-$settings["google"]["api"]["maps_key"] = 	""; // API key to enable
+$settings["google"]["api"]["maps"] = 		true; // false|true to enable
 $settings["yahoo"]["maps_appid"] = 			""; // APP ID to enable
 $settings["ms"]["virtualearth"] = 			false; // false|true to enable
 $settings["geonames"]["user"] = 			""; // User account for geonames.org
@@ -77,6 +77,7 @@ $settings["languages_in_english"] = 	array(
 // Usually you don't need to edit this, but you can set it manually, too. No ending "/".
 $settings["base_url"] = "http://hitchwiki.org/maps";
 $settings["base_url_demo"] 	= "http://hitchwiki.org/devmaps";
+$settings["mobile_url"] = $settings["base_url"]."/mobile";
 #TODO, automate this. "http" . ((!empty($_SERVER['HTTPS'])) ? "s" : "") . "://".$_SERVER['SERVER_NAME'].dirname($_SERVER['REQUEST_URI']);
 
 /*

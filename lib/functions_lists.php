@@ -24,24 +24,26 @@
  * world: true | false (default) (list's all the countries, even without any markers)
  * coordinates: true | false (default)
  */
-function list_countries($type="array", $order="name", $limit=false, $count=true, $world=false, $coordinates=false, $selected_country=false) {
+function list_countries($type="array", $order="name", $limit=false, $count=true, $world=false, $coordinates=false, $selected_country=false, $continent=false) {
 	start_sql();
 
 	// Get all country iso-codes
-	$codes = countrycodes();
+	$countrycodes = countrycodes();
 	
 	// Get also coordinates
 	if($coordinates==true) $country_coordinates = country_coordinates();
 	
-	if($world==true) $empty_countries = $codes;
+	if($world==true) $empty_countries = $countrycodes;
 	
 	
 	// Build up a query
 	$query = "SELECT `country`, count(*) AS cnt
 	                    FROM `t_points`
-	                    WHERE `type` = 1
-	                    GROUP BY `country`";
+	                    WHERE `type` = 1";
 	
+	if(!empty($continent) && strlen($continent) == 2) $query .= " AND `continent` = '".mysql_real_escape_string($continent)."'";
+	
+	$query .= ' GROUP BY `country`';
 	
 	if($order=="markers") $query .= " ORDER BY cnt DESC";
 	elseif($order=="name") $query .= " ORDER BY country ASC";
@@ -60,7 +62,7 @@ function list_countries($type="array", $order="name", $limit=false, $count=true,
 		if($world==true) unset($empty_countries[$r['country']]);
 	
 		// Get translated countryname
-		$countryname = ISO_to_country($r['country'], $codes);
+		$countryname = ISO_to_country($r['country'], $countrycodes);
 	
 		// Gather an array
 		$country_array[$countryname]["iso"] = $r['country'];
@@ -167,7 +169,7 @@ function list_cities($type="array", $order="markers", $limit=false, $count=true,
 	start_sql();
 	
 	// Get ISO-countrycode list with countrynames
-	$codes = countrycodes();
+	$countrycodes = countrycodes();
 	
 	// Start building a query
 	$query = "SELECT country, locality, count(*) AS cnt FROM `t_points` WHERE `type` = 1 AND `locality` IS NOT NULL";
@@ -187,26 +189,25 @@ function list_cities($type="array", $order="markers", $limit=false, $count=true,
 	else {
 		$user_id = false;
 	}
-	
-	
+
 	// Continue with query...
-	$query .= " GROUP BY country, locality ORDER BY cnt DESC";
+	$query .= " GROUP BY country, locality ORDER BY ";
 	
+	// Order by name or marker count?
+	$query .= ($order == "name")? "locality,cnt": "cnt,locality";
+
+	$query .= " DESC;";
 
     $res = mysql_query($query);
 
 	$i=0;
 	while($r = mysql_fetch_array($res, MYSQL_ASSOC)) {
-		/* 
-		 * $r[#]:
-		 * 0 = countrycode
-		 * 1 = locality
-		 * 2 = markercount
-		 */
 
-		$countryname = ISO_to_country($r['country'], $codes);
-	
-	
+		$countryname = ISO_to_country($r['country'], $countrycodes);
+
+		/*
+		 * 
+		 */
 		if($type=="option") {
 			echo '<option value="'.$r['locality'].'" class="'.strtolower($r['country']).'">'.$r['locality'];
 			
@@ -384,8 +385,8 @@ function country_info($iso=false, $lang=false) {
     global $settings;
 
     // Validate ISO country code
-    $codes = countrycodes();
-    if($iso===false OR strlen($iso) != 2 OR !isset($codes[strtoupper($iso)])) return false;;
+    $countrycodes = countrycodes();
+    if($iso===false OR strlen($iso) != 2 OR !isset($countrycodes[strtoupper($iso)])) return false;
     
     // Validate language		
     if($lang===false OR empty($lang) OR !isset($settings["valid_languages"][$lang])) $lang = $settings["language"]; 

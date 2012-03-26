@@ -141,7 +141,7 @@ if(isset($show_place) && !isset($show_place_error)) {
 	<head profile="http://gmpg.org/xfn/11">
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 		<title><?php echo $title; ?></title>
-		<link href="static/css/ui-lightness/jquery-ui.css" media="all" rel="stylesheet" type="text/css" />
+		<link href="static/css/ui-lightness/jquery-ui.css?c=<?php echo $settings["cache_buster"]; ?>" media="all" rel="stylesheet" type="text/css" />
 		<?php
 
 		/*
@@ -150,33 +150,47 @@ if(isset($show_place) && !isset($show_place_error)) {
 		 * Set API keys and such to the config.php
 		 */
 
-		 // Google maps
-		if(!empty($settings["google"]["api"]["maps_key"])) {
+		 // Google Maps API
+		if($settings["google"]["api"]["maps"] == true) {
 			if($user["logged_in"]===true && empty($user["map_google"])) $print_map_google = false;
 			else $print_map_google = true;
 			
-			if($print_map_google) echo '<script src="http://maps.google.com/maps?file=api&l='.shortlang().'&v=2&key='.$settings["google"]["api"]["maps_key"].'"></script>'."\n\t\t";
+			/* This is Maps API V3 script, wich doesn't need API key anymore. 
+			 * It's already supported by OpenLayers, but there's annoying bug that stops us using it.
+			 * While dragging map, overlay vectors follow with different speed.
+			 * http://trac.osgeo.org/openlayers/ticket/2929
+			 * http://openlayers.org/blog/2010/07/10/google-maps-v3-for-openlayers/
+			 *
+			 * Use V3 API by removing API key from the config file.
+			 */
+			if($print_map_google && empty($settings["google"]["api"]["maps_api"])) {
+				echo '<script src="http://maps.google.com/maps/api/js?v=3.2&&amp;sensor=false" type="text/javascript"></script>'."\n\t\t";
+				echo '<script type="text/javascript"> var google_maps_api_v2 = false; </script>'."\n\t\t";
+			}
+			/* 
+			 * Old Maps API v2 script:
+			 * Remove from use when v3 works better.
+			 */
+			elseif($print_map_google && !empty($settings["google"]["api"]["maps_api"])) {
+				echo '<script src="http://maps.google.com/maps?file=api&amp;l='.shortlang().'&amp;v=2&amp;key='.$settings["google"]["api"]["maps_api"].'" type="text/javascript"></script>'."\n\t\t";
+				echo '<script type="text/javascript"> var google_maps_api_v2 = true; </script>'."\n\t\t";
+			}
 		}
 
-		// Yahoo
-		if(!empty($settings["yahoo"]["maps_appid"])) {
-			if($user["logged_in"]===true && empty($user["map_yahoo"])) $print_map_yahoo = false;
-			else $print_map_yahoo = true;
-			
-			if($print_map_yahoo) echo '<script src="http://api.maps.yahoo.com/ajaxymap?v=3.0&appid='.$settings["yahoo"]["maps_appid"].'" type="text/javascript"></script>'."\n\t\t";
+		// Bing
+		if(!empty($settings["bing"]["maps_api"])) {
+			if($user["logged_in"]===true && empty($user["map_bing"])) $print_map_bing = false;
+			else $print_map_bing = true;
 		}
 
-		// MS VirtualEarth
-		if($settings["ms"]["virtualearth"]===true) {
-			if($user["logged_in"]===true && empty($user["map_vearth"])) $print_map_vearth = false;
-			else $print_map_vearth = true;
-			
-			if($print_map_vearth) echo '<script src="http://dev.virtualearth.net/mapcontrol/mapcontrol.ashx?v=6.1&mkt='.str_replace("_", "-", $settings["language"]).'" type="text/javascript"></script>'."\n\t\t";
+		// Nokia Ovi
+		if($settings["ovi"]["maps"]===true) {
+			if($user["logged_in"]===true && empty($user["map_ovi"])) $print_map_ovi = false;
+			else $print_map_ovi = true;
 		}
 
 		?><script src="http://openlayers.org/api/OpenLayers.js" type="text/javascript"></script>
-
-		<link href="ajax/js-translation.json.php?c=<?php echo $settings["cache_buster"]; ?>&amp;lang=<?php echo $settings["language"]; ?>" lang="<?php echo $settings["language"]; ?>" rel="gettext"/>
+		<script src="<?php echo $settings["base_url"]; ?>/ajax/js-translation.json.php?c=<?php echo $settings["cache_buster"]; ?>&amp;lang=<?php echo $settings["language"]; ?>" lang="<?php echo $settings["language"]; ?>" rel="gettext"></script>
 		<script type="text/javascript">
 		//<![CDATA[
 
@@ -186,7 +200,7 @@ if(isset($show_place) && !isset($show_place_error)) {
 			var ip = "<?php echo htmlspecialchars($_SERVER['REMOTE_ADDR']); ?>";
 			var geolocation = "ajax/geolocation_ip_proxy.php";
 			var cookie_prefix = "<?php echo $settings["cookie_prefix"]; ?>";
-			var geolocation_cookiename = "<?php echo $settings["cookie_prefix"]; ?>_geolocation";
+			var geolocation_cookiename = "<?php echo $settings["cookie_prefix"]; ?>geolocation";
 			var geolocation_cookieoptions = { path: '/', expires: 6 }; // expires: hours
 			var locale = "<?php echo $settings["language"]; ?>";
 			var private_location = <?php echo (!empty($user["private_location"]) ? 'true' : 'false'); ?>;
@@ -194,17 +208,19 @@ if(isset($show_place) && !isset($show_place_error)) {
 			var piwik_analytics = <?php echo (!empty($settings["piwik"]["id"]) ? 'true' : 'false'); ?>;
 			var show_log = <?php echo (isset($_GET["show_log"]) ? 'true' : 'false'); ?>;
 			var open_page_at_start = <?php echo (isset($_GET["page"]) && !empty($_GET["page"]) ? 'true' : 'false'); ?>;
+			var debug = <?php echo ($settings["debug"] == true) ? 'true' : 'false'; ?>;
 
 			/*
 			 * Loaded Map layers
 			 */
-			var layer_google = <?php echo (!empty($settings["google"]["api"]["maps_key"]) && $print_map_google===true) ? "true": "false"; ?>;
-			var layer_yahoo  = <?php echo (!empty($settings["yahoo"]["maps_appid"]) && $print_map_yahoo===true) ? "true": "false"; ?>;
-			var layer_vearth = <?php echo ($settings["ms"]["virtualearth"]===true && $print_map_vearth===true) ? "true": "false"; ?>;
 			var layer_default = "<?php echo (isset($user["map_default_layer"]) && !empty($user["map_default_layer"])) ? htmlspecialchars($user["map_default_layer"]): 'mapnik'; ?>";
+			var layer_google = <?php echo ($settings["google"]["api"]["maps"]===true && $print_map_google===true) ? "true": "false"; ?>;
+			var layer_ovi  = <?php echo ($settings["ovi"]["maps"]===true && $print_map_ovi===true) ? "true": "false"; ?>;
+			var layer_bing = <?php echo (!empty($settings["bing"]["maps_api"]) && $print_map_bing===true) ? "true": "false"; ?>;
+			<?php if(!empty($settings["bing"]["maps_api"])) echo 'var layer_bing_key = "'.$settings["bing"]["maps_api"].'";'; ?>
 
 			/*
-			 * Default map settings
+			 * Map settings
 			 */
 			var lat = <?php echo $lat; ?>;
 			var lon = <?php echo $lon; ?>;
@@ -214,28 +230,18 @@ if(isset($show_place) && !isset($show_place_error)) {
 
 		//]]>
 		</script>
-		
-		<?php /*$settings["debug"]==true*/if(!isset($_GET["min.js"])): ?>
-		<!-- in production, these are combined (combined.js.php) -->
+
 		<script src="static/js/jquery.min.js?c=<?php echo $settings["cache_buster"]; ?>" type="text/javascript"></script>
 		<script src="static/js/jquery-ui.min.js?c=<?php echo $settings["cache_buster"]; ?>" type="text/javascript"></script>
 		<script src="static/js/jquery.json-2.2.min.js" type="text/javascript"></script>
-		
-		<!-- in production, these are minified (min.js) -->
+
 		<script src="static/js/jquery.cookie.js" type="text/javascript"></script>
 		<script src="static/js/jquery.gettext.js" type="text/javascript"></script>
-		<script src="static/js/main.js?c=<?php 
-			if($settings["debug"]==true) echo date("jnYHis"); 
-			else echo $settings["cache_buster"];
-		?>" type="text/javascript"></script>
-		<?php else: ?>
-		<script src="static/js/combined.js.php" type="text/javascript"></script>
-		<script src="static/js/min.js" type="text/javascript"></script>
-		<?php endif; ?>
+		<script src="static/js/main.js?c=<?php echo ($settings["debug"] == true) ? time() : $settings["cache_buster"]; ?>" type="text/javascript"></script>
 
 		<!-- Keep main stylesheet here after min.js/main.js -->
 		<link rel="stylesheet" type="text/css" href="static/css/main.css?c=<?php 
-			if($settings["debug"]==true) echo date("jnYHis"); 
+			if($settings["debug"]==true) echo time(); 
 			else echo $settings["cache_buster"];
 		?>" media="all" />
 		
@@ -284,18 +290,9 @@ if(isset($show_place) && !isset($show_place_error)) {
 			});
 		//]]>
 		</script>
-		<!-- For Google:
-		<link rel="icon" href="<?php echo $settings["base_url"]; ?>/static/gfx/badge-32x32.png" sizes="32x32" />
-		<link rel="icon" href="<?php echo $settings["base_url"]; ?>/static/gfx/badge-48x48.png" sizes="48x48" />
-		<meta name="application-name" content="Hitchwiki <?php echo _("Maps"); ?>"/>
-		<meta name="application-url" content="<?php echo $settings["base_url"]; ?>"/>
-		-->
-
-		<!-- For Apple -->
-		<link rel="apple-touch-icon" href="<?php echo $settings["base_url"]; ?>/static/gfx/badge-57x57.png" />
-
-		<link rel="shortcut icon" href="<?php echo $settings["base_url"]; ?>/favicon.png" type="image/png" />
-		<link rel="bookmark icon" href="<?php echo $settings["base_url"]; ?>/favicon.png" type="image/png" />
+		
+		<?php mobile_meta(false); ?>
+		
 		<meta name="description" content="<?php echo $description; ?>" />
 
 		<!-- The Open Graph Protocol - http://opengraphprotocol.org/ -->
@@ -360,7 +357,7 @@ if(isset($show_place) && !isset($show_place_error)) {
 	?>
     </head>
     <body class="<?php echo $settings["language"]." ".langdir(); ?>">
-	<iframe src="http://hitchwiki.org/en/index.php?title=Maps.hitchwiki.org&redirect=no&action=render&ctype=text/plain" frameborder="0" width="0" height="0" scrolling="no" style="display: block; width: 0; height: 0; border:0; position: absolute; top:-100px; left: -100px;" id="loginRefresh" name="loginRefresh"></iframe>
+	<iframe src="http://hitchwiki.org/en/index.php?title=Maps.hitchwiki.org&amp;redirect=no&amp;action=render&amp;ctype=text/plain" frameborder="0" width="0" height="0" scrolling="no" style="display: block; width: 0; height: 0; border:0; position: absolute; top:-100px; left: -100px;" id="loginRefresh" name="loginRefresh"></iframe>
 		<div id="Content">
 
 		<div id="Header">
@@ -411,10 +408,9 @@ if(isset($show_place) && !isset($show_place_error)) {
 					</form>
 					</div>
 					
-					<div id="nearby" class="icon map2" style="display:none;">
+					<div id="nearby" style="display:none;">
 						<span class="locality" style="display:none;"><a href="#" title="<?php echo _("Show the city on the map"); ?>"></a></span>
-						<!--<span class="state" style="display:none;"><a href="#" title="<?php echo _("Show the state on the map"); ?>"></a></span>-->
-						<span class="country" style="display:none;"><a href="#" title="<?php echo _("Show the country on the map"); ?>"></a></span>
+						<!--<span class="country" style="display:none;"><a href="#" title="<?php echo _("Show the country on the map"); ?>"></a></span>-->
 					</div>
 					
 			<!-- /Login -->
@@ -477,7 +473,7 @@ if(isset($show_place) && !isset($show_place_error)) {
 	       			<?php echo _("Tools"); ?>
 	       			<a href="#" class="close ui-icon ui-icon-closethick align_right" title="<?php echo _("Close"); ?>"><?php echo _("Close"); ?></a>
 	       		</h4>
-				<div id="controlToggle">
+				<div class="controlToggle">
 				
 				        <span class="icon cursor">
 				        	<input type="radio" name="type" value="none" id="noneToggle" onclick="toggleControl(this);" checked="checked" />
@@ -532,7 +528,7 @@ if(isset($show_place) && !isset($show_place_error)) {
 	       			<?php echo _("Choose language"); ?>
 	       			<a href="#" class="close ui-icon ui-icon-closethick align_right" title="<?php echo _("Close"); ?>"><?php echo _("Close"); ?></a>
 	       		</h4>
-				<div id="controlToggle">
+				<div class="controlToggle">
 				
 				    <ul>
 				    	<?php
@@ -572,54 +568,88 @@ if(isset($show_place) && !isset($show_place_error)) {
 
 			<div id="maplist" class="ui-corner-top">
 				<ul>
-					<li class="first"><a href="#" name="mapnik" class="icon icon-osm<?php
-						if($user["map_default_layer"]=='mapnik' OR empty($user["map_default_layer"]) OR !isset($user["map_default_layer"])) {
-							echo ' selected';
-							$selected_map_name = $map_layers["osm"]["mapnik"];
-						} ?>"><?php echo $map_layers["osm"]["mapnik"]; ?></a></li>
+					<li class="first">
+						<h4 class="icon icon-osm">Open Street Map</h4>
+						<ul class="map_options">
+							
+							<li><a href="#" name="mapnik"<?php
+								if($user["map_default_layer"]=='mapnik' OR empty($user["map_default_layer"]) OR !isset($user["map_default_layer"])) {
+									echo ' class="selected"';
+									$selected_map_name = $map_layers["osm"]["mapnik"];
+								} ?>><?php echo $map_layers["osm"]["mapnik"]; ?></a></li>
+							
+							<li><a href="#" name="osmarender"<?php
+								if($user["map_default_layer"]=='osmarender') {
+									echo ' class="selected"';
+									$selected_map_name = $map_layers["osm"]["osmarender"];
+								} ?>><?php echo $map_layers["osm"]["osmarender"]; ?></a></li>
+						</ul>
+					</li>
 					
-					<li><a href="#" name="osmarender" class="icon icon-osm<?php
-						if($user["map_default_layer"]=='osmarender') {
-							echo ' selected';
-							$selected_map_name = $map_layers["osm"]["osmarender"];
-						} ?>"><?php echo $map_layers["osm"]["osmarender"]; ?></a></li>
 					<?php
 					
 					// Google
-					if(!empty($settings["google"]["api"]["maps_key"]) && $print_map_google===true) {
+					if($settings["google"]["api"]["maps"]===true && $print_map_google===true) {
+					?>
+					<li>
+						<h4 class="icon icon-google">Google</h4>
+						<ul class="map_options">
+						<?php
 						foreach($map_layers["google"] as $map => $name) {
-				    		echo '<li><a href="#" name="'.$map.'" class="icon icon-google';
+				    		echo '<li><a href="#google_'.$map.'" name="'.$map.'"';
 				    		if($user["map_default_layer"]==$map) {
-							echo ' selected';
-							$selected_map_name = $name;
+								echo ' class="selected"';
+								$selected_map_name = $name;
+							}
+				    		echo '>'.$name.'</a></li>';
 						}
-				    		echo '">'.$name.'</a></li>';
-						}
-					}
+						?>
+						</ul>
+					</li>
+					<?php
+					} //google
 					
-					// Yahoo
-					if(!empty($settings["yahoo"]["maps_appid"]) && $print_map_yahoo===true) {
-						foreach($map_layers["yahoo"] as $map => $name) {
-				    		echo '<li><a href="#" name="'.$map.'" class="icon icon-yahoo';
+					// Bing
+					if(!empty($settings["bing"]["maps_api"]) && $print_map_bing===true) {
+					?>
+					<li>
+						<h4 class="icon icon-bing">Bing</h4>
+						<ul class="map_options">
+						<?php
+						foreach($map_layers["bing"] as $map => $name) {
+				    		echo '<li><a href="#bing_'.$map.'" name="'.$map.'"';
 				    		if($user["map_default_layer"]==$map) {
-							echo ' selected';
-							$selected_map_name = $name;
+								echo ' class="selected"';
+								$selected_map_name = $name;
+							}
+				    		echo '>'.$name.'</a></li>';
 						}
-				    		echo '">'.$name.'</a></li>';
-						}
-					}
+						?>
+						</ul>
+					</li>
+					<?php
+					} //bing
 					
-					// Virtual Earth
-					if($settings["ms"]["virtualearth"]===true && $print_map_vearth===true) {
-						foreach($map_layers["vearth"] as $map => $name) {
-				    		echo '<li><a href="#" name="'.$map.'" class="icon icon-bing';
+					// Nokia Ovi
+					if($settings["ovi"]["maps"]===true && $print_map_ovi===true) {
+					?>
+					<li>
+						<h4 class="icon icon-nokia_ovi">Nokia Ovi</h4>
+						<ul class="map_options">
+						<?php
+						foreach($map_layers["ovi"] as $map => $name) {
+				    		echo '<li><a href="#ovi_'.$map.'" name="'.$map.'"';
 				    		if($user["map_default_layer"]==$map) {
-							echo ' selected';
-							$selected_map_name = $name;
+								echo ' class="selected"';
+								$selected_map_name = $name;
+							}
+				    		echo '>'.$name.'</a></li>';
 						}
-				    		echo '">'.$name.'</a></li>';
-						}
-					}
+						?>
+						</ul>
+					</li>
+					<?php
+					} //ovi
 					
 				    ?>
 				</ul>

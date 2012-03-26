@@ -1,31 +1,33 @@
 /*
  * Hitchwiki Maps: main.js
- * Requires:
- * - jquery.js
- * - OpenLayers.js
  */
+// @requires jquery.min.js
+// @requires jquery-ui.js
+// @requires OpenLayers.js
+// @requires jquery.cookie.js
 
 
 /*
  * Settings
  */
-var debug = true; // enable / disable the log
+
+// Pre define some variables
+var log, log_list;
 var mapEventlisteners = false; // These will be turned on when page stops loading and map is ready
 
+// Defined map projections
 var proj4326 = new OpenLayers.Projection("EPSG:4326");
-var projmerc = new OpenLayers.Projection("EPSG:900913");
+var projmerc = new OpenLayers.Projection("EPSG:900913"); //map.getProjectionObject();
 
 // Missing tiles from the map
 OpenLayers.Util.onImageLoadError = function(){this.src='static/gfx/openlayers/tile_not_found.gif';}
 OpenLayers.Tile.Image.useBlankTile=false;
 
+
 /*
- * When page loads
+ * On page load
  */
 $(document).ready(function() {
-
-	// Initialize stuff when page has finished loading
-	// --------------------------------------------------
 
 	/*
 	 * Debug log-box
@@ -43,28 +45,20 @@ $(document).ready(function() {
 	});
 	
 	// Show or hide log at the start?
-	if(show_log==true) {
-	    log.show();
-	} else { 
-	    log.hide();
-	}
+	if(show_log==true) { log.show(); } else { log.hide(); }
 
 	// Log user's time
 	var date = new Date();
 	maps_debug("User's time "+date.getHours()+":"+date.getMinutes()+":"+date.getSeconds());
 
-
-	// getUserLocation:
-	if(private_location==false) { fetchlocation(); }
-
-
 	// Remove JS-required alert	
 	$("div#map").text('');
-
 
 	// Load Map
 	init_map();
 
+	// getUserLocation:
+	if(private_location==false) { fetchlocation(); }
 
 	// Navigation
 	$("a.pagelink").each(function(index) {
@@ -456,7 +450,7 @@ function init_map() {
                 	    
                 	})
                 }), //stylemap end
-
+			displayInLayerSwitcher: false,
 			isBaseLayer: false,
 			rendererOptions: {yOrdering: true}
         }
@@ -498,6 +492,7 @@ function init_map() {
 				fontWeight: "bold",
 				labelAlign: "cm"
 			}),
+			displayInLayerSwitcher: false,
 			isBaseLayer: false,
 			rendererOptions: {yOrdering: true}
 		}
@@ -528,6 +523,7 @@ function init_map() {
 				})
 			}), //stylemap end
 			
+			displayInLayerSwitcher: false,
 			isBaseLayer: false
 		}
 	);
@@ -552,40 +548,23 @@ function init_map() {
 	
 	// OSM layer 2
 	var osmarender = new OpenLayers.Layer.OSM(
-	    "OpenStreetMap (Tiles@Home)",
+	    "Open Street Map - Tiles @ Home",
 	    "http://tah.openstreetmap.org/Tiles/tile/${z}/${x}/${y}.png"
 	);
 
-	// Google layers
-	if(layer_google == true) {
+	// Google API V2 layers
+	if(layer_google == true && google_maps_api_v2 == true) {
 	
-		var gphy = new OpenLayers.Layer.Google(
-		    "Google Physical",
-		    {
-		    	visibility: false, 
-		    	sphericalMercator: true, 
-		    	type: G_PHYSICAL_MAP
-		    }
-		);
 		var gmap = new OpenLayers.Layer.Google(
-		    "Google Streets",
+		    ("Google "+_("Streets")),
 		    {
 		    	visibility: false, 
 		    	sphericalMercator: true, 
-		    	numZoomLevels: 20
-		    }
-		);
-		var ghyb = new OpenLayers.Layer.Google(
-		    "Google Hybrid",
-		    {
-		    	visibility: false, 
-		    	sphericalMercator: true, 
-		    	type: G_HYBRID_MAP, 
 		    	numZoomLevels: 20
 		    }
 		);
 		var gsat = new OpenLayers.Layer.Google(
-		    "Google Satellite",
+		    ("Google "+_("Satellite")),
 		    {
 		    	visibility: false, 
 		    	sphericalMercator: true, 
@@ -593,75 +572,140 @@ function init_map() {
 		    	numZoomLevels: 22
 		    }
 		);
-	}
+		var ghyb = new OpenLayers.Layer.Google(
+		    ("Google "+_("Hybrid")),
+		    {
+		    	visibility: false, 
+		    	sphericalMercator: true,
+		    	type: G_HYBRID_MAP, 
+		    	numZoomLevels: 20
+		    }
+		);
+		var gphy = new OpenLayers.Layer.Google(
+		    ("Google "+_("Physical")),
+		    {
+		    	visibility: false, 
+		    	sphericalMercator: true, 
+		    	type: G_PHYSICAL_MAP
+		    }
+		);
+	}//google end
 
-	// create Yahoo layer
-	if(layer_yahoo == true) {
+	// Google API V3 layers
+	else if(layer_google == true) {
 	
-		var yahoo = new OpenLayers.Layer.Yahoo(
-		    "Yahoo Street",
+		var gmap = new OpenLayers.Layer.Google(
+		    ("Google "+_("Streets")),
 		    {
 		    	visibility: false, 
-		    	sphericalMercator: true
+		    	sphericalMercator: true, 
+		    	animationEnabled: true,
+		    	numZoomLevels: 20
 		    }
 		);
-		var yahoosat = new OpenLayers.Layer.Yahoo(
-		    "Yahoo Satellite",
+		var gsat = new OpenLayers.Layer.Google(
+		    ("Google "+_("Satellite")),
 		    {
 		    	visibility: false, 
-		    	type: YAHOO_MAP_SAT, 
-		    	sphericalMercator: true
+		    	sphericalMercator: true, 
+		    	animationEnabled: true,
+		    	type: google.maps.MapTypeId.SATELLITE, 
+		    	numZoomLevels: 22
 		    }
 		);
-		var yahoohyb = new OpenLayers.Layer.Yahoo(
-		    "Yahoo Hybrid",
+		var ghyb = new OpenLayers.Layer.Google(
+		    ("Google "+_("Hybrid")),
 		    {
 		    	visibility: false, 
-		    	type: YAHOO_MAP_HYB, 
-		    	sphericalMercator: true
+		    	sphericalMercator: true, 
+		    	animationEnabled: true,
+		    	type: google.maps.MapTypeId.HYBRID, 
+		    	numZoomLevels: 20
+		    }
+		);
+		var gphy = new OpenLayers.Layer.Google(
+		    ("Google "+_("Physical")),
+		    {
+		    	visibility: false, 
+		    	sphericalMercator: true, 
+		    	animationEnabled: true,
+		    	type: google.maps.MapTypeId.TERRAIN
+		    }
+		);
+	}//google end
+	
+	// create Bing layers
+	if(layer_bing == true) {
+	
+		var bmap = new OpenLayers.Layer.Bing(
+		    {
+				name: "Bing "+_("Streets"),
+				key: layer_bing_key,
+				type: "Road"
+		    }
+		);
+		var bsat = new OpenLayers.Layer.Bing(
+		    {
+				name: "Bing "+_("Satellite"),
+				key: layer_bing_key,
+				type: "Aerial"
+		    }
+		);
+		var bhyb = new OpenLayers.Layer.Bing(
+		    {
+				name: "Bing "+_("Hybrid"),
+				key: layer_bing_key,
+				type: "AerialWithLabels"
 		    }
 		);
 		
-	}
-	
-	// create Virtual Earth layers
-	if(layer_vearth == true) {
-	
-		var veroad = new OpenLayers.Layer.VirtualEarth(
-		    "Virtual Earth Roads",
-		    {
-		    	visibility: false, 
-		    	type: VEMapStyle.Road, 
-		    	sphericalMercator: true
-		    }
-		);
-		var veaer = new OpenLayers.Layer.VirtualEarth(
-		    "Virtual Earth Aerial",
-		    {
-		    	visibility: false, 
-		    	type: VEMapStyle.Aerial, 
-		    	sphericalMercator: true
-		    }
-		);
-		var vehyb = new OpenLayers.Layer.VirtualEarth(
-		    "Virtual Earth Hybrid",
-		    {
-		    	visibility: false, 
-		    	type: VEMapStyle.Hybrid, 
-		    	sphericalMercator: true
-		    }
-		);
+	}// bing end
+
+	// create Nokia Ovi layers
+	if(layer_ovi == true) {
 		
-	}
+        var omap = new OpenLayers.Layer.XYZ(
+		    ("Nokia Ovi "+_("Street")),
+        	["http://a.maptile.maps.svc.ovi.com/maptiler/maptile/newest/normal.day/${z}/${x}/${y}/256/png8","http://b.maptile.maps.svc.ovi.com/maptiler/maptile/newest/normal.day/${z}/${x}/${y}/256/png8"], 
+        	{
+				transitionEffect: 'resize', 
+				sphericalMercator: true, 
+				numZoomLevels: 21
+        	}
+        );
+        var osat = new OpenLayers.Layer.XYZ(
+		    ("Nokia Ovi "+_("Satellite")),
+        	["http://e.maptile.maps.svc.ovi.com/maptiler/maptile/newest/hybrid.day/${z}/${x}/${y}/256/png8","http://f.maptile.maps.svc.ovi.com/maptiler/maptile/newest/hybrid.day/${z}/${x}/${y}/256/png8"],
+            {
+				transitionEffect: 'resize', 
+				sphericalMercator: true, 
+				numZoomLevels: 21
+        	}
+        );
+        var otra = new OpenLayers.Layer.XYZ(
+		    ("Nokia Ovi "+_("Transit")),
+        	["http://c.maptile.maps.svc.ovi.com/maptiler/maptile/newest/normal.day.transit/${z}/${x}/${y}/256/png8","http://d.maptile.maps.svc.ovi.com/maptiler/maptile/newest/normal.day.transit/${z}/${x}/${y}/256/png8"], 
+        	{
+				transitionEffect: 'resize', 
+				sphericalMercator: true, 
+				numZoomLevels: 21
+        	}
+        );
+
+	}//nokia ovi end
 	 
                 
 	/*
 	 * Add produced layers to the map
 	 */
-    if(layer_google == true) {map.addLayers([gphy, gmap, ghyb, gsat]); }
-    if(layer_yahoo == true) {map.addLayers([yahoo, yahoosat, yahoohyb]); }
-    if(layer_vearth == true) {map.addLayers([veroad, veaer, vehyb]); }
+    if(layer_google == true) {map.addLayers([gmap, gsat, ghyb, gphy]); }
+    if(layer_bing == true) {map.addLayers([bmap, bsat, bhyb]); }
+    if(layer_ovi == true) {map.addLayers([omap, osat, otra]); }
     
+    // This layer swicher visible only in Debug mode
+    if(debug) map.addControl(new OpenLayers.Control.LayerSwitcher());
+	
+	
 	map.addLayers([
         mapnik, osmarender,
         
@@ -684,45 +728,46 @@ function init_map() {
 	else if(layer_default == "ghyb" && layer_google == true) { map.setBaseLayer(ghyb); }
 	else if(layer_default == "gsat" && layer_google == true) { map.setBaseLayer(gsat); }
 	
-	// Yahoo
-	else if(layer_default == "yahoo" && layer_yahoo == true) { map.setBaseLayer(yahoo); }
-	else if(layer_default == "yahoosat" && layer_yahoo == true) { map.setBaseLayer(yahoosat); }
-	else if(layer_default == "yahoohyb" && layer_yahoo == true) { map.setBaseLayer(yahoohyb); }
+	// Bing
+	else if(layer_default == "bmap" && layer_bing == true) { map.setBaseLayer(bsat); }
+	else if(layer_default == "bsat" && layer_bing == true) { map.setBaseLayer(bsat); }
+	else if(layer_default == "bhyb" && layer_bing == true) { map.setBaseLayer(bhyb); }
 	
-	// Virtual Earth
-	else if(layer_default == "veroad" && layer_vearth == true) { map.setBaseLayer(veroad); }
-	else if(layer_default == "veaer" && layer_vearth == true) { map.setBaseLayer(veaer); }
-	else if(layer_default == "vehyb" && layer_vearth == true) { map.setBaseLayer(vehyb); }
+	// Nokia Ovi
+	else if(layer_default == "omap" && layer_ovi == true) { map.setBaseLayer(omap); }
+	else if(layer_default == "osat" && layer_ovi == true) { map.setBaseLayer(osat); }
+	else if(layer_default == "otra" && layer_ovi == true) { map.setBaseLayer(otra); }
 	
 	
 	/*
 	 * Map selecting from the map selector
 	 */
-	// osm
+	// OSM
 	$("#map_selector #maplist li a[name='mapnik']").click(function(e){ e.preventDefault(); map.setBaseLayer(mapnik); stats("map_layer/osm/mapnik"); });
 	$("#map_selector #maplist li a[name='osmarender']").click(function(e){ e.preventDefault(); map.setBaseLayer(osmarender); stats("map_layer/osm/osmarender"); });
 	
-	// google
+	// Google
 	if(layer_google == true) {
-		$("#map_selector #maplist li a[name='gphy']").click(function(e){ e.preventDefault(); map.setBaseLayer(gphy); stats("map_layer/google/gphy"); });
 		$("#map_selector #maplist li a[name='gmap']").click(function(e){ e.preventDefault(); map.setBaseLayer(gmap); stats("map_layer/google/gmap"); });
-		$("#map_selector #maplist li a[name='ghyb']").click(function(e){ e.preventDefault(); map.setBaseLayer(ghyb); stats("map_layer/google/ghyb"); });
 		$("#map_selector #maplist li a[name='gsat']").click(function(e){ e.preventDefault(); map.setBaseLayer(gsat); stats("map_layer/google/gsat"); });
+		$("#map_selector #maplist li a[name='ghyb']").click(function(e){ e.preventDefault(); map.setBaseLayer(ghyb); stats("map_layer/google/ghyb"); });
+		$("#map_selector #maplist li a[name='gphy']").click(function(e){ e.preventDefault(); map.setBaseLayer(gphy); stats("map_layer/google/gphy"); });
 	}
 	
-	// yahoo
-	if(layer_yahoo == true) {
-		$("#map_selector #maplist li a[name='yahoo']").click(function(e){ e.preventDefault(); map.setBaseLayer(yahoo); stats("map_layer/yahoo/yahoo"); });
-		$("#map_selector #maplist li a[name='yahoosat']").click(function(e){ e.preventDefault(); map.setBaseLayer(yahoosat); stats("map_layer/yahoo/yahoosat"); });
-		$("#map_selector #maplist li a[name='yahoohyb']").click(function(e){ e.preventDefault(); map.setBaseLayer(yahoohyb); stats("map_layer/yahoo/yahoohyb"); });
+	// Bing
+	if(layer_bing == true) {
+		$("#map_selector #maplist li a[name='bmap']").click(function(e){ e.preventDefault(); map.setBaseLayer(bmap); stats("map_layer/bing/bmap"); });
+		$("#map_selector #maplist li a[name='bsat']").click(function(e){ e.preventDefault(); map.setBaseLayer(bsat); stats("map_layer/bing/bsat"); });
+		$("#map_selector #maplist li a[name='bhyb']").click(function(e){ e.preventDefault(); map.setBaseLayer(bhyb); stats("map_layer/bing/bhyb"); });
 	}
 	
-	// virtual earth
-	if(layer_vearth == true) {
-		$("#map_selector #maplist li a[name='veroad']").click(function(e){ e.preventDefault(); map.setBaseLayer(veroad); stats("map_layer/vearth/veroad"); });
-		$("#map_selector #maplist li a[name='veaer']").click(function(e){ e.preventDefault(); map.setBaseLayer(veaer); stats("map_layer/vearth/veaer"); });
-		$("#map_selector #maplist li a[name='vehyb']").click(function(e){ e.preventDefault(); map.setBaseLayer(vehyb); stats("map_layer/vearth/vehyb"); });
+	// Nokia Ovi
+	if(layer_ovi == true) {
+		$("#map_selector #maplist li a[name='omap']").click(function(e){ e.preventDefault(); map.setBaseLayer(omap); stats("map_layer/ovi/omap"); });
+		$("#map_selector #maplist li a[name='osat']").click(function(e){ e.preventDefault(); map.setBaseLayer(osat); stats("map_layer/ovi/osat"); });
+		$("#map_selector #maplist li a[name='otra']").click(function(e){ e.preventDefault(); map.setBaseLayer(otra); stats("map_layer/ovi/otra"); });
 	}
+	
 	
 	
 	/*
@@ -818,6 +863,8 @@ function onCountrydotPopupClose(evt) {
 */
 function onCountrydotSelect(feature) {
 	var point = feature.geometry.getBounds().getCenterLonLat();
+
+	map_center = map.getCenter();
 
     if(point.lat > map_center.lat) {
     	var lat_offset = 5;
@@ -936,12 +983,21 @@ function displaylocation(location) {
 		maps_debug("Showing location under search bar: "+location.City+", "+location.CountryName);
   		// Tool is hidden as a default, and stays hidden if no location is found
 		var show_nearby = false;
-		
+
 		// City
-		if(location.City != '' || location.City != 'undefined' || location.City != undefined) { 
+		if(location.City != '' || location.City != 'undefined' || location.City != false) { 
 			$('#nearby .locality a')
-				.text(location.City + ', ')
-				.click(function(){ search(location.City + ', ' + location.CountryName); });
+				.text(location.City + ', ' + location.CountryName)
+				.click(function(){
+					// If we have coordinates, clicking centers map to there
+					if(location.Longitude && location.Latitude) {
+						zoomMapIn(location.Longitude, location.Latitude, 12);
+					}
+					// If no coords, we need to get them with our search tool
+					else {
+						search(location.City + ', ' + location.CountryName);
+					}
+				});
 			$('#nearby .locality').show('fast');
 			show_nearby = true;
 		}
@@ -963,14 +1019,26 @@ function displaylocation(location) {
 		}
 		*/
 		// Country
-		if(location.CountryName != '' || location.CountryName != 'undefined' || location.CountryName != undefined) { 
+		
+		else if(location.CountryName != '' || location.CountryName != 'undefined' || location.CountryName != false) { 
 			$('#nearby .country a')
 				.text(location.CountryName)
-				.click(function(){ search(location.CountryName); });
+				.click(function(){
+				
+					// If we have coordinates, clicking centers map to there
+					if(location.Longitude && location.Latitude) {
+						zoomMapIn(location.Longitude, location.Latitude, 7);
+					}
+					// If no coords, we need to get them with our search tool
+					else {
+						search(location.CountryName);
+					}
+				});
 			$('#nearby .country').show('fast');
 			show_nearby = true;
 			
 		}
+		
 		
 		// Get info for logging
 		if(location.CountryCode != '' || location.CountryCode != undefined) var log_country = '"'+location.CountryCode+'"';
@@ -1054,9 +1122,9 @@ fetchlocationByIP = function() {
    
   // look in the cookie for the location data
   cookiedata = $.cookie(geolocation_cookiename);
-  if ('' != cookiedata) {
+  if (cookiedata != "") {
     locationinfo = $.evalJSON(cookiedata);
-    if ((locationinfo != null) && (locationinfo.IP == ip)) {
+    if (locationinfo != null && locationinfo.IP == ip) {
       displaylocation(locationinfo);
       $.cookie(geolocation_cookiename, cookiedata, geolocation_cookieoptions);
       return;
@@ -2046,6 +2114,9 @@ function hide_loading_bar() {
  * Log debug events
  */
 function maps_debug(str) {
+	if(debug) {
+		if(window.console || console.firebug) console.log(str);
+	}
 	log_list.append("<li><span>"+str+"</span></li>");
 	if(log.is(":visible")) log_list.attr({ scrollTop: $("#log ol").attr("scrollHeight") });
 }

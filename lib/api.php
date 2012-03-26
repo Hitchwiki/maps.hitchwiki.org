@@ -397,11 +397,25 @@ class maps_api
 
 
 	/*
+	 * Get cities
+	 * country: ISO-countrycode | false (default)
+	 */
+	function getCities($country=false) {
+
+    	// Get a list of cities
+    	$result = list_cities("array", "name", false, true, $country);
+
+   		// Return
+   		return $this->output($result, 'cities');
+    }
+    
+
+	/*
 	 * Get countries
 	 * all: true | false (default)
 	 * coordinates: true | false (default)
 	 */
-	function getCountries($all=false, $coordinates=false) {
+	function getCountries($all=false, $coordinates=false, $continent=false) {
 
     	// List all countries, or just ones with places?
     	// Validate as "true" or "false"
@@ -412,7 +426,7 @@ class maps_api
     	if(is_bool($coordinates) === false) $coordinates = false;
 
     	// Get a list of countries
-    	$result = list_countries("array", "name", false, true, $all, $coordinates);
+    	$result = list_countries("array", "name", false, true, $all, $coordinates, false, $continent);
 
    		// Return
    		return $this->output($result, 'countries');
