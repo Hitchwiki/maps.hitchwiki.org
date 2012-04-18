@@ -87,9 +87,10 @@ $(document).ready(function() {
 	$("#search_form input#q").autocomplete({
 	    source: function(request, response) {
 	    	$.ajax({
-	    		url: "http://ws.geonames.org/searchJSON",
+	    		url: "http://api.geonames.org/searchJSON",
 	    		dataType: "jsonp",
 	    		data: {
+	    			username: geonames_username,
 	    			featureClass: "P",
 	    			style: "full",
 	    			maxRows: 10,

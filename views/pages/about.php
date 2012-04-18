@@ -83,7 +83,7 @@
 		<li><?php echo _("German"); ?> &mdash; MrTweek, Platschi</li>
 		<li><?php echo _("Hungarian"); ?> &mdash; pite, sipmester</li>
 		<li><?php echo _("Italian"); ?> &mdash; Maurizio</li>
-		<li><?php echo _("Lithuanian"); ?> &mdash; Mindo, Prino</li>
+		<li><?php echo _("Lithuanian"); ?> &mdash; Mindo, Prino, Simona</li>
 		<li><?php echo _("Polish"); ?> &mdash; Robert, Iza</li>
 		<li><?php echo _("Portuguese"); ?> &mdash; Joao</li>
 		<li><?php echo _("Romanian"); ?> &mdash; montaniard</li>

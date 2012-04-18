@@ -206,6 +206,7 @@ if(isset($show_place) && !isset($show_place_error)) {
 			var private_location = <?php echo (!empty($user["private_location"]) ? 'true' : 'false'); ?>;
 			var google_analytics = <?php echo (!empty($settings["google"]["analytics_id"]) ? 'true' : 'false'); ?>;
 			var piwik_analytics = <?php echo (!empty($settings["piwik"]["id"]) ? 'true' : 'false'); ?>;
+			var geonames_username = <?php echo (!empty($settings["geonames"]["user"]) ? '"'.$settings["geonames"]["user"].'"' : 'false'); ?>;
 			var show_log = <?php echo (isset($_GET["show_log"]) ? 'true' : 'false'); ?>;
 			var open_page_at_start = <?php echo (isset($_GET["page"]) && !empty($_GET["page"]) ? 'true' : 'false'); ?>;
 			var debug = <?php echo ($settings["debug"] == true) ? 'true' : 'false'; ?>;

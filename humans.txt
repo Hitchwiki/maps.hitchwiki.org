@@ -7,6 +7,8 @@
 
 /* THANKS */
 	Name: Platschi
+	Name: Mindo
+	Name: Nils
 
 /* TRANSLATIONS */
 	English: Mikael, Platschi
@@ -17,7 +19,7 @@
 	Romanian: montaniard
 	Portuguese: Joao
 	Chinese: Mipplor
-	Lithuanian: Mindo, Prino
+	Lithuanian: Mindo, Prino, Simona
 	Italian: Maurizio
 	Polish: Robert, Iza
 	Spanish: Prino

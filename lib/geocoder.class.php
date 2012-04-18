@@ -471,8 +471,9 @@ class maps_geocode
 	)
 	 */
 	public function geonames_geocode($q) {
-	
-		$xml = readURL('http://ws.geonames.org/search?q='.$q.'&maxRows=1&style=SHORT');
+		global $settings;
+		
+		$xml = readURL('http://api.geonames.org/search?q='.$q.'&maxRows=1&style=SHORT'.'&username='.$settings["geonames"]["user"]);
 		#echo "<pre>--".$xml."--</pre>";
 		if(empty($xml)) {
 		
@@ -513,10 +514,11 @@ class maps_geocode
 	
 	 */
 	public function geonames_reverse($q) {
+		global $settings;
 	
 		$q = explode("%2C",$q); // divide from "," - $q is already urlencoded, that's why it's in this format
 	
-		$xml = readURL('http://ws.geonames.org/findNearbyPlaceName?style=SHORT&lat='.urlencode($q[0]).'&lng='.urlencode($q[1]));
+		$xml = readURL('http://api.geonames.org/findNearbyPlaceName?style=SHORT&lat='.urlencode($q[0]).'&lng='.urlencode($q[1])."&username=".$settings["geonames"]["user"]);
 		#echo "<pre>--".$xml."--</pre>";
 		
 		if(empty($xml)) {
