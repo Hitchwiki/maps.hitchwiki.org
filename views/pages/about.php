@@ -80,7 +80,7 @@
 		<li><?php echo _("English"); ?> &mdash; Mikael, Platschi</li>
 		<li><?php echo _("Finnish"); ?> &mdash; Mikael</li>
 		<li><?php echo _("French"); ?> &mdash; Perilisk</li>
-		<li><?php echo _("German"); ?> &mdash; MrTweek, Platschi</li>
+		<li><?php echo _("German"); ?> &mdash; MrTweek, Platschi, Nils</li>
 		<li><?php echo _("Hungarian"); ?> &mdash; pite, sipmester</li>
 		<li><?php echo _("Italian"); ?> &mdash; Maurizio</li>
 		<li><?php echo _("Lithuanian"); ?> &mdash; Mindo, Prino, Simona</li>

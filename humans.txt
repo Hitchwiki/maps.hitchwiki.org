@@ -13,7 +13,7 @@
 /* TRANSLATIONS */
 	English: Mikael, Platschi
 	Finnish: Mikael
-	German: MrTweek, Platschi
+	German: MrTweek, Platschi, Nils
 	Dutch: Platschi
 	Russian: Siberian explorer, Platschi, rAndoM
 	Romanian: montaniard
@@ -24,7 +24,7 @@
 	Polish: Robert, Iza
 	Spanish: Prino
 	French: Perilisk
-	Hungarian — pite, sipmester
+	Hungarian: pite, sipmester
 	English (Pirate): Mikael (Yarr!)
 
 /* SITE */
