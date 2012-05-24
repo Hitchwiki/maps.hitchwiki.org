@@ -20,7 +20,7 @@
     	margin: auto;
     	width: 500px;
     	height: 500px;
-    	background: url(static/gfx/maintenance.png) no-repeat center center;
+    	background: url(http://hitchwiki.org/maps/static/gfx/maintenance.png) no-repeat center center;
     	/* Owl by mestillw - http://www.sxc.hu/photo/1266434 */
     }
     

@@ -85,7 +85,7 @@ if($place["error"] !== true):
 				<h3 style="display: inline;"><?php
 				
 					// Flag
-					if(!empty($place["location"]["country"]["iso"])) echo '<img class="flag" alt="'.$place["location"]["country"]["iso"].'" src="static/gfx/flags/'.strtolower($place["location"]["country"]["iso"]).'.png" /> ';
+					if(!empty($place["location"]["country"]["iso"])) echo '<img class="flag" alt="'.$place["location"]["country"]["iso"].'" src="'.$settings["base_url"].'/static/gfx/flags/'.strtolower($place["location"]["country"]["iso"]).'.png" /> ';
 					
 					// Town/City
 					if(!empty($place["location"]["locality"])) echo $place["location"]["locality"].", ";
@@ -376,7 +376,7 @@ if($place["error"] !== true):
 								if(confirm_remove) {
 				    	
 									// Call API
-									$.getJSON('api/?remove_rating&place_id='+remove_id, function(data) {
+									$.getJSON('<?= $settings["base_url"]; ?>/api/?remove_rating&place_id='+remove_id, function(data) {
 									
 										if(data.success == true) {
 									
@@ -402,7 +402,7 @@ if($place["error"] !== true):
 				    			maps_debug("Rating a place with "+rate);
 				    			
 				    			// Send an api call
-								var apiCall = "api/?rate="+rate+"&place_id=<?php 
+								var apiCall = "<?= $settings["base_url"]; ?>/api/?rate="+rate+"&place_id=<?php 
 								
 									echo $place["id"]; 
 								
@@ -437,10 +437,10 @@ if($place["error"] !== true):
 				    		//$(this).blur();
 							$(this).hide();
 				    		
-				    		$("#rating_log").html('<br /><img src="static/gfx/loading.gif" alt="<?php echo _("Loading"); ?>" />');
+				    		$("#rating_log").html('<br /><img src="<?= $settings["base_url"]; ?>/static/gfx/loading.gif" alt="<?php echo _("Loading"); ?>" />');
 				    		
 				    		// Get waitingtime log for this place
-							$.ajax({ url: "ajax/hitchability_log.php?id=<?php 
+							$.ajax({ url: "<?= $settings["base_url"]; ?>/ajax/hitchability_log.php?id=<?php 
 								echo $place["id"]; 
 								
 								// If more than 1 rating, show more complicated statistics
@@ -562,7 +562,7 @@ if($place["error"] !== true):
 								show_loading_bar("<?php echo _("Adding..."); ?>");
 				    	
 				    			// Send an api call
-								var apiCall = "api/?add_waitingtime="+waitingtime+"&place_id=<?php 
+								var apiCall = "<?= $settings["base_url"]; ?>/api/?add_waitingtime="+waitingtime+"&place_id=<?php 
 								
 									echo $place["id"]; 
 								
@@ -599,10 +599,10 @@ if($place["error"] !== true):
 				    		//$(this).blur();
 				    		$(this).hide();
 				    		
-				    		$("#waitingtime_log").html('<br /><img src="static/gfx/loading.gif" alt="<?php echo _("Loading"); ?>" />');
+				    		$("#waitingtime_log").html('<br /><img src="<?= $settings["base_url"]; ?>/static/gfx/loading.gif" alt="<?php echo _("Loading"); ?>" />');
 				    		
 				    		// Get waitingtime log for this place
-							$.ajax({ url: "ajax/waitingtimes_log.php?id=<?php echo $place["id"]; ?>", success: function(data){
+							$.ajax({ url: "<?= $settings["base_url"]; ?>/ajax/waitingtimes_log.php?id=<?php echo $place["id"]; ?>", success: function(data){
 								
 								$("#waitingtime_log")
 									.hide()
@@ -645,7 +645,7 @@ if($place["error"] !== true):
 						echo '<div class="meta"><strong>';
 						
 						if(isset($comment["user"]["nick"])) echo htmlspecialchars($comment["user"]["nick"]);
-						elseif(isset($comment["user"]["name"])) echo '<a href="./?page=profile&amp;user_id='.$comment["user"]["id"].'" onclick="open_page(\'profile\', \'user_id='.$comment["user"]["id"].'\'); return false;" title="'._("Profile").'">'.htmlspecialchars($comment["user"]["name"]).'</a>';
+						elseif(isset($comment["user"]["name"])) echo user_link($comment["user"]["id"], $comment["user"]["name"]);
 						else echo '<i>'._("Anonymous").'</i>';
 						
 						echo '</strong> &mdash; <span title="'.date(DATE_RFC822,strtotime($comment["datetime"])).'">'.date("j.n.Y",strtotime($comment["datetime"])).'</span>';
@@ -654,7 +654,7 @@ if($place["error"] !== true):
 						if($user["admin"]===true) {
 							?>
 							 <a href="#" onclick="removeComment('<?php echo $comment["id"]; ?>'); return false;" class="ui-icon ui-icon-trash align_right" title="<?php echo _("Remove comment permanently"); ?>"></a>
-							 <a href="admin/?edit_comment=<?php echo $comment["id"]; ?>" class="ui-icon ui-icon-pencil align_right" title="<?php echo _("Edit comment"); ?>"></a>
+							 <a href="<?= $settings["base_url"]; ?>/admin/?edit_comment=<?php echo $comment["id"]; ?>" class="ui-icon ui-icon-pencil align_right" title="<?php echo _("Edit comment"); ?>"></a>
 							 <?php
 						}
 						elseif($user["logged_in"]===true && $user["id"]==$comment["user"]["id"]) {
@@ -755,7 +755,12 @@ if($place["error"] !== true):
 										maps_debug("Comment place <?php echo $place["id"]; ?>");
 										
 										// Call API
-										$.post('api/?add_comment', { place_id: "<?php echo $place["id"]; ?>", comment: post_comment, <?php if($user===false) { echo 'user_nick: post_nick'; } else { echo 'user_id: "'.$user["id"].'"'; } ?> }, 
+										$.post('<?= $settings["base_url"]; ?>/api/?add_comment', 
+											{ 
+												place_id: "<?php echo $place["id"]; ?>", 
+												comment: post_comment, 
+												<?php if($user===false) { echo 'user_nick: post_nick'; } else { echo 'user_id: "'.$user["id"].'"'; } ?> 
+											}, 
 											function(data) {
 
 												hide_loading_bar();
@@ -801,26 +806,6 @@ if($place["error"] !== true):
 		</ul>
 	</li>
 
-	<?php 
-	/* Facebook recommend button isn't there anymore, since it just slows down loading placeview. It's not used so much anyways... (26.2.2012 Mikael)
-	 *
-	if(!isset($user["disallow_facebook"]) && $user["disallow_facebook"] != 1): ?>
-	<!-- Facebook BTN -->
-	<li>
-		<ul>
-			<li id="share_place">
-				<fb:like href="<?php echo $place["link"]; ?>" send="true" layout="button_count" width="180" show_faces="false" action="recommend" font=""></fb:like>
-				<script type="text/javascript">
-					FB.XFBML.parse(document.getElementById('share_place'));
-				</script>
-			</li>
-			
-		</ul>
-	</li>
-	<?php endif;
-	*/ ?>
-	
-
 	<!-- infolinks -->
 	<li>
 		<ul>
@@ -852,12 +837,11 @@ if($place["error"] !== true):
 									maps_debug("Loading the weather info for the place from wunderground...");
 									
 									var weather_error_html = '<?php info_sign(_("No weather info..."), false); ?>';
-									 
-									//$.getJSON('ajax/wefather.php?lat=<?php echo $place["lat"]; ?>&lon=<?php echo $place["lon"]; ?>', function(data) {	
+								
 									$.ajax({
 										// Define AJAX properties.
 										method: "get",
-										url: 'ajax/weather.php?lat=<?php echo $place["lat"]; ?>&lon=<?php echo $place["lon"]; ?>',
+										url: '<?= $settings["base_url"]; ?>/ajax/weather.php?lat=<?php echo $place["lat"]; ?>&lon=<?php echo $place["lon"]; ?>',
 										dataType: "json",
 										timeout: 7000, // timeout in milliseconds; 1s = 1000ms
 									 
@@ -914,7 +898,7 @@ if($place["error"] !== true):
 					// When marker was added and who added it					
 					// Name
 					if(isset($place["user"]["name"])) {
-						echo "&bull; "._("Added by").' <strong><a href="./?page=profile&amp;user_id='.$place["user"]["id"].'" onclick="open_page(\'profile\', \'user_id='.$place["user"]["id"].'\'); return false;" title="'._("Profile").'">'.htmlspecialchars($place["user"]["name"]).'</a></strong>';
+						echo "&bull; "._("Added by").' <strong>'.user_link($place["user"]["id"], $place["user"]["name"]).'</strong>';
 					
 						if(!empty($place["datetime"])) echo ' &mdash;';
 					}
@@ -940,7 +924,7 @@ if($place["error"] !== true):
 	    		<small>
 	    			<b class="icon weather" style="padding-top: 5px;display:block;"><?php printf(_("Weather near %s"), $place["location"]["locality"]); ?></b>
 					<div class="inset">
-	    				<span id="place_weather_info" class="no_weather"><img src="static/gfx/loading.gif" alt="<?php echo _("Loading"); ?>" /><br /></span>
+	    				<span id="place_weather_info" class="no_weather"><img src="<?= $settings["base_url"]; ?>/static/gfx/loading.gif" alt="<?php echo _("Loading"); ?>" /><br /></span>
 	    				<br /><a href="http://www.wunderground.com/cgi-bin/findweather/getForecast?query=<?php echo $place["lat"]; ?>,<?php echo $place["lon"]; ?>" target="_blank"><?php echo _("Weather from Wunderground.com"); ?></a>
 	    			</div>
 	    		</small>
@@ -1015,10 +999,10 @@ if($place["error"] !== true):
 				<small>
 				<b class="icon page_white_put" style="padding-top: 3px;display:block;"><?php echo _("Download marker as a file"); ?></b>
 					<div class="inset">
-	    			<a href="./api/?format=gpx&amp;download=hitchhiking_place_<?php echo $place["id"]; ?>&amp;place=<?php echo $place["id"]; ?>" type="application/gpx+xml" class="icon gpx">GPX</a> &nbsp; 
-					<a href="./api/?format=kml&amp;download=hitchhiking_place_<?php echo $place["id"]; ?>&amp;place=<?php echo $place["id"]; ?>" type="application/vnd.google-earth.kml+xml" class="icon kml">KML</a> &nbsp;
+	    			<a href="<?= $settings["base_url"]; ?>/api/?format=gpx&amp;download=hitchhiking_place_<?php echo $place["id"]; ?>&amp;place=<?php echo $place["id"]; ?>" type="application/gpx+xml" class="icon gpx">GPX</a> &nbsp; 
+					<a href="<?= $settings["base_url"]; ?>/api/?format=kml&amp;download=hitchhiking_place_<?php echo $place["id"]; ?>&amp;place=<?php echo $place["id"]; ?>" type="application/vnd.google-earth.kml+xml" class="icon kml">KML</a> &nbsp;
 					<!--
-					<a href="./api/?format=kmz&amp;download=hitchhiking_place_<?php echo $place["id"]; ?>&amp;place=<?php echo $place["id"]; ?>" type="application/vnd.google-earth.kmz" class="icon gmz">KMZ (<?php echo _("Zipped"); ?> KML)</a> 
+					<a href="<?= $settings["base_url"]; ?>/api/?format=kmz&amp;download=hitchhiking_place_<?php echo $place["id"]; ?>&amp;place=<?php echo $place["id"]; ?>" type="application/vnd.google-earth.kmz" class="icon gmz">KMZ (<?php echo _("Zipped"); ?> KML)</a> 
 					-->
 					</div>
 				</small>
@@ -1081,9 +1065,9 @@ if($place["error"] !== true):
 								});
 							</script>
 						</li>
-						<li><a href="admin/?page=places&amp;remove=<?php echo $place["id"]; ?>" onclick="confirm('Are you sure?');"><?php echo _("Remove place"); ?></a></li>
-						<li><a href="admin/?page=places&amp;edit=<?php echo $place["id"]; ?>"><?php echo _("Edit place"); ?></a></li>
-						<?php if(!empty($place["user"]["id"])): ?><li><a href="admin/?users&amp;user=<?php echo $place["user"]["id"]; ?>"><?php echo _("See user"); ?></a></li><?php endif; ?>
+						<li><a href="<?= $settings["base_url"]; ?>/admin/?page=places&amp;remove=<?php echo $place["id"]; ?>" onclick="confirm('Are you sure?');"><?php echo _("Remove place"); ?></a></li>
+						<li><a href="<?= $settings["base_url"]; ?>/admin/?page=places&amp;edit=<?php echo $place["id"]; ?>"><?php echo _("Edit place"); ?></a></li>
+						<?php if(!empty($place["user"]["id"])): ?><li><a href="<?= $settings["base_url"]; ?>/admin/?users&amp;user=<?php echo $place["user"]["id"]; ?>"><?php echo _("See user"); ?></a></li><?php endif; ?>
 					</ul>
 			</li>
 		</ul>

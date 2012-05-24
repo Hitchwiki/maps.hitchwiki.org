@@ -123,14 +123,14 @@ function list_countries($type="array", $order="name", $limit=false, $count=true,
 		
 		// print a list item
 		elseif($type=="li") {
-			echo '<li><img class="flag" alt="'.strtolower($country["iso"]).'" src="static/gfx/flags/'.strtolower($country["iso"]).'.png" /> <a href="./?q='.urlencode($country["name"]).'" id="search_for_this">'.$country["name"]."</a>";
+			echo '<li><img class="flag" alt="'.strtolower($country["iso"]).'" src="'.$settings["base_url"].'/static/gfx/flags/'.strtolower($country["iso"]).'.png" /> <a href="'.$settings["base_url"].'/search/'.urlencode($country["name"]).'/" id="search_for_this">'.$country["name"]."</a>";
 			if($count==true) echo ' <small class="grey">('.$country["places"].')</small>';
 			echo '</li>';
 		}
 		
 		// print a table row
 		elseif($type=="tr") {
-			echo '<tr><td><img class="flag" alt="'.strtolower($country["iso"]).'" src="static/gfx/flags/'.strtolower($country["iso"]).'.png" /> <a href="./?q='.urlencode($country["name"]).'" id="search_for_this">'.$country["name"].'</a></td>';
+			echo '<tr><td><img class="flag" alt="'.strtolower($country["iso"]).'" src="'.$settings["base_url"].'/static/gfx/flags/'.strtolower($country["iso"]).'.png" /> <a href="'.$settings["base_url"].'/search/'.urlencode($country["name"]).'/" id="search_for_this">'.$country["name"].'</a></td>';
 			if($count==true) echo '<td>'.$country["places"].'</td>';
 			echo '</tr>';
 		}
@@ -219,17 +219,17 @@ function list_cities($type="array", $order="markers", $limit=false, $count=true,
 		}
 		elseif($type=="li") {
 		
-			if($country == false) echo '<li><img class="flag" alt="'.strtolower($r['country']).'" src="static/gfx/flags/'.strtolower($r['country']).'.png" /> <a href="./?q='.urlencode($r['locality'].', '.$countryname).'" id="search_for_this">'.$r['locality'].', '.$countryname.'</a>';
-			else echo '<li><a href="./?q='.urlencode($r['locality']).'" id="search_for_this">'.$r['locality'].'</a>';
+			if($country == false) echo '<li><img class="flag" alt="'.strtolower($r['country']).'" src="'.$settings["base_url"].'/static/gfx/flags/'.strtolower($r['country']).'.png" /> <a href="./?q='.urlencode($r['locality'].', '.$countryname).'" id="search_for_this">'.$r['locality'].', '.$countryname.'</a>';
+			else echo '<li><a href="'.$settings["base_url"].'/search/'.urlencode($r['locality']).'/" id="search_for_this">'.$r['locality'].'</a>';
 			
 			if($count==true) echo ' <small class="grey">('.$r['cnt'].')</small>';
 			
 			echo '</li>';
 		}
 		elseif($type=="tr") {
-			echo '<tr><td><a href="./?q='.urlencode($r['locality']).'" id="search_for_this">'.$r['locality'].'</a></td>';
+			echo '<tr><td><a href="'.$settings["base_url"].'/search/'.urlencode($r['locality']).'/" id="search_for_this">'.$r['locality'].'</a></td>';
 			
-			if($country == false) echo '<td><img class="flag" alt="'.strtolower($r['country']).'" src="static/gfx/flags/'.strtolower($r['country']).'.png" /> <a href="./?q='.urlencode($countryname).'" id="search_for_this">'.$countryname.'</a></td>';
+			if($country == false) echo '<td><img class="flag" alt="'.strtolower($r['country']).'" src="'.$settings["base_url"].'/static/gfx/flags/'.strtolower($r['country']).'.png" /> <a href="./?q='.urlencode($countryname).'" id="search_for_this">'.$countryname.'</a></td>';
 			
 			if($count == true) echo '<td>'.$r['cnt'].'</td>';
 			

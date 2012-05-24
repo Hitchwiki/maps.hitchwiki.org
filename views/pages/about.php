@@ -4,7 +4,7 @@
 
 	<div class="align_right" style="width: 300px; margin: 0 0 30px 30px;">
 
-		<p><a href="#" class="bigger icon email" onclick="javascript:open_card('contact','<?php echo _("Contact us!"); ?>'); return false;"><?php echo _("Contact us!"); ?></a></p>
+		<p><a href="#contact" class="bigger icon email" onclick="javascript:open_card('contact','<?php echo _("Contact us!"); ?>'); return false;"><?php echo _("Contact us!"); ?></a></p>
 		
 		<br />
 
@@ -36,7 +36,7 @@
 	<p><?php echo _("Just click on <i>Add place</i> in the menu. Set the orange marker to the place and click on <i>Add place</i>. Make sure to zoom as close as possible, so the point will be more accurate. It is also helpful if you give your points a rating and maybe a little description (i.e. what kind of place this is or how to get there). Please write description at least in English."); ?></p>
 	
 	<h3><?php echo _("Why should I sign up?"); ?></h3>
-	<p><?php echo _("If you are logged in, you will have some more features on this site. I.e. you will be able to modify your places later, and your nickname will be shown on each of your places and comments."); ?> <a href="#" onclick="open_page('why_register'); return false;" title="<?php echo _("Why register?"); ?>"><?php echo _("Read more..."); ?></a></p>
+	<p><?php echo _("If you are logged in, you will have some more features on this site. I.e. you will be able to modify your places later, and your nickname will be shown on each of your places and comments."); ?> <a href="<?= $settings["base_url"]; ?>/why_register/" onclick="open_page('why_register'); return false;" title="<?php echo _("Why register?"); ?>"><?php echo _("Read more..."); ?></a></p>
 	
 	<h3><?php echo _("Why is the map always centered on Europe?"); ?></h3>
 	<p><?php echo _("Most of this maps hitchhiking places are in Europe. If you have registered, you can set a point of your current country from settings. The map will center there whenever you log in."); ?></p>
@@ -45,7 +45,7 @@
 	<p><?php echo _('No, but you can use <a href="http://en.wikipedia.org/wiki/Markdown" target="_blank">Markdown</a> syntax.'); ?></p>
 		
 	<h3><?php echo _("Is there a mobile version available?"); ?></h3>
-	<p><?php echo _("Yes there is!"); ?> <a href="./?page=mobile" onclick="open_page('mobile'); return false;"><?php echo _("Read more..."); ?></a></p>
+	<p><?php echo _("Yes there is!"); ?> <a href="<?= $settings["base_url"]; ?>/mobile/" onclick="open_page('mobile'); return false;"><?php echo _("Read more..."); ?></a></p>
 	
 	<h3><?php echo _("Are there any browser extensions?"); ?></h3>
 	<p><?php echo _("You can install our search to your browser."); ?></p>

@@ -5,7 +5,7 @@
 
 <b><small class="light">27. November 2010</small></b><br />
 <h3 style="display:inline;">Ooh! New Maps!</h3><br />
-<img src="badge.png" alt="" class="align_right" style="margin: 0 0 20px 20px;" />
+<img src="<?= $settings["base_url"]; ?>/badge.png" alt="" class="align_right" style="margin: 0 0 20px 20px;" />
 Good day to you all. It was about time to take our great Maps service and make it even better! And shiny! And orange.
 <br  /><br />
 It's not anymore just about you and your hitchhiking places, but everybody can comment, rate and contribute. Just like in our Wiki. Still it's not a Facebook... it's not blue you know. We tried our best to make it as usable and good (and orange) as possible. 

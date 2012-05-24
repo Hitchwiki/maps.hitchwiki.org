@@ -8,7 +8,7 @@ echo '<h2 class="icon wrench">'._("Settings").'</h2>';
 // Show only when logged in
 if($user["logged_in"]===true): ?>
 
-<script src="static/js/jquery.pstrength-min.1.2.js" type="text/javascript"></script>
+<script src="<?= $settings["base_url"]; ?>/static/js/jquery.pstrength-min.1.2.js" type="text/javascript"></script>
 
 <div class="ui-state-error ui-corner-all hidden" style="padding: 0 .7em; margin: 20px 0;" id="profile_alert"> 
     <p><span class="ui-icon ui-icon-alert" style="float: left; margin-right: .3em;"></span> 
@@ -119,7 +119,7 @@ if($user["logged_in"]===true): ?>
 		list_countries("option", "name", false, false, true, false, $selected_country); ?>
 	</select> &nbsp; <?php
 		
-		if(!empty($user["country"])) echo '<img class="flag" alt="" src="static/gfx/flags/'.strtolower($user["country"]).'.png" />';
+		if(!empty($user["country"])) echo '<img class="flag" alt="" src="'.$settings["base_url"].'static/gfx/flags/'.strtolower($user["country"]).'.png" />';
 		else echo '<img class="flag" alt="" src="#" class="hidden" />';
 		
 	?><br /><small class="tip"><?php echo _("The map will be centered to here."); ?></small>
@@ -234,7 +234,7 @@ if($user["logged_in"]===true): ?>
 	
 </div>
 
-<script type="text/javascript" src="static/js/jquery.pstrength-min.1.2.js"></script>
+<script type="text/javascript" src="<?= $settings["base_url"]; ?>/static/js/jquery.pstrength-min.1.2.js"></script>
 <script type="text/javascript">
 $(function() {
 
@@ -268,7 +268,7 @@ $(function() {
 	// Set country selection
 	if($profile_form=="settings" && !empty($user["country"])) {
 		echo '$("#profile_form #country").val("'.$user["country"].'");'; 
-		echo '$("#profile_form .flag").attr("src","static/gfx/flags/'.strtolower($user["country"]).'.png");';	
+		echo '$("#profile_form .flag").attr("src","'$settings["base_url"].'static/gfx/flags/'.strtolower($user["country"]).'.png");';	
 	}
 	?>
 	
@@ -276,7 +276,7 @@ $(function() {
 		
 		var selected_country = $(this).val();
 		if(selected_country != "") {
-			$("#profile_form .flag").attr("src","static/gfx/flags/"+selected_country.toLowerCase()+".png");
+			$("#profile_form .flag").attr("src","<?= $settings["base_url"]; ?>/static/gfx/flags/"+selected_country.toLowerCase()+".png");
 			$("#profile_form .flag").show();
 		} else {
 			$("#profile_form .flag").hide();
@@ -308,9 +308,10 @@ $(function() {
 		$("#profile_form input#location").autocomplete({
 			source: function(request, response) {
 				$.ajax({
-					url: "http://ws.geonames.org/searchJSON",
+	    			url: "http://api.geonames.org/searchJSON",
 					dataType: "jsonp",
 					data: {
+						username: geonames_username,
 						featureClass: "P",
 						style: "full",
 						maxRows: 5,

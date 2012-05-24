@@ -52,7 +52,7 @@ if(!empty($profile)):
     	<?php if(!empty($profile["country"])): ?>
     	<tr>
     		<td><b><?php echo _("Country"); ?></b></td>
-    		<td><a href="./?q=<?php echo urlencode($countryname); ?>" id="search_for_this"><?php echo $countryname; ?></a> <img class="flag" alt="" src="static/gfx/flags/<?php echo strtolower($profile["country"]); ?>.png" /></td>
+    		<td><a href="./?q=<?php echo urlencode($countryname); ?>" id="search_for_this"><?php echo $countryname; ?></a> <img class="flag" alt="" src="<?= $settings["base_url"]; ?>/static/gfx/flags/<?php echo strtolower($profile["country"]); ?>.png" /></td>
     	</tr>
     	<?php endif; ?>
     	

@@ -114,8 +114,8 @@ function pt_list($country_iso) {
 							if($user["admin"]===true) {
 								?>
 								<td>
-							 	<a href="admin/?page=public_transport&amp;remove=<?php echo $row["id"]; ?>" class="remove_page ui-icon ui-icon-trash align_right" title="<?php echo _("Remove page permanently"); ?>"></a>
-							 	<a href="admin/?page=public_transport&amp;edit=<?php echo $row["id"]; ?>" class="ui-icon ui-icon-pencil align_right" title="<?php echo _("Edit page"); ?>"></a>
+							 	<a href="<?= $settings["base_url"]; ?>/admin/?page=public_transport&amp;remove=<?php echo $row["id"]; ?>" class="remove_page ui-icon ui-icon-trash align_right" title="<?php echo _("Remove page permanently"); ?>"></a>
+							 	<a href="<?= $settings["base_url"]; ?>/admin/?page=public_transport&amp;edit=<?php echo $row["id"]; ?>" class="ui-icon ui-icon-pencil align_right" title="<?php echo _("Edit page"); ?>"></a>
 							 	</td>
 							 	<?php
 							}
@@ -150,7 +150,7 @@ function pt_list($country_iso) {
 	}
 	else {
 		?>
-		<p><?php echo _("No public transport found for this country."); ?> <a href="./?page=add_public_transport" onclick="open_page('add_public_transport'); return false;"><?php echo _("Add some?"); ?></a></p>
+		<p><?php echo _("No public transport found for this country."); ?> <a href="<?= $settings["base_url"]; ?>/add_public_transport/" onclick="open_page('add_public_transport'); return false;"><?php echo _("Add some?"); ?></a></p>
 		<?php
 	}
 }

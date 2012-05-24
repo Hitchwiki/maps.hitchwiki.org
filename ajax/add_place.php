@@ -55,7 +55,7 @@ $user = current_user();
 			    
 			    <span id="locality_name" class="icon building address_row"></span>
 			    
-			    <img src="static/gfx/blank.gif" alt="" class="flag hidden" /> <span id="country_name" class="address_row"></span>
+			    <img src="#" alt="" class="flag hidden" /> <span id="country_name" class="address_row"></span>
 			    &nbsp;
 
 			</li>

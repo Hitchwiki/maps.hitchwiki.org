@@ -26,7 +26,7 @@ if(isset($_GET["country"]) && strlen($_GET["country"]) == 2) {
 	$country["places"] = 		total_places($country["iso"]);
 	$country["hitchability"] = 	"#";
 	
-	$xmlstr = readURL("http://ws.geonames.org/countryInfo?lang=".shortlang($lang)."&country=".$country["iso"]);
+	$xmlstr = readURL("http://api.geonames.org/countryInfo?lang=".shortlang($lang)."&country=".$country["iso"]."&username=".$settings["geonames"]["user"]);
 	$xml = new SimpleXMLElement($xmlstr);
 
 	$country["capital"] = (string)$xml->country->capital;
@@ -75,7 +75,7 @@ elseif($format == 'html') {
 
 <div class="align_left" style="margin: 0 40px 20px 0;">
 
-	<h3><img class="flag" alt="<?php echo $country["iso"]; ?>" src="static/gfx/flags/<?php echo strtolower($country["iso"]); ?>.png" /> <?php echo $country["name"]; ?></h3>
+	<h3><img class="flag" alt="<?php echo $country["iso"]; ?>" src="<?= $settings["base_url"]; ?>/static/gfx/flags/<?php echo strtolower($country["iso"]); ?>.png" /> <?php echo $country["name"]; ?></h3>
 
 	<!--<h3><?php echo _("About"); ?></h3>-->
 	
@@ -99,7 +99,7 @@ elseif($format == 'html') {
 	    	<?php if(!empty($country["capital"])): ?>
 	    	<tr>
 	    		<td><b><?php echo _("Capital"); ?></b></td>
-	    		<td><a href="./?q=<?php echo urlencode($country["capital"].", ".$country["name"]); ?>" id="search_for_this"><?php echo $country["capital"]; ?></a></td>
+	    		<td><a href="<?= $settings["base_url"]; ?>/search/<?php echo urlencode($country["capital"].", ".$country["name"]); ?>/" id="search_for_this"><?php echo $country["capital"]; ?></a></td>
 	    	</tr>
 			<script type="text/javascript">
 			    $("a#search_for_this").click(function(e){
@@ -181,7 +181,7 @@ elseif($format == 'html') {
 	<!-- http://code.google.com/apis/visualization/documentation/gallery/geomap.html -->
 	
 	<!--
-	<iframe src="ajax/map_statistics.php?map=<?php
+	<iframe src="<?= $settings["base_url"]; ?>/ajax/map_statistics.php?map=<?php
 	
 	/*
 	 * To keep loadingtimes shorter we use two versions from this map. 
@@ -200,7 +200,7 @@ elseif($format == 'html') {
 	
 	<?php if($mapLimit): ?><small id="show_map_with_cities"><br /><a onclick="$('#show_map_with_cities').html('<br /><i><?php echo _("Map started to load. This might take some time."); ?></i>').delay(10000).fadeOut(1000);" href="ajax/map_statistics.php?map=4&country=<?php echo $country["iso"]; ?>" target="countrymap"><?php echo _("Show cities on the map"); ?> (<?php echo _("Experimental, might be slow."); ?>)</a></small><?php endif; ?>
 	-->
-	<iframe src="widget/?country=<?php echo $country["iso"]; ?>" name="countrymap" id="countrymap" width="100%" height="350" border="0" style="border:0;"></iframe>
+	<iframe src="<?= $settings["base_url"]; ?>/widget/?country=<?php echo $country["iso"]; ?>" name="countrymap" id="countrymap" width="100%" height="350" border="0" style="border:0;"></iframe>
 	
 
 <h3 class="icon underground"><?php echo _("Public transport"); ?></h3>

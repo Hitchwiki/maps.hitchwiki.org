@@ -116,25 +116,19 @@ if(mysql_affected_rows() >= 1):
 		echo '<td>';
 
 		if(!empty($rating["user_id"])) {
-			
-			
+	
 			// You?
 			if(!empty($user["id"]) && $user["id"] == $rating["user_id"]) echo '<strong>';
 		
 			// Profile link
-			echo '<a href="./?page=profile&amp;user_id='.$rating["user_id"].'" onclick="open_page(\'profile\', \'user_id='.$rating["user_id"].'\'); return false;" title="';
-		
-			if(!empty($user["id"]) && $user["id"] == $rating["user_id"]) echo _("That's you!");
-			else echo _("Profile");
-		
-			echo '">'.$rating["username"].'</a>';
+			echo user_link($rating["user_id"], $rating["username"]);
 			
 			// You?
 			if(!empty($user["id"]) && $user["id"] == $rating["user_id"]) echo '</strong>';
 		
 		} 
 		// Not registered user...
-		else echo $rating["username"];
+		else echo htmlspecialchars($rating["username"]);
 		
 		echo '</td>';
 		
@@ -169,7 +163,7 @@ if(mysql_affected_rows() >= 1):
 				
 				if(confirm_remove) {
 					// Call API
-					$.getJSON('api/?remove_rating&rating_id='+remove_id, function(data) {
+					$.getJSON('<?= $settings["base_url"]; ?>/api/?remove_rating&rating_id='+remove_id, function(data) {
 					
 						if(data.success == true) {
 					

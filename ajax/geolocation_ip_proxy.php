@@ -21,8 +21,6 @@ $allowed_hosts = array(
                   "maps.hitchwiki.org",
                   "www.hitchwiki.org",
                   "hitchwiki.org",
-                  "www.ihminen.org",
-                  "ihminen.org",
                   $_SERVER["HTTP_HOST"]
                   );
 

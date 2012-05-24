@@ -107,17 +107,10 @@ if(mysql_affected_rows() >= 1):
 		echo '<td>';
 		if(!empty($user["id"]) && $user["id"] == $waitingtime["user_id"]) echo '<strong>';
 		
-		if(!empty($waitingtime["user_id"])) {
-			echo '<a href="./?page=profile&amp;user_id='.$waitingtime["user_id"].'" onclick="open_page(\'profile\', \'user_id='.$waitingtime["user_id"].'\'); return false;" title="';
-	
-			if(!empty($user["id"]) && $user["id"] == $waitingtime["user_id"]) echo _("That's you!");
-			else echo _("Profile");
+		if(!empty($waitingtime["user_id"])) echo user_link($waitingtime["user_id"], $waitingtime["username"]);
+		else echo htmlspecialchars($waitingtime["username"]);
 		
-			echo '">'.$waitingtime["username"];
-		
-		} else echo $waitingtime["username"];
-		
-		if(!empty($user["id"]) && $user["id"] == $waitingtime["user_id"]) echo '<strong>';
+		if(!empty($user["id"]) && $user["id"] == $waitingtime["user_id"]) echo '</strong>';
 		echo '</td>';
 		
 		// Print extra cell if in this list there are some of this users waitingtimes. 
@@ -150,7 +143,7 @@ if(mysql_affected_rows() >= 1):
 				
 				if(confirm_remove) {
 					// Call API
-					$.getJSON('api/?remove_waitingtime='+remove_id, function(data) {
+					$.getJSON('<?= $settings["base_url"]; ?>/api/?remove_waitingtime='+remove_id, function(data) {
 					
 						if(data.success == true) {
 					

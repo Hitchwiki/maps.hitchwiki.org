@@ -77,6 +77,7 @@ foreach($strings as $string) {
 
 }
 
+// Javascript:
 ?>
 /*
  * Simple JS Gettext

@@ -1,6 +1,6 @@
 <h2><?php echo _("Complete statistics"); ?></h2>
 
-<p><?php printf( _( 'There are currently %s places marked.' ), '<b>'.total_places().'</b>' ); ?> <a href="./?page=statistics" onclick="open_page('statistics'); return false;"><?php echo _("See more compact statistics."); ?></a></p>
+<p><?php printf( _( 'There are currently %s places marked.' ), '<b>'.total_places().'</b>' ); ?> <a href="./statistics/" onclick="open_page('statistics'); return false;"><?php echo _("See more compact statistics."); ?></a></p>
 
 <div class="align_left" style="margin: 0 40px 20px 0;">
 

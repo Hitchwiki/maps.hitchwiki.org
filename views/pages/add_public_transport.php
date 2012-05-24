@@ -66,7 +66,7 @@ $(function() {
 		
 		var selected_country = $(this).val();
 		if(selected_country != "") {
-			$("#profile_form .flag").attr("src","static/gfx/flags/png/"+selected_country.toLowerCase()+".png");
+			$("#profile_form .flag").attr("src","<?= $settings["base_url"]; ?>/static/gfx/flags/png/"+selected_country.toLowerCase()+".png");
 			$("#profile_form .flag").show();
 		} else {
 			$("#profile_form .flag").hide();
@@ -79,9 +79,10 @@ $(function() {
 		$("#add_pt_form input#city").autocomplete({
 			source: function(request, response) {
 				$.ajax({
-					url: "http://ws.geonames.org/searchJSON",
+	    		url: "http://api.geonames.org/searchJSON",
 					dataType: "jsonp",
 					data: {
+	    				username: geonames_username,
 						featureClass: "P",
 						style: "full",
 						maxRows: 5,
@@ -173,7 +174,7 @@ $(function() {
 				}
 			});
 			
-			$.post('api/?add_public_transport', { 
+			$.post('<?= $settings["base_url"]; ?>/api/?add_public_transport', { 
 			    country: p_country, 
 			    city: p_city,  
 			    title: p_title, 

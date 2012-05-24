@@ -141,7 +141,7 @@ if(isset($show_place) && !isset($show_place_error)) {
 	<head profile="http://gmpg.org/xfn/11">
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 		<title><?php echo $title; ?></title>
-		<link href="static/css/ui-lightness/jquery-ui.css?c=<?php echo $settings["cache_buster"]; ?>" media="all" rel="stylesheet" type="text/css" />
+		<link href="<?= $settings["base_url"]; ?>/static/css/ui-lightness/jquery-ui.css?c=<?php echo $settings["cache_buster"]; ?>" media="all" rel="stylesheet" type="text/css" />
 		<?php
 
 		/*
@@ -232,16 +232,15 @@ if(isset($show_place) && !isset($show_place_error)) {
 		//]]>
 		</script>
 
-		<script src="static/js/jquery.min.js?c=<?php echo $settings["cache_buster"]; ?>" type="text/javascript"></script>
-		<script src="static/js/jquery-ui.min.js?c=<?php echo $settings["cache_buster"]; ?>" type="text/javascript"></script>
-		<script src="static/js/jquery.json-2.2.min.js" type="text/javascript"></script>
-
-		<script src="static/js/jquery.cookie.js" type="text/javascript"></script>
-		<script src="static/js/jquery.gettext.js" type="text/javascript"></script>
-		<script src="static/js/main.js?c=<?php echo ($settings["debug"] == true) ? time() : $settings["cache_buster"]; ?>" type="text/javascript"></script>
+		<script src="<?= $settings["base_url"]; ?>/static/js/jquery.min.js?c=<?php echo $settings["cache_buster"]; ?>" type="text/javascript"></script>
+		<script src="<?= $settings["base_url"]; ?>/static/js/jquery-ui.min.js?c=<?php echo $settings["cache_buster"]; ?>" type="text/javascript"></script>
+		<script src="<?= $settings["base_url"]; ?>/static/js/jquery.json-2.2.min.js" type="text/javascript"></script>
+		<script src="<?= $settings["base_url"]; ?>/static/js/jquery.cookie.js" type="text/javascript"></script>
+		<script src="<?= $settings["base_url"]; ?>/static/js/jquery.gettext.js" type="text/javascript"></script>
+		<script src="<?= $settings["base_url"]; ?>/static/js/main.js?c=<?php echo ($settings["debug"] == true) ? time() : $settings["cache_buster"]; ?>" type="text/javascript"></script>
 
 		<!-- Keep main stylesheet here after min.js/main.js -->
-		<link rel="stylesheet" type="text/css" href="static/css/main.css?c=<?php 
+		<link rel="stylesheet" type="text/css" href="<?= $settings["base_url"]; ?>/static/css/main.css?c=<?php 
 			if($settings["debug"]==true) echo time(); 
 			else echo $settings["cache_buster"];
 		?>" media="all" />
@@ -333,7 +332,7 @@ if(isset($show_place) && !isset($show_place_error)) {
 			if(isset($settings["fb"]["app"]["id"]) && !empty($settings["fb"]["app"]["id"])) echo '<meta property="fb:app_id" content="'.$settings["fb"]["app"]["id"].'" />'."\n";
 		?>
 		<link rel="home" href="<?php echo $settings["base_url"]; ?>/" title="Hitchwiki <?php echo _("Maps"); ?>" />
-		<link rel="help" href="<?php echo $settings["base_url"]; ?>/?page=about" title="Hitchwiki <?php echo htmlspecialchars(_("Help & About")); ?>" />
+		<link rel="help" href="<?php echo $settings["base_url"]; ?>/about/" title="Hitchwiki <?php echo htmlspecialchars(_("Help & About")); ?>" />
 		<link rel="search" type="application/opensearchdescription+xml" href="<?php echo $settings["base_url"]; ?>/opensearch/?lang=<?php echo $settings["language"]; ?>" title="Hitchwiki <?php echo _("Maps"); ?>" />
 		<link rel="author" href="<?php echo $settings["base_url"]; ?>/humans.txt" type="text/plain" />
 		<?php
@@ -377,12 +376,8 @@ if(isset($show_place) && !isset($show_place_error)) {
 				
 				<ul id="Navigation" class="Navigation" role="navigation">
 					<li><a href="#" id="add_place" class="icon add"><?php echo _("Add place"); ?></a></li>
-					<li><a href="./?page=countries" id="countries" class="icon world pagelink"><?php echo _("Countries"); ?></a></li>
-					<li><a href="./?page=public_transport" id="public_transport" class="icon pagelink underground"><?php echo _("Public transport"); ?></a></li>
-					<!--<div id="naviRefreshArea"><?php
-						#$naviRefreshArea = true;
-						#require_once("ajax/header_navi.php");
-					?></div>-->
+					<li><a href="<?= $settings["base_url"]; ?>/countries/" id="countries" class="icon world pagelink"><?php echo _("Countries"); ?></a></li>
+					<li><a href="<?= $settings["base_url"]; ?>/public_transport/" id="public_transport" class="icon pagelink underground"><?php echo _("Public transport"); ?></a></li>
 				</ul>
 				<ul id="Navigation2" class="Navigation" role="navigation"><?php
 					$naviRefreshArea = true;
@@ -394,13 +389,10 @@ if(isset($show_place) && !isset($show_place_error)) {
 			
 			<div class="align_right">
 					
-					<div id="loginRefreshArea"><?php
-						#$loginRefreshArea = true;
-						#require_once("ajax/header_login.php");
-					?></div>
+					<div id="loginRefreshArea"></div>
 					
 					<div id="search">
-					<form method="get" action="#" id="search_form" name="search" role="search">
+					<form method="get" action="<?= $settings["base_url"]; ?>/" id="search_form" name="search" role="search">
 						<div class="ui-widget">
 						<input type="text" value="<?php if(isset($_GET["q"]) && !empty($_GET["q"])) echo htmlspecialchars(strip_tags($_GET["q"])); ?>" id="q" name="q" />
 						<button type="submit" class="search_submit button" title="<?php echo _("Search"); ?>"> <span class="icon magnifier">&nbsp;</span><span class="hidden"><?php echo _("Search"); ?></span></button>
@@ -421,9 +413,7 @@ if(isset($show_place) && !isset($show_place_error)) {
 		</div>
 		<div id="Login">
 			<?php /* By submitting this with JS, you can reload this page and map will be as it was, if you fill lat/lon/zoom inputs and change post->get */ ?>
-			<form method="post" action="./" id="reloadPage" class="hidden">
-			    <input type="submit" />
-			</form>
+			<form method="post" action="<?= $settings["base_url"]; ?>/" id="reloadPage" class="hidden"><input type="submit" /></form>
 		</div>
 
 	        
@@ -436,7 +426,7 @@ if(isset($show_place) && !isset($show_place_error)) {
 	        
 			<!-- AJAX Content Area for pages-->
 			<div id="pages">
-				<a href="#" class="close ui-button ui-corner-all ui-state-default ui-icon ui-icon-closethick" title="<?php echo _("Close"); ?>"><?php echo _("Close"); ?></a>
+				<a href="#close" class="close ui-button ui-corner-all ui-state-default ui-icon ui-icon-closethick" title="<?php echo _("Close"); ?>"><?php echo _("Close"); ?></a>
 				<div class="page">
 					<div class="content"><?php
 						// Open page
@@ -472,7 +462,7 @@ if(isset($show_place) && !isset($show_place_error)) {
 	       <div id="toolsPanel" class="floatingPanel draggable hidden">
 	       		<h4 class="icon lorry">
 	       			<?php echo _("Tools"); ?>
-	       			<a href="#" class="close ui-icon ui-icon-closethick align_right" title="<?php echo _("Close"); ?>"><?php echo _("Close"); ?></a>
+	       			<a href="#close" class="close ui-icon ui-icon-closethick align_right" title="<?php echo _("Close"); ?>"><?php echo _("Close"); ?></a>
 	       		</h4>
 				<div class="controlToggle">
 				
@@ -527,7 +517,7 @@ if(isset($show_place) && !isset($show_place_error)) {
 	       <div id="languagePanel" class="floatingPanel hidden">
 	       		<h4 class="icon world">
 	       			<?php echo _("Choose language"); ?>
-	       			<a href="#" class="close ui-icon ui-icon-closethick align_right" title="<?php echo _("Close"); ?>"><?php echo _("Close"); ?></a>
+	       			<a href="#close" class="close ui-icon ui-icon-closethick align_right" title="<?php echo _("Close"); ?>"><?php echo _("Close"); ?></a>
 	       		</h4>
 				<div class="controlToggle">
 				
@@ -537,9 +527,9 @@ if(isset($show_place) && !isset($show_place_error)) {
 				    	    foreach($settings["valid_languages"] as $code => $name) {
 				    	    	?>
 				    	    	<li>
-				    	    		<span class="icon" style="background-image: url(static/gfx/flags/<?php echo strtolower(shortlang($code, 'country')); ?>.png);">	
+				    	    		<span class="icon" style="background-image: url(<?= $settings["base_url"]; ?>/static/gfx/flags/<?php echo strtolower(shortlang($code, 'country')); ?>.png);">	
 				    	    			<?php
-				    	    			echo '<a href="./?lang='.$code.'"';
+				    	    			echo '<a href="'.$settings["base_url"].'/?lang='.$code.'"';
 				    	    			if($code == $settings["language"]) echo ' class="selected"';
 				    	    			echo ' title="'.$settings["languages_in_english"][$code].'">'.$name.'</a>';
 				    	    			?>
@@ -549,7 +539,7 @@ if(isset($show_place) && !isset($show_place_error)) {
 				    	    }
 				    	?>
 					</ul>
-					<a href="./?page=translate" id="translate" class="pagelink"><small class="light"><?php echo _("Help us with translating!"); ?></small></a>
+					<a href="<?= $settings["base_url"]; ?>/translate/" id="translate" class="pagelink"><small class="light"><?php echo _("Help us with translating!"); ?></small></a>
 				    						        
 				</div>
 	       </div>
@@ -671,18 +661,18 @@ if(isset($show_place) && !isset($show_place_error)) {
 
 
 				<ul class="MetaNavigation">
-			    		<!--<li><a href="#" id="news" class="icon new pagelink"><?php echo _("News"); ?></a></li>-->
+			    	<!--<li><a href="#" id="news" class="icon new pagelink"><?php echo _("News"); ?></a></li>-->
 					<li><a href="#" id="toggleLanguages" title="<?php echo _("Choose language"); ?>">Language</a></li>
-					<li><a href="./?page=about" class="pagelink" id="about"><?php echo htmlspecialchars(_("Help & About")); ?></a></li>
-					<li><a href="./?page=statistics" class="pagelink" id="statistics"><?php echo _("Statistics"); ?></a></li>
+					<li><a href="<?= $settings["base_url"]; ?>/about/" class="pagelink" id="about"><?php echo htmlspecialchars(_("Help & About")); ?></a></li>
+					<li><a href="<?= $settings["base_url"]; ?>/statistics/" class="pagelink" id="statistics"><?php echo _("Statistics"); ?></a></li>
 					<li><a href="#" class="cardlink" id="contact"><?php echo _("Contact us!"); ?></a></li>
-					<li><a href="./?page=mobile" class="pagelink" id="mobile"><?php echo _("Mobile"); ?></a></li>
-			    		<li><a href="./?page=api" class="pagelink" id="api" title="<?php echo _("Developers"); ?>"><?php echo _("API"); ?></a></li>
+					<li><a href="<?= $settings["base_url"]; ?>/mobile/" class="pagelink" id="mobile"><?php echo _("Mobile"); ?></a></li>
+			    	<li><a href="<?= $settings["base_url"]; ?>/about_api/" class="pagelink" id="api" title="<?php echo _("Developers"); ?>"><?php echo _("API"); ?></a></li>
 
 			    	<?php // Visible only for admins
 			    	if($user["admin"]===true): ?>
 					    <?php if($settings["debug"] == true) { echo '<li><a href="#" class="toggle_log">'._("Toggle log").'</a></li>'; } ?>
-			    		<li><a href="./admin/"><?php echo _("Admins"); ?></a></li>
+			    		<li><a href="<?= $settings["base_url"]; ?>/admin/"><?php echo _("Admins"); ?></a></li>
 					<?php endif; ?>
 					<?php if(!isset($user["disallow_facebook"]) && $user["disallow_facebook"] != 1): ?><li><a href="http://www.facebook.com/Hitchwiki" class="icon facebook" title="Hitchwiki @ Facebook" style="float: left; padding: 0; margin: 0; width: 16px; height: 16px;"><span class="hidden">Hitchwiki @ Facebook</span></a></li><?php endif; ?>
 					<li><a rel="license" href="<?php echo _("http://creativecommons.org/licenses/by-sa/3.0/"); ?>" title="<?php echo _("Licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License"); ?>"><img alt="<?php echo _("Creative Commons License"); ?>" src="static/gfx/cc-by-sa.png" width="48" height="15"/></a></li>
@@ -698,9 +688,9 @@ if(isset($show_place) && !isset($show_place_error)) {
 		<div id="log" class="hidden">
 			<b class="handle">
 				<?php echo _("Log"); ?>
-	       		<a href="#" class="close ui-icon ui-icon-closethick align_right" title="<?php echo _("Close"); ?>"><?php echo _("Close"); ?></a>
+	       		<a href="#close" class="close ui-icon ui-icon-closethick align_right" title="<?php echo _("Close"); ?>"><?php echo _("Close"); ?></a>
 			</b>
-			<ol><li>Hitchwiki Maps log started <?php echo date("r"); ?></li></ol>
+			<ol><li>Hitchwiki Maps log started <?php echo date("r"); ?> on <?= $settings["base_url"]; ?>/</li></ol>
 		</div>
 
 <?php 

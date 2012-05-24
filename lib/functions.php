@@ -5,6 +5,7 @@
  * 
  * - readURL()
  * - start_sql()
+ * - mobile_meta()
  * - gather_log()
  * - image_map()
  * - error_sign()
@@ -83,14 +84,14 @@ function mobile_meta($mobile_device=true) {
 
 	$end = "\n\t";
 
-	$app_icons_and_screens = $settings["base_url"].'/static/mobile/gfx/app_icons-screens/';
+	$app_icons_and_screens = $settings["base_url"].'/static/gfx/mobile/app_icons-screens/';
+
 
 	/*
-	 * Mobile browsers
+	 * All browsers
 	 */
 	echo '<link rel="shortcut icon" href="'.$settings["base_url"].'/favicon.png" type="image/png" />'.$end;
 	echo '<link rel="bookmark icon" href="'.$settings["base_url"].'/favicon.png" type="image/png" />'.$end;
-
 
 	/*
 	 * Apple devices -- Mobile meta & links
@@ -136,6 +137,7 @@ function mobile_meta($mobile_device=true) {
 	// HOME SCREEN ICONS
 
 	// home screen icon
+	
 	echo '<link rel="apple-touch-icon" href="'.$app_icons_and_screens.'icon_57x57.png" />'.$end;
 	
 	// home screen icon - ipad
@@ -146,7 +148,7 @@ function mobile_meta($mobile_device=true) {
 	// home screen icon - high res
 	//echo '<link rel="apple-touch-icon" href="/customIcon.png" media="screen and (-webkit-min-device-pixel-ratio: 2)" />'.$end;
 	// -- or --
-	echo '<link rel="apple-touch-icon" sizes="114x114" href="/icon_114x114.png" />'.$end;
+	echo '<link rel="apple-touch-icon" sizes="114x114" href="'.$app_icons_and_screens.'icon_114x114.png" />'.$end;
 	
 	// home screen icon, omits iOS embellishments, works in Android
 	//echo '<link rel="apple-touch-icon-precomposed" href="/customIcon.png" />'.$end;
@@ -529,10 +531,7 @@ function image_map($lat, $lon, $zoom=15, $format='png', $width=150, $height=150,
 	  return false;
 
 	else
-	//		   'http://open.mapquestapi.com/staticmap/v3/getmap?size=600,200&zoom=14&shapeformat=cmp&center=40.770021,-73.984003&shape=y_zwFjsrbMxWkz@??}DoC??a@}CyBt@ySiN??fDeP&scenter=40.77069,-73.992378&ecenter=40.770935,-73.97644';
-		return 'http://open.mapquestapi.com/staticmap/v3/getmap?size='.urlencode($width).','.urlencode($height).'&zoom='.urlencode($zoom).'&center='.urlencode($lat).','.urlencode($lon).'&type='.$type.'&imageType='.$format; 
-	  //return 'http://tah.openstreetmap.org/MapOf/?lat='.urlencode($lat).'&long='.urlencode($lon).'&z='.urlencode($zoom).'&w='.urlencode($width).'&h='.urlencode($height).'&skip_attr=on&format='.urlencode($format);
-
+	  return 'http://open.mapquestapi.com/staticmap/v3/getmap?size='.urlencode($width).','.urlencode($height).'&zoom='.urlencode($zoom).'&center='.urlencode($lat).','.urlencode($lon).'&type='.$type.'&imageType='.$format; 
 }
 
 

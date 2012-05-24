@@ -14,7 +14,7 @@ if(isset($_POST) && !empty($_POST)) {
 	$subject = 'a message from Hitchwiki Maps';
 
 	// Message	
-	$message = '<html><head><title>Birthday Reminders for August</title></head><body>';
+	$message = '<html><head><title>Hitchwiki Maps</title></head><body>';
 	$message .= "<h4>Message:</h4>\n\n".htmlspecialchars(stripslashes($_POST["message"]))."<br /><br />\n\n<b>From:</b> ".htmlspecialchars($_POST["email"])."<br />\n<b>IP:</b> ".$_SERVER['REMOTE_ADDR']."<br /><br />\n\n";
 
 	// Add info about logged in user	

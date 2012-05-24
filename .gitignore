@@ -1,4 +1,5 @@
 .DS_Store
+.htaccess
 Thumbs.db
 Desktop.ini
 config.php

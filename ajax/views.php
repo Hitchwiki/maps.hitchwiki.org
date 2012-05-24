@@ -5,7 +5,12 @@
 
 if(!isset($views_cold_include)) {
     require_once "../config.php"; //Load config to set language
-    $view_type = ($_GET["type"] == "card" ? 'cards' : 'pages');
+    //$view_type = ($_GET["type"] == "card" ? 'cards' : 'pages');
+    
+    if($_GET["type"] == "card") $view_type = "card";
+    elseif($_GET["type"] == "mobile") $view_type = "mobile";
+    else $view_type = "pages";
+    
     $views_path = "../";
 }
 else {

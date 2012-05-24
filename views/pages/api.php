@@ -1,6 +1,6 @@
 <h2><?php echo _("API Documentation"); ?></h2>
 
-<a target="_blank" href="http://www.sxc.hu/photo/85875" title="Photo from SXC.hu by hiphop."><img src="static/gfx/api.jpg" alt="" class="align_right" style="margin: 0 0 20px 20px;" /></a>
+<a target="_blank" href="http://www.sxc.hu/photo/85875" title="Photo from SXC.hu by hiphop."><img src="<?= $settings["base_url"]; ?>/static/gfx/api.jpg" alt="" class="align_right" style="margin: 0 0 20px 20px;" /></a>
 
 <p>w00t? Yeah, you can now read Hitchwiki Maps database trough an open API! It's the same API we use at our JavaScript frontend for web and mobile.</p>
 

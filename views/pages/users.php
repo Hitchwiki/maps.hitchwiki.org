@@ -45,7 +45,7 @@
 	    		echo '<td>';
 	    		if($row["id"] == $user["id"]) echo '<b>';
 	    		
-	    		echo '<a href="./?page=profile&amp;user_id='.$row["id"].'" onclick="open_page(\'profile\', \'user_id='.$row["id"].'\'); return false;" title="'._("Profile").'">'.htmlspecialchars($row["name"]).'</a>';
+	    		echo '<a href="'.$settings["base_url"].'/user/'.$row["id"].'/" onclick="open_page(\'profile\', \'user_id='.$row["id"].'\'); return false;" title="'._("Profile").'">'.htmlspecialchars($row["name"]).'</a>';
 	    		
 	    		if($row["id"] == $user["id"]) echo '</b> <small>&mdash; '._("That's you!").'</small>';
 	    		echo '</td>';
@@ -60,7 +60,7 @@
 	    		
 	    		// Location
 	    		if(!empty($row["location"])) {
-	    			echo '<td><a href="./?q='.urlencode($row["location"]).'" class="search_this">'.htmlspecialchars($row["location"]).'</td>';
+	    			echo '<td><a href="'.$settings["base_url"].'/search/'.urlencode($row["location"]).'/" class="search_this">'.htmlspecialchars($row["location"]).'</td>';
 	    		}
 	    		else echo '<td> </td>';
 	    		
@@ -68,7 +68,7 @@
 	    		// Country
 	    		if(!empty($row["country"])) {
     				$countryname = ISO_to_country($row["country"]);
-	    			echo '<td><a href="./?q='.urlencode($countryname).'" class="search_this">'.$countryname.'</a> <img class="flag" alt="'.$countryname.'" src="static/gfx/flags/'.strtolower($row["country"]).'.png" /></td>';
+	    			echo '<td><a href="'.$settings["base_url"].'/search/'.urlencode($countryname).'/" class="search_this">'.$countryname.'</a> <img class="flag" alt="'.$countryname.'" src="'.$settings["base_url"].'/static/gfx/flags/'.strtolower($row["country"]).'.png" /></td>';
 	    		}
 	    		else echo '<td> </td>';
 	    		
@@ -80,8 +80,8 @@
 	    			if($row["admin"] == '1') echo '<td class="icon tux">';
 	    			else echo '<td>';
 					?>
-						<a href="admin/?page=users&amp;remove=<?php echo $row["id"]; ?>" class="remove_user ui-icon ui-icon-trash align_right" title="<?php echo _("Remove user permanently"); ?>"></a>
-						<a href="admin/?page=users&amp;edit=<?php echo $row["id"]; ?>" class="ui-icon ui-icon-pencil align_right" title="<?php echo _("Edit user"); ?>"></a>
+						<a href="<?= $settings["base_url"]; ?>/admin/?page=users&amp;remove=<?php echo $row["id"]; ?>" class="remove_user ui-icon ui-icon-trash align_right" title="<?php echo _("Remove user permanently"); ?>"></a>
+						<a href="<?= $settings["base_url"]; ?>/admin/?page=users&amp;edit=<?php echo $row["id"]; ?>" class="ui-icon ui-icon-pencil align_right" title="<?php echo _("Edit user"); ?>"></a>
 					</td>
 					<?php
 	    		} // only for admins

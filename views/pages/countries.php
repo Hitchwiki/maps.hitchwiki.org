@@ -48,7 +48,7 @@
 				
 				
 				// Get country info
-				$("#countryinfo").load('ajax/country.php?format=html&country=' + country, function(response, status, xhr) {
+				$("#countryinfo").load('<?= $settings["base_url"]; ?>/ajax/country.php?format=html&country=' + country, function(response, status, xhr) {
 				
 					// Hide "loading" and enable select
 				  	hide_loading_bar();
@@ -84,7 +84,7 @@
 
 <div id="countryinfo" class="textbox">
 	<p><em class="bigger">"<?php echo _("I haven't been everywhere, but it's on my list."); ?>"</em></p>
-	<iframe src="ajax/map_statistics.php?map=3" width="100%" height="430" frameborder="0" style="border:0;"></iframe>
+	<iframe src="<?= $settings["base_url"]; ?>/ajax/map_statistics.php?map=3" width="100%" height="430" frameborder="0" style="border:0;"></iframe>
 </div>
 
 </div>

@@ -23,8 +23,7 @@ function username($id, $link=false) {
 		// If we have a result, go and get the name
 		if(mysql_num_rows($res) > 0) {
 		    while($r = mysql_fetch_array($res, MYSQL_ASSOC)) {
-		    
-		    	if($link===true) return '<a href="./?page=profile&amp;user_id='.$id.'" onclick="open_page(\'profile\', \'user_id='.$id.'\'); return false;" title="'._("Profile").'">'.htmlspecialchars($r["name"]).'</a>';
+		    	if($link===true) return user_link($id, $r["name"]);
 		    	else return htmlspecialchars($r["name"]);
 		    }
 		}
@@ -33,6 +32,22 @@ function username($id, $link=false) {
 	else return _("Anonymous");
 }
 
+
+/* 
+ * Return a link to user's page
+ */
+function user_link($id=false, $username=false) {
+	global $settings, $user; 
+	
+	if(!empty($id) && !empty($username)) {
+	
+		$title = (!empty($user["id"]) && $user["id"] == $waitingtime["user_id"]) ? _("That's you!") : _("Profile");
+	
+		return '<a href="'.$settings["base_url"].'/profile/'.$id.'/" onclick="open_page(\'profile\', \'user_id='.$id.'\'); return false;" title="'.$title.'">'.htmlspecialchars($username).'</a>';
+
+	}
+	else return '<!-- error when printing profile link -->';
+}
 
 
 /* 

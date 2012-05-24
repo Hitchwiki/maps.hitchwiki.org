@@ -8,9 +8,9 @@ if(!$naviRefreshArea) {
 }
 ?>
 				<?php if($user["logged_in"]===true): ?>
-					<li><a href="./?page=users" id="users" class="icon user" onclick="open_page('users'); return false;"><?php echo _("Members"); ?></a></li>
+					<li><a href="<?= $settings["base_url"]; ?>/users/" id="users" class="icon user" onclick="open_page('users'); return false;"><?php echo _("Members"); ?></a></li>
 				<?php else: ?>
-					<li><a href="./?page=about" id="about" class="icon help" onclick="open_page('about'); return false;"><?php echo _("About"); ?></a></li>
+					<li><a href="<?= $settings["base_url"]; ?>/about/" id="about" class="icon help" onclick="open_page('about'); return false;"><?php echo _("About"); ?></a></li>
 				<?php endif; ?>
 
 		    	<?php // Visible only for admins
@@ -19,4 +19,4 @@ if(!$naviRefreshArea) {
 					<li><a href="./?page=trips" id="trips" class="icon flag_green" onclick="open_page('trips'); return false;"><?php echo _("My trips"); ?></a></li>
 				<?php endif; ?>
 
-					<li><a href="./?page=log_all" id="log_all" class="icon page_white_text" onclick="open_page('log_all'); return false;"><?php echo _("Log"); ?></a></li>
+					<li><a href="<?= $settings["base_url"]; ?>/log_all/" id="log_all" class="icon page_white_text" onclick="open_page('log_all'); return false;"><?php echo _("Log"); ?></a></li>

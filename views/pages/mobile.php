@@ -7,12 +7,12 @@
 
 		<div id="screenshots" style="width: 190px; height: 338px; overflow: hidden;">
 			<ul>
-				<li><a href="static/gfx/screenshot_nokia-2.jpg"><img src="static/gfx/screenshot_nokia-2_small.jpg" width="190" height="338" alt="Hitchwiki Maps for Nokia" /></a></li>
-				<li><a href="static/gfx/screenshot_nokia-3.jpg"><img src="static/gfx/screenshot_nokia-3_small.jpg" width="190" height="338" alt="Hitchwiki Maps for Nokia" /></a></li>
-				<li><a href="static/gfx/screenshot_nokia-4.jpg"><img src="static/gfx/screenshot_nokia-4_small.jpg" width="190" height="338" alt="Hitchwiki Maps for Nokia" /></a></li>
+				<li><a href="<?= $settings["base_url"]; ?>/static/gfx/screenshot_nokia-2.jpg"><img src="<?= $settings["base_url"]; ?>/static/gfx/screenshot_nokia-2_small.jpg" width="190" height="338" alt="Hitchwiki Maps for Nokia" /></a></li>
+				<li><a href="<?= $settings["base_url"]; ?>/static/gfx/screenshot_nokia-3.jpg"><img src="<?= $settings["base_url"]; ?>/static/gfx/screenshot_nokia-3_small.jpg" width="190" height="338" alt="Hitchwiki Maps for Nokia" /></a></li>
+				<li><a href="<?= $settings["base_url"]; ?>/static/gfx/screenshot_nokia-4.jpg"><img src="<?= $settings["base_url"]; ?>/static/gfx/screenshot_nokia-4_small.jpg" width="190" height="338" alt="Hitchwiki Maps for Nokia" /></a></li>
 			</ul>
 		</div>
-		<script type="text/javascript" src="static/js/jquery.jcarousellite.min.js"></script>
+		<script type="text/javascript" src="<?= $settings["base_url"]; ?>/static/js/jquery.jcarousellite.min.js"></script>
 		<script type="text/javascript">
 		$(document).ready(function() {
 			// Start screenshots -carousel
@@ -30,7 +30,7 @@
 		<small>
 				<strong><em><?php echo _("Are you a mobile developer?"); ?></em></strong> 
 				<?php echo _("We would love to see Hitchwiki Maps in as many platforms as possible. We have an API to help you to do just that."); ?> 
-				<a href="#" onclick="open_card('contact', '<?php echo _("Contact us!"); ?>'); return false;"><?php echo _("Contact us!"); ?></a> &bull; <a href="./?page=api" onclick="open_page('api'); return false;"><?php echo _("API"); ?></a> 
+				<a href="#" onclick="open_card('contact', '<?php echo _("Contact us!"); ?>'); return false;"><?php echo _("Contact us!"); ?></a> &bull; <a href="<?= $settings["base_url"]; ?>/about_api/" onclick="open_page('api'); return false;"><?php echo _("API"); ?></a> 
 		</small>
 		</div>
 	
