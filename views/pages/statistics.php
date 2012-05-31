@@ -1,6 +1,6 @@
 <h2><?php echo _("Statistics"); ?></h2>
 
-<p><?php printf( _('There are currently %s places marked.'), '<b>'.total_places().'</b>' ); ?> <a href="./?page=complete_statistics" onclick="open_page('complete_statistics'); return false;"><?php echo _("See more complete statistics."); ?></a></p>
+<p><?php printf( _('There are currently %s places marked.'), '<b>'.total_places().'</b>' ); ?> <a href="<?= $settings["base_url"]; ?>/complete_statistics/" onclick="open_page('complete_statistics'); return false;"><?php echo _("See more complete statistics."); ?></a></p>
 
 
 <div class="align_left" style="margin: 0 40px 20px 0;">
@@ -68,7 +68,7 @@
 	<p><?php
 		$total = hitchability_votes_total();
 		printf(ngettext("%d vote in total.", "%d votes in total.", $total), $total);
-	?> <a href="./?page=hitchability" onclick="open_page('hitchability'); return false;"><?php echo _("Read more..."); ?></a></p>
+	?> <a href="<?= $settings["base_url"]; ?>/hitchability/" onclick="open_page('hitchability'); return false;"><?php echo _("Read more..."); ?></a></p>
 	<!-- /hitchability -->
 	
 </div>
@@ -111,7 +111,7 @@
 		
 			$countryname = ISO_to_country($row["country"]);
 			echo '<tr>';
-			echo '<td><img class="flag" alt="'.$countryname.'" src="static/gfx/flags/'.strtolower($row["country"]).'.png" /> <a href="./?q='.urlencode($countryname).'" id="search_for_this">'.$countryname.'</a></td>';
+			echo '<td><img class="flag" alt="'.$countryname.'" src="'.$settings["base_url"].'/static/gfx/flags/'.strtolower($row["country"]).'.png" /> <a href="./?q='.urlencode($countryname).'" id="search_for_this">'.$countryname.'</a></td>';
 			echo '<td>'.$row["max"].' '._("m").'</td>';
 			echo '<td>'.round($row["avg"]).' '._("m").'</td>';
 			echo '<td>'.$row["min"].' '._("m").'</td>';
@@ -165,5 +165,5 @@
 	<!-- place dencity -->
 	<h3><?php echo _("Place density"); ?></h3>
 	<!-- http://code.google.com/apis/visualization/documentation/gallery/geomap.html -->
-	<iframe src="ajax/map_statistics.php?map=3" width="820" height="430" border="0" style="border:0;"></iframe>
+	<iframe src="<?= $settings["base_url"]; ?>/ajax/map_statistics.php?map=3" width="820" height="430" border="0" style="border:0;"></iframe>
 	<!-- /place dencity -->

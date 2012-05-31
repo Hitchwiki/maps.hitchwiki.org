@@ -203,6 +203,7 @@ if(isset($show_place) && !isset($show_place_error)) {
 			var geolocation_cookiename = "<?php echo $settings["cookie_prefix"]; ?>geolocation";
 			var geolocation_cookieoptions = { path: '/', expires: 6 }; // expires: hours
 			var locale = "<?php echo $settings["language"]; ?>";
+			var base_url = "<?= $settings["base_url"]; ?>";
 			var private_location = <?php echo (!empty($user["private_location"]) ? 'true' : 'false'); ?>;
 			var google_analytics = <?php echo (!empty($settings["google"]["analytics_id"]) ? 'true' : 'false'); ?>;
 			var piwik_analytics = <?php echo (!empty($settings["piwik"]["id"]) ? 'true' : 'false'); ?>;

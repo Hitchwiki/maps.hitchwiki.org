@@ -20,7 +20,7 @@ var proj4326 = new OpenLayers.Projection("EPSG:4326");
 var projmerc = new OpenLayers.Projection("EPSG:900913"); //map.getProjectionObject();
 
 // Missing tiles from the map
-OpenLayers.Util.onImageLoadError = function(){this.src='static/gfx/openlayers/tile_not_found.gif';}
+OpenLayers.Util.onImageLoadError = function(){this.src=base_url+'/static/gfx/openlayers/tile_not_found.gif';}
 OpenLayers.Tile.Image.useBlankTile=false;
 
 
@@ -236,7 +236,7 @@ $(document).ready(function() {
 	function loginRefreshAreas() {
 	    
 	    $.ajax({
-	      url: "ajax/header_login.php",
+	      url: base_url+"/ajax/header_login.php",
 	      cache: false,
 	      success: function(content){
 		$("#loginRefreshArea").html(content);
@@ -245,7 +245,7 @@ $(document).ready(function() {
 	    });
 	    
 	    $.ajax({
-	      url: "ajax/header_navi.php",
+	      url: base_url+"/ajax/header_navi.php",
 	      cache: false,
 	      success: function(content){
 		$("#Navigation2").html(content);
@@ -283,7 +283,7 @@ function init_map() {
 	maps_debug("Initialize the map");
 
 	// Custom images from our own server
-	OpenLayers.ImgPath = "static/gfx/openlayers/";
+	OpenLayers.ImgPath = base_url+"/static/gfx/openlayers/";
 	
 	// Create map with controls	
 	map = new OpenLayers.Map('map', {
@@ -882,7 +882,7 @@ function onCountrydotSelect(feature) {
     popup = new OpenLayers.Popup.FramedCloud("Country", 
 		point,
 		null,
-		'<div style="color: #111;"><h4 style="margin:0; padding: 0 0 3px 21px; background: url(static/gfx/flags/'+feature.attributes.iso.toLowerCase()+'.png) no-repeat 0 3px;">' + feature.attributes.name +'</h4><small class="grey">' + feature.attributes.places +' '+_("places")+'.<br /><i>'+_("Zoom closer to see them.")+'</i></small></div>',
+		'<div style="color: #111;"><h4 style="margin:0; padding: 0 0 3px 21px; background: url('+base_url+'static/gfx/flags/'+feature.attributes.iso.toLowerCase()+'.png) no-repeat 0 3px;">' + feature.attributes.name +'</h4><small class="grey">' + feature.attributes.places +' '+_("places")+'.<br /><i>'+_("Zoom closer to see them.")+'</i></small></div>',
 		{
 			'size': new OpenLayers.Size(15,15), 
 			'offset': new OpenLayers.Pixel(lon_offset,lat_offset)
@@ -1081,7 +1081,7 @@ function fetchlocationW3(position) {
 	maps_debug("Got location from browser. Sending it to the geocoder.");
 	
 	// Reverse Geocode latlon -> address
-	$.getJSON('ajax/geocoder.php?mode=reverse&q=' + position.coords.latitude + ',' + position.coords.longitude, function(data) {			
+	$.getJSON(base_url+'/ajax/geocoder.php?mode=reverse&q=' + position.coords.latitude + ',' + position.coords.longitude, function(data) {			
 
 			if(data.error==true) {
 				maps_debug("Error when trying to get reverce geocode. Using our own IP-geolocation service");
@@ -1230,7 +1230,7 @@ function markerCountLabels() {
 	// Get labels from the database
 	// Gets only countries with 1+ places
 	
-	var apiCall = 'api/?countries&coordinates';	
+	var apiCall = base_url+'/api/?countries&coordinates';	
 	maps_debug("Calling API: "+apiCall);
 		
 	$.getJSON(apiCall, function(data) {
@@ -1310,7 +1310,7 @@ function refreshMapMarkers() {
 		var corner1 = new OpenLayers.LonLat(extent.left, extent.top).transform(projmerc, proj4326);
 		var corner2 = new OpenLayers.LonLat(extent.right, extent.bottom).transform(projmerc, proj4326);
 
-		var apiCall = 'api/?bounds='+corner2.lat+','+corner1.lat+','+corner1.lon+','+corner2.lon;	
+		var apiCall = base_url+'/api/?bounds='+corner2.lat+','+corner1.lat+','+corner1.lon+','+corner2.lon;	
 		maps_debug("Calling API: "+apiCall);
 	
 		// Get markers from the API for this area
@@ -1394,7 +1394,7 @@ function init_add_place(prefill) {
 	
 	// Get panel contents
 	$.ajax({
-		url: "ajax/add_place.php",
+		url: base_url+"/ajax/add_place.php",
 		async: false,
 		success: function(content){ 
 
@@ -1544,7 +1544,7 @@ function update_add_place(q_lon, q_lat, needsConverting) {
 	$.ajax({
 		// Define AJAX properties.
 		method: "get",
-		url: 'ajax/geocoder.php?mode=reverse&q=' + g_lonLat.lat + ',' + g_lonLat.lon, // + '&c=' + Math.random()
+		url: base_url+'/ajax/geocoder.php?mode=reverse&q=' + g_lonLat.lat + ',' + g_lonLat.lon, // + '&c=' + Math.random()
 		dataType: "json", 
 		timeout: 10000, // timeout in milliseconds; 1s = 1000ms
 	 
@@ -1637,7 +1637,7 @@ function showPlacePanel(id, zoomin) {
 	close_add_place();
 
 	$.ajax({
-		url: "ajax/place.php?id="+id+"&lang="+locale,
+		url: base_url+"/ajax/place.php?id="+id+"&lang="+locale,
 		async: false,
 		success: function(content){
 		
@@ -1695,7 +1695,7 @@ function search(q) {
 	$.ajax({
 		// Define AJAX properties.
 		method: "get",
-		url: 'ajax/geocoder.php?q=' + q,
+		url: base_url+'/ajax/geocoder.php?q=' + q,
 		dataType: "json",
 		timeout: 10000, // timeout in milliseconds; 1s = 1000ms
 	 
@@ -1805,7 +1805,7 @@ function open_page(page_name, variables, open_at_start) {
 		close_cards();
 	
 		$.ajax({
-			url: "ajax/views.php?type=page&lang="+locale+"&page=" + page_name + variables,
+			url: base_url+"/ajax/views.php?type=page&lang="+locale+"&page=" + page_name + variables,
 			async: false,
 			success: function(content){
 
@@ -1863,7 +1863,7 @@ function open_card(name, title) {
 	close_cards();
     
 	$.ajax({
-	    url: "ajax/views.php?type=card&lang="+locale+"&page=" + name,
+	    url: base_url+"/ajax/views.php?type=cards&lang="+locale+"&page=" + name,
 	    async: false,
 	    success: function(content){
 
@@ -1906,7 +1906,7 @@ function saveDescription(post_place_id, post_language, post_description) {
     maps_debug("Saving description for place #"+post_place_id);
 	show_loading_bar(_("Saving..."));
 
-    $.post('api/?add_description', { place_id: post_place_id, language: post_language, description: post_description }, 
+    $.post(base_url+'/api/?add_description', { place_id: post_place_id, language: post_language, description: post_description }, 
         function(data) {
         
 	        hide_loading_bar();
@@ -1941,7 +1941,7 @@ function removeComment(remove_id) {
 
 	if(confirm_remove) {
 		// Call API
-		$.getJSON('api/?remove_comment='+remove_id, function(data) {
+		$.getJSON(base_url+'/api/?remove_comment='+remove_id, function(data) {
 		
 			if(data.success == true) {
 		

@@ -42,8 +42,8 @@
 	?><br />
 	
 	<h3><?php echo _("Get the app for free"); ?></h3>
-	<a href="http://store.ovi.com/content/143209"><img src="static/gfx/app_store_nokia.gif" title="Nokia Ovi Store" alt="Nokia Ovi Store" /></a>
-	<!--<a href="#"><img src="static/gfx/app_store_android.gif" alt="Android" /></a>-->
+	<a href="http://store.ovi.com/content/143209"><img src="<?= $settings["base_url"]; ?>/static/gfx/app_store_nokia.gif" title="Nokia Ovi Store" alt="Nokia Ovi Store" /></a>
+	<!--<a href="#"><img src="<?= $settings["base_url"]; ?>/static/gfx/app_store_android.gif" alt="Android" /></a>-->
 	
 	<h3><?php echo _("Features"); ?></h3>
 	<ul>
@@ -62,7 +62,7 @@
 		<b>Symbian^3:</b> Nokia C7-00, Nokia X7-00, Nokia N8-00, Nokia C6-01, Nokia C7 Astound, <?php echo _("and"); ?> Nokia E7-00.
 
 		<br /><br />
-		<?php echo _("Got suggestions or want to report a bug?")." ".'Application by: <a href="http://mindomobile.com/">Mindo Mobile Solutions</a>'; ?>
+		<?php echo _("Got suggestions or want to report a bug?").' Application by: <a href="http://mindomobile.com/">Mindo Mobile Solutions</a>'; ?>
 	</small>
 
 

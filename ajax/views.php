@@ -3,20 +3,23 @@
  * JS loads content from views-folder with this.
  */ 
 
+
+
+
 if(!isset($views_cold_include)) {
     require_once "../config.php"; //Load config to set language
-    //$view_type = ($_GET["type"] == "card" ? 'cards' : 'pages');
     
-    if($_GET["type"] == "card") $view_type = "card";
-    elseif($_GET["type"] == "mobile") $view_type = "mobile";
-    else $view_type = "pages";
-    
+	if($_GET["type"] == "cards") $view_type = "cards";
+	elseif($_GET["type"] == "mobile") $view_type = "mobile";
+	else $view_type = "pages";
+	
     $views_path = "../";
 }
 else {
     $view_type = "pages";
     $views_path = "";
 }
+$view_name = $_GET["page"];
 
 if($view_type == "cards") {
     $view_name = (isset($_GET["page"]) && !empty($_GET["page"]) && in_array($_GET["page"], $settings["views"][$view_type])) ? $_GET["page"]: "error404";
@@ -25,7 +28,6 @@ if($view_type == "cards") {
 }
 
 $view_file = $views_path."views/".$view_type."/".$view_name.".php";
-
 
 /*
  * Show page
@@ -45,7 +47,7 @@ else:
     include($views_path."views/view_404.php");
         
 	// For debugging:
-	if($settings["debug"]==true) echo '<p><small>Page: '.htmlspecialchars($_GET["page"]).' | Type: '.$view_type.' | Lang: '.$settings["language"].'</small></p>';
+	if($settings["debug"]==true) echo '<p><small>'.$view_type.' Page: '.htmlspecialchars($_GET["page"]).' | Type: '.$view_type.' | Lang: '.$settings["language"].'</small></p>';
 
 endif;
 

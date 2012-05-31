@@ -97,7 +97,7 @@
 		-->
 	</ul>
 
-	<p><a href="./?page=translate" onclick="open_page('translate'); return false;" class="icon world"><?php echo _("Help us with translating!"); ?></a><br /></p>
+	<p><a href="<?= $settings["base_url"]; ?>/translate/" onclick="open_page('translate'); return false;" class="icon world"><?php echo _("Help us with translating!"); ?></a><br /></p>
 	
 	<div id="used_tech" style="display: none;">
 	<h3><?php echo _("Used technologies"); ?></h3>

@@ -268,7 +268,7 @@ $(function() {
 	// Set country selection
 	if($profile_form=="settings" && !empty($user["country"])) {
 		echo '$("#profile_form #country").val("'.$user["country"].'");'; 
-		echo '$("#profile_form .flag").attr("src","'$settings["base_url"].'static/gfx/flags/'.strtolower($user["country"]).'.png");';	
+		echo '$("#profile_form .flag").attr("src","'.$settings["base_url"].'static/gfx/flags/'.strtolower($user["country"]).'.png");';	
 	}
 	?>
 	

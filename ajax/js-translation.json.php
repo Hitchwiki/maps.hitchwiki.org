@@ -10,6 +10,8 @@
  */
 require_once "../config.php";
 
+header("Content-type: text/javascript"); 
+
 /*
  * Strings to be translated
  */
