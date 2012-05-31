@@ -882,7 +882,7 @@ function onCountrydotSelect(feature) {
     popup = new OpenLayers.Popup.FramedCloud("Country", 
 		point,
 		null,
-		'<div style="color: #111;"><h4 style="margin:0; padding: 0 0 3px 21px; background: url('+base_url+'static/gfx/flags/'+feature.attributes.iso.toLowerCase()+'.png) no-repeat 0 3px;">' + feature.attributes.name +'</h4><small class="grey">' + feature.attributes.places +' '+_("places")+'.<br /><i>'+_("Zoom closer to see them.")+'</i></small></div>',
+		'<div style="color: #111;"><h4 style="margin:0; padding: 0 0 3px 21px; background: url('+base_url+'/static/gfx/flags/'+feature.attributes.iso.toLowerCase()+'.png) no-repeat 0 3px;">' + feature.attributes.name +'</h4><small class="grey">' + feature.attributes.places +' '+_("places")+'.<br /><i>'+_("Zoom closer to see them.")+'</i></small></div>',
 		{
 			'size': new OpenLayers.Size(15,15), 
 			'offset': new OpenLayers.Pixel(lon_offset,lat_offset)
