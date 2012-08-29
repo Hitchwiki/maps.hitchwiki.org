@@ -933,12 +933,22 @@ if($place["error"] !== true):
 	    	<!-- place link -->
 			<li>
 				<div class="icon link"><label for="link_place"><small><?php echo _("Link to this place:"); ?></small></label></div>
-				<input type="text" id="link_place" value="<?php echo htmlspecialchars($place["link"]); ?>" class="copypaste" />
+				<input type="text" id="link_place" value="<?php echo htmlspecialchars($place["link"]); ?>" class="copypaste" readonly="readonly" />
 				<script type="text/javascript">
 					$(function() {
 						// Select all from textarea on focus
+						/* Wont work for safari/chrome, maybe in future it will?
 						$(".copypaste").focus(function(){
 						    this.select();
+						});
+						*/
+						$('.copypaste').live('focus mouseup', function(e){
+							if (e.type == 'focusin') {
+								this.select();
+							}
+							if (e.type == 'mouseup') {
+								return false;
+							}
 						});
 					});
 				</script>
@@ -1055,7 +1065,7 @@ if($place["error"] !== true):
 			<li>
 					<ul>
 						<li>
-							<label for="place_id">Place ID:</label> <input type="text" size="6" style="width: 50px;" value="<?php echo $place["id"]; ?>" id="place_id" class="copypaste" />
+							<label for="place_id">Place ID:</label> <input type="text" size="6" style="width: 50px;" value="<?php echo $place["id"]; ?>" id="place_id" class="copypaste" readonly="readonly" />
 							<script type="text/javascript">
 								$(function() {
 									// Select all from input on focus

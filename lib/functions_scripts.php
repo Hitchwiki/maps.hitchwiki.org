@@ -104,7 +104,7 @@ function init_google_analytics() {
 	<script type="text/javascript">
 	
 	  var _gaq = _gaq || [];
-	  _gaq.push(['_setAccount', '<?php echo $settings["google_analytics_id"]; ?>']);
+	  _gaq.push(['_setAccount', '<?php echo $settings["google"]["analytics_id"]; ?>']);
 	  _gaq.push(['_trackPageview']);
 	
 	  (function() {
@@ -139,14 +139,14 @@ function init_piwik_analytics() {
 	<script type="text/javascript">
 	/* <![CDATA[ */
 	try {
-	var piwikTracker = Piwik.getTracker(pkBaseURL + "piwik.php", <?php echo $settings["piwik_id"]; ?>);
+	var piwikTracker = Piwik.getTracker(pkBaseURL + "piwik.php", <?php echo $settings["piwik"]["id"]; ?>);
 	piwikTracker.setDocumentTitle("Hitchwiki Maps");
 	piwikTracker.setDownloadClasses("download");
 	piwikTracker.trackPageView();
 	piwikTracker.enableLinkTracking();
 	} catch( err ) {}
 	/* ]]> */
-	</script><noscript><img src="http://piwik.guaka.org/piwik.php?idsite=<?php echo $settings["piwik_id"]; ?>" style="border:0" alt=""/></noscript>
+	</script><noscript><img src="http://piwik.guaka.org/piwik.php?idsite=<?php echo $settings["piwik"]["id"]; ?>" style="border:0" alt=""/></noscript>
 	<!-- /Piwik -->
 	<?php
 	}
