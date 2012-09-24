@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?><?xml-stylesheet type="text/xsl" href="sitemap.xsl"?>
 <!-- generator="Hitchwiki Maps" -->
-<!-- sitemap-generator-url="http://hitchwiki.org/devmaps/" sitemap-generator-version="1.0" -->
-<!-- generated-on="Wed, 03 Aug 2011 23:42:11 +0200" -->
+<!-- sitemap-generator-url="http://hitchwiki.org/maps/" sitemap-generator-version="1.0" -->
+<!-- generated-on="Thu, 04 Aug 2011 00:25:22 +0200" -->
 <urlset 
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
     xmlns:geo="http://www.google.com/geo/schemas/sitemap/1.0" 
@@ -10,80 +10,75 @@
     xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">	
 
 <url>
-    <loc>http://hitchwiki.org/devmaps/</loc>
+    <loc>http://hitchwiki.org/maps/</loc>
     <changefreq>hourly</changefreq>
     <image:image>
-       <image:loc>http://hitchwiki.org/devmaps/static/gfx/badge.png</image:loc> 
+       <image:loc>http://hitchwiki.org/maps/static/gfx/badge.png</image:loc> 
     </image:image>
     <priority>1.0</priority>
 </url>
 <url>
-    <loc>http://hitchwiki.org/devmaps/?page=about</loc>
+    <loc>http://hitchwiki.org/maps/?page=about</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
 </url>
 <url>
-    <loc>http://hitchwiki.org/devmaps/?page=api</loc>
+    <loc>http://hitchwiki.org/maps/?page=api</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
 </url>
 <url>
-    <loc>http://hitchwiki.org/devmaps/?page=complete_statistics</loc>
+    <loc>http://hitchwiki.org/maps/?page=complete_statistics</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
 </url>
 <url>
-    <loc>http://hitchwiki.org/devmaps/?page=countries</loc>
+    <loc>http://hitchwiki.org/maps/?page=countries</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
 </url>
 <url>
-    <loc>http://hitchwiki.org/devmaps/?page=help</loc>
+    <loc>http://hitchwiki.org/maps/?page=help</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
 </url>
 <url>
-    <loc>http://hitchwiki.org/devmaps/?page=hitchability</loc>
+    <loc>http://hitchwiki.org/maps/?page=hitchability</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
 </url>
 <url>
-    <loc>http://hitchwiki.org/devmaps/?page=log_trips</loc>
+    <loc>http://hitchwiki.org/maps/?page=mobile</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
 </url>
 <url>
-    <loc>http://hitchwiki.org/devmaps/?page=mobile</loc>
+    <loc>http://hitchwiki.org/maps/?page=news</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
 </url>
 <url>
-    <loc>http://hitchwiki.org/devmaps/?page=news</loc>
+    <loc>http://hitchwiki.org/maps/?page=public_transport</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
 </url>
 <url>
-    <loc>http://hitchwiki.org/devmaps/?page=public_transport</loc>
+    <loc>http://hitchwiki.org/maps/?page=statistics</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
 </url>
 <url>
-    <loc>http://hitchwiki.org/devmaps/?page=statistics</loc>
+    <loc>http://hitchwiki.org/maps/?page=translate</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
 </url>
 <url>
-    <loc>http://hitchwiki.org/devmaps/?page=translate</loc>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-</url>
-<url>
-    <loc>http://hitchwiki.org/devmaps/?page=why_register</loc>
+    <loc>http://hitchwiki.org/maps/?page=why_register</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
 </url>
 <url> 
-    <loc>http://hitchwiki.org/devmaps/api/?format=kml&amp;download=world&amp;all</loc>
+    <loc>http://hitchwiki.org/maps/api/?format=kml&amp;download=world&amp;all</loc>
     <changefreq>always</changefreq>
     <priority>0.5</priority>
     <geo:geo>
