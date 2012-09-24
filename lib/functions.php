@@ -64,7 +64,7 @@ function start_sql() {
 			    'Reply-To: ' . $settings["email"] . "\r\n" .
 			    'X-Mailer: PHP/' . phpversion();
 
-			@mail('mikael.korpela@gmail.com', 'Hitchwiki Maps MySQL error!', $sql_error, $headers);
+			#@mail('mikael.korpela@gmail.com', 'Hitchwiki Maps MySQL error!', $sql_error, $headers);
 			
 			// Show maintenance screen
 			require_once('maintenance_page.php');
