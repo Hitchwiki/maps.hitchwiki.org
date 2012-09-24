@@ -6,3 +6,4 @@ config.php
 robots.txt
 dev.php
 dev/*
+tmp/*

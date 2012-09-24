@@ -560,7 +560,7 @@ if(isset($show_place) && !isset($show_place_error)) {
 
 			<div id="maplist" class="ui-corner-top">
 				<ul>
-					<li class="first">
+					<li>
 						<h4 class="icon icon-osm">Open Street Map</h4>
 						<ul class="map_options">
 							
