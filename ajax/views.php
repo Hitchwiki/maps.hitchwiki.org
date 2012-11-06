@@ -5,7 +5,6 @@
 
 
 
-
 if(!isset($views_cold_include)) {
     require_once "../config.php"; //Load config to set language
     

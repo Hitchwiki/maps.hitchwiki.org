@@ -11,6 +11,45 @@ require_once "../config.php";
 
 
 /* 
+ * Give names behind ISO-country codes
+ * FI -> Finland, DE -> Germany, etc
+ */
+function ISO_to_country($iso, $db=false, $lang="") {
+
+	if(!empty($iso)) {
+
+		global $settings;
+		
+		// Check if language is valid (if not, use default)
+		// Settings comes from config.php
+		if(empty($settings["valid_languages"][$lang])) $lang = $settings["language"];
+
+
+		if(is_array($db) && !empty($db)) {
+		
+			return $db[$iso];
+		
+		} else {
+		
+			// Gather data
+			start_sql();
+			$result = mysql_query("SELECT `iso`,`".mysql_real_escape_string($lang)."` FROM `t_countries` WHERE iso = '".mysql_real_escape_string(strtoupper($iso))."' LIMIT 1");
+			if (!$result) {
+	   			return false;
+			}
+			
+			// Result
+			if(mysql_num_rows($result) > 0) {
+				while($row = mysql_fetch_array($result, MYSQL_ASSOC)) {
+				    return $row[$lang];
+				}
+			}
+			else return $iso;
+		}
+	} else return false;
+}
+
+/* 
  * Gather data
  */
 if(isset($_GET["country"]) && strlen($_GET["country"]) == 2) {

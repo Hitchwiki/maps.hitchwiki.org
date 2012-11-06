@@ -12,11 +12,11 @@
  * - info_sign()
  * - bubble_description_html()
  */
+require_once("functions_strings.php"); // Validating / manipulating stings and codes
 require_once("functions_lists.php"); // Lists and statistical
 require_once("functions_public_transport.php"); // Public transportation
 require_once("functions_place.php"); // Hitchhiking places
 require_once("functions_users.php"); // Users
-require_once("functions_strings.php"); // Validating / manipulating stings and codes
 require_once("functions_trips.php"); // Trips and location handling
 require_once("functions_scripts.php"); // Init scripts
 
