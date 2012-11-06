@@ -89,6 +89,7 @@
 		<li><?php echo _("Romanian"); ?> &mdash; montaniard</li>
 		<li><?php echo _("Russian"); ?> &mdash; Siberian explorer, Platschi, rAndoM</li>
 		<li><?php echo _("Spanish"); ?> &mdash; Prino</li>
+		<li><?php echo _("Turkish"); ?> &mdash; Çağrı</li>
 		
 		<!-- Not yet published, but we want translators to translate language names alrady...
 		<li><?php echo _("Latvian"); ?> &mdash; Reinis</li>
