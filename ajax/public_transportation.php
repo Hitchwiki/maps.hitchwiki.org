@@ -14,6 +14,7 @@ require_once("../config.php");
  * Give names behind ISO-country codes
  * FI -> Finland, DE -> Germany, etc
  */
+if(!function_exists("ISO_to_country")):
 function ISO_to_country($iso, $db=false, $lang="") {
 
 	if(!empty($iso)) {
@@ -48,7 +49,7 @@ function ISO_to_country($iso, $db=false, $lang="") {
 		}
 	} else return false;
 }
-
+endif;
 
 /* 
  * Gather data
