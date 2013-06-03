@@ -328,8 +328,9 @@ function get_comments($id=false, $limit=false) {
 	
 	// Query with limit
 	if($limit !== false && !empty($limit)) $query .= " LIMIT ".mysql_real_escape_string($limit);
-	
-	$query .= " ORDER BY `datetime` ASC";
+
+	// Sort by newest first
+	$query .= " ORDER BY `datetime` DESC";
 	
 	// Build an array
    	$res = mysql_query($query);
