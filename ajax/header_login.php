@@ -2,7 +2,7 @@
 /* Hitchwiki Maps - Header - Login area
  * Called with AJAX from the frontpage
  */
-if(!$loginRefreshArea) {
+if(!isset($loginRefreshArea)) {
 	require_once("../config.php");
 	$user = current_user();
 }

@@ -11,7 +11,7 @@ require_once "../config.php";
 
 start_sql();
 
-/* 
+/**
  * Gather data
  */
 if(isset($_GET["id"]) && is_numeric($_GET["id"])) {
@@ -30,12 +30,13 @@ else {
  */
 $user = current_user();
 
+$i = 0;
 
-/* 
+
+/**
  * Print stuff out in HTML:
  */
-
-if($place["error"] !== true):
+if (!isset($place['error']) || $place['error'] !== true):
 ?>
 
 

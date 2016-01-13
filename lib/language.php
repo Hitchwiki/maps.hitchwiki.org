@@ -84,6 +84,8 @@ function get_http_locale() {
 	}
 	$replace_with = $settings["valid_languages"];
 
+	if (!isset($_SERVER['HTTP_ACCEPT_LANGUAGE']))
+		return 'en';
 	return str_replace($replace_these, $replace_with, substr($_SERVER['HTTP_ACCEPT_LANGUAGE'], 0, 2));
 }
 

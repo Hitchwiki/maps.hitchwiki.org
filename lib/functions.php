@@ -577,11 +577,12 @@ function error_sign($msg=false, $hide=true) {
 function info_sign($msg=false, $hide=true) {
 
 	$random = time();
+	global $settings;
 
 	if(!empty($msg)) {
 
 		// Print info sign
-		if($settings["mobile"]) {
+		if (isset($settings['mobile']) and $settings['mobile']) {
 			echo '<div class="ui-body ui-body-e" style="padding: 0 .7em; margin: 10px 0;" id="info_'.$random.'">'. 
 			    '<p><span class="info_text">'.htmlspecialchars($msg).'</span></p>'.
 			    '</div>';
@@ -611,6 +612,7 @@ function info_sign($msg=false, $hide=true) {
 function bubble_description_html($marker) {
 	global $settings;
    $lang = $settings["default_language"];
+   $return = '';
 
    if(!empty($marker["description"][$lang]["description"])) $return .= Markdown($marker["description"][$lang]["description"]).' ';
 

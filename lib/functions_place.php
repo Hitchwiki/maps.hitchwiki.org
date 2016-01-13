@@ -319,6 +319,8 @@ function waitingtimes($place_id=false) {
 function get_comments($id=false, $limit=false) {
 	global $user;
 
+	$result = [];
+
 
 	// Start building a query
 	$query = "SELECT `id`,`fk_place`,`fk_user`,`nick`,`comment`,`datetime`,`hidden` FROM `t_comments` WHERE `hidden` IS NULL ";

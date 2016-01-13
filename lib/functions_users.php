@@ -152,7 +152,7 @@ function get_user($session=false) {
 			$user["map_default_layer"] = $r["map_default_layer"];
 			
 			// Admin?
-			if($r["admin"]=="1" && $settings["allow_admins"] === true) $user["admin"] = true;
+			if($r["admin"]=="1" && isset($settings["allow_admins"]) && $settings["allow_admins"] === true) $user["admin"] = true;
 			else $user["admin"] = false;
 			
 			// If the name in the session was different than the one in DB, update DB

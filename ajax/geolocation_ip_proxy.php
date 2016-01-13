@@ -12,7 +12,7 @@
 * You must change the $allowed_hosts array to include your own domain
 */
 #include "/home/sg076/public_html/maps.hitchwiki.org/lib/Snoopy/Snoopy.class.php";
-include "../Snoopy/Snoopy.class.php";
+include '/var/www/hitchwiki.org/htdocs/maps/lib/Snoopy/Snoopy.class.php';
 
 
 /** @var string host name from which to allow access */

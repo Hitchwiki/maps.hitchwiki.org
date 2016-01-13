@@ -28,6 +28,8 @@ $d_zoom = '5';
 $d_lat = '51';
 $d_lon = '9';
 
+$alert = false;
+
 // Show a country
 if(isset($_GET["country"]) && !empty($_GET["country"]) && strlen($_GET["country"]) == 2) {
 

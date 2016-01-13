@@ -263,17 +263,19 @@ class maps_api
 	 * Square corners, eg. 60.0066276,60.3266276,24.783508,25.103508 (Helsinki, Finland)
 	 */
 	function getMarkersByBound($lt, $lb, $rt, $rb) {
-	    	global $settings;
+		global $settings;
 
-	    	// Build a query
-	    	$query = "SELECT `id`,`type`,`lat`,`lon`,`rating`";
-    	
-	    	$query .= " FROM `t_points` WHERE 
-					`type` = 1 AND 
-					`lat` > ".mysql_real_escape_string($lt)." AND 
-					`lat` < ".mysql_real_escape_string($lb)." AND 
-					`lon` > ".mysql_real_escape_string($rt)." AND 
-					`lon` < ".mysql_real_escape_string($rb);
+		$result = [];
+
+		// Build a query
+		$query = "SELECT `id`,`type`,`lat`,`lon`,`rating`";
+
+		$query .= " FROM `t_points` WHERE 
+				`type` = 1 AND 
+				`lat` > ".mysql_real_escape_string($lt)." AND 
+				`lat` < ".mysql_real_escape_string($lb)." AND 
+				`lon` > ".mysql_real_escape_string($rt)." AND 
+				`lon` < ".mysql_real_escape_string($rb);
 
 		// Build an array
    		$res = mysql_query($query);
