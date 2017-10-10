@@ -25,12 +25,12 @@ if (!isset($naviRefreshArea)) {
 
 						    	<li id="menu-item-121" class="menu-item"><a href="http://hitchwiki.org/en/">Wiki</a></li>
 							<li id="menu-item-122" class="menu-item current-menu-item current_page_item"><a href="http://hitchwiki.org/maps/">Maps</a></li>
-<!--
+							<!--
                                                         <li id="menu-item-116" class="menu-item"><a href="http://hitchwiki.org/activity/">Activity</a></li>
 						    	<li id="menu-item-117" class="menu-item"><a href="http://hitchwiki.org/blogs/">Blogs</a></li>
 						    	<li id="menu-item-118" class="menu-item"><a href="http://hitchwiki.org/forums/">Forums</a></li>
 						    	<li id="menu-item-119" class="menu-item"><a href="http://hitchwiki.org/groups/">Groups</a></li>
 						    	<li id="menu-item-120" class="menu-item"><a href="http://hitchwiki.org/members/">Members</a></li>
--->
+							-->
 						    	<li id="menu-item-147" class="menu-item"><a href="http://hitchwiki.org/chat/">Chat</a></li>
 							<li id="menu-item-148" class="menu-item"><a href="http://www.hitchlog.com/en">Hitchlog.com</a></li>
