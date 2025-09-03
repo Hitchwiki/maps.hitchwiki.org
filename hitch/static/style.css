@@ -1,0 +1,509 @@
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+html {
+  font-size: 12px;
+}
+
+.leaflet-container {
+  font-size: 1rem;
+}
+
+.leaflet-control-attribution {
+  font-size: 11px;
+}
+
+h3 {
+  text-align: center;
+  padding-bottom: 20px;
+  border-bottom: 2px #eee solid;
+  margin-bottom: 20px !important;
+}
+
+h3,
+h4 {
+  font-weight: bold !important;
+  font-size: 1em !important;
+}
+
+h4 {
+  padding-top: 20px;
+}
+input[type="radio"] + label {
+  font-weight: normal;
+  margin-left: -5px;
+  padding-left: 5px;
+}
+
+#map {
+  height: 100%;
+}
+
+.sidebar {
+  line-height: 1.5;
+  font-size: 19px;
+  font-family: Georgia, serif;
+  color: #1a1a1a;
+  background-color: #fdfdfd;
+  hyphens: auto;
+  overflow-wrap: break-word;
+  text-rendering: optimizeLegibility;
+  font-kerning: normal;
+  overflow-y: auto;
+}
+.topbar,
+.sidebar {
+  display: none;
+}
+.topbar.visible,
+.sidebar.visible {
+  display: block;
+}
+.sidebar {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 400px;
+  max-width: 100%;
+  z-index: 1999;
+  background: white;
+  padding: 0 20px 20px 20px;
+  box-shadow: 2px 0 10px;
+}
+.sidebar.show-spot,
+.sidebar.filters {
+  max-width: 50%;
+}
+.sidebar button {
+  margin-top: 30px;
+  margin-bottom: 30px;
+  width: 100%;
+  padding: 5px;
+  margin-top: 24px;
+}
+#sb-close {
+  display: none;
+}
+.sidebar.visible ~ #sb-close {
+  display: inline-block;
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  padding: 23px 14px 8px;
+  cursor: pointer;
+  font-size: 0;
+  z-index: 2000;
+  line-height: 1;
+}
+body.adding-spot .horizontal-button {
+  display: none;
+}
+.horizontal-button {
+  padding: 5px 10px;
+  background: #fff !important;
+  white-space: nowrap;
+  padding: 0 !important;
+}
+.horizontal-button a {
+  width: auto !important;
+  height: auto !important;
+  padding: 5px 10px;
+}
+.filter-button,
+.horizontal-button.add-spot,
+.your-account {
+  clear: none !important;
+}
+.horizontal-button.menu {
+  width: 35px;
+}
+.topbar {
+  pointer-events: none;
+  text-align: center;
+  position: absolute;
+  width: 100%;
+  text-shadow: 0 0 3px #fff;
+  font-size: 25px;
+  bottom: 0;
+  padding: 20px;
+  z-index: 2002;
+  text-shadow: 0 0 2px #fff;
+}
+.topbar span {
+  background: rgba(255, 255, 255, 1);
+  display: inline-block;
+  margin-bottom: 5px;
+}
+.topbar button {
+  pointer-events: auto;
+  width: 220px;
+  max-width: 30%;
+}
+.topbar a {
+  pointer-events: auto;
+}
+.topbar::before {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  left: 0px;
+  top: 0px;
+  right: 0px;
+  bottom: 0px;
+  margin: auto;
+  width: 60vmin;
+  height: 60vmin;
+  background: linear-gradient(
+      to right,
+      transparent calc(50% - 1px),
+      rgba(255, 0, 0, 0.5) calc(50% - 1px),
+      rgba(255, 0, 0, 0.5) calc(50% + 1px),
+      transparent calc(50% + 1px)
+    ),
+    linear-gradient(
+      to bottom,
+      transparent calc(50% - 1px),
+      rgba(255, 0, 0, 0.5) calc(50% - 1px),
+      rgba(255, 0, 0, 0.5) calc(50% + 1px),
+      transparent calc(50% + 1px)
+    );
+}
+#spot-form > label, #spot-form textarea, #spot-form input[type=submit],
+.sidebar.filters > label, .sidebar.filters input[type=text] {
+    display: block;
+    width: 100%;
+}
+#spot-form > label, .sidebar.filters label, #spot-form input[type=submit] {
+    margin-top: 18px;
+}
+#spot-form details select,
+#spot-form details input {
+  margin-bottom: 18px;
+}
+.rate {
+  float: left;
+  height: 46px;
+}
+.rate:not(:checked) > input {
+  position: absolute;
+  top: -9999px;
+}
+.rate:not(:checked) > label {
+  float: right;
+  width: 1em;
+  overflow: hidden;
+  white-space: nowrap;
+  cursor: pointer;
+  font-size: 30px;
+  color: #ccc;
+}
+.rate:not(:checked) > label:before {
+  content: "★ ";
+}
+.rate > input:checked ~ label {
+  color: #ffc700;
+}
+.rate:not(:checked) > label:hover,
+.rate:not(:checked) > label:hover ~ label {
+  color: #deb217;
+}
+.rate > input:checked + label:hover,
+.rate > input:checked + label:hover ~ label,
+.rate > input:checked ~ label:hover,
+.rate > input:checked ~ label:hover ~ label,
+.rate > label:hover ~ input:checked ~ label {
+  color: #c59b08;
+}
+.greyed {
+  background-color: #eee;
+  display: inline-block;
+}
+.clear::after {
+  content: "";
+  display: block;
+  clear: both;
+}
+.leaflet-arrowlines-pane {
+  pointer-events: none;
+}
+body.zoomed-out .leaflet-overlay-pane {
+  opacity: 0.3;
+}
+body.has-points .leaflet-overlay-pane {
+  opacity: 0.3;
+}
+body.filtering .leaflet-overlay-pane,
+body.filtering .leaflet-marker-pane {
+  display: none;
+}
+body:not(.filtering) .leaflet-filtering-pane {
+  display: none;
+}
+body.filtering .filter-button {
+  border-color: rgba(255, 0, 0, 0.5);
+}
+body.filtering .filter-button a::after {
+  content: "‼️" !important;
+}
+@media only screen and (max-width: 700px) {
+  .topbar {
+    font-size: 1em !important;
+  }
+  .topbar button {
+    font-size: 12px !important;
+  }
+  .sidebar.show-spot {
+    font-size: 13px;
+  }
+  .sidebar.filters {
+    font-size: 14px;
+  }
+}
+.donate-button img {
+  background-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+.leaflet-control-attribution {
+  text-align: right;
+}
+body.reporting-duplicate .sidebar,
+body.reporting-duplicate .horizontal-button,
+body.reporting-duplicate .replacement-button {
+  display: none !important;
+}
+body.reporting-duplicate .topbar.duplicate {
+  display: block;
+}
+.topbar.duplicate::before {
+  content: none;
+}
+a:hover {
+  background-color: none !important;
+  text-decoration: none;
+}
+.report {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+}
+
+/* Checkbox input (hidden) */
+.toggle-checkbox {
+  display: none;
+}
+
+/* Label that acts as a triangle */
+.toggle-label {
+  display: inline-block;
+  cursor: pointer;
+  padding: 13px 20px;
+}
+
+.triangle {
+  width: 10px;
+  height: 10px;
+}
+
+/* Triangle pointing down when checked */
+.toggle-checkbox:checked + div .toggle-label {
+  transform: rotate(90deg);
+}
+
+/* Show the hidden content when checkbox is checked */
+.toggle-checkbox:checked ~ .report-options {
+  display: block;
+}
+.report-options {
+  display: none;
+  background: #eee;
+  margin-top: -20px;
+  margin-bottom: 20px;
+}
+.report-dup {
+  text-align: center;
+  font-size: 0.8em;
+  font-weight: bold;
+}
+.report-dup a {
+  display: block;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  color: black;
+}
+#spot-header a {
+  color: black;
+  border-bottom: 1px dotted black;
+}
+.leaflet-control-geocoder-form:not(:has(:focus))
+  ~ .leaflet-control-geocoder-alternatives {
+  display: none;
+}
+
+/* 
+optional section for recording spot data 
+from https://developer.mozilla.org/en-US/docs/Web/HTML/Element/details
+*/
+
+details {
+  border: 1px solid #aaa;
+  border-radius: 4px;
+  padding: 0.5em 0.5em 0;
+}
+
+summary {
+  margin: -0.5em -0.5em 0;
+  padding: 0.5em;
+  cursor: pointer;
+}
+
+details[open] {
+  padding: 0.5em;
+}
+
+details[open] summary {
+  border-bottom: 1px solid #aaa;
+  margin-bottom: 0.5em;
+}
+
+ul.no-style {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+.sidebar .fa {
+  min-width: 28px;
+  display: inline-block;
+  color: black;
+}
+.sidebar.menu {
+  padding-top: 25px;
+}
+.sidebar.menu a {
+  border-bottom: 1px solid blue;
+  color: #000;
+}
+
+.make-invisible {
+  display: none;
+}
+
+.error {
+  color: red;
+  font-size: 0.9em;
+}
+
+/* knob */
+
+.knob-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.knob {
+  width: 100px;
+  height: 100px;
+  background: #f0f0f0;
+  border: 2px solid #ccc;
+  border-radius: 50%;
+  position: relative;
+  cursor: pointer;
+  margin-top: 20px;
+}
+
+.knob-line {
+  width: 2px;
+  height: 50px;
+  background: #000;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%) rotate(0deg);
+  transform-origin: bottom center;
+}
+
+.knob-cone {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.1);
+  transform-origin: center;
+}
+
+.rotation-value {
+  margin-top: 30px;
+  font-size: 16px;
+}
+
+.spread-input-container {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+}
+
+.spread-input-container input {
+  width: 60px;
+  margin: 0 5px;
+  text-align: center;
+}
+
+.direction {
+  position: absolute;
+  font-size: 14px;
+  font-weight: bold;
+  font-family: Arial;
+}
+
+.direction.north {
+  top: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.direction.south {
+  bottom: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.direction.west {
+  left: -25px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.direction.east {
+  right: -25px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.knob-container,
+.knob-container * {
+  box-sizing: content-box;
+}
+#knob-toggle:not(:checked) ~ .knob-container {
+  pointer-events: none;
+  opacity: 0.5;
+}
+#knob-toggle {
+  margin: 50px 0 20px;
+}
+#knob-toggle + label {
+  font-weight: normal;
+  display: inline;
+}
+#distance-filter {
+  width: 100%;
+}
+.icon-button {
+  cursor: pointer;
+  font-size: 16px;
+}
