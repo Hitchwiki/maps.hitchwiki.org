@@ -61,7 +61,33 @@ flask init
 flask run
 ```
 
-In order to run the project continuously, use `cron.sh` to set up corresponding cronjobs to update the views and `hitchmap.conf` as a basic NGINX configuration.
+In order to run the project continuously, use `cron.sh` to set up corresponding cronjobs to update the views and `hitchmap.conf` as a basic NGINX 
+configuration.
+
+### Deploy with Docker
+
+```
+docker build -t hitch .
+docker run -p 5000:5000 --name hitchhiking-map -d hitch
+```
+
+Serving with Apache
+```shell
+cp apache.conf /etc/apache2/sites-available//etc/apache2/sites-available
+```
+
+```
+
+sudo a2enmod proxy
+sudo a2enmod proxy_http
+sudo a2enmod headers
+
+sudo apachectl configtest
+
+sudo systemctl reload apache2
+```
+
+thus `hitchmap.conf` is not used at the moment
 
 ## Data
 If you find the data collected and provided by hitchmap.com helpful, feel free to cite it using:
