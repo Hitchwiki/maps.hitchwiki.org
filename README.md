@@ -12,7 +12,7 @@
 
 <!-- ABOUT THE PROJECT -->
 <div align="center">
-  <h3 align="center">Hitchmap</h3>
+  <h3 align="center">Hitchhiking Map</h3>
   <p align="center">
     The map to hitchhiking the world.
     <br />
@@ -31,10 +31,7 @@ Join the conversation about a map for hitchhiking in our [Signal Chat](https://s
 
 ### Fork and Divergence
 
-This repository, [`Hitchwiki/hitchmap`](https://github.com/Hitchwiki/hitchmap), is a fork of [`bobjesvla/hitch`](https://github.com/bopjesvla/hitch). While both projects share a common origin, they have since taken different development paths. At this stage, it remains uncertain which repository will emerge as the mainline project. However, we remain open to collaboration and potential reconciliation of efforts.
-
-For contributors and users, we recommend reviewing both repositories to determine which best fits your needs. In virtually all cases, user-facing contributions will eventually end up in both repositories.
-
+This repository, [`Hitchwiki/hitchmap`](https://github.com/Hitchwiki/hitchmap), is a fork of [`bobjesvla/hitch`](https://github.com/bopjesvla/hitch).
 
 ## Getting Started
 
@@ -67,23 +64,29 @@ configuration.
 ### Deploy with Docker
 
 ```
-docker build -t hitch .
-docker run -p 5000:5000 --name hitchhiking-map -d hitch
+sudo docker build -t hitch .
+sudo docker run -p 5000:5000 --name hitchhiking-map -d hitch
+# or
+sudo docker compose up --build -d
+
+sudo docker exec -it hitchhiking-map /bin/bash  
+
+sudo docker stop hitchhiking-map 
+sudo docker rm hitchhiking-map 
 ```
 
 Serving with Apache
+
 ```shell
 cp apache.conf /etc/apache2/sites-available//etc/apache2/sites-available
 ```
 
 ```
-
 sudo a2enmod proxy
 sudo a2enmod proxy_http
 sudo a2enmod headers
 
 sudo apachectl configtest
-
 sudo systemctl reload apache2
 ```
 
@@ -93,10 +96,10 @@ thus `hitchmap.conf` is not used at the moment
 If you find the data collected and provided by hitchmap.com helpful, feel free to cite it using:
 ```
 @misc{hitchhiking,
-author = {Bob de Ruiter, Till Wenke},
+author = {Till Wenke},
 title = {Dataset of Hitchhiking Trips},
 year = {2024},
-url = {https://hitchmap.com},
+url = {https://maps.hitchwiki.org},
 }
 ```
 
@@ -118,3 +121,11 @@ The software provided in this repository is licensed under AGPL 3.0. The Hitchma
 [license-url]: https://github.com/Hitchwiki/hitchmap/blob/master/LICENSE.txt
 [Flask]: https://img.shields.io/badge/flask-000000?style=for-the-badge&logo=flask&logoColor=white
 [Flask-url]: https://flask.palletsprojects.com/en/stable/
+
+# Development
+
+CONTRIBUTING.md
+
+Install pre-commit
+
+install ruff

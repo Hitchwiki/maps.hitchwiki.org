@@ -201,9 +201,6 @@ point_columns = [
 logger.info("Generating JSON data files")
 write_json_file(places[point_columns], "points.json")
 
-places_light = places[(places.text.str.len() > 0) | ~places.distance.isnull()]
-write_json_file(places_light[point_columns], "points_light.json")
-
 places_with_destination = places[~places.distance.isnull()]
 write_json_file(places_with_destination[point_columns], "points_with_destination.json")
 

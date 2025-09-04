@@ -471,3 +471,5 @@ junit/
 
 # Database
 *.sqlite*
+
+*log.txt

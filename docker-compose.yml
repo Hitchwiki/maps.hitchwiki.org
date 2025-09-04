@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  hitchhiking-map:
+    build: .
+    container_name: hitchhiking-map
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./db:/app/db
+      - ./logs:/app/logs
+    environment:
+      # Add any environment variables here
+      EXAMPLE_ENV: value

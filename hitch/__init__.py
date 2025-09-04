@@ -71,7 +71,7 @@ def register_commands(app):
         Executes a given script
 
         USAGE: flask --app hitch generate <script> --args <args>
-        EXAMPLE: flask --app hitch generate show --args light
+        EXAMPLE: flask --app hitch generate show
         """
         try:
             module = f"hitch.scripts.{script}"
