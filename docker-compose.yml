@@ -8,6 +8,7 @@ services:
     volumes:
       - ./db:/app/db
       - ./logs:/app/logs
+      - ./dist:/app/dist
     environment:
       # Add any environment variables here
       EXAMPLE_ENV: value

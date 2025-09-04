@@ -1,8 +1,14 @@
+import html
+import logging
 import os
 import sqlite3
 
 import numpy as np
+import simplejson  # WHY not json?
 from flask import current_app, g
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def get_db():
@@ -37,6 +43,14 @@ def haversine_np(lon1, lat1, lon2, lat2, factor=1.25):
 
     All args must be of equal length.
 
+    Args:
+        lon1: Longitude of point 1
+        lat1: Latitude of point 1
+        lon2: Longitude of point 2
+        lat2: Latitude of point 2
+        factor: Multiplication factor to adjust the distance
+            (default is 1.25 to account for road distance compared to straight line distance)
+
     """
     lon1, lat1, lon2, lat2 = map(np.radians, [lon1, lat1, lon2, lat2])
 
@@ -47,7 +61,6 @@ def haversine_np(lon1, lat1, lon2, lat2, factor=1.25):
 
     c = 2 * np.arcsin(np.sqrt(a))
     km = 6367 * c
-    # 1.25 because the road distance is, on average, 25% larger than a straight flight
     return factor * km
 
 
@@ -61,3 +74,25 @@ def get_bearing(lon1, lat1, lon2, lat2):
     brng = np.degrees(brng)
 
     return brng
+
+
+def e(s):
+    s2 = s.copy()
+    s2.loc[~s2.isnull()] = s2.loc[~s2.isnull()].map(lambda x: html.escape(x).replace("\n", "<br>"))
+    return s2
+
+
+dirs = get_dirs()
+def write_json_file(data, filename):
+    """Writes a JSON file into the dist folder containing data for the map
+
+    Args:
+        data: The data to be converted to JSON
+        filename: The filename to be stored into
+    """
+    filepath = os.path.join(dirs["dist"], filename)
+    logger.info(f"Writing: {filepath}")
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.write(simplejson.dumps(data.to_dict(orient="records"), ignore_nan=True))
+
+    logger.info(f"Wrote json of length {len(data)} to: {filepath}")
