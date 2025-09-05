@@ -1,6 +1,11 @@
 import WebSocket from "ws";
 import { NostrFetcher } from "nostr-fetch";
 import { writeFileSync } from "fs";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const nHoursAgo = (hrs: number): number =>
   Math.floor((Date.now() - hrs * 60 * 60 * 1000) / 1000);
@@ -55,7 +60,8 @@ const csv = [header, ...rows]
     .join("\n");
 
 // Write CSV to file
-const file = "./output/allPosts.csv"
+const this_file_dir = __dirname;
+const file = this_file_dir + "/../../../../dist/allPosts.csv"
 writeFileSync(file, csv);
 console.log("CSV written to", file);
 

@@ -1,10 +1,13 @@
+import io
 import json
 import logging
 import os
+import zipfile
 
 import networkx
 import numpy as np
 import pandas as pd
+import requests
 
 from hitch.helpers import e, get_bearing, get_db, get_dirs, haversine_np, write_json_file
 
@@ -19,7 +22,7 @@ os.makedirs(dirs["dist"], exist_ok=True)
 
 def get_rides():
     """Rides where previously fetched from Nostr and stored in a CSV file."""
-    rides_df = pd.read_csv(os.path.join(dirs["dist"], "../hitch/scripts/fetch_hitchhiking_events/allPosts.csv"))
+    rides_df = pd.read_csv(os.path.join(dirs["dist"], "allPosts.csv"))
     # 2 times json loads? why?
     rides_df["content"] = rides_df["content"].apply(json.loads)
     rides_df["json_col"] = rides_df["content"].apply(json.loads)
@@ -58,8 +61,8 @@ points[["lat", "lon", "dest_lat", "dest_lon"]] = points.apply(get_start_end_coor
 
 # points["user_id"] = points["user_id"].astype(pd.Int64Dtype())
 
-logger.info("Fetching duplicates from database")
-duplicates = pd.read_sql("select * from duplicates where reviewed = accepted", get_db())
+# logger.info("Fetching duplicates from database")
+# duplicates = pd.read_sql("select * from duplicates where reviewed = accepted", get_db())
 
 # try:
 #     logger.info("Fetching users from database")
@@ -71,32 +74,32 @@ duplicates = pd.read_sql("select * from duplicates where reviewed = accepted", g
 logger.info(f"{len(points)} points currently")
 
 # merging and transforming data
-dup_rads = duplicates[["from_lon", "from_lat", "to_lon", "to_lat"]].values.T
+# dup_rads = duplicates[["from_lon", "from_lat", "to_lon", "to_lat"]].values.T
 
-duplicates["distance"] = haversine_np(*dup_rads)
-duplicates["from"] = duplicates[["from_lat", "from_lon"]].apply(tuple, axis=1)
-duplicates["to"] = duplicates[["to_lat", "to_lon"]].apply(tuple, axis=1)
+# duplicates["distance"] = haversine_np(*dup_rads)
+# duplicates["from"] = duplicates[["from_lat", "from_lon"]].apply(tuple, axis=1)
+# duplicates["to"] = duplicates[["to_lat", "to_lon"]].apply(tuple, axis=1)
 
-duplicates = duplicates[duplicates.distance < 1.25]
+# duplicates = duplicates[duplicates.distance < 1.25]
 
-dups = networkx.from_pandas_edgelist(duplicates, "from", "to")
-islands = networkx.connected_components(dups)
+# dups = networkx.from_pandas_edgelist(duplicates, "from", "to")
+# islands = networkx.connected_components(dups)
 
-replace_map = {}
+# replace_map = {}
 
-logger.info("Processing duplicates")
-for island in islands:
-    parents = [node for node in island if node not in duplicates["from"].tolist()]
+# logger.info("Processing duplicates")
+# for island in islands:
+#     parents = [node for node in island if node not in duplicates["from"].tolist()]
 
-    if len(parents) == 1:
-        for node in island:
-            if node != parents[0]:
-                replace_map[node] = parents[0]
+#     if len(parents) == 1:
+#         for node in island:
+#             if node != parents[0]:
+#                 replace_map[node] = parents[0]
 
-logger.info(f"Currently recorded duplicate spots are represented by: ${dups}")
+# logger.info(f"Currently recorded duplicate spots are represented by: ${dups}")
 
-logger.info("Replacing duplicate points")
-points[["lat", "lon"]] = points[["lat", "lon"]].apply(lambda x: replace_map.get(tuple(x), x), axis=1, raw=True)
+# logger.info("Replacing duplicate points")
+# points[["lat", "lon"]] = points[["lat", "lon"]].apply(lambda x: replace_map.get(tuple(x), x), axis=1, raw=True)
 
 # points.loc[points.id.isin(range(1000000, 1040000)), "comment"] = (
 #     points.loc[points.id.isin(range(1000000, 1040000)), "comment"]
@@ -268,17 +271,31 @@ recent["submission_time"] = recent["submission_time"].astype(str)
 recent["submission_time"] += np.where(~recent.ride_datetime.isnull(), " 🕒", "")
 write_json_file(recent[["url", "submission_time", "hitchhiker_name", "rating", "distance", "text"]], "points_recent.json")
 
-duplicates["from_url"] = "#" + duplicates.from_lat.astype(str) + "," + duplicates.from_lon.astype(str)
-duplicates["to_url"] = "#" + duplicates.to_lat.astype(str) + "," + duplicates.to_lon.astype(str)
-duplicates_data = duplicates[["id", "from_url", "to_url", "distance", "reviewed", "accepted"]].to_dict(orient="records")
-write_json_file(duplicates[["id", "from_url", "to_url", "distance", "reviewed", "accepted"]], "points_duplicates.json")
+# duplicates["from_url"] = "#" + duplicates.from_lat.astype(str) + "," + duplicates.from_lon.astype(str)
+# duplicates["to_url"] = "#" + duplicates.to_lat.astype(str) + "," + duplicates.to_lon.astype(str)
+# duplicates_data = duplicates[["id", "from_url", "to_url", "distance", "reviewed", "accepted"]].to_dict(orient="records")
+# write_json_file(duplicates[["id", "from_url", "to_url", "distance", "reviewed", "accepted"]], "points_duplicates.json")
 
 logger.info("Data preparation completed")
 
 
-# TODO get cities form https://simplemaps.com/static/data/world-cities/basic/simplemaps_worldcities_basicv1.901.zip and reduce to major ones
 CITIES = False
 if CITIES:
+    # TODO: needs attribution: https://simplemaps.com/data/world-cities
+    if not os.path.exists(os.path.join(dirs["dist"], "cities.csv")):
+        logger.info("Fetching major cities data")
+        # Download the zip file
+        url = "https://simplemaps.com/static/data/world-cities/basic/simplemaps_worldcities_basicv1.901.zip"
+        response = requests.get(url)
+        zip_bytes = io.BytesIO(response.content)
+        # Unzip and extract worldcities.csv
+        with zipfile.ZipFile(zip_bytes) as z, z.open("worldcities.csv") as f:
+            cities_df = pd.read_csv(f)
+        # Filter for major cities (population > 50000)
+        major_cities = cities_df[cities_df["population"] > 50000]
+        # Save to dist/cities.csv
+        major_cities.to_csv(os.path.join(dirs["dist"], "cities.csv"), index=False)
+
     points.sort_values("datetime", inplace=True, ascending=False)
     cities = pd.read_csv(os.path.join(db_dir, "cities.csv")).drop_duplicates().sort_values("city")
     rendered_cities = []

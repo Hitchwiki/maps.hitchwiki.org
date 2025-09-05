@@ -1,0 +1,11 @@
+# Get rides from Nostr
+cd /app/hitch/scripts/fetch_hitchhiking_events
+npm install
+npx tsc
+node dist/index.js
+
+cd /app
+
+flask init
+service cron start
+flask run --host=0.0.0.0 --port=5000
