@@ -33,12 +33,14 @@ class HitchhikingDataStandardToNostrPoster:
 
         self.event_kind = 36820  # Event kind for hitchhiking notes
 
-    def post(self, ride_record: HitchhikingRecord) -> str:
+    def post(self, ride_record: HitchhikingRecord, tags: list = None) -> str:
         """Post a ride in the standardized format to Nostr and return the d tag.
         
         Args:
             ride_record (HitchhikingRecord): The ride record to post.
-            
+            tags (list | None): A list of tags to include in the post.
+                Used when updating an existing post where tags stay the same.
+
         Returns:
             str: The identifying d tag of the posted event.
         """
@@ -60,14 +62,14 @@ class HitchhikingDataStandardToNostrPoster:
             created_at=unix_timestamp_now,
             content=content,
             pubkey=self.npub,
-            id=f"{ride_record.source}-{uuid.uuid4()}",
+            id=None, # ID will be computed when signing
             sig=None,  # Signature will be added later
             tags=[
                 ["expiration", str(unix_timestamp_now + 36000)],  # Expiration time set to 10 hours from now
                 ["d", d_tag],
                 *geohash_tags,
                 ["published_at", str(unix_timestamp_now)],
-            ],
+            ] if tags is None else tags
         )
 
         event.sign(self.private_key_hex)
