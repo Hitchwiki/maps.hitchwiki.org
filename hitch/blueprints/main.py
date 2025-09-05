@@ -1,5 +1,5 @@
 import math
-import random
+import os
 from datetime import datetime, timezone
 
 import pandas as pd
@@ -15,9 +15,13 @@ from flask_security import current_user
 
 from hitch.blueprints.publish_ride import create_record_from_custom_object
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
+from hitch.extensions import db
 from hitch.helpers import get_db
+from hitch.models import CoHitchhiker
 
 main_bp = Blueprint("main", __name__)
+
+THIS_NOSTR_SOURCE = os.getenv("THIS_NOSTR_SOURCE", "yourdomain.com")
 
 
 # TODO: renamed function from map() to render_map() to avoid conflict with map() builtin
@@ -34,8 +38,11 @@ def render_map(map_variation):
 @main_bp.route("/experience", methods=["POST"])
 def experience():
     data = request.form
+    # make the ImmutableMultiDict into a normal dict
+    data = data.to_dict(flat=True)
     rating = int(data["rate"])
-    wait = int(data["wait"]) if data["wait"] != "" else None
+    data["wait"] = int(data["wait"]) if data["wait"] != "" else None
+    wait = data["wait"]
     assert wait is None or wait >= 0
     assert rating in range(1, 6)
     comment = None if data["comment"] == "" else data["comment"]
@@ -102,11 +109,26 @@ def experience():
 
     # df.to_sql("points", get_db(), index_label="id", if_exists="append")
 
+    ### New features
+
     ### Publish ride to Nostr
     poster = HitchhikingDataStandardToNostrPoster()
     record = create_record_from_custom_object(custom_object=data, source="maps.hitchwiki.org", license="xxx")
-    poster.post(ride_record=record)
+    d_tag = poster.post(ride_record=record)
     poster.close()
+
+    ### Co-hitchhikers
+    # TODO: verify that all usernames exist in User table
+    if "co_hitchhiker" in data and data["co_hitchhiker"] != "":
+        for ch in data["co_hitchhiker"].split(","):
+            if ch.strip() != "":
+                co_hitchhiker = CoHitchhiker(
+                    nostr_ride_event_d_tag=d_tag,
+                    co_hitchhiker=ch.strip(),
+                    accepted="open",
+                )
+                db.session.add(co_hitchhiker)
+        db.session.commit()
 
     return redirect("/#success")
 

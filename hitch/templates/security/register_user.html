@@ -11,6 +11,12 @@
 <form action="{{ url_for_security('register') }}" method="post" name="register_user_form">
   {{ register_user_form.hidden_tag() }}
   {{ render_form_errors(register_user_form) }}
+  <p>
+    The Hitchhiking Map is made for all hitchhikers to learn from each others experiences.
+    Thus all your rides and personal information (except your email address) will be publicly available.
+    Only share as much as you are comfortable with.
+    Keep in mind that hitchhikers are a vulnerable group and may face risks while traveling
+  </p>
   {{ render_field_with_errors(register_user_form.email) }}
   <p>
     <small>

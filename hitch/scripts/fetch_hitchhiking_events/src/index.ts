@@ -44,6 +44,12 @@ const allPosts = await fetcher.fetchAllEvents(
 
 console.log(allPosts.length, "posts fetched");
 
+// Write JSON to file
+const this_file_dir = __dirname;
+const jsonFile = this_file_dir + "/../../../../dist/allPosts.json";
+writeFileSync(jsonFile, JSON.stringify(allPosts, null, 2));
+console.log("JSON written to", jsonFile);
+
 // Prepare CSV header and rows
 const header = ["id", "pubkey", "created_at", "content", "tags"];
 const rows = allPosts.map(post => [
@@ -60,7 +66,6 @@ const csv = [header, ...rows]
     .join("\n");
 
 // Write CSV to file
-const this_file_dir = __dirname;
 const file = this_file_dir + "/../../../../dist/allPosts.csv"
 writeFileSync(file, csv);
 console.log("CSV written to", file);

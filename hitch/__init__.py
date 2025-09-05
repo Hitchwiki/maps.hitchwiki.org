@@ -9,7 +9,7 @@ from flask_security import SQLAlchemyUserDatastore
 from hitch.blueprints.main import main_bp
 from hitch.blueprints.user import user_bp
 from hitch.extensions import db, mail, security
-from hitch.models import Role, User
+from hitch.models import Role, User, CoHitchhiker
 from hitch.settings import config
 
 baseDir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))

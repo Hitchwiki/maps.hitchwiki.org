@@ -9,7 +9,6 @@
 <h1>User</h1>
 
 Username: {{ user.username }}<br>
-Gender: {{ user.gender }}<br>
 
 {% if is_me %}
 <h2>Public Profile</h2>
@@ -31,6 +30,7 @@ escaped_trustroots_username)|safe if escaped_trustroots_username else "-" }}
 <a href="/?user={{ username }}#filters">{{ "See my spots" if is_me else "See their spots"}}</a><br>
 {% if is_me %}
 <a href="/edit-user">Edit your personal data</a><br>
+<a href="/co-hitchhiking-rides">View your co-hitchhiking rides</a><br>
 <a href="/logout">Logout</a><br>
 <a href="/delete-user" style="color: red;" onclick=" ">Delete my account</a>
 {% endif %}

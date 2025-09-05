@@ -33,7 +33,15 @@ class HitchhikingDataStandardToNostrPoster:
 
         self.event_kind = 36820  # Event kind for hitchhiking notes
 
-    def post(self, ride_record: HitchhikingRecord):
+    def post(self, ride_record: HitchhikingRecord) -> str:
+        """Post a ride in the standardized format to Nostr and return the d tag.
+        
+        Args:
+            ride_record (HitchhikingRecord): The ride record to post.
+            
+        Returns:
+            str: The identifying d tag of the posted event.
+        """
         content = ride_record.model_dump_json(exclude_none=True, by_alias=True)
 
         start_location = ride_record.stops[0].location
@@ -45,6 +53,8 @@ class HitchhikingDataStandardToNostrPoster:
             ["g", geohash2.encode(start_location.latitude, start_location.longitude, precision=p)] for p in range(1, 11)
         ]
 
+        d_tag = f"{ride_record.source}-{uuid.uuid4()}"
+
         event = Event(
             kind=self.event_kind,
             created_at=unix_timestamp_now,
@@ -54,7 +64,7 @@ class HitchhikingDataStandardToNostrPoster:
             sig=None,  # Signature will be added later
             tags=[
                 ["expiration", str(unix_timestamp_now + 36000)],  # Expiration time set to 10 hours from now
-                ["d", f"{ride_record.source}-{uuid.uuid4()}"],
+                ["d", d_tag],
                 *geohash_tags,
                 ["published_at", str(unix_timestamp_now)],
             ],
@@ -71,6 +81,9 @@ class HitchhikingDataStandardToNostrPoster:
         while self.relay_manager.message_pool.has_ok_notices():
             ok_msg = self.relay_manager.message_pool.get_ok_notice()
             print(ok_msg)
+
+
+        return d_tag
 
     def close(self):
         self.relay_manager.close_all_relay_connections()

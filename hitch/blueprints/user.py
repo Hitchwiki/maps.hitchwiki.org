@@ -1,10 +1,13 @@
+import json
+import os
+
 import pandas as pd
 from flask import Blueprint, current_app, jsonify, redirect, render_template
 from flask_security import current_user
 
 from hitch.extensions import security
 from hitch.forms import UserEditForm
-from hitch.helpers import get_db
+from hitch.helpers import get_db, get_dirs
 
 user_bp = Blueprint("user", __name__)
 
@@ -188,3 +191,59 @@ def claim_review(review_id: int):
     conn.close()
 
     return reply
+
+
+@user_bp.route("/co-hitchhiking-rides", methods=["GET", "POST"])
+def co_hitchhiking_rides():
+    if current_user.is_anonymous:
+        return redirect("/login")
+
+    conn = get_db()
+    query = """
+        SELECT *
+        FROM co_hitchhiker
+        WHERE co_hitchhiker = ? AND accepted = 'open'
+    """
+    df = pd.read_sql(query, conn, params=(current_user.username,))
+    conn.close()
+
+    df["ride_link"] = df["nostr_ride_event_d_tag"].apply(
+        lambda d_tag: f'<a href="/accept-co-hitchhiking-ride/{d_tag}">Accept Ride</a>'
+    )
+
+    return render_template(
+        "security/co_hitchhiking_rides.html",
+        rides=df.to_html(index=False),
+        is_logged_in=True,
+    )
+
+
+@user_bp.route("/accept-co-hitchhiking-ride/<ride_d_tag>", methods=["GET", "POST"])
+def accept_co_hitchhiker(ride_d_tag: str):
+    if current_user.is_anonymous:
+        return redirect("/login")
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    # TODO: only allow if the current user is actually listed as co-hitchhiker
+    cursor.execute(
+        "UPDATE co_hitchhiker SET accepted = 'yes' WHERE nostr_ride_event_d_tag = ? and co_hitchhiker = ?",
+        (ride_d_tag, current_user.username)
+    )
+    conn.commit()
+    conn.close()
+
+    ### Update the Nostr event
+
+    dirs = get_dirs()
+
+    with open(os.path.join(dirs["dist"], "allPosts.json"), "r") as f:
+        all_posts = json.load(f)
+
+    ride_row = next(
+        (post for post in all_posts if any(tag[0] == "d" and tag[1] == ride_d_tag for tag in post.get("tags", []))),
+        None
+    )
+
+    return redirect("/co-hitchhiking-rides")

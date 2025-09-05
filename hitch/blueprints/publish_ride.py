@@ -7,6 +7,7 @@ transform it into the defined standard and to post it to Nostr so that others ca
 import logging
 
 import pandas as pd
+from flask_security import current_user
 
 from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import (
     Hitchhiker,
@@ -44,6 +45,35 @@ def map_signal(signal: str) -> Signal:
         )
     else:
         return None
+    
+
+def map_gender(gender: str) -> str | None:
+    if gender is None or pd.isna(gender) or gender == "":
+        return None
+    
+    gender_map = {
+        "Male": "male",
+        "Female": "female",
+        "Non-Binary": "non_binary",
+        "Prefer not to say": "prefer_not_to_say",
+    }
+    return gender_map.get(gender)
+
+
+def construct_hitchhiker_from_current_user() -> Hitchhiker:
+    hitchhiker = Hitchhiker(
+            origin_location=current_user.origin_city if hasattr(current_user, "origin_city") else None,
+            origin_country=current_user.origin_country if hasattr(current_user, "origin_country") else None,
+            year_of_birth=current_user.year_of_birth if hasattr(current_user, "year_of_birth") else None,
+            gender=map_gender(current_user.gender) if hasattr(current_user, "gender") else None,
+            languages=None,
+            was_driver=None,
+            nickname=current_user.username,
+            hitchhiking_since=current_user.hitchhiking_since if hasattr(current_user, "hitchhiking_since") else None,
+            reasons_to_hitchhike=None,
+        )
+    
+    return hitchhiker
 
 
 ### Define one function that takes single rides from your dataset and builds objects that follow this standard from them
@@ -89,17 +119,15 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
     if signals is not None and len(signals) == 1 and pd.notna(custom_object["wait"]):
         signals = [Signal(methods=signals[0].methods, duration=f"PT{int(custom_object['wait'])}M")]
 
+    hitchhiker = Hitchhiker(nickname="Anonymous") if current_user.is_anonymous else construct_hitchhiker_from_current_user()
+        
     now = pd.Timestamp.now()
 
     record = HitchhikingRecord(
         version="0.0.0",
         stops=stops,
         rating=int(custom_object["rate"]),
-        hitchhikers=[
-            Hitchhiker(
-                nickname="Anonymous"
-            )
-        ],
+        hitchhikers=[hitchhiker],
         comment=None if custom_object["comment"] == "" else custom_object["comment"],
         signals=signals,
         occupants=None,
