@@ -82,11 +82,13 @@ Serving with Apache
 cp apache.conf /etc/apache2/sites-available/
 ```
 
-```
+```shell
+# install the following
 sudo a2enmod proxy
 sudo a2enmod proxy_http
 sudo a2enmod headers
 
+# to start the deployment
 sudo apachectl configtest
 sudo systemctl reload apache2
 ```
