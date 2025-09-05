@@ -79,7 +79,7 @@ sudo docker rm hitchhiking-map
 Serving with Apache
 
 ```shell
-cp apache.conf /etc/apache2/sites-available/
+cp apache.conf /etc/apache2/sites-available/25-hwmaptest.conf
 ```
 
 ```shell
