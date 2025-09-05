@@ -1,6 +1,6 @@
 import math
 import random
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pandas as pd
 import requests
@@ -13,17 +13,20 @@ from flask import (
 )
 from flask_security import current_user
 
+from hitch.blueprints.publish_ride import create_record_from_custom_object
+from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.helpers import get_db
 
 main_bp = Blueprint("main", __name__)
 
 
+# TODO: renamed function from map() to render_map() to avoid conflict with map() builtin
 # Index route for the map, supports optional .html ending
 # Additionally, there can be map variations: light, with_destination
 @main_bp.route("/", defaults={"map_variation": None})
 @main_bp.route("/<any(light, with_destination):map_variation>")
 @main_bp.route("/<any(index, light, with_destination):map_variation>.html")
-def map(map_variation):
+def render_map(map_variation):
     return render_template("map.html", map_variation=map_variation)
 
 
@@ -43,7 +46,7 @@ def experience():
 
     datetime_ride = data["datetime_ride"]
 
-    now = str(datetime.utcnow())
+    now = str(datetime.now(timezone.utc))
 
     ip = request.headers.getlist("X-Real-IP")[-1] if request.headers.getlist("X-Real-IP") else request.remote_addr
 
@@ -71,33 +74,39 @@ def experience():
 
     res = resp.json()
     country = "XZ" if "error" in res else res["address"]["country_code"].upper()
-    pid = random.randint(0, 2**63)
+    # pid = random.randint(0, 2**63)
 
-    df = pd.DataFrame(
-        [
-            {
-                "rating": rating,
-                "wait": wait,
-                "comment": comment,
-                "nickname": None,
-                "datetime": now,
-                "ip": ip,
-                "reviewed": False,
-                "banned": False,
-                "lat": lat,
-                "dest_lat": dest_lat,
-                "lon": lon,
-                "dest_lon": dest_lon,
-                "country": country,
-                "signal": signal,
-                "ride_datetime": datetime_ride,
-                "user_id": current_user.id if not current_user.is_anonymous else None,
-            }
-        ],
-        index=[pid],
-    )
+    ride_row = {
+        "rating": rating,
+        "wait": wait,
+        "comment": comment,
+        "nickname": None,
+        "datetime": now,
+        "ip": ip,
+        "reviewed": False,
+        "banned": False,
+        "lat": lat,
+        "dest_lat": dest_lat,
+        "lon": lon,
+        "dest_lon": dest_lon,
+        "country": country,
+        "signal": signal,
+        "ride_datetime": datetime_ride,
+        "user_id": current_user.id if not current_user.is_anonymous else None,
+    }
 
-    df.to_sql("points", get_db(), index_label="id", if_exists="append")
+    # df = pd.DataFrame(
+    #     [ride_row],
+    #     index=[pid],
+    # )
+
+    # df.to_sql("points", get_db(), index_label="id", if_exists="append")
+
+    ### Publish ride to Nostr
+    poster = HitchhikingDataStandardToNostrPoster()
+    record = create_record_from_custom_object(custom_object=data, source="maps.hitchwiki.org", license="xxx")
+    poster.post(ride_record=record)
+    poster.close()
 
     return redirect("/#success")
 

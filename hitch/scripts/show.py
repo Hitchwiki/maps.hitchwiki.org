@@ -1,15 +1,12 @@
-import io
 import json
 import logging
 import os
-import zipfile
+import traceback
 
-import networkx
 import numpy as np
 import pandas as pd
-import requests
 
-from hitch.helpers import e, get_bearing, get_db, get_dirs, haversine_np, write_json_file
+from hitch.helpers import e, get_bearing, get_dirs, haversine_np, write_json_file
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -154,9 +151,15 @@ destination_text = (
 )
 
 
+logger.info("Calculating wait times")
 def get_wait(row):
     start_location = row["stops"][0]
-    wait = start_location.get("wait_minutes", None)
+    wait = start_location.get("waiting_duration", None)
+
+    if wait is not None:
+        # Convert ISO 8601 duration to minutes
+        # TODO: first verify that it is proper iso format
+        wait = int(wait.replace("PT", "").replace("M", ""))
 
     return wait
 
@@ -164,18 +167,24 @@ def get_wait(row):
 points["wait"] = points.apply(get_wait, axis=1)
 
 
-def get_signals(signals):
+logger.info("Determining signals")
+def get_signals(approaches):
+    if approaches is None or not isinstance(approaches, list):
+        return None # No signals available
+    
     signals = []
 
-    for approach in signals:
+    for approach in approaches:
         signals.extend(approach.get("methods", []))
 
     symbol_map = {"asking": "💬", "sign": "🪧", "thumb": "👍"}
-    return ",".join(symbol_map.get(sig, sig) for sig in set(signals))
+    symbols = ",".join(symbol_map.get(sig, sig) for sig in set(signals))
 
+    return symbols
 
 points["signal"] = points["signals"].apply(get_signals)
 
+logger.info("Generating info texts")
 points["wait_text"] = None
 has_accurate_wait = ~points["wait"].isnull() & points["source"] != "liftershalte.info"
 points.loc[has_accurate_wait, "wait_text"] = (
@@ -197,7 +206,22 @@ review_submit_datetime = points["submission_time"].dt.strftime(", %B %Y").fillna
 #     right_on="id",
 #     how="left",
 # )["username"]
-points["hitchhiker_name"] = points["hitchhikers"].apply(lambda xs: xs[0]["nickname"])
+
+
+logger.info("Generating user links")
+def get_hitchhiker_name(row):
+    if "hitchhikers" in row and isinstance(row["hitchhikers"], list) and len(row["hitchhikers"]) > 0:
+        first_hitchhiker = row["hitchhikers"][0]
+        if (
+            "nickname" in first_hitchhiker
+            and first_hitchhiker["nickname"].strip() != ""
+            and pd.notna(first_hitchhiker["nickname"])
+        ):
+            return first_hitchhiker["nickname"]
+    return "Anonymous"
+
+
+points["hitchhiker_name"] = points["hitchhikers"].apply(get_hitchhiker_name)
 
 points["user_link"] = (
     "<a href='/?user=" + e(points["hitchhiker_name"]) + "#filters'>" + e(points["hitchhiker_name"]) + "</a>"
@@ -277,44 +301,3 @@ write_json_file(recent[["url", "submission_time", "hitchhiker_name", "rating", "
 # write_json_file(duplicates[["id", "from_url", "to_url", "distance", "reviewed", "accepted"]], "points_duplicates.json")
 
 logger.info("Data preparation completed")
-
-
-CITIES = False
-if CITIES:
-    # TODO: needs attribution: https://simplemaps.com/data/world-cities
-    if not os.path.exists(os.path.join(dirs["dist"], "cities.csv")):
-        logger.info("Fetching major cities data")
-        # Download the zip file
-        url = "https://simplemaps.com/static/data/world-cities/basic/simplemaps_worldcities_basicv1.901.zip"
-        response = requests.get(url)
-        zip_bytes = io.BytesIO(response.content)
-        # Unzip and extract worldcities.csv
-        with zipfile.ZipFile(zip_bytes) as z, z.open("worldcities.csv") as f:
-            cities_df = pd.read_csv(f)
-        # Filter for major cities (population > 50000)
-        major_cities = cities_df[cities_df["population"] > 50000]
-        # Save to dist/cities.csv
-        major_cities.to_csv(os.path.join(dirs["dist"], "cities.csv"), index=False)
-
-    points.sort_values("datetime", inplace=True, ascending=False)
-    cities = pd.read_csv(os.path.join(db_dir, "cities.csv")).drop_duplicates().sort_values("city")
-    rendered_cities = []
-
-    for city in cities.itertuples():
-        country_folder = os.path.join(dist_dir, "city", city.country)
-        os.makedirs(country_folder, exist_ok=True)
-        pattern = rf"\b{city.city}\b"
-        city_reviews = (
-            points[points.text.str.contains(pattern, case=False, regex=True).astype(bool)].dropna(subset="comment").iloc[:20]
-        )
-        rendered_cities.append(len(city_reviews) >= 3)
-        if rendered_cities[-1]:
-            rendered = city_template.render(city=city, title=city.city, reviews=city_reviews)
-            with open(os.path.join(country_folder, f"{city.city}.html"), "w") as f:
-                f.write(rendered)
-
-    print(rendered_cities)
-
-    index_rendered = city_index.render(grouped_cities=cities[rendered_cities].groupby("country"))
-    with open(os.path.join(os.path.join(dist_dir, "city"), "index.html"), "w") as f:
-        f.write(index_rendered)
