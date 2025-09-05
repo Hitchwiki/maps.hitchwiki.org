@@ -79,14 +79,16 @@ sudo docker rm hitchhiking-map
 Serving with Apache
 
 ```shell
-cp apache.conf /etc/apache2/sites-available//etc/apache2/sites-available
+sudo cp apache.conf /etc/apache2/sites-available/25-hwmaptest.conf
 ```
 
-```
+```shell
+# install the following
 sudo a2enmod proxy
 sudo a2enmod proxy_http
 sudo a2enmod headers
 
+# to start the deployment
 sudo apachectl configtest
 sudo systemctl reload apache2
 ```
