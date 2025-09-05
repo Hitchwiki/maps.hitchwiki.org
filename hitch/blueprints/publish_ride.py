@@ -97,9 +97,7 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
         rating=int(custom_object["rate"]),
         hitchhikers=[
             Hitchhiker(
-                nickname=custom_object["nickname"]
-                if pd.notna(custom_object["nickname"]) and custom_object["nickname"] != ""
-                else "Anonymous"
+                nickname="Anonymous"
             )
         ],
         comment=None if custom_object["comment"] == "" else custom_object["comment"],

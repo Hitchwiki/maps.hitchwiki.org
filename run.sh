@@ -1,4 +1,4 @@
-# Get rides from Nostr
+# Get rides from Nostr once initially and compile TS scripts
 cd /app/hitch/scripts/fetch_hitchhiking_events
 npm install
 npx tsc
