@@ -1,0 +1,1 @@
+This project is a fork from https://github.com/hitchmap/hitchmap by Bob de Ruiter and Till Wenke.
