@@ -50,6 +50,7 @@ curl https://hitchmap.com/dump.sqlite > db/prod-points.sqlite
 ```
 cp example.env .env
 ```
+And set the missing env variables.
 
 Initialize and run the Flask server:
 
