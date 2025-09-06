@@ -2,7 +2,6 @@
 cd /app/hitch/scripts/fetch_hitchhiking_events
 npm install
 npx tsc
-node dist/index.js
 
 cd /app
 
