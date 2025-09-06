@@ -1,10 +1,11 @@
-import subprocess
+import json
 import logging
 import os
-import json
+import subprocess
+
+from hitch.extensions import db
 from hitch.helpers import get_dirs
-from hitch.models import RideEvent, db
-import pandas as pd
+from hitch.models import RideEvent
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

@@ -1,11 +1,12 @@
-import requests_cache
-import requests
-import pandas as pd
-from shapely.geometry import Polygon
-import shapely
 import os
 import time
+
+import pandas as pd
+import requests
+import requests_cache
+import shapely
 from helpers import get_db, scripts_dir
+from shapely.geometry import Polygon
 from sklearn.cluster import DBSCAN
 
 cache_file = os.path.join(scripts_dir, "overpass_api_cache")

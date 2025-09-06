@@ -6,10 +6,10 @@ from flask_security import current_user
 from hitch.blueprints.publish_ride import construct_hitchhiker_from_current_user
 from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import HitchhikingRecord
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
-from hitch.extensions import security
+from hitch.extensions import db, security
 from hitch.forms import UserEditForm
 from hitch.helpers import get_db
-from hitch.models import RideEvent, db
+from hitch.models import RideEvent
 
 user_bp = Blueprint("user", __name__)
 
