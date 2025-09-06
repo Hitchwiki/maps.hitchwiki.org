@@ -1,13 +1,13 @@
-import pandas as pd
-import requests_cache
-import requests
-from shapely.geometry import MultiLineString, LineString, Point
-import shapely
-from sklearn.cluster import DBSCAN
 import os
 import time
 
+import pandas as pd
+import requests
+import requests_cache
+import shapely
 from helpers import get_db, scripts_dir
+from shapely.geometry import LineString, MultiLineString, Point
+from sklearn.cluster import DBSCAN
 
 cache_file = os.path.join(scripts_dir, "overpass_api_cache")
 requests_cache.install_cache(cache_file, backend="sqlite", expire_after=6 * 365 * 24 * 60 * 60)

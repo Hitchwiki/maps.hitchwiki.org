@@ -17,6 +17,7 @@ plotly==6.0.0
 pre-commit==4.1.0
 pycountry==24.6.1
 pydantic==2.11.7
+pywikibot==10.4.0
 pynostr==0.6.2
 python-dotenv==1.1.1
 requests-cache==1.2.1
