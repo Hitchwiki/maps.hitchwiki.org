@@ -43,13 +43,13 @@ def experience():
     rating = int(data["rate"])
     data["wait"] = int(data["wait"]) if data["wait"] != "" else None
     wait = data["wait"]
-    assert wait is None or wait >= 0
-    assert rating in range(1, 6)
+    assert wait is None or wait >= 0, f"Wait time must be non-negative, the wait time is {wait}."
+    assert rating in range(1, 6), f"Rating must be between 1 and 5, the rating is {rating}."
     comment = None if data["comment"] == "" else data["comment"]
-    assert comment is None or len(comment) < 10000
+    assert comment is None or len(comment) < 10000, f"Comment must be less than 10000 characters, the comment length is {len(comment)}."
 
     signal = data["signal"] if data["signal"] != "null" else None
-    assert signal in ["thumb", "sign", "ask", "ask-sign", None]
+    assert signal in ["thumb", "sign", "ask", "ask-sign", None], f"Signal must be one of thumb, sign, ask, ask-sign, the signal is {signal}."
 
     datetime_ride = data["datetime_ride"]
 
@@ -59,9 +59,11 @@ def experience():
 
     lat, lon, dest_lat, dest_lon = map(float, data["coords"].split(","))
 
-    assert -90 <= lat <= 90
-    assert -180 <= lon <= 180
-    assert (-90 <= dest_lat <= 90 and -180 <= dest_lon <= 180) or (math.isnan(dest_lat) and math.isnan(dest_lon))
+    assert -90 <= lat <= 90, f"Invalid latitude: {lat}"
+    assert -180 <= lon <= 180, f"Invalid longitude: {lon}"
+    assert (-90 <= dest_lat <= 90 and -180 <= dest_lon <= 180) or (math.isnan(dest_lat) and math.isnan(dest_lon)), (
+        f"Invalid destination coordinates: {dest_lat}, {dest_lon}"
+    )
 
     for _i in range(10):
         resp = requests.get(

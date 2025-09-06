@@ -265,11 +265,11 @@ point_columns = [
 ]
 
 logger.info("Generating JSON data files")
-write_json_file(places[point_columns], "rides_df.json")
+write_json_file(places[point_columns], "spots.json")
 
 # TODO: saving them separately does not seem good
 places_with_destination = places[~places.distance.isnull()]
-write_json_file(places_with_destination[point_columns], "rides_df_with_destination.json")
+write_json_file(places_with_destination[point_columns], "spots_with_destination.json")
 
 recent = rides_df.dropna(subset=["submission_time"]).sort_values("submission_time", ascending=False).iloc[:1000]
 recent["url"] = "#" + recent.lat.astype(str) + "," + recent.lon.astype(str)
@@ -278,7 +278,7 @@ recent["hitchhiker_name"] = recent["hitchhiker_name"].str.replace("://", "", reg
 recent["distance"] = recent["distance"].round(1)
 recent["submission_time"] = recent["submission_time"].astype(str)
 recent["submission_time"] += np.where(~recent.ride_datetime.isnull(), " 🕒", "")
-write_json_file(recent[["url", "submission_time", "hitchhiker_name", "rating", "distance", "text"]], "rides_df_recent.json")
+write_json_file(recent[["url", "submission_time", "hitchhiker_name", "rating", "distance", "text"]], "spots_recent.json")
 
 # duplicates["from_url"] = "#" + duplicates.from_lat.astype(str) + "," + duplicates.from_lon.astype(str)
 # duplicates["to_url"] = "#" + duplicates.to_lat.astype(str) + "," + duplicates.to_lon.astype(str)

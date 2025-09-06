@@ -47,8 +47,8 @@ async function loadMarkers(map) {
   // If the template warrants a variation, load that variation, otherwise all points
   const url =
     typeof MAP_VARIATION !== "undefined"
-      ? `/points_${MAP_VARIATION}.json`
-      : `/points.json`;
+      ? `/spots_${MAP_VARIATION}.json`
+      : `/spots.json`;
 
   return fetch(url)
     .then((response) => response.json())
@@ -451,9 +451,13 @@ function addSpotStep(e) {
       )} → ${dest}`;
       $$("#no-ride").classList.toggle("make-invisible", destinationGiven);
       $$("#details-seen").classList.add("make-invisible");
+      // Normalize longitude values to -180..180
+      function normalizeLng(lng) {
+        return ((lng + 180) % 360 ) - 180;
+      }
       $$(
         "#spot-form input[name=coords]"
-      ).value = `${points[0].lat},${points[0].lng},${points[1].lat},${points[1].lng}`;
+      ).value = `${points[0].lat},${normalizeLng(points[0].lng)},${points[1].lat},${normalizeLng(points[1].lng)}`;
 
       // logic to prevent submitting hidden detailed info
       const form = $$("#spot-form");
