@@ -1,16 +1,15 @@
-import json
-import os
 
 import pandas as pd
 from flask import Blueprint, current_app, jsonify, redirect, render_template
 from flask_security import current_user
 
+from hitch.blueprints.publish_ride import construct_hitchhiker_from_current_user
+from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import HitchhikingRecord
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.extensions import security
 from hitch.forms import UserEditForm
-from hitch.helpers import get_db, get_dirs
-from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import HitchhikingRecord
-from hitch.blueprints.publish_ride import construct_hitchhiker_from_current_user
+from hitch.helpers import get_db
+from hitch.models import RideEvent
 
 user_bp = Blueprint("user", __name__)
 
@@ -242,12 +241,10 @@ def accept_co_hitchhiker(ride_d_tag: str):
     ### Update the Nostr event
     
     # Find the nostr event
-    dirs = get_dirs()
-    with open(os.path.join(dirs["dist"], "allPosts.json")) as f:
-        all_posts = json.load(f)
-    ride_row = next(
-        (post for post in all_posts if any(tag[0] == "d" and tag[1] == ride_d_tag for tag in post.get("tags", []))),
-        None
+    ride_row = (
+        get_db().session.query(RideEvent)
+        .filter_by(d=ride_d_tag)
+        .first()
     )
 
     # manipulate it

@@ -34,10 +34,21 @@ class RideEvent(db.Model):
     sig = db.Column(db.String(128), nullable=False)
     content = db.Column(db.JSON, nullable=False)
     created_at = db.Column(db.Integer, nullable=False)
-    source = db.Column(db.String(255), nullable=True)
-    license = db.Column(db.String(255), nullable=True)
-    submission_time = db.Column(db.String(32), nullable=True)
+
+    # Ride details as columns for easier querying
+    version = db.Column(db.String(32), nullable=True)
+    stops = db.Column(db.JSON, nullable=True)
+    signals = db.Column(db.JSON, nullable=True)
+    occupants = db.Column(db.JSON, nullable=True)
+    hitchhikers = db.Column(db.JSON, nullable=True)
+    declined_rides = db.Column(db.JSON, nullable=True)
+    ride = db.Column(db.JSON, nullable=True)
+    mode_of_transportation = db.Column(db.JSON, nullable=True)
+    comment = db.Column(db.Text, nullable=True)
     rating = db.Column(db.Integer, nullable=True)
+    submission_time = db.Column(db.String(32), nullable=True)  # RFC 9557 format
+    license = db.Column(db.String(255), nullable=True)
+    source = db.Column(db.String(255), nullable=True)
 
     # Tag keys as columns
     expiration = db.Column(db.String(32), nullable=True)
