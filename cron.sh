@@ -1,6 +1,6 @@
 # @reboot cd hitch && screen -d -m bash -c '. $HOME/.bashrc; /usr/local/bin/waitress-serve server:app; bash'
 # every 10 minutes
-*/10 * * * * cd /app && /usr/bin/flock -n /tmp/fetch_nostr.lockfile bash -c '/usr/local/bin/flask --app hitch generate fetch_nostr.py' > logs/fetch_nostr.log 2>&1
+*/10 * * * * cd /app && /usr/bin/flock -n /tmp/fetch_nostr.lockfile bash -c '/usr/local/bin/flask --app hitch generate fetch_nostr' > logs/fetch_nostr.log 2>&1
 # every minute
 * * * * * cd /app && /usr/bin/flock -n /tmp/show.lockfile bash -c '/usr/local/bin/flask --app hitch generate show' > logs/show.log 2>&1
 # each day at midnight

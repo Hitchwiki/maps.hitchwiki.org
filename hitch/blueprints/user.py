@@ -9,7 +9,7 @@ from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDat
 from hitch.extensions import security
 from hitch.forms import UserEditForm
 from hitch.helpers import get_db
-from hitch.models import RideEvent
+from hitch.models import RideEvent, db
 
 user_bp = Blueprint("user", __name__)
 
@@ -242,17 +242,19 @@ def accept_co_hitchhiker(ride_d_tag: str):
     
     # Find the nostr event
     ride_row = (
-        get_db().session.query(RideEvent)
+        db.session.query(RideEvent)
         .filter_by(d=ride_d_tag)
         .first()
     )
 
     # manipulate it
-    ride_record = HitchhikingRecord.model_validate_json(ride_row["content"])
-    ride_record.hitchhikers.append(construct_hitchhiker_from_current_user())
+    ride_record: dict = HitchhikingRecord.model_validate(ride_row.content)
+    this_hitchhiker = construct_hitchhiker_from_current_user()
+    print(f"Adding co-hitchhiker {this_hitchhiker} to ride {ride_d_tag}")
+    ride_record.hitchhikers.append(this_hitchhiker)
     # post the updated event
     poster = HitchhikingDataStandardToNostrPoster()
-    _ = poster.post(ride_record=ride_record, tags=ride_row["tags"])
+    _ = poster.post(ride_record=ride_record, tags=ride_row.tags)
     poster.close()
 
     return redirect("/co-hitchhiking-rides")

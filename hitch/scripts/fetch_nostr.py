@@ -29,41 +29,41 @@ db.session.query(RideEvent).delete()
 db.session.commit()
 
 for post in all_posts:
-        # Parse the 'content' field from JSON string to dict
-        content_json = json.loads(post.get("content", "{}"))
+    # Parse the 'content' field from JSON string to dict
+    content_json = json.loads(post.get("content", "{}"))
 
-        # Extract 'expiration', 'd', and 'published_at' from tags
-        tags_dict = {tag[0]: tag[1] for tag in post.get("tags", []) if len(tag) == 2}
-        expiration = tags_dict.get("expiration")
-        d = tags_dict.get("d")
-        published_at = tags_dict.get("published_at")
+    # Extract 'expiration', 'd', and 'published_at' from tags
+    tags_dict = {tag[0]: tag[1] for tag in post.get("tags", []) if len(tag) == 2}
+    expiration = tags_dict.get("expiration")
+    d = tags_dict.get("d")
+    published_at = tags_dict.get("published_at")
 
-        ride_event = RideEvent(
-            id=post.get("id"),
-            kind=post.get("kind"),
-            pubkey=post.get("pubkey"),
-            sig=post.get("sig"),
-            content=content_json,
-            created_at=post.get("created_at"),
+    ride_event = RideEvent(
+        id=post.get("id"),
+        kind=post.get("kind"),
+        pubkey=post.get("pubkey"),
+        sig=post.get("sig"),
+        content=content_json,
+        created_at=post.get("created_at"),
 
-            version=content_json.get("version"),
-            stops=content_json.get("stops"),
-            signals=content_json.get("signals"),
-            occupants=content_json.get("occupants"),
-            hitchhikers=content_json.get("hitchhikers"),
-            declined_rides=content_json.get("declined_rides"),
-            ride=content_json.get("ride"),
-            mode_of_transportation=content_json.get("mode_of_transportation"),
-            comment=content_json.get("comment"),
-            rating=content_json.get("rating"),
-            submission_time=content_json.get("submission_time"),
-            license=content_json.get("license"),
-            source=content_json.get("source"),
+        version=content_json.get("version"),
+        stops=content_json.get("stops"),
+        signals=content_json.get("signals"),
+        occupants=content_json.get("occupants"),
+        hitchhikers=content_json.get("hitchhikers"),
+        declined_rides=content_json.get("declined_rides"),
+        ride=content_json.get("ride"),
+        mode_of_transportation=content_json.get("mode_of_transportation"),
+        comment=content_json.get("comment"),
+        rating=content_json.get("rating"),
+        submission_time=content_json.get("submission_time"),
+        license=content_json.get("license"),
+        source=content_json.get("source"),
 
-            expiration=expiration,
-            d=d,
-            published_at=published_at,
-            tags=post.get("tags"),
-        )
-        db.session.add(ride_event)
+        expiration=expiration,
+        d=d,
+        published_at=published_at,
+        tags=post.get("tags"),
+    )
+    db.session.add(ride_event)
 db.session.commit()
