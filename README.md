@@ -93,8 +93,6 @@ sudo apachectl configtest
 sudo systemctl reload apache2
 ```
 
-thus `hitchmap.conf` is not used at the moment
-
 ## Data
 If you find the data collected and provided by hitchmap.com helpful, feel free to cite it using:
 ```

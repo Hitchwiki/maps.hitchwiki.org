@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+
+{% block title %}Submit Your Ride Experience - Hitchmap{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css">
+<link rel="stylesheet" href="/static/style.css" />
+{% endblock %}
+
+{% block main %}
+<div class="container" style="max-width: 800px; margin: 2rem auto; padding: 2rem;">
+    <h2>Submit Your Ride Experience</h2>
+    
+    <div class="ride-info" style="background-color: #f8f9fa; padding: 1rem; margin-bottom: 2rem; border-radius: 5px;">
+        {% if coords %}
+            {% set parts = coords.split(',') %}
+            {% if parts|length >= 2 %}
+                <p><strong>Pickup Location:</strong> {{ "%.4f"|format(parts[0]|float) }}, {{ "%.4f"|format(parts[1]|float) }}</p>
+            {% endif %}
+            {% if destination_given and parts|length >= 4 %}
+                <p><strong>Destination:</strong> {{ dest_text }}</p>
+            {% else %}
+                <p><strong>Destination:</strong> {{ dest_text }}</p>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    <form id="ride-form" action="/ride" method="post">
+        <input type="hidden" name="coords" value="{{ coords }}">
+        
+        <div class="form-group">
+            <label>How do you rate the spot?</label>
+            <div class="rate">
+                <input required type="radio" id="star5" name="rate" value="5" />
+                <label for="star5" title="5 stars">5 stars</label>
+                <input type="radio" id="star4" name="rate" value="4" />
+                <label for="star4" title="4 stars">4 stars</label>
+                <input type="radio" id="star3" name="rate" value="3" />
+                <label for="star3" title="3 stars">3 stars</label>
+                <input type="radio" id="star2" name="rate" value="2" />
+                <label for="star2" title="2 stars">2 stars</label>
+                <input type="radio" id="star1" name="rate" value="1" />
+                <label for="star1" title="1 star">1 star</label>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="wait">How long did you wait? Leave blank if you don't remember.</label>
+            <div>
+                <input type="number" id="wait" name="wait" min="0" max="9999" size="4"> minutes
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="comment">Comment (optional)</label>
+            <textarea id="comment" name="comment" class="form-control" rows="4"></textarea>
+        </div>
+        
+        <div class="form-group" id="co-hitchhiker-container">
+            <label for="co-hitchhiker-input">Account name of a person hitchhiking with you</label>
+            <input id="co-hitchhiker-input" name="co_hitchhiker" maxlength="32" pattern="[a-zA-Z0-9]*" class="form-control">
+            <span id="co-hitchhiker-error-message" class="error text-danger"></span>
+        </div>
+        
+        <details id="extended_info">
+            <summary id="details-summary" style="display:list-item; margin-bottom: 1rem;">
+                More optional fields
+                <span id="details-seen" style='color: red; display: none;'> (check values, then submit again)</span>
+            </summary>
+            
+            <div class="form-group">
+                <label for="signal">How did you signal to drivers?</label>
+                <select id="signal" name="signal" class="form-control driver-signal">
+                    <option selected value="null">Select an option</option>
+                    <option value="sign">Sign</option>
+                    <option value="thumb">Thumb</option>
+                    <option value="ask">Asked around</option>
+                    <option value="ask-sign">Asked around with a sign in hand</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="datetime_ride">
+                    When did you get the ride?
+                    {% if not destination_given %}
+                        <span id="no-ride">If you didn't get a ride, when did you stop soliciting rides?</span>
+                    {% endif %}
+                </label>
+                <input id="datetime_ride" type="datetime-local" name="datetime_ride" class="form-control">
+            </div>
+        </details>
+        
+        <div class="form-group" style="margin-top: 2rem;">
+            <button type="submit" class="btn btn-primary btn-lg">Submit</button>
+            <a href="/" class="btn btn-secondary btn-lg" style="margin-left: 1rem;">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Set maximum date to today
+    document.getElementById("datetime_ride").max = (new Date().toISOString().slice(0, 11)) + "23:59";
+    
+    // Logic to prevent submitting hidden detailed info
+    const form = document.getElementById("ride-form");
+    const details = document.getElementById("extended_info");
+    const signal = document.getElementById("signal");
+    const datetime_ride = document.getElementById("datetime_ride");
+    const detailsSeen = document.getElementById("details-seen");
+    let hasBeenOpen = details.open;
+
+    details.addEventListener("toggle", function () {
+        hasBeenOpen = true;
+    });
+
+    form.addEventListener("submit", (event) => {
+        const hasHiddenFields = signal.value != "null" || datetime_ride.value;
+        if (hasHiddenFields && !hasBeenOpen) {
+            detailsSeen.style.display = "inline";
+            hasBeenOpen = details.open = true;
+            event.preventDefault();
+        }
+    });
+
+    // Store username in localStorage if available
+    if (typeof(Storage) !== "undefined") {
+        const coHitchhikerInput = document.getElementById("co-hitchhiker-input");
+        const storedNick = localStorage.getItem("nick");
+        if (storedNick) {
+            // Don't pre-fill co-hitchhiker field, just store the change handler
+        }
+        coHitchhikerInput.addEventListener('change', function(e) {
+            if (e.target.value) {
+                localStorage.setItem("nick", e.target.value);
+            }
+        });
+    }
+</script>
+{% endblock %}

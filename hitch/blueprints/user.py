@@ -258,3 +258,39 @@ def accept_co_hitchhiker(ride_d_tag: str):
     poster.close()
 
     return redirect("/co-hitchhiking-rides")
+
+
+@user_bp.route("/my-rides", methods=["GET"])
+def my_rides():
+    """Show the current user's submitted rides."""
+    if current_user.is_anonymous:
+        return redirect("/login")
+
+    current_app.logger.info(f"Received request to show rides for {current_user.username}")
+
+    # Query rides for the current user from RideEvent table
+    user_rides = db.session.query(RideEvent).filter(
+        RideEvent.content.op('->>')('source').like(f'%{current_user.username}%')
+    ).order_by(RideEvent.created_at.desc()).all()
+
+    # Convert to DataFrame for display
+    rides_data = []
+    for ride in user_rides:
+        ride_info = {
+            'id': ride.id,
+            'created_at': ride.created_at,
+            'rating': ride.rating,
+            'comment': ride.comment,
+            'stops': len(ride.content.get('stops', [])) if ride.content else 0,
+            'mode_of_transportation': ride.mode_of_transportation
+        }
+        rides_data.append(ride_info)
+    
+    rides_df = pd.DataFrame(rides_data)
+    rides_html = rides_df.to_html(index=False) if not rides_df.empty else "<p>No rides found.</p>"
+
+    return render_template(
+        "security/my_rides.html",
+        rides=rides_html,
+        is_logged_in=True
+    )

@@ -433,63 +433,24 @@ function addSpotStep(e) {
       map.panTo(addSpotPoints[0]);
       bar(".topbar.spot.step2");
     } else if (addSpotPoints.length == 2) {
-      if (addSpotPoints[1].lat !== "nan") {
-        var bounds = new L.LatLngBounds(addSpotPoints);
-        map.fitBounds(bounds, {});
-      }
-      map.setZoom(map.getZoom() - 1);
-      bar(".sidebar.spot-form-container");
       let points = addSpotPoints;
       const destinationGiven = points[1].lat !== "nan";
-      var dest = destinationGiven
-        ? `${points[1].lat.toFixed(4)}, ${points[1].lng.toFixed(4)}`
-        : "unknown destination";
-      $$(
-        ".sidebar.spot-form-container p.greyed"
-      ).innerText = `${points[0].lat.toFixed(4)}, ${points[0].lng.toFixed(
-        4
-      )} → ${dest}`;
-      $$("#no-ride").classList.toggle("make-invisible", destinationGiven);
-      $$("#details-seen").classList.add("make-invisible");
+      
       // Normalize longitude values to -180..180
       function normalizeLng(lng) {
         return ((lng + 180) % 360 ) - 180;
       }
-      $$(
-        "#spot-form input[name=coords]"
-      ).value = `${points[0].lat},${normalizeLng(points[0].lng)},${points[1].lat},${normalizeLng(points[1].lng)}`;
-
-      // logic to prevent submitting hidden detailed info
-      const form = $$("#spot-form");
-      const details = $$("#extended_info");
-      const signal = $$("#signal");
-      const datetime_ride = $$("#datetime_ride");
-      let hasBeenOpen = details.open;
-
-      details.addEventListener("toggle", function () {
-        hasBeenOpen = true;
+      
+      // Construct coordinates string
+      const coords = `${points[0].lat},${normalizeLng(points[0].lng)},${points[1].lat},${normalizeLng(points[1].lng)}`;
+      
+      // Redirect to dedicated ride form page with coordinates and destination info
+      const params = new URLSearchParams({
+        coords: coords,
+        destination_given: destinationGiven
       });
-
-      form.addEventListener("submit", (event) => {
-        const hasHiddenFields = signal.value != "null" || datetime_ride.value;
-        if (hasHiddenFields && !hasBeenOpen) {
-          $$("#details-seen").classList.remove("make-invisible");
-          hasBeenOpen = details.open = true;
-          event.preventDefault();
-        }
-      });
-
-      if (storageAvailable("localStorage")) {
-        var uname = $$("input[name=username]");
-        uname.value = localStorage.getItem("nick");
-        uname.onchange = (e) => localStorage.setItem("nick", uname.value);
-
-        // for (let field of ['males', 'females', 'others', 'signal']) {
-        //     let el = $$(`input[name=${field}]`)
-        //     el.value = localStorage.getItem(field) || el.value
-        //     el.onchange = e => localStorage.setItem(field, uname.value)
-        // }
-      }
+      
+      window.location.href = `/ride?${params.toString()}`;
     }
   } else if (e.target.innerText == "Cancel") {
     navigateHome();
