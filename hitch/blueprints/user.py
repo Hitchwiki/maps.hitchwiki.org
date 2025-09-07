@@ -282,7 +282,6 @@ def my_rides():
             'rating': ride.rating,
             'comment': ride.comment,
             'stops': len(ride.content.get('stops', [])) if ride.content else 0,
-            'mode_of_transportation': ride.mode_of_transportation
         }
         rides_data.append(ride_info)
     
