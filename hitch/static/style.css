@@ -180,10 +180,6 @@ body.adding-spot .horizontal-button {
 #spot-form > label, .sidebar.filters label, #spot-form input[type=submit] {
     margin-top: 18px;
 }
-#spot-form details select,
-#spot-form details input {
-  margin-bottom: 18px;
-}
 .rate {
   float: left;
   height: 46px;

@@ -34,60 +34,6 @@
 
 {% block main %}
 <div id="map"></div>
-<div class="sidebar spot spot-form-container">
-    <h3>New Review</h3>
-    <p class=greyed></p>
-    <form id=spot-form action=experience method=post>
-        <input type="hidden" name="coords">
-        <label>How do you rate the spot?</label>
-        <div class="clear">
-            <div class="rate">
-                <input required type="radio" id="star5" name="rate" value="5" />
-                <label for="star5" title="5 stars">5 stars</label>
-                <input type="radio" id="star4" name="rate" value="4" />
-                <label for="star4" title="4 stars">4 stars</label>
-                <input type="radio" id="star3" name="rate" value="3" />
-                <label for="star3" title="3 stars">3 stars</label>
-                <input type="radio" id="star2" name="rate" value="2" />
-                <label for="star2" title="2 stars">2 stars</label>
-                <input type="radio" id="star1" name="rate" value="1" />
-                <label for="star1" title="1 star">1 star</label>
-            </div>
-        </div>
-        <label>How long did you wait? Leave blank if you don't remember.</label>
-        <input type="number" name="wait" min="0" max="9999" size="4"> minutes
-        <label>Comment (optional)</label>
-        <div><textarea name=comment></textarea></div>
-        <div id="co-hitchhiker-container">
-            <label for="co-hitchhiker-input">Account name of a person hitchhiking with you</label>
-            <input id="co-hitchhiker-input" name="co_hitchhiker" maxlength="32" pattern="[a-zA-Z0-9]*">
-            <span id="co-hitchhiker-error-message" class="error"></span>
-        </div>
-        <br>
-        <details closed id="extended_info">
-            <summary id="details-summary" style="display:list-item">more optional fields<span id="details-seen"
-                    style='color: red;'> (check values, then submit again)</span></summary>
-            <label for="signal">How did you signal to drivers?</label>
-            <div>
-                <select id="signal" name="signal" class="driver-signal">
-                    <option selected value="null" title="null"></option>
-                    <option value="sign" title="Sign">Sign</option>
-                    <option value="thumb" title="thumb">Thumb</option>
-                    <option value="ask" title="talk">Asked around</option>
-                    <option value="ask-sign" title="talk">Asked around with a sign in hand</option>
-                </select>
-            </div>
-            <label for="datetime_ride">When did you get the ride?<span id="no-ride"> If you didn't get a ride, when did
-                    you stop soliciting rides?</span></label>
-            <input id="datetime_ride" type="datetime-local" name="datetime_ride">
-            <!-- maximum date is today -->
-            <script>
-                document.getElementById("datetime_ride").max = (new Date().toISOString().slice(0, 11)) + "23:59";
-            </script>
-        </details>
-        <button>Submit</button>
-    </form>
-</div>
 <div class="sidebar show-spot spot">
     <h3 id="spot-header"><a target="_blank"></a></h3>
     <input type="checkbox" id="toggle" class="toggle-checkbox">

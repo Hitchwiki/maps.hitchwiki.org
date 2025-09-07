@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Submit Your Ride Experience - Hitchmap{% endblock %}
+{% block title %}Submit Your Ride Experience{% endblock %}
 
 {% block head %}
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
@@ -63,35 +63,28 @@
             <input id="co-hitchhiker-input" name="co_hitchhiker" maxlength="32" pattern="[a-zA-Z0-9]*" class="form-control">
             <span id="co-hitchhiker-error-message" class="error text-danger"></span>
         </div>
-        
-        <details id="extended_info">
-            <summary id="details-summary" style="display:list-item; margin-bottom: 1rem;">
-                More optional fields
-                <span id="details-seen" style='color: red; display: none;'> (check values, then submit again)</span>
-            </summary>
             
-            <div class="form-group">
-                <label for="signal">How did you signal to drivers?</label>
-                <select id="signal" name="signal" class="form-control driver-signal">
-                    <option selected value="null">Select an option</option>
-                    <option value="sign">Sign</option>
-                    <option value="thumb">Thumb</option>
-                    <option value="ask">Asked around</option>
-                    <option value="ask-sign">Asked around with a sign in hand</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label for="datetime_ride">
-                    When did you get the ride?
-                    {% if not destination_given %}
-                        <span id="no-ride">If you didn't get a ride, when did you stop soliciting rides?</span>
-                    {% endif %}
-                </label>
-                <input id="datetime_ride" type="datetime-local" name="datetime_ride" class="form-control">
-            </div>
-        </details>
+        <div class="form-group">
+            <label for="signal">How did you signal to drivers?</label>
+            <select id="signal" name="signal" class="form-control driver-signal">
+                <option selected value="null">Select an option</option>
+                <option value="sign">Sign</option>
+                <option value="thumb">Thumb</option>
+                <option value="ask">Asked around</option>
+                <option value="ask-sign">Asked around with a sign in hand</option>
+            </select>
+        </div>
         
+        <div class="form-group">
+            <label for="datetime_ride">
+                When did you get the ride?
+                {% if not destination_given %}
+                    <span id="no-ride">If you didn't get a ride, when did you stop soliciting rides?</span>e
+                {% endif %}
+            </label>
+            <input id="datetime_ride" type="datetime-local" name="datetime_ride" class="form-control" min="2020-01-01T00:00">
+        </div>
+
         <div class="form-group" style="margin-top: 2rem;">
             <button type="submit" class="btn btn-primary btn-lg">Submit</button>
             <a href="/" class="btn btn-secondary btn-lg" style="margin-left: 1rem;">Cancel</a>
@@ -102,40 +95,5 @@
 <script>
     // Set maximum date to today
     document.getElementById("datetime_ride").max = (new Date().toISOString().slice(0, 11)) + "23:59";
-    
-    // Logic to prevent submitting hidden detailed info
-    const form = document.getElementById("ride-form");
-    const details = document.getElementById("extended_info");
-    const signal = document.getElementById("signal");
-    const datetime_ride = document.getElementById("datetime_ride");
-    const detailsSeen = document.getElementById("details-seen");
-    let hasBeenOpen = details.open;
-
-    details.addEventListener("toggle", function () {
-        hasBeenOpen = true;
-    });
-
-    form.addEventListener("submit", (event) => {
-        const hasHiddenFields = signal.value != "null" || datetime_ride.value;
-        if (hasHiddenFields && !hasBeenOpen) {
-            detailsSeen.style.display = "inline";
-            hasBeenOpen = details.open = true;
-            event.preventDefault();
-        }
-    });
-
-    // Store username in localStorage if available
-    if (typeof(Storage) !== "undefined") {
-        const coHitchhikerInput = document.getElementById("co-hitchhiker-input");
-        const storedNick = localStorage.getItem("nick");
-        if (storedNick) {
-            // Don't pre-fill co-hitchhiker field, just store the change handler
-        }
-        coHitchhikerInput.addEventListener('change', function(e) {
-            if (e.target.value) {
-                localStorage.setItem("nick", e.target.value);
-            }
-        });
-    }
 </script>
 {% endblock %}
