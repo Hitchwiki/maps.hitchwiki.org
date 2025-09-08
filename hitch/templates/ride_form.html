@@ -6,7 +6,54 @@
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <link rel="stylesheet" href="/static/style.css" />
+<style>
+.map-thumbnail {
+    width: 100%;
+    height: 150px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+.map-thumbnail:hover {
+    border-color: #007bff;
+}
+.map-thumbnail-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 123, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    font-size: 16px;
+    font-weight: bold;
+    color: #007bff;
+}
+.map-thumbnail:hover .map-thumbnail-overlay {
+    opacity: 1;
+}
+.location-section {
+    margin-bottom: 2rem;
+}
+.location-section h4 {
+    margin-bottom: 1rem;
+    color: #333;
+}
+.coordinates-text {
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 0.5rem;
+}
+</style>
 {% endblock %}
 
 {% block main %}
@@ -14,21 +61,47 @@
     <h2>Submit Your Ride Experience</h2>
     
     <div class="ride-info" style="background-color: #f8f9fa; padding: 1rem; margin-bottom: 2rem; border-radius: 5px;">
-        {% if coords %}
-            {% set parts = coords.split(',') %}
-            {% if parts|length >= 2 %}
-                <p><strong>Pickup Location:</strong> {{ "%.4f"|format(parts[0]|float) }}, {{ "%.4f"|format(parts[1]|float) }}</p>
-            {% endif %}
-            {% if destination_given and parts|length >= 4 %}
-                <p><strong>Destination:</strong> {{ dest_text }}</p>
-            {% else %}
-                <p><strong>Destination:</strong> {{ dest_text }}</p>
-            {% endif %}
-        {% endif %}
+        <div class="row">
+            <div class="col-md-6">
+                <div class="location-section">
+                    <h4><i class="fa fa-map-marker" style="color: #28a745;"></i> Pickup Location</h4>
+                    <div class="map-thumbnail" id="pickup-map-thumbnail" onclick="selectLocation('pickup')">
+                        <div class="map-thumbnail-overlay">
+                            <i class="fa fa-edit"></i> Click to select location
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="coordinates-text" id="pickup-coordinates">No location selected</div>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearLocation('pickup')" title="Clear pickup location" style="display: none;" id="pickup-clear-btn">
+                            <i class="fa fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="location-section">
+                    <h4><i class="fa fa-flag" style="color: #dc3545;"></i> Destination</h4>
+                    <div class="map-thumbnail" id="destination-map-thumbnail" onclick="selectLocation('destination')">
+                        <div class="map-thumbnail-overlay">
+                            <i class="fa fa-edit"></i> Click to select destination
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="coordinates-text" id="destination-coordinates">No destination selected</div>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearLocation('destination')" title="Clear destination" style="display: none;" id="destination-clear-btn">
+                            <i class="fa fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <form id="ride-form" action="/ride" method="post">
-        <input type="hidden" name="coords" value="{{ coords }}">
+    <form id="ride-form" action="/ride" method="post" onsubmit="return validateForm()">
+        <input type="hidden" name="pickup_lat" id="pickup_lat" value="">
+        <input type="hidden" name="pickup_lon" id="pickup_lon" value="">
+        <input type="hidden" name="destination_lat" id="destination_lat" value="">
+        <input type="hidden" name="destination_lon" id="destination_lon" value="">
         
         <div class="form-group">
             <label>How do you rate the spot?</label>
@@ -78,11 +151,9 @@
         <div class="form-group">
             <label for="datetime_ride">
                 When did you get the ride?
-                {% if not destination_given %}
-                    <span id="no-ride">If you didn't get a ride, when did you stop soliciting rides?</span>e
-                {% endif %}
             </label>
             <input id="datetime_ride" type="datetime-local" name="datetime_ride" class="form-control" min="2020-01-01T00:00">
+            <span id="datetime-error-message" class="error text-danger"></span>
         </div>
 
         <div class="form-group" style="margin-top: 2rem;">
@@ -92,8 +163,225 @@
     </form>
 </div>
 
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
     // Set maximum date to today
     document.getElementById("datetime_ride").max = (new Date().toISOString().slice(0, 11)) + "23:59";
+    
+    // Initialize map thumbnails
+    let pickupMap, destinationMap;
+    
+    // Get coordinates from form fields
+    function getCoordinates() {
+        const pickupLat = parseFloat(document.getElementById('pickup_lat').value);
+        const pickupLon = parseFloat(document.getElementById('pickup_lon').value);
+        const destLat = parseFloat(document.getElementById('destination_lat').value);
+        const destLon = parseFloat(document.getElementById('destination_lon').value);
+        
+        return {
+            pickup: (!isNaN(pickupLat) && !isNaN(pickupLon)) ? [pickupLat, pickupLon] : null,
+            destination: (!isNaN(destLat) && !isNaN(destLon)) ? [destLat, destLon] : null
+        };
+    }
+    
+    // Initialize thumbnail maps
+    function initThumbnailMaps() {
+        const coords = getCoordinates();
+        
+        // Initialize pickup map thumbnail
+        if (coords.pickup) {
+            pickupMap = L.map('pickup-map-thumbnail', {
+                center: coords.pickup,
+                zoom: 15,
+                zoomControl: false,
+                scrollWheelZoom: false,
+                doubleClickZoom: false,
+                dragging: false
+            });
+            
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(pickupMap);
+            
+            L.marker(coords.pickup).addTo(pickupMap);
+        }
+        
+        // Initialize destination map thumbnail
+        if (coords.destination) {
+            destinationMap = L.map('destination-map-thumbnail', {
+                center: coords.destination,
+                zoom: 15,
+                zoomControl: false,
+                scrollWheelZoom: false,
+                doubleClickZoom: false,
+                dragging: false
+            });
+            
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(destinationMap);
+            
+            L.marker(coords.destination).addTo(destinationMap);
+        }
+    }
+    
+    // Function to handle location selection
+    function selectLocation(type) {
+        // Store current form data in sessionStorage including coordinates
+        const coords = getCoordinates();
+        const formData = {
+            rate: document.querySelector('input[name="rate"]:checked')?.value || '',
+            wait: document.querySelector('input[name="wait"]')?.value || '',
+            comment: document.querySelector('textarea[name="comment"]')?.value || '',
+            co_hitchhiker: document.querySelector('input[name="co_hitchhiker"]')?.value || '',
+            signal: document.querySelector('select[name="signal"]')?.value || 'null',
+            datetime_ride: document.querySelector('input[name="datetime_ride"]')?.value || '',
+            pickup_lat: coords.pickup ? coords.pickup[0] : '',
+            pickup_lon: coords.pickup ? coords.pickup[1] : '',
+            destination_lat: coords.destination ? coords.destination[0] : '',
+            destination_lon: coords.destination ? coords.destination[1] : ''
+        };
+        
+        sessionStorage.setItem('rideFormData', JSON.stringify(formData));
+        
+        // Get coordinates for initial map position
+        let initialCoords = '';
+        
+        if (type === 'pickup') {
+            if (coords.pickup && !isNaN(coords.pickup[0]) && !isNaN(coords.pickup[1])) {
+                initialCoords = '/' + coords.pickup[0] + ',' + coords.pickup[1] + ',15';
+            } else {
+                initialCoords = '/0,0,2';
+            }
+        } else if (type === 'destination') {
+            if (coords.destination && !isNaN(coords.destination[0]) && !isNaN(coords.destination[1])) {
+                initialCoords = '/' + coords.destination[0] + ',' + coords.destination[1] + ',15';
+            } else if (coords.pickup && !isNaN(coords.pickup[0]) && !isNaN(coords.pickup[1])) {
+                // If destination is not set but pickup is, start destination selection from pickup location
+                initialCoords = '/' + coords.pickup[0] + ',' + coords.pickup[1] + ',12';
+            } else {
+                initialCoords = '/0,0,2';
+            }
+        } else if (coords.pickup) {
+            initialCoords = '/' + coords.pickup[0] + ',' + coords.pickup[1] + ',10';
+        }
+        
+        // Redirect to map with selection mode
+        window.location.href = '/#select-' + type + initialCoords;
+    }
+    
+    // Restore form data when returning from map
+    function restoreFormData() {
+        const formData = sessionStorage.getItem('rideFormData');
+        if (formData) {
+            const data = JSON.parse(formData);
+            
+            // Restore form fields
+            if (data.rate) {
+                const rateInput = document.querySelector(`input[name="rate"][value="${data.rate}"]`);
+                if (rateInput) rateInput.checked = true;
+            }
+            if (data.wait) document.querySelector('input[name="wait"]').value = data.wait;
+            if (data.comment) document.querySelector('textarea[name="comment"]').value = data.comment;
+            if (data.co_hitchhiker) document.querySelector('input[name="co_hitchhiker"]').value = data.co_hitchhiker;
+            if (data.signal && data.signal !== 'null') document.querySelector('select[name="signal"]').value = data.signal;
+            if (data.datetime_ride) document.querySelector('input[name="datetime_ride"]').value = data.datetime_ride;
+            
+            // Restore coordinates to form fields
+            if (data.pickup_lat) document.getElementById('pickup_lat').value = data.pickup_lat;
+            if (data.pickup_lon) document.getElementById('pickup_lon').value = data.pickup_lon;
+            if (data.destination_lat) document.getElementById('destination_lat').value = data.destination_lat;
+            if (data.destination_lon) document.getElementById('destination_lon').value = data.destination_lon;
+            
+            // Clear stored data
+            sessionStorage.removeItem('rideFormData');
+            
+            // Refresh the map thumbnails
+            setTimeout(() => {
+                initThumbnailMaps();
+                updateCoordinateDisplays();
+            }, 100);
+        }
+    }
+    
+    // Update coordinate displays
+    function updateCoordinateDisplays() {
+        const coords = getCoordinates();
+        
+        // Update pickup display
+        const pickupDisplay = document.getElementById('pickup-coordinates');
+        const pickupClearBtn = document.getElementById('pickup-clear-btn');
+        if (coords.pickup) {
+            pickupDisplay.textContent = `${coords.pickup[0].toFixed(4)}, ${coords.pickup[1].toFixed(4)}`;
+            pickupClearBtn.style.display = 'block';
+        } else {
+            pickupDisplay.textContent = 'No location selected';
+            pickupClearBtn.style.display = 'none';
+        }
+        
+        // Update destination display
+        const destDisplay = document.getElementById('destination-coordinates');
+        const destClearBtn = document.getElementById('destination-clear-btn');
+        if (coords.destination) {
+            destDisplay.textContent = `${coords.destination[0].toFixed(4)}, ${coords.destination[1].toFixed(4)}`;
+            destClearBtn.style.display = 'block';
+        } else {
+            destDisplay.textContent = 'No destination selected';
+            destClearBtn.style.display = 'none';
+        }
+    }
+    
+    // Add form validation
+    function validateForm() {
+        const coords = getCoordinates();
+        
+        if (!coords.pickup) {
+            alert('Please select a pickup location by clicking on the pickup map thumbnail.');
+            return false;
+        }
+        
+        return true;
+    }
+    
+    // Function to clear selected locations
+    function clearLocation(type) {
+        if (type === 'pickup') {
+            // Clear pickup coordinates
+            document.getElementById('pickup_lat').value = '';
+            document.getElementById('pickup_lon').value = '';
+        } else if (type === 'destination') {
+            // Clear destination coordinates
+            document.getElementById('destination_lat').value = '';
+            document.getElementById('destination_lon').value = '';
+        }
+        
+        // Update displays and thumbnails
+        updateCoordinateDisplays();
+        
+        // Destroy and recreate thumbnail maps
+        if (pickupMap) {
+            pickupMap.remove();
+            pickupMap = null;
+        }
+        if (destinationMap) {
+            destinationMap.remove();
+            destinationMap = null;
+        }
+        
+        setTimeout(initThumbnailMaps, 100);
+    }
+    
+    // Initialize when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        restoreFormData();
+        setTimeout(() => {
+            initThumbnailMaps();
+            updateCoordinateDisplays();
+        }, 100); // Small delay to ensure DOM is ready
+    });
 </script>
+<!-- End of scripts block -->
+{% endblock %}
+<!-- End of main content block -->
 {% endblock %}
