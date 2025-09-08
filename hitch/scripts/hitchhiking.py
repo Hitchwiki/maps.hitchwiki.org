@@ -22,7 +22,7 @@ DIRS = get_dirs()
 
 
 outname = os.path.join(DIRS["dist"], "hitchhiking.html")
-# TODO: why not using map.html from static folder?
+# TODO: why not using map.html from static folder? Use it instead!
 template_path = os.path.join(DIRS["templates"], "index_template.html")
 
 tiles = xyz.CartoDB.Positron

@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Hitchmap - Find hitchhiking spots on a map - Add new spots{% endblock %}
+{% block title %}Hitchhiking Map - Find hitchhiking spots on a map - Add new spots{% endblock %}
 
 {% block head %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -55,16 +55,9 @@
     <div id='spot-summary'></div>
     <h4>Comments</h4>
     <div id='spot-text'></div>
-    <div><button>Review this spot</button></div>
+    <div><button id="review-spot-btn">Review this spot</button></div>
     <i id="extra-text"></i>
     <hr>
-</div>
-<div class="sidebar success">
-    <h3>Success!</h3>
-
-    <p>Thank you for your contribution!</p>
-    <p>We'd love to hear your thoughts! <a href="https://docs.google.com/forms/d/e/1FAIpQLSdGLlPKhjRXIjG2VB-BlkxbsagNeXce5eI3sKFHe-_scJMFnw/viewform?usp=header" target="_blank" rel="noopener">Share feedback</a> to help us improve Hitchhiking Map.</p>
-    <p>Your review will appear on the map within 10 minutes. Refreshing may be needed.</p>
 </div>
 <div class="sidebar success-duplicate">
     <h3>Success!</h3>
@@ -151,21 +144,19 @@
         <line x1="1" y1="1" x2="13" y2="13" stroke="black" stroke-width="2" />
     </svg>
 </a>
-<div class="topbar spot step1">
-    <span>Zoom the crosshairs into your hitchhiking spot. Be as precise as possible!</span>
-    <br><button>Done</button><button>Cancel</button>
-</div>
-<div class="topbar spot step2">
-    <span>
-        Where did your ride take you? Move the crosshairs near that location, then press done.<sup><a
-                href="javascript:void(0);"
-                title="If you were dropped off at multiple locations when using this spot, either choose something in the middle or leave multiple reviews."
-                class=step2-help>?</a></sup>
-    </span>
-    <br><button>Skip</button><button>Done</button><button>Cancel</button>
-</div>
 <div class="topbar duplicate">
     <span>Click on the duplicated marker.</span>
     <br><button>Cancel</button>
+</div>
+
+<!-- Full-screen success overlay -->
+<div id="success-overlay" class="success-overlay" style="display: none;">
+    <div class="success-content">
+        <h2>Success!</h2>
+        <p>Thank you for your contribution!</p>
+        <p>We'd love to hear your thoughts! <a href="https://docs.google.com/forms/d/e/1FAIpQLSdGLlPKhjRXIjG2VB-BlkxbsagNeXce5eI3sKFHe-_scJMFnw/viewform?usp=header" target="_blank" rel="noopener">Share feedback</a> to help us improve Hitchhiking Map.</p>
+        <p>Your review will appear on the map within 10 minutes. Refreshing may be needed.</p>
+        <button id="success-close-btn" class="success-close-btn">Continue</button>
+    </div>
 </div>
 {% endblock %}

@@ -7,16 +7,12 @@ if ("serviceWorker" in navigator) {
 var $$ = (e) => document.querySelector(e);
 var allMarkers = [],
   destinationMarkers = [],
-  addSpotPoints = [],
-  addSpotLine = null,
   active = [],
   oldActive = [],
   oldMarkers = [],
   destLineGroup = null,
   filterDestLineGroup = null,
   filterMarkerGroup = null,
-  spotMarker,
-  destMarker,
   map,
   bars = document.querySelectorAll(".sidebar, .topbar");
 
@@ -160,16 +156,11 @@ function addMapControls() {
 // Set up various event listeners for the map and UI elements
 function setupEventListeners() {
   $$("#sb-close").onclick = navigateHome;
-  $$("a.step2-help").onclick = (e) => alert(e.target.title);
   $$(".report-dup").onclick = () =>
     document.body.classList.add("reporting-duplicate");
   $$(".topbar.duplicate button").onclick = () =>
     document.body.classList.remove("reporting-duplicate");
 
-  map.on("move", updateAddSpotLine);
-  bars.forEach((bar) => {
-    if (bar.classList.contains("spot")) bar.onclick = addSpotStep;
-  });
 
   map.on("click", handleMapClick);
   map.on("zoom", () =>
@@ -281,7 +272,7 @@ function handleHashChange() {
 
   if (window.location.hash == "#success") {
     history.replaceState(null, null, " ");
-    bar(".sidebar.success");
+    showSuccessOverlay();
   }
 
   if (window.location.hash == "#success-duplicate") {
@@ -358,7 +349,6 @@ function markerClick(marker) {
   var row = marker.options._row;
   active = [marker];
 
-  addSpotPoints = [];
   renderPoints();
 
   setTimeout(() => {
@@ -375,8 +365,24 @@ function markerClick(marker) {
     $$("#spot-text").innerHTML = row[3];
     if (!row[3] && (!row[5] || Number.isNaN(row[5])))
       $$("#extra-text").innerHTML =
-        "No comments/ride info. To hide spots like this, check out the <a href=/light.html>lightweight map</a>.";
+        "No comments/ride info.";
     else $$("#extra-text").innerHTML = "";
+    
+    // Set up click handler for "Review this spot" button
+    const reviewBtn = $$("#review-spot-btn");
+    if (reviewBtn) {
+      reviewBtn.onclick = function() {
+        // Store the spot coordinates in form data and navigate to ride form
+        const formData = {
+          pickup_lat: row[0],
+          pickup_lon: row[1],
+          destination_lat: '',
+          destination_lon: ''
+        };
+        sessionStorage.setItem('rideFormData', JSON.stringify(formData));
+        window.location.href = '/ride';
+      };
+    }
   }, 100);
 }
 
@@ -387,77 +393,29 @@ function bar(selector) {
   if (selector) $$(selector).classList.add("visible");
 }
 
-function updateAddSpotLine() {
-  if (addSpotLine) {
-    map.removeLayer(addSpotLine);
-    addSpotLine = null;
-  }
-  if (addSpotPoints.length == 1) {
-    addSpotLine = arrowLine(addSpotPoints[0], map.getCenter()).addTo(map);
-  }
-}
-
-function addSpotStep(e) {
-  if (e.target.tagName != "BUTTON") return;
-  if (e.target.innerText == "Done") {
-    let center = map.getCenter();
-    if (
-      addSpotPoints[0] &&
-      center.distanceTo(addSpotPoints[0]) < 1000 &&
-      !confirm(
-        "Are you sure this was where the car took you? It's less than 1 km away from the hitchhiking spot."
-      )
-    )
-      return;
-    else addSpotPoints.push(center);
-  }
-  if (e.target.innerText.includes("didn't get"))
-    addSpotPoints.push(addSpotPoints[0]);
-  if (e.target.innerText == "Skip")
-    addSpotPoints.push({ lat: "nan", lng: "nan" });
-  if (e.target.innerText.includes("Review")) {
-    addSpotPoints.push(active[0].getLatLng());
-    active = [];
-  }
-
-  renderPoints();
-
-  if (
-    e.target.innerText == "Done" ||
-    e.target.innerText.includes("didn't get") ||
-    e.target.innerText.includes("Review") ||
-    e.target.innerText == "Skip"
-  ) {
-    if (addSpotPoints.length == 1) {
-      if (map.getZoom() > 9) map.setZoom(9);
-      map.panTo(addSpotPoints[0]);
-      bar(".topbar.spot.step2");
-    } else if (addSpotPoints.length == 2) {
-      let points = addSpotPoints;
-      const destinationGiven = points[1].lat !== "nan";
-      
-      // Normalize longitude values to -180..180
-      function normalizeLng(lng) {
-        return ((lng + 180) % 360 ) - 180;
-      }
-      
-      // Construct coordinates string
-      const coords = `${points[0].lat},${normalizeLng(points[0].lng)},${points[1].lat},${normalizeLng(points[1].lng)}`;
-      
-      // Redirect to dedicated ride form page with coordinates and destination info
-      const params = new URLSearchParams({
-        coords: coords,
-        destination_given: destinationGiven
-      });
-      
-      window.location.href = `/ride?${params.toString()}`;
+function showSuccessOverlay() {
+  const overlay = $$("#success-overlay");
+  if (overlay) {
+    overlay.style.display = "flex";
+    
+    // Add click handler for the close button
+    const closeBtn = $$("#success-close-btn");
+    if (closeBtn) {
+      closeBtn.onclick = function() {
+        overlay.style.display = "none";
+      };
     }
-  } else if (e.target.innerText == "Cancel") {
-    navigateHome();
+    
+    // Close overlay when clicking outside the content
+    overlay.onclick = function(e) {
+      if (e.target === overlay) {
+        overlay.style.display = "none";
+      }
+    };
   }
-
-  document.body.classList.toggle("adding-spot", addSpotPoints.length > 0);
 }
+
+
 
 function arrowLine(from, to, opts = {}) {
   return L.polylineDecorator([from, to], {
@@ -483,21 +441,7 @@ function arrowLine(from, to, opts = {}) {
 }
 
 function renderPoints() {
-  if (spotMarker) map.removeLayer(spotMarker);
-  if (destMarker) map.removeLayer(destMarker);
-
   if (destLineGroup) destLineGroup.remove();
-
-  spotMarker = destMarker = null;
-  if (addSpotPoints[0]) {
-    spotMarker = L.marker(addSpotPoints[0]);
-    spotMarker.addTo(map);
-  }
-  if (addSpotPoints[1] && addSpotPoints[1].lat !== "nan") {
-    destMarker = L.marker(addSpotPoints[1], { color: "red" });
-    destMarker.addTo(map);
-  }
-  document.body.classList.toggle("has-points", addSpotPoints.length);
 
   destLineGroup = L.layerGroup();
 
@@ -529,10 +473,8 @@ function navigateHome() {
 
 function clear() {
   bar();
-  addSpotPoints = [];
   active = [];
   renderPoints();
-  updateAddSpotLine();
   document.body.classList.remove("adding-spot", "reporting-duplicate", "menu");
 }
 
@@ -804,20 +746,37 @@ function applyParams() {
 function navigate() {
   applyParams();
 
-  let args = window.location.hash.slice(1).split(",");
-  if (args[0] == "route") {
+  let args = window.location.hash.slice(1).split("/");
+  let mainArgs = args[0].split(",");
+  
+  if (mainArgs[0] == "route") {
     clear();
-    planRoute(+args[1], +args[2], +args[3], +args[4]);
-  } else if (args[0] == "location") {
+    planRoute(+mainArgs[1], +mainArgs[2], +mainArgs[3], +mainArgs[4]);
+  } else if (mainArgs[0] == "location") {
     clear();
-    map.setView([+args[1], +args[2]], args[3]);
-  } else if (args[0] == "filters") {
+    map.setView([+mainArgs[1], +mainArgs[2]], mainArgs[3]);
+  } else if (mainArgs[0] == "filters") {
     clear();
     bar(".sidebar.filters");
-  } else if (args.length == 2 && !isNaN(args[0])) {
+  } else if (mainArgs[0] == "select-pickup" || mainArgs[0] == "select-destination") {
     clear();
-    let lat = +args[0],
-      lon = +args[1];
+    setupLocationSelection(mainArgs[0], args[1]);
+  } else if (mainArgs[0] == "success") {
+    history.replaceState(null, null, " ");
+    showSuccessOverlay();
+  } else if (mainArgs[0] == "success-duplicate") {
+    history.replaceState(null, null, " ");
+    bar(".sidebar.success-duplicate");
+  } else if (mainArgs[0] == "failed") {
+    history.replaceState(null, null, " ");
+    bar(".sidebar.failed");
+  } else if (mainArgs[0] == "registered") {
+    history.replaceState(null, null, " ");
+    bar(".sidebar.registered");
+  } else if (mainArgs.length == 2 && !isNaN(mainArgs[0])) {
+    clear();
+    let lat = +mainArgs[0],
+      lon = +mainArgs[1];
     for (let m of allMarkers) {
       if (m._latlng.lat === lat && m._latlng.lng === lon) {
         markerClick(m);
@@ -844,20 +803,9 @@ var AddSpotButton = L.Control.extend({
     container.href = "javascript:void(0);";
     container.innerText = "📍 Add spot";
 
-    container.onclick = function (e) {
-      if (window.location.href.includes("light")) {
-        if (
-          confirm(
-            "Do you want to be redirected to the full version where you can add spots?"
-          )
-        )
-          window.location = "/";
-        return;
-      }
-      clearParams();
-      navigateHome();
-      document.body.classList.add("adding-spot");
-      bar(".topbar.spot.step1");
+    container.onclick = function (e) {      
+      // Redirect directly to ride form instead of crosshair selection
+      window.location.href = "/ride";
 
       L.DomEvent.stopPropagation(e);
     };
@@ -964,3 +912,111 @@ function confirmClaimReview(url) {
         window.location.href = url;
     }
 };
+
+// Location selection functionality for ride form
+let locationSelectionMarker = null;
+let locationSelectionType = null;
+
+function setupLocationSelection(selectionType, initialCoords) {
+    locationSelectionType = selectionType;
+    
+    // Parse initial coordinates if provided
+    if (initialCoords) {
+        const coords = initialCoords.split(',');
+        if (coords.length >= 3) {
+            const lat = parseFloat(coords[0]);
+            const lon = parseFloat(coords[1]);
+            const zoom = parseInt(coords[2]);
+            map.setView([lat, lon], zoom);
+        }
+    }
+    
+    // Add a draggable marker for location selection
+    const center = map.getCenter();
+    locationSelectionMarker = L.marker(center, {
+        draggable: true,
+        icon: L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        })
+    }).addTo(map);
+    
+    // Update marker position when map is clicked
+    map.on('click', function(e) {
+        locationSelectionMarker.setLatLng(e.latlng);
+    });
+    
+    // Add custom UI for location selection
+    const selectionUI = L.DomUtil.create('div', 'location-selection-ui');
+    selectionUI.innerHTML = `
+        <div style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); 
+                    background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+                    z-index: 1000; text-align: center; min-width: 300px;">
+            <h4 style="margin: 0 0 10px 0;">Select ${selectionType === 'select-pickup' ? 'Pickup' : 'Destination'} Location</h4>
+            <p style="margin: 0 0 15px 0; font-size: 14px; color: #666;">
+                Click on the map or drag the marker to choose your ${selectionType === 'select-pickup' ? 'pickup' : 'destination'} location
+            </p>
+            <button onclick="confirmLocationSelection()" style="background: #007bff; color: white; border: none; 
+                           padding: 8px 20px; border-radius: 4px; margin-right: 10px; cursor: pointer;">
+                Confirm Location
+            </button>
+            <button onclick="cancelLocationSelection()" style="background: #6c757d; color: white; border: none; 
+                           padding: 8px 20px; border-radius: 4px; cursor: pointer;">
+                Cancel
+            </button>
+        </div>
+    `;
+    document.body.appendChild(selectionUI);
+}
+
+function confirmLocationSelection() {
+    if (!locationSelectionMarker) return;
+    
+    const latlng = locationSelectionMarker.getLatLng();
+    
+    // Update the form data in sessionStorage with new coordinates
+    const formData = JSON.parse(sessionStorage.getItem('rideFormData') || '{}');
+    
+    if (locationSelectionType === 'select-pickup') {
+        formData.pickup_lat = latlng.lat;
+        formData.pickup_lon = latlng.lng;
+    } else if (locationSelectionType === 'select-destination') {
+        formData.destination_lat = latlng.lat;
+        formData.destination_lon = latlng.lng;
+    }
+    
+    sessionStorage.setItem('rideFormData', JSON.stringify(formData));
+    
+    // Return to ride form
+    window.location.href = '/ride';
+}
+
+function cancelLocationSelection() {
+    // Clean up and return to ride form without changing coordinates
+    cleanupLocationSelection();
+    
+    // Return to ride form
+    window.location.href = '/ride';
+}
+
+function cleanupLocationSelection() {
+    // Remove marker and UI
+    if (locationSelectionMarker) {
+        map.removeLayer(locationSelectionMarker);
+        locationSelectionMarker = null;
+    }
+    
+    const ui = document.querySelector('.location-selection-ui');
+    if (ui) {
+        ui.remove();
+    }
+    
+    // Remove event listener
+    map.off('click');
+    
+    locationSelectionType = null;
+}

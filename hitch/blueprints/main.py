@@ -36,31 +36,9 @@ def render_map(map_variation):
 
 @main_bp.route("/ride", methods=["GET", "POST"])
 def ride_form():
-    """Dedicated ride form page after destination selection."""
+    """Dedicated ride form page."""
     if request.method == "GET":
-        # Get ride data from URL parameters passed from JavaScript
-        coords = request.args.get('coords', '')
-        destination_given = request.args.get('destination_given', 'false') == 'true'
-        
-        # Parse coordinates for display
-        dest_text = "unknown destination"
-        if coords:
-            parts = coords.split(',')
-            if len(parts) >= 4 and destination_given:
-                try:
-                    lat, lon, dest_lat, dest_lon = map(float, parts[:4])
-                    dest_text = f"{dest_lat:.4f}, {dest_lon:.4f}"
-                except (ValueError, TypeError):
-                    pass
-        
-        # Prepare context for the form
-        context = {
-            'coords': coords,
-            'destination_given': destination_given,
-            'dest_text': dest_text
-        }
-        
-        return render_template("ride_form.html", **context)
+        return render_template("ride_form.html")
     
     # POST request - process the form submission (same logic as experience route)
     data = request.form
@@ -83,10 +61,20 @@ def ride_form():
 
     ip = request.headers.getlist("X-Real-IP")[-1] if request.headers.getlist("X-Real-IP") else request.remote_addr
 
-    lat, lon, dest_lat, dest_lon = map(float, data["coords"].split(","))
+    # Get coordinates from individual form fields
+    lat = float(data["pickup_lat"]) if data["pickup_lat"] else None
+    lon = float(data["pickup_lon"]) if data["pickup_lon"] else None
+    dest_lat = float(data["destination_lat"]) if data["destination_lat"] else None
+    dest_lon = float(data["destination_lon"]) if data["destination_lon"] else None
+    
+    # Convert empty destination coordinates to NaN for compatibility
+    if dest_lat is None:
+        dest_lat = float('nan')
+    if dest_lon is None:
+        dest_lon = float('nan')
 
-    assert -90 <= lat <= 90, f"Invalid latitude: {lat}"
-    assert -180 <= lon <= 180, f"Invalid longitude: {lon}"
+    assert lat is not None and -90 <= lat <= 90, f"Invalid pickup latitude: {lat}"
+    assert lon is not None and -180 <= lon <= 180, f"Invalid pickup longitude: {lon}"
     assert (-90 <= dest_lat <= 90 and -180 <= dest_lon <= 180) or (math.isnan(dest_lat) and math.isnan(dest_lon)), (
         f"Invalid destination coordinates: {dest_lat}, {dest_lon}"
     )

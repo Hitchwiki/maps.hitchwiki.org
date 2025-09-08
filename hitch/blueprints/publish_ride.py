@@ -45,12 +45,12 @@ def map_signal(signal: str) -> Signal:
         )
     else:
         return None
-    
+
 
 def map_gender(gender: str) -> str | None:
     if gender is None or pd.isna(gender) or gender == "":
         return None
-    
+
     gender_map = {
         "Male": "male",
         "Female": "female",
@@ -62,17 +62,17 @@ def map_gender(gender: str) -> str | None:
 
 def construct_hitchhiker_from_current_user() -> Hitchhiker:
     hitchhiker = Hitchhiker(
-            origin_location=current_user.origin_city if hasattr(current_user, "origin_city") else None,
-            origin_country=current_user.origin_country if hasattr(current_user, "origin_country") else None,
-            year_of_birth=current_user.year_of_birth if hasattr(current_user, "year_of_birth") else None,
-            gender=map_gender(current_user.gender) if hasattr(current_user, "gender") else None,
-            languages=None,
-            was_driver=None,
-            nickname=current_user.username,
-            hitchhiking_since=current_user.hitchhiking_since if hasattr(current_user, "hitchhiking_since") else None,
-            reasons_to_hitchhike=None,
-        )
-    
+        origin_location=current_user.origin_city if hasattr(current_user, "origin_city") else None,
+        origin_country=current_user.origin_country if hasattr(current_user, "origin_country") else None,
+        year_of_birth=current_user.year_of_birth if hasattr(current_user, "year_of_birth") else None,
+        gender=map_gender(current_user.gender) if hasattr(current_user, "gender") else None,
+        languages=None,
+        was_driver=None,
+        nickname=current_user.username,
+        hitchhiking_since=current_user.hitchhiking_since if hasattr(current_user, "hitchhiking_since") else None,
+        reasons_to_hitchhike=None,
+    )
+
     return hitchhiker
 
 
@@ -82,7 +82,10 @@ def construct_hitchhiker_from_current_user() -> Hitchhiker:
 
 def create_record_from_custom_object(custom_object: dict, source: str, license: str) -> HitchhikingRecord:
     """Caters for setup of hitchmap.com on 2025/08/31."""
-    lat, lon, dest_lat, dest_lon = map(float, custom_object["coords"].split(","))
+    lat = float(custom_object["pickup_lat"]) if custom_object.get("pickup_lat") else None
+    lon = float(custom_object["pickup_lon"]) if custom_object.get("pickup_lon") else None
+    dest_lat = float(custom_object["destination_lat"]) if custom_object.get("destination_lat") else None
+    dest_lon = float(custom_object["destination_lon"]) if custom_object.get("destination_lon") else None
 
     stops = [
         Stop(
@@ -120,7 +123,7 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
         signals = [Signal(methods=signals[0].methods, duration=f"PT{int(custom_object['wait'])}M")]
 
     hitchhiker = Hitchhiker(nickname="Anonymous") if current_user.is_anonymous else construct_hitchhiker_from_current_user()
-        
+
     now = pd.Timestamp.now()
 
     record = HitchhikingRecord(
