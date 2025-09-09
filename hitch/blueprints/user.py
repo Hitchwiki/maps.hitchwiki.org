@@ -267,15 +267,22 @@ def my_rides():
 
     current_app.logger.info(f"Received request to show rides for {current_user.username}")
 
-    user_rides = (
+    # Fetch all rides from the current source
+    all_rides = (
         db.session.query(RideEvent)
-        .filter(
-            RideEvent.content.op("->>")("source") == THIS_NOSTR_SOURCE,
-            # RideEvent.content.op("->>")("nickname") == current_user.username,
-        )
+        .filter(RideEvent.content.op("->>")("source") == THIS_NOSTR_SOURCE)
         .order_by(RideEvent.created_at.desc())
         .all()
     )
+
+    # Filter rides where current_user is among the hitchhikers
+    user_rides = []
+    for ride in all_rides:
+        content = ride.content if ride.content else {}
+        hitchhikers = content.get('hitchhikers', [])
+        user_nicknames = [h.get('nickname') for h in hitchhikers]
+        if current_user.username in user_nicknames:
+            user_rides.append(ride)
 
     # Convert to DataFrame for display
     rides_data = []
@@ -297,14 +304,12 @@ def my_rides():
                 destination_info = f"{coords.get('latitude', 'N/A')}, {coords.get('longitude', 'N/A')}"
 
         ride_info = {
-            "ID": ride.id,
             "Created": pd.to_datetime(ride.created_at, unit="s").strftime("%Y-%m-%d %H:%M") if ride.created_at else "N/A",
             "Rating": "⭐" * (ride.rating or 0) if ride.rating else "N/A",
             "Comment": (ride.comment[:50] + "...") if ride.comment and len(ride.comment) > 50 else (ride.comment or ""),
             "Pickup": pickup_info or "N/A",
             "Destination": destination_info or "N/A",
-            "Stops": len(stops),
-            "Edit": f'<a href="/ride?edit={ride.d}" class="btn btn-sm btn-primary">Edit</a>',
+            "Edit": f'<a href="/ride?edit={ride.d}" class="btn btn-sm btn-primary">Edit/Show</a>',
         }
         rides_data.append(ride_info)
 
