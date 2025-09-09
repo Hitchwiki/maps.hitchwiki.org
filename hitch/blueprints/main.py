@@ -17,11 +17,27 @@ from hitch.blueprints.publish_ride import create_record_from_custom_object
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.extensions import db
 from hitch.helpers import get_db
-from hitch.models import CoHitchhiker
+from hitch.models import CoHitchhiker, RideEvent
 
 main_bp = Blueprint("main", __name__)
 
 THIS_NOSTR_SOURCE = os.getenv("THIS_NOSTR_SOURCE", "yourdomain.com")
+
+
+def _user_owns_ride(ride, user):
+    """Check if the current user owns this ride."""
+    if user.is_anonymous:
+        return False
+    
+    # Check if source matches our source
+    content = ride.content or {}
+    if content.get('source') != 'maps.hitchwiki.org':
+        return False
+    
+    # Check if current user is one of the hitchhikers
+    hitchhikers = content.get('hitchhikers', [])
+    user_nicknames = [hitchhiker.get('nickname') for hitchhiker in hitchhikers]
+    return user.username in user_nicknames
 
 
 # TODO: renamed function from map() to render_map() to avoid conflict with map() builtin
@@ -38,19 +54,19 @@ def render_map(map_variation):
 def ride_form():
     """Dedicated ride form page."""
     if request.method == "GET":
-        edit_ride_id = request.args.get('edit')
+        edit_d_tag = request.args.get('edit')
         ride_data = None
         
-        if edit_ride_id:
+        if edit_d_tag:
             # Load existing ride data for editing
-            from hitch.models import RideEvent
-            ride = db.session.query(RideEvent).filter_by(id=edit_ride_id).first()
-            if ride and ride.content:
+            ride = db.session.query(RideEvent).filter_by(d=edit_d_tag).first()
+            if ride and ride.content and _user_owns_ride(ride, current_user):
                 # Extract data from the ride for pre-filling the form
                 content = ride.content
                 stops = content.get('stops', [])
                 
                 ride_data = {
+                    'd_tag': edit_d_tag,  # Store d_tag for POST handler
                     'rating': ride.rating,
                     'comment': ride.comment,
                     'pickup_lat': '',
@@ -127,49 +143,67 @@ def ride_form():
         f"Invalid destination coordinates: {dest_lat}, {dest_lon}"
     )
 
-    for _i in range(10):
-        resp = requests.get(
-            "https://nominatim.openstreetmap.org/reverse",
-            {
-                "lat": lat,
-                "lon": lon,
-                "format": "json",
-                "zoom": 3,
-                "email": current_app.config["EMAIL"],
-            },
-        )
-        if resp.ok:
-            break
-        else:
-            current_app.logger.info(resp)
+    # for _i in range(10):
+    #     resp = requests.get(
+    #         "https://nominatim.openstreetmap.org/reverse",
+    #         {
+    #             "lat": lat,
+    #             "lon": lon,
+    #             "format": "json",
+    #             "zoom": 3,
+    #             "email": current_app.config["EMAIL"],
+    #         },
+    #     )
+    #     if resp.ok:
+    #         break
+    #     else:
+    #         current_app.logger.info(resp)
 
-    res = resp.json()
-    country = "XZ" if "error" in res else res["address"]["country_code"].upper()
+    # res = resp.json()
+    # country = "XZ" if "error" in res else res["address"]["country_code"].upper()
 
-    ride_row = {
-        "rating": rating,
-        "wait": wait,
-        "comment": comment,
-        "nickname": None,
-        "datetime": now,
-        "ip": ip,
-        "reviewed": False,
-        "banned": False,
-        "lat": lat,
-        "dest_lat": dest_lat,
-        "lon": lon,
-        "dest_lon": dest_lon,
-        "country": country,
-        "signal": signal,
-        "ride_datetime": datetime_ride,
-        "user_id": current_user.id if not current_user.is_anonymous else None,
-    }
+    # ride_row = {
+    #     "rating": rating,
+    #     "wait": wait,
+    #     "comment": comment,
+    #     "nickname": None,
+    #     "datetime": now,
+    #     "ip": ip,
+    #     "reviewed": False,
+    #     "banned": False,
+    #     "lat": lat,
+    #     "dest_lat": dest_lat,
+    #     "lon": lon,
+    #     "dest_lon": dest_lon,
+    #     "country": country,
+    #     "signal": signal,
+    #     "ride_datetime": datetime_ride,
+    #     "user_id": current_user.id if not current_user.is_anonymous else None,
+    # }
 
-    ### Publish ride to Nostr
-    poster = HitchhikingDataStandardToNostrPoster()
-    record = create_record_from_custom_object(custom_object=data, source="maps.hitchwiki.org", license="xxx")
-    d_tag = poster.post(ride_record=record)
-    poster.close()
+    ### Check if this is an edit operation
+    edit_d_tag = data.get("edit_d_tag", "").strip()
+    if edit_d_tag:
+        
+        existing_ride = db.session.query(RideEvent).filter_by(d=edit_d_tag).first()
+        if not existing_ride or not _user_owns_ride(existing_ride, current_user):
+            return redirect("/#error")  # User doesn't own this ride
+         
+        # Create new record with updated form data to get updated fields
+        updated_record = create_record_from_custom_object(custom_object=data, source=THIS_NOSTR_SOURCE, license="xxx")
+
+        # post the updated event (maintaining all original tags including d tag)
+        poster = HitchhikingDataStandardToNostrPoster()
+        _ = poster.post(ride_record=updated_record, tags=existing_ride.tags)
+        poster.close()
+        d_tag = edit_d_tag  # Keep the same d_tag
+    else:
+        # This is a new ride - normal flow
+        record = create_record_from_custom_object(custom_object=data, source=THIS_NOSTR_SOURCE, license="xxx")
+
+        poster = HitchhikingDataStandardToNostrPoster()
+        d_tag = poster.post(ride_record=record)
+        poster.close()
 
     ### Co-hitchhikers
     # TODO: verify that all usernames exist in User table

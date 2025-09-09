@@ -304,7 +304,7 @@ def my_rides():
             "Pickup": pickup_info or "N/A",
             "Destination": destination_info or "N/A",
             "Stops": len(stops),
-            "Edit": f'<a href="/ride?edit={ride.d_tag}" class="btn btn-sm btn-primary">Edit</a>',
+            "Edit": f'<a href="/ride?edit={ride.d}" class="btn btn-sm btn-primary">Edit</a>',
         }
         rides_data.append(ride_info)
 
