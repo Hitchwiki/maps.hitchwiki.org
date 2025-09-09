@@ -1,3 +1,4 @@
+import os
 
 import pandas as pd
 from flask import Blueprint, current_app, jsonify, redirect, render_template
@@ -10,6 +11,8 @@ from hitch.extensions import db, security
 from hitch.forms import UserEditForm
 from hitch.helpers import get_db
 from hitch.models import RideEvent
+
+THIS_NOSTR_SOURCE = os.getenv("THIS_NOSTR_SOURCE", "maps.hitchwiki.org")
 
 user_bp = Blueprint("user", __name__)
 
@@ -233,19 +236,15 @@ def accept_co_hitchhiker(ride_d_tag: str):
     # TODO: only allow if the current user is actually listed as co-hitchhiker
     cursor.execute(
         "UPDATE co_hitchhiker SET accepted = 'yes' WHERE nostr_ride_event_d_tag = ? and co_hitchhiker = ?",
-        (ride_d_tag, current_user.username)
+        (ride_d_tag, current_user.username),
     )
     conn.commit()
     conn.close()
 
     ### Update the Nostr event
-    
+
     # Find the nostr event
-    ride_row = (
-        db.session.query(RideEvent)
-        .filter_by(d=ride_d_tag)
-        .first()
-    )
+    ride_row = db.session.query(RideEvent).filter_by(d=ride_d_tag).first()
 
     # manipulate it
     ride_record: dict = HitchhikingRecord.model_validate(ride_row.content)
@@ -268,28 +267,48 @@ def my_rides():
 
     current_app.logger.info(f"Received request to show rides for {current_user.username}")
 
-    # Query rides for the current user from RideEvent table
-    user_rides = db.session.query(RideEvent).filter(
-        RideEvent.content.op('->>')('source').like(f'%{current_user.username}%')
-    ).order_by(RideEvent.created_at.desc()).all()
+    user_rides = (
+        db.session.query(RideEvent)
+        .filter(
+            RideEvent.content.op("->>")("source") == THIS_NOSTR_SOURCE,
+            # RideEvent.content.op("->>")("nickname") == current_user.username,
+        )
+        .order_by(RideEvent.created_at.desc())
+        .all()
+    )
 
     # Convert to DataFrame for display
     rides_data = []
     for ride in user_rides:
+        # Extract useful data from the content JSON
+        content = ride.content if ride.content else {}
+        stops = content.get("stops", [])
+        pickup_info = ""
+        destination_info = ""
+
+        if stops:
+            if len(stops) > 0:
+                first_stop = stops[0]
+                coords = first_stop.get('location', {})
+                pickup_info = f"{coords.get('latitude', 'N/A')}, {coords.get('longitude', 'N/A')}"
+            if len(stops) > 1:
+                last_stop = stops[-1]
+                coords = last_stop.get('location', {})
+                destination_info = f"{coords.get('latitude', 'N/A')}, {coords.get('longitude', 'N/A')}"
+
         ride_info = {
-            'id': ride.id,
-            'created_at': ride.created_at,
-            'rating': ride.rating,
-            'comment': ride.comment,
-            'stops': len(ride.content.get('stops', [])) if ride.content else 0,
+            "ID": ride.id,
+            "Created": pd.to_datetime(ride.created_at, unit="s").strftime("%Y-%m-%d %H:%M") if ride.created_at else "N/A",
+            "Rating": "⭐" * (ride.rating or 0) if ride.rating else "N/A",
+            "Comment": (ride.comment[:50] + "...") if ride.comment and len(ride.comment) > 50 else (ride.comment or ""),
+            "Pickup": pickup_info or "N/A",
+            "Destination": destination_info or "N/A",
+            "Stops": len(stops),
+            "Edit": f'<a href="/ride?edit={ride.d_tag}" class="btn btn-sm btn-primary">Edit</a>',
         }
         rides_data.append(ride_info)
-    
-    rides_df = pd.DataFrame(rides_data)
-    rides_html = rides_df.to_html(index=False) if not rides_df.empty else "<p>No rides found.</p>"
 
-    return render_template(
-        "security/my_rides.html",
-        rides=rides_html,
-        is_logged_in=True
-    )
+    rides_df = pd.DataFrame(rides_data)
+    rides_html = rides_df.to_html(index=False, escape=False) if not rides_df.empty else "<p>No rides found.</p>"
+
+    return render_template("security/my_rides.html", rides=rides_html, is_logged_in=True)

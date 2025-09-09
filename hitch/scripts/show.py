@@ -7,7 +7,11 @@ import pandas as pd
 
 from hitch.helpers import e, get_bearing, get_db, get_dirs, haversine_np, write_json_file
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
 logger = logging.getLogger(__name__)
 
 dirs = get_dirs()
