@@ -38,7 +38,55 @@ def render_map(map_variation):
 def ride_form():
     """Dedicated ride form page."""
     if request.method == "GET":
-        return render_template("ride_form.html")
+        edit_ride_id = request.args.get('edit')
+        ride_data = None
+        
+        if edit_ride_id:
+            # Load existing ride data for editing
+            from hitch.models import RideEvent
+            ride = db.session.query(RideEvent).filter_by(id=edit_ride_id).first()
+            if ride and ride.content:
+                # Extract data from the ride for pre-filling the form
+                content = ride.content
+                stops = content.get('stops', [])
+                
+                ride_data = {
+                    'rating': ride.rating,
+                    'comment': ride.comment,
+                    'pickup_lat': '',
+                    'pickup_lon': '',
+                    'destination_lat': '',
+                    'destination_lon': '',
+                    'wait': '',
+                    'signal': '',
+                    'datetime_ride': '',
+                    'co_hitchhiker': ''
+                }
+                
+                # Extract coordinates from stops
+                if stops:
+                    if len(stops) > 0:
+                        first_stop = stops[0]
+                        coords = first_stop.get('location', {}) or first_stop.get('coordinates', {})
+                        ride_data['pickup_lat'] = coords.get('latitude', '')
+                        ride_data['pickup_lon'] = coords.get('longitude', '')
+                    if len(stops) > 1:
+                        last_stop = stops[-1]
+                        coords = last_stop.get('location', {}) or last_stop.get('coordinates', {})
+                        ride_data['destination_lat'] = coords.get('latitude', '')
+                        ride_data['destination_lon'] = coords.get('longitude', '')
+                
+                # Extract other fields from content if available
+                if 'wait' in content:
+                    ride_data['wait'] = content['wait']
+                if 'signal' in content:
+                    ride_data['signal'] = content['signal']
+                if 'datetime_ride' in content:
+                    ride_data['datetime_ride'] = content['datetime_ride']
+                if 'co_hitchhiker' in content:
+                    ride_data['co_hitchhiker'] = content['co_hitchhiker']
+        
+        return render_template("ride_form.html", ride_data=ride_data)
     
     # POST request - process the form submission (same logic as experience route)
     data = request.form

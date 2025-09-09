@@ -98,23 +98,23 @@
     </div>
 
     <form id="ride-form" action="/ride" method="post" onsubmit="return validateForm()">
-        <input type="hidden" name="pickup_lat" id="pickup_lat" value="">
-        <input type="hidden" name="pickup_lon" id="pickup_lon" value="">
-        <input type="hidden" name="destination_lat" id="destination_lat" value="">
-        <input type="hidden" name="destination_lon" id="destination_lon" value="">
+        <input type="hidden" name="pickup_lat" id="pickup_lat" value="{{ ride_data.pickup_lat if ride_data else '' }}">
+        <input type="hidden" name="pickup_lon" id="pickup_lon" value="{{ ride_data.pickup_lon if ride_data else '' }}">
+        <input type="hidden" name="destination_lat" id="destination_lat" value="{{ ride_data.destination_lat if ride_data else '' }}">
+        <input type="hidden" name="destination_lon" id="destination_lon" value="{{ ride_data.destination_lon if ride_data else '' }}">
         
         <div class="form-group">
             <label>How do you rate the spot?</label>
             <div class="rate">
-                <input required type="radio" id="star5" name="rate" value="5" />
+                <input required type="radio" id="star5" name="rate" value="5" {% if ride_data and ride_data.rating == 5 %}checked{% endif %} />
                 <label for="star5" title="5 stars">5 stars</label>
-                <input type="radio" id="star4" name="rate" value="4" />
+                <input type="radio" id="star4" name="rate" value="4" {% if ride_data and ride_data.rating == 4 %}checked{% endif %} />
                 <label for="star4" title="4 stars">4 stars</label>
-                <input type="radio" id="star3" name="rate" value="3" />
+                <input type="radio" id="star3" name="rate" value="3" {% if ride_data and ride_data.rating == 3 %}checked{% endif %} />
                 <label for="star3" title="3 stars">3 stars</label>
-                <input type="radio" id="star2" name="rate" value="2" />
+                <input type="radio" id="star2" name="rate" value="2" {% if ride_data and ride_data.rating == 2 %}checked{% endif %} />
                 <label for="star2" title="2 stars">2 stars</label>
-                <input type="radio" id="star1" name="rate" value="1" />
+                <input type="radio" id="star1" name="rate" value="1" {% if ride_data and ride_data.rating == 1 %}checked{% endif %} />
                 <label for="star1" title="1 star">1 star</label>
             </div>
         </div>
@@ -122,29 +122,29 @@
         <div class="form-group">
             <label for="wait">How long did you wait? Leave blank if you don't remember.</label>
             <div>
-                <input type="number" id="wait" name="wait" min="0" max="9999" size="4"> minutes
+                <input type="number" id="wait" name="wait" min="0" max="9999" size="4" value="{{ ride_data.wait if ride_data and ride_data.wait else '' }}"> minutes
             </div>
         </div>
         
         <div class="form-group">
             <label for="comment">Comment (optional)</label>
-            <textarea id="comment" name="comment" class="form-control" rows="4"></textarea>
+            <textarea id="comment" name="comment" class="form-control" rows="4">{{ ride_data.comment if ride_data and ride_data.comment else '' }}</textarea>
         </div>
         
         <div class="form-group" id="co-hitchhiker-container">
             <label for="co-hitchhiker-input">Account name of a person hitchhiking with you</label>
-            <input id="co-hitchhiker-input" name="co_hitchhiker" maxlength="32" pattern="[a-zA-Z0-9]*" class="form-control">
+            <input id="co-hitchhiker-input" name="co_hitchhiker" maxlength="32" pattern="[a-zA-Z0-9]*" class="form-control" value="{{ ride_data.co_hitchhiker if ride_data and ride_data.co_hitchhiker else '' }}">
             <span id="co-hitchhiker-error-message" class="error text-danger"></span>
         </div>
             
         <div class="form-group">
             <label for="signal">How did you signal to drivers?</label>
             <select id="signal" name="signal" class="form-control driver-signal">
-                <option selected value="null">Select an option</option>
-                <option value="sign">Sign</option>
-                <option value="thumb">Thumb</option>
-                <option value="ask">Asked around</option>
-                <option value="ask-sign">Asked around with a sign in hand</option>
+                <option value="null" {% if not ride_data or not ride_data.signal or ride_data.signal == 'null' %}selected{% endif %}>Select an option</option>
+                <option value="sign" {% if ride_data and ride_data.signal == 'sign' %}selected{% endif %}>Sign</option>
+                <option value="thumb" {% if ride_data and ride_data.signal == 'thumb' %}selected{% endif %}>Thumb</option>
+                <option value="ask" {% if ride_data and ride_data.signal == 'ask' %}selected{% endif %}>Asked around</option>
+                <option value="ask-sign" {% if ride_data and ride_data.signal == 'ask-sign' %}selected{% endif %}>Asked around with a sign in hand</option>
             </select>
         </div>
         
@@ -152,7 +152,7 @@
             <label for="datetime_ride">
                 When did you get the ride?
             </label>
-            <input id="datetime_ride" type="datetime-local" name="datetime_ride" class="form-control" min="2020-01-01T00:00">
+            <input id="datetime_ride" type="datetime-local" name="datetime_ride" class="form-control" min="2020-01-01T00:00" value="{{ ride_data.datetime_ride if ride_data and ride_data.datetime_ride else '' }}">
             <span id="datetime-error-message" class="error text-danger"></span>
         </div>
 
