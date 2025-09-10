@@ -8,52 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <link rel="stylesheet" href="/static/style.css" />
-<style>
-.map-thumbnail {
-    width: 100%;
-    height: 150px;
-    border: 2px solid #ddd;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: border-color 0.3s ease;
-    position: relative;
-    overflow: hidden;
-}
-.map-thumbnail:hover {
-    border-color: #007bff;
-}
-.map-thumbnail-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 123, 255, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    font-size: 16px;
-    font-weight: bold;
-    color: #007bff;
-}
-.map-thumbnail:hover .map-thumbnail-overlay {
-    opacity: 1;
-}
-.location-section {
-    margin-bottom: 2rem;
-}
-.location-section h4 {
-    margin-bottom: 1rem;
-    color: #333;
-}
-.coordinates-text {
-    font-size: 0.9em;
-    color: #666;
-    margin-top: 0.5rem;
-}
-</style>
+<link rel="stylesheet" href="/static/map_thumbnail.css" />
 {% endblock %}
 
 {% block main %}

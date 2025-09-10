@@ -96,7 +96,7 @@ def register_commands(app):
         """
         # TODO: include ("dashboard", ""), ("dump", ""), ("hitchhiking", "") again when fixed
         scripts = [
-            # ("fetch_nostr", ""),
+            ("fetch_nostr", ""),
             ("show", "")
         ]
         for script, args in scripts:
