@@ -2,13 +2,97 @@
 
 {% set title = "My rides" %}
 
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<link rel="stylesheet" href="/static/map_thumbnail.css" />
+<style>
+.ride-card {
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+.ride-header {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+.ride-date {
+    color: #666;
+    font-size: 0.9em;
+}
+.ride-rating {
+    color: #ffc107;
+}
+.ride-comment {
+    margin: 0.5rem 0;
+    color: #333;
+}
+.edit-button {
+    margin-top: 1rem;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <h1>My rides for {{ current_user.username }}</h1>
 
 {% if is_logged_in %}
-  <p>Below are your rides.</p>
-  {{ rides|safe }}
+  {% if rides %}
+    {% for ride in rides %}
+    <div class="ride-card">
+        <div class="ride-header">
+            <div>
+                <span class="ride-date">{{ ride.created }}</span>
+                {% if ride.rating > 0 %}
+                <span class="ride-rating">{{ "⭐" * ride.rating }}</span>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if ride.pickup_lat and ride.pickup_lon %}
+        <div class="location-section">
+            <h5><i class="fa fa-map-marker" style="color: #28a745;"></i> Pickup Location</h5>
+            <div class="map-thumbnail" id="ride-thumbnail-{{ loop.index0 }}">
+                <div class="map-thumbnail-overlay">
+                    <i class="fa fa-map"></i> View on map
+                </div>
+            </div>
+            <div class="coordinates-text">{{ "%.4f, %.4f"|format(ride.pickup_lat, ride.pickup_lon) }}</div>
+        </div>
+        {% endif %}
+        
+        {% if ride.comment %}
+        <div class="ride-comment">
+            <strong>Comment:</strong> {{ ride.comment }}
+        </div>
+        {% endif %}
+        
+        <div class="edit-button">
+            <a href="/ride?edit={{ ride.d_tag }}" class="btn btn-primary">Edit Ride</a>
+        </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <p>No rides found.</p>
+  {% endif %}
 {% else %}
   <p>Please <a href="/login">log in</a> to view your rides.</p>
 {% endif %}
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="/static/map_thumbnail.js"></script>
+<script>
+// Initialize map thumbnails
+document.addEventListener('DOMContentLoaded', function() {
+    const rides = {{ rides | tojson }};
+    rides.forEach((ride, index) => {
+        if (ride.pickup_lat && ride.pickup_lon) {
+            initMapThumbnail(`ride-thumbnail-${index}`, ride.pickup_lat, ride.pickup_lon);
+        }
+    });
+});
+</script>
 {% endblock %}

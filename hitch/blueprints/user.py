@@ -284,36 +284,37 @@ def my_rides():
         if current_user.username in user_nicknames:
             user_rides.append(ride)
 
-    # Convert to DataFrame for display
+    # Convert to list for template display
     rides_data = []
     for ride in user_rides:
         # Extract useful data from the content JSON
         content = ride.content if ride.content else {}
         stops = content.get("stops", [])
-        pickup_info = ""
-        destination_info = ""
+        pickup_lat, pickup_lon = None, None
+        destination_lat, destination_lon = None, None
 
         if stops:
             if len(stops) > 0:
                 first_stop = stops[0]
                 coords = first_stop.get('location', {})
-                pickup_info = f"{coords.get('latitude', 'N/A')}, {coords.get('longitude', 'N/A')}"
+                pickup_lat = coords.get('latitude')
+                pickup_lon = coords.get('longitude')
             if len(stops) > 1:
                 last_stop = stops[-1]
                 coords = last_stop.get('location', {})
-                destination_info = f"{coords.get('latitude', 'N/A')}, {coords.get('longitude', 'N/A')}"
+                destination_lat = coords.get('latitude')
+                destination_lon = coords.get('longitude')
 
         ride_info = {
-            "Created": pd.to_datetime(ride.created_at, unit="s").strftime("%Y-%m-%d %H:%M") if ride.created_at else "N/A",
-            "Rating": "⭐" * (ride.rating or 0) if ride.rating else "N/A",
-            "Comment": (ride.comment[:50] + "...") if ride.comment and len(ride.comment) > 50 else (ride.comment or ""),
-            "Pickup": pickup_info or "N/A",
-            "Destination": destination_info or "N/A",
-            "Edit": f'<a href="/ride?edit={ride.d}" class="btn btn-sm btn-primary">Edit/Show</a>',
+            "d_tag": ride.d,
+            "created": pd.to_datetime(ride.created_at, unit="s").strftime("%Y-%m-%d %H:%M") if ride.created_at else "N/A",
+            "rating": ride.rating or 0,
+            "comment": ride.comment or "",
+            "pickup_lat": pickup_lat,
+            "pickup_lon": pickup_lon,
+            "destination_lat": destination_lat,
+            "destination_lon": destination_lon,
         }
         rides_data.append(ride_info)
 
-    rides_df = pd.DataFrame(rides_data)
-    rides_html = rides_df.to_html(index=False, escape=False) if not rides_df.empty else "<p>No rides found.</p>"
-
-    return render_template("security/my_rides.html", rides=rides_html, is_logged_in=True)
+    return render_template("security/my_rides.html", rides=rides_data, is_logged_in=True)
