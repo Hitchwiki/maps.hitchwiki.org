@@ -42,6 +42,131 @@ input[type="radio"] + label {
   height: 100%;
 }
 
+/* Heatmap Toggle Button */
+.heatmap-toggle-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+}
+
+.heatmap-toggle-btn {
+  background: #fff;
+  border: 2px solid #ccc;
+  border-radius: 6px;
+  padding: 10px 15px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.heatmap-toggle-btn:hover {
+  background: #f5f5f5;
+  border-color: #999;
+}
+
+.heatmap-toggle-btn.active {
+  background: #ff6b35;
+  color: white;
+  border-color: #ff6b35;
+}
+
+.heatmap-toggle-btn.active:hover {
+  background: #e55a2b;
+  border-color: #e55a2b;
+}
+
+/* Heatmap Legend */
+.heatmap-legend {
+  background: white;
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  font-family: Arial, sans-serif;
+  min-width: 200px;
+}
+
+.heatmap-legend h4 {
+  margin: 0 0 10px 0;
+  font-size: 12px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.legend-scale {
+  position: relative;
+}
+
+.legend-gradient {
+  height: 20px;
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
+.legend-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-size: 11px;
+  color: #666;
+}
+
+.legend-labels span {
+  font-weight: bold;
+}
+
+/* Uncertainty indicator */
+.uncertainty-indicator {
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+}
+
+.uncertainty-title {
+  font-size: 11px;
+  font-weight: bold;
+  margin-bottom: 8px;
+  text-align: center;
+  color: #333;
+}
+
+.uncertainty-scale {
+  position: relative;
+}
+
+.uncertainty-bar {
+  position: relative;
+  height: 15px;
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.uncertainty-gradient {
+  height: 100%;
+  width: 100%;
+}
+
+.uncertainty-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-size: 10px;
+  color: #666;
+  font-style: italic;
+}
+
+.uncertainty-labels span {
+  font-weight: normal;
+}
+
 .sidebar {
   line-height: 1.5;
   font-size: 19px;

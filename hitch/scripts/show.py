@@ -177,7 +177,10 @@ logger.info("Generating info texts")
 rides_df["wait_text"] = None
 has_accurate_wait = ~rides_df["wait"].isnull() & rides_df["source"] != "liftershalte.info"
 rides_df.loc[has_accurate_wait, "wait_text"] = (
-    ", wait: " + rides_df["wait"][has_accurate_wait].astype(str) + " min" + (" " + rides_df["signal"][has_accurate_wait]).fillna("")
+    ", wait: "
+    + rides_df["wait"][has_accurate_wait].astype(str)
+    + " min"
+    + (" " + rides_df["signal"][has_accurate_wait]).fillna("")
 )
 
 rides_df["extra_text"] = rating_text + rides_df.wait_text.fillna("") + destination_text.fillna("")
@@ -290,3 +293,67 @@ write_json_file(recent[["url", "submission_time", "hitchhiker_name", "rating", "
 # write_json_file(duplicates[["id", "from_url", "to_url", "distance", "reviewed", "accepted"]], "rides_df_duplicates.json")
 
 logger.info("Data preparation completed")
+
+def generate_heatmap_data():
+    """Generate heatmap data and return the image overlay data."""
+    import matplotlib.colors as colors
+    import numpy as np
+    from heatchmap.gpmap import GPMap
+    from heatchmap.map_based_model import BOUNDARIES, BUCKETS
+    
+    # Use truncated buckets and boundaries as in hitchhiking.py
+    BUCKETS = BUCKETS[:-1]
+    BOUNDARIES = BOUNDARIES[:-1]
+    
+    cmap = colors.ListedColormap(BUCKETS)
+    norm = colors.BoundaryNorm(BOUNDARIES, cmap.N, clip=True)
+    cmap.set_bad(color="#000000", alpha=0.0)  # opaque for NaN values (sea)
+    
+    gpmap = GPMap()
+    gpmap.get_map_grid()
+    gpmap.get_landmass_raster()
+    
+    image = gpmap.raw_raster
+    image = np.where(gpmap.landmass_raster, image, np.nan)
+    image = norm(image).data
+    # Apply the colormap to scalars
+    colors_data = cmap(image)
+    
+    uncertainties = gpmap.uncertainties
+    # no uncertainties for sea -> becomes fully transparent
+    uncertainties = np.where(gpmap.landmass_raster, uncertainties, uncertainties.max())
+    # Normalize uncertainties
+    uncertainties = (uncertainties - uncertainties.min()) / (uncertainties.max() - uncertainties.min())
+    uncertainties = 1 - uncertainties
+    
+    # Combine RGB values with the opacity
+    rgba_array = np.empty_like(colors_data)
+    rgba_array[:, :, :3] = colors_data[:, :, :3]  # RGB
+    rgba_array[:, :, 3] = uncertainties
+    
+    # Create legend data
+    legend_data = {
+        'colors': BUCKETS.tolist() if hasattr(BUCKETS, 'tolist') else list(BUCKETS),
+        'boundaries': BOUNDARIES[:-1].tolist() if hasattr(BOUNDARIES[:-1], 'tolist') else list(BOUNDARIES[:-1]),
+        'vmin': float(BOUNDARIES[0]),
+        'vmax': float(BOUNDARIES[-1]),
+        'caption': "Waiting time to catch a ride by hitchhiking (minutes)"
+    }
+    
+    return {
+        'image_data': rgba_array.tolist(),  # Convert to list for JSON serialization
+        'bounds': [[-56, -180], [80, 180]],
+        'legend': legend_data
+    }
+
+# Generate heatmap data file
+logger.info("Generating heatmap data")
+try:
+    heatmap_data = generate_heatmap_data()
+    write_json_file(heatmap_data, "heatmap.json")
+    logger.info("Heatmap data generated successfully")
+except Exception as e:
+    logger.error(f"Failed to generate heatmap data: {e}")
+    logger.info("Continuing without heatmap data")
+
+logger.info("All data preparation completed")
