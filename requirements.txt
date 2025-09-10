@@ -21,6 +21,7 @@ pywikibot==10.4.0
 pynostr==0.6.2
 python-dotenv==1.1.1
 requests-cache==1.2.1
+requests-oauthlib==2.0.0
 ruff==0.9.4
 shapely==2.0.7
 simplejson==3.19.3
