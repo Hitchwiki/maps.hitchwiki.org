@@ -27,7 +27,10 @@ On Trustroots:
 escaped_trustroots_username)|safe if escaped_trustroots_username else "-" }}
 <br>
 <br>
-<a href="/?user={{ username }}#filters">{{ "See my spots" if is_me else "See their spots"}}</a><br>
+{% if is_me %}
+<a href="/my-rides">See and edit your rides</a><br>
+{% endif %}
+<a href="/?user={{ username }}#filters">{{ "See my spots on the map" if is_me else "See their spots on the map"}}</a><br>
 {% if is_me %}
 <a href="/edit-user">Edit your personal data</a><br>
 <a href="/co-hitchhiking-rides">View your co-hitchhiking rides</a><br>
