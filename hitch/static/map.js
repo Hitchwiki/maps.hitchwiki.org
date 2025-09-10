@@ -14,7 +14,12 @@ var allMarkers = [],
   filterDestLineGroup = null,
   filterMarkerGroup = null,
   map,
-  bars = document.querySelectorAll(".sidebar, .topbar");
+  bars = document.querySelectorAll(".sidebar, .topbar"),
+  heatmapLayer = null,
+  heatmapData = null,
+  heatmapActive = false,
+  normalLayer = null,
+  heatmapLegend = null;
 
 // Initialize Map
 async function initializeMap() {
@@ -104,6 +109,159 @@ async function loadMarkers(map) {
     });
 }
 
+// Load heatmap data
+async function loadHeatmapData() {
+  if (heatmapData) return heatmapData;
+  
+  try {
+    const response = await fetch('/heatmap.json');
+    if (!response.ok) throw new Error('Heatmap data not available');
+    heatmapData = await response.json();
+    return heatmapData;
+  } catch (error) {
+    console.warn('Could not load heatmap data:', error);
+    return null;
+  }
+}
+
+// Toggle heatmap layer
+async function toggleHeatmap() {
+  const btn = $$('#heatmap-toggle-btn');
+  const text = $$('#heatmap-toggle-text');
+  
+  if (heatmapActive) {
+    // Switch back to normal view
+    if (heatmapLayer) {
+      map.removeLayer(heatmapLayer);
+    }
+    if (heatmapLegend) {
+      map.removeControl(heatmapLegend);
+    }
+    btn.classList.remove('active');
+    text.textContent = 'Heatmap';
+    heatmapActive = false;
+  } else {
+    // Switch to heatmap view
+    if (!heatmapData) {
+      heatmapData = await loadHeatmapData();
+      if (!heatmapData) {
+        alert('Heatmap data is not available');
+        return;
+      }
+    }
+    
+    // Create heatmap layer
+    if (!heatmapLayer) {
+      const imageArray = heatmapData.image_data.map(row => 
+        row.map(pixel => [
+          Math.round(pixel[0] * 255),
+          Math.round(pixel[1] * 255), 
+          Math.round(pixel[2] * 255),
+          Math.round(pixel[3] * 255)
+        ])
+      );
+      
+      // Convert to ImageData-like format for canvas
+      heatmapLayer = L.imageOverlay(
+        createImageDataURL(imageArray), 
+        heatmapData.bounds,
+        { opacity: 0.7 }
+      );
+    }
+    
+    // Create and add legend
+    if (!heatmapLegend) {
+      heatmapLegend = createHeatmapLegend(heatmapData.legend);
+    }
+    
+    heatmapLayer.addTo(map);
+    heatmapLegend.addTo(map);
+    btn.classList.add('active');
+    text.textContent = 'Normal';
+    heatmapActive = true;
+  }
+}
+
+// Helper function to create image data URL from array
+function createImageDataURL(imageArray) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = imageArray[0].length;
+  canvas.height = imageArray.length;
+  
+  const imageData = ctx.createImageData(canvas.width, canvas.height);
+  let dataIndex = 0;
+  
+  for (let y = 0; y < canvas.height; y++) {
+    for (let x = 0; x < canvas.width; x++) {
+      const pixel = imageArray[y][x];
+      imageData.data[dataIndex] = pixel[0];     // Red
+      imageData.data[dataIndex + 1] = pixel[1]; // Green  
+      imageData.data[dataIndex + 2] = pixel[2]; // Blue
+      imageData.data[dataIndex + 3] = pixel[3]; // Alpha
+      dataIndex += 4;
+    }
+  }
+  
+  ctx.putImageData(imageData, 0, 0);
+  return canvas.toDataURL();
+}
+
+// Create heatmap legend
+function createHeatmapLegend(legendData) {
+  const legend = L.control({ position: 'bottomright' });
+  
+  legend.onAdd = function(map) {
+    const div = L.DomUtil.create('div', 'heatmap-legend');
+    div.innerHTML = `
+      <h4>${legendData.caption}</h4>
+      <div class="legend-scale">
+        <div class="legend-gradient"></div>
+        <div class="legend-labels">
+          <span>${legendData.vmin}</span>
+          <span>${legendData.vmax}</span>
+        </div>
+      </div>
+      <div class="uncertainty-indicator">
+        <div class="uncertainty-title">Data certainty:</div>
+        <div class="uncertainty-scale">
+          <div class="uncertainty-bar">
+            <div class="uncertainty-gradient"></div>
+          </div>
+          <div class="uncertainty-labels">
+            <span>Less certain</span>
+            <span>More certain</span>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Create gradient background for wait time scale
+    const gradient = div.querySelector('.legend-gradient');
+    // BUCKETS contains color arrays like [r, g, b] with values 0-1, need to convert to CSS colors
+    const colors = legendData.colors.map(color => {
+      if (Array.isArray(color) && color.length >= 3) {
+        return `rgb(${Math.round(color[0] * 255)}, ${Math.round(color[1] * 255)}, ${Math.round(color[2] * 255)})`;
+      } else if (typeof color === 'string') {
+        return color; // Already a CSS color string
+      } else {
+        console.warn('Unexpected color format:', color);
+        return 'rgb(128, 128, 128)'; // Fallback gray
+      }
+    });
+    gradient.style.background = `linear-gradient(to right, ${colors.join(', ')})`;
+    
+    // Create opacity gradient for uncertainty indicator
+    const uncertaintyGradient = div.querySelector('.uncertainty-gradient');
+    // Use a blue color for the uncertainty indicator
+    uncertaintyGradient.style.background = `linear-gradient(to right, rgba(74, 144, 226, 0.3), rgba(74, 144, 226, 1.0))`;
+    
+    return div;
+  };
+  
+  return legend;
+}
+
 // Initialize the map and set up event listeners
 (async () => {
   map = await initializeMap();
@@ -112,6 +270,12 @@ async function loadMarkers(map) {
   setupGeocoder();
   addMapControls();
   setupEventListeners();
+  
+  // Set up heatmap toggle
+  const heatmapBtn = $$('#heatmap-toggle-btn');
+  if (heatmapBtn) {
+    heatmapBtn.addEventListener('click', toggleHeatmap);
+  }
 
   // These functions make the navigation work
   handleHashChange();

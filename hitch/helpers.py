@@ -4,6 +4,7 @@ import os
 import sqlite3
 
 import numpy as np
+import pandas as pd
 import simplejson  # WHY not json?
 from flask import current_app, g
 
@@ -84,7 +85,7 @@ def e(s):
 
 
 dirs = get_dirs()
-def write_json_file(data, filename):
+def write_json_file(data:pd.DataFrame | dict, filename):
     """Writes a JSON file into the dist folder containing data for the map
 
     Args:
@@ -94,6 +95,7 @@ def write_json_file(data, filename):
     filepath = os.path.join(dirs["dist"], filename)
     logger.info(f"Writing: {filepath}")
     with open(filepath, "w", encoding="utf-8") as f:
-        f.write(simplejson.dumps(data.to_dict(orient="records"), ignore_nan=True))
+        json_data = data.to_dict(orient="records") if hasattr(data, "to_dict") else data
+        f.write(simplejson.dumps(json_data, ignore_nan=True))
 
     logger.info(f"Wrote json of length {len(data)} to: {filepath}")

@@ -94,9 +94,9 @@ def register_commands(app):
         """
         Executes all scripts defined in array with given args
         """
-        # TODO: include ("dashboard", ""), ("dump", ""), ("hitchhiking", "") again when fixed
+        # TODO: include ("dashboard", ""), ("dump", "") again when fixed
         scripts = [
-            ("fetch_nostr", ""),
+            #("fetch_nostr", ""),
             ("show", "")
         ]
         for script, args in scripts:
