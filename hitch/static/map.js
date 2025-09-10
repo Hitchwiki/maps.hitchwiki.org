@@ -91,20 +91,7 @@ async function loadMarkers(map) {
           color: "black",
           fillColor: color,
           spotId: m.id, // Store spot ID for filtering and ride lookup
-          _row:
-            Object.prototype.toString.call(m) === "[object Array]"
-              ? m
-              : [
-                  m.lat,                    // [0] lat
-                  m.lon,                    // [1] lon  
-                  rating,                   // [2] rating (use processed rating)
-                  "",                       // [3] text (will be populated from rides)
-                  m.wait || 0,             // [4] wait
-                  m.distance || 0,         // [5] distance
-                  m.review_users || [],    // [6] review_users
-                  m.dest_lats || [],       // [7] dest_lats
-                  m.dest_lons || [],       // [8] dest_lons
-                ],
+          _data: Object.assign({}, m, { rating: rating, text: "" })
         });
 
         marker.on("click", async (e) => await handleMarkerClick(marker, coords, e));
@@ -502,7 +489,7 @@ function handleHashChange() {
 // View functions
 function reportDuplicate(marker) {
   if (document.body.classList.contains("reporting-duplicate")) {
-    var row = marker.options._row,
+    var data = marker.options._data,
       point = marker.getLatLng();
 
     let activePoint = active[0].getLatLng();
@@ -516,21 +503,21 @@ function reportDuplicate(marker) {
       document.body.innerHTML += `<form id=dupform method=POST action=report-duplicate><input name=report value=${[
         activePoint.lat,
         activePoint.lng,
-        row[0],
-        row[1],
+        data.lat,
+        data.lon,
       ].join(",")}>`;
       document.querySelector("#dupform").submit();
     }
   }
 }
 
-function summaryText(row) {
-  return `Rating: ${row[2] && row[2].toFixed(0)}/5
+function summaryText(data) {
+  return `Rating: ${data.rating && data.rating.toFixed(0)}/5
     Waiting time: ${
-      !row[4] || Number.isNaN(row[4]) ? "-" : row[4].toFixed(0) + " min"
+      !data.wait || Number.isNaN(data.wait) ? "-" : data.wait.toFixed(0) + " min"
     }
     Ride distance: ${
-      !row[5] || Number.isNaN(row[5]) ? "-" : row[5].toFixed(0) + " km"
+      !data.distance || Number.isNaN(data.distance) ? "-" : data.distance.toFixed(0) + " km"
     }`;
 }
 
@@ -551,10 +538,8 @@ async function handleMarkerClick(marker, point, e) {
     ? spotRides.map(ride => ride.text).join('<hr>')
     : '';
   
-  // Update marker row data with rides text
-  const row = marker.options._row.slice(); // Copy array
-  row[3] = ridesText; // Update text field
-  marker.options._row = row;
+  // Update marker data with rides text
+  marker.options._data.text = ridesText;
 
   // Call the original marker click handler to show sidebar
   markerClick(marker);
@@ -563,7 +548,7 @@ async function handleMarkerClick(marker, point, e) {
 }
 
 function markerClick(marker) {
-  var row = marker.options._row;
+  var data = marker.options._data;
   active = [marker];
 
   renderPoints();
@@ -571,16 +556,16 @@ function markerClick(marker) {
   setTimeout(() => {
     bar(".sidebar.show-spot");
     $$("#spot-header a").href = window.ontouchstart
-      ? `geo:${row[0]},${row[1]}`
-      : ` https://www.google.com/maps/place/${row[0]},${row[1]}`;
-    $$("#spot-header a").innerText = `${row[0].toFixed(4)}, ${row[1].toFixed(
+      ? `geo:${data.lat},${data.lon}`
+      : ` https://www.google.com/maps/place/${data.lat},${data.lon}`;
+    $$("#spot-header a").innerText = `${data.lat.toFixed(4)}, ${data.lon.toFixed(
       4
     )} ☍`;
 
-    $$("#spot-summary").innerText = summaryText(row);
+    $$("#spot-summary").innerText = summaryText(data);
 
-    $$("#spot-text").innerHTML = row[3];
-    if (!row[3] && (!row[5] || Number.isNaN(row[5])))
+    $$("#spot-text").innerHTML = data.text;
+    if (!data.text && (!data.distance || Number.isNaN(data.distance)))
       $$("#extra-text").innerHTML =
         "No comments/ride info.";
     else $$("#extra-text").innerHTML = "";
@@ -591,8 +576,8 @@ function markerClick(marker) {
       reviewBtn.onclick = function() {
         // Store the spot coordinates in form data and navigate to ride form
         const formData = {
-          pickup_lat: row[0],
-          pickup_lon: row[1],
+          pickup_lat: data.lat,
+          pickup_lon: data.lon,
           destination_lat: '',
           destination_lon: ''
         };
@@ -667,8 +652,8 @@ function renderPoints() {
     : {};
 
   for (let a of active) {
-    let lats = a.options._row[7];
-    let lons = a.options._row[8];
+    let lats = a.options._data.dest_lats;
+    let lons = a.options._data.dest_lons;
     if (lats && lats.length) {
       for (let i in lats) {
         arrowLine(a.getLatLng(), [lats[i], lons[i]], opts).addTo(destLineGroup);
@@ -748,11 +733,11 @@ function exportAsGPX() {
     let features = allMarkers.map((m) => ({
       type: "Feature",
       properties: {
-        text: summaryText(m.options._row) + "\n\n" + m.options._row[3],
-        url: `https://hitchmap.com/${m.options._row[0]},${m.options._row[1]}`,
+        text: summaryText(m.options._data) + "\n\n" + m.options._data.text,
+        url: `https://hitchmap.com/${m.options._data.lat},${m.options._data.lon}`,
       },
       geometry: {
-        coordinates: [m.options._row[1], m.options._row[0]],
+        coordinates: [m.options._data.lon, m.options._data.lat],
         type: "Point",
       },
     }));
@@ -913,14 +898,14 @@ async function applyParams() {
     }
     if (textFilter.value) {
       filterMarkers = filterMarkers.filter((x) =>
-        x.options._row[3].toLowerCase().includes(textFilter.value.toLowerCase())
+        x.options._data.text.toLowerCase().includes(textFilter.value.toLowerCase())
       );
     }
     if (distanceFilter.value) {
       filterMarkers = filterMarkers.filter((x) => {
         let from = x.getLatLng();
-        let lats = x.options._row[7];
-        let lons = x.options._row[8];
+        let lats = x.options._data.dest_lats;
+        let lons = x.options._data.dest_lons;
 
         for (let i in lats) {
           // Road distance is on average 25% longer than straight distance
@@ -933,11 +918,18 @@ async function applyParams() {
         return false;
       });
     }
+    if (osmToggle.checked) {
+      filterMarkers = filterMarkers.filter((x) => {
+        return x.options._data.review_users.some((u) =>
+          OSM_USERS.includes(u.toLowerCase())
+        );
+      });
+    }
     if (knobToggle.checked) {
       filterMarkers = filterMarkers.filter((x) => {
         let from = x.getLatLng();
-        let lats = x.options._row[7];
-        let lons = x.options._row[8];
+        let lats = x.options._data.dest_lats;
+        let lons = x.options._data.dest_lons;
 
         for (let i in lats) {
           let travelAngle = Math.atan2(from.lat - lats[i], lons[i] - from.lng);
