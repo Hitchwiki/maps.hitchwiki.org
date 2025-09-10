@@ -259,24 +259,73 @@ places["dest_lons"] = rides_df.dropna(subset=["dest_lat", "dest_lon"]).groupby([
 places.reset_index(inplace=True)
 places.sort_values("rating", inplace=True, ascending=False)
 
-point_columns = [
-    "lat",
-    "lon",
-    "rating",
-    "text",
-    "wait",
-    "distance",
-    "review_users",
-    "dest_lats",
-    "dest_lons",
-]
+def generate_spot_id(lat, lon):
+    """Generate coordinate-based spot ID."""
+    return f"{lat:.4f}_{lon:.4f}"
 
 logger.info("Generating JSON data files")
-write_json_file(places[point_columns], "spots.json")
 
-# TODO: saving them separately does not seem good
-places_with_destination = places[~places.distance.isnull()]
-write_json_file(places_with_destination[point_columns], "spots_with_destination.json")
+# Generate spots data with coordinate-based IDs
+spots_data = []
+for _, place in places.iterrows():
+    spot_data = {
+        "id": generate_spot_id(place["lat"], place["lon"]),
+        "lat": place["lat"],
+        "lon": place["lon"],
+        "rating": place["rating"],
+        "wait": place["wait"],
+        "distance": place["distance"],
+        "ride_count": len(rides_df[(rides_df["lat"] == place["lat"]) & (rides_df["lon"] == place["lon"])]),
+        "review_users": place["review_users"],
+        "dest_lats": place["dest_lats"],
+        "dest_lons": place["dest_lons"]
+    }
+    spots_data.append(spot_data)
+
+write_json_file(spots_data, "spots.json")
+
+# Generate individual rides data
+rides_data = []
+for _, ride in rides_df.iterrows():
+    # Handle submission_time - check if it's already a datetime or string
+    submission_time = None
+    if pd.notna(ride["submission_time"]):
+        if hasattr(ride["submission_time"], 'isoformat'):
+            submission_time = ride["submission_time"].isoformat()
+        else:
+            submission_time = str(ride["submission_time"])
+    
+    # Handle ride_datetime similarly
+    ride_datetime = None
+    if pd.notna(ride.get("ride_datetime")):
+        if hasattr(ride["ride_datetime"], 'isoformat'):
+            ride_datetime = ride["ride_datetime"].isoformat()
+        else:
+            ride_datetime = str(ride["ride_datetime"])
+    
+    ride_data = {
+        "id": ride["d"] if pd.notna(ride.get("d")) else f"ride_{ride.name}",  # Fallback to index if no d_tag
+        "spot_id": generate_spot_id(ride["lat"], ride["lon"]),
+        "lat": ride["lat"],
+        "lon": ride["lon"],
+        "dest_lat": ride["dest_lat"] if pd.notna(ride["dest_lat"]) else None,
+        "dest_lon": ride["dest_lon"] if pd.notna(ride["dest_lon"]) else None,
+        "rating": int(ride["rating"]) if pd.notna(ride["rating"]) else None,
+        "wait": int(ride["wait"]) if pd.notna(ride["wait"]) else None,
+        "comment": ride["comment"] if pd.notna(ride.get("comment")) else None,
+        "hitchhiker_name": ride["hitchhiker_name"] if pd.notna(ride.get("hitchhiker_name")) else "Anonymous",
+        "submission_time": submission_time,
+        "ride_datetime": ride_datetime,
+        "source": ride["source"] if pd.notna(ride.get("source")) else None,
+        "text": ride["text"] if pd.notna(ride.get("text")) else ""  # Formatted text for sidebar display
+    }
+    rides_data.append(ride_data)
+
+write_json_file(rides_data, "rides.json")
+
+# TODO: Remove spots_with_destination.json - replaced by spots.json with ride filtering
+# places_with_destination = places[~places.distance.isnull()]
+# write_json_file(places_with_destination[point_columns], "spots_with_destination.json")
 
 recent = rides_df.dropna(subset=["submission_time"]).sort_values("submission_time", ascending=False).iloc[:1000]
 recent["url"] = "#" + recent.lat.astype(str) + "," + recent.lon.astype(str)

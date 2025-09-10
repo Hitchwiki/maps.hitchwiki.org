@@ -19,7 +19,9 @@ var allMarkers = [],
   heatmapData = null,
   heatmapActive = false,
   normalLayer = null,
-  heatmapLegend = null;
+  heatmapLegend = null,
+  spotsData = null,
+  ridesData = null;
 
 // Initialize Map
 async function initializeMap() {
@@ -59,15 +61,27 @@ async function loadMarkers(map) {
         spiderfyOnMaxZoom: false,
       });
 
-      data.forEach((m) => {
+      // Store spots data globally
+      spotsData = data;
+      console.log(`Loaded ${data.length} spots`);
+      
+      data.forEach((m, index) => {
+        // Add error handling for malformed spot data
+        if (!m.lat || !m.lon) {
+          console.warn(`Skipping spot ${index}: missing coordinates`, m);
+          return;
+        }
+        // Handle null/undefined rating with fallback
+        const rating = m.rating || 3; // Default to 3 if no rating
+        
         var color = {
           1: "red",
           2: "orange",
           3: "yellow",
           4: "lightgreen",
           5: "lightgreen",
-        }[m.rating];
-        var opacity = { 1: 0.3, 2: 0.4, 3: 0.6, 4: 0.8, 5: 0.8 }[m.rating];
+        }[Math.round(rating)];
+        var opacity = { 1: 0.3, 2: 0.4, 3: 0.6, 4: 0.8, 5: 0.8 }[Math.round(rating)];
         var coords = new L.latLng(m.lat, m.lon);
 
         var marker = L.circleMarker(coords, {
@@ -76,23 +90,24 @@ async function loadMarkers(map) {
           fillOpacity: opacity,
           color: "black",
           fillColor: color,
+          spotId: m.id, // Store spot ID for filtering and ride lookup
           _row:
             Object.prototype.toString.call(m) === "[object Array]"
               ? m
               : [
-                  m.lat,
-                  m.lon,
-                  m.rating,
-                  m.text,
-                  m.wait,
-                  m.distance,
-                  m.review_users,
-                  m.dest_lats,
-                  m.dest_lons,
+                  m.lat,                    // [0] lat
+                  m.lon,                    // [1] lon  
+                  rating,                   // [2] rating (use processed rating)
+                  "",                       // [3] text (will be populated from rides)
+                  m.wait || 0,             // [4] wait
+                  m.distance || 0,         // [5] distance
+                  m.review_users || [],    // [6] review_users
+                  m.dest_lats || [],       // [7] dest_lats
+                  m.dest_lons || [],       // [8] dest_lons
                 ],
         });
 
-        marker.on("click", (e) => handleMarkerClick(marker, coords, e));
+        marker.on("click", async (e) => await handleMarkerClick(marker, coords, e));
         if (m.review_users?.length >= 3)
           marker.on("add", (_) => setTimeout((_) => marker.bringToFront(), 0));
         if (m.dest_lats?.length) destinationMarkers.push(marker);
@@ -107,6 +122,26 @@ async function loadMarkers(map) {
       console.error("Error loading markers:", error);
       throw error;
     });
+}
+
+// Load rides data with lazy loading
+async function loadRides() {
+  if (ridesData) {
+    return ridesData;
+  }
+  
+  try {
+    const response = await fetch('/rides.json');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    ridesData = await response.json();
+    console.log(`Loaded ${ridesData.length} rides`);
+    return ridesData;
+  } catch (error) {
+    console.error("Error loading rides:", error);
+    return [];
+  }
 }
 
 // Load heatmap data
@@ -499,12 +534,30 @@ function summaryText(row) {
     }`;
 }
 
-function handleMarkerClick(marker, point, e) {
+async function handleMarkerClick(marker, point, e) {
   if ($$(".topbar.visible") || $$(".sidebar.spot-form-container.visible"))
     return;
 
   reportDuplicate(marker);
   window.location.hash = `${point.lat},${point.lng}`;
+
+  // Load rides for this spot
+  const spotId = marker.options.spotId;
+  const rides = await loadRides();
+  const spotRides = rides.filter(ride => ride.spot_id === spotId);
+  
+  // Generate rides text (same format as before)
+  const ridesText = spotRides.length > 0 
+    ? spotRides.map(ride => ride.text).join('<hr>')
+    : '';
+  
+  // Update marker row data with rides text
+  const row = marker.options._row.slice(); // Copy array
+  row[3] = ridesText; // Update text field
+  marker.options._row = row;
+
+  // Call the original marker click handler to show sidebar
+  markerClick(marker);
 
   L.DomEvent.stopPropagation(e);
 }
@@ -795,7 +848,7 @@ function updateConeSpread() {
   if (spread > 0) setQueryParameter("spread", spread);
 }
 
-function applyParams() {
+async function applyParams() {
   const normalizedAngle = parseFloat(getQueryParameter("direction"));
   const spread = parseFloat(getQueryParameter("spread")) || 70;
 
@@ -840,12 +893,22 @@ function applyParams() {
     document.body.classList.add("filtering");
 
     if (userFilter.value) {
-      filterMarkers = filterMarkers.filter(
-        (marker) =>
-          marker.options._row[6] &&
-          marker.options._row[6]
-            .map((x) => x.toLowerCase())
-            .includes(userFilter.value.toLowerCase())
+      // Load rides data for filtering
+      const rides = await loadRides();
+      const username = userFilter.value.toLowerCase();
+      
+      // Find all rides by this user
+      const userRides = rides.filter(ride => 
+        ride.hitchhiker_name && 
+        ride.hitchhiker_name.toLowerCase().includes(username)
+      );
+      
+      // Get unique spot IDs from user rides
+      const userSpotIds = [...new Set(userRides.map(ride => ride.spot_id))];
+      
+      // Filter markers to only show spots where this user has rides
+      filterMarkers = filterMarkers.filter(marker => 
+        userSpotIds.includes(marker.options.spotId)
       );
     }
     if (textFilter.value) {
@@ -907,8 +970,8 @@ function applyParams() {
   }
 }
 
-function navigate() {
-  applyParams();
+async function navigate() {
+  await applyParams();
 
   let args = window.location.hash.slice(1).split("/");
   let mainArgs = args[0].split(",");
