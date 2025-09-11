@@ -38,7 +38,7 @@ def get_dirs():
     }
 
 
-def haversine_np(lon1, lat1, lon2, lat2, factor=1.25):
+def haversine_np(lat1, lon1, lat2, lon2, factor=1.25):
     """
     Calculate the great circle distance between two points
     on the earth (specified in decimal degrees)
@@ -46,10 +46,10 @@ def haversine_np(lon1, lat1, lon2, lat2, factor=1.25):
     All args must be of equal length.
 
     Args:
-        lon1: Longitude of point 1
         lat1: Latitude of point 1
-        lon2: Longitude of point 2
+        lon1: Longitude of point 1
         lat2: Latitude of point 2
+        lon2: Longitude of point 2
         factor: Multiplication factor to adjust the distance
             (default is 1.25 to account for road distance compared to straight line distance)
 

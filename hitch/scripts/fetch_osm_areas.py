@@ -103,6 +103,7 @@ def get_service_area(lat, lon):
 
 
 areas = []
+# TODO: use lat, lon format
 for lon, lat, _cluster in clusters.values:
     geom_id, geom, name = get_service_area(lat, lon)
     if geom is not None:

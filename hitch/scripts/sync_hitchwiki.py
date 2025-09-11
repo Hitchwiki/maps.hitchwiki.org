@@ -4,18 +4,16 @@ import json
 import logging
 import os
 import re
-import traceback
 import urllib.parse
 
 import pandas as pd
 import pywikibot
 from pywikibot import pagegenerators
-from scipy.spatial import cKDTree
 from tqdm import tqdm
 
 from hitch.extensions import db
-from hitch.helpers import get_dirs, haversine_np
-from hitch.models import HitchwikiArticleLocation, RideEvent, HitchwikiArticleMap
+from hitch.helpers import get_dirs
+from hitch.models import HitchwikiArticleLocation, HitchwikiArticleMap
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger(__name__)

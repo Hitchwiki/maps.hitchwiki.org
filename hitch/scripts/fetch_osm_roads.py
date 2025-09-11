@@ -78,6 +78,7 @@ for _cluster_id, group in grouped:
         road_networks.append((lat, lon, search_size_deg, geom_wkt))
 
         # create perimeter of at least 1 meter
+        # TODO: use lat, lon format everywhere
         perimeter = Point(lon, lat).buffer(max(search_size_deg / 1.1, 1 / 111_000), quad_segs=4)
 
         roads_in_perimeter = multilinestring.intersection(perimeter)
