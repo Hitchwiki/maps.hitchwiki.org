@@ -53,6 +53,8 @@ cp user-password.py.example user-password.py
 ```
 And set the missing env variables.
 
+Put file from `https://simplemaps.com/static/data/world-cities/basic/simplemaps_worldcities_basicv1.901.zip` into `dist/` as `worldcities.zip` but any `csv` file with `city`, `country`, `population` column works.
+
 Initialize and run the Flask server:
 
 ```bash

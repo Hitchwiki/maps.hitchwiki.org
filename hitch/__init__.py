@@ -99,7 +99,8 @@ def register_commands(app):
             #("fetch_nostr", ""),
             ("sync_osm", ""),
             ("sync_hitchwiki", ""),
-            ("show", "")
+            ("show", ""),
+            #("cities", ""),
         ]
         for script, args in scripts:
             ctx.invoke(generate, script=script, args=args)

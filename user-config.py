@@ -1,5 +1,6 @@
-family_files['hitchwiki']= 'https://hitchwiki.org/en/api.php'
-usernames['hitchwiki']['en'] = 'KnyttesBot'
+"""Necessary for pywikibot to get articles from Hitchwiki."""
+family_files['hitchwiki']= 'https://hitchwiki.org/en/api.php'  # noqa: F821
+usernames['hitchwiki']['en'] = 'KnyttesBot'  # noqa: F821
 
 password_file = 'user-password.py'
 
