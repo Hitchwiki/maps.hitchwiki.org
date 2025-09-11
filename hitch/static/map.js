@@ -518,15 +518,19 @@ function reportDuplicate(marker) {
 }
 
 function summaryText(data) {
-  const osmLink = data.osm_id ? `\n    <a href="https://www.openstreetmap.org/node/${data.osm_id}" target="_blank" rel="noopener noreferrer">Official hitchhiking spot</a>` : '';
+  const osmLink = data.osm_id ? `<br>🚏 <a href="https://www.openstreetmap.org/node/${data.osm_id}" target="_blank" rel="noopener noreferrer">Official hitchhiking spot</a>` : '';
+  const hitchwikiLink = data.hitchwiki_article
+    ? `<br>📄 <a href="${data.hitchwiki_article}" target="_blank" rel="noopener noreferrer">Mentioned on Hitchwiki</a>`
+    : '';
+  const hitchwikiMapLink = data.hitchwiki_map
+    ? `<br>🗺️ <a href="${data.hitchwiki_map}" target="_blank" rel="noopener noreferrer">On Hitchwiki</a>`
+    : '';
   
-  return `Rating: ${data.rating && data.rating.toFixed(0)}/5
-    Waiting time: ${
+  return `Rating: ${data.rating && data.rating.toFixed(0)}/5<br>Waiting time: ${
       !data.wait || Number.isNaN(data.wait) ? "-" : data.wait.toFixed(0) + " min"
-    }
-    Ride distance: ${
+    }<br>Ride distance: ${
       !data.distance || Number.isNaN(data.distance) ? "-" : data.distance.toFixed(0) + " km"
-    }${osmLink}`;
+    }${osmLink}${hitchwikiLink}${hitchwikiMapLink}`;
 }
 
 async function handleMarkerClick(marker, point, e) {

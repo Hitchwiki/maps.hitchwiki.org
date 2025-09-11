@@ -1,12 +1,14 @@
 import json
 import logging
+import math
 import os
+import traceback
 
 import numpy as np
 import pandas as pd
 
 from hitch.helpers import e, get_bearing, get_db, get_dirs, haversine_np, write_json_file
-from hitch.models import OsmHitchhikingSpot
+from hitch.models import OsmHitchhikingSpot, HitchwikiArticleMap
 
 logging.basicConfig(
     level=logging.INFO,
@@ -267,7 +269,7 @@ def generate_spot_id(lat, lon):
 logger.info("Fetching OSM hitchhiking spots")
 osm_spots_df = pd.read_sql("select id, latitude, longitude from osm_hitchhiking_spot", get_db())
 
-def find_nearby_osm_spot(lat, lon, osm_spots, max_distance_km=0.1):
+def find_nearby_osm_spot(lat, lon, osm_spots, max_distance_km=0.1) -> int | None:
     """Find the nearest OSM hitchhiking spot within max_distance_km (default 100m)."""
     if osm_spots.empty:
         return None
@@ -286,17 +288,23 @@ def find_nearby_osm_spot(lat, lon, osm_spots, max_distance_km=0.1):
         return None
     
     # Return the ID of the closest spot
-    closest_idx = distances[nearby_mask].argmin()
     nearby_spots = osm_spots[nearby_mask]
+    nearby_distances = distances[nearby_mask]
+    closest_idx = nearby_distances.argmin()
     return nearby_spots.iloc[closest_idx]['id']
 
-# HitchwikiArticleLocation support
 hitchwiki_df = pd.read_sql(
     "select id, title, heading, latitude, longitude, hitchwiki_url from hitchwiki_article_location",
     get_db()
 )
 
-def find_nearby_hitchwiki_article(lat, lon, hitchwiki_articles, max_distance_km=0.1):
+logger.info("Loading Hitchwiki map data")
+hitchwiki_maps_df = pd.read_sql(
+    "select id, title, latitude, longitude, zoom, hitchwiki_url from hitchwiki_article_map",
+    get_db()
+)
+
+def find_nearby_hitchwiki_article(lat, lon, hitchwiki_articles, max_distance_km=0.1) -> str | None:
     """Find the nearest Hitchwiki article location within max_distance_km (default 100m)."""
     if hitchwiki_articles.empty:
         return None
@@ -312,19 +320,93 @@ def find_nearby_hitchwiki_article(lat, lon, hitchwiki_articles, max_distance_km=
     if not nearby_mask.any():
         return None
 
-    closest_idx = distances[nearby_mask].argmin()
+    # Return the link of the closest article
     nearby_articles = hitchwiki_articles[nearby_mask]
-    return nearby_articles.iloc[closest_idx].to_dict()
+    nearby_distances = distances[nearby_mask]
+    closest_idx = nearby_distances.argmin()
+    return nearby_articles.iloc[closest_idx]['hitchwiki_url']
 
+
+def get_map_bounds(center_lat, center_lng, zoom=11, map_width=300, map_height=300):
+    scale = 2 ** zoom
+    world_width = 256 * scale
+
+    # Convert center to world coordinates
+    center_x = (center_lng + 180) * world_width / 360
+    center_y = world_width / 2 - math.log(math.tan((center_lat + 90) * math.pi / 360)) * world_width / (2 * math.pi)
+
+    # Calculate bounds in world coordinates
+    half_width = map_width / 2
+    half_height = map_height / 2
+
+    west_x = center_x - half_width
+    east_x = center_x + half_width
+    north_y = center_y - half_height
+    south_y = center_y + half_height
+
+    # Convert back to lat/lng
+    west = (west_x * 360 / world_width) - 180
+    east = (east_x * 360 / world_width) - 180
+    north = (math.atan(math.exp((world_width / 2 - north_y) * 2 * math.pi / world_width)) * 360 / math.pi) - 90
+    south = (math.atan(math.exp((world_width / 2 - south_y) * 2 * math.pi / world_width)) * 360 / math.pi) - 90
+
+    return {'north': north, 'south': south, 'east': east, 'west': west}
+
+
+def find_hitchwiki_map_for_spot(lat, lon, hitchwiki_maps, map_width=300, map_height=300) -> str | None:
+    """Find the Hitchwiki article map with highest zoom where the spot is visible."""
+    if hitchwiki_maps.empty:
+        return None
+    
+    visible_maps = []
+    
+    for _, map_row in hitchwiki_maps.iterrows():
+        bounds = get_map_bounds(
+            center_lat=map_row['latitude'], 
+            center_lng=map_row['longitude'], 
+            zoom=map_row['zoom'], 
+            map_width=map_width, 
+            map_height=map_height
+        )
+        
+        # Check if spot is within map bounds
+        if (bounds['south'] <= lat <= bounds['north'] and 
+            bounds['west'] <= lon <= bounds['east']):
+            visible_maps.append({
+                'zoom': map_row['zoom'],
+                'url': map_row['hitchwiki_url']
+            })
+    
+    if not visible_maps:
+        return None
+    
+    # Return the URL of the map with the highest zoom level
+    highest_zoom_map = max(visible_maps, key=lambda x: x['zoom'])
+    return highest_zoom_map['url']
+
+
+logger.info("Finding nearby OSM spots")
+places["nearby_osm_id"] = places.apply(
+    lambda row: find_nearby_osm_spot(row["lat"], row["lon"], osm_spots_df), axis=1
+)
+logger.info(f"Found {places['nearby_osm_id'].notnull().sum()} places with nearby OSM spots")
+
+logger.info("Finding nearby Hitchwiki articles")
+places["nearby_hitchwiki_link"] = places.apply(
+    lambda row: find_nearby_hitchwiki_article(row["lat"], row["lon"], hitchwiki_df), axis=1
+)
+logger.info(f"Found {places['nearby_hitchwiki_link'].notnull().sum()} places with nearby Hitchwiki articles")
+
+logger.info("Finding Hitchwiki maps covering spots")
+places["hitchwiki_map_link"] = places.apply(
+    lambda row: find_hitchwiki_map_for_spot(row["lat"], row["lon"], hitchwiki_maps_df), axis=1
+)
+logger.info(f"Found {places['hitchwiki_map_link'].notnull().sum()} places visible in Hitchwiki maps")
+    
 logger.info("Generating JSON data files")
-
 # Generate spots data with coordinate-based IDs and OSM spot matching
 spots_data = []
-for _, place in places.iterrows():
-    # Find nearby OSM spot
-    nearby_osm_id = find_nearby_osm_spot(place["lat"], place["lon"], osm_spots_df)
-    nearby_hitchwiki_link = find_nearby_hitchwiki_article(place["lat"], place["lon"], hitchwiki_df)
-    
+for _, place in places.iterrows():   
     spot_data = {
         "id": generate_spot_id(place["lat"], place["lon"]),
         "lat": place["lat"],
@@ -336,8 +418,9 @@ for _, place in places.iterrows():
         "review_users": place["review_users"],
         "dest_lats": place["dest_lats"],
         "dest_lons": place["dest_lons"],
-        "osm_id": nearby_osm_id,
-        "hitchwiki_article": nearby_hitchwiki_link,
+        "osm_id": place["nearby_osm_id"],
+        "hitchwiki_article": place["nearby_hitchwiki_link"],
+        "hitchwiki_map": place["hitchwiki_map_link"],
     }
     spots_data.append(spot_data)
 
