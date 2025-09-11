@@ -605,42 +605,94 @@ function clearRoute() {
   routeMarkers = [];
 }
 
+// Global variables to store selected coordinates
+let startCoords = null;
+let endCoords = null;
+let routingGeocodersInitialized = false;
+
+function setupRoutingGeocoders() {
+  // Prevent multiple initializations
+  if (routingGeocodersInitialized) return;
+  routingGeocodersInitialized = true;
+  
+  // Create geocoder options similar to setupGeocoder()
+  const geocoderOpts = {
+    collapsed: false,
+    defaultMarkGeocode: false,
+    provider: "photon",
+    geocoder: L.Control.Geocoder.photon(),
+  };
+  
+  // Setup start location geocoder
+  const startGeocoderOpts = {
+    ...geocoderOpts,
+    placeholder: "e.g. Amsterdam, Netherlands"
+  };
+  
+  const startGeocoderDiv = document.getElementById("start-geocoder");
+  if (startGeocoderDiv) {
+    const startGeocoder = L.Control.geocoder(startGeocoderOpts);
+    const container = startGeocoder.onAdd(map);
+    startGeocoderDiv.appendChild(container);
+    
+    startGeocoder.on("markgeocode", function(e) {
+      startCoords = e.geocode.center;
+      const input = startGeocoderDiv.querySelector('input');
+      if (input) {
+        input.value = e.geocode.name;
+      }
+    });
+  }
+  
+  // Setup end location geocoder
+  const endGeocoderOpts = {
+    ...geocoderOpts,
+    placeholder: "e.g. Berlin, Germany"
+  };
+  
+  const endGeocoderDiv = document.getElementById("end-geocoder");
+  if (endGeocoderDiv) {
+    const endGeocoder = L.Control.geocoder(endGeocoderOpts);
+    const container = endGeocoder.onAdd(map);
+    endGeocoderDiv.appendChild(container);
+    
+    endGeocoder.on("markgeocode", function(e) {
+      endCoords = e.geocode.center;
+      const input = endGeocoderDiv.querySelector('input');
+      if (input) {
+        input.value = e.geocode.name;
+      }
+    });
+  }
+}
+
 function setupRoutingEventListeners() {
   const planRouteBtn = document.getElementById("plan-route-btn");
   const clearRouteBtn = document.getElementById("clear-route-btn");
-  const startLatInput = document.getElementById("start-lat");
-  const startLonInput = document.getElementById("start-lon");
-  const endLatInput = document.getElementById("end-lat");
-  const endLonInput = document.getElementById("end-lon");
   
   if (planRouteBtn) {
     planRouteBtn.onclick = () => {
-      const startLat = parseFloat(startLatInput.value);
-      const startLon = parseFloat(startLonInput.value);
-      const endLat = parseFloat(endLatInput.value);
-      const endLon = parseFloat(endLonInput.value);
-      
-      if (isNaN(startLat) || isNaN(startLon) || isNaN(endLat) || isNaN(endLon)) {
-        alert('Please enter valid coordinates for both start and end points.');
+      if (!startCoords || !endCoords) {
+        alert('Please select both start location and destination from the suggestions.');
         return;
       }
       
-      if (startLat < -90 || startLat > 90 || endLat < -90 || endLat > 90) {
-        alert('Latitude must be between -90 and 90 degrees.');
-        return;
-      }
-      
-      if (startLon < -180 || startLon > 180 || endLon < -180 || endLon > 180) {
-        alert('Longitude must be between -180 and 180 degrees.');
-        return;
-      }
-      
-      planRoute(startLat, startLon, endLat, endLon);
+      planRoute(startCoords.lat, startCoords.lng, endCoords.lat, endCoords.lng);
     };
   }
   
   if (clearRouteBtn) {
-    clearRouteBtn.onclick = clearRoute;
+    clearRouteBtn.onclick = () => {
+      clearRoute();
+      // Reset coordinates
+      startCoords = null;
+      endCoords = null;
+      // Clear input fields
+      const startInput = document.querySelector('#start-geocoder input');
+      const endInput = document.querySelector('#end-geocoder input');
+      if (startInput) startInput.value = '';
+      if (endInput) endInput.value = '';
+    };
   }
 }
 
@@ -1201,6 +1253,8 @@ async function navigate() {
   } else if (mainArgs[0] == "routing") {
     clear();
     bar(".sidebar.routing");
+    // Initialize geocoders after sidebar is shown
+    setTimeout(() => setupRoutingGeocoders(), 100);
   } else if (mainArgs[0] == "select-pickup" || mainArgs[0] == "select-destination") {
     clear();
     setupLocationSelection(mainArgs[0], args[1]);

@@ -142,14 +142,10 @@
 </div>
 <div class="sidebar routing">
     <h3>Route Planning</h3>
-    <label for="start-lat">Start Latitude</label>
-    <input id="start-lat" type="number" step="any" placeholder="e.g. 52.3676" />
-    <label for="start-lon">Start Longitude</label>
-    <input id="start-lon" type="number" step="any" placeholder="e.g. 4.9041" />
-    <label for="end-lat">End Latitude</label>
-    <input id="end-lat" type="number" step="any" placeholder="e.g. 51.0504" />
-    <label for="end-lon">End Longitude</label>
-    <input id="end-lon" type="number" step="any" placeholder="e.g. 13.7373" />
+    <label for="start-place">Start Location</label>
+    <div id="start-geocoder"></div>
+    <label for="end-place">Destination</label>
+    <div id="end-geocoder"></div>
     <button id="plan-route-btn">Plan Route</button>
     <button id="clear-route-btn">Clear Route</button>
 </div>
