@@ -55,9 +55,9 @@ class BaseConfig:
     MAIL_PORT = os.getenv("MAIL_PORT", 587)  # or 2525 if required
     MAIL_USE_TLS = os.getenv("MAIL_USE_TLS", True)
     MAIL_USE_SSL = os.getenv("MAIL_USE_SSL", False)
-    MAIL_USERNAME = os.getenv("MAIL_USERNAME", "hitchmap.com")  # SMTP2GO username
-    MAIL_PASSWORD = os.getenv("HITCHMAP_MAIL_PASSWORD", "password")  # Load password from env
-    MAIL_DEFAULT_SENDER = ("Hitchmap", "no-reply@hitchmap.com")
+    MAIL_USERNAME = os.getenv("MAIL_USERNAME", "hitchwiki.org")  # SMTP2GO username
+    MAIL_PASSWORD = os.getenv("HITCHWIKI_MAIL_PASSWORD", "password")  # Load password from env
+    MAIL_DEFAULT_SENDER = ("Hitchhiking Map", "no-reply@hitchwiki.org")
 
 
 class DevelopmentConfig(BaseConfig):

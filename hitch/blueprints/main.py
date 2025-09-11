@@ -7,6 +7,7 @@ import requests
 from flask import (
     Blueprint,
     current_app,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -18,6 +19,7 @@ from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDat
 from hitch.extensions import db
 from hitch.helpers import get_db
 from hitch.models import CoHitchhiker, RideEvent
+from hitch.scripts.routing import routing
 
 main_bp = Blueprint("main", __name__)
 
@@ -250,3 +252,65 @@ def report_duplicate():
     df.to_sql("duplicates", get_db(), index=None, if_exists="append")
 
     return redirect("/#success-duplicate")
+
+
+@main_bp.route("/route", methods=["POST"])
+def calculate_route():
+    """Calculate route between two points using the routing algorithm."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No JSON data provided"}), 400
+        
+        start = data.get("start")  # [lon, lat]
+        end = data.get("end")      # [lon, lat]
+        
+        if not start or not end:
+            return jsonify({"error": "Both start and end coordinates are required"}), 400
+        
+        if len(start) != 2 or len(end) != 2:
+            return jsonify({"error": "Coordinates must be [longitude, latitude] arrays"}), 400
+        
+        try:
+            start_coords = (float(start[0]), float(start[1]))  # (lon, lat)
+            end_coords = (float(end[0]), float(end[1]))        # (lon, lat)
+        except (ValueError, TypeError):
+            return jsonify({"error": "Invalid coordinate format"}), 400
+        
+        # Validate coordinate ranges
+        if not (-180 <= start_coords[0] <= 180 and -90 <= start_coords[1] <= 90):
+            return jsonify({"error": "Invalid start coordinates"}), 400
+        if not (-180 <= end_coords[0] <= 180 and -90 <= end_coords[1] <= 90):
+            return jsonify({"error": "Invalid end coordinates"}), 400
+        
+        # Call the routing function
+        try:
+            graph, route, length = routing(start_coords, end_coords)
+            
+            # Check if we got valid results
+            if not route or len(route) < 2:
+                return jsonify({
+                    "error": "No route found between these points. Try coordinates closer to areas with hitchhiking activity."
+                }), 404
+            
+            # Format the route for the frontend
+            route_coords = [[coord[0], coord[1]] for coord in route]  # [lon, lat] format
+            
+            return jsonify({
+                "route": route_coords,
+                "length": length,
+                "num_stops": len(route)
+            })
+            
+        except Exception as routing_error:
+            error_msg = str(routing_error)
+            if "not found in graph" in error_msg:
+                return jsonify({
+                    "error": "No hitchhiking data found near your start or end point. Try coordinates closer to major cities or highways where hitchhikers are active."
+                }), 404
+            else:
+                raise  # Re-raise other routing errors
+        
+    except Exception as e:
+        current_app.logger.error(f"Routing error: {str(e)}")
+        return jsonify({"error": "Internal server error during route calculation"}), 500

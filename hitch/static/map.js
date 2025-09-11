@@ -21,7 +21,9 @@ var allMarkers = [],
   normalLayer = null,
   heatmapLegend = null,
   spotsData = null,
-  ridesData = null;
+  ridesData = null,
+  routeLayer = null,
+  routeMarkers = [];
 
 // Initialize Map
 async function initializeMap() {
@@ -334,6 +336,7 @@ function addMapControls() {
   map.addControl(new AddSpotButton());
   map.addControl(new AccountButton());
   map.addControl(new FilterButton());
+  map.addControl(new RoutingButton());
 
   var zoom = $$(".leaflet-control-zoom");
   zoom.parentNode.appendChild(zoom);
@@ -360,6 +363,7 @@ function setupEventListeners() {
 
   setupKnobEventListeners();
   setupFilterEventListeners();
+  setupRoutingEventListeners();
 
   let filterPane = map.createPane("filtering");
   filterPane.style.zIndex = 450;
@@ -442,6 +446,199 @@ function setupFilterEventListeners() {
   distanceFilter.addEventListener("input", () =>
     setQueryParameter("mindistance", distanceFilter.value)
   );
+}
+
+// Routing functionality
+async function planRoute(startLat, startLon, endLat, endLon) {
+  try {
+    // Clear any existing route first
+    clearRoute();
+    
+    // Add start and end markers
+    const startMarker = L.marker([startLat, startLon], {
+      icon: L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+      })
+    }).addTo(map).bindPopup("Start");
+    
+    const endMarker = L.marker([endLat, endLon], {
+      icon: L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+      })
+    }).addTo(map).bindPopup("End");
+    
+    routeMarkers.push(startMarker, endMarker);
+    
+    // Fit the map to show both points
+    const bounds = L.latLngBounds([[startLat, startLon], [endLat, endLon]]);
+    map.fitBounds(bounds, { padding: [20, 20] });
+    
+    // Call the backend routing endpoint
+    const response = await fetch('/route', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        start: [startLon, startLat],
+        end: [endLon, endLat]
+      })
+    });
+    
+    if (response.ok) {
+      const routeData = await response.json();
+      await displayRoute(routeData);
+    } else {
+      const errorData = await response.json().catch(() => ({ error: response.statusText }));
+      console.error('Routing failed:', errorData);
+      alert(`Routing failed: ${errorData.error || response.statusText}
+      
+This might happen if:
+- No ride data exists near your start/end points
+- The coordinates are in an area without hitchhiking activity
+- Try coordinates closer to major cities or highways`);
+    }
+  } catch (error) {
+    console.error('Routing error:', error);
+    alert(`Routing failed: ${error.message}
+    
+Please check your connection and try again.`);
+  }
+}
+
+async function displayRoute(routeData) {
+  if (routeData && routeData.route && routeData.route.length > 0) {
+    // Create polyline for the route
+    const routeCoords = routeData.route.map(coord => [coord[1], coord[0]]); // Convert lon,lat to lat,lon
+    routeLayer = L.polyline(routeCoords, {
+      color: 'blue',
+      weight: 4,
+      opacity: 0.7
+    }).addTo(map);
+    
+    // Load rides data to filter route spots
+    const rides = await loadRides();
+    const tolerance = 0.001; // ~100m tolerance for coordinate matching
+    
+    // Add markers for intermediate stops and highlight those with actual rides
+    routeData.route.slice(1, -1).forEach((coord, index) => {
+      const lat = coord[1];
+      const lon = coord[0];
+      
+      // Find rides that match this coordinate (within tolerance)
+      const matchingRides = rides.filter(ride => 
+        Math.abs(ride.lat - lat) <= tolerance && 
+        Math.abs(ride.lon - lon) <= tolerance
+      );
+      
+      const hasRides = matchingRides.length > 0;
+      
+      // Choose marker color based on whether there are actual rides
+      const iconUrl = hasRides 
+        ? 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-gold.png'
+        : 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png';
+      
+      const popupContent = hasRides 
+        ? `Stop ${index + 1} (${matchingRides.length} ride${matchingRides.length > 1 ? 's' : ''})`
+        : `Stop ${index + 1} (no rides)`;
+      
+      const marker = L.marker([lat, lon], {
+        icon: L.icon({
+          iconUrl: iconUrl,
+          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          shadowSize: [41, 41]
+        })
+      }).addTo(map).bindPopup(popupContent);
+      
+      routeMarkers.push(marker);
+    });
+    
+    // Show route info with ride statistics
+    const totalStops = routeData.route.length - 2; // Exclude start and end points
+    const ridesPromises = routeData.route.slice(1, -1).map(async (coord) => {
+      const lat = coord[1];
+      const lon = coord[0];
+      const matchingRides = rides.filter(ride => 
+        Math.abs(ride.lat - lat) <= tolerance && 
+        Math.abs(ride.lon - lon) <= tolerance
+      );
+      return matchingRides.length > 0;
+    });
+    
+    Promise.all(ridesPromises).then(rideResults => {
+      const stopsWithRides = rideResults.filter(hasRides => hasRides).length;
+      alert(`Route found! Distance: ${Math.round(routeData.length)} km
+${totalStops} intermediate stops
+${stopsWithRides} stops with actual ride data
+Gold markers = spots with rides, Blue markers = stops without rides`);
+    });
+  }
+}
+
+function clearRoute() {
+  // Remove route layer
+  if (routeLayer) {
+    map.removeLayer(routeLayer);
+    routeLayer = null;
+  }
+  
+  // Remove all route markers
+  routeMarkers.forEach(marker => {
+    map.removeLayer(marker);
+  });
+  routeMarkers = [];
+}
+
+function setupRoutingEventListeners() {
+  const planRouteBtn = document.getElementById("plan-route-btn");
+  const clearRouteBtn = document.getElementById("clear-route-btn");
+  const startLatInput = document.getElementById("start-lat");
+  const startLonInput = document.getElementById("start-lon");
+  const endLatInput = document.getElementById("end-lat");
+  const endLonInput = document.getElementById("end-lon");
+  
+  if (planRouteBtn) {
+    planRouteBtn.onclick = () => {
+      const startLat = parseFloat(startLatInput.value);
+      const startLon = parseFloat(startLonInput.value);
+      const endLat = parseFloat(endLatInput.value);
+      const endLon = parseFloat(endLonInput.value);
+      
+      if (isNaN(startLat) || isNaN(startLon) || isNaN(endLat) || isNaN(endLon)) {
+        alert('Please enter valid coordinates for both start and end points.');
+        return;
+      }
+      
+      if (startLat < -90 || startLat > 90 || endLat < -90 || endLat > 90) {
+        alert('Latitude must be between -90 and 90 degrees.');
+        return;
+      }
+      
+      if (startLon < -180 || startLon > 180 || endLon < -180 || endLon > 180) {
+        alert('Longitude must be between -180 and 180 degrees.');
+        return;
+      }
+      
+      planRoute(startLat, startLon, endLat, endLon);
+    };
+  }
+  
+  if (clearRouteBtn) {
+    clearRouteBtn.onclick = clearRoute;
+  }
 }
 
 // Update the direction query parameter based on knob rotation
@@ -746,7 +943,7 @@ function exportAsGPX() {
       type: "Feature",
       properties: {
         text: summaryText(m.options._data) + "\n\n" + m.options._data.text,
-        url: `https://hitchmap.com/${m.options._data.lat},${m.options._data.lon}`,
+        url: `https://maps.hitchwiki.org/${m.options._data.lat},${m.options._data.lon}`,
       },
       geometry: {
         coordinates: [m.options._data.lon, m.options._data.lat],
@@ -765,7 +962,7 @@ function exportAsGPX() {
     }
 
     let gpxStr = togpx(geojson, {
-      creator: "Hitchmap",
+      creator: "Hitchwiki Maps",
       featureDescription: (f) => toPlainText(f.text),
       featureLink: (f) => f.url,
     });
@@ -774,7 +971,7 @@ function exportAsGPX() {
       const blob = new Blob([data], { type: "application/gpx+xml" });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = "hitchmap.gpx";
+      link.download = "hitchhiking.gpx";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -998,6 +1195,9 @@ async function navigate() {
   } else if (mainArgs[0] == "filters") {
     clear();
     bar(".sidebar.filters");
+  } else if (mainArgs[0] == "routing") {
+    clear();
+    bar(".sidebar.routing");
   } else if (mainArgs[0] == "select-pickup" || mainArgs[0] == "select-destination") {
     clear();
     setupLocationSelection(mainArgs[0], args[1]);
@@ -1114,6 +1314,22 @@ var FilterButton = L.Control.extend({
     container.href = "#filters";
     container.innerHTML = "🧮 Filters";
 
+    return controlDiv;
+  },
+});
+
+var RoutingButton = L.Control.extend({
+  options: {
+    position: "topleft",
+  },
+  onAdd: function (map) {
+    var controlDiv = L.DomUtil.create(
+      "div",
+      "leaflet-bar horizontal-button routing-button"
+    );
+    var container = L.DomUtil.create("a", "", controlDiv);
+    container.href = "#routing";
+    container.innerHTML = "🗺️ Route";
     return controlDiv;
   },
 });

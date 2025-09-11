@@ -78,8 +78,8 @@
 </div>
 <div class="sidebar menu">
     <ul class="no-style">
-        <li><i class="fa fa-github"></i><a href="https://github.com/Hitchwiki/hitchmap">Contribute</a></li>
-        <li><i class="fa fa-github"></i><a href="https://github.com/Hitchwiki/hitchmap/issues/new">Report bugs</a></li>
+        <li><i class="fa fa-github"></i><a href="https://github.com/Hitchwiki/hitchhiking-map">Contribute</a></li>
+        <li><i class="fa fa-github"></i><a href="https://github.com/Hitchwiki/hitchhiking-map/issues/new">Report bugs</a></li>
         <li><i class="fa fa-download"></i>Download spots</li>
         <ul>
             <li><a href="/dump.sqlite">As SQLite</a></li>
@@ -139,6 +139,19 @@
         </div>
     </div>
     <button id="clear-filters">Clear filters</button>
+</div>
+<div class="sidebar routing">
+    <h3>Route Planning</h3>
+    <label for="start-lat">Start Latitude</label>
+    <input id="start-lat" type="number" step="any" placeholder="e.g. 52.3676" />
+    <label for="start-lon">Start Longitude</label>
+    <input id="start-lon" type="number" step="any" placeholder="e.g. 4.9041" />
+    <label for="end-lat">End Latitude</label>
+    <input id="end-lat" type="number" step="any" placeholder="e.g. 51.0504" />
+    <label for="end-lon">End Longitude</label>
+    <input id="end-lon" type="number" step="any" placeholder="e.g. 13.7373" />
+    <button id="plan-route-btn">Plan Route</button>
+    <button id="clear-route-btn">Clear Route</button>
 </div>
 <a href="javascript:void(0);" id="sb-close">
     <svg width="14" height="14" version="1.1" xmlns="http://www.w3.org/2000/svg">
