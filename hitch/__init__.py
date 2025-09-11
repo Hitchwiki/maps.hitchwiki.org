@@ -96,7 +96,9 @@ def register_commands(app):
         """
         # TODO: include ("dashboard", ""), ("dump", "") again when fixed
         scripts = [
-            ("fetch_nostr", ""),
+            #("fetch_nostr", ""),
+            ("sync_osm", ""),
+            ("sync_hitchwiki", ""),
             ("show", "")
         ]
         for script, args in scripts:
