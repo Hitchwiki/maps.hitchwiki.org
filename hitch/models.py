@@ -71,6 +71,8 @@ class OsmHitchhikingSpot(db.Model):
 
 class HitchwikiArticleLocation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(255), nullable=False)
+    heading = db.Column(db.String(255), nullable=True)
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
     hitchwiki_url = db.Column(db.String(255), nullable=False)

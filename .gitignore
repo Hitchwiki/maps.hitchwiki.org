@@ -473,3 +473,6 @@ junit/
 *.sqlite*
 
 *log.txt
+
+# pywikibot
+user-password.py

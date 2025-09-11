@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 
 from hitch.helpers import e, get_bearing, get_db, get_dirs, haversine_np, write_json_file
+from hitch.models import OsmHitchhikingSpot
 
 logging.basicConfig(
     level=logging.INFO,
@@ -263,11 +264,40 @@ def generate_spot_id(lat, lon):
     """Generate coordinate-based spot ID."""
     return f"{lat:.4f}_{lon:.4f}"
 
+logger.info("Fetching OSM hitchhiking spots")
+osm_spots_df = pd.read_sql("select id, latitude, longitude from osm_hitchhiking_spot", get_db())
+
+def find_nearby_osm_spot(lat, lon, osm_spots, max_distance_km=0.1):
+    """Find the nearest OSM hitchhiking spot within max_distance_km (default 100m)."""
+    if osm_spots.empty:
+        return None
+    
+    # Calculate distances using haversine formula
+    distances = haversine_np(
+        np.array([lon] * len(osm_spots)),
+        np.array([lat] * len(osm_spots)), 
+        osm_spots['longitude'].values,
+        osm_spots['latitude'].values
+    )
+    
+    # Find spots within the maximum distance
+    nearby_mask = distances <= max_distance_km
+    if not nearby_mask.any():
+        return None
+    
+    # Return the ID of the closest spot
+    closest_idx = distances[nearby_mask].argmin()
+    nearby_spots = osm_spots[nearby_mask]
+    return nearby_spots.iloc[closest_idx]['id']
+
 logger.info("Generating JSON data files")
 
-# Generate spots data with coordinate-based IDs
+# Generate spots data with coordinate-based IDs and OSM spot matching
 spots_data = []
 for _, place in places.iterrows():
+    # Find nearby OSM spot
+    nearby_osm_id = find_nearby_osm_spot(place["lat"], place["lon"], osm_spots_df)
+    
     spot_data = {
         "id": generate_spot_id(place["lat"], place["lon"]),
         "lat": place["lat"],
@@ -278,7 +308,8 @@ for _, place in places.iterrows():
         "ride_count": len(rides_df[(rides_df["lat"] == place["lat"]) & (rides_df["lon"] == place["lon"])]),
         "review_users": place["review_users"],
         "dest_lats": place["dest_lats"],
-        "dest_lons": place["dest_lons"]
+        "dest_lons": place["dest_lons"],
+        "osm_id": nearby_osm_id
     }
     spots_data.append(spot_data)
 

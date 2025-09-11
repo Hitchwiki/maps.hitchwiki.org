@@ -427,6 +427,9 @@ function setupFilterEventListeners() {
   knobToggle.addEventListener("input", () =>
     setQueryParameter("mydirection", knobToggle.checked)
   );
+  osmToggle.addEventListener("input", () =>
+    setQueryParameter("osmonly", osmToggle.checked)
+  );
   userFilter.addEventListener("input", () =>
     setQueryParameter("user", userFilter.value)
   );
@@ -512,13 +515,15 @@ function reportDuplicate(marker) {
 }
 
 function summaryText(data) {
+  const osmLink = data.osm_id ? `\n    <a href="https://www.openstreetmap.org/node/${data.osm_id}" target="_blank" rel="noopener noreferrer">Official hitchhiking spot</a>` : '';
+  
   return `Rating: ${data.rating && data.rating.toFixed(0)}/5
     Waiting time: ${
       !data.wait || Number.isNaN(data.wait) ? "-" : data.wait.toFixed(0) + " min"
     }
     Ride distance: ${
       !data.distance || Number.isNaN(data.distance) ? "-" : data.distance.toFixed(0) + " km"
-    }`;
+    }${osmLink}`;
 }
 
 async function handleMarkerClick(marker, point, e) {
@@ -562,7 +567,7 @@ function markerClick(marker) {
       4
     )} ☍`;
 
-    $$("#spot-summary").innerText = summaryText(data);
+    $$("#spot-summary").innerHTML = summaryText(data);
 
     $$("#spot-text").innerHTML = data.text;
     if (!data.text && (!data.distance || Number.isNaN(data.distance)))
@@ -780,6 +785,7 @@ const rotationValue = document.getElementById("rotationValue");
 const spreadInput = document.getElementById("spreadInput");
 spreadInput.value = 70;
 const knobToggle = document.getElementById("knob-toggle");
+const osmToggle = document.getElementById("osm-toggle");
 const textFilter = document.getElementById("text-filter");
 const userFilter = document.getElementById("user-filter");
 const distanceFilter = document.getElementById("distance-filter");
@@ -857,12 +863,14 @@ async function applyParams() {
   knobCone.style.clipPath = `polygon(50% 50%, ${leftX}% ${topY}%, ${rightX}% ${topY}%)`;
 
   knobToggle.checked = getQueryParameter("mydirection") == "true";
+  osmToggle.checked = getQueryParameter("osmonly") == "true";
   textFilter.value = getQueryParameter("text");
   userFilter.value = getQueryParameter("user");
   distanceFilter.value = getQueryParameter("mindistance");
 
   if (
     knobToggle.checked ||
+    osmToggle.checked ||
     textFilter.value ||
     userFilter.value ||
     distanceFilter.value
@@ -920,9 +928,7 @@ async function applyParams() {
     }
     if (osmToggle.checked) {
       filterMarkers = filterMarkers.filter((x) => {
-        return x.options._data.review_users.some((u) =>
-          OSM_USERS.includes(u.toLowerCase())
-        );
+        return x.options._data.osm_id !== null && x.options._data.osm_id !== undefined;
       });
     }
     if (knobToggle.checked) {

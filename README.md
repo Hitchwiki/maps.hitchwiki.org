@@ -49,6 +49,7 @@ curl https://hitchmap.com/dump.sqlite > db/prod-points.sqlite
 
 ```
 cp example.env .env
+cp user-password.py.example user-password.py
 ```
 And set the missing env variables.
 
