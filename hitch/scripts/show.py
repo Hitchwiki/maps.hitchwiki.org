@@ -290,6 +290,32 @@ def find_nearby_osm_spot(lat, lon, osm_spots, max_distance_km=0.1):
     nearby_spots = osm_spots[nearby_mask]
     return nearby_spots.iloc[closest_idx]['id']
 
+# HitchwikiArticleLocation support
+hitchwiki_df = pd.read_sql(
+    "select id, title, heading, latitude, longitude, hitchwiki_url from hitchwiki_article_location",
+    get_db()
+)
+
+def find_nearby_hitchwiki_article(lat, lon, hitchwiki_articles, max_distance_km=0.1):
+    """Find the nearest Hitchwiki article location within max_distance_km (default 100m)."""
+    if hitchwiki_articles.empty:
+        return None
+
+    distances = haversine_np(
+        np.array([lon] * len(hitchwiki_articles)),
+        np.array([lat] * len(hitchwiki_articles)),
+        hitchwiki_articles['longitude'].values,
+        hitchwiki_articles['latitude'].values
+    )
+
+    nearby_mask = distances <= max_distance_km
+    if not nearby_mask.any():
+        return None
+
+    closest_idx = distances[nearby_mask].argmin()
+    nearby_articles = hitchwiki_articles[nearby_mask]
+    return nearby_articles.iloc[closest_idx].to_dict()
+
 logger.info("Generating JSON data files")
 
 # Generate spots data with coordinate-based IDs and OSM spot matching
@@ -297,6 +323,7 @@ spots_data = []
 for _, place in places.iterrows():
     # Find nearby OSM spot
     nearby_osm_id = find_nearby_osm_spot(place["lat"], place["lon"], osm_spots_df)
+    nearby_hitchwiki_link = find_nearby_hitchwiki_article(place["lat"], place["lon"], hitchwiki_df)
     
     spot_data = {
         "id": generate_spot_id(place["lat"], place["lon"]),
@@ -309,7 +336,8 @@ for _, place in places.iterrows():
         "review_users": place["review_users"],
         "dest_lats": place["dest_lats"],
         "dest_lons": place["dest_lons"],
-        "osm_id": nearby_osm_id
+        "osm_id": nearby_osm_id,
+        "hitchwiki_article": nearby_hitchwiki_link,
     }
     spots_data.append(spot_data)
 

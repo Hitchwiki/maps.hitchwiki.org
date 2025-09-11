@@ -430,6 +430,9 @@ function setupFilterEventListeners() {
   osmToggle.addEventListener("input", () =>
     setQueryParameter("osmonly", osmToggle.checked)
   );
+  hitchwikiToggle.addEventListener("input", () =>
+    setQueryParameter("hitchwikionly", hitchwikiToggle.checked)
+  );
   userFilter.addEventListener("input", () =>
     setQueryParameter("user", userFilter.value)
   );
@@ -786,6 +789,7 @@ const spreadInput = document.getElementById("spreadInput");
 spreadInput.value = 70;
 const knobToggle = document.getElementById("knob-toggle");
 const osmToggle = document.getElementById("osm-toggle");
+const hitchwikiToggle = document.getElementById("hitchwiki-toggle");
 const textFilter = document.getElementById("text-filter");
 const userFilter = document.getElementById("user-filter");
 const distanceFilter = document.getElementById("distance-filter");
@@ -864,6 +868,7 @@ async function applyParams() {
 
   knobToggle.checked = getQueryParameter("mydirection") == "true";
   osmToggle.checked = getQueryParameter("osmonly") == "true";
+  hitchwikiToggle.checked = getQueryParameter("hitchwikionly") == "true";
   textFilter.value = getQueryParameter("text");
   userFilter.value = getQueryParameter("user");
   distanceFilter.value = getQueryParameter("mindistance");
@@ -871,6 +876,7 @@ async function applyParams() {
   if (
     knobToggle.checked ||
     osmToggle.checked ||
+    hitchwikiToggle.checked ||
     textFilter.value ||
     userFilter.value ||
     distanceFilter.value
@@ -929,6 +935,11 @@ async function applyParams() {
     if (osmToggle.checked) {
       filterMarkers = filterMarkers.filter((x) => {
         return x.options._data.osm_id !== null && x.options._data.osm_id !== undefined;
+      });
+    }
+    if (hitchwikiToggle.checked) {
+      filterMarkers = filterMarkers.filter((x) => {
+        return x.options._data.hitchwiki_article !== null && x.options._data.hitchwiki_article !== undefined;
       });
     }
     if (knobToggle.checked) {
