@@ -76,7 +76,6 @@ def extract_maps(text):
     
     Looks for patterns like: |map = <map lat='51.049' lng='13.74' zoom='11'.../>
     """
-    # Pattern to match |map = <map lat='...' lng='...' zoom='...'/>
     map_pattern = re.compile(r"\|map\s*=\s*<map\s+lat='([^']+)'\s+lng='([^']+)'\s+zoom='([^']+)'")
     maps = [(m.start(), m.group(0), m.group(1), m.group(2), m.group(3)) for m in map_pattern.finditer(text)]
     
