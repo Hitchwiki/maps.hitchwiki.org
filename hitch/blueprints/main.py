@@ -1,9 +1,8 @@
 import math
 import os
-from datetime import datetime, timezone
+from datetime import datetime
 
 import pandas as pd
-import requests
 from flask import (
     Blueprint,
     current_app,
@@ -125,11 +124,9 @@ def ride_form():
         f"Signal must be one of thumb, sign, ask, ask-sign, the signal is {signal}."
     )
 
-    datetime_ride = data["datetime_ride"]
 
-    now = str(datetime.now(timezone.utc))
-
-    ip = request.headers.getlist("X-Real-IP")[-1] if request.headers.getlist("X-Real-IP") else request.remote_addr
+    # TODO: store IP and nostr event d tag pairs in a db table to prevent abuse
+    # ip = request.headers.getlist("X-Real-IP")[-1] if request.headers.getlist("X-Real-IP") else request.remote_addr
 
     # Get coordinates from individual form fields
     lat = float(data["pickup_lat"]) if data["pickup_lat"] else None

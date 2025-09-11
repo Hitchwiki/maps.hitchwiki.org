@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Optional, Tuple
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -19,11 +19,11 @@ class MethodEnum(str, Enum):
     prearranged = "prearranged"
 
 class Signal(BaseModel, use_enum_values=True):
-    methods: List[MethodEnum]
+    methods: list[MethodEnum]
     sign_content: Optional[str] = None
-    sign_languages: Optional[List[str]] = None
+    sign_languages: Optional[list[str]] = None
     asking_content: Optional[str] = None
-    asking_languages: Optional[List[str]] = None
+    asking_languages: Optional[list[str]] = None
     total_solicited: Optional[int] = None
     duration: Optional[str] = None
 
@@ -36,7 +36,7 @@ class ReasonEnum(str, Enum):
 
 class Ride(BaseModel, use_enum_values=True):
     vehicle_destination: Optional[Location] = None
-    reasons: Optional[List[ReasonEnum]] = None
+    reasons: Optional[list[ReasonEnum]] = None
 
 
 class GenderEnum(str, Enum):
@@ -50,7 +50,7 @@ class Person(BaseModel, use_enum_values=True):
     origin_country: Optional[str] = None
     year_of_birth: Optional[int] = None
     gender: Optional[GenderEnum] = None
-    languages: Optional[List[str]] = None
+    languages: Optional[list[str]] = None
     was_driver: Optional[bool] = None
 
 
@@ -111,7 +111,7 @@ class ReasonToHitchhikeEnum(str, Enum):
 class Hitchhiker(Person, use_enum_values=True):
     nickname: Optional[str] = None  # Nickname of the hitchhiker. Assumed unique within the data source.
     hitchhiking_since: Optional[int] = None  # The year the person hitchhiked for the first time.
-    reasons_to_hitchhike: Optional[List[ReasonToHitchhikeEnum]] = None  # Reasons for a specific hitchhiking ride.
+    reasons_to_hitchhike: Optional[list[ReasonToHitchhikeEnum]] = None  # Reasons for a specific hitchhiking ride.
 
 class GiftKindEnum(str, Enum):
     money = "money"
@@ -121,7 +121,7 @@ class GiftKindEnum(str, Enum):
 class Gift(BaseModel, use_enum_values=True):
     kind: GiftKindEnum = Field(...)
     description: Optional[str] = None
-    price: Optional[Tuple[float, str]] = None  # [amount, currency]
+    price: Optional[tuple[float, str]] = None  # [amount, currency]
 
 class DeclinedRideReasonEnum(str, Enum):
     wrong_direction = "wrong_direction"
@@ -134,7 +134,7 @@ class DeclinedRideReasonEnum(str, Enum):
 
 class DeclinedRide(BaseModel, use_enum_values=True):
     destination: Optional[Location] = None
-    reasons: Optional[List[DeclinedRideReasonEnum]] = None
+    reasons: Optional[list[DeclinedRideReasonEnum]] = None
 
 
 class Stop(BaseModel):
@@ -146,15 +146,15 @@ class Stop(BaseModel):
 
 class HitchhikingRecord(BaseModel):
     version: str = Field(...)
-    stops: List[Stop] = Field(..., min_items=1)
+    stops: list[Stop] = Field(..., min_items=1)
     rating: Optional[int] = Field(None, ge=1, le=5)
-    hitchhikers: List[Hitchhiker] = Field(..., min_items=1)
+    hitchhikers: list[Hitchhiker] = Field(..., min_items=1)
     comment: Optional[str] = None
-    signals: Optional[List[Signal]] = None
-    occupants: Optional[List[Occupant]] = None
+    signals: Optional[list[Signal]] = None
+    occupants: Optional[list[Occupant]] = None
     mode_of_transportation: Optional[ModeOfTranportation] = None
     ride: Optional[Ride] = None
-    declined_rides: Optional[List[DeclinedRide]] = None
+    declined_rides: Optional[list[DeclinedRide]] = None
     source: str = Field(...)
     license: str = Field(...)
     submission_time: Optional[str] = None  # RFC 9557 format
