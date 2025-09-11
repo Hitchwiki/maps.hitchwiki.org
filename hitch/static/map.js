@@ -490,8 +490,8 @@ async function planRoute(startLat, startLon, endLat, endLon) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        start: [startLon, startLat],
-        end: [endLon, endLat]
+        start: [startLat, startLon],
+        end: [endLat, endLon]
       })
     });
     
@@ -519,7 +519,7 @@ Please check your connection and try again.`);
 async function displayRoute(routeData) {
   if (routeData && routeData.route && routeData.route.length > 0) {
     // Create polyline for the route
-    const routeCoords = routeData.route.map(coord => [coord[1], coord[0]]); // Convert lon,lat to lat,lon
+    const routeCoords = routeData.route.map(coord => [coord[0], coord[1]]); // coords are [lat, lon]
     routeLayer = L.polyline(routeCoords, {
       color: 'blue',
       weight: 4,
@@ -532,8 +532,8 @@ async function displayRoute(routeData) {
     
     // Add markers for intermediate stops and highlight those with actual rides
     routeData.route.slice(1, -1).forEach((coord, index) => {
-      const lat = coord[1];
-      const lon = coord[0];
+      const lat = coord[0];
+      const lon = coord[1];
       
       // Find rides that match this coordinate (within tolerance)
       const matchingRides = rides.filter(ride => 
@@ -580,10 +580,13 @@ async function displayRoute(routeData) {
     
     Promise.all(ridesPromises).then(rideResults => {
       const stopsWithRides = rideResults.filter(hasRides => hasRides).length;
-      alert(`Route found! Distance: ${Math.round(routeData.length)} km
+      const timeInfo = routeData.total_time_formatted || `${Math.round(routeData.total_time_hours || 0)}h`;
+      alert(`Route found! Total time: ${timeInfo}
 ${totalStops} intermediate stops
 ${stopsWithRides} stops with actual ride data
-Gold markers = spots with rides, Blue markers = stops without rides`);
+Gold markers = spots with rides, Blue markers = stops without rides
+
+Time includes: riding (100 km/h avg) + walking (5 km/h) + waiting at spots`);
     });
   }
 }
