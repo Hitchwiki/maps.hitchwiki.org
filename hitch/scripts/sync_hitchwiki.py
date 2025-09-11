@@ -1,4 +1,5 @@
 """On Hitchwiki the {{Coords|...}} template is used to reference coordinates of hitchhiking spots."""
+
 import json
 import logging
 import os
@@ -14,17 +15,13 @@ from tqdm import tqdm
 
 from hitch.extensions import db
 from hitch.helpers import get_dirs, haversine_np
-from hitch.models import HitchwikiArticleLocation, RideEvent
+from hitch.models import HitchwikiArticleLocation, RideEvent, HitchwikiArticleMap
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger(__name__)
 
 
-def heading_to_fragment(heading, num_same_heading_above:int):
+def heading_to_fragment(heading, num_same_heading_above: int):
     # 1. Trim whitespace
     heading = heading.strip()
     # 2. Remove wiki markup (e.g., '', ''', etc.)
@@ -74,9 +71,50 @@ def extract_coords_and_headings(text):
     return results
 
 
-def find_coords_and_headings(raw_wiki_page:str, title:str, base_url:str = "https://hitchwiki.org/en/") -> list[dict]:
-    """Extracts coordinates and their associated headings from a raw wiki page text.
+def extract_maps(text):
+    """Extract map patterns from wiki text.
     
+    Looks for patterns like: |map = <map lat='51.049' lng='13.74' zoom='11'.../>
+    """
+    # Pattern to match |map = <map lat='...' lng='...' zoom='...'/>
+    map_pattern = re.compile(r"\|map\s*=\s*<map\s+lat='([^']+)'\s+lng='([^']+)'\s+zoom='([^']+)'")
+    maps = [(m.start(), m.group(0), m.group(1), m.group(2), m.group(3)) for m in map_pattern.finditer(text)]
+    
+    return maps
+
+
+def find_maps(raw_wiki_page: str, title: str, base_url: str = "https://hitchwiki.org/en/") -> list[dict]:
+    """Extracts map coordinates and zoom levels from a raw wiki page text.
+
+    Args:
+        raw_wiki_page (str): The raw text of the wiki page.
+        title (str): The title of the wiki page.
+        base_url (str, optional): The base URL for constructing links. Defaults to "https://hitchwiki.org/en/".
+
+    Returns:
+        list[dict]: A list of dictionaries containing map data with lat, lng, zoom, and URL.
+    """
+    results = []
+    maps = extract_maps(raw_wiki_page)
+    
+    for _, map_tag, lat, lng, zoom in maps:
+        link = base_url + title
+        
+        results.append({
+            "title": title,
+            "lat": lat,
+            "lng": lng, 
+            "zoom": zoom,
+            "link": link,
+            "map_tag": map_tag
+        })
+    
+    return results
+
+
+def find_coords_and_headings(raw_wiki_page: str, title: str, base_url: str = "https://hitchwiki.org/en/") -> list[dict]:
+    """Extracts coordinates and their associated headings from a raw wiki page text.
+
     Args:
         raw_wiki_page (str): The raw text of the wiki page.
         title (str): The title of the wiki page.
@@ -103,13 +141,13 @@ def find_coords_and_headings(raw_wiki_page:str, title:str, base_url:str = "https
 ### MAIN SCRIPT ###
 
 logger.info("Starting Hitchwiki synchronization script, connecting to Hitchwiki...")
-# TODO: relies on user-password.py better from env var
 lang_wiki = pywikibot.Site(code="en", fam="hitchwiki")
 if not lang_wiki.user():
     lang_wiki.login()
 
 logger.info(f"Connected to Hitchwiki as user: {lang_wiki.user()}")
 
+# TODO: get articles with |map = <map lat='51.049' lng='13.74' zoom='11'/> in Infobox as well
 articles_file = os.path.join(get_dirs()["dist"], "hitchwiki_articles.json")
 logger.info(f"Articles file path: {articles_file}")
 if os.path.exists(articles_file):
@@ -141,10 +179,13 @@ else:
 
 logger.info(f"Processing {len(articles)} articles to extract coordinates and headings...")
 coords = []
+maps = []
 for title, meta in tqdm(articles.items()):
     coords_results = find_coords_and_headings(raw_wiki_page=meta["text"], title=title)
+    maps_results = find_maps(raw_wiki_page=meta["text"], title=title)
 
     coords.extend(coords_results)
+    maps.extend(maps_results)
 
 
 coords_df = pd.DataFrame(coords)
@@ -176,7 +217,9 @@ db.session.query(HitchwikiArticleLocation).delete()
 db.session.commit()
 
 # Filter out rows with non-numeric latitude or longitude
-valid_coords_df = coords_df[pd.to_numeric(coords_df["lat"], errors="coerce").notnull() & pd.to_numeric(coords_df["lon"], errors="coerce").notnull()]
+valid_coords_df = coords_df[
+    pd.to_numeric(coords_df["lat"], errors="coerce").notnull() & pd.to_numeric(coords_df["lon"], errors="coerce").notnull()
+]
 
 for _, row in valid_coords_df.iterrows():
     location = HitchwikiArticleLocation(
@@ -184,9 +227,40 @@ for _, row in valid_coords_df.iterrows():
         heading=row["heading"],
         latitude=float(row["lat"]),
         longitude=float(row["lon"]),
-        hitchwiki_url=row["link"]
+        hitchwiki_url=row["link"],
     )
     db.session.add(location)
 db.session.commit()
 
 logger.info(f"Saved {len(coords_df)} Hitchwiki article locations into the database.")
+
+# Process and save maps
+logger.info("Saving extracted map data into the database...")
+# Remove all existing HitchwikiArticleMap entries for a fresh start
+db.session.query(HitchwikiArticleMap).delete()
+db.session.commit()
+
+maps_df = pd.DataFrame(maps)
+
+# Filter out rows with non-numeric latitude or longitude
+valid_maps_df = maps_df[
+    pd.to_numeric(maps_df["lat"], errors="coerce").notnull() & 
+    pd.to_numeric(maps_df["lng"], errors="coerce").notnull() &
+    pd.to_numeric(maps_df["zoom"], errors="coerce").notnull()
+]
+
+for _, row in valid_maps_df.iterrows():
+    map_entry = HitchwikiArticleMap(
+        title=row["title"],
+        latitude=float(row["lat"]),
+        longitude=float(row["lng"]),
+        zoom=int(row["zoom"]),
+        hitchwiki_url=row["link"],
+    )
+    db.session.add(map_entry)
+db.session.commit()
+
+logger.info(f"Saved {len(valid_maps_df)} Hitchwiki article maps into the database.")
+
+
+

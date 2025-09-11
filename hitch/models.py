@@ -76,3 +76,12 @@ class HitchwikiArticleLocation(db.Model):
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
     hitchwiki_url = db.Column(db.String(255), nullable=False)
+
+
+class HitchwikiArticleMap(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(255), nullable=False)
+    latitude = db.Column(db.Float, nullable=False)
+    longitude = db.Column(db.Float, nullable=False)
+    zoom = db.Column(db.Integer, nullable=False)
+    hitchwiki_url = db.Column(db.String(255), nullable=False)
