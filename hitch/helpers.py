@@ -53,6 +53,8 @@ def haversine_np(lon1, lat1, lon2, lat2, factor=1.25):
         factor: Multiplication factor to adjust the distance
             (default is 1.25 to account for road distance compared to straight line distance)
 
+    Returns:
+        Distance in kilometers between the two points, adjusted by the factor.
     """
     lon1, lat1, lon2, lat2 = map(np.radians, [lon1, lat1, lon2, lat2])
 
