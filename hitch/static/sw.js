@@ -1,5 +1,5 @@
 // Choose a cache name
-const cacheName = 'hitchmap-v1';
+const cacheName = 'hitchhiking-map-v1';
 // List the files to precache
 const TWM = 'https://tinyworldmap.com/dist/tiny-world-all-10000.json';
 const precacheResources = ['/', '/light.html', '/static/icon.png', '/favicon.ico', 'https://a.tile.openstreetmap.org/0/0/0.png',TWM];

@@ -355,6 +355,8 @@ def get_map_bounds(center_lat, center_lng, zoom=11, map_width=300, map_height=30
 
 def find_hitchwiki_map_for_spot(lat, lon, hitchwiki_maps, map_width=300, map_height=300) -> str | None:
     """Find the Hitchwiki article map with highest zoom where the spot is visible."""
+    # TODO: too slow in dev mode
+    return None
     if hitchwiki_maps.empty:
         return None
     
