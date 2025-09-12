@@ -3,7 +3,7 @@ bleach==6.2.0
 dash==2.18.2
 datasets==3.2.0
 Flask-Mailman==1.1.1
-Flask-Security==5.5.2
+Flask-Security==5.6.2
 Flask-SQLAlchemy==3.1.1
 Flask-WTF==1.2.2 
 folium==0.19.4
