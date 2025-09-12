@@ -1,3 +1,4 @@
+"""Initialize the Flask application at flask init."""
 import importlib
 import os
 import sys
@@ -13,6 +14,11 @@ from hitch.models import Role, User
 from hitch.settings import config
 
 baseDir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+
+ENVIRONMENT = os.getenv("ENVIRONMENT", "dev")
+if ENVIRONMENT not in ["prod", "dev"]:
+    print("ENVIRONMENT variable must be 'prod' or 'dev'")
+    sys.exit(1)
 
 
 def create_app(config_name=None):
@@ -96,11 +102,11 @@ def register_commands(app):
         """
         # TODO: include ("dashboard", ""), ("dump", "") again when fixed
         scripts = [
-            #("fetch_nostr", ""),
-            ("sync_osm", ""),
-            ("sync_hitchwiki", ""),
+            *([("fetch_nostr", "")] if ENVIRONMENT == "prod" else []),
+            *([("sync_osm", "")] if ENVIRONMENT == "prod" else []),
+            *([("sync_hitchwiki", "")] if ENVIRONMENT == "prod" else []),
             ("show", ""),
-            #("cities", ""),
+            *([("cities", "")] if ENVIRONMENT == "prod" else []),
         ]
         for script, args in scripts:
             ctx.invoke(generate, script=script, args=args)

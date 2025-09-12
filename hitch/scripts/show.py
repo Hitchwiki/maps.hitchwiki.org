@@ -2,9 +2,11 @@ import json
 import logging
 import math
 import os
+import warnings
 
 import numpy as np
 import pandas as pd
+from sklearn.exceptions import InconsistentVersionWarning
 
 from hitch.helpers import e, get_bearing, get_db, get_dirs, haversine_np, write_json_file
 
@@ -25,8 +27,6 @@ rides_df["hitchhikers"] = rides_df["hitchhikers"].apply(lambda x: json.loads(x) 
 
 
 logger.info("Extracting start and end coordinates")
-
-
 def get_start_end_coords(row):
     start_location = row["stops"][0]["location"]
 
@@ -501,7 +501,12 @@ def generate_heatmap_data():
     norm = colors.BoundaryNorm(BOUNDARIES, cmap.N, clip=True)
     cmap.set_bad(color="#000000", alpha=0.0)  # opaque for NaN values (sea)
 
-    gpmap = GPMap()
+    # GPMap uses a sklearn model to predict waiting times from sklearn version 1.6.0
+    # although this project uses a more recent sklearn version, this should not cause issues
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
+        gpmap = GPMap()
+
     gpmap.get_map_grid()
     gpmap.get_landmass_raster()
 

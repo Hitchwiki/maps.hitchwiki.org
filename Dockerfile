@@ -6,10 +6,11 @@ RUN apt-get update && \
     apt-get install -y curl build-essential cron && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Node.js (LTS)
+# Install Node.js (LTS) and upgrade npm
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    npm install -g npm@11.6.0
 
 # Set work directory
 WORKDIR /app

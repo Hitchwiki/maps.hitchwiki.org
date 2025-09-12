@@ -495,6 +495,33 @@ ul.no-style {
   margin: 0;
   padding: 0;
 }
+
+/* Fix geocoder styling in sidebar routing section */
+#start-geocoder .leaflet-control-geocoder,
+#end-geocoder .leaflet-control-geocoder {
+  width: 100% !important;
+  box-shadow: none !important;
+  border: 1px solid #ccc !important;
+  border-radius: 4px !important;
+}
+
+#start-geocoder .leaflet-control-geocoder-form,
+#end-geocoder .leaflet-control-geocoder-form {
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+#start-geocoder input,
+#end-geocoder input {
+  width: 100% !important;
+  height: 2.5em !important;
+  line-height: normal !important;
+  padding: 8px 12px !important;
+  font-size: 14px !important;
+  border: none !important;
+  background: transparent !important;
+  box-sizing: border-box !important;
+}
 .sidebar .fa {
   min-width: 28px;
   display: inline-block;
