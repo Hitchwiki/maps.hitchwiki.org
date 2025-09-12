@@ -72,7 +72,9 @@ for city in cities.itertuples():
     if rendered_cities[-1]:
         logger.info(f"Rendering city page for {city.city}, {city.country} ({len(city_rides)} rides)")
         rendered = city_template.render(city=city, title=city.city, reviews=city_rides)
-        with open(os.path.join(country_folder, f"{city.city}.html"), "w") as f:
+        # Replace "/" with "-" to avoid filesystem issues
+        safe_filename = city.city.replace("/", "-")
+        with open(os.path.join(country_folder, f"{safe_filename}.html"), "w") as f:
             f.write(rendered)
 
 logger.info(f"Rendered {sum(rendered_cities)} city pages out of {len(cities)} cities")
