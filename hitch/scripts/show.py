@@ -555,3 +555,4 @@ except Exception as e:
     logger.info("Continuing without heatmap data")
 
 logger.info("All data preparation completed")
+logger.info("SHOW SCRIPT FINISHED")

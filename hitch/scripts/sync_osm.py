@@ -50,3 +50,4 @@ for node in nodes:
 db.session.commit()
 
 logger.info(f"Saved {len(nodes)} hitchhiking spots from OSM into the database.")
+logger.info("SYNC OSM SCRIPT FINISHED")
