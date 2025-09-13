@@ -469,6 +469,7 @@ write_json_file(rides_data, "rides.json")
 # places_with_destination = places[~places.distance.isnull()]
 # write_json_file(places_with_destination[point_columns], "spots_with_destination.json")
 
+# Recent rides are used to display them in tabular format on a separate page
 recent = rides_df.dropna(subset=["submission_time"]).sort_values("submission_time", ascending=False).iloc[:1000]
 recent["url"] = "#" + recent.lat.astype(str) + "," + recent.lon.astype(str)
 recent["text"] = rides_df.comment.fillna("") + " " + rides_df.extra_text.fillna("")
