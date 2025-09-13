@@ -44,6 +44,7 @@ def _user_owns_ride(ride, user):
 # TODO: renamed function from map() to render_map() to avoid conflict with map() builtin
 # Index route for the map, supports optional .html ending
 # Additionally, there can be map variations: light, with_destination
+# TODO: are those routes still needed?
 @main_bp.route("/", defaults={"map_variation": None})
 @main_bp.route("/<any(light, with_destination):map_variation>")
 @main_bp.route("/<any(index, light, with_destination):map_variation>.html")
