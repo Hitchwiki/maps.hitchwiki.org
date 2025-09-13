@@ -84,3 +84,5 @@ os.makedirs(os.path.join(dist_dir, "city"), exist_ok=True)
 index_rendered = city_index.render(grouped_cities=cities[rendered_cities].groupby("country"))
 with open(os.path.join(dist_dir, "city", "index.html"), "w") as f:
     f.write(index_rendered)
+
+logger.info("CITIES SCRIPT FINISHED")

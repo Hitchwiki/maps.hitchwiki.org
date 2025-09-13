@@ -72,3 +72,5 @@ for post in all_posts:
     )
     db.session.add(ride_event)
 db.session.commit()
+
+logger.info("FETCH NOSTR SCRIPT FINISHED")

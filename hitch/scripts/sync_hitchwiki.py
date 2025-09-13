@@ -258,6 +258,4 @@ for _, row in valid_maps_df.iterrows():
 db.session.commit()
 
 logger.info(f"Saved {len(valid_maps_df)} Hitchwiki article maps into the database.")
-
-
-
+logger.info("SYNC HITCHWIKI SCRIPT FINISHED")
