@@ -1,3 +1,5 @@
+Deploment location: Hitchwiki server `/home/hitch`
+
 <!-- PROJECT SHIELDS -->
 <!--
 *** Markdown "reference style" links for readability.
