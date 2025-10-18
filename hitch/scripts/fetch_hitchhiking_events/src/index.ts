@@ -14,7 +14,7 @@ const fetcher = NostrFetcher.init({
   webSocketConstructor: WebSocket,
 });
 const relayUrls = [
-    "wss://relay.hitchwiki.org", "wss://relay.trustroots.org", "wss://nos.lol"
+    "wss://relay.nomadwiki.org", "wss://relay.trustroots.org", "wss://nos.lol"
 ];
 
 // // fetches all text events since 24 hr ago in streaming manner
