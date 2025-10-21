@@ -1,3 +1,30 @@
+TODO: try
+
+Option B: Use Cloudflare’s “Rules → Configuration Rules” (new method, 2024–2025)
+
+Go to Rules → Configuration Rules in your dashboard.
+
+Click Create Rule.
+
+Give it a name like “Bypass OAuth endpoint”.
+
+For Expression, use something like:
+
+(http.request.uri.path contains "/w/index.php" and http.request.uri.query contains "title=Special:OAuth")
+
+
+Under Settings, choose:
+
+Security Level → Essentially Off
+
+Cache Level → Bypass
+
+Disable Browser Integrity Check (optional)
+
+Save and deploy. This will make Cloudflare act as a “dumb proxy” for that endpoint — requests will pass straight through.
+
+----
+
 testing oauth from nomadwiki here
 
 run the example app
