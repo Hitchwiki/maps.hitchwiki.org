@@ -42,7 +42,7 @@ async function initializeMap() {
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
       attribution:
-        '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, <a href=https://hitchmap.com/copyright.html>Hitchmap</a>',
+        '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, <a href="/copyright.html">Hitchmap</a>',
     }).addTo(map);
   });
 }
