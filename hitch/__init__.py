@@ -105,6 +105,7 @@ def register_commands(app):
             *([("fetch_nostr", "")] if ENVIRONMENT == "prod" else []),
             *([("sync_osm", "")] if ENVIRONMENT == "prod" else []),
             *([("sync_hitchwiki", "")] if ENVIRONMENT == "prod" else []),
+            *([("sync_upstream", "")] if ENVIRONMENT == "prod" else []),
             ("show", ""),
             *([("cities", "")] if ENVIRONMENT == "prod" else []),
         ]
