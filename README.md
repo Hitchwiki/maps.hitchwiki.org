@@ -99,12 +99,12 @@ sudo systemctl reload apache2
 ```
 
 ## Data
-If you find the data collected and provided by hitchmap.com helpful, feel free to cite it using:
+If you find the data collected and provided by maps.hitchwiki.org helpful, feel free to cite it using:
 ```
 @misc{hitchhiking,
 author = {Till Wenke},
 title = {Dataset of Hitchhiking Trips},
-year = {2024},
+year = {2025},
 url = {https://maps.hitchwiki.org},
 }
 ```
