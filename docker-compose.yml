@@ -3,11 +3,14 @@ services:
     build: .
     container_name: hitchhiking-map
     ports:
-      - "5000:5000"
+      - "4242:4242"
     volumes:
       - ./db:/app/db
       - ./logs:/app/logs
       - ./dist:/app/dist
+      - ./hitch/static:/app/hitch/static
+      - ./hitch/templates:/app/hitch/templates
     environment:
-      # Add any environment variables here
-      EXAMPLE_ENV: value
+      - FLASK_RUN_PORT=4242
+    env_file:
+      - .env

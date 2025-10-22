@@ -71,7 +71,7 @@ configuration.
 
 ```
 sudo docker build -t hitch .
-sudo docker run -p 5000:5000 --name hitchhiking-map -d hitch
+sudo docker run -p 4242:4242 --name hitchhiking-map -d hitch
 # or
 sudo docker compose up --build -d
 

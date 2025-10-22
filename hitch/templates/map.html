@@ -115,8 +115,8 @@
     <h3>Filters</h3>
     <label for="user-filter">Filter by user</label>
     <input id="user-filter" type="text" value="" />
-    <label for="text-filter">Search comments</label>
-    <input id="text-filter" type="text" value="" />
+    <label for="text-filter">Search spots</label>
+    <input id="text-filter" type="search" />
     <label for="distance-filter">Minimum distance (km)</label>
     <input id="distance-filter" type="number" value="" />
     <input id="osm-toggle" type="checkbox" value="" /> <label for="osm-toggle">Official spots only</label>
@@ -177,5 +177,12 @@
         <p>Your review will appear on the map within 10 minutes. Refreshing may be needed.</p>
         <button id="success-close-btn" class="success-close-btn">Continue</button>
     </div>
+</div>
+
+<!-- Logo in bottom left corner -->
+<div class="logo-container">
+    <a href="https://hitchwiki.org" target="_blank" rel="noopener" title="Visit Hitchwiki.org" onclick="console.log('Logo clicked!'); return true;">
+        <img src="/static/logo.png" alt="Hitchhiking Map Logo" title="Hitchhiking Map">
+    </a>
 </div>
 {% endblock %}

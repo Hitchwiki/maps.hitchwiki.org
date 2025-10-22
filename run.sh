@@ -7,4 +7,5 @@ cd /app
 
 flask init
 service cron start
-flask run --host=0.0.0.0 --port=5000
+export FLASK_RUN_PORT=4242
+flask run --host=0.0.0.0 --port=4242
