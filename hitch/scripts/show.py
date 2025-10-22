@@ -6,6 +6,7 @@ import warnings
 
 import numpy as np
 import pandas as pd
+from flask import current_app
 from sklearn.exceptions import InconsistentVersionWarning
 
 from hitch.helpers import e, get_bearing, get_db, get_dirs, haversine_np, write_json_file
@@ -18,6 +19,40 @@ dirs = get_dirs()
 logger.info("Creating directories if they don't exist")
 os.makedirs(dirs["dist"], exist_ok=True)
 
+# Check if we need to regenerate JSON files
+def should_regenerate_json():
+    """Check if JSON files need regeneration based on database modification time."""
+    db_path = current_app.config["DATABASE_URI"]
+    
+    # Check if database exists
+    if not os.path.exists(db_path):
+        logger.warning(f"Database file not found: {db_path}")
+        return True
+    
+    db_mtime = os.path.getmtime(db_path)
+    
+    # Check each JSON file
+    json_files = ["spots.json", "rides.json", "spots_recent.json"]
+    
+    # Only check heatmap if it's enabled
+    if current_app.config.get("GENERATE_HEATMAP", True):
+        json_files.append("heatmap.json")
+    
+    for json_file in json_files:
+        json_path = os.path.join(dirs["dist"], json_file)
+        if not os.path.exists(json_path) or os.path.getmtime(json_path) < db_mtime:
+            logger.info(f"Regeneration needed: {json_file} is missing or outdated")
+            return True
+    
+    return False
+
+# Skip processing if JSON files are up to date (unless forced)
+if not current_app.config.get("FORCE_REGENERATE", False) and not should_regenerate_json():
+    logger.info("JSON files are up to date, skipping regeneration")
+    logger.info("SHOW SCRIPT FINISHED")
+    exit(0)
+
+logger.info("Database has been updated, regenerating JSON files")
 logger.info("Fetching rides")
 rides_df = pd.read_sql("select * from ride_event", get_db())
 logger.info(f"Got {len(rides_df)} rides")
@@ -404,6 +439,7 @@ places["hitchwiki_map_link"] = places.apply(
 logger.info(f"Found {places['hitchwiki_map_link'].notnull().sum()} places visible in Hitchwiki maps")
 
 logger.info("Generating JSON data files")
+
 # Generate spots data with coordinate-based IDs and OSM spot matching
 spots_data = []
 for _, place in places.iterrows():
@@ -545,15 +581,18 @@ def generate_heatmap_data():
     }
 
 
-# Generate heatmap data file
-logger.info("Generating heatmap data")
-try:
-    heatmap_data = generate_heatmap_data()
-    write_json_file(heatmap_data, "heatmap.json")
-    logger.info("Heatmap data generated successfully")
-except Exception as e:
-    logger.error(f"Failed to generate heatmap data: {e}")
-    logger.info("Continuing without heatmap data")
+# Generate heatmap data file (unless disabled)
+if current_app.config.get("GENERATE_HEATMAP", True):
+    logger.info("Generating heatmap data")
+    try:
+        heatmap_data = generate_heatmap_data()
+        write_json_file(heatmap_data, "heatmap.json")
+        logger.info("Heatmap data generated successfully")
+    except Exception as e:
+        logger.error(f"Failed to generate heatmap data: {e}")
+        logger.info("Continuing without heatmap data")
+else:
+    logger.info("Heatmap generation disabled")
 
 logger.info("All data preparation completed")
 logger.info("SHOW SCRIPT FINISHED")
