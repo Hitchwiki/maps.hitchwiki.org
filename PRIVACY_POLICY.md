@@ -27,10 +27,10 @@ Our server (and thus your data) is securely hosted in the EU.
 
 ### Research
 
-Hitchhiking and more broadly mobility research might be conducted using the data collected on Hitchmap including user data. No individual data will be published, only aggregate data. See our [statistics page](https://hitchmap.com/dashboard.html) for more information.
+Hitchhiking and more broadly mobility research might be conducted using the data collected on Hitchmap including user data. No individual data will be published, only aggregate data. See our [statistics page](https://maps.hitchwiki.org/dashboard.html) for more information.
 
 ---
 
 ### Questions?
 
-[Drop us a line!](mailto:info@hitchmap.com)
+[Drop us a line!](mailto:maps@hitchwiki.com)

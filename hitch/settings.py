@@ -11,7 +11,7 @@ sql_prefix = "sqlite:///" if sys.platform.startswith("win") else "sqlite:////"
 
 class BaseConfig:
     SECRET_KEY = os.getenv("SECRET_KEY", "super_secret_key")
-    EMAIL = os.getenv("EMAIL", "info@hitchmap.com")
+    EMAIL = os.getenv("EMAIL", "maps@hitchwiki.org")
     MAX_CLAIMS_PER_DAY = os.getenv("MAX_CLAIMS_PER_DAY", 10)
 
     # User Config
@@ -34,7 +34,7 @@ class BaseConfig:
         (
             "%(username)s is already associated with an account. ",
             f"Please reach out to {EMAIL} if you want to claim this username because you used it before as a nickname ",
-            "on hitchmap.com and/or you use this username on hitchwiki.org as well.",
+            "on maps.hitchwiki.org and/or you use this username on hitchwiki.org as well.",
         ),
         "error",
     )

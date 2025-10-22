@@ -26,7 +26,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the code
 COPY . .
 
-# RUN curl -fsSL https://hitchmap.com/dump.sqlite -o db/prod-points.sqlite
+# RUN curl -fsSL https://maps.hitchwiki.org/dump.sqlite -o db/prod-points.sqlite
 
 # Expose port (adjust if your server uses a different port)
 EXPOSE 5000
