@@ -1,0 +1,277 @@
+# Hitchhiking Map Project - Cursor Rules
+
+## Project Overview
+This is a Flask-based web application for mapping hitchhiking rides using the Nostr protocol. The project is a fork of the original Hitchmap by Bob de Ruiter and Till Wenke, now maintained by Hitchwiki. It serves as a decentralized platform for sharing hitchhiking experiences and ride data.
+
+## Technology Stack
+- **Backend**: Flask with SQLAlchemy ORM
+- **Database**: SQLite (production/development)
+- **Authentication**: Flask-Security with username-based auth
+- **Frontend**: HTML templates with JavaScript, CSS, and Folium maps
+- **Data Protocol**: Nostr for decentralized ride data
+- **Deployment**: Docker with Apache/NGINX reverse proxy
+- **Code Quality**: Ruff for linting and formatting
+
+## Architecture
+
+### Core Structure
+- **Flask App Factory**: `hitch/__init__.py` with blueprint registration
+- **Database Models**: `hitch/models.py` - User, RideEvent, OsmHitchhikingSpot, etc.
+- **Blueprints**:
+  - `main` - Map rendering, experience logging, ride submission
+  - `user` - User management and authentication  
+  - `publish_ride` - Ride publishing to Nostr protocol
+- **Extensions**: Flask-Security, Flask-SQLAlchemy, Flask-Mailman
+- **Scripts**: Data processing in `hitch/scripts/` (fetch_nostr, show, dashboard, etc.)
+
+### Key Models
+- **RideEvent**: Stores Nostr ride events with JSON content and extracted columns
+- **OsmHitchhikingSpot**: OpenStreetMap hitchhiking locations
+- **HitchwikiArticleLocation**: Hitchwiki article coordinates
+- **CoHitchhiker**: Co-hitchhiker acceptance tracking
+- **User**: Extended user model with hitchhiking profile data
+
+## Development Guidelines
+
+### Environment Setup
+```bash
+# Virtual environment
+python3 -m venv .venv && source .venv/bin/activate
+
+# Dependencies
+pip install -r requirements.txt
+
+# Database setup
+curl https://hitchmap.com/dump.sqlite > db/points.sqlite
+curl https://hitchmap.com/dump.sqlite > db/prod-points.sqlite
+
+# Configuration
+cp example.env .env
+cp user-password.py.example user-password.py
+```
+
+### Flask Commands
+- `flask init` - Initialize database and run generate-all
+- `flask run` - Start development server
+- `flask generate <script_name>` - Run specific script
+- `flask generate-all` - Execute all data processing scripts
+
+### Code Quality Standards
+- **Linting**: Use `ruff check` (line length: 130)
+- **Formatting**: Use `ruff format`
+- **Pre-commit**: Configured with ruff hooks
+- **Configuration**: `ruff.toml` with pycodestyle, pyflakes, pyupgrade, flake8-bugbear, flake8-simplify, isort
+
+### Database Management
+- **SQLite**: Primary database with configurable paths
+- **Migrations**: Handled through Flask-SQLAlchemy
+- **Data Sources**: 
+  - Nostr relays for ride data
+  - OpenStreetMap for hitchhiking spots
+  - Hitchwiki for article locations
+
+## Coding Standards
+
+### Python Style
+- Follow PEP 8 with 130 character line length
+- Use type hints where appropriate
+- Prefer explicit imports over wildcard imports
+- Use descriptive variable and function names
+- Add docstrings for public functions and classes
+
+### Flask Patterns
+- Use blueprints for route organization
+- Implement proper error handling with try/catch blocks
+- Use Flask-Security decorators for authentication
+- Follow the app factory pattern in `__init__.py`
+
+### Database Patterns
+- Use SQLAlchemy ORM for all database operations
+- Define models in `models.py` with proper relationships
+- Use database sessions properly (commit/rollback)
+- Handle database errors gracefully
+
+### Nostr Integration
+- Follow the hitchhiking data standard for ride events, https://github.com/Hitchwiki/hitchhiking-data-standard
+- Use proper JSON structure for ride content
+- Implement proper error handling for relay connections
+- Validate data before posting to Nostr
+
+## File Organization
+
+### Directory Structure
+```
+hitch/
+├── __init__.py          # Flask app factory
+├── models.py            # Database models
+├── settings.py          # Configuration classes
+├── extensions.py        # Flask extensions
+├── forms.py             # WTForms definitions
+├── helpers.py           # Utility functions
+├── blueprints/          # Route blueprints
+│   ├── main.py         # Main application routes
+│   ├── user.py         # User management
+│   └── publish_ride.py # Nostr publishing
+├── scripts/             # Data processing scripts
+├── static/              # Static assets (CSS, JS, images)
+└── templates/           # Jinja2 templates
+```
+
+### Script Organization
+- Data fetching scripts in `hitch/scripts/`
+- Use proper error handling and logging
+- Implement file locking for cron jobs
+- Follow the pattern in existing scripts
+
+## Security Considerations
+
+### Authentication
+- Username-based authentication (not email)
+- Password hashing with Argon2
+- Session management with strict SameSite cookies
+- CSRF protection for POST requests
+
+### Data Privacy
+- User data is owned by users (can be deleted)
+- No commercial use of profile data
+- EU-based hosting for data protection
+- Aggregate data only for research
+
+### Environment Variables
+- Never commit secrets to version control
+- Use `.env` files for local development
+- Set proper environment variables for production
+- Keep OAuth credentials secure
+
+## Deployment
+
+### Docker
+- Use provided Dockerfile and docker-compose.yml
+- Mount volumes for database and logs
+- Set proper environment variables
+- Use production WSGI server (Waitress)
+
+### Cron Jobs
+- Use `cron.sh` for automated data fetching
+- Implement file locking to prevent concurrent runs
+- Log all cron job activities
+- Handle errors gracefully
+
+### Web Server
+- Apache configuration in `apache.conf`
+- Enable required modules (proxy, headers)
+- Use reverse proxy for Flask app
+- Serve static files efficiently
+
+## Data Processing
+
+### Nostr Integration
+- Fetch data from multiple relays
+- Handle connection failures gracefully
+- Validate data structure before processing
+- Update database with new ride events
+
+### Map Data Generation
+- Generate map views every minute via cron
+- Use efficient database queries
+- Cache frequently accessed data
+- Handle large datasets properly
+
+### Analytics
+- Generate dashboard data periodically
+- Use proper aggregation queries
+- Handle missing data gracefully
+- Export data in standard formats
+
+## Testing and Debugging
+
+### Development
+- Use Flask debug mode for development
+- Implement proper logging throughout
+- Test with sample data
+- Use database dumps for testing
+
+### Error Handling
+- Implement comprehensive error handling
+- Log errors with proper context
+- Provide user-friendly error messages
+- Handle database connection issues
+
+## Contributing Guidelines
+
+### Code Changes
+- Follow existing code patterns
+- Add proper error handling
+- Update documentation as needed
+- Test changes thoroughly
+
+### Pull Requests
+- File issues before submitting PRs
+- Reference issues in PR descriptions
+- Ensure code passes linting
+- Test in both development and production environments
+
+### Data Standards
+- Follow the hitchhiking data standard
+- Maintain backward compatibility
+- Document any schema changes
+- Validate data integrity
+
+## Common Patterns
+
+### Route Handlers
+```python
+@main_bp.route('/route')
+@login_required
+def route_handler():
+    try:
+        # Route logic here
+        return render_template('template.html', data=data)
+    except Exception as e:
+        current_app.logger.error(f"Error in route: {e}")
+        return render_template('error.html'), 500
+```
+
+### Database Queries
+```python
+# Use proper session management
+with db.session.begin():
+    ride = RideEvent.query.filter_by(id=ride_id).first()
+    if ride:
+        # Process ride data
+        db.session.commit()
+```
+
+### Nostr Integration
+```python
+# Follow data standard patterns
+poster = HitchhikingDataStandardToNostrPoster()
+try:
+    result = poster.post_ride(ride_data)
+    return jsonify({"success": True, "event_id": result})
+except Exception as e:
+    return jsonify({"success": False, "error": str(e)}), 500
+```
+
+## Performance Considerations
+
+### Database
+- Use proper indexes for frequently queried columns
+- Implement query optimization
+- Use connection pooling
+- Handle large datasets efficiently
+
+### Caching
+- Cache map data generation results
+- Use appropriate cache headers
+- Implement cache invalidation
+- Consider Redis for production
+
+### Static Files
+- Serve static files efficiently
+- Use proper compression
+- Implement CDN for production
+- Optimize images and assets
+
+Remember: This project embraces decentralization through Nostr and maintains user privacy while providing valuable hitchhiking data to the community.
+
