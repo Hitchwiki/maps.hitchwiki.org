@@ -733,3 +733,52 @@ ul.no-style {
     transform: scale(1);
   }
 }
+
+/* Logo in bottom left corner */
+.logo-container {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 10000;
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+
+.logo-container:hover {
+  opacity: 1;
+}
+
+.logo-container a {
+  display: block;
+  text-decoration: none;
+  cursor: pointer;
+  position: relative;
+  z-index: 10001;
+}
+
+.logo-container img {
+  width: 70px;
+  height: 70px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+  display: block;
+}
+
+.logo-container img:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Responsive adjustments for mobile */
+@media only screen and (max-width: 700px) {
+  .logo-container {
+    bottom: 15px;
+    left: 15px;
+  }
+  
+  .logo-container img {
+    width: 60px;
+    height: 60px;
+  }
+}

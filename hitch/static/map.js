@@ -305,7 +305,17 @@ function createHeatmapLegend(legendData) {
   handleHashChange();
   window.onhashchange = navigate;
   navigate();
+  
+  // Focus on search input after page loads
+  setTimeout(() => {
+    const textFilterInput = document.getElementById('text-filter');
+    if (textFilterInput) {
+      textFilterInput.focus();
+    }
+  }, 500);
+
 })();
+
 
 // Set up the geocoder for location search
 function setupGeocoder() {
@@ -314,7 +324,7 @@ function setupGeocoder() {
     defaultMarkGeocode: false,
     position: "topleft",
     provider: "photon",
-    placeholder: "Jump to city, search comments",
+    placeholder: "Search",
     zoom: 11,
     geocoder: L.Control.Geocoder.photon(),
   };
@@ -322,6 +332,7 @@ function setupGeocoder() {
   let geocoderController = L.Control.geocoder(geocoderOpts).addTo(map);
   let geocoderInput = $$(".leaflet-control-geocoder input");
   geocoderInput.type = "search";
+
 
   geocoderController.on("markgeocode", function (e) {
     var zoom = geocoderOpts.zoom || map.getZoom();
