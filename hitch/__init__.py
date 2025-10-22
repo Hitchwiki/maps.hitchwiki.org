@@ -72,12 +72,14 @@ def register_commands(app):
     @app.cli.command()
     @click.argument("script", default="show")
     @click.option("--args", default="", help="Arguments for the script")
-    def generate(script, args):
+    @click.option("--no-heatmap", is_flag=True, help="Skip heatmap generation (show script only)")
+    @click.option("--force", is_flag=True, help="Force regeneration even if JSON files are up to date")
+    def generate(script, args, no_heatmap, force):
         """
         Executes a given script
 
-        USAGE: flask --app hitch generate <script> --args <args>
-        EXAMPLE: flask --app hitch generate show
+        USAGE: flask --app hitch generate <script> [OPTIONS]
+        EXAMPLE: flask --app hitch generate show --no-heatmap
         """
         try:
             module = f"hitch.scripts.{script}"
@@ -85,6 +87,13 @@ def register_commands(app):
             # Sets arguments on the current process (workaround because import_module cannot take args)
             sys.argv.clear()
             sys.argv.append(args)
+            
+            # Add generation flags to Flask config for the script to use
+            if script == "show":
+                if no_heatmap:
+                    app.config["GENERATE_HEATMAP"] = False
+                if force:
+                    app.config["FORCE_REGENERATE"] = True
 
             # Runs a script automatically through importing it (or reloading so it gets executed again)
             if module not in sys.modules:
