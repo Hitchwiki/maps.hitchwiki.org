@@ -34,7 +34,7 @@ pip install flask requests requests-oauthlib
 python3 app.py
 ```
 
-`http://127.0.0.1:5000/login` should not throw errors. right now it gives: 404/500/TokenRequestDenied
+`http://127.0.0.1:4242/login` should not throw errors. right now it gives: 404/500/TokenRequestDenied
 
 Currently it gives
 ```
@@ -42,8 +42,8 @@ Currently it gives
  * Debug mode: off
 WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
  * Running on all addresses (0.0.0.0)
- * Running on http://127.0.0.1:5000
- * Running on http://10.211.61.9:5000
+ * Running on http://127.0.0.1:4242
+ * Running on http://10.211.61.9:4242
 Press CTRL+C to quit
 127.0.0.1 - - [28/Sep/2025 11:12:52] "GET / HTTP/1.1" 404 -
 127.0.0.1 - - [28/Sep/2025 11:12:53] "GET /favicon.ico HTTP/1.1" 404 -

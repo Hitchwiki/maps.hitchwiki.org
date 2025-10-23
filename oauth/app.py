@@ -101,5 +101,5 @@ if __name__ == '__main__':
     app.run(
         debug=os.getenv('FLASK_DEBUG', 'False').lower() == 'true',
         host='0.0.0.0',
-        port=int(os.getenv('PORT', 5000))
+        port=int(os.getenv('PORT', 4242))
     )
