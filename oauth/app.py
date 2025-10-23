@@ -1,4 +1,5 @@
 import os
+import secrets
 
 from flask import Flask, redirect, request, session, url_for
 from requests_oauthlib import OAuth1Session
@@ -9,6 +10,10 @@ app.secret_key = os.getenv("OAUTH_SECRET_KEY", secrets.token_hex(32))
 # OAuth credentials from MediaWiki
 CONSUMER_KEY = os.getenv("OAUTH_CONSUMER_KEY")
 CONSUMER_SECRET = os.getenv("OAUTH_CONSUMER_SECRET")
+
+# Validate required environment variables
+if not CONSUMER_KEY or not CONSUMER_SECRET:
+    raise ValueError("OAUTH_CONSUMER_KEY and OAUTH_CONSUMER_SECRET environment variables must be set")
 
 # MediaWiki OAuth endpoints
 MEDIAWIKI_BASE_URL = 'https://nomadwiki.org'
