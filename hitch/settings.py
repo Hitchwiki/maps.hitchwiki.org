@@ -59,6 +59,10 @@ class BaseConfig:
     MAIL_PASSWORD = os.getenv("HITCHWIKI_MAIL_PASSWORD", "password")  # Load password from env
     MAIL_DEFAULT_SENDER = ("Hitchhiking Map", "no-reply@hitchwiki.org")
 
+    # UI Configuration
+    HIDE_ADD_SPOT_BUTTON = os.getenv("HIDE_ADD_SPOT_BUTTON", "false").lower() == "true"
+    HIDE_ACCOUNT_BUTTON = os.getenv("HIDE_ACCOUNT_BUTTON", "false").lower() == "true"
+
 
 class DevelopmentConfig(BaseConfig):
     pass

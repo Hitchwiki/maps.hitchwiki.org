@@ -28,6 +28,10 @@
 {% if map_variation %}
 <script>var MAP_VARIATION = "{{ map_variation }}";</script>
 {% endif %}
+<script>
+var HIDE_ADD_SPOT_BUTTON = {{ hide_add_spot_button|tojson }};
+var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
+</script>
 <script src="/static/map.js"></script>
 <script async defer src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
 {% endblock %}

@@ -344,8 +344,17 @@ function setupGeocoder() {
 // Add custom controls to the map
 function addMapControls() {
   map.addControl(new MenuButton());
-  map.addControl(new AddSpotButton());
-  map.addControl(new AccountButton());
+  
+  // Add Add Spot button only if not hidden by environment flag
+  if (typeof HIDE_ADD_SPOT_BUTTON === 'undefined' || !HIDE_ADD_SPOT_BUTTON) {
+    map.addControl(new AddSpotButton());
+  }
+  
+  // Add Account button only if not hidden by environment flag
+  if (typeof HIDE_ACCOUNT_BUTTON === 'undefined' || !HIDE_ACCOUNT_BUTTON) {
+    map.addControl(new AccountButton());
+  }
+  
   map.addControl(new FilterButton());
   map.addControl(new RoutingButton());
 
