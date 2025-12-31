@@ -1,3 +1,7 @@
+Currently we took down the site, because we did not find the time to fix some instabilities for a while. If spinning it up again make sure to comply with the https://github.com/hitchmap/hitchmap license.
+
+---
+
 Deploment location: Hitchwiki server `/home/hitch`
 
 <!-- PROJECT SHIELDS -->
