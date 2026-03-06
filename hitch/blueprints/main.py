@@ -49,7 +49,12 @@ def _user_owns_ride(ride, user):
 @main_bp.route("/<any(light, with_destination):map_variation>")
 @main_bp.route("/<any(index, light, with_destination):map_variation>.html")
 def render_map(map_variation):
-    return render_template("map.html", map_variation=map_variation)
+    return render_template(
+        "map.html", 
+        map_variation=map_variation,
+        hide_add_spot_button=current_app.config.get("HIDE_ADD_SPOT_BUTTON", False),
+        hide_account_button=current_app.config.get("HIDE_ACCOUNT_BUTTON", False)
+    )
 
 
 @main_bp.route("/ride", methods=["GET", "POST"])
