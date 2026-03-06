@@ -1,12 +1,10 @@
 """Create separate HTML pages for major cities mentioned in hitchhiking reviews. Also for SEO purposes."""
-import io
 import json
 import logging
 import os
 import zipfile
 
 import pandas as pd
-import requests
 from jinja2 import Environment, FileSystemLoader
 
 from hitch.helpers import get_dirs

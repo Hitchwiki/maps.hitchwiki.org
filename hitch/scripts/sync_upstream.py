@@ -1,3 +1,4 @@
+# TODO: check what this does and why it is needed
 """Script to fetch and merge upstream hitchmap database dump from hitchwiki.org."""
 import gzip
 import logging
@@ -6,11 +7,9 @@ import shutil
 import sqlite3
 import tempfile
 from datetime import datetime
-from pathlib import Path
 
 import requests
 
-from hitch.extensions import db
 from hitch.helpers import get_dirs
 
 logging.basicConfig(
@@ -182,7 +181,7 @@ def main():
     
     try:
         # Create backup of local database
-        backup_path = create_backup()
+        _ = create_backup()
         
         # Download and extract upstream dump
         temp_upstream_path = download_upstream_dump()

@@ -45,8 +45,6 @@ Works with Python 3.12.6
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-curl https://hitchmap.com/dump.sqlite > db/points.sqlite
-curl https://hitchmap.com/dump.sqlite > db/prod-points.sqlite
 ```
 
 ```
@@ -64,8 +62,7 @@ flask init
 flask run
 ```
 
-In order to run the project continuously, use `cron.sh` to set up corresponding cronjobs to update the views and `hitchmap.conf` as a basic NGINX 
-configuration.
+In order to run the project continuously, use `cron.sh` to set up corresponding cronjobs to update the views and `hitchmap.conf` as a basic NGINX configuration.
 
 ### Deploy with Docker
 
@@ -129,6 +126,7 @@ The software provided in this repository is licensed under AGPL 3.0. The Hitchma
 [Flask-url]: https://flask.palletsprojects.com/en/stable/
 
 # Development
+TODO: specify
 
 CONTRIBUTING.md
 

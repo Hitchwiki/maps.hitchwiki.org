@@ -31,7 +31,7 @@ class HitchhikingDataStandardToNostrPoster:
         for relay in RELAYS:
             self.relay_manager.add_relay(relay)
 
-        self.event_kind = 36820  # Event kind for hitchhiking notes
+        self.event_kind = 34242  # Event kind for hitchhiking notes
 
     def post(self, ride_record: HitchhikingRecord, tags: list = None) -> str:
         """Post a ride in the standardized format to Nostr and return the d tag.
