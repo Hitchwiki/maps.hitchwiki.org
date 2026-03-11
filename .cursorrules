@@ -47,7 +47,7 @@ curl https://hitchmap.com/dump.sqlite > db/prod-points.sqlite
 
 # Configuration
 cp example.env .env
-cp user-password.py.example user-password.py
+cp pywikibot/user-password.py.example pywikibot/user-password.py
 ```
 
 ### Flask Commands
@@ -152,13 +152,13 @@ hitch/
 - Use production WSGI server (Waitress)
 
 ### Cron Jobs
-- Use `cron.sh` for automated data fetching
+- Use `deploy/cron.sh` for automated data fetching
 - Implement file locking to prevent concurrent runs
 - Log all cron job activities
 - Handle errors gracefully
 
 ### Web Server
-- Apache configuration in `apache.conf`
+- Apache configuration in `deploy/apache.conf`
 - Enable required modules (proxy, headers)
 - Use reverse proxy for Flask app
 - Serve static files efficiently

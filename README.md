@@ -49,7 +49,7 @@ pip install -r requirements.txt
 
 ```
 cp example.env .env
-cp user-password.py.example user-password.py
+cp pywikibot/user-password.py.example pywikibot/user-password.py
 ```
 And set the missing env variables.
 
@@ -62,7 +62,7 @@ flask init
 flask run
 ```
 
-In order to run the project continuously, use `cron.sh` to set up corresponding cronjobs to update the views and `hitchmap.conf` as a basic NGINX configuration.
+In order to run the project continuously, use `deploy/cron.sh` to set up corresponding cronjobs to update the views and `hitchmap.conf` as a basic NGINX configuration.
 
 ### Deploy with Docker
 
@@ -81,7 +81,7 @@ sudo docker rm hitchhiking-map
 Serving with Apache
 
 ```shell
-sudo cp apache.conf /etc/apache2/sites-available/25-hwmaptest.conf
+sudo cp deploy/apache.conf /etc/apache2/sites-available/25-hwmaptest.conf
 ```
 
 ```shell
@@ -133,3 +133,9 @@ CONTRIBUTING.md
 Install pre-commit
 
 install ruff
+
+## Testing
+
+```bash
+python -m pytest tests/ -v
+```

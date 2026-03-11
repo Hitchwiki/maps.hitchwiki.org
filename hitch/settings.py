@@ -70,7 +70,7 @@ class ProductionConfig(BaseConfig):
 
 class TestingConfig(BaseConfig):
     TESTING = True
-    DATABASE_URI = "sqlite:///"
+    SQLALCHEMY_DATABASE_URI = "sqlite:///"
     WTF_CSRF_ENABLED = False
 
 

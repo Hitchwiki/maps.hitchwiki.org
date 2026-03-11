@@ -40,8 +40,11 @@ def should_regenerate_json():
     
     for json_file in json_files:
         json_path = os.path.join(dirs["dist"], json_file)
-        if not os.path.exists(json_path) or os.path.getmtime(json_path) < db_mtime:
-            logger.info(f"Regeneration needed: {json_file} is missing or outdated")
+        if not os.path.exists(json_path):
+            logger.info(f"Regeneration needed: {json_file} is missing")
+            return True
+        elif os.path.getmtime(json_path) < db_mtime:
+            logger.info(f"Regeneration needed: {json_file} is outdated")
             return True
     
     return False

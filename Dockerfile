@@ -35,7 +35,7 @@ EXPOSE 4242
 # RUN ["python", "scripts/dashboard.py"]
 
 # Install crontab from cron.sh
-RUN crontab /app/cron.sh
+RUN crontab /app/deploy/cron.sh
 
 # Start cron in background and run the server
-CMD ["sh", "run.sh"]
+CMD ["sh", "deploy/run.sh"]

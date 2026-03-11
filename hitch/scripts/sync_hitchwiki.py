@@ -7,13 +7,15 @@ import re
 import urllib.parse
 
 import pandas as pd
-import pywikibot
-from pywikibot import pagegenerators
 from tqdm import tqdm
 
 from hitch.extensions import db
 from hitch.helpers import get_dirs
 from hitch.models import HitchwikiArticleLocation, HitchwikiArticleMap
+
+os.environ.setdefault("PYWIKIBOT_DIR", os.path.join(os.path.dirname(__file__), "..", "..", "pywikibot"))
+import pywikibot  # noqa: E402
+from pywikibot import pagegenerators  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger(__name__)

@@ -134,11 +134,11 @@ if [ ! -f ".env" ]; then
 fi
 
 # Check for user-password.py
-if [ ! -f "user-password.py" ]; then
-    if [ -f "user-password.py.example" ]; then
-        print_warning "user-password.py not found, copying from example"
-        cp user-password.py.example user-password.py
-        print_warning "Please edit user-password.py with your configuration"
+if [ ! -f "pywikibot/user-password.py" ]; then
+    if [ -f "pywikibot/user-password.py.example" ]; then
+        print_warning "pywikibot/user-password.py not found, copying from example"
+        cp pywikibot/user-password.py.example pywikibot/user-password.py
+        print_warning "Please edit pywikibot/user-password.py with your configuration"
     fi
 fi
 
