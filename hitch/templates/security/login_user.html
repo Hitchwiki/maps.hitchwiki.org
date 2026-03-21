@@ -1,0 +1,22 @@
+{% extends "security/base.html" %}
+
+{% set title = "Login" %}
+
+{% block content %}
+<h1>Login</h1>
+<p>
+  The Hitchhiking Map is made for all hitchhikers to learn from each others experiences.
+  Thus all your rides and personal information (except your email address) will be publicly available.
+  Only share as much as you are comfortable with.
+  Keep in mind that hitchhikers are a vulnerable group and may face risks while traveling.
+</p>
+<p>
+  Log in with your Hitchwiki account. If you don't have one yet, you can
+  <a href="https://hitchwiki.org/en/Special:CreateAccount">create one on hitchwiki.org</a>.
+  A new account on the Hitchhiking Map will be created for you automatically on first login.
+</p>
+<br>
+<a href="/login/oauth" style="display: inline-block; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 4px;">
+  Login with Hitchwiki
+</a>
+{% endblock content %}

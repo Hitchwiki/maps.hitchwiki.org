@@ -17,30 +17,35 @@ class BaseConfig:
     # User Config
     SECURITY_PASSWORD_HASH = os.getenv("SECURITY_PASSWORD_HASH", "argon2")
     SECURITY_PASSWORD_SALT = os.getenv("SECURITY_PASSWORD_SALT", "146585145368132386173505678016728509634")
-    SECURITY_REGISTERABLE = True
+    SECURITY_REGISTERABLE = False
     SECURITY_SEND_REGISTER_EMAIL = False
-    SECURITY_POST_REGISTER_VIEW = "/edit-user"
 
     SECURITY_CONFIRMABLE = False
-    SECURITY_RECOVERABLE = True
-    SECURITY_CHANGE_EMAIL = True
+    SECURITY_RECOVERABLE = False
+    SECURITY_CHANGE_EMAIL = False
 
     SECURITY_USERNAME_ENABLE = True
     SECURITY_USERNAME_REQUIRED = True
-    SECURITY_USERNAME_MIN_LENGTH = 3
-    SECURITY_USERNAME_MAX_LENGTH = 32
+    SECURITY_USERNAME_MIN_LENGTH = 1
+    SECURITY_USERNAME_MAX_LENGTH = 255
     SECURITY_USER_IDENTITY_ATTRIBUTES = [{"username": {"mapper": utils.uia_username_mapper, "case_insensitive": True}}]
-    SECURITY_MSG_USERNAME_ALREADY_ASSOCIATED = (
-        (
-            "%(username)s is already associated with an account. ",
-            f"Please reach out to {EMAIL} if you want to claim this username because you used it before as a nickname ",
-            "on maps.hitchwiki.org and/or you use this username on hitchwiki.org as well.",
-        ),
-        "error",
-    )
 
-    # Lax = CSRF protection for POST requests, Strict also includes GET requests
-    SESSION_COOKIE_SAMESITE = "Strict"
+    # Move Flask-Security's built-in views to hidden URLs.
+    # Auth is handled via Hitchwiki OAuth in the oauth blueprint at /login, /logout, /register.
+    SECURITY_LOGIN_URL = "/_fs/login"
+    SECURITY_LOGOUT_URL = "/_fs/logout"
+    SECURITY_REGISTER_URL = "/_fs/register"
+    SECURITY_POST_LOGIN_VIEW = "/me"
+    SECURITY_POST_LOGOUT_VIEW = "/"
+
+    # Hitchwiki OAuth2 config
+    HITCHWIKI_OAUTH_CLIENT_ID = os.getenv("HITCHWIKI_OAUTH_CLIENT_ID")
+    HITCHWIKI_OAUTH_CLIENT_SECRET = os.getenv("HITCHWIKI_OAUTH_CLIENT_SECRET")
+    HITCHWIKI_WIKI_BASE = os.getenv("HITCHWIKI_WIKI_BASE", "https://hitchwiki.org/en")
+
+    # Lax allows the session cookie to be sent on top-level navigations (needed for OAuth redirects).
+    # Strict would block the cookie when returning from hitchwiki.org, breaking the OAuth flow.
+    SESSION_COOKIE_SAMESITE = "Lax"
 
     # Database Config
     DATABASE_NAME = os.getenv("DATABASE_NAME", "points.sqlite")

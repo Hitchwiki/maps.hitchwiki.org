@@ -8,6 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Virtual Environment**: `python3 -m venv .venv && source .venv/bin/activate`
 - **Install Dependencies**: `pip install -r requirements.txt`
 - **Database Setup**: `curl https://hitchmap.com/dump.sqlite > db/points.sqlite && curl https://hitchmap.com/dump.sqlite > db/prod-points.sqlite`
+- **Fix DB permissions**: The downloaded database is often owned by root. Run `sudo chown $USER:$USER db/prod-points.sqlite` (and/or `db/points.sqlite`) to make it writable, otherwise Flask will crash with `sqlite3.OperationalError: attempt to write a readonly database` on any write operation (e.g. user registration).
 - **Configuration**: `cp example.env .env` (then set missing env variables)
 
 ### Flask Commands
@@ -75,6 +76,7 @@ The application aggregates hitchhiking data from multiple sources:
      - Writes raw events to `dist/allPosts.json` and `dist/allPosts.csv` (those are just intermediate files, actually we want the latest state of rides from nostr to go straight into our local database - we do this in the next step by recreating the database, this is simpler than only trying to sync the changes)
      - Python script (`fetch_nostr.py`) reads `dist/allPosts.json`
      - Parses JSON content and extracts ride metadata (stops, signals, ratings, etc.)
+     - the nostr events can contain information about rides that this project does not support yet, all information that is supported is stored in RideEvent, we aim incorporate all information from the nostr rides in the furture
      - Stores in `RideEvent` table with full deletion/recreation on each fetch
    - **Output Files** (in `dist/` directory):
      - `allPosts.json` - Raw Nostr events in JSON format
@@ -118,8 +120,8 @@ The database must exist before the application can run. Two initialization paths
    - Contains historical ride data from legacy hitchmap.com
    - Can be synced with upstream via `sync_upstream.py` (daily at 7 AM)
 
-#### Core Sqlite Tables
-
+#### Core Sqlite Tables (see hitch/models.py for the database schema)
+We use the sqlite tables as a canonical format to easily translate between the nostr data and the data we serve to the frontend via .json files and to store some that is not updated frequently information (e.g. about hitchwiki articles and osm).
 **Tables Written by Application:**
 
 - **`ride_event`**: All Nostr ride events

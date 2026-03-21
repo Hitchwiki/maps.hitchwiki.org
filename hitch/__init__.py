@@ -8,6 +8,7 @@ from flask import Flask, render_template, send_from_directory
 from flask_security import SQLAlchemyUserDatastore
 
 from hitch.blueprints.main import main_bp
+from hitch.blueprints.oauth import oauth_bp
 from hitch.blueprints.user import user_bp
 from hitch.extensions import db, mail, security
 from hitch.models import Role, User
@@ -43,8 +44,12 @@ def register_extensions(app):
     user_datastore = SQLAlchemyUserDatastore(db, User, Role)
     security.init_app(app, user_datastore)
 
+    # Override Flask-Security/Flask-Login's unauthorized redirect to point to our OAuth login
+    app.login_manager.login_view = "oauth.login"
+
 
 def register_blueprints(app):
+    app.register_blueprint(oauth_bp)
     app.register_blueprint(main_bp)
     app.register_blueprint(user_bp)
 
