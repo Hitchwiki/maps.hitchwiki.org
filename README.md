@@ -1,4 +1,6 @@
-Deploment location: Hitchwiki server `/var/www/maps.hitchwiki.org`
+Deploment location on Hitchwiki server `/var/www/maps.hitchwiki.org`
+
+---
 
 <!-- PROJECT SHIELDS -->
 <!--
