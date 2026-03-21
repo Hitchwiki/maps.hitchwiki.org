@@ -480,3 +480,4 @@ junit/
 
 # pywikibot
 pywikibot/user-password.py
+.claude/
