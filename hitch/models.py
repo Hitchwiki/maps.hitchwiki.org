@@ -82,8 +82,10 @@ class RoutingSearch(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     start_lat = db.Column(db.Float, nullable=False)
     start_lon = db.Column(db.Float, nullable=False)
+    start_name = db.Column(db.String(255), nullable=True)
     end_lat = db.Column(db.Float, nullable=False)
     end_lon = db.Column(db.Float, nullable=False)
+    end_name = db.Column(db.String(255), nullable=True)
     timestamp = db.Column(db.DateTime, nullable=False, default=db.func.now())
 
 

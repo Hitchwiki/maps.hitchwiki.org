@@ -435,7 +435,7 @@ function setupFilterEventListeners() {
 }
 
 // Routing functionality
-async function planRoute(startLat, startLon, endLat, endLon) {
+async function planRoute(startLat, startLon, endLat, endLon, startName, endName) {
   try {
     // Clear any existing route first
     clearRoute();
@@ -477,7 +477,9 @@ async function planRoute(startLat, startLon, endLat, endLon) {
       },
       body: JSON.stringify({
         start: [startLat, startLon],
-        end: [endLat, endLon]
+        end: [endLat, endLon],
+        start_name: startName || '',
+        end_name: endName || ''
       })
     });
     
@@ -663,7 +665,9 @@ function setupRoutingEventListeners() {
         return;
       }
       
-      planRoute(startCoords.lat, startCoords.lng, endCoords.lat, endCoords.lng);
+      var startName = document.querySelector('#start-geocoder input')?.value || '';
+      var endName = document.querySelector('#end-geocoder input')?.value || '';
+      planRoute(startCoords.lat, startCoords.lng, endCoords.lat, endCoords.lng, startName, endName);
     };
   }
   

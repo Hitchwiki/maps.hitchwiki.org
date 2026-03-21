@@ -292,7 +292,9 @@ def calculate_route():
         # Log the search request
         db.session.add(RoutingSearch(
             start_lat=start_coords[0], start_lon=start_coords[1],
+            start_name=data.get("start_name", "")[:255],
             end_lat=end_coords[0], end_lon=end_coords[1],
+            end_name=data.get("end_name", "")[:255],
         ))
         db.session.commit()
 
