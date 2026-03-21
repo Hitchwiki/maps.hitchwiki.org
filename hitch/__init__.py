@@ -5,6 +5,7 @@ import sys
 
 import click
 from flask import Flask, render_template, send_from_directory
+from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_security import SQLAlchemyUserDatastore
 
 from hitch.blueprints.main import main_bp
@@ -27,6 +28,9 @@ def create_app(config_name=None):
         config_name = os.getenv("FLASK_CONFIG", "development")
 
     app = Flask(__name__)
+    # Trust X-Forwarded-* headers from Cloudflare/Apache so url_for generates https:// URLs
+    # needed fo r correct OAuth callback URLs and to avoid mixed content issues when behind a reverse proxy
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
     app.config.from_object(config[config_name])
 
     register_extensions(app)
