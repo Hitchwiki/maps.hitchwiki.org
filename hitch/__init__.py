@@ -114,13 +114,14 @@ def register_commands(app):
         """
         Executes all scripts defined in array with given args
         """
-        # TODO: include ("dashboard", ""), ("dump", "") again when fixed
+        # TODO: include ("dump", "") again when fixed
         scripts = [
             *([("fetch_nostr", "")] if ENVIRONMENT == "prod" else []),
             *([("sync_osm", "")] if ENVIRONMENT == "prod" else []),
             *([("sync_hitchwiki", "")] if ENVIRONMENT == "prod" else []),
             *([("sync_upstream", "")] if ENVIRONMENT == "prod" else []),
             ("show", ""),
+            ("dashboard", ""),
             *([("cities", "")] if ENVIRONMENT == "prod" else []),
         ]
         for script, args in scripts:

@@ -20,24 +20,25 @@ logger.info("Loading template and output paths")
 template_path = os.path.join(dirs["templates"], "dashboard_template.html")
 outname = os.path.join(dirs["dist"], "dashboard.html")
 
-# Spots
-logger.info("Fetching data for spots")
+# Rides timeline
+logger.info("Fetching ride events")
 df = pd.read_sql(
-    "select * from points where not banned and datetime is not null",
+    "select * from ride_event where submission_time is not null",
     get_db(),
 )
 
-df["datetime"] = df["datetime"].astype("datetime64[ns]")
+if len(df) == 0:
+    logger.warning("No ride events found, generating empty dashboard")
+    df["datetime"] = pd.Series(dtype="datetime64[ns]")
+else:
+    # submission_time is RFC 9557 string, parse it
+    df["datetime"] = pd.to_datetime(df["submission_time"], errors="coerce")
+    df = df.dropna(subset=["datetime"])
 
-hist_data = df["datetime"]
-fig = px.histogram(df["datetime"], title="Entries per month")
+logger.info(f"Got {len(df)} rides with valid timestamps")
 
-
+fig = px.histogram(df["datetime"], title="Rides per month")
 fig.update_xaxes(
-    range=[
-        "2006-01-01",
-        pd.Timestamp.today().strftime("%Y-%m-%d"),
-    ],
     rangeselector=dict(
         buttons=list(
             [
@@ -52,84 +53,45 @@ fig.update_xaxes(
         )
     ),
 )
-
 fig.update_layout(showlegend=False)
 fig.update_layout(xaxis_title=None)
-fig.update_layout(yaxis_title="# of entries")
+fig.update_layout(yaxis_title="# of rides")
 
-
-logger.info("Generating HTML for spots timeline plot")
+logger.info("Generating HTML for rides timeline plot")
 timeline_plot = fig.to_html("dash.html", full_html=False)
 
-# Duplicates
-logger.info("Fetching data for duplicates")
-df = pd.read_sql(
-    "select * from duplicates",
-    get_db(),
-)
 
-df["datetime"] = df["datetime"].astype("datetime64[ns]")
-
-hist_data = df["datetime"]
-fig = px.histogram(df["datetime"], title="Entries per month")
-
-
-fig.update_xaxes(
-    range=[
-        "2024-06-01",
-        pd.Timestamp.today().strftime("%Y-%m-%d"),
-    ],
-    rangeselector=dict(
-        buttons=list(
-            [
-                dict(count=1, label="1m", step="month", stepmode="backward"),
-                dict(count=6, label="6m", step="month", stepmode="backward"),
-                dict(count=1, label="1y", step="year", stepmode="backward"),
-                dict(count=2, label="2y", step="year", stepmode="backward"),
-                dict(count=5, label="5y", step="year", stepmode="backward"),
-                dict(count=10, label="10y", step="year", stepmode="backward"),
-                dict(step="all"),
-            ]
-        )
-    ),
-)
-
-fig.update_layout(showlegend=False)
-fig.update_layout(xaxis_title=None)
-fig.update_layout(yaxis_title="# of entries")
-
-
-logger.info("Generating HTML for duplicates timeline plot")
-timeline_plot_duplicate = fig.to_html("dash.html", full_html=False)
-
-
-# TODO: necessary to track user prgress, move elsewhere later
+# User accounts
 def e(s):
     return html.escape(s.replace("\n", "<br>"))
 
 
-logger.info("Fetching user points data")
-points = pd.read_sql(
-    sql="select * from points where not banned order by datetime is not null desc, datetime desc",
-    con=get_db(),
-)
-points["user_id"] = points["user_id"].astype(pd.Int64Dtype())
-
 logger.info("Fetching user data")
 users = pd.read_sql("select * from user", get_db())
-points["username"] = pd.merge(
-    left=points[["user_id"]],
-    right=users[["id", "username"]],
-    left_on="user_id",
-    right_on="id",
-    how="left",
-)["username"]
-points["hitchhiker"] = points["nickname"].fillna(points["username"])
-points["hitchhiker"] = points["hitchhiker"].str.lower()
+
+# Count rides per hitchhiker nickname from ride_event
+rides = pd.read_sql("select hitchhikers, source from ride_event", get_db())
+
+import json
+
+nickname_counts = {}
+for _, row in rides.iterrows():
+    hitchhikers = row["hitchhikers"]
+    if isinstance(hitchhikers, str):
+        try:
+            hitchhikers = json.loads(hitchhikers)
+        except (json.JSONDecodeError, TypeError):
+            continue
+    if not isinstance(hitchhikers, list):
+        continue
+    for hh in hitchhikers:
+        nickname = hh.get("nickname", "").lower() if isinstance(hh, dict) else ""
+        if nickname:
+            nickname_counts[nickname] = nickname_counts.get(nickname, 0) + 1
 
 
 def get_num_reviews(username):
-    return len(points[points["hitchhiker"] == username.lower()])
+    return nickname_counts.get(username.lower(), 0)
 
 
 logger.info("Generating user accounts section")
@@ -141,6 +103,7 @@ for _, user in users.iterrows():
             f'<a href="/account/{e(user.username)}">{e(user.username)}</a>'
             + " - "
             + f'<a href="/?user={e(user.username)}#filters">Their spots</a>'
+            + f" ({get_num_reviews(user.username)} rides)"
         )
         user_accounts += "<br>"
     else:
@@ -154,10 +117,9 @@ with open(template_path, encoding="utf-8") as template, open(outname, "w", encod
     output = Template(template.read()).substitute(
         {
             "timeline": timeline_plot,
-            "timeline_duplicate": timeline_plot_duplicate,
             "user_accounts": user_accounts,
         }
     )
     out.write(output)
 
-logger.info("Dashboard generation complete")
+logger.info("DASHBOARD SCRIPT FINISHED")

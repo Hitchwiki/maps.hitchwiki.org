@@ -1345,15 +1345,16 @@ var MenuButton = L.Control.extend({
     container.innerHTML = "☰";
 
     container.onclick = function (e) {
-      navigateHome();
-
       if (document.body.classList.contains("menu")) {
         bar();
+        document.body.classList.remove("menu");
       } else {
+        if (window.location.hash) {
+          window.history.pushState(null, null, " ");
+        }
         bar(".sidebar.menu");
+        document.body.classList.add("menu");
       }
-
-      document.body.classList.toggle("menu");
       L.DomEvent.stopPropagation(e);
     };
 
