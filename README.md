@@ -15,13 +15,14 @@ Deploment location: Hitchwiki server `/home/hitch`
 <!-- ABOUT THE PROJECT -->
 <div align="center">
   <h3 align="center">Hitchhiking Map</h3>
+  <h2 align="center"><a href="https://maps.hitchwiki.org/">maps.hitchwiki.org</a></h2>
   <p align="center">
     The map to hitchhiking the world.
     <br />
     <br />
-    <a href="https://github.com/Hitchwiki/hitchmap/issues/new?labels=bug&template=bug_report.md">Report Bug</a>
+    <a href="https://github.com/Hitchwiki/maps.hitchwiki.org/issues/new?labels=bug&template=bug_report.md">Report Bug</a>
     &middot;
-    <a href="https://github.com/Hitchwiki/hitchmap/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
+    <a href="https://github.com/Hitchwiki/maps.hitchwiki.org/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
   </p>
 </div>
 
@@ -139,3 +140,7 @@ install ruff
 ```bash
 python -m pytest tests/ -v
 ```
+
+## OpenStreetMap Integration
+
+We use the [`highway=hitchhiking`](https://wiki.openstreetmap.org/wiki/Tag:highway=hitchhiking) OSM tag to bridge the gap between official, everyday hitchhiking spots and unofficial ones submitted by users. Rides submitted near an OSM-tagged spot are automatically linked to it, connecting community-reported experiences with officially mapped infrastructure.

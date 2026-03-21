@@ -260,6 +260,16 @@ function createHeatmapLegend(legendData) {
   addMapControls();
   setupEventListeners();
   
+  // Set up filter pane collapse toggle
+  var filterCollapseBtn = document.getElementById('filter-collapse-btn');
+  var filterPaneEl = document.getElementById('filter-pane');
+  if (filterCollapseBtn && filterPaneEl) {
+    // Also allow clicking the header text to toggle
+    filterCollapseBtn.closest('.filter-pane-header').addEventListener('click', function() {
+      filterPaneEl.classList.toggle('collapsed');
+    });
+  }
+
   // Set up heatmap toggle
   const heatmapBtn = $$('#heatmap-toggle-btn');
   if (heatmapBtn) {
@@ -308,23 +318,9 @@ function setupGeocoder() {
 
 // Add custom controls to the map
 function addMapControls() {
-  map.addControl(new MenuButton());
-  
-  // Add Add Spot button only if not hidden by environment flag
-  if (typeof HIDE_ADD_SPOT_BUTTON === 'undefined' || !HIDE_ADD_SPOT_BUTTON) {
-    map.addControl(new AddSpotButton());
-  }
-  
-  // Add Account button only if not hidden by environment flag
-  if (typeof HIDE_ACCOUNT_BUTTON === 'undefined' || !HIDE_ACCOUNT_BUTTON) {
-    map.addControl(new AccountButton());
-  }
-  
-  map.addControl(new FilterButton());
-  map.addControl(new RoutingButton());
-
-  var zoom = $$(".leaflet-control-zoom");
-  zoom.parentNode.appendChild(zoom);
+  // Controls are now in the bottom action pane (HTML) and top-right (account btn)
+  // Only need to set up zoom position
+  map.zoomControl.setPosition('bottomright');
 }
 
 // Set up various event listeners for the map and UI elements
@@ -346,15 +342,44 @@ function setupEventListeners() {
     navigateHome();
   };
 
-  setupKnobEventListeners();
   setupFilterEventListeners();
   setupRoutingEventListeners();
 
-  let filterPane = map.createPane("filtering");
-  filterPane.style.zIndex = 450;
+  // Bottom action pane handlers
+  var addSpotBtn = document.getElementById('action-add-spot');
+  if (addSpotBtn) {
+    addSpotBtn.addEventListener('click', function() {
+      window.location.href = "/ride";
+    });
+  }
+
+  var menuBtn = document.getElementById('action-menu');
+  if (menuBtn) {
+    menuBtn.addEventListener('click', function() {
+      if (document.body.classList.contains("menu")) {
+        bar();
+        document.body.classList.remove("menu");
+      } else {
+        if (window.location.hash) window.history.pushState(null, null, " ");
+        bar(".sidebar.menu");
+        document.body.classList.add("menu");
+      }
+    });
+  }
+
+
+  var routeBtn = document.getElementById('action-route');
+  if (routeBtn) {
+    routeBtn.addEventListener('click', function() {
+      window.location.hash = '#routing';
+    });
+  }
+
+  let filterMapPane = map.createPane("filtering");
+  filterMapPane.style.zIndex = 450;
 
   map.createPane("arrowlines");
-  filterPane.style.zIndex = 1450;
+  filterMapPane.style.zIndex = 1450;
 }
 
 // Handle map click events
@@ -390,32 +415,8 @@ function handleMapClick(e) {
   L.DomEvent.stopPropagation(e);
 }
 
-// Set up event listeners for the knob control
-function setupKnobEventListeners() {
-  knob.addEventListener("mousedown", (e) => {
-    isDragging = true;
-    updateRotation(e);
-    updateDirectionQueryParameter();
-  });
-
-  window.addEventListener("mousemove", (e) => {
-    if (isDragging) {
-      updateRotation(e);
-      updateDirectionQueryParameter();
-    }
-  });
-
-  window.addEventListener("mouseup", () => {
-    isDragging = false;
-  });
-}
-
 // Set up event listeners for filter controls
 function setupFilterEventListeners() {
-  spreadInput.addEventListener("input", updateConeSpread);
-  knobToggle.addEventListener("input", () =>
-    setQueryParameter("mydirection", knobToggle.checked)
-  );
   osmToggle.addEventListener("input", () =>
     setQueryParameter("osmonly", osmToggle.checked)
   );
@@ -681,13 +682,6 @@ function setupRoutingEventListeners() {
   }
 }
 
-// Update the direction query parameter based on knob rotation
-function updateDirectionQueryParameter() {
-  const angle = Math.round(radAngle * (180 / Math.PI) + 90) % 360;
-  const normalizedAngle = (angle + 360) % 360; // Normalize angle
-  setQueryParameter("direction", normalizedAngle);
-}
-
 // Handle changes in the URL hash; used for initialization of the map
 function handleHashChange() {
   if (!window.location.hash.includes(",")) {
@@ -720,9 +714,10 @@ function handleHashChange() {
   }
 
   if (window.location.pathname === "/hitchhiking.html") {
-    map.addControl(new HeatmapInfoButton());
-    $$(".filter-button").remove();
-    $$(".add-spot").remove();
+    var actionAddSpot = document.getElementById('action-add-spot');
+    if (actionAddSpot) actionAddSpot.remove();
+    var filterPaneEl = document.getElementById('filter-pane');
+    if (filterPaneEl) filterPaneEl.remove();
   }
 
   if (map.getZoom() > 17 && window.location.hash != "#success-duplicate")
@@ -1022,22 +1017,12 @@ function exportAsGPX() {
   document.body.appendChild(script);
 }
 
-const knob = document.getElementById("knob");
-const knobLine = document.getElementById("knobLine");
-const knobCone = document.getElementById("knobCone");
-const rotationValue = document.getElementById("rotationValue");
-const spreadInput = document.getElementById("spreadInput");
-spreadInput.value = 70;
-const knobToggle = document.getElementById("knob-toggle");
 const osmToggle = document.getElementById("osm-toggle");
 const hitchwikiToggle = document.getElementById("hitchwiki-toggle");
 const textFilter = document.getElementById("text-filter");
 const userFilter = document.getElementById("user-filter");
 const distanceFilter = document.getElementById("distance-filter");
 const clearFilters = document.getElementById("clear-filters");
-
-let isDragging = false,
-  radAngle = 0;
 
 function setQueryParameter(key, value) {
   const url = new URL(window.location.href); // Get the current URL
@@ -1066,48 +1051,7 @@ function clearParams() {
   navigate();
 }
 
-function updateRotation(event) {
-  const rect = knob.getBoundingClientRect();
-  const centerX = rect.left + rect.width / 2;
-  const centerY = rect.top + rect.height / 2;
-
-  const dx = event.clientX - centerX;
-  const dy = event.clientY - centerY;
-
-  radAngle = Math.atan2(dy, dx);
-}
-
-function updateConeSpread() {
-  // Clamp spread between 1 and 89
-  const spread = Math.min(89, parseInt(spreadInput.value, 10) || 0);
-
-  if (spread > 0) setQueryParameter("spread", spread);
-}
-
 async function applyParams() {
-  const normalizedAngle = parseFloat(getQueryParameter("direction"));
-  const spread = parseFloat(getQueryParameter("spread")) || 70;
-
-  if (!isNaN(normalizedAngle)) {
-    knobLine.style.transform = `translateX(-50%) rotate(${normalizedAngle}deg)`;
-    knobCone.style.transform = `rotate(${normalizedAngle}deg)`;
-    rotationValue.textContent = `${Math.round(normalizedAngle)}°`;
-    radAngle = (normalizedAngle - 90) * (Math.PI / 180); // Update radAngle for consistency
-  }
-
-  spreadInput.value = spread;
-  const radiansSpread = spread * (Math.PI / 180); // Convert spread angle to radians
-
-  const multiplier = 100; // Factor to increase the cone's distance
-
-  // Calculate cone boundaries using trigonometry and multiply by the multiplier
-  const leftX = 50 - Math.sin(radiansSpread) * 50 * multiplier; // 50 is the radius
-  const rightX = 50 + Math.sin(radiansSpread) * 50 * multiplier;
-  const topY = 50 - Math.cos(radiansSpread) * 50 * multiplier; // Top vertex
-
-  knobCone.style.clipPath = `polygon(50% 50%, ${leftX}% ${topY}%, ${rightX}% ${topY}%)`;
-
-  knobToggle.checked = getQueryParameter("mydirection") == "true";
   osmToggle.checked = getQueryParameter("osmonly") == "true";
   hitchwikiToggle.checked = getQueryParameter("hitchwikionly") == "true";
   textFilter.value = getQueryParameter("text");
@@ -1115,7 +1059,6 @@ async function applyParams() {
   distanceFilter.value = getQueryParameter("mindistance");
 
   if (
-    knobToggle.checked ||
     osmToggle.checked ||
     hitchwikiToggle.checked ||
     textFilter.value ||
@@ -1125,12 +1068,13 @@ async function applyParams() {
     if (filterMarkerGroup) filterMarkerGroup.remove();
     if (filterDestLineGroup) filterDestLineGroup.remove();
 
-    let filterMarkers =
-      knobToggle.checked || distanceFilter.value
+    let filterMarkers = distanceFilter.value
         ? destinationMarkers
         : allMarkers;
-    // display filters pane
+    // display filtering state and show filter pane
     document.body.classList.add("filtering");
+    var fp = document.getElementById('filter-pane');
+    if (fp) fp.classList.add('visible');
 
     if (userFilter.value) {
       // Load rides data for filtering
@@ -1183,24 +1127,6 @@ async function applyParams() {
         return x.options._data.hitchwiki_article !== null && x.options._data.hitchwiki_article !== undefined;
       });
     }
-    if (knobToggle.checked) {
-      filterMarkers = filterMarkers.filter((x) => {
-        let from = x.getLatLng();
-        let lats = x.options._data.dest_lats;
-        let lons = x.options._data.dest_lons;
-
-        for (let i in lats) {
-          let travelAngle = Math.atan2(from.lat - lats[i], lons[i] - from.lng);
-          // difference between the travel direction and the cone line
-          let coneLineDiff = Math.abs(travelAngle - radAngle);
-          let wrappedDiff = Math.min(coneLineDiff, 2 * Math.PI - coneLineDiff);
-          // if the direction falls within the knob's cone
-          if (wrappedDiff < radiansSpread) return true;
-        }
-        return false;
-      });
-    }
-
     // duplicate all markers to the filtering pane
     filterMarkers = filterMarkers.map((spot) => {
       let loc = spot.getLatLng();
@@ -1233,8 +1159,10 @@ async function navigate() {
     clear();
     map.setView([+mainArgs[1], +mainArgs[2]], mainArgs[3]);
   } else if (mainArgs[0] == "filters") {
-    clear();
-    bar(".sidebar.filters");
+    // Show filter pane below search bar
+    var fp = document.getElementById('filter-pane');
+    if (fp) fp.classList.add('visible');
+    history.replaceState(null, null, " ");
   } else if (mainArgs[0] == "routing") {
     clear();
     bar(".sidebar.routing");
@@ -1255,17 +1183,21 @@ async function navigate() {
   } else if (mainArgs[0] == "registered") {
     history.replaceState(null, null, " ");
     bar(".sidebar.registered");
-  } else if (mainArgs.length == 2 && !isNaN(mainArgs[0])) {
+  } else if (mainArgs.length >= 2 && !isNaN(mainArgs[0]) && !isNaN(mainArgs[1])) {
     clear();
     let lat = +mainArgs[0],
-      lon = +mainArgs[1];
+      lon = +mainArgs[1],
+      zoom = mainArgs[2] ? +mainArgs[2] : null;
+    // Try to find an exact marker match first
     for (let m of allMarkers) {
       if (m._latlng.lat === lat && m._latlng.lng === lon) {
         markerClick(m);
-        if (map.getZoom() < 3) map.setView(m.getLatLng(), 16);
+        if (map.getZoom() < 3) map.setView(m.getLatLng(), zoom || 16);
         return;
       }
     }
+    // No exact marker match — pan to the coordinates
+    map.setView([lat, lon], zoom || 14);
   } else {
     clear();
   }
@@ -1339,23 +1271,6 @@ var AccountButton = L.Control.extend({
     var container = L.DomUtil.create("a", "", controlDiv);
     container.href = "/me";
     container.innerHTML = "👤 Your account";
-
-    return controlDiv;
-  },
-});
-
-var FilterButton = L.Control.extend({
-  options: {
-    position: "topleft",
-  },
-  onAdd: function (map) {
-    var controlDiv = L.DomUtil.create(
-      "div",
-      "leaflet-bar horizontal-button filter-button"
-    );
-    var container = L.DomUtil.create("a", "", controlDiv);
-    container.href = "#filters";
-    container.innerHTML = "🧮 Filters";
 
     return controlDiv;
   },

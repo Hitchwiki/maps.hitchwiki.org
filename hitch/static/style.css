@@ -16,23 +16,23 @@ html {
   font-size: 11px;
 }
 
-h3 {
+.sidebar h3 {
   text-align: center;
   padding-bottom: 20px;
   border-bottom: 2px #eee solid;
   margin-bottom: 20px !important;
 }
 
-h3,
-h4 {
+.sidebar h3,
+.sidebar h4 {
   font-weight: bold !important;
   font-size: 1em !important;
 }
 
-h4 {
+.sidebar h4 {
   padding-top: 20px;
 }
-input[type="radio"] + label {
+.sidebar input[type="radio"] + label {
   font-weight: normal;
   margin-left: -5px;
   padding-left: 5px;
@@ -42,43 +42,279 @@ input[type="radio"] + label {
   height: 100%;
 }
 
-/* Heatmap Toggle Button */
-.heatmap-toggle-container {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 1000;
+/* ===== Google Maps-style layout ===== */
+
+/* Hide old Leaflet button controls (replaced by bottom pane) */
+.leaflet-bar.horizontal-button {
+  display: none !important;
 }
 
-.heatmap-toggle-btn {
-  background: #fff;
-  border: 2px solid #ccc;
-  border-radius: 6px;
-  padding: 10px 15px;
-  font-size: 14px;
-  font-weight: bold;
-  cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  transition: all 0.3s ease;
+/* Top search bar - only the main geocoder in the Leaflet control container */
+.leaflet-control-container .leaflet-control-geocoder {
+  position: fixed !important;
+  top: 12px !important;
+  left: 16px !important;
+  right: 68px !important;
+  width: auto !important;
+  max-width: 600px !important;
+  margin: 0 !important;
+  z-index: 1000 !important;
+  border-radius: 24px !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
+  border: none !important;
+  background: white !important;
+  float: none !important;
+}
+
+.leaflet-control-container .leaflet-control-geocoder-form input {
+  height: 44px !important;
+  font-size: 16px !important;
+  padding: 0 16px !important;
+  border-radius: 24px !important;
+  border: none !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.leaflet-control-container .leaflet-control-geocoder-icon {
+  width: 44px !important;
+  height: 44px !important;
+  line-height: 44px !important;
+  background-size: 20px !important;
+  background-position: center !important;
+  border-radius: 24px !important;
+}
+
+/* Top-right account button */
+.top-account-btn {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 1001;
+  width: 44px;
+  height: 44px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
 }
 
-.heatmap-toggle-btn:hover {
+.top-account-btn a {
+  color: #555;
+  font-size: 24px;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-bottom: none !important;
+}
+
+.top-account-btn:hover {
+  box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+}
+
+/* Filter pane below search bar */
+.filter-pane {
+  position: fixed;
+  top: 64px;
+  left: 16px;
+  right: 68px;
+  max-width: 600px;
+  z-index: 999;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  padding: 8px 14px;
+  display: block;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+}
+
+.filter-pane-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.filter-pane-header span {
+  font-weight: 600;
+  font-size: 13px;
+  color: #333;
+}
+
+.filter-collapse-btn {
+  background: none;
+  border: none;
+  padding: 2px 6px;
+  cursor: pointer;
+  color: #666;
+  font-size: 12px;
+  line-height: 1;
+  transition: transform 0.2s;
+}
+
+.filter-pane.collapsed .filter-collapse-btn i {
+  transform: rotate(180deg);
+}
+
+.filter-pane-body {
+  margin-top: 8px;
+  overflow: hidden;
+  transition: max-height 0.2s ease, opacity 0.2s ease;
+  max-height: 200px;
+  opacity: 1;
+}
+
+.filter-pane.collapsed .filter-pane-body {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+}
+
+.filter-pane-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.filter-pane-row + .filter-pane-row {
+  margin-top: 8px;
+}
+
+.filter-pane-row input[type="text"],
+.filter-pane-row input[type="search"],
+.filter-pane-row input[type="number"] {
+  flex: 1;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 13px;
+  outline: none;
+  min-width: 0;
+}
+
+.filter-pane-row input:focus {
+  border-color: #1a73e8;
+}
+
+.filter-toggles {
+  flex-wrap: wrap;
+}
+
+.filter-toggles label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #555;
+  white-space: nowrap;
+  margin: 0;
+  cursor: pointer;
+}
+
+.filter-toggles label input[type="checkbox"] {
+  margin: 0;
+}
+
+#clear-filters {
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: #555;
+  cursor: pointer;
+  white-space: nowrap;
+  margin: 0;
+  width: auto;
+}
+
+#clear-filters:hover {
   background: #f5f5f5;
   border-color: #999;
 }
 
-.heatmap-toggle-btn.active {
-  background: #ff6b35;
-  color: white;
-  border-color: #ff6b35;
+@media only screen and (max-width: 500px) {
+  .filter-pane {
+    right: 16px;
+  }
+
+  .filter-pane-row {
+    flex-wrap: wrap;
+  }
+
+  .filter-pane-row input[type="text"],
+  .filter-pane-row input[type="search"],
+  .filter-pane-row input[type="number"] {
+    flex: 1 1 100%;
+  }
 }
 
-.heatmap-toggle-btn.active:hover {
-  background: #e55a2b;
-  border-color: #e55a2b;
+/* Bottom action pane */
+.bottom-action-pane {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: white;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 6px 0;
+  padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -2px 6px rgba(0,0,0,0.15);
+}
+
+.action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 12px;
+  font-size: 11px;
+  color: #555;
+  min-width: 56px;
+  margin: 0;
+  width: auto;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.action-btn i {
+  font-size: 20px;
+}
+
+.action-btn:hover,
+.action-btn:active {
+  color: #1a73e8;
+}
+
+.action-btn.active {
+  color: #ff6b35;
+}
+
+body.adding-spot .bottom-action-pane {
+  display: none;
+}
+
+
+/* Push zoom controls above bottom action pane */
+.leaflet-bottom.leaflet-right .leaflet-control-zoom {
+  margin-bottom: 60px !important;
+}
+
+/* Adjust attribution above bottom pane */
+.leaflet-control-attribution {
+  margin-bottom: 56px;
 }
 
 /* Heatmap Legend */
@@ -199,8 +435,7 @@ input[type="radio"] + label {
   padding: 0 20px 20px 20px;
   box-shadow: 2px 0 10px;
 }
-.sidebar.show-spot,
-.sidebar.filters {
+.sidebar.show-spot {
   max-width: 50%;
 }
 .sidebar button {
@@ -238,7 +473,6 @@ body.adding-spot .horizontal-button {
   height: auto !important;
   padding: 5px 10px;
 }
-.filter-button,
 .horizontal-button.add-spot,
 .your-account {
   clear: none !important;
@@ -297,16 +531,16 @@ body.adding-spot .horizontal-button {
       transparent calc(50% + 1px)
     );
 }
-#spot-form > label, #spot-form textarea, #spot-form input[type=submit],
-.sidebar.filters > label, .sidebar.filters input[type=text] {
+#spot-form > label, #spot-form textarea, #spot-form input[type=submit] {
     display: block;
     width: 100%;
 }
-#spot-form > label, .sidebar.filters label, #spot-form input[type=submit] {
+#spot-form > label, #spot-form input[type=submit] {
     margin-top: 18px;
 }
 .rate {
-  float: left;
+  display: inline-flex;
+  flex-direction: row-reverse;
   height: 46px;
 }
 .rate:not(:checked) > input {
@@ -314,7 +548,6 @@ body.adding-spot .horizontal-button {
   top: -9999px;
 }
 .rate:not(:checked) > label {
-  float: right;
   width: 1em;
   overflow: hidden;
   white-space: nowrap;
@@ -364,12 +597,6 @@ body.filtering .leaflet-marker-pane {
 body:not(.filtering) .leaflet-filtering-pane {
   display: none;
 }
-body.filtering .filter-button {
-  border-color: rgba(255, 0, 0, 0.5);
-}
-body.filtering .filter-button a::after {
-  content: "‼️" !important;
-}
 @media only screen and (max-width: 700px) {
   .topbar {
     font-size: 1em !important;
@@ -379,9 +606,6 @@ body.filtering .filter-button a::after {
   }
   .sidebar.show-spot {
     font-size: 13px;
-  }
-  .sidebar.filters {
-    font-size: 14px;
   }
 }
 .donate-button img {
@@ -544,110 +768,6 @@ ul.no-style {
   font-size: 0.9em;
 }
 
-/* knob */
-
-.knob-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  position: relative;
-}
-
-.knob {
-  width: 100px;
-  height: 100px;
-  background: #f0f0f0;
-  border: 2px solid #ccc;
-  border-radius: 50%;
-  position: relative;
-  cursor: pointer;
-  margin-top: 20px;
-}
-
-.knob-line {
-  width: 2px;
-  height: 50px;
-  background: #000;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%) rotate(0deg);
-  transform-origin: bottom center;
-}
-
-.knob-cone {
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.1);
-  transform-origin: center;
-}
-
-.rotation-value {
-  margin-top: 30px;
-  font-size: 16px;
-}
-
-.spread-input-container {
-  margin-top: 10px;
-  display: flex;
-  align-items: center;
-  font-size: 16px;
-}
-
-.spread-input-container input {
-  width: 60px;
-  margin: 0 5px;
-  text-align: center;
-}
-
-.direction {
-  position: absolute;
-  font-size: 14px;
-  font-weight: bold;
-  font-family: Arial;
-}
-
-.direction.north {
-  top: -25px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.direction.south {
-  bottom: -25px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.direction.west {
-  left: -25px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.direction.east {
-  right: -25px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-.knob-container,
-.knob-container * {
-  box-sizing: content-box;
-}
-#knob-toggle:not(:checked) ~ .knob-container {
-  pointer-events: none;
-  opacity: 0.5;
-}
-#knob-toggle {
-  margin: 50px 0 20px;
-}
-#knob-toggle + label {
-  font-weight: normal;
-  display: inline;
-}
 #distance-filter {
   width: 100%;
 }
@@ -737,7 +857,7 @@ ul.no-style {
 /* Logo in bottom left corner */
 .logo-container {
   position: fixed;
-  bottom: 20px;
+  bottom: 70px;
   left: 20px;
   z-index: 10000;
   opacity: 0.7;
@@ -773,12 +893,21 @@ ul.no-style {
 /* Responsive adjustments for mobile */
 @media only screen and (max-width: 700px) {
   .logo-container {
-    bottom: 15px;
+    bottom: 65px;
     left: 15px;
   }
-  
+
   .logo-container img {
     width: 60px;
     height: 60px;
+  }
+
+  .sidebar {
+    bottom: 56px;
+    max-width: 100%;
+  }
+
+  .sidebar.show-spot {
+    max-width: 100%;
   }
 }

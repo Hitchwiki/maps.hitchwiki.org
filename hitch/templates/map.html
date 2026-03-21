@@ -115,34 +115,26 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
         See full attribution <a href="https://github.com/Hitchwiki/maps.hitchwiki.org/blob/main/docs/ATTRIBUTION.md" target="_blank" rel="noopener">here</a>.
     </p>
 </div>
-<div class="sidebar filters">
-    <h3>Filters</h3>
-    <label for="user-filter">Filter by user</label>
-    <input id="user-filter" type="text" value="" />
-    <label for="text-filter">Search spots</label>
-    <input id="text-filter" type="search" />
-    <label for="distance-filter">Minimum distance (km)</label>
-    <input id="distance-filter" type="number" value="" />
-    <input id="osm-toggle" type="checkbox" value="" /> <label for="osm-toggle">Official spots only</label>
-    <input id="hitchwiki-toggle" type="checkbox" value="" /> <label for="hitchwiki-toggle">Hitchwiki articles only</label>
-    <div class="extra-container">
-        <input id="knob-toggle" type="checkbox" value="" /> <label for="knob-toggle">Directional filter</label>
-        <div class="knob-container">
-            <div class="knob" id="knob">
-                <div class="knob-line" id="knobLine"></div>
-                <div class="knob-cone" id="knobCone"></div>
-                <div class="direction north">N</div>
-                <div class="direction south">S</div>
-                <div class="direction west">W</div>
-                <div class="direction east">E</div>
-            </div>
-            <div class="rotation-value" id="rotationValue">0°</div>
-            <div class="spread-input-container">
-                ± <input type="number" min="0" max="89" id="spreadInput" value="70"> °
-            </div>
+<!-- Filter pane below search bar -->
+<div class="filter-pane" id="filter-pane">
+    <div class="filter-pane-header">
+        <span>Filters</span>
+        <button id="filter-collapse-btn" class="filter-collapse-btn" title="Toggle filters">
+            <i class="fa-solid fa-chevron-up"></i>
+        </button>
+    </div>
+    <div class="filter-pane-body" id="filter-pane-body">
+        <div class="filter-pane-row">
+            <input id="user-filter" type="text" value="" placeholder="Filter by user" />
+            <input id="text-filter" type="search" value="" placeholder="Search comments" />
+            <input id="distance-filter" type="number" value="" placeholder="Min ride distance (km)" />
+        </div>
+        <div class="filter-pane-row filter-toggles">
+            <label><input id="osm-toggle" type="checkbox" value="" /> Official spots</label>
+            <label><input id="hitchwiki-toggle" type="checkbox" value="" /> Hitchwiki articles</label>
+            <button id="clear-filters">Clear</button>
         </div>
     </div>
-    <button id="clear-filters">Clear filters</button>
 </div>
 <div class="sidebar routing">
     <h3>Route Planning</h3>
@@ -159,11 +151,34 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
         <line x1="1" y1="1" x2="13" y2="13" stroke="black" stroke-width="2" />
     </svg>
 </a>
-<!-- Heatmap Toggle Button -->
-<div class="heatmap-toggle-container">
-    <button id="heatmap-toggle-btn" class="heatmap-toggle-btn" title="Toggle heatmap view">
+<!-- Top-right account button -->
+{% if not hide_account_button %}
+<div class="top-account-btn" id="top-account-btn">
+    <a href="/me" title="Your account">
+        <i class="fa-solid fa-circle-user"></i>
+    </a>
+</div>
+{% endif %}
+
+<!-- Bottom action pane -->
+<div class="bottom-action-pane" id="bottom-action-pane">
+    {% if not hide_add_spot_button %}
+    <button class="action-btn" id="action-add-spot" title="Add spot">
+        <i class="fa-solid fa-map-pin"></i>
+        <span>Add spot</span>
+    </button>
+    {% endif %}
+    <button class="action-btn" id="heatmap-toggle-btn" title="Toggle heatmap">
         <i class="fa fa-fire"></i>
         <span id="heatmap-toggle-text">Heatmap</span>
+    </button>
+    <button class="action-btn" id="action-route" title="Route planning">
+        <i class="fa-solid fa-route"></i>
+        <span>Route</span>
+    </button>
+    <button class="action-btn" id="action-menu" title="Menu">
+        <i class="fa-solid fa-bars"></i>
+        <span>Menu</span>
     </button>
 </div>
 
