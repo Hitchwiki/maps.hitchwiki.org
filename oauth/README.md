@@ -8,12 +8,12 @@ The OAuth consumer must be created at https://hitchwiki.org/en/Special:OAuthCons
 
 | Setting | Value |
 |---------|-------|
-| Application name | (your app name) |
+| Application name | maps.hitchwiki.org Login |
 | Consumer version | 1.0 |
 | OAuth protocol version | **OAuth 2.0** |
 | Owner-only | No |
 | Applicable project | All projects |
-| OAuth "callback URL" | `http://127.0.0.1:5000/login` (dev) or `https://maps.hitchwiki.org/login` (prod) |
+| OAuth "callback URL" | `https://maps.hitchwiki.org/login` |
 | Allow consumer to specify a callback in requests | No |
 | Applicable grants | **User identity verification only with access to real name and email address**, no ability to read pages or act on a user's behalf |
 | Client is confidential | Yes |

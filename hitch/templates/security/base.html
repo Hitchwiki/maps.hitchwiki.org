@@ -74,6 +74,17 @@
         /* Ensures clickable area expands */
     }
 
+    .back-to-map {
+        font-size: 0.85em;
+        color: #555;
+        text-decoration: none;
+        margin-bottom: 5px;
+    }
+
+    .back-to-map:hover {
+        color: #000;
+    }
+
     label {
         display: block;
         margin-top: 10px;
@@ -116,6 +127,7 @@
 {% block main %}
 <a class="bg" href="/"></a>
 <div class="overlay">
+    <a href="/" class="back-to-map">← Back to map</a>
     {% block content %}{% endblock %}
 </div>
 {% endblock %}

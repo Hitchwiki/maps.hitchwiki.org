@@ -13,9 +13,12 @@ const nHoursAgo = (hrs: number): number =>
 const fetcher = NostrFetcher.init({
   webSocketConstructor: WebSocket,
 });
-const relayUrls = [
-    "wss://relay.nomadwiki.org", "wss://relay.trustroots.org", "wss://nos.lol"
-];
+if (!process.env.RELAYS) {
+    console.error("RELAYS env var is not set");
+    process.exit(1);
+}
+const relayUrls: string[] = JSON.parse(process.env.RELAYS);
+console.log("Using relays:", relayUrls);
 
 // // fetches all text events since 24 hr ago in streaming manner
 // const postIter = fetcher.allEventsIterator(
@@ -31,18 +34,44 @@ const relayUrls = [
 //     console.log(ev.content);
 // }
 
-// fetches all text events since 10000 hr ago, as a single array
-const allPosts = await fetcher.fetchAllEvents(
-    relayUrls,
-    /* filter */
-    { kinds: [ 34242 ] },
-    /* time range filter */
-    { since: nHoursAgo(10000) },
-    /* fetch options (optional) */
-    { sort: true }
-)
+if (!process.env.NOSTR_EVENT_KIND) {
+    console.error("NOSTR_EVENT_KIND env var is not set");
+    process.exit(1);
+}
+const eventKind = parseInt(process.env.NOSTR_EVENT_KIND, 10);
+console.log("Fetching Nostr event kind:", eventKind);
 
-console.log(allPosts.length, "posts fetched");
+// Fetch from each relay individually to track which relays have each event
+const eventMap = new Map<string, { event: any; relays: string[] }>();
+
+for (const relay of relayUrls) {
+    try {
+        const events = await fetcher.fetchAllEvents(
+            [relay],
+            { kinds: [eventKind] },
+            { since: nHoursAgo(10000) },
+            { sort: true }
+        );
+        console.log(`${events.length} events from ${relay}`);
+        for (const ev of events) {
+            const existing = eventMap.get(ev.id);
+            if (existing) {
+                existing.relays.push(relay);
+            } else {
+                eventMap.set(ev.id, { event: ev, relays: [relay] });
+            }
+        }
+    } catch (e) {
+        console.error(`Failed to fetch from ${relay}:`, e);
+    }
+}
+
+// Build final array sorted by created_at, with relay info attached
+const allPosts = Array.from(eventMap.values())
+    .sort((a, b) => a.event.created_at - b.event.created_at)
+    .map(({ event, relays }) => ({ ...event, _relays: relays }));
+
+console.log(allPosts.length, "unique posts fetched across", relayUrls.length, "relays");
 
 // Write JSON to file
 const this_file_dir = __dirname;

@@ -33,9 +33,18 @@ logger.info("Saving fetched rides into the database...")
 db.session.query(RideEvent).delete()
 db.session.commit()
 
+skipped = 0
 for post in all_posts:
     # Parse the 'content' field from JSON string to dict
-    content_json = json.loads(post.get("content", "{}"))
+    raw_content = post.get("content", "")
+    if not isinstance(raw_content, str) or not raw_content.strip():
+        skipped += 1
+        continue
+    try:
+        content_json = json.loads(raw_content)
+    except json.JSONDecodeError:
+        skipped += 1
+        continue
 
     # Extract 'expiration', 'd', and 'published_at' from tags
     tags_dict = {tag[0]: tag[1] for tag in post.get("tags", []) if len(tag) == 2}
@@ -73,4 +82,5 @@ for post in all_posts:
     db.session.add(ride_event)
 db.session.commit()
 
+logger.info(f"Skipped {skipped} posts with empty or invalid content")
 logger.info("FETCH NOSTR SCRIPT FINISHED")

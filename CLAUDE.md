@@ -69,7 +69,7 @@ The application aggregates hitchhiking data from multiple sources:
 
 1. **Nostr Protocol Network** (Primary ride data source)
    - **Source**: Decentralized Nostr relays (relay.nomadwiki.org, relay.trustroots.org, nos.lol)
-   - **Data Type**: Hitchhiking ride events (Nostr event kind 34242)
+   - **Data Type**: Hitchhiking ride events (Nostr event kind 36820)
    - **Fetching**: Every 10 minutes via `fetch_nostr.py`
    - **Process Flow**:
      - Node.js script (`hitch/scripts/fetch_hitchhiking_events/src/index.ts`) fetches events from relays - relays might contain new rides from other apps and also new rides from this app that were directly sent to the nostr relay on creation (because doing it natively in .ts is easier than in python)
