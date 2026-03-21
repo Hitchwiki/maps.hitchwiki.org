@@ -31,11 +31,11 @@ Read more [here](https://hitchwiki.org/en/Hitchwiki:Maps). This project embraces
 
 Join the conversation about a map for hitchhiking in our [Signal Chat](https://signal.group/#CjQKIDyYgIxcOUCEPYu8-JawC_tv1bcgkAhvbISRZkN45MMVEhCtydy3DOOCKEAE_tsR6g9s).
 
-### Fork and Divergence
+### History
 
 This repository, [`Hitchwiki/hitchmap`](https://github.com/Hitchwiki/hitchmap), is a fork of [`bobjesvla/hitch`](https://github.com/bopjesvla/hitch).
 
-## Getting Started
+## Getting Started locally (Docker setup below)
 
 Set up Python virtual environment, install requirements and download the latest database dump:
 
@@ -47,7 +47,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-```
+```bash
 cp example.env .env
 cp pywikibot/user-password.py.example pywikibot/user-password.py
 ```
@@ -66,7 +66,7 @@ In order to run the project continuously, use `deploy/cron.sh` to set up corresp
 
 ### Deploy with Docker
 
-```
+```bash
 sudo docker build -t hitch .
 sudo docker run -p 4242:4242 --name hitchhiking-map -d hitch
 # or
@@ -78,7 +78,7 @@ sudo docker stop hitchhiking-map
 sudo docker rm hitchhiking-map 
 ```
 
-Serving with Apache
+#### Serving with Apache
 
 ```shell
 sudo cp deploy/apache.conf /etc/apache2/sites-available/25-hwmaptest.conf

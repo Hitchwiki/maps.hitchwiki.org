@@ -577,8 +577,17 @@ def generate_heatmap_data():
         "caption": "Waiting time to catch a ride by hitchhiking (minutes)",
     }
 
+    # Save as PNG image instead of JSON pixel data (196MB JSON → ~100KB PNG)
+    from PIL import Image
+
+    rgba_uint8 = (rgba_array * 255).astype(np.uint8)
+    img = Image.fromarray(rgba_uint8, mode="RGBA")
+    png_path = os.path.join(dirs["dist"], "heatmap.png")
+    img.save(png_path, optimize=True)
+    logger.info(f"Heatmap PNG saved to {png_path} ({os.path.getsize(png_path) // 1024}KB)")
+
     return {
-        "image_data": rgba_array.tolist(),  # Convert to list for JSON serialization
+        "image_url": "/heatmap.png",
         "bounds": [[-56, -180], [80, 180]],
         "legend": legend_data,
     }

@@ -133,10 +133,10 @@ async function loadRides() {
   }
 }
 
-// Load heatmap data
+// Load heatmap data (legend + image URL)
 async function loadHeatmapData() {
   if (heatmapData) return heatmapData;
-  
+
   try {
     const response = await fetch('/heatmap.json');
     if (!response.ok) throw new Error('Heatmap data not available');
@@ -174,20 +174,10 @@ async function toggleHeatmap() {
       }
     }
     
-    // Create heatmap layer
+    // Create heatmap layer using pre-rendered PNG
     if (!heatmapLayer) {
-      const imageArray = heatmapData.image_data.map(row => 
-        row.map(pixel => [
-          Math.round(pixel[0] * 255),
-          Math.round(pixel[1] * 255), 
-          Math.round(pixel[2] * 255),
-          Math.round(pixel[3] * 255)
-        ])
-      );
-      
-      // Convert to ImageData-like format for canvas
       heatmapLayer = L.imageOverlay(
-        createImageDataURL(imageArray), 
+        heatmapData.image_url,
         heatmapData.bounds,
         { opacity: 0.7 }
       );
@@ -204,31 +194,6 @@ async function toggleHeatmap() {
     text.textContent = 'Normal';
     heatmapActive = true;
   }
-}
-
-// Helper function to create image data URL from array
-function createImageDataURL(imageArray) {
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  canvas.width = imageArray[0].length;
-  canvas.height = imageArray.length;
-  
-  const imageData = ctx.createImageData(canvas.width, canvas.height);
-  let dataIndex = 0;
-  
-  for (let y = 0; y < canvas.height; y++) {
-    for (let x = 0; x < canvas.width; x++) {
-      const pixel = imageArray[y][x];
-      imageData.data[dataIndex] = pixel[0];     // Red
-      imageData.data[dataIndex + 1] = pixel[1]; // Green  
-      imageData.data[dataIndex + 2] = pixel[2]; // Blue
-      imageData.data[dataIndex + 3] = pixel[3]; // Alpha
-      dataIndex += 4;
-    }
-  }
-  
-  ctx.putImageData(imageData, 0, 0);
-  return canvas.toDataURL();
 }
 
 // Create heatmap legend
