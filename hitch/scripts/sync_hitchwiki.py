@@ -154,22 +154,66 @@ if os.path.exists(articles_file):
     with open(articles_file, encoding="utf-8") as f:
         articles = json.load(f)
 else:
-    logger.info("Fetching articles from Hitchwiki...")
+    logger.info("Fetching articles from Hitchwiki via API...")
     articles = {}
-    pages = list(pagegenerators.AllpagesPageGenerator(site=lang_wiki))
-    for page in tqdm(pages, desc="Processing pages"):
-        try:
-            if any(s in page.text for s in ["{{Coords"]):
-                articles[page.title()] = {"text": page.text}
-        except Exception as e:
-            print(f"Error processing page: {e}")
-            continue
+    # Use MediaWiki API directly to avoid pywikibot's interwiki parsing
+    # which throws SiteDefinitionError on pages with hitchwiki.org interwiki links
+    import requests as http_requests
 
-        # Save intermediate results
-        if len(articles) % 100 == 0:
-            logger.info(f"Saving intermediate results to {articles_file}...")
+    api_url = "https://hitchwiki.org/en/api.php"
+    # Step 1: List all pages via allpages generator + get their content in one go
+    ap_continue = None
+    total_pages = 0
+    while True:
+        params = {
+            "action": "query",
+            "generator": "allpages",
+            "gaplimit": "50",
+            "prop": "revisions",
+            "rvprop": "content",
+            "rvslots": "main",
+            "format": "json",
+        }
+        if ap_continue:
+            params["gapcontinue"] = ap_continue
+        try:
+            for attempt in range(5):
+                resp = http_requests.get(api_url, params=params, timeout=30)
+                if resp.status_code == 429:
+                    import time
+                    wait = 2 ** attempt
+                    logger.warning(f"Rate limited (429), waiting {wait}s...")
+                    time.sleep(wait)
+                    continue
+                break
+            data = resp.json()
+        except Exception as e:
+            logger.warning(f"API request failed: {e}")
+            break
+
+        pages_data = data.get("query", {}).get("pages", {})
+        for page_data in pages_data.values():
+            total_pages += 1
+            title = page_data.get("title", "")
+            revisions = page_data.get("revisions")
+            if not revisions:
+                continue
+            text = revisions[0].get("slots", {}).get("main", {}).get("*", "")
+            if "{{Coords" in text:
+                articles[title] = {"text": text}
+
+        if total_pages % 500 == 0:
+            logger.info(f"Scanned {total_pages} pages, found {len(articles)} with coords so far...")
             with open(articles_file, "w", encoding="utf-8") as f:
                 json.dump(articles, f, ensure_ascii=False, indent=4)
+
+        cont = data.get("continue")
+        if cont and "gapcontinue" in cont:
+            ap_continue = cont["gapcontinue"]
+        else:
+            break
+
+    logger.info(f"Scanned {total_pages} pages total, found {len(articles)} with {{{{Coords}}}}")
 
     # Save final results
     logger.info(f"Saving final results to {articles_file}...")

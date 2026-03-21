@@ -51,9 +51,9 @@ pip install -r requirements.txt
 cp example.env .env
 cp pywikibot/user-password.py.example pywikibot/user-password.py
 ```
-And set the missing env variables.
+And set the missing env variables and wiki bot passwords.
 
-Put file from `https://simplemaps.com/static/data/world-cities/basic/simplemaps_worldcities_basicv1.901.zip` into `dist/` as `worldcities.zip` but any `csv` file with `city`, `country`, `population` column works.
+Put file from `https://simplemaps.com/static/data/world-cities/basic/simplemaps_worldcities_basicv1.901.zip` into `dist/` as `worldcities.zip` but any `worldcities.csv` file with `city`, `country`, `population` column works.
 
 Initialize and run the Flask server:
 

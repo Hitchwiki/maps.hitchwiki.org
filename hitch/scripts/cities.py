@@ -29,8 +29,7 @@ with open(os.path.join(dist_dir, "rides.json")) as f:
 rides = pd.DataFrame(rides_data)
 logger.info(f"Loaded {len(rides)} rides")
 
-# TODO: needs attribution: https://simplemaps.com/data/world-cities
-cities_csv_path = os.path.join(dist_dir, "cities.csv")
+cities_csv_path = os.path.join(dist_dir, "worldcities.csv")
 if not os.path.exists(cities_csv_path):
     zip_path = os.path.join(dist_dir, "worldcities.zip")
     
@@ -43,7 +42,7 @@ if not os.path.exists(cities_csv_path):
     major_cities = cities_df[cities_df["population"] > 50000]
     logger.info(f"Found {len(major_cities)} major cities with population > 50,000")
     
-    # Save to dist/cities.csv
+    # Save to dist/worldcities.csv
     major_cities.to_csv(cities_csv_path, index=False)
     logger.info(f"Saved cities data to {cities_csv_path}")
 
@@ -62,6 +61,8 @@ for city in cities.itertuples():
     pattern = rf"\b{city.city}\b"
     
     # Find rides that mention this city in their text
+    # TODO: this is a very naive approach and can lead to false positives (e.g. "Paris, Texas" vs "Paris, France") and false negatives (e.g. "NYC" vs "New York City"). Consider using a more robust NLP approach in the future.
+    # esp. adds entries to citie with generic names like: Best, Of, An
     city_rides = rides[
         rides.text.str.contains(pattern, case=False, regex=True, na=False)
     ].dropna(subset=["text"]).iloc[:20]
