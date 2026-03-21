@@ -7,7 +7,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Environment Setup
 - **Virtual Environment**: `python3 -m venv .venv && source .venv/bin/activate`
 - **Install Dependencies**: `pip install -r requirements.txt`
-- **Database Setup**: `curl https://hitchmap.com/dump.sqlite > db/points.sqlite && curl https://hitchmap.com/dump.sqlite > db/prod-points.sqlite`
 - **Fix DB permissions**: The downloaded database is often owned by root. Run `sudo chown $USER:$USER db/prod-points.sqlite` (and/or `db/points.sqlite`) to make it writable, otherwise Flask will crash with `sqlite3.OperationalError: attempt to write a readonly database` on any write operation (e.g. user registration).
 - **Configuration**: `cp example.env .env` (then set missing env variables)
 

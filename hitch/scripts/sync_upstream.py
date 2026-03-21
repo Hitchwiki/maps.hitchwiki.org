@@ -20,7 +20,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Configuration
-UPSTREAM_URL = "https://nomadwiki.org/dumps/hitchmap.com-dump.sqlite.gz"
+UPSTREAM_URL = "https://nomadwiki.org/dumps/maps.hitchwiki.org-dump.sqlite.gz"
 TABLES_TO_SYNC = [
     "points",
     "duplicates", 

@@ -78,6 +78,15 @@ class HitchwikiArticleLocation(db.Model):
     hitchwiki_url = db.Column(db.String(255), nullable=False)
 
 
+class RoutingSearch(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    start_lat = db.Column(db.Float, nullable=False)
+    start_lon = db.Column(db.Float, nullable=False)
+    end_lat = db.Column(db.Float, nullable=False)
+    end_lon = db.Column(db.Float, nullable=False)
+    timestamp = db.Column(db.DateTime, nullable=False, default=db.func.now())
+
+
 class HitchwikiArticleMap(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False)

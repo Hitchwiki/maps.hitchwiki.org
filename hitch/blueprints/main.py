@@ -17,7 +17,7 @@ from hitch.blueprints.publish_ride import create_record_from_custom_object
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.extensions import db
 from hitch.helpers import get_db
-from hitch.models import CoHitchhiker, RideEvent
+from hitch.models import CoHitchhiker, RideEvent, RoutingSearch
 from hitch.scripts.routing import routing
 
 main_bp = Blueprint("main", __name__)
@@ -288,6 +288,13 @@ def calculate_route():
             return jsonify({"error": "Invalid start coordinates"}), 400
         if not (-90 <= end[0] <= 90 and -180 <= end[1] <= 180):
             return jsonify({"error": "Invalid end coordinates"}), 400
+
+        # Log the search request
+        db.session.add(RoutingSearch(
+            start_lat=start_coords[0], start_lon=start_coords[1],
+            end_lat=end_coords[0], end_lon=end_coords[1],
+        ))
+        db.session.commit()
 
         # Call the routing function
         try:
