@@ -245,11 +245,12 @@ review_submit_datetime = rides_df["submission_time"].dt.strftime(", %B %Y").fill
 logger.info("Generating user links")
 
 
-def get_hitchhiker_name(row):
-    if "hitchhikers" in row and isinstance(row["hitchhikers"], list) and len(row["hitchhikers"]) > 0:
-        first_hitchhiker = row["hitchhikers"][0]
+def get_hitchhiker_name(hitchhikers):
+    if isinstance(hitchhikers, list) and len(hitchhikers) > 0:
+        first_hitchhiker = hitchhikers[0]
         if (
-            "nickname" in first_hitchhiker
+            isinstance(first_hitchhiker, dict)
+            and "nickname" in first_hitchhiker
             and first_hitchhiker["nickname"].strip() != ""
             and pd.notna(first_hitchhiker["nickname"])
         ):
