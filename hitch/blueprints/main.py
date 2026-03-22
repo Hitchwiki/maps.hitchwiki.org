@@ -17,7 +17,7 @@ from hitch.blueprints.publish_ride import create_record_from_custom_object
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.extensions import db
 from hitch.helpers import get_db
-from hitch.models import CoHitchhiker, RideEvent, RoutingSearch
+from hitch.models import CoHitchhiker, RideEvent, RoutingSearch, User
 from hitch.scripts.routing import routing
 
 main_bp = Blueprint("main", __name__)
@@ -216,16 +216,22 @@ def ride_form():
         poster.close()
 
     ### Co-hitchhikers
-    # TODO: verify that all usernames exist in User table
     if "co_hitchhiker" in data and data["co_hitchhiker"] != "":
+        current_username = current_user.username if not current_user.is_anonymous else None
         for ch in data["co_hitchhiker"].split(","):
-            if ch.strip() != "":
-                co_hitchhiker = CoHitchhiker(
-                    nostr_ride_event_d_tag=d_tag,
-                    co_hitchhiker=ch.strip(),
-                    accepted="open",
-                )
-                db.session.add(co_hitchhiker)
+            username = ch.strip()
+            if username == "":
+                continue
+            if username == current_username:
+                continue  # skip self
+            if not User.query.filter_by(username=username).first():
+                continue  # skip non-existent users
+            co_hitchhiker = CoHitchhiker(
+                nostr_ride_event_d_tag=d_tag,
+                co_hitchhiker=username,
+                accepted="open",
+            )
+            db.session.add(co_hitchhiker)
         db.session.commit()
 
     return redirect("/#success")

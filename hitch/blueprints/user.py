@@ -1,7 +1,7 @@
 import os
 
 import pandas as pd
-from flask import Blueprint, current_app, jsonify, redirect, render_template
+from flask import Blueprint, current_app, jsonify, redirect, render_template, request
 from flask_security import current_user
 
 from hitch.blueprints.publish_ride import construct_hitchhiker_from_current_user
@@ -77,6 +77,24 @@ def is_username_used(username):
         return jsonify({"used": True})
     else:
         return jsonify({"used": False})
+
+
+@user_bp.route("/search_usernames", methods=["GET"])
+def search_usernames():
+    """Return usernames matching a query prefix, excluding the current user."""
+    from hitch.models import User
+
+    query = request.args.get("q", "").strip()
+    if len(query) < 1:
+        return jsonify([])
+
+    exclude_username = None
+    if not current_user.is_anonymous:
+        exclude_username = current_user.username
+
+    users = User.query.filter(User.username.ilike(f"{query}%")).limit(10).all()
+    results = [u.username for u in users if u.username != exclude_username]
+    return jsonify(results)
 
 
 @user_bp.route("/me", methods=["GET"], defaults={"username": None, "is_me": True})

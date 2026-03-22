@@ -88,9 +88,10 @@
             <textarea id="comment" name="comment" class="form-control" rows="4">{{ ride_data.comment if ride_data and ride_data.comment else '' }}</textarea>
         </div>
         
-        <div class="form-group" id="co-hitchhiker-container">
+        <div class="form-group" id="co-hitchhiker-container" style="position: relative;">
             <label for="co-hitchhiker-input">Account name of a person hitchhiking with you</label>
-            <input id="co-hitchhiker-input" name="co_hitchhiker" maxlength="32" pattern="[a-zA-Z0-9]*" class="form-control" value="{{ ride_data.co_hitchhiker if ride_data and ride_data.co_hitchhiker else '' }}">
+            <input id="co-hitchhiker-input" name="co_hitchhiker" maxlength="32" pattern="[a-zA-Z0-9]*" class="form-control" autocomplete="off" value="{{ ride_data.co_hitchhiker if ride_data and ride_data.co_hitchhiker else '' }}">
+            <ul id="co-hitchhiker-suggestions" style="display:none; position:absolute; z-index:1000; background:#fff; border:1px solid #ccc; border-top:none; list-style:none; padding:0; margin:0; width:100%; max-height:200px; overflow-y:auto;"></ul>
             <span id="co-hitchhiker-error-message" class="error text-danger"></span>
         </div>
             
@@ -203,13 +204,22 @@
         sessionStorage.setItem('rideFormData', JSON.stringify(formData));
         
         // Get coordinates for initial map position
+        // Fall back to the user's last map view (saved by the main map in localStorage)
+        let fallbackCoords = '/0,0,2';
+        try {
+            const savedView = JSON.parse(localStorage.getItem('mapView'));
+            if (savedView && savedView.lat && savedView.lng && savedView.zoom) {
+                fallbackCoords = '/' + savedView.lat + ',' + savedView.lng + ',' + savedView.zoom;
+            }
+        } catch(e) {}
+
         let initialCoords = '';
-        
+
         if (type === 'pickup') {
             if (coords.pickup && !isNaN(coords.pickup[0]) && !isNaN(coords.pickup[1])) {
                 initialCoords = '/' + coords.pickup[0] + ',' + coords.pickup[1] + ',15';
             } else {
-                initialCoords = '/0,0,2';
+                initialCoords = fallbackCoords;
             }
         } else if (type === 'destination') {
             if (coords.destination && !isNaN(coords.destination[0]) && !isNaN(coords.destination[1])) {
@@ -218,7 +228,7 @@
                 // If destination is not set but pickup is, start destination selection from pickup location
                 initialCoords = '/' + coords.pickup[0] + ',' + coords.pickup[1] + ',12';
             } else {
-                initialCoords = '/0,0,2';
+                initialCoords = fallbackCoords;
             }
         } else if (coords.pickup) {
             initialCoords = '/' + coords.pickup[0] + ',' + coords.pickup[1] + ',10';
@@ -329,6 +339,89 @@
         setTimeout(initThumbnailMaps, 100);
     }
     
+    // Co-hitchhiker autocomplete
+    (function() {
+        const input = document.getElementById('co-hitchhiker-input');
+        const suggestions = document.getElementById('co-hitchhiker-suggestions');
+        const errorMsg = document.getElementById('co-hitchhiker-error-message');
+        let debounceTimer = null;
+
+        input.addEventListener('input', function() {
+            const query = this.value.trim();
+            errorMsg.textContent = '';
+
+            clearTimeout(debounceTimer);
+            if (query.length < 1) {
+                suggestions.style.display = 'none';
+                return;
+            }
+
+            debounceTimer = setTimeout(() => {
+                fetch('/search_usernames?q=' + encodeURIComponent(query))
+                    .then(r => r.json())
+                    .then(usernames => {
+                        suggestions.innerHTML = '';
+                        if (usernames.length === 0) {
+                            suggestions.style.display = 'none';
+                            if (query.length > 0) {
+                                errorMsg.textContent = 'No matching user found';
+                            }
+                            return;
+                        }
+                        usernames.forEach(name => {
+                            const li = document.createElement('li');
+                            li.textContent = name;
+                            li.style.cssText = 'padding:8px 12px; cursor:pointer; border-bottom:1px solid #eee;';
+                            li.addEventListener('mouseenter', () => li.style.backgroundColor = '#f0f0f0');
+                            li.addEventListener('mouseleave', () => li.style.backgroundColor = '#fff');
+                            li.addEventListener('mousedown', (e) => {
+                                e.preventDefault();
+                                input.value = name;
+                                suggestions.style.display = 'none';
+                                errorMsg.textContent = '';
+                            });
+                            suggestions.appendChild(li);
+                        });
+                        suggestions.style.display = 'block';
+                    });
+            }, 200);
+        });
+
+        input.addEventListener('blur', function() {
+            setTimeout(() => { suggestions.style.display = 'none'; }, 150);
+        });
+
+        input.addEventListener('focus', function() {
+            if (suggestions.children.length > 0) {
+                suggestions.style.display = 'block';
+            }
+        });
+    })();
+
+    // Validate co-hitchhiker on form submit
+    const originalValidateForm = validateForm;
+    validateForm = function() {
+        if (!originalValidateForm()) return false;
+
+        const coInput = document.getElementById('co-hitchhiker-input');
+        const errorMsg = document.getElementById('co-hitchhiker-error-message');
+        const username = coInput.value.trim();
+
+        if (username === '') return true;
+
+        // Synchronous check via XMLHttpRequest
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', '/is_username_used/' + encodeURIComponent(username), false);
+        xhr.send();
+        const result = JSON.parse(xhr.responseText);
+        if (!result.used) {
+            errorMsg.textContent = 'User "' + username + '" does not exist';
+            return false;
+        }
+
+        return true;
+    };
+
     // Initialize when page loads
     document.addEventListener('DOMContentLoaded', function() {
         restoreFormData();
