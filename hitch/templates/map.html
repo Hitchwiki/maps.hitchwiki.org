@@ -136,6 +136,33 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
         </div>
     </div>
 </div>
+<!-- Heatmap legend pane (shown when heatmap is active) -->
+<div class="heatmap-legend-pane" id="heatmap-legend-pane" style="display: none;">
+    <div class="filter-pane-header">
+        <span>Waiting time (minutes)</span>
+        <button id="legend-collapse-btn" class="filter-collapse-btn" title="Toggle legend">
+            <i class="fa-solid fa-chevron-up"></i>
+        </button>
+    </div>
+    <div class="heatmap-legend-body" id="heatmap-legend-body">
+        <div class="legend-scale">
+            <div class="legend-gradient" id="legend-gradient"></div>
+            <div class="legend-labels" id="legend-labels"></div>
+        </div>
+        <div class="uncertainty-indicator">
+            <div class="uncertainty-title">Data certainty:</div>
+            <div class="uncertainty-scale">
+                <div class="uncertainty-bar">
+                    <div class="uncertainty-gradient" id="uncertainty-gradient"></div>
+                </div>
+                <div class="uncertainty-labels">
+                    <span>Less certain</span>
+                    <span>More certain</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 <div class="sidebar routing">
     <h3>Route Planning</h3>
     <label for="start-place">Start Location</label>

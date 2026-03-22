@@ -153,14 +153,15 @@ async function toggleHeatmap() {
   const btn = $$('#heatmap-toggle-btn');
   const text = $$('#heatmap-toggle-text');
   
+  var legendPane = document.getElementById('heatmap-legend-pane');
+
   if (heatmapActive) {
     // Switch back to normal view
     if (heatmapLayer) {
       map.removeLayer(heatmapLayer);
     }
-    if (heatmapLegend) {
-      map.removeControl(heatmapLegend);
-    }
+    if (legendPane) legendPane.style.display = 'none';
+    positionLegendPane();
     btn.classList.remove('active');
     text.textContent = 'Heatmap';
     heatmapActive = false;
@@ -173,7 +174,7 @@ async function toggleHeatmap() {
         return;
       }
     }
-    
+
     // Create heatmap layer using pre-rendered PNG
     if (!heatmapLayer) {
       heatmapLayer = L.imageOverlay(
@@ -182,73 +183,54 @@ async function toggleHeatmap() {
         { opacity: 0.7 }
       );
     }
-    
-    // Create and add legend
-    if (!heatmapLegend) {
-      heatmapLegend = createHeatmapLegend(heatmapData.legend);
-    }
-    
+
+    // Populate and show the legend pane
+    populateHeatmapLegend(heatmapData.legend);
+    if (legendPane) legendPane.style.display = 'block';
+    positionLegendPane();
+
     heatmapLayer.addTo(map);
-    heatmapLegend.addTo(map);
     btn.classList.add('active');
     text.textContent = 'Normal';
     heatmapActive = true;
   }
 }
 
-// Create heatmap legend
-function createHeatmapLegend(legendData) {
-  const legend = L.control({ position: 'bottomright' });
-  
-  legend.onAdd = function(map) {
-    const div = L.DomUtil.create('div', 'heatmap-legend');
-    div.innerHTML = `
-      <h4>${legendData.caption}</h4>
-      <div class="legend-scale">
-        <div class="legend-gradient"></div>
-        <div class="legend-labels">
-          <span>${legendData.vmin}</span>
-          <span>${legendData.vmax}</span>
-        </div>
-      </div>
-      <div class="uncertainty-indicator">
-        <div class="uncertainty-title">Data certainty:</div>
-        <div class="uncertainty-scale">
-          <div class="uncertainty-bar">
-            <div class="uncertainty-gradient"></div>
-          </div>
-          <div class="uncertainty-labels">
-            <span>Less certain</span>
-            <span>More certain</span>
-          </div>
-        </div>
-      </div>
-    `;
-    
-    // Create gradient background for wait time scale
-    const gradient = div.querySelector('.legend-gradient');
-    // BUCKETS contains color arrays like [r, g, b] with values 0-1, need to convert to CSS colors
-    const colors = legendData.colors.map(color => {
-      if (Array.isArray(color) && color.length >= 3) {
-        return `rgb(${Math.round(color[0] * 255)}, ${Math.round(color[1] * 255)}, ${Math.round(color[2] * 255)})`;
-      } else if (typeof color === 'string') {
-        return color; // Already a CSS color string
-      } else {
-        console.warn('Unexpected color format:', color);
-        return 'rgb(128, 128, 128)'; // Fallback gray
-      }
-    });
-    gradient.style.background = `linear-gradient(to right, ${colors.join(', ')})`;
-    
-    // Create opacity gradient for uncertainty indicator
-    const uncertaintyGradient = div.querySelector('.uncertainty-gradient');
-    // Use a blue color for the uncertainty indicator
+// Position the heatmap legend pane below the filter pane
+function positionLegendPane() {
+  var legendPane = document.getElementById('heatmap-legend-pane');
+  var filterPane = document.getElementById('filter-pane');
+  if (!legendPane || legendPane.style.display === 'none') return;
+  if (filterPane) {
+    var rect = filterPane.getBoundingClientRect();
+    legendPane.style.top = (rect.bottom + 8) + 'px';
+  }
+}
+
+// Populate the heatmap legend pane with data
+function populateHeatmapLegend(legendData) {
+  const gradient = document.getElementById('legend-gradient');
+  const labels = document.getElementById('legend-labels');
+  const uncertaintyGradient = document.getElementById('uncertainty-gradient');
+
+  if (!gradient || !labels) return;
+
+  labels.innerHTML = `<span>${legendData.vmin}</span><span>${legendData.vmax}</span>`;
+
+  const colors = legendData.colors.map(color => {
+    if (Array.isArray(color) && color.length >= 3) {
+      return `rgb(${Math.round(color[0] * 255)}, ${Math.round(color[1] * 255)}, ${Math.round(color[2] * 255)})`;
+    } else if (typeof color === 'string') {
+      return color;
+    } else {
+      return 'rgb(128, 128, 128)';
+    }
+  });
+  gradient.style.background = `linear-gradient(to right, ${colors.join(', ')})`;
+
+  if (uncertaintyGradient) {
     uncertaintyGradient.style.background = `linear-gradient(to right, rgba(74, 144, 226, 0.3), rgba(74, 144, 226, 1.0))`;
-    
-    return div;
-  };
-  
-  return legend;
+  }
 }
 
 // Initialize the map and set up event listeners
@@ -267,6 +249,17 @@ function createHeatmapLegend(legendData) {
     // Also allow clicking the header text to toggle
     filterCollapseBtn.closest('.filter-pane-header').addEventListener('click', function() {
       filterPaneEl.classList.toggle('collapsed');
+      // Reposition legend after collapse animation
+      setTimeout(positionLegendPane, 250);
+    });
+  }
+
+  // Set up heatmap legend collapse toggle
+  var legendCollapseBtn = document.getElementById('legend-collapse-btn');
+  var legendPaneEl = document.getElementById('heatmap-legend-pane');
+  if (legendCollapseBtn && legendPaneEl) {
+    legendCollapseBtn.closest('.filter-pane-header').addEventListener('click', function() {
+      legendPaneEl.classList.toggle('collapsed');
     });
   }
 

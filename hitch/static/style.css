@@ -318,20 +318,43 @@ body.adding-spot .bottom-action-pane {
 }
 
 /* Heatmap Legend */
-.heatmap-legend {
+/* Heatmap legend pane (positioned below filter pane via JS) */
+.heatmap-legend-pane {
+  position: fixed;
+  left: 16px;
+  right: 68px;
+  max-width: 600px;
+  z-index: 998;
   background: white;
-  padding: 10px;
-  border-radius: 5px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  font-family: Arial, sans-serif;
-  min-width: 200px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  padding: 8px 14px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
 }
 
-.heatmap-legend h4 {
-  margin: 0 0 10px 0;
-  font-size: 12px;
-  font-weight: bold;
-  text-align: center;
+.heatmap-legend-body {
+  margin-top: 8px;
+  overflow: hidden;
+  transition: max-height 0.2s ease, opacity 0.2s ease;
+  max-height: 200px;
+  opacity: 1;
+}
+
+.heatmap-legend-pane.collapsed .heatmap-legend-body {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+}
+
+.heatmap-legend-pane.collapsed .filter-collapse-btn i {
+  transform: rotate(180deg);
+}
+
+@media only screen and (max-width: 500px) {
+  .heatmap-legend-pane {
+    right: 16px;
+  }
 }
 
 .legend-scale {
