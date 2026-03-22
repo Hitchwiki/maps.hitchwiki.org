@@ -13,9 +13,6 @@ from hitch.extensions import db
 from hitch.helpers import get_dirs
 from hitch.models import HitchwikiArticleLocation, HitchwikiArticleMap
 
-os.environ.setdefault("PYWIKIBOT_DIR", os.path.join(os.path.dirname(__file__), "..", "..", "pywikibot"))
-import pywikibot  # noqa: E402
-from pywikibot import pagegenerators  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger(__name__)
@@ -139,12 +136,7 @@ def find_coords_and_headings(raw_wiki_page: str, title: str, base_url: str = "ht
 
 ### MAIN SCRIPT ###
 
-logger.info("Starting Hitchwiki synchronization script, connecting to Hitchwiki...")
-lang_wiki = pywikibot.Site(code="en", fam="hitchwiki")
-if not lang_wiki.user():
-    lang_wiki.login()
-
-logger.info(f"Connected to Hitchwiki as user: {lang_wiki.user()}")
+logger.info("Starting Hitchwiki synchronization script...")
 
 # TODO: get articles with |map = <map lat='51.049' lng='13.74' zoom='11'/> in Infobox as well
 articles_file = os.path.join(get_dirs()["dist"], "hitchwiki_articles.json")
@@ -186,6 +178,9 @@ else:
                     time.sleep(wait)
                     continue
                 break
+            if resp.status_code != 200:
+                logger.warning(f"API returned HTTP {resp.status_code}: {resp.text[:500]}")
+                break
             data = resp.json()
         except Exception as e:
             logger.warning(f"API request failed: {e}")
@@ -215,10 +210,13 @@ else:
 
     logger.info(f"Scanned {total_pages} pages total, found {len(articles)} with {{{{Coords}}}}")
 
-    # Save final results
-    logger.info(f"Saving final results to {articles_file}...")
-    with open(articles_file, "w", encoding="utf-8") as f:
-        json.dump(articles, f, ensure_ascii=False, indent=4)
+    # Only save if we actually found articles (don't overwrite good cache with empty results)
+    if articles:
+        logger.info(f"Saving final results to {articles_file}...")
+        with open(articles_file, "w", encoding="utf-8") as f:
+            json.dump(articles, f, ensure_ascii=False, indent=4)
+    else:
+        logger.warning("No articles fetched — skipping save to preserve any existing cache")
 
 logger.info(f"Processing {len(articles)} articles to extract coordinates and headings...")
 coords = []
