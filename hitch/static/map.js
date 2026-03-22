@@ -32,7 +32,9 @@ async function initializeMap() {
       center: [0, 0],
       zoom: 1,
       preferCanvas: true,
+      attributionControl: false,
     });
+    L.control.attribution({ position: "bottomright" }).addTo(map);
 
     map.whenReady(async () => {
       await loadMarkers(map).catch(reject);

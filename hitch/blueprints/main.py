@@ -198,6 +198,7 @@ def ride_form():
             return redirect("/#error")  # User doesn't own this ride
 
         # Create new record with updated form data to get updated fields
+        # TODO: define license properly instead of using "xxx"
         updated_record = create_record_from_custom_object(custom_object=data, source=THIS_NOSTR_SOURCE, license="xxx")
 
         # post the updated event (maintaining all original tags including d tag)
@@ -207,6 +208,7 @@ def ride_form():
         d_tag = edit_d_tag  # Keep the same d_tag
     else:
         # This is a new ride - normal flow
+        # TODO: define license properly instead of using "xxx"
         record = create_record_from_custom_object(custom_object=data, source=THIS_NOSTR_SOURCE, license="xxx")
 
         poster = HitchhikingDataStandardToNostrPoster()

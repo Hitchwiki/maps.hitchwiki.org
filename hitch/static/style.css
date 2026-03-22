@@ -52,7 +52,7 @@ html {
 /* Top search bar - only the main geocoder in the Leaflet control container */
 .leaflet-control-container .leaflet-control-geocoder {
   position: fixed !important;
-  top: 12px !important;
+  top: 48px !important;
   left: 16px !important;
   right: 68px !important;
   width: auto !important;
@@ -88,7 +88,7 @@ html {
 /* Top-right account button */
 .top-account-btn {
   position: fixed;
-  top: 12px;
+  top: 48px;
   right: 12px;
   z-index: 1001;
   width: 44px;
@@ -120,7 +120,7 @@ html {
 /* Filter pane below search bar */
 .filter-pane {
   position: fixed;
-  top: 64px;
+  top: 100px;
   left: 16px;
   right: 68px;
   max-width: 600px;
@@ -307,14 +307,17 @@ body.adding-spot .bottom-action-pane {
 }
 
 
-/* Push zoom controls above bottom action pane */
+/* Push zoom controls above bottom action pane and attribution */
 .leaflet-bottom.leaflet-right .leaflet-control-zoom {
-  margin-bottom: 60px !important;
+  margin-bottom: 84px !important;
 }
 
-/* Adjust attribution above bottom pane */
+/* Attribution in bottom-right, above bottom action pane */
 .leaflet-control-attribution {
-  margin-bottom: 56px;
+  position: fixed !important;
+  bottom: 64px;
+  right: 0;
+  z-index: 1001;
 }
 
 /* Heatmap Legend */
@@ -878,51 +881,56 @@ ul.no-style {
 }
 
 /* Logo in bottom left corner */
-.logo-container {
+/* Top brand bar */
+.top-brand-bar {
   position: fixed;
-  bottom: 70px;
-  left: 20px;
-  z-index: 10000;
-  opacity: 0.7;
-  transition: opacity 0.3s ease;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 36px;
+  z-index: 1001;
+  background: #f3da71;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
 }
 
-.logo-container:hover {
-  opacity: 1;
-}
-
-.logo-container a {
-  display: block;
+.top-brand-bar a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   text-decoration: none;
-  cursor: pointer;
-  position: relative;
-  z-index: 10001;
+  color: #333;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
 }
 
-.logo-container img {
-  width: 70px;
-  height: 70px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s ease;
-  display: block;
+.top-brand-bar img {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
 }
 
-.logo-container img:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+.top-brand-bar a:hover {
+  color: #1a73e8;
 }
 
 /* Responsive adjustments for mobile */
 @media only screen and (max-width: 700px) {
-  .logo-container {
-    bottom: 65px;
-    left: 15px;
+  .top-brand-bar {
+    height: 32px;
+    padding: 0 10px;
   }
 
-  .logo-container img {
-    width: 60px;
-    height: 60px;
+  .top-brand-bar a {
+    font-size: 13px;
+  }
+
+  .top-brand-bar img {
+    width: 20px;
+    height: 20px;
   }
 
   .sidebar {
