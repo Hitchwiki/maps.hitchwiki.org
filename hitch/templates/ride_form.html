@@ -89,9 +89,14 @@
         </div>
         
         <div class="form-group" id="co-hitchhiker-container" style="position: relative;">
-            <label for="co-hitchhiker-input">Account name of a person hitchhiking with you</label>
-            <input id="co-hitchhiker-input" name="co_hitchhiker" maxlength="32" pattern="[a-zA-Z0-9]*" class="form-control" autocomplete="off" value="{{ ride_data.co_hitchhiker if ride_data and ride_data.co_hitchhiker else '' }}">
-            <ul id="co-hitchhiker-suggestions" style="display:none; position:absolute; z-index:1000; background:#fff; border:1px solid #ccc; border-top:none; list-style:none; padding:0; margin:0; width:100%; max-height:200px; overflow-y:auto;"></ul>
+            <label>Account names of people hitchhiking with you</label>
+            <input type="hidden" name="co_hitchhiker" id="co-hitchhiker-hidden" value="{{ ride_data.co_hitchhiker if ride_data and ride_data.co_hitchhiker else '' }}">
+            <div id="co-hitchhiker-tags" style="display:flex; flex-wrap:wrap; gap:6px; padding:6px 8px; border:1px solid #ccc; border-radius:4px; background:#fff; min-height:38px; align-items:center; cursor:text;" onclick="document.getElementById('co-hitchhiker-input').focus()">
+            </div>
+            <div style="position:relative;">
+                <input id="co-hitchhiker-input" maxlength="32" pattern="[a-zA-Z0-9]*" class="form-control" autocomplete="off" placeholder="Add co-hitchhiker…" style="margin-top:6px;">
+                <ul id="co-hitchhiker-suggestions" style="display:none; position:absolute; z-index:1000; background:#fff; border:1px solid #ccc; border-top:none; list-style:none; padding:0; margin:0; width:100%; max-height:200px; overflow-y:auto;"></ul>
+            </div>
             <span id="co-hitchhiker-error-message" class="error text-danger"></span>
         </div>
             
@@ -192,7 +197,7 @@
             rate: document.querySelector('input[name="rate"]:checked')?.value || '',
             wait: document.querySelector('input[name="wait"]')?.value || '',
             comment: document.querySelector('textarea[name="comment"]')?.value || '',
-            co_hitchhiker: document.querySelector('input[name="co_hitchhiker"]')?.value || '',
+            co_hitchhiker: document.getElementById('co-hitchhiker-hidden')?.value || '',
             signal: document.querySelector('select[name="signal"]')?.value || 'null',
             datetime_ride: document.querySelector('input[name="datetime_ride"]')?.value || '',
             pickup_lat: coords.pickup ? coords.pickup[0] : '',
@@ -251,7 +256,10 @@
             }
             if (data.wait) document.querySelector('input[name="wait"]').value = data.wait;
             if (data.comment) document.querySelector('textarea[name="comment"]').value = data.comment;
-            if (data.co_hitchhiker) document.querySelector('input[name="co_hitchhiker"]').value = data.co_hitchhiker;
+            if (data.co_hitchhiker) {
+                document.getElementById('co-hitchhiker-hidden').value = data.co_hitchhiker;
+                if (window._coHitchhikerRenderTags) window._coHitchhikerRenderTags();
+            }
             if (data.signal && data.signal !== 'null') document.querySelector('select[name="signal"]').value = data.signal;
             if (data.datetime_ride) document.querySelector('input[name="datetime_ride"]').value = data.datetime_ride;
             
@@ -339,22 +347,64 @@
         setTimeout(initThumbnailMaps, 100);
     }
     
-    // Co-hitchhiker autocomplete
+    // Co-hitchhiker multi-tag input
     (function() {
         const input = document.getElementById('co-hitchhiker-input');
         const suggestions = document.getElementById('co-hitchhiker-suggestions');
         const errorMsg = document.getElementById('co-hitchhiker-error-message');
+        const tagsContainer = document.getElementById('co-hitchhiker-tags');
+        const hidden = document.getElementById('co-hitchhiker-hidden');
         let debounceTimer = null;
+
+        function getTags() {
+            return hidden.value ? hidden.value.split(',').map(s => s.trim()).filter(Boolean) : [];
+        }
+
+        function setTags(tags) {
+            hidden.value = tags.join(',');
+        }
+
+        function renderTags() {
+            tagsContainer.innerHTML = '';
+            getTags().forEach(name => {
+                const tag = document.createElement('span');
+                tag.style.cssText = 'display:inline-flex; align-items:center; background:#e0e0e0; border-radius:3px; padding:2px 6px; font-size:0.9em; gap:4px;';
+                tag.textContent = name;
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.textContent = '×';
+                remove.style.cssText = 'background:none; border:none; cursor:pointer; padding:0; font-size:1.1em; line-height:1; color:#555;';
+                remove.addEventListener('click', () => {
+                    setTags(getTags().filter(t => t !== name));
+                    renderTags();
+                });
+                tag.appendChild(remove);
+                tagsContainer.appendChild(tag);
+            });
+        }
+
+        function addTag(name) {
+            name = name.trim();
+            if (!name) return;
+            const tags = getTags();
+            if (!tags.includes(name)) {
+                tags.push(name);
+                setTags(tags);
+                renderTags();
+            }
+            input.value = '';
+            suggestions.style.display = 'none';
+            errorMsg.textContent = '';
+        }
+
+        // Initialize tags from hidden field (e.g. when editing)
+        renderTags();
 
         input.addEventListener('input', function() {
             const query = this.value.trim();
             errorMsg.textContent = '';
-
             clearTimeout(debounceTimer);
-            if (query.length < 1) {
-                suggestions.style.display = 'none';
-                return;
-            }
+            if (query.length < 1) { suggestions.style.display = 'none'; return; }
 
             debounceTimer = setTimeout(() => {
                 fetch('/search_usernames?q=' + encodeURIComponent(query))
@@ -363,9 +413,7 @@
                         suggestions.innerHTML = '';
                         if (usernames.length === 0) {
                             suggestions.style.display = 'none';
-                            if (query.length > 0) {
-                                errorMsg.textContent = 'No matching user found';
-                            }
+                            errorMsg.textContent = 'No matching user found';
                             return;
                         }
                         usernames.forEach(name => {
@@ -376,9 +424,7 @@
                             li.addEventListener('mouseleave', () => li.style.backgroundColor = '#fff');
                             li.addEventListener('mousedown', (e) => {
                                 e.preventDefault();
-                                input.value = name;
-                                suggestions.style.display = 'none';
-                                errorMsg.textContent = '';
+                                addTag(name);
                             });
                             suggestions.appendChild(li);
                         });
@@ -387,15 +433,35 @@
             }, 200);
         });
 
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ',') {
+                e.preventDefault();
+                const name = this.value.trim();
+                if (!name) return;
+                // Validate synchronously then add
+                const xhr = new XMLHttpRequest();
+                xhr.open('GET', '/is_username_used/' + encodeURIComponent(name), false);
+                xhr.send();
+                const result = JSON.parse(xhr.responseText);
+                if (!result.used) {
+                    errorMsg.textContent = 'User "' + name + '" does not exist';
+                } else {
+                    addTag(name);
+                }
+            }
+        });
+
         input.addEventListener('blur', function() {
             setTimeout(() => { suggestions.style.display = 'none'; }, 150);
         });
 
         input.addEventListener('focus', function() {
-            if (suggestions.children.length > 0) {
-                suggestions.style.display = 'block';
-            }
+            if (suggestions.children.length > 0) suggestions.style.display = 'block';
         });
+
+        // Expose for sessionStorage save/restore
+        window._coHitchhikerGetTags = getTags;
+        window._coHitchhikerRenderTags = renderTags;
     })();
 
     // Validate co-hitchhiker on form submit
@@ -403,20 +469,23 @@
     validateForm = function() {
         if (!originalValidateForm()) return false;
 
-        const coInput = document.getElementById('co-hitchhiker-input');
+        const input = document.getElementById('co-hitchhiker-input');
         const errorMsg = document.getElementById('co-hitchhiker-error-message');
-        const username = coInput.value.trim();
+        const partial = input.value.trim();
 
-        if (username === '') return true;
-
-        // Synchronous check via XMLHttpRequest
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', '/is_username_used/' + encodeURIComponent(username), false);
-        xhr.send();
-        const result = JSON.parse(xhr.responseText);
-        if (!result.used) {
-            errorMsg.textContent = 'User "' + username + '" does not exist';
-            return false;
+        // If there's unfinished text in the input, validate and add it before submitting
+        if (partial !== '') {
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', '/is_username_used/' + encodeURIComponent(partial), false);
+            xhr.send();
+            const result = JSON.parse(xhr.responseText);
+            if (!result.used) {
+                errorMsg.textContent = 'User "' + partial + '" does not exist';
+                return false;
+            }
+            document.getElementById('co-hitchhiker-hidden').value =
+                (document.getElementById('co-hitchhiker-hidden').value
+                    ? document.getElementById('co-hitchhiker-hidden').value + ',' : '') + partial;
         }
 
         return true;
