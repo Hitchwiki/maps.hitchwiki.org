@@ -9,6 +9,7 @@ import pandas as pd
 from jinja2 import Environment, FileSystemLoader
 
 from hitch.helpers import get_dirs
+from tqdm import tqdm
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -77,7 +78,7 @@ def haversine_km(lat1, lon1, lat2, lon2):
     return 6371 * 2 * np.arcsin(np.sqrt(a))
 
 
-for city in cities.itertuples():
+for city in tqdm(cities.itertuples(), total=len(cities), desc="Rendering city pages"):
     country_folder = os.path.join(dist_dir, "city", city.country)
     os.makedirs(country_folder, exist_ok=True)
 
