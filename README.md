@@ -1,4 +1,6 @@
-Deploment location on Hitchwiki server `/var/www/maps.hitchwiki.org`
+This project is deployed on the Hitchwiki server at the following locations:
+* the Map `maps.hitchwiki.org` at`/var/www/maps.hitchwiki.org`
+* the Nostr relay used as a the central data store `wss://relay.nomadwiki.org` at `/var/www/relay.nomadwiki.org`
 
 ---
 
