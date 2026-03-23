@@ -306,6 +306,10 @@ body.adding-spot .bottom-action-pane {
   display: none;
 }
 
+body.adding-spot .leaflet-control-attribution {
+  display: none;
+}
+
 
 /* Push zoom controls above bottom action pane and attribution */
 .leaflet-bottom.leaflet-right .leaflet-control-zoom {
