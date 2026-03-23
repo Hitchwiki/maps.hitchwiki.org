@@ -1,6 +1,5 @@
 """
 Class to allow posting hitchhiking rides in the standardized format to Nostr.
-If you are certain that you want to permanantly publish the rides remove the expiration tag from the Nostr event.
 """
 
 import ast
@@ -65,7 +64,6 @@ class HitchhikingDataStandardToNostrPoster:
             id=None, # ID will be computed when signing
             sig=None,  # Signature will be added later
             tags=[
-                ["expiration", str(unix_timestamp_now + 36000)],  # Expiration time set to 10 hours from now
                 ["d", d_tag],
                 *geohash_tags,
                 ["published_at", str(unix_timestamp_now)],
