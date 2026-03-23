@@ -828,6 +828,37 @@ function markerClick(marker) {
         window.location.href = '/ride';
       };
     }
+
+    // Share button
+    const spotUrl = `${location.origin}/#${data.lat},${data.lon}`;
+    const shareText = `Hitchhiking spot at ${data.lat.toFixed(4)}, ${data.lon.toFixed(4)}`;
+    const shareBtn = $$("#share-spot-btn");
+    const shareMenu = $$("#share-spot-menu");
+
+    if (navigator.share) {
+      shareMenu.hidden = true;
+      shareBtn.onclick = () => navigator.share({ title: shareText, url: spotUrl });
+    } else {
+      shareBtn.onclick = (e) => {
+        e.stopPropagation();
+        shareMenu.hidden = !shareMenu.hidden;
+      };
+      document.addEventListener('click', () => { shareMenu.hidden = true; }, { once: false });
+
+      $$("#share-copy-link").onclick = (e) => {
+        e.preventDefault();
+        navigator.clipboard.writeText(spotUrl).then(() => {
+          const orig = $$("#share-copy-link").textContent;
+          $$("#share-copy-link").textContent = 'Copied!';
+          setTimeout(() => { $$("#share-copy-link").textContent = orig; }, 1500);
+        });
+        shareMenu.hidden = true;
+      };
+
+      $$("#share-whatsapp").href = `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + spotUrl)}`;
+      $$("#share-telegram").href = `https://t.me/share/url?url=${encodeURIComponent(spotUrl)}&text=${encodeURIComponent(shareText)}`;
+      $$("#share-signal").href = `sgnl://send?text=${encodeURIComponent(shareText + ' ' + spotUrl)}`;
+    }
   }, 100);
 }
 

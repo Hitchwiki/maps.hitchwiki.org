@@ -713,6 +713,50 @@ a:hover {
   color: black;
   border-bottom: 1px dotted black;
 }
+#spot-header-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  position: relative;
+}
+#spot-header-row #spot-header {
+  flex: 1;
+  margin: 0;
+}
+#share-spot-btn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: #555;
+  margin-top: 4px;
+}
+#share-spot-btn:hover {
+  color: #000;
+}
+#share-spot-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  z-index: 2000;
+  min-width: 140px;
+  padding: 4px 0;
+}
+#share-spot-menu a {
+  display: block;
+  padding: 8px 14px;
+  color: #333;
+  text-decoration: none;
+  font-size: 0.9em;
+}
+#share-spot-menu a:hover {
+  background: #f0f0f0;
+}
 .leaflet-control-geocoder-form:not(:has(:focus))
   ~ .leaflet-control-geocoder-alternatives {
   display: none;
