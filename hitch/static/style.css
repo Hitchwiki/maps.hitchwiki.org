@@ -22,6 +22,11 @@ html {
   border-bottom: 2px #eee solid;
   margin-bottom: 20px !important;
 }
+#spot-header-row #spot-header {
+  padding-bottom: 0 !important;
+  border-bottom: none !important;
+  margin-bottom: 0 !important;
+}
 
 .sidebar h3,
 .sidebar h4 {
@@ -715,13 +720,16 @@ a:hover {
 }
 #spot-header-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
   position: relative;
+  padding-top: 16px;
+  padding-bottom: 16px;
+  border-bottom: 2px #eee solid;
+  margin-bottom: 20px;
 }
 #spot-header-row #spot-header {
   flex: 1;
-  margin: 0;
 }
 #share-spot-btn {
   flex-shrink: 0;
@@ -730,7 +738,8 @@ a:hover {
   cursor: pointer;
   padding: 4px;
   color: #555;
-  margin-top: 4px;
+  margin-top: 0;
+  line-height: 1;
 }
 #share-spot-btn:hover {
   color: #000;

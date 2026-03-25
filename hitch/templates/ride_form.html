@@ -12,6 +12,11 @@
 {% endblock %}
 
 {% block main %}
+{% if current_user.is_anonymous %}
+<div style="background-color: #dc3545; color: #fff; text-align: center; padding: 0.75rem 1rem; font-size: 0.95em;">
+    <strong>You are not logged in.</strong> <a href="/login" style="color: #fff; text-decoration: underline;">Log in</a> to track your rides &mdash; currently you are {% if request.args.get('edit') %}reviewing{% else %}adding a spot{% endif %} anonymously.
+</div>
+{% endif %}
 <div class="container" style="max-width: 800px; margin: 2rem auto; padding: 2rem;">
     <a href="/" style="color: #555; text-decoration: none; font-size: 0.9em;">← Back to map</a>
     <h2>Submit Your Ride Experience</h2>
@@ -158,14 +163,13 @@
                 center: coords.pickup,
                 zoom: 15,
                 zoomControl: false,
+                attributionControl: false,
                 scrollWheelZoom: false,
                 doubleClickZoom: false,
                 dragging: false
             });
             
-            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap'
-            }).addTo(pickupMap);
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(pickupMap);
             
             L.marker(coords.pickup).addTo(pickupMap);
         }
@@ -176,14 +180,13 @@
                 center: coords.destination,
                 zoom: 15,
                 zoomControl: false,
+                attributionControl: false,
                 scrollWheelZoom: false,
                 doubleClickZoom: false,
                 dragging: false
             });
             
-            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap'
-            }).addTo(destinationMap);
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(destinationMap);
             
             L.marker(coords.destination).addTo(destinationMap);
         }

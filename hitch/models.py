@@ -46,6 +46,7 @@ class RideEvent(db.Model):
     mode_of_transportation = db.Column(db.JSON, nullable=True)
     comment = db.Column(db.Text, nullable=True)
     rating = db.Column(db.Integer, nullable=True)
+    images = db.Column(db.JSON, nullable=True)
     submission_time = db.Column(db.String(32), nullable=True)  # RFC 9557 format
     license = db.Column(db.String(255), nullable=True)
     source = db.Column(db.String(255), nullable=True)
