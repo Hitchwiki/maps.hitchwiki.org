@@ -61,6 +61,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Static Files**: Served from dist/ directory, includes PWA manifest
 - **Web Server**: Waitress for production, Apache/NGINX reverse proxy configs provided
 
+## Debugging & Operations
+
+### Finding errors for internal server errors (500s)
+The app runs inside Docker. Flask tracebacks are NOT in the Apache logs — they go to the container's stdout/stderr. To get the real traceback:
+```bash
+sudo docker logs --tail 200 hitchhiking-map 2>&1 | grep -A 20 "Traceback\|Error\|500"
+```
+Apache only logs proxy-level errors (`Connection reset by peer`, `Connection refused`) which don't include the Python traceback. Always check Docker logs first when investigating 500s.
+
+### Database migrations (adding columns)
+There is no migration framework (no Alembic). When a new column is added to a model in `hitch/models.py`, the production SQLite database must be manually migrated — `flask init` / `db.create_all()` will NOT add columns to existing tables.
+
+**When you add a column to a model, also run this against the production DB:**
+```bash
+sudo docker exec hitchhiking-map python3 -c "
+import sqlite3
+conn = sqlite3.connect('/app/db/prod-points.sqlite')
+conn.execute('ALTER TABLE <table_name> ADD COLUMN <col_name> <type>')
+conn.commit(); conn.close()
+"
+```
+Failure to do this causes `sqlalchemy.exc.OperationalError: no such column: <table>.<col>` on any query that touches that model, which presents as a 500 for every affected route.
+
 ## Data Flow and Storage
 
 ### Data Sources
