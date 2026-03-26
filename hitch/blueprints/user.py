@@ -10,7 +10,7 @@ from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDat
 from hitch.extensions import db, security
 from hitch.forms import UserEditForm
 from hitch.helpers import get_db
-from hitch.models import RideEvent
+from hitch.models import CoHitchhiker, RideEvent
 
 THIS_NOSTR_SOURCE = os.getenv("THIS_NOSTR_SOURCE", "maps.hitchwiki.org")
 
@@ -121,7 +121,11 @@ def show_account(username, is_me: bool = False):
     if user is None:
         return "User not found."
 
-    return render_template("security/account.html", user=user, is_me=is_me)
+    rides_data = []
+    if is_me:
+        rides_data = _get_rides_for_user(current_user)
+
+    return render_template("security/account.html", user=user, is_me=is_me, rides=rides_data)
 
 
 @user_bp.route("/contributors", methods=["GET"])
@@ -216,30 +220,68 @@ def claim_review(review_id: int):
     return reply
 
 
+def _extract_ride_info(ride, ride_type):
+    """Extract display info from a RideEvent row."""
+    content = ride.content if ride.content else {}
+    stops = content.get("stops", [])
+    pickup_lat, pickup_lon = None, None
+    destination_lat, destination_lon = None, None
+    if stops:
+        coords = stops[0].get("location", {})
+        pickup_lat = coords.get("latitude")
+        pickup_lon = coords.get("longitude")
+        if len(stops) > 1:
+            coords = stops[-1].get("location", {})
+            destination_lat = coords.get("latitude")
+            destination_lon = coords.get("longitude")
+    return {
+        "type": ride_type,
+        "d_tag": ride.d,
+        "created": pd.to_datetime(ride.created_at, unit="s").strftime("%Y-%m-%d %H:%M") if ride.created_at else "N/A",
+        "created_at": ride.created_at or 0,
+        "rating": ride.rating or 0,
+        "comment": ride.comment or "",
+        "pickup_lat": pickup_lat,
+        "pickup_lon": pickup_lon,
+        "destination_lat": destination_lat,
+        "destination_lon": destination_lon,
+    }
+
+
+def _get_rides_for_user(user):
+    """Return merged list of own rides and pending co-hitchhiker rides, newest first."""
+    # Own rides
+    all_rides = (
+        db.session.query(RideEvent)
+        .filter(RideEvent.content.op("->>")("source") == THIS_NOSTR_SOURCE)
+        .order_by(RideEvent.created_at.desc())
+        .all()
+    )
+    own_rides = []
+    for ride in all_rides:
+        content = ride.content if ride.content else {}
+        nicknames = [h.get("nickname") for h in content.get("hitchhikers", [])]
+        if user.username in nicknames:
+            own_rides.append(_extract_ride_info(ride, "own"))
+
+    # Pending co-hitchhiker rides
+    pending = CoHitchhiker.query.filter_by(co_hitchhiker=user.username, accepted="open").all()
+    co_rides = []
+    for ch in pending:
+        ride = db.session.query(RideEvent).filter_by(d=ch.nostr_ride_event_d_tag).first()
+        if ride:
+            co_rides.append(_extract_ride_info(ride, "co_hitchhiker"))
+
+    combined = own_rides + co_rides
+    combined.sort(key=lambda r: r["created_at"], reverse=True)
+    for r in combined:
+        del r["created_at"]
+    return combined
+
+
 @user_bp.route("/co-hitchhiking-rides", methods=["GET", "POST"])
 def co_hitchhiking_rides():
-    if current_user.is_anonymous:
-        return redirect("/login")
-
-    conn = get_db()
-    query = """
-        SELECT *
-        FROM co_hitchhiker
-        WHERE co_hitchhiker = ? AND accepted = 'open'
-    """
-    df = pd.read_sql(query, conn, params=(current_user.username,))
-    conn.close()
-
-    # TODO: let link work
-    df["ride_link"] = df["nostr_ride_event_d_tag"].apply(
-        lambda d_tag: f'<a href="/accept-co-hitchhiking-ride/{d_tag}">Accept Ride</a>'
-    )
-
-    return render_template(
-        "security/co_hitchhiking_rides.html",
-        rides=df.to_html(index=False),
-        is_logged_in=True,
-    )
+    return redirect("/me")
 
 
 # TODO: check if all data from the new co-hitchhiker added to the new event and that no data was lost
@@ -274,65 +316,22 @@ def accept_co_hitchhiker(ride_d_tag: str):
     _ = poster.post(ride_record=ride_record, tags=ride_row.tags)
     poster.close()
 
-    return redirect("/co-hitchhiking-rides")
+    return redirect("/me")
+
+
+@user_bp.route("/reject-co-hitchhiking-ride/<ride_d_tag>", methods=["POST"])
+def reject_co_hitchhiker(ride_d_tag: str):
+    if current_user.is_anonymous:
+        return redirect("/login")
+
+    CoHitchhiker.query.filter_by(
+        nostr_ride_event_d_tag=ride_d_tag, co_hitchhiker=current_user.username
+    ).update({"accepted": "no"})
+    db.session.commit()
+
+    return redirect("/me")
 
 
 @user_bp.route("/my-rides", methods=["GET"])
 def my_rides():
-    """Show the current user's submitted rides."""
-    if current_user.is_anonymous:
-        return redirect("/login")
-
-    current_app.logger.info(f"Received request to show rides for {current_user.username}")
-
-    # Fetch all rides from the current source
-    all_rides = (
-        db.session.query(RideEvent)
-        .filter(RideEvent.content.op("->>")("source") == THIS_NOSTR_SOURCE)
-        .order_by(RideEvent.created_at.desc())
-        .all()
-    )
-
-    # Filter rides where current_user is among the hitchhikers
-    user_rides = []
-    for ride in all_rides:
-        content = ride.content if ride.content else {}
-        hitchhikers = content.get('hitchhikers', [])
-        user_nicknames = [h.get('nickname') for h in hitchhikers]
-        if current_user.username in user_nicknames:
-            user_rides.append(ride)
-
-    # Convert to list for template display
-    rides_data = []
-    for ride in user_rides:
-        # Extract useful data from the content JSON
-        content = ride.content if ride.content else {}
-        stops = content.get("stops", [])
-        pickup_lat, pickup_lon = None, None
-        destination_lat, destination_lon = None, None
-
-        if stops:
-            if len(stops) > 0:
-                first_stop = stops[0]
-                coords = first_stop.get('location', {})
-                pickup_lat = coords.get('latitude')
-                pickup_lon = coords.get('longitude')
-            if len(stops) > 1:
-                last_stop = stops[-1]
-                coords = last_stop.get('location', {})
-                destination_lat = coords.get('latitude')
-                destination_lon = coords.get('longitude')
-
-        ride_info = {
-            "d_tag": ride.d,
-            "created": pd.to_datetime(ride.created_at, unit="s").strftime("%Y-%m-%d %H:%M") if ride.created_at else "N/A",
-            "rating": ride.rating or 0,
-            "comment": ride.comment or "",
-            "pickup_lat": pickup_lat,
-            "pickup_lon": pickup_lon,
-            "destination_lat": destination_lat,
-            "destination_lon": destination_lon,
-        }
-        rides_data.append(ride_info)
-
-    return render_template("security/my_rides.html", rides=rides_data, is_logged_in=True)
+    return redirect("/me")
