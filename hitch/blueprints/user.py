@@ -223,7 +223,7 @@ def claim_review(review_id: int):
 def _extract_ride_info(ride, ride_type):
     """Extract display info from a RideEvent row."""
     content = ride.content if ride.content else {}
-    stops = content.get("stops", [])
+    stops = content.get("stops") or []
     pickup_lat, pickup_lon = None, None
     destination_lat, destination_lon = None, None
     if stops:
@@ -239,7 +239,7 @@ def _extract_ride_info(ride, ride_type):
         "d_tag": ride.d,
         "created": pd.to_datetime(ride.created_at, unit="s").strftime("%Y-%m-%d %H:%M") if ride.created_at else "N/A",
         "created_at": ride.created_at or 0,
-        "rating": ride.rating or 0,
+        "rating": int(ride.rating) if ride.rating else 0,
         "comment": ride.comment or "",
         "pickup_lat": pickup_lat,
         "pickup_lon": pickup_lon,
@@ -260,7 +260,7 @@ def _get_rides_for_user(user):
     own_rides = []
     for ride in all_rides:
         content = ride.content if ride.content else {}
-        nicknames = [h.get("nickname") for h in content.get("hitchhikers", [])]
+        nicknames = [h.get("nickname") for h in (content.get("hitchhikers") or [])]
         if user.username in nicknames:
             own_rides.append(_extract_ride_info(ride, "own"))
 
