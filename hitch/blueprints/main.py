@@ -1,5 +1,6 @@
 import math
 import os
+import re
 from datetime import datetime
 
 import pandas as pd
@@ -88,26 +89,57 @@ def ride_form():
 
                 # Extract coordinates from stops
                 if stops:
-                    if len(stops) > 0:
-                        first_stop = stops[0]
-                        coords = first_stop.get("location", {}) or first_stop.get("coordinates", {})
-                        ride_data["pickup_lat"] = coords.get("latitude", "")
-                        ride_data["pickup_lon"] = coords.get("longitude", "")
+                    first_stop = stops[0]
+                    coords = first_stop.get("location", {})
+                    ride_data["pickup_lat"] = coords.get("latitude", "")
+                    ride_data["pickup_lon"] = coords.get("longitude", "")
+
+                    # Extract wait from waiting_duration ISO 8601 e.g. "PT30M" -> 30
+                    waiting_duration = first_stop.get("waiting_duration")
+                    if waiting_duration:
+                        match = re.match(r"PT(\d+)M", waiting_duration)
+                        if match:
+                            ride_data["wait"] = int(match.group(1))
+
+                    # Extract datetime from departure_time e.g. "2024-01-15T14:30:00" -> "2024-01-15T14:30"
+                    departure_time = first_stop.get("departure_time")
+                    if departure_time:
+                        ride_data["datetime_ride"] = departure_time[:16]
+
                     if len(stops) > 1:
                         last_stop = stops[-1]
-                        coords = last_stop.get("location", {}) or last_stop.get("coordinates", {})
+                        coords = last_stop.get("location", {})
                         ride_data["destination_lat"] = coords.get("latitude", "")
                         ride_data["destination_lon"] = coords.get("longitude", "")
 
-                # Extract other fields from content if available
-                if "wait" in content:
-                    ride_data["wait"] = content["wait"]
-                if "signal" in content:
-                    ride_data["signal"] = content["signal"]
-                if "datetime_ride" in content:
-                    ride_data["datetime_ride"] = content["datetime_ride"]
-                if "co_hitchhiker" in content:
-                    ride_data["co_hitchhiker"] = content["co_hitchhiker"]
+                # Extract signal from signals[0].methods
+                signals = content.get("signals", [])
+                if signals:
+                    methods = signals[0].get("methods", [])
+                    signal_map = {
+                        ("sign",): "sign",
+                        ("thumb",): "thumb",
+                        ("asking",): "ask",
+                    }
+                    ride_data["signal"] = signal_map.get(tuple(methods), "")
+
+                # Requirement: co-hitchhikers already on a ride cannot be removed when editing,
+                # only new ones can be added. "Already present" means either:
+                # (a) in the nostr event's hitchhikers list (already accepted, published to Nostr), or
+                # (b) in the CoHitchhiker table with accepted="open" (invited, pending response).
+                current_nickname = current_user.username if not current_user.is_anonymous else None
+                hitchhikers_on_nostr = {
+                    h.get("nickname") for h in content.get("hitchhikers", [])
+                    if h.get("nickname") and h.get("nickname") != current_nickname
+                }
+                pending_invites = {
+                    c.co_hitchhiker for c in db.session.query(CoHitchhiker).filter_by(
+                        nostr_ride_event_d_tag=edit_d_tag, accepted="open"
+                    ).all()
+                }
+                locked_co_hitchhikers = sorted(hitchhikers_on_nostr | pending_invites)
+                ride_data["co_hitchhiker"] = ",".join(locked_co_hitchhikers)
+                ride_data["co_hitchhiker_locked"] = ",".join(locked_co_hitchhikers)
 
         return render_template("ride_form.html", ride_data=ride_data)
 
@@ -126,7 +158,7 @@ def ride_form():
     )
 
     signal = data["signal"] if data["signal"] != "null" else None
-    assert signal in ["thumb", "sign", "ask", "ask-sign", None], (
+    assert signal in ["thumb", "sign", "ask", None], (
         f"Signal must be one of thumb, sign, ask, ask-sign, the signal is {signal}."
     )
 
@@ -216,14 +248,21 @@ def ride_form():
         poster.close()
 
     ### Co-hitchhikers
+    # Requirement: co-hitchhikers already on a ride cannot be removed when editing, only new
+    # ones can be added. We achieve this by only inserting co-hitchhikers not already in the DB.
     if "co_hitchhiker" in data and data["co_hitchhiker"] != "":
         current_username = current_user.username if not current_user.is_anonymous else None
+        existing_co = {
+            c.co_hitchhiker for c in db.session.query(CoHitchhiker).filter_by(nostr_ride_event_d_tag=d_tag).all()
+        }
         for ch in data["co_hitchhiker"].split(","):
             username = ch.strip()
             if username == "":
                 continue
             if username == current_username:
                 continue  # skip self
+            if username in existing_co:
+                continue  # already present, cannot be removed so no need to re-add
             if not User.query.filter_by(username=username).first():
                 continue  # skip non-existent users
             co_hitchhiker = CoHitchhiker(

@@ -96,6 +96,7 @@
         <div class="form-group" id="co-hitchhiker-container" style="position: relative;">
             <label>Account names of people hitchhiking with you</label>
             <input type="hidden" name="co_hitchhiker" id="co-hitchhiker-hidden" value="{{ ride_data.co_hitchhiker if ride_data and ride_data.co_hitchhiker else '' }}">
+        <input type="hidden" id="co-hitchhiker-locked" value="{{ ride_data.co_hitchhiker_locked if ride_data and ride_data.co_hitchhiker_locked else '' }}">
             <div id="co-hitchhiker-tags" style="display:flex; flex-wrap:wrap; gap:6px; padding:6px 8px; border:1px solid #ccc; border-radius:4px; background:#fff; min-height:38px; align-items:center; cursor:text;" onclick="document.getElementById('co-hitchhiker-input').focus()">
             </div>
             <div style="position:relative;">
@@ -112,7 +113,6 @@
                 <option value="sign" {% if ride_data and ride_data.signal == 'sign' %}selected{% endif %}>Sign</option>
                 <option value="thumb" {% if ride_data and ride_data.signal == 'thumb' %}selected{% endif %}>Thumb</option>
                 <option value="ask" {% if ride_data and ride_data.signal == 'ask' %}selected{% endif %}>Asked around</option>
-                <option value="ask-sign" {% if ride_data and ride_data.signal == 'ask-sign' %}selected{% endif %}>Asked around with a sign in hand</option>
             </select>
         </div>
         
@@ -367,21 +367,29 @@
             hidden.value = tags.join(',');
         }
 
+        function getLockedTags() {
+            const val = document.getElementById('co-hitchhiker-locked').value;
+            return val ? val.split(',').map(s => s.trim()).filter(Boolean) : [];
+        }
+
         function renderTags() {
             tagsContainer.innerHTML = '';
             getTags().forEach(name => {
                 const tag = document.createElement('span');
+                const isLocked = getLockedTags().includes(name);
                 tag.style.cssText = 'display:inline-flex; align-items:center; background:#e0e0e0; border-radius:3px; padding:2px 6px; font-size:0.9em; gap:4px;';
                 tag.textContent = name;
-                const remove = document.createElement('button');
-                remove.type = 'button';
-                remove.textContent = '×';
-                remove.style.cssText = 'background:none; border:none; cursor:pointer; padding:0; font-size:1.1em; line-height:1; color:#555;';
-                remove.addEventListener('click', () => {
-                    setTags(getTags().filter(t => t !== name));
-                    renderTags();
-                });
-                tag.appendChild(remove);
+                if (!isLocked) {
+                    const remove = document.createElement('button');
+                    remove.type = 'button';
+                    remove.textContent = '×';
+                    remove.style.cssText = 'background:none; border:none; cursor:pointer; padding:0; font-size:1.1em; line-height:1; color:#555;';
+                    remove.addEventListener('click', () => {
+                        setTags(getTags().filter(t => t !== name));
+                        renderTags();
+                    });
+                    tag.appendChild(remove);
+                }
                 tagsContainer.appendChild(tag);
             });
         }

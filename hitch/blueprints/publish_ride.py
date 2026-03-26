@@ -39,10 +39,6 @@ def map_signal(signal: str) -> Signal:
         return Signal(
             methods=["asking"],
         )
-    elif signal == "ask-sign":
-        return Signal(
-            methods=["asking", "sign"],
-        )
     else:
         return None
 

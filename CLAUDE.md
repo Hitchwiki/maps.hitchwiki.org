@@ -16,6 +16,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Execute Script**: `flask generate <script_name>` - Runs scripts from hitch/scripts/
 - **Run All Scripts**: `flask generate-all` - Executes fetch_nostr and show scripts
 
+## Coding Conventions
+
+- **Requirement comments**: Add a comment above non-obvious logic explaining the requirement it implements (the "why"), not just the "what". This is especially important for business rules, edge cases, and multi-step operations.
+
 ### Code Quality
 - **Linting**: `ruff check` - Code linting with line length 130
 - **Formatting**: `ruff format` - Auto-format code
