@@ -206,7 +206,9 @@
             pickup_lat: coords.pickup ? coords.pickup[0] : '',
             pickup_lon: coords.pickup ? coords.pickup[1] : '',
             destination_lat: coords.destination ? coords.destination[0] : '',
-            destination_lon: coords.destination ? coords.destination[1] : ''
+            destination_lon: coords.destination ? coords.destination[1] : '',
+            // Preserve edit mode so location selection redirects back to the correct edit URL
+            edit_d_tag: document.querySelector('input[name="edit_d_tag"]')?.value || ''
         };
         
         sessionStorage.setItem('rideFormData', JSON.stringify(formData));

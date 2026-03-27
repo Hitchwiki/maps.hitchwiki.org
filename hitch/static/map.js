@@ -1434,17 +1434,20 @@ function confirmLocationSelection() {
     }
     
     sessionStorage.setItem('rideFormData', JSON.stringify(formData));
-    
-    // Return to ride form
-    window.location.href = '/ride';
+
+    // Return to ride form, preserving edit mode if editing an existing ride
+    const editDTag = formData.edit_d_tag;
+    window.location.href = editDTag ? '/ride?edit=' + encodeURIComponent(editDTag) : '/ride';
 }
 
 function cancelLocationSelection() {
     // Clean up and return to ride form without changing coordinates
     cleanupLocationSelection();
-    
-    // Return to ride form
-    window.location.href = '/ride';
+
+    // Return to ride form, preserving edit mode if editing an existing ride
+    const formData = JSON.parse(sessionStorage.getItem('rideFormData') || '{}');
+    const editDTag = formData.edit_d_tag;
+    window.location.href = editDTag ? '/ride?edit=' + encodeURIComponent(editDTag) : '/ride';
 }
 
 function cleanupLocationSelection() {
