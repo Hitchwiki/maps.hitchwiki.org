@@ -1,12 +1,13 @@
 """Initialize the Flask application at flask init."""
+
 import importlib
 import os
 import sys
 
 import click
 from flask import Flask, render_template, send_from_directory
-from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_security import SQLAlchemyUserDatastore
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from hitch.blueprints.main import main_bp
 from hitch.blueprints.oauth import oauth_bp
@@ -96,7 +97,7 @@ def register_commands(app):
             # Sets arguments on the current process (workaround because import_module cannot take args)
             sys.argv.clear()
             sys.argv.append(args)
-            
+
             # Add generation flags to Flask config for the script to use
             if script == "show":
                 if no_heatmap:

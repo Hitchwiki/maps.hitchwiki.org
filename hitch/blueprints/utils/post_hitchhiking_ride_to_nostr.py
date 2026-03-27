@@ -54,7 +54,9 @@ class HitchhikingDataStandardToNostrPoster:
             ["g", geohash2.encode(start_location.latitude, start_location.longitude, precision=p)] for p in range(1, 11)
         ]
 
-        d_tag = f"{ride_record.source}-{uuid.uuid4()}"
+        d_tag = f"{ride_record.source}-{uuid.uuid4()}" if tags is None else next(tag[1] for tag in tags if tag[0] == "d")
+
+        published_at_tag = str(unix_timestamp_now) if tags is None else next(tag[1] for tag in tags if tag[0] == "published_at")
 
         event = Event(
             kind=self.event_kind,
@@ -64,10 +66,10 @@ class HitchhikingDataStandardToNostrPoster:
             id=None, # ID will be computed when signing
             sig=None,  # Signature will be added later
             tags=[
-                ["d", d_tag],
-                *geohash_tags,
-                ["published_at", str(unix_timestamp_now)],
-            ] if tags is None else tags
+                ["d", d_tag ],  # Use existing d tag if updating, otherwise create a new one
+                *geohash_tags, # geohash is always updated in case the ride's location changes
+                ["published_at", published_at_tag], # published_at stays the same across versions of the same ride, so that we can identify updates to the same ride across versions
+            ]
         )
 
         event.sign(self.private_key_hex)
