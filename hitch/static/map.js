@@ -412,6 +412,9 @@ function handleMapClick(e) {
 
 // Set up event listeners for filter controls
 function setupFilterEventListeners() {
+  recentToggle.addEventListener("input", () =>
+    setQueryParameter("recent", recentToggle.checked)
+  );
   osmToggle.addEventListener("input", () =>
     setQueryParameter("osmonly", osmToggle.checked)
   );
@@ -1047,6 +1050,7 @@ function exportAsGPX() {
   document.body.appendChild(script);
 }
 
+const recentToggle = document.getElementById("recent-toggle");
 const osmToggle = document.getElementById("osm-toggle");
 const hitchwikiToggle = document.getElementById("hitchwiki-toggle");
 const textFilter = document.getElementById("text-filter");
@@ -1082,6 +1086,7 @@ function clearParams() {
 }
 
 async function applyParams() {
+  recentToggle.checked = getQueryParameter("recent") == "true";
   osmToggle.checked = getQueryParameter("osmonly") == "true";
   hitchwikiToggle.checked = getQueryParameter("hitchwikionly") == "true";
   textFilter.value = getQueryParameter("text");
@@ -1089,6 +1094,7 @@ async function applyParams() {
   distanceFilter.value = getQueryParameter("mindistance");
 
   if (
+    recentToggle.checked ||
     osmToggle.checked ||
     hitchwikiToggle.checked ||
     textFilter.value ||
@@ -1145,6 +1151,12 @@ async function applyParams() {
             return true;
         }
         return false;
+      });
+    }
+    if (recentToggle.checked) {
+      const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      filterMarkers = filterMarkers.filter((x) => {
+        return x.options._data.latest_submission && x.options._data.latest_submission >= cutoff;
       });
     }
     if (osmToggle.checked) {

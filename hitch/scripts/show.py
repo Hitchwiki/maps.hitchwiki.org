@@ -301,6 +301,9 @@ places["review_users"] = (
 places["dest_lats"] = rides_df.dropna(subset=["dest_lat", "dest_lon"]).groupby(["lat", "lon"]).dest_lat.apply(list)
 places["dest_lons"] = rides_df.dropna(subset=["dest_lat", "dest_lon"]).groupby(["lat", "lon"]).dest_lon.apply(list)
 
+# Latest submission time per spot (ISO string) for "recent" filtering
+places["latest_submission"] = rides_df.dropna(subset=["submission_time"]).groupby(["lat", "lon"])["submission_time"].max()
+
 places.reset_index(inplace=True)
 places.sort_values("rating", inplace=True, ascending=False)
 
@@ -461,6 +464,7 @@ for _, place in places.iterrows():
         "osm_id": place["nearby_osm_id"],
         "hitchwiki_article": place["nearby_hitchwiki_link"],
         "hitchwiki_map": place["hitchwiki_map_link"],
+        "latest_submission": place["latest_submission"].isoformat() if pd.notna(place["latest_submission"]) else None,
     }
     spots_data.append(spot_data)
 

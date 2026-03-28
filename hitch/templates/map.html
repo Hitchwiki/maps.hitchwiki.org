@@ -104,7 +104,7 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
             <li><a href="/dump.csv">As CSV</a></li>
             <li><a href="javascript:exportAsGPX()">As GPX</a></li>
         </ul>
-        <li><i class="fa fa-map-pin"></i><a href="/recent.html">Recent reviews</a></li>
+        <li><i class="fa fa-map-pin"></i><a href="/recent">Recent rides</a></li>
         <li><i class="fa fa-chart-simple"></i><a href="/dashboard.html">Charts & graphs</a></li>
     </ul>
     <h4>Credits</h4>
@@ -144,6 +144,7 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
             <input id="distance-filter" type="number" value="" placeholder="Min ride distance (km)" />
         </div>
         <div class="filter-pane-row filter-toggles">
+            <label><input id="recent-toggle" type="checkbox" value="" /> Last 24h</label>
             <label><input id="osm-toggle" type="checkbox" value="" /> Official spots</label>
             <label><input id="hitchwiki-toggle" type="checkbox" value="" /> Hitchwiki articles</label>
             <button id="clear-filters">Clear</button>

@@ -1,0 +1,72 @@
+{% extends "security/base.html" %}
+
+{% set title = "Recent Rides" %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<link rel="stylesheet" href="/static/map_thumbnail.css" />
+<style>
+.ride-card {
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.85em;
+}
+.ride-meta {
+    color: #666;
+    margin-bottom: 0.4rem;
+}
+.ride-comment {
+    color: #333;
+    margin: 0.3rem 0;
+}
+.hitchhiker-name {
+    font-weight: bold;
+    color: #555;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>Recent Rides</h1>
+<p style="color:#666; font-size:0.85em;">Last {{ rides|length }} added rides</p>
+{% if rides %}
+  {% for ride in rides %}
+  <div class="ride-card">
+      <div class="ride-meta">
+          {{ ride.created }}
+          {% if ride.rating > 0 %}&nbsp;{{ "\u2b50" * ride.rating }}{% endif %}
+          &mdash; <span class="hitchhiker-name">{{ ride.hitchhiker_name }}</span>
+      </div>
+      {% if ride.pickup_lat and ride.pickup_lon %}
+      <div class="map-thumbnail" id="ride-thumb-{{ loop.index0 }}" style="height:100px;"></div>
+      <div style="color:#888; font-size:0.8em;">{{ "%.4f, %.4f"|format(ride.pickup_lat, ride.pickup_lon) }}</div>
+      {% endif %}
+      {% if ride.comment %}
+      <div class="ride-comment">{{ ride.comment }}</div>
+      {% endif %}
+  </div>
+  {% endfor %}
+{% else %}
+  <p style="color:#666; font-size:0.9em;">No rides yet.</p>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="/static/map_thumbnail.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const rides = {{ rides | tojson }};
+    rides.forEach((ride, i) => {
+        if (ride.pickup_lat && ride.pickup_lon) {
+            initMapThumbnail(`ride-thumb-${i}`, ride.pickup_lat, ride.pickup_lon);
+        }
+    });
+});
+</script>
+{% endblock %}

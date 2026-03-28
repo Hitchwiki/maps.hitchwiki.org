@@ -58,6 +58,40 @@ def render_map(map_variation):
     )
 
 
+@main_bp.route("/recent")
+def recent_spots():
+    """Show the last 100 added rides in card format."""
+    rides = (
+        db.session.query(RideEvent)
+        .filter(RideEvent.submission_time.isnot(None))
+        .order_by(RideEvent.submission_time.desc())
+        .limit(100)
+        .all()
+    )
+    ride_list = []
+    for ride in rides:
+        content = ride.content if ride.content else {}
+        stops = content.get("stops") or []
+        pickup_lat, pickup_lon = None, None
+        if stops:
+            coords = stops[0].get("location", {})
+            pickup_lat = coords.get("latitude")
+            pickup_lon = coords.get("longitude")
+        hitchhikers = content.get("hitchhikers") or []
+        nickname = hitchhikers[0].get("nickname", "Anonymous") if hitchhikers else "Anonymous"
+        ride_list.append(
+            {
+                "created": pd.to_datetime(ride.created_at, unit="s").strftime("%Y-%m-%d %H:%M") if ride.created_at else "N/A",
+                "rating": int(ride.rating) if ride.rating else 0,
+                "comment": ride.comment or "",
+                "pickup_lat": pickup_lat,
+                "pickup_lon": pickup_lon,
+                "hitchhiker_name": nickname,
+            }
+        )
+    return render_template("recent.html", rides=ride_list)
+
+
 @main_bp.route("/ride", methods=["GET", "POST"])
 def ride_form():
     """Dedicated ride form page."""
