@@ -100,6 +100,9 @@ sudo apachectl configtest
 sudo systemctl reload apache2
 ```
 
+### Google search cosole
+To enable it put the verification file like `googlexxx.html` into `dist/`.
+
 ## Data
 If you find the data collected and provided by maps.hitchwiki.org helpful, feel free to cite it using:
 ```

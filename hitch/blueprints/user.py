@@ -335,3 +335,29 @@ def reject_co_hitchhiker(ride_d_tag: str):
 @user_bp.route("/my-rides", methods=["GET"])
 def my_rides():
     return redirect("/me")
+
+
+@user_bp.route("/leaderboard", methods=["GET"])
+def leaderboard():
+    """Show all users sorted by number of rides, highest first."""
+    from hitch.models import User
+
+    all_users = User.query.order_by(User.username).all()
+
+    # Count rides per user: rides from this source where username appears in hitchhikers
+    all_rides = (
+        db.session.query(RideEvent)
+        .filter(RideEvent.content.op("->>")("source") == THIS_NOSTR_SOURCE)
+        .all()
+    )
+
+    ride_counts = {user.username: 0 for user in all_users}
+    for ride in all_rides:
+        content = ride.content if ride.content else {}
+        for h in content.get("hitchhikers") or []:
+            nickname = h.get("nickname")
+            if nickname and nickname in ride_counts:
+                ride_counts[nickname] += 1
+
+    ranked = sorted(all_users, key=lambda u: ride_counts[u.username], reverse=True)
+    return render_template("leaderboard.html", users=ranked, ride_counts=ride_counts)

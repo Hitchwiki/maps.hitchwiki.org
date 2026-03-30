@@ -261,7 +261,7 @@ def get_hitchhiker_name(hitchhikers):
 rides_df["hitchhiker_name"] = rides_df["hitchhikers"].apply(get_hitchhiker_name)
 
 rides_df["user_link"] = (
-    "<a href='/?user=" + e(rides_df["hitchhiker_name"]) + "#filters'>" + e(rides_df["hitchhiker_name"]) + "</a>"
+    "<a href='/account/" + e(rides_df["hitchhiker_name"]) + "'>" + e(rides_df["hitchhiker_name"]) + "</a>"
 ).fillna(
     "Anonymous  "
     + '<i class="icon-button fa fa-hand" title="Claim this review as yours." onclick="confirmClaimReview(\'/claim-review/'

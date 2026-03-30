@@ -1,0 +1,28 @@
+{% extends "security/base.html" %}
+
+{% set title = "Leaderboard" %}
+
+{% block content %}
+<h1>Leaderboard</h1>
+<p style="color:#666; font-size:0.85em;">All users ranked by number of rides logged</p>
+<table style="width:100%; border-collapse:collapse; font-size:0.9em;">
+  <thead>
+    <tr style="border-bottom:2px solid #ccc; text-align:left;">
+      <th style="padding:0.4rem 0.6rem;">#</th>
+      <th style="padding:0.4rem 0.6rem;">User</th>
+      <th style="padding:0.4rem 0.6rem; text-align:right;">Rides</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for user in users %}
+    <tr style="border-bottom:1px solid #eee;">
+      <td style="padding:0.4rem 0.6rem; color:#999;">{{ loop.index }}</td>
+      <td style="padding:0.4rem 0.6rem;">
+        <a href="/account/{{ user.username }}">{{ user.username }}</a>
+      </td>
+      <td style="padding:0.4rem 0.6rem; text-align:right;">{{ ride_counts[user.username] }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
