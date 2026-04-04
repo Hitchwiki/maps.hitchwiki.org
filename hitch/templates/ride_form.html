@@ -501,6 +501,11 @@
                     ? document.getElementById('co-hitchhiker-hidden').value + ',' : '') + partial;
         }
 
+        // Disable submit button to prevent duplicate submissions during the ~5s Nostr publish
+        const submitBtn = document.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting…';
+
         return true;
     };
 

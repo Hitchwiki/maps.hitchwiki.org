@@ -347,7 +347,6 @@ def leaderboard():
     # Count rides per user: rides from this source where username appears in hitchhikers
     all_rides = (
         db.session.query(RideEvent)
-        .filter(RideEvent.content.op("->>")("source") == THIS_NOSTR_SOURCE)
         .all()
     )
 

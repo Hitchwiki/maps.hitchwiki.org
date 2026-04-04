@@ -8,6 +8,10 @@
     <link rel="manifest" href="/manifest.json" />
 
     <title>{% block title %}{{ "%s | Hitchhiking Map"|format(title) if title else "Hitchhiking Map" }}{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}Discover hitchhiking spots worldwide on an interactive map. See community ratings, waiting times, and trip data. Share your own rides.{% endblock %}" />
+    <meta property="og:title" content="{% block og_title %}Hitchhiking Map – Find & Share Hitchhiking Spots Globally{% endblock %}" />
+    <meta property="og:description" content="{% block og_description %}Discover hitchhiking spots worldwide on an interactive map. See community ratings, waiting times, and trip data. Share your own rides.{% endblock %}" />
+    <meta property="og:type" content="website" />
 
     {% block head %}{% endblock %}
   </head>

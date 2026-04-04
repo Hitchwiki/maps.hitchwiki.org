@@ -193,7 +193,7 @@ def ride_form():
 
     signal = data["signal"] if data["signal"] != "null" else None
     assert signal in ["thumb", "sign", "ask", None], (
-        f"Signal must be one of thumb, sign, ask, ask-sign, the signal is {signal}."
+        f"Signal must be one of thumb, sign, ask - the signal is {signal}."
     )
 
 
@@ -217,25 +217,6 @@ def ride_form():
     assert (-90 <= dest_lat <= 90 and -180 <= dest_lon <= 180) or (math.isnan(dest_lat) and math.isnan(dest_lon)), (
         f"Invalid destination coordinates: {dest_lat}, {dest_lon}"
     )
-
-    # for _i in range(10):
-    #     resp = requests.get(
-    #         "https://nominatim.openstreetmap.org/reverse",
-    #         {
-    #             "lat": lat,
-    #             "lon": lon,
-    #             "format": "json",
-    #             "zoom": 3,
-    #             "email": current_app.config["EMAIL"],
-    #         },
-    #     )
-    #     if resp.ok:
-    #         break
-    #     else:
-    #         current_app.logger.info(resp)
-
-    # res = resp.json()
-    # country = "XZ" if "error" in res else res["address"]["country_code"].upper()
 
     # ride_row = {
     #     "rating": rating,

@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Hitchhiking Map - Find hitchhiking spots on a map - Add new spots{% endblock %}
+{% block title %}Hitchhiking Map – Find & Share Hitchhiking Spots Globally{% endblock %}
 
 {% block head %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -109,8 +109,8 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
     </ul>
     <h4>Credits</h4>
     <p>
-        &copy; <a href=https://github.com/leon-wbr>Leon Weber</a> &
-        <a href=https://tillwenke.github.io/about />Till Wenke</a>
+        &copy; <a href=https://tillwenke.github.io/about />Till Wenke</a> &
+        <a href=https://github.com/leon-wbr>Leon Weber</a>        
     </p>
     <p>
         Maps and data by
@@ -218,6 +218,10 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
         <i class="fa-solid fa-route"></i>
         <span>Route</span>
     </button>
+    <a class="action-btn" href="/leaderboard" title="Leaderboard">
+        <i class="fa-solid fa-trophy"></i>
+        <span>Leaderboard</span>
+    </a>
     <button class="action-btn" id="action-menu" title="Menu">
         <i class="fa-solid fa-bars"></i>
         <span>Menu</span>
