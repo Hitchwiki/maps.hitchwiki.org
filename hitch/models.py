@@ -18,6 +18,7 @@ class User(db.Model, fsqla.FsUserMixin):
     origin_city = db.Column(db.String(255), default=None)
     hitchwiki_username = db.Column(db.String(255), default=None)
     trustroots_username = db.Column(db.String(255), default=None)
+    email_notifications = db.Column(db.Boolean, default=True, nullable=False, server_default="1")
 
 
 class CoHitchhiker(db.Model):

@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pycountry
 from flask_wtf import FlaskForm
-from wtforms import IntegerField, SelectField, StringField, SubmitField
+from wtforms import BooleanField, IntegerField, SelectField, StringField, SubmitField
 from wtforms.validators import Optional
 from wtforms.widgets import NumberInput
 
@@ -38,4 +38,5 @@ class UserEditForm(FlaskForm):
     origin_city = StringField("Which city are you from?", validators=[Optional()])
     hitchwiki_username = StringField("Hitchwiki Username", validators=[Optional()], default=None)
     trustroots_username = StringField("Trustroots Username", validators=[Optional()], default=None)
+    email_notifications = BooleanField("Receive notifications and updates via email", default=True)
     submit = SubmitField("Submit")

@@ -88,6 +88,24 @@ conn.commit(); conn.close()
 ```
 Failure to do this causes `sqlalchemy.exc.OperationalError: no such column: <table>.<col>` on any query that touches that model, which presents as a 500 for every affected route.
 
+### Container killed by OOM (exit code 137)
+If the `hitchhiking-map` container is down with exit code 137 (`Exited (137)`), it was killed by the Linux OOM killer. This happened on 2026-04-07.
+
+**Diagnosis steps:**
+1. `sudo docker ps -a --filter name=hitchhiking-map` — check exit code (137 = SIGKILL)
+2. `sudo docker logs --tail 100 hitchhiking-map` — look for `Killed` at the end with no Python traceback (confirms external kill, not app crash)
+3. `sudo docker inspect hitchhiking-map --format '{{.State.OOMKilled}}'` — if `false`, the OOM came from the **host kernel**, not a Docker memory limit
+4. `dmesg -T | grep -i -E "oom|kill|out of memory" | tail -20` — shows which process triggered the OOM killer
+
+**Known cause:** `mysqld` on this host consumes ~2.2 GB+ RSS and pushes the system into OOM. The hitchhiking-map app itself uses SQLite, not MySQL — mysql is from another service on the same host. When the kernel OOM killer fires, it may kill the container's process as collateral.
+
+**Recovery:** `sudo docker start hitchhiking-map`
+
+**Prevention (not yet done):**
+- Tune `mysqld` memory usage (e.g. lower `innodb_buffer_pool_size`)
+- Add swap or more RAM to the host
+- Set a Docker memory limit on the container so Docker's own OOM handling kicks in before the kernel's indiscriminate kill
+
 ## Data Flow and Storage
 
 ### Data Sources

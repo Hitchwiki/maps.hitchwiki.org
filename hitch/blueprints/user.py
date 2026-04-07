@@ -33,6 +33,7 @@ def form():
         updated_user.origin_city = form.origin_city.data
         updated_user.hitchwiki_username = form.hitchwiki_username.data
         updated_user.trustroots_username = form.trustroots_username.data
+        updated_user.email_notifications = form.email_notifications.data
         security.datastore.put(updated_user)
         security.datastore.commit()
         return redirect("/me")
@@ -44,6 +45,7 @@ def form():
     form.origin_city.data = current_user.origin_city
     form.hitchwiki_username.data = current_user.hitchwiki_username
     form.trustroots_username.data = current_user.trustroots_username
+    form.email_notifications.data = current_user.email_notifications
 
     return render_template("security/edit_user.html", form=form)
 
