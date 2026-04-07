@@ -75,7 +75,7 @@ In order to run the project continuously, use `deploy/cron.sh` to set up corresp
 sudo docker build -t hitch .
 sudo docker run -p 4242:4242 --name hitchhiking-map -d hitch
 # or
-sudo docker compose up --build -d
+sudo docker compose up --build -d --remove-orphans
 
 sudo docker exec -it hitchhiking-map /bin/bash  
 
