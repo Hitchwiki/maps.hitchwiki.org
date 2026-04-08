@@ -162,17 +162,22 @@ def ride_form():
                 # (a) in the nostr event's hitchhikers list (already accepted, published to Nostr), or
                 # (b) in the CoHitchhiker table with accepted="open" (invited, pending response).
                 current_nickname = current_user.username if not current_user.is_anonymous else None
+                all_hitchhikers = content.get("hitchhikers", [])
                 hitchhikers_on_nostr = {
-                    h.get("nickname") for h in content.get("hitchhikers", [])
-                    if h.get("nickname") and h.get("nickname") != current_nickname
+                    h.get("nickname") for h in all_hitchhikers
+                    if h.get("nickname") and h.get("nickname") != current_nickname and h.get("nickname") != "Anonymous"
                 }
+                # Anonymous hitchhikers are always co-hitchhikers (creator must be
+                # logged in to edit, so they are never "Anonymous" themselves)
+                anon_count = sum(1 for h in all_hitchhikers if h.get("nickname") == "Anonymous")
                 pending_invites = {
                     c.co_hitchhiker for c in db.session.query(CoHitchhiker).filter_by(
                         nostr_ride_event_d_tag=edit_d_tag, accepted="open"
                     ).all()
                 }
                 locked_co_hitchhikers = sorted(hitchhikers_on_nostr | pending_invites)
-                ride_data["co_hitchhiker"] = ",".join(locked_co_hitchhikers)
+                all_co = locked_co_hitchhikers + ["Anonymous"] * anon_count
+                ride_data["co_hitchhiker"] = ",".join(all_co)
                 ride_data["co_hitchhiker_locked"] = ",".join(locked_co_hitchhikers)
 
         return render_template("ride_form.html", ride_data=ride_data)
@@ -272,8 +277,8 @@ def ride_form():
         }
         for ch in data["co_hitchhiker"].split(","):
             username = ch.strip()
-            if username == "":
-                continue
+            if username == "" or username == "Anonymous":
+                continue  # anonymous hitchhikers are handled in the Nostr event, not in CoHitchhiker
             if username == current_username:
                 continue  # skip self
             if username in existing_co:

@@ -120,13 +120,20 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
 
     hitchhiker = Hitchhiker(nickname="Anonymous") if current_user.is_anonymous else construct_hitchhiker_from_current_user()
 
+    # Build hitchhikers list: the current user plus any anonymous co-hitchhikers
+    hitchhikers = [hitchhiker]
+    co_hitchhiker_str = custom_object.get("co_hitchhiker", "")
+    if co_hitchhiker_str:
+        anon_count = sum(1 for name in co_hitchhiker_str.split(",") if name.strip() == "Anonymous")
+        hitchhikers.extend(Hitchhiker(nickname="Anonymous") for _ in range(anon_count))
+
     now = pd.Timestamp.now()
 
     record = HitchhikingRecord(
         version="0.0.0",
         stops=stops,
         rating=int(custom_object["rate"]),
-        hitchhikers=[hitchhiker],
+        hitchhikers=hitchhikers,
         comment=None if custom_object["comment"] == "" else custom_object["comment"],
         signals=signals,
         occupants=None,

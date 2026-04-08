@@ -94,16 +94,17 @@
         </div>
         
         <div class="form-group" id="co-hitchhiker-container" style="position: relative;">
-            <label>Account names of people hitchhiking with you</label>
+            <label>People hitchhiking with you <span id="hitchhiker-count" style="font-weight:normal; color:#666;"></span></label>
             <input type="hidden" name="co_hitchhiker" id="co-hitchhiker-hidden" value="{{ ride_data.co_hitchhiker if ride_data and ride_data.co_hitchhiker else '' }}">
         <input type="hidden" id="co-hitchhiker-locked" value="{{ ride_data.co_hitchhiker_locked if ride_data and ride_data.co_hitchhiker_locked else '' }}">
             <div id="co-hitchhiker-tags" style="display:flex; flex-wrap:wrap; gap:6px; padding:6px 8px; border:1px solid #ccc; border-radius:4px; background:#fff; min-height:38px; align-items:center; cursor:text;" onclick="document.getElementById('co-hitchhiker-input').focus()">
             </div>
             <div style="position:relative;">
-                <input id="co-hitchhiker-input" maxlength="32" pattern="[a-zA-Z0-9]*" class="form-control" autocomplete="off" placeholder="Add co-hitchhiker…" style="margin-top:6px;">
+                <input id="co-hitchhiker-input" maxlength="32" pattern="[a-zA-Z0-9]*" class="form-control" autocomplete="off" placeholder="Add co-hitchhiker username…" style="margin-top:6px;">
                 <ul id="co-hitchhiker-suggestions" style="display:none; position:absolute; z-index:1000; background:#fff; border:1px solid #ccc; border-top:none; list-style:none; padding:0; margin:0; width:100%; max-height:200px; overflow-y:auto;"></ul>
             </div>
             <span id="co-hitchhiker-error-message" class="error text-danger"></span>
+            <button type="button" id="add-anonymous-hitchhiker" class="btn btn-outline-secondary btn-sm" style="margin-top:6px;">+1 Anonymous hitchhiker</button>
         </div>
             
         <div class="form-group">
@@ -376,7 +377,7 @@
 
         function renderTags() {
             tagsContainer.innerHTML = '';
-            getTags().forEach(name => {
+            getTags().forEach((name, idx) => {
                 const tag = document.createElement('span');
                 const isLocked = getLockedTags().includes(name);
                 tag.style.cssText = 'display:inline-flex; align-items:center; background:#e0e0e0; border-radius:3px; padding:2px 6px; font-size:0.9em; gap:4px;';
@@ -386,25 +387,33 @@
                     remove.type = 'button';
                     remove.textContent = '×';
                     remove.style.cssText = 'background:none; border:none; cursor:pointer; padding:0; font-size:1.1em; line-height:1; color:#555;';
+                    // Remove by index so only one "Anonymous" is removed at a time
                     remove.addEventListener('click', () => {
-                        setTags(getTags().filter(t => t !== name));
+                        const tags = getTags();
+                        tags.splice(idx, 1);
+                        setTags(tags);
                         renderTags();
                     });
                     tag.appendChild(remove);
                 }
                 tagsContainer.appendChild(tag);
             });
+            document.getElementById('hitchhiker-count').textContent = '(' + getTags().length + ')';
         }
 
         function addTag(name) {
             name = name.trim();
             if (!name) return;
             const tags = getTags();
-            if (!tags.includes(name)) {
-                tags.push(name);
-                setTags(tags);
-                renderTags();
+            // Allow duplicate "Anonymous" entries but not duplicate real usernames
+            if (name !== 'Anonymous' && tags.includes(name)) {
+                input.value = '';
+                suggestions.style.display = 'none';
+                return;
             }
+            tags.push(name);
+            setTags(tags);
+            renderTags();
             input.value = '';
             suggestions.style.display = 'none';
             errorMsg.textContent = '';
@@ -470,6 +479,11 @@
 
         input.addEventListener('focus', function() {
             if (suggestions.children.length > 0) suggestions.style.display = 'block';
+        });
+
+        // +1 Anonymous hitchhiker button
+        document.getElementById('add-anonymous-hitchhiker').addEventListener('click', () => {
+            addTag('Anonymous');
         });
 
         // Expose for sessionStorage save/restore
