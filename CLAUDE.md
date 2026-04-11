@@ -112,7 +112,7 @@ If the `hitchhiking-map` container is down with exit code 137 (`Exited (137)`), 
 The application aggregates hitchhiking data from multiple sources:
 
 1. **Nostr Protocol Network** (Primary ride data source)
-   - **Source**: Decentralized Nostr relays (relay.nomadwiki.org, relay.trustroots.org, nos.lol)
+   - **Source**: Decentralized Nostr relays (relay.nomadwiki.org)
    - **Data Type**: Hitchhiking ride events (Nostr event kind 36820)
    - **Fetching**: Every 10 minutes via `fetch_nostr.py`
    - **Process Flow**:

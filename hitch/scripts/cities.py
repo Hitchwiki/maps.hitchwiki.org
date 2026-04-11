@@ -103,7 +103,7 @@ for city in tqdm(cities.itertuples(), total=len(cities), desc="Rendering city pa
 
     rendered_cities.append(len(city_rides) >= 3)
     if rendered_cities[-1]:
-        logger.info(f"Rendering city page for {city.city}, {city.country} ({len(city_rides)} rides)")
+        # logger.info(f"Rendering city page for {city.city}, {city.country} ({len(city_rides)} rides)")
         rendered = city_template.render(city=city, title=city.city, reviews=city_rides)
         # Replace "/" with "-" to avoid filesystem issues
         safe_filename = city.city.replace("/", "-")

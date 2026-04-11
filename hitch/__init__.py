@@ -2,7 +2,9 @@
 
 import importlib
 import os
+import resource
 import sys
+import time as time_module
 
 import click
 from flask import Flask, render_template, send_from_directory
@@ -106,10 +108,21 @@ def register_commands(app):
                     app.config["FORCE_REGENERATE"] = True
 
             # Runs a script automatically through importing it (or reloading so it gets executed again)
+            start_time = time_module.time()
             if module not in sys.modules:
                 importlib.import_module(module)
             else:
                 importlib.reload(sys.modules[module])
+
+            # Log peak memory usage to logs/<script>_ram.log
+            elapsed = time_module.time() - start_time
+            peak_kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+            peak_mb = peak_kb / 1024
+            from datetime import datetime, timezone
+
+            ram_log = os.path.join(app.root_path, "..", "logs", f"{script}_ram.log")
+            with open(ram_log, "a") as f:
+                f.write(f"{datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')} peak_rss={peak_mb:.1f}MB elapsed={elapsed:.1f}s\n")
         except Exception as e:
             print(e)
 
@@ -117,19 +130,45 @@ def register_commands(app):
     @click.pass_context
     def generate_all(ctx):
         """
-        Executes all scripts defined in array with given args
+        Executes all scripts defined in array with given args.
+        Only runs a script if its output doesn't already exist (cron keeps them updated after first run).
         """
+        from hitch.helpers import get_dirs
+
+        dist_dir = get_dirs()["dist"]
+
+        # Map each script to a file/dir whose existence means "already populated, cron will update"
+        output_checks = {
+            "fetch_nostr": os.path.join(dist_dir, "allPosts.json"),
+            "sync_osm": "__check_db:osm_hitchhiking_spot",
+            "sync_hitchwiki": os.path.join(dist_dir, "hitchwiki_articles.json"),
+            "show": os.path.join(dist_dir, "spots.json"),
+            "dashboard": os.path.join(dist_dir, "dashboard.html"),
+            "cities": os.path.join(dist_dir, "city", "index.html"),
+        }
+
         # TODO: include ("dump", "") again when fixed
         scripts = [
             *([("fetch_nostr", "")] if ENVIRONMENT == "prod" else []),
             *([("sync_osm", "")] if ENVIRONMENT == "prod" else []),
             *([("sync_hitchwiki", "")] if ENVIRONMENT == "prod" else []),
-            *([("sync_upstream", "")] if ENVIRONMENT == "prod" else []),
             ("show", ""),
             ("dashboard", ""),
             *([("cities", "")] if ENVIRONMENT == "prod" else []),
         ]
         for script, args in scripts:
+            check = output_checks.get(script)
+            if check and check.startswith("__check_db:"):
+                table_name = check.split(":", 1)[1]
+                from sqlalchemy import text
+
+                row_count = db.session.execute(text(f"SELECT COUNT(*) FROM {table_name}")).scalar()
+                if row_count > 0:
+                    print(f"Skipping {script}: table {table_name} already has {row_count} rows")
+                    continue
+            elif check and os.path.exists(check):
+                print(f"Skipping {script}: output already exists ({check})")
+                continue
             ctx.invoke(generate, script=script, args=args)
 
 
