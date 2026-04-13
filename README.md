@@ -79,6 +79,9 @@ sudo docker compose up --build -d --remove-orphans
 
 sudo docker exec -it hitchhiking-map /bin/bash  
 
+# if down just:
+sudo docker restart hitchhiking-map    
+
 sudo docker stop hitchhiking-map 
 sudo docker rm hitchhiking-map 
 ```

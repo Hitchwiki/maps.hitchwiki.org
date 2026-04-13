@@ -25,28 +25,25 @@ var allMarkers = [],
   routeLayer = null,
   routeMarkers = [];
 
-// Initialize Map
-async function initializeMap() {
-  return new Promise((resolve, reject) => {
-    map = L.map("map", {
-      center: [0, 0],
-      zoom: 1,
-      preferCanvas: true,
-      attributionControl: false,
-    });
-    L.control.attribution({ position: "bottomright" }).addTo(map);
-
-    map.whenReady(async () => {
-      await loadMarkers(map).catch(reject);
-      resolve(map);
-    });
-
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution:
-        '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> | Data: <a href="/copyright">maps.hitchwiki.org</a> &amp; <a href="https://hitchmap.com/copyright.html">Hitchmap</a> (<a href="https://opendatacommons.org/licenses/odbl/">ODbL</a>)',
-    }).addTo(map);
+// Create the Leaflet map synchronously so controls are in their final position immediately
+function createMap() {
+  map = L.map("map", {
+    center: [0, 0],
+    zoom: 1,
+    preferCanvas: true,
+    attributionControl: false,
+    zoomControl: false,
   });
+  L.control.zoom({ position: "bottomright" }).addTo(map);
+  L.control.attribution({ position: "bottomright" }).addTo(map);
+
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution:
+      '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> | Data: <a href="/copyright">maps.hitchwiki.org</a> &amp; <a href="https://hitchmap.com/copyright.html">Hitchmap</a> (<a href="https://opendatacommons.org/licenses/odbl/">ODbL</a>)',
+  }).addTo(map);
+
+  return map;
 }
 
 // Load markers from JSON data
@@ -237,11 +234,13 @@ function populateHeatmapLegend(legendData) {
 
 // Initialize the map and set up event listeners
 (async () => {
-  map = await initializeMap();
-
-  // Set up interactive elements
+  // Create map + geocoder synchronously so zoom/search appear in final position immediately
+  map = createMap();
   setupGeocoder();
-  addMapControls();
+
+  // Load markers asynchronously
+  await loadMarkers(map);
+
   setupEventListeners();
   
   // Set up filter pane collapse toggle
@@ -309,13 +308,6 @@ function setupGeocoder() {
     map.setView(e.geocode.center, zoom);
     geocoderInput.value = "";
   });
-}
-
-// Add custom controls to the map
-function addMapControls() {
-  // Controls are now in the bottom action pane (HTML) and top-right (account btn)
-  // Only need to set up zoom position
-  map.zoomControl.setPosition('bottomright');
 }
 
 // Set up various event listeners for the map and UI elements
