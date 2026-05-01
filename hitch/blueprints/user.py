@@ -123,9 +123,10 @@ def show_account(username, is_me: bool = False):
     if user is None:
         return "User not found."
 
-    rides_data = []
     if is_me:
         rides_data = _get_rides_for_user(current_user)
+    else:
+        rides_data = _get_rides_for_user(user, include_pending_co=False, display_only=True)
 
     return render_template("security/account.html", user=user, is_me=is_me, rides=rides_data)
 
@@ -250,29 +251,33 @@ def _extract_ride_info(ride, ride_type):
     }
 
 
-def _get_rides_for_user(user):
+def _get_rides_for_user(user, include_pending_co=True, display_only=False):
     """Return merged list of own rides and pending co-hitchhiker rides, newest first."""
-    # Own rides
-    all_rides = (
-        db.session.query(RideEvent)
-        .filter(RideEvent.content.op("->>")("source") == THIS_NOSTR_SOURCE)
-        .order_by(RideEvent.created_at.desc())
-        .all()
-    )
+    all_rides = db.session.query(RideEvent).order_by(RideEvent.created_at.desc()).all()
+
+    # MediaWiki-style: first letter is case-insensitive so "John" matches "john" and vice versa
+    def _norm(s):
+        return (s[:1].upper() + s[1:]) if s else s
+
+    normalized_username = _norm(user.username)
     own_rides = []
     for ride in all_rides:
         content = ride.content if ride.content else {}
-        nicknames = [h.get("nickname") for h in (content.get("hitchhikers") or [])]
-        if user.username in nicknames:
-            own_rides.append(_extract_ride_info(ride, "own"))
+        nicknames = [_norm(h.get("nickname")) for h in (content.get("hitchhikers") or [])]
+        if normalized_username in nicknames:
+            if display_only or content.get("source") != THIS_NOSTR_SOURCE:
+                ride_type = "own_external"
+            else:
+                ride_type = "own"
+            own_rides.append(_extract_ride_info(ride, ride_type))
 
-    # Pending co-hitchhiker rides
-    pending = CoHitchhiker.query.filter_by(co_hitchhiker=user.username, accepted="open").all()
     co_rides = []
-    for ch in pending:
-        ride = db.session.query(RideEvent).filter_by(d=ch.nostr_ride_event_d_tag).first()
-        if ride:
-            co_rides.append(_extract_ride_info(ride, "co_hitchhiker"))
+    if include_pending_co:
+        pending = CoHitchhiker.query.filter_by(co_hitchhiker=user.username, accepted="open").all()
+        for ch in pending:
+            ride = db.session.query(RideEvent).filter_by(d=ch.nostr_ride_event_d_tag).first()
+            if ride:
+                co_rides.append(_extract_ride_info(ride, "co_hitchhiker"))
 
     combined = own_rides + co_rides
     combined.sort(key=lambda r: r["created_at"], reverse=True)
@@ -352,13 +357,18 @@ def leaderboard():
         .all()
     )
 
-    ride_counts = {user.username: 0 for user in all_users}
+    # MediaWiki-style: first letter is case-insensitive so "john" matches "John"
+    def _norm(s):
+        return (s[:1].upper() + s[1:]) if s else s
+
+    ride_counts_by_norm = {_norm(u.username): 0 for u in all_users}
     for ride in all_rides:
         content = ride.content if ride.content else {}
         for h in content.get("hitchhikers") or []:
-            nickname = h.get("nickname")
-            if nickname and nickname in ride_counts:
-                ride_counts[nickname] += 1
+            nickname = _norm(h.get("nickname"))
+            if nickname and nickname in ride_counts_by_norm:
+                ride_counts_by_norm[nickname] += 1
 
+    ride_counts = {u.username: ride_counts_by_norm[_norm(u.username)] for u in all_users}
     ranked = sorted(all_users, key=lambda u: ride_counts[u.username], reverse=True)
     return render_template("leaderboard.html", users=ranked, ride_counts=ride_counts)

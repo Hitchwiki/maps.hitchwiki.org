@@ -55,12 +55,14 @@
         {% if ride.pickup_lat and ride.pickup_lon %}
         <div class="location-section">
             <h5><i class="fa fa-map-marker" style="color: #28a745;"></i> Pickup Location</h5>
-            <div class="map-thumbnail" id="ride-thumbnail-{{ loop.index0 }}">
-                <div class="map-thumbnail-overlay">
-                    <i class="fa fa-map"></i> View on map
-                </div>
-            </div>
-            <div class="coordinates-text">{{ "%.4f, %.4f"|format(ride.pickup_lat, ride.pickup_lon) }}</div>
+            <a href="/#{{ ride.pickup_lat }},{{ ride.pickup_lon }}" title="View spot on map" style="display:block; text-decoration:none;">
+              <div class="map-thumbnail" id="ride-thumbnail-{{ loop.index0 }}">
+                  <div class="map-thumbnail-overlay">
+                      View on map ↗
+                  </div>
+              </div>
+              <div class="coordinates-text">{{ "%.4f, %.4f"|format(ride.pickup_lat, ride.pickup_lon) }}</div>
+            </a>
         </div>
         {% endif %}
         

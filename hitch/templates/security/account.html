@@ -7,10 +7,8 @@
 
 {% block head %}
 {{ super() }}
-{% if is_me %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <link rel="stylesheet" href="/static/map_thumbnail.css" />
-{% endif %}
 <style>
 .ride-card {
     background: #f8f9fa;
@@ -89,9 +87,10 @@ escaped_trustroots_username)|safe if escaped_trustroots_username else "-" }}
 <a href="/edit-user">Edit your personal data</a><br>
 <a href="/logout">Logout</a><br>
 <a href="/delete-user" style="color: red;">Delete my account</a>
+{% endif %}
 
 <hr>
-<h2>Your Rides</h2>
+<h2>{{ "Your Rides" if is_me else "Rides" }}</h2>
 {% if rides %}
   {% for ride in rides %}
   <div class="ride-card {% if ride.type == 'co_hitchhiker' %}co-hitchhiker-card{% endif %}">
@@ -101,8 +100,12 @@ escaped_trustroots_username)|safe if escaped_trustroots_username else "-" }}
           {% if ride.type == 'co_hitchhiker' %}<span class="co-label">co-hitchhiker</span>{% endif %}
       </div>
       {% if ride.pickup_lat and ride.pickup_lon %}
-      <div class="map-thumbnail" id="ride-thumb-{{ loop.index0 }}" style="height:100px;"></div>
-      <div style="color:#888; font-size:0.8em;">{{ "%.4f, %.4f"|format(ride.pickup_lat, ride.pickup_lon) }}</div>
+      <a href="/#{{ ride.pickup_lat }},{{ ride.pickup_lon }}" title="View spot on map" style="display:block; text-decoration:none;">
+        <div class="map-thumbnail" id="ride-thumb-{{ loop.index0 }}" style="height:100px;">
+          <div class="map-thumbnail-overlay">View on map ↗</div>
+        </div>
+        <div style="color:#888; font-size:0.8em;">{{ "%.4f, %.4f"|format(ride.pickup_lat, ride.pickup_lon) }}</div>
+      </a>
       {% endif %}
       {% if ride.comment %}
       <div class="ride-comment">{{ ride.comment }}</div>
@@ -110,6 +113,7 @@ escaped_trustroots_username)|safe if escaped_trustroots_username else "-" }}
       <div class="ride-actions">
           {% if ride.type == 'own' %}
           <a class="btn-edit" href="/ride?edit={{ ride.d_tag }}">Edit</a>
+          {% elif ride.type == 'own_external' %}
           {% else %}
           <form method="post" action="/accept-co-hitchhiking-ride/{{ ride.d_tag }}" style="display:inline;">
               <button type="submit" class="btn-accept">Accept</button>
@@ -124,12 +128,10 @@ escaped_trustroots_username)|safe if escaped_trustroots_username else "-" }}
 {% else %}
   <p style="color:#666; font-size:0.9em;">No rides yet.</p>
 {% endif %}
-{% endif %}
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
-{% if is_me %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="/static/map_thumbnail.js"></script>
 <script>
@@ -142,5 +144,4 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-{% endif %}
 {% endblock %}

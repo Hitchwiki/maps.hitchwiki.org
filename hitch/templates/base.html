@@ -4,6 +4,26 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <!-- 1. Initialize Google Consent Mode (Cookieless by default) -->
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+
+      gtag('consent', 'default', {
+        'analytics_storage': 'denied',
+        'ad_storage': 'denied',
+        'ad_user_data': 'denied',
+        'ad_personalization': 'denied',
+        'wait_for_update': 500
+      });
+
+      gtag('js', new Date());
+      gtag('config', 'G-84G3GNXSME', { 'anonymize_ip': true });
+    </script>
+
+    <!-- 2. Load the Google Tag Library -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-84G3GNXSME"></script>
+
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
     <link rel="manifest" href="/manifest.json" />
 

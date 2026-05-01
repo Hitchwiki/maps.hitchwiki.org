@@ -14,3 +14,4 @@ services:
       - FLASK_RUN_PORT=4242
     env_file:
       - .env
+    restart: unless-stopped

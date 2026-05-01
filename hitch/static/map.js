@@ -1107,12 +1107,13 @@ async function applyParams() {
     if (userFilter.value) {
       // Load rides data for filtering
       const rides = await loadRides();
-      const username = userFilter.value.toLowerCase();
-      
-      // Find all rides by this user
-      const userRides = rides.filter(ride => 
-        ride.hitchhiker_name && 
-        ride.hitchhiker_name.toLowerCase().includes(username)
+      // MediaWiki-style match: only the first letter is case-insensitive, rest matches as-is
+      const normalizeFirstLetter = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+      const username = normalizeFirstLetter(userFilter.value);
+
+      const userRides = rides.filter(ride =>
+        ride.hitchhiker_name &&
+        normalizeFirstLetter(ride.hitchhiker_name).includes(username)
       );
       
       // Get unique spot IDs from user rides
