@@ -54,6 +54,7 @@ pip install -r requirements.txt
 
 ```bash
 cp example.env .env
+# skip if you do not have a Hitchwiki bot account yet
 cp pywikibot/user-password.py.example pywikibot/user-password.py
 ```
 And set the missing env variables and wiki bot passwords.
