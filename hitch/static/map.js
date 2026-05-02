@@ -364,7 +364,7 @@ function setupEventListeners() {
         if (window.location.hash) window.history.pushState(null, null, " ");
         bar(".sidebar.menu");
         document.body.classList.add("menu");
-        setSheetSnap($$(".sidebar.menu"), "half", MENU_SHEET_SNAPS);
+        setSheetSnap($$(".sidebar.menu"), "full", MENU_SHEET_SNAPS);
       }
     });
   }
@@ -1456,7 +1456,7 @@ async function navigate() {
   } else if (mainArgs[0] == "routing") {
     clear();
     bar(".sidebar.routing");
-    setSheetSnap($$(".sidebar.routing"), "half", ROUTING_SHEET_SNAPS);
+    setSheetSnap($$(".sidebar.routing"), "full", ROUTING_SHEET_SNAPS);
     // Initialize geocoders after sidebar is shown
     setTimeout(() => setupRoutingGeocoders(), 100);
   } else if (mainArgs[0] == "select-pickup" || mainArgs[0] == "select-destination") {
