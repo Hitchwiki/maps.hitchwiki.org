@@ -86,6 +86,18 @@ sudo docker stop hitchhiking-map
 sudo docker rm hitchhiking-map 
 ```
 
+#### Redeploying after changes
+
+Pick the lightest option that covers the files you changed. The host's `./hitch/static`, `./hitch/templates`, `./dist`, `./db`, and `./logs` are bind-mounted into the container (see `docker-compose.yml`), so changes to those files are visible inside the container immediately — only Flask's in-process caches need busting. Anything else lives in the image and requires a rebuild.
+
+| Changed files | What to run | Why |
+| --- | --- | --- |
+| `hitch/static/**` (CSS, JS, images), `dist/**` (generated JSON) | nothing — just hard-refresh the browser (or bump the asset URL to bypass the browser cache) | Flask reads static files from disk per request; the bind mount means the new bytes are already served. |
+| `hitch/templates/**` (Jinja `.html`) | `sudo docker restart hitchhiking-map` | Files are bind-mounted, but Jinja caches compiled templates in memory — a process restart drops the cache. No image rebuild needed. |
+| Python source: `hitch/**/*.py`, `settings.py`, `hitch/scripts/**`, `hitch/scripts/fetch_hitchhiking_events/**` (TS), `requirements.txt`, `Dockerfile`, `deploy/run.sh`, `deploy/cron.sh` | `sudo docker compose up --build -d` | These are baked into the image at build time (not bind-mounted), so the running container keeps the old copy until the image is rebuilt and the container recreated. |
+| `docker-compose.yml`, `.env` | `sudo docker compose up -d` (add `--build` if image contents also changed) | Compose recreates the container so new env vars / volume / port settings take effect. A plain `docker restart` keeps the old container config. |
+| `db/*.sqlite` schema (new column added to a model) | run the manual `ALTER TABLE` against the prod DB *before* rebuilding — see `CLAUDE.md` → "Database migrations" | There is no migration framework; `flask init` won't add columns to existing tables. |
+
 #### Serving with Apache
 
 ```shell

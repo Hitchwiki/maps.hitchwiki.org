@@ -313,6 +313,7 @@ function setupGeocoder() {
 // Set up various event listeners for the map and UI elements
 function setupEventListeners() {
   $$("#sb-close").onclick = navigateHome;
+  setupSpotSheet();
   $$(".report-dup").onclick = () =>
     document.body.classList.add("reporting-duplicate");
   $$(".topbar.duplicate button").onclick = () =>
@@ -793,6 +794,7 @@ function markerClick(marker) {
 
   setTimeout(() => {
     bar(".sidebar.show-spot");
+    setSpotSheetSnap("half");
     $$("#spot-header a").href = window.ontouchstart
       ? `geo:${data.lat},${data.lon}`
       : ` https://www.google.com/maps/place/${data.lat},${data.lon}`;
@@ -862,6 +864,151 @@ function bar(selector) {
     el.classList.remove("visible");
   });
   if (selector) $$(selector).classList.add("visible");
+}
+
+// Snap percentages mirror the CSS translateY values for .snap-{peek,half,full}
+const SPOT_SHEET_SNAPS = { peek: 80, half: 60, full: 10 };
+
+function setSpotSheetSnap(name) {
+  const sheet = $$(".sidebar.show-spot");
+  if (!sheet) return;
+  sheet.classList.remove("snap-peek", "snap-half", "snap-full", "dragging");
+  sheet.classList.add("snap-" + name);
+  sheet.style.transform = "";
+}
+
+function setupSpotSheet() {
+  const sheet = $$(".sidebar.show-spot");
+  const handle = $$("#spot-sheet-handle");
+  const closeBtn = $$("#spot-close");
+  if (!sheet || !handle) return;
+
+  closeBtn.onclick = navigateHome;
+
+  // Keep the spot sheet stacked above the bottom action pane so the pane
+  // remains visible when the sheet is open. The pane's height varies with
+  // the iOS safe-area inset, so measure it at runtime.
+  const updateBottomPaneVar = () => {
+    const pane = $$("#bottom-action-pane");
+    const h = pane ? pane.getBoundingClientRect().height : 0;
+    document.documentElement.style.setProperty("--bottom-pane-h", h + "px");
+  };
+  updateBottomPaneVar();
+  window.addEventListener("resize", updateBottomPaneVar);
+  window.addEventListener("orientationchange", updateBottomPaneVar);
+
+  let dragStartY = 0;
+  let dragStartPct = 55;
+  let currentPct = 55;
+  let dragging = false;
+  let pointerId = null;
+  // Recent samples for velocity calc on release ({y, t})
+  let samples = [];
+  // px/ms — anything above this magnitude is treated as a fling, not a drag-to-position
+  const FLING_THRESHOLD = 0.5;
+
+  const recordSample = (y) => {
+    const t = performance.now();
+    samples.push({ y, t });
+    // Only keep samples from the last 100ms to estimate end-of-gesture velocity
+    while (samples.length > 1 && t - samples[0].t > 100) samples.shift();
+  };
+
+  // Returns px/ms, positive = moving down (closing direction)
+  const computeVelocity = () => {
+    if (samples.length < 2) return 0;
+    const a = samples[0];
+    const b = samples[samples.length - 1];
+    const dt = b.t - a.t;
+    if (dt <= 0) return 0;
+    return (b.y - a.y) / dt;
+  };
+
+  const onPointerDown = (e) => {
+    dragging = true;
+    pointerId = e.pointerId;
+    handle.setPointerCapture(pointerId);
+    const h = sheet.getBoundingClientRect().height;
+    // Read current snap from class so drag continues from the right spot
+    const snap = sheet.classList.contains("snap-full")
+      ? "full"
+      : sheet.classList.contains("snap-peek")
+        ? "peek"
+        : "half";
+    dragStartPct = SPOT_SHEET_SNAPS[snap];
+    currentPct = dragStartPct;
+    dragStartY = e.clientY;
+    sheet.classList.add("dragging");
+    sheet._sheetHeight = h;
+    samples = [];
+    recordSample(e.clientY);
+  };
+
+  const onPointerMove = (e) => {
+    if (!dragging) return;
+    const dy = e.clientY - dragStartY;
+    const pct = dragStartPct + (dy / sheet._sheetHeight) * 100;
+    currentPct = Math.max(0, Math.min(95, pct));
+    sheet.style.transform = `translateY(${currentPct}%)`;
+    recordSample(e.clientY);
+  };
+
+  const onPointerUp = () => {
+    if (!dragging) return;
+    dragging = false;
+    if (pointerId !== null) {
+      try { handle.releasePointerCapture(pointerId); } catch (_) {}
+      pointerId = null;
+    }
+
+    const velocity = computeVelocity(); // px/ms, +ve = downward
+    const ordered = ["full", "half", "peek"]; // top → bottom
+    const currentIdx = ordered.indexOf(
+      sheet.classList.contains("snap-full") ? "full"
+      : sheet.classList.contains("snap-peek") ? "peek"
+      : "half"
+    );
+
+    // Fling: pick the next snap in the swipe direction (or close on hard down-fling from peek)
+    if (Math.abs(velocity) > FLING_THRESHOLD) {
+      if (velocity > 0) {
+        // Swiping down — go one step toward closed, or close from peek
+        if (ordered[currentIdx] === "peek" || currentPct > 75) {
+          sheet.classList.remove("dragging");
+          sheet.style.transform = "";
+          navigateHome();
+          return;
+        }
+        const nextDown = Math.min(ordered.length - 1, currentIdx + 1);
+        setSpotSheetSnap(ordered[nextDown]);
+      } else {
+        // Swiping up — go one step toward full
+        const nextUp = Math.max(0, currentIdx - 1);
+        setSpotSheetSnap(ordered[nextUp]);
+      }
+      return;
+    }
+
+    // Slow release: close if dragged below peek, otherwise snap to nearest
+    if (currentPct > 90) {
+      sheet.classList.remove("dragging");
+      sheet.style.transform = "";
+      navigateHome();
+      return;
+    }
+    let nearest = "half";
+    let bestDist = Infinity;
+    for (const name in SPOT_SHEET_SNAPS) {
+      const d = Math.abs(SPOT_SHEET_SNAPS[name] - currentPct);
+      if (d < bestDist) { bestDist = d; nearest = name; }
+    }
+    setSpotSheetSnap(nearest);
+  };
+
+  handle.addEventListener("pointerdown", onPointerDown);
+  handle.addEventListener("pointermove", onPointerMove);
+  handle.addEventListener("pointerup", onPointerUp);
+  handle.addEventListener("pointercancel", onPointerUp);
 }
 
 function showSuccessOverlay() {

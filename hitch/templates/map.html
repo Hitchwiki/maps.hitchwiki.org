@@ -39,6 +39,14 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
 {% block main %}
 <div id="map"></div>
 <div class="sidebar show-spot spot">
+    <div class="sheet-handle" id="spot-sheet-handle" aria-hidden="true"></div>
+    <a href="javascript:void(0);" id="spot-close" title="Close" aria-label="Close">
+        <svg width="14" height="14" version="1.1" xmlns="http://www.w3.org/2000/svg">
+            <line x1="1" y1="13" x2="13" y2="1" stroke="black" stroke-width="2" />
+            <line x1="1" y1="1" x2="13" y2="13" stroke="black" stroke-width="2" />
+        </svg>
+    </a>
+    <div id="spot-sheet-body">
     <div id="spot-header-row">
         <h3 id="spot-header"><a target="_blank"></a></h3>
         <button id="share-spot-btn" title="Share this spot" aria-label="Share this spot">
@@ -76,6 +84,7 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
     <div><button id="review-spot-btn">Review this spot</button></div>
     <i id="extra-text"></i>
     <hr>
+    </div>
 </div>
 <div class="sidebar success-duplicate">
     <h3>Success!</h3>

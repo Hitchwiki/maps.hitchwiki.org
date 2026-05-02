@@ -267,7 +267,7 @@ html {
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 1000;
+  z-index: 2001;
   background: white;
   display: flex;
   justify-content: space-around;
@@ -471,7 +471,75 @@ body.adding-spot .leaflet-control-attribution {
   box-shadow: 2px 0 10px;
 }
 .sidebar.show-spot {
-  max-width: 50%;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: var(--bottom-pane-h, 0px);
+  top: 36px;
+  width: 100%;
+  max-width: 100%;
+  padding: 0;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.2);
+  transform: translateY(55%);
+  transition: transform 0.25s ease;
+  overflow: hidden;
+  touch-action: none;
+}
+.sidebar.show-spot.snap-peek {
+  transform: translateY(80%);
+}
+.sidebar.show-spot.snap-half {
+  transform: translateY(55%);
+}
+.sidebar.show-spot.snap-full {
+  transform: translateY(0);
+}
+.sidebar.show-spot.dragging {
+  transition: none;
+}
+#spot-sheet-body {
+  height: 100%;
+  overflow-y: auto;
+  padding: 0 20px 20px 20px;
+  -webkit-overflow-scrolling: touch;
+}
+.sheet-handle {
+  width: 100%;
+  padding: 22px 0 18px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: grab;
+  touch-action: none;
+  flex-shrink: 0;
+}
+.sheet-handle::before {
+  content: "";
+  display: block;
+  width: 56px;
+  height: 6px;
+  border-radius: 3px;
+  background: #ccc;
+}
+.sidebar.show-spot.dragging .sheet-handle {
+  cursor: grabbing;
+}
+#spot-close {
+  display: none;
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  padding: 8px;
+  cursor: pointer;
+  z-index: 1;
+  line-height: 1;
+}
+.sidebar.show-spot.visible #spot-close {
+  display: inline-block;
+}
+.sidebar.show-spot.visible ~ #sb-close {
+  display: none;
 }
 .sidebar button {
   margin-top: 30px;
@@ -997,5 +1065,7 @@ ul.no-style {
 
   .sidebar.show-spot {
     max-width: 100%;
+    bottom: var(--bottom-pane-h, 0px);
+    top: 32px;
   }
 }
