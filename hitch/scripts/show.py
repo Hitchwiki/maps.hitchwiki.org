@@ -503,7 +503,6 @@ for _, ride in rides_df.iterrows():
         "submission_time": submission_time,
         "ride_datetime": ride_datetime,
         "source": ride["source"] if pd.notna(ride.get("source")) else None,
-        "text": ride["text"] if pd.notna(ride.get("text")) else "",  # Formatted text for sidebar display
     }
     rides_data.append(ride_data)
 

@@ -48,13 +48,10 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
     </a>
     <div id="spot-sheet-body">
     <div id="spot-header-row">
-        <h3 id="spot-header"><a target="_blank"></a></h3>
-        <button id="share-spot-btn" title="Share this spot" aria-label="Share this spot">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
-                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-            </svg>
-        </button>
+        <div id="spot-coords-line">Coordinates: <span id="spot-header"></span></div>
+        <a id="spot-google-link" class="spot-action-link" target="_blank" rel="noopener">Go to on Google Maps</a>
+        <a id="spot-osm-link" class="spot-action-link" target="_blank" rel="noopener">Go to on OpenStreetMap</a>
+        <a id="share-spot-btn" class="spot-action-link" href="javascript:void(0);">Share this spot</a>
         <div id="share-spot-menu" hidden>
             <a id="share-copy-link" href="#">Copy link</a>
             <a id="share-whatsapp" href="#" target="_blank" rel="noopener">WhatsApp</a>
@@ -62,28 +59,20 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
             <a id="share-signal" href="#" target="_blank" rel="noopener">Signal</a>
         </div>
     </div>
-    <input type="checkbox" id="toggle" class="toggle-checkbox">
-    <div class="report">
-        <label for="toggle" class="toggle-label">
-            <svg class="triangle" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">
-                <polygon points="0,0 10,5 0,10" fill="black" />
-            </svg>
-        </label>
-    </div>
-    <div class=report-options>
-        <div class="report-dup">
-            <a href="javascript:;" title="Is there another spot close by that is a duplicate of this spot?">
-                <i class="fa-solid fa-left-right" style="color: red"></i>
-                Merge into nearby spot
-            </a>
+    <div id='spot-summary'></div>
+    <div id="spot-rate-prompt">
+        <div class="rate-label">Rate your ride from this spot</div>
+        <div class="rate-stars" id="spot-rate-stars" role="radiogroup" aria-label="Rate this spot">
+            <button type="button" class="rate-star" data-rate="1" aria-label="1 star">★</button>
+            <button type="button" class="rate-star" data-rate="2" aria-label="2 stars">★</button>
+            <button type="button" class="rate-star" data-rate="3" aria-label="3 stars">★</button>
+            <button type="button" class="rate-star" data-rate="4" aria-label="4 stars">★</button>
+            <button type="button" class="rate-star" data-rate="5" aria-label="5 stars">★</button>
         </div>
     </div>
-    <div id='spot-summary'></div>
-    <h4>Comments</h4>
+    <h4>Rides</h4>
     <div id='spot-text'></div>
-    <div><button id="review-spot-btn">Review this spot</button></div>
     <i id="extra-text"></i>
-    <hr>
     </div>
 </div>
 <div class="sidebar success-duplicate">
@@ -149,7 +138,7 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
     <div class="filter-pane-body" id="filter-pane-body">
         <div class="filter-pane-row">
             <input id="user-filter" type="text" value="" placeholder="Filter by user" />
-            <input id="text-filter" type="search" value="" placeholder="Search comments" />
+            <input id="text-filter" type="search" value="" placeholder="Search ra" />
             <input id="distance-filter" type="number" value="" placeholder="Min ride distance (km)" />
         </div>
         <div class="filter-pane-row filter-toggles">

@@ -525,6 +525,66 @@ body.adding-spot .leaflet-control-attribution {
 .sidebar.show-spot.dragging .sheet-handle {
   cursor: grabbing;
 }
+#spot-rate-prompt {
+  margin: 14px 0 6px;
+  padding: 12px 14px;
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+#spot-rate-prompt .rate-label {
+  font-size: 0.95em;
+  color: #444;
+  margin-bottom: 6px;
+}
+#spot-rate-prompt .rate-stars {
+  display: flex;
+  gap: 4px;
+}
+#spot-rate-prompt .rate-star {
+  background: none;
+  border: none;
+  padding: 4px 6px;
+  margin: 0;
+  font-size: 28px;
+  line-height: 1;
+  color: #ccc;
+  cursor: pointer;
+  width: auto;
+  transition: color 0.1s ease;
+}
+#spot-rate-prompt .rate-star.active {
+  color: #f5b301;
+}
+#spot-rate-prompt .rate-star:hover {
+  color: #f5b301;
+}
+
+.ride-card {
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.85em;
+}
+.ride-card .ride-meta {
+  color: #666;
+  margin-bottom: 0.4rem;
+}
+.ride-card .ride-comment {
+  color: #333;
+  margin: 0.3rem 0;
+  white-space: pre-wrap;
+}
+.ride-card .hitchhiker-name {
+  font-weight: bold;
+  color: #555;
+  text-decoration: none;
+}
+.ride-card .hitchhiker-name:hover {
+  text-decoration: underline;
+}
 #spot-close {
   display: none;
   position: absolute;
@@ -733,106 +793,51 @@ a:hover {
   background-color: none !important;
   text-decoration: none;
 }
-.report {
-  position: absolute;
-  top: 0px;
-  left: 0px;
-}
-
-/* Checkbox input (hidden) */
-.toggle-checkbox {
-  display: none;
-}
-
-/* Label that acts as a triangle */
-.toggle-label {
-  display: inline-block;
-  cursor: pointer;
-  padding: 13px 20px;
-}
-
-.triangle {
-  width: 10px;
-  height: 10px;
-}
-
-/* Triangle pointing down when checked */
-.toggle-checkbox:checked + div .toggle-label {
-  transform: rotate(90deg);
-}
-
-/* Show the hidden content when checkbox is checked */
-.toggle-checkbox:checked ~ .report-options {
-  display: block;
-}
-.report-options {
-  display: none;
-  background: #eee;
-  margin-top: -20px;
-  margin-bottom: 20px;
-}
-.report-dup {
-  text-align: center;
-  font-size: 0.8em;
-  font-weight: bold;
-}
-.report-dup a {
-  display: block;
-  padding-top: 10px;
-  padding-bottom: 10px;
-  color: black;
-}
-#spot-header a {
-  color: black;
-  border-bottom: 1px dotted black;
-}
+/* Spot sheet header */
 #spot-header-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   position: relative;
-  padding-top: 16px;
-  padding-bottom: 16px;
-  border-bottom: 2px #eee solid;
-  margin-bottom: 20px;
+  padding: 4px 0 14px;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
-#spot-header-row #spot-header {
-  flex: 1;
+#spot-coords-line {
+  font-size: 1em;
+  color: #1a1a1a;
+  margin-bottom: 8px;
+  word-break: keep-all;
+  overflow-wrap: normal;
 }
-#share-spot-btn {
-  flex-shrink: 0;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  color: #555;
-  margin-top: 0;
-  line-height: 1;
+#spot-coords-line #spot-header {
+  font-weight: 600;
+  white-space: nowrap;
 }
-#share-spot-btn:hover {
-  color: #000;
-}
-#share-spot-menu {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  background: #fff;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-  z-index: 2000;
-  min-width: 140px;
+.spot-action-link {
+  display: block;
   padding: 4px 0;
+  color: #1a73e8;
+  text-decoration: none;
+  font-size: 0.95em;
+}
+.spot-action-link:hover {
+  text-decoration: underline;
+}
+
+/* Inline share submenu (revealed on tap) */
+#share-spot-menu {
+  margin: 4px 0 0 16px;
+  padding: 4px 0;
+  border-left: 2px solid #eee;
 }
 #share-spot-menu a {
   display: block;
-  padding: 8px 14px;
-  color: #333;
+  padding: 4px 12px;
+  color: #1a73e8;
   text-decoration: none;
   font-size: 0.9em;
 }
 #share-spot-menu a:hover {
-  background: #f0f0f0;
+  text-decoration: underline;
 }
 .leaflet-control-geocoder-form:not(:has(:focus))
   ~ .leaflet-control-geocoder-alternatives {

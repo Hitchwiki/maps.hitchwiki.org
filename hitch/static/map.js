@@ -314,7 +314,8 @@ function setupGeocoder() {
 function setupEventListeners() {
   $$("#sb-close").onclick = navigateHome;
   setupSpotSheet();
-  $$(".report-dup").onclick = () =>
+  const reportDup = $$(".report-dup");
+  if (reportDup) reportDup.onclick = () =>
     document.body.classList.add("reporting-duplicate");
   $$(".topbar.duplicate button").onclick = () =>
     document.body.classList.remove("reporting-duplicate");
@@ -744,6 +745,59 @@ function reportDuplicate(marker) {
   }
 }
 
+function escapeHtml(s) {
+  if (s == null) return "";
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function formatRideDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  return d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+}
+
+function highlightStars(stars, upTo) {
+  stars.forEach((s) => {
+    s.classList.toggle("active", Number(s.dataset.rate) <= upTo);
+  });
+}
+
+function renderRideCards(rides) {
+  if (!rides.length) return "";
+  return rides.map((r) => {
+    const rating = r.rating > 0 ? "&nbsp;" + "⭐".repeat(r.rating) : "";
+    const wait = r.wait != null && !Number.isNaN(r.wait) ? `${r.wait} min wait` : "";
+    const date = formatRideDate(r.ride_datetime || r.submission_time);
+    const metaBits = [date, wait].filter(Boolean).join(" · ");
+    const name = r.hitchhiker_name && r.hitchhiker_name !== "Anonymous"
+      ? `<a class="hitchhiker-name" href="/account/${encodeURIComponent(r.hitchhiker_name)}">${escapeHtml(r.hitchhiker_name)}</a>`
+      : `<span class="hitchhiker-name">Anonymous</span>`;
+    const comment = r.comment ? `<div class="ride-comment">${escapeHtml(r.comment)}</div>` : "";
+    const href = r.id ? `/ride/${encodeURIComponent(r.id)}` : "";
+    const clickable = href ? ` data-ride-href="${href}" role="link" tabindex="0" style="cursor:pointer;"` : "";
+    return `
+      <div class="ride-card"${clickable}>
+        <div class="ride-meta">${metaBits}${rating} &mdash; ${name}</div>
+        ${comment}
+      </div>`;
+  }).join("");
+}
+
+// Navigate to ride detail page when a ride-card is clicked, except when the
+// click lands on a nested link (e.g. the hitchhiker username).
+document.addEventListener("click", (e) => {
+  const card = e.target.closest(".ride-card[data-ride-href]");
+  if (!card) return;
+  if (e.target.closest("a")) return;
+  window.location.href = card.dataset.rideHref;
+});
+
 function summaryText(data) {
   const osmLink = data.osm_id ? `<br>🚏 <a href="https://www.openstreetmap.org/node/${data.osm_id}" target="_blank" rel="noopener noreferrer">Official hitchhiking spot</a>` : '';
   const hitchwikiLink = data.hitchwiki_article
@@ -771,14 +825,15 @@ async function handleMarkerClick(marker, point, e) {
   const spotId = marker.options.spotId;
   const rides = await loadRides();
   const spotRides = rides.filter(ride => ride.spot_id === spotId);
-  
-  // Generate rides text (same format as before)
-  const ridesText = spotRides.length > 0 
-    ? spotRides.map(ride => ride.text).join('<hr>')
-    : '';
-  
-  // Update marker data with rides text
-  marker.options._data.text = ridesText;
+
+  // Sort newest-first by submission time so the freshest ride is at the top
+  spotRides.sort((a, b) => {
+    const ta = Date.parse(a.submission_time || a.ride_datetime || 0) || 0;
+    const tb = Date.parse(b.submission_time || b.ride_datetime || 0) || 0;
+    return tb - ta;
+  });
+
+  marker.options._data.rides = spotRides;
 
   // Call the original marker click handler to show sidebar
   markerClick(marker);
@@ -795,36 +850,41 @@ function markerClick(marker) {
   setTimeout(() => {
     bar(".sidebar.show-spot");
     setSpotSheetSnap("half");
-    $$("#spot-header a").href = window.ontouchstart
+    $$("#spot-header").innerText = `${data.lat.toFixed(4)}, ${data.lon.toFixed(4)}`;
+    $$("#spot-google-link").href = window.ontouchstart
       ? `geo:${data.lat},${data.lon}`
-      : ` https://www.google.com/maps/place/${data.lat},${data.lon}`;
-    $$("#spot-header a").innerText = `${data.lat.toFixed(4)}, ${data.lon.toFixed(
-      4
-    )} ☍`;
+      : `https://www.google.com/maps/place/${data.lat},${data.lon}`;
+    $$("#spot-osm-link").href =
+      `https://www.openstreetmap.org/?mlat=${data.lat}&mlon=${data.lon}#map=18/${data.lat}/${data.lon}`;
 
     $$("#spot-summary").innerHTML = summaryText(data);
 
-    $$("#spot-text").innerHTML = data.text;
-    if (!data.text && (!data.distance || Number.isNaN(data.distance)))
+    $$("#spot-text").innerHTML = renderRideCards(data.rides || []);
+    if ((!data.rides || data.rides.length === 0) && (!data.distance || Number.isNaN(data.distance)))
       $$("#extra-text").innerHTML =
         "No comments/ride info.";
     else $$("#extra-text").innerHTML = "";
     
-    // Set up click handler for "Review this spot" button
-    const reviewBtn = $$("#review-spot-btn");
-    if (reviewBtn) {
-      reviewBtn.onclick = function() {
-        // Store the spot coordinates in form data and navigate to ride form
+    // Star rating prompt — clicking a star jumps straight into the ride form
+    // with the chosen rating preselected and the spot's coords as pickup
+    const stars = document.querySelectorAll("#spot-rate-stars .rate-star");
+    stars.forEach((star) => {
+      star.onmouseenter = () => highlightStars(stars, Number(star.dataset.rate));
+      star.onmouseleave = () => highlightStars(stars, 0);
+      star.onclick = () => {
+        const rate = Number(star.dataset.rate);
         const formData = {
           pickup_lat: data.lat,
           pickup_lon: data.lon,
-          destination_lat: '',
-          destination_lon: ''
+          destination_lat: "",
+          destination_lon: "",
+          rate: rate,
         };
-        sessionStorage.setItem('rideFormData', JSON.stringify(formData));
-        window.location.href = '/ride';
+        sessionStorage.setItem("rideFormData", JSON.stringify(formData));
+        window.location.href = "/ride";
       };
-    }
+    });
+    highlightStars(stars, 0);
 
     // Share button
     const spotUrl = `${location.origin}/#${data.lat},${data.lon}`;
