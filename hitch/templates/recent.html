@@ -6,38 +6,7 @@
 {{ super() }}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <link rel="stylesheet" href="/static/map_thumbnail.css" />
-<style>
-.ride-card {
-    background: #f8f9fa;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 0.75rem;
-    margin-bottom: 0.75rem;
-    font-size: 0.85em;
-    display: block;
-    color: inherit;
-    text-decoration: none;
-    transition: background 0.15s, border-color 0.15s;
-}
-a.ride-card:hover {
-    background: #eef2f6;
-    border-color: #c7ced3;
-    text-decoration: none;
-    color: inherit;
-}
-.ride-meta {
-    color: #666;
-    margin-bottom: 0.4rem;
-}
-.ride-comment {
-    color: #333;
-    margin: 0.3rem 0;
-}
-.hitchhiker-name {
-    font-weight: bold;
-    color: #555;
-}
-</style>
+<link rel="stylesheet" href="/static/ride_card.css" />
 {% endblock %}
 
 {% block content %}

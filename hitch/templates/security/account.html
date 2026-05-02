@@ -9,63 +9,7 @@
 {{ super() }}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <link rel="stylesheet" href="/static/map_thumbnail.css" />
-<style>
-.ride-card {
-    background: #f8f9fa;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 0.75rem;
-    margin-bottom: 0.75rem;
-    font-size: 0.85em;
-}
-.ride-card[data-ride-href] {
-    cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
-}
-.ride-card[data-ride-href]:hover {
-    background: #eef2f6;
-    border-color: #c7ced3;
-}
-.ride-card.co-hitchhiker-card {
-    border-left: 3px solid #fd7e14;
-}
-.ride-meta {
-    color: #666;
-    margin-bottom: 0.4rem;
-}
-.ride-comment {
-    color: #333;
-    margin: 0.3rem 0;
-}
-.ride-actions {
-    margin-top: 0.5rem;
-    display: flex;
-    gap: 0.4rem;
-    flex-wrap: wrap;
-}
-.ride-actions a, .ride-actions button {
-    font-size: 0.8em;
-    padding: 3px 10px;
-    border-radius: 4px;
-    border: 1px solid #aaa;
-    background: #fff;
-    cursor: pointer;
-    text-decoration: none;
-    color: #333;
-}
-.ride-actions a.btn-edit { border-color: #0d6efd; color: #0d6efd; }
-.ride-actions button.btn-accept { border-color: #198754; color: #198754; }
-.ride-actions button.btn-reject { border-color: #dc3545; color: #dc3545; }
-.co-label {
-    font-size: 0.75em;
-    background: #fd7e14;
-    color: #fff;
-    border-radius: 3px;
-    padding: 1px 5px;
-    margin-left: 4px;
-    vertical-align: middle;
-}
-</style>
+<link rel="stylesheet" href="/static/ride_card.css" />
 {% endblock %}
 
 {% block content %}
