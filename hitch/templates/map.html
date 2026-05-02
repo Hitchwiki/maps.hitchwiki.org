@@ -39,7 +39,7 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
 
 {% block main %}
 <div id="map"></div>
-<div class="sidebar show-spot spot">
+<div class="sidebar show-spot spot bottom-sheet">
     <div class="sheet-handle" id="spot-sheet-handle" aria-hidden="true"></div>
     <a href="javascript:void(0);" id="spot-close" title="Close" aria-label="Close">
         <svg width="14" height="14" version="1.1" xmlns="http://www.w3.org/2000/svg">
@@ -93,7 +93,9 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
 
     <p>You're registered and logged in.</p>
 </div>
-<div class="sidebar menu">
+<div class="sidebar menu bottom-sheet">
+    <div class="sheet-handle" id="menu-sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-body">
     <ul class="no-style">
         <li><i class="fab fa-github"></i><a href="https://github.com/Hitchwiki/maps.hitchwiki.org">Contribute</a></li>
         <li><i class="fab fa-github"></i><a href="https://github.com/Hitchwiki/maps.hitchwiki.org/issues/new">Report bugs</a></li>
@@ -127,6 +129,7 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
     <p>
         See full attribution <a href="https://github.com/Hitchwiki/maps.hitchwiki.org/blob/main/docs/ATTRIBUTION.md" target="_blank" rel="noopener">here</a>.
     </p>
+    </div>
 </div>
 <!-- Filter pane below search bar -->
 <div class="filter-pane collapsed" id="filter-pane">
@@ -178,14 +181,17 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
         </div>
     </div>
 </div>
-<div class="sidebar routing">
-    <h3>Route Planning</h3>
-    <label for="start-place">Start Location</label>
-    <div id="start-geocoder"></div>
-    <label for="end-place">Destination</label>
-    <div id="end-geocoder"></div>
-    <button id="plan-route-btn">Plan Route</button>
-    <button id="clear-route-btn">Clear Route</button>
+<div class="sidebar routing bottom-sheet">
+    <div class="sheet-handle" id="routing-sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-body">
+        <h3>Route Planning</h3>
+        <label for="start-place">Start Location</label>
+        <div id="start-geocoder"></div>
+        <label for="end-place">Destination</label>
+        <div id="end-geocoder"></div>
+        <button id="plan-route-btn">Plan Route</button>
+        <button id="clear-route-btn">Clear Route</button>
+    </div>
 </div>
 <a href="javascript:void(0);" id="sb-close">
     <svg width="14" height="14" version="1.1" xmlns="http://www.w3.org/2000/svg">

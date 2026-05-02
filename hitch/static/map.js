@@ -324,6 +324,8 @@ function setupGeocoder() {
 function setupEventListeners() {
   $$("#sb-close").onclick = navigateHome;
   setupSpotSheet();
+  setupMenuSheet();
+  setupRoutingSheet();
   const reportDup = $$(".report-dup");
   if (reportDup) reportDup.onclick = () =>
     document.body.classList.add("reporting-duplicate");
@@ -362,6 +364,7 @@ function setupEventListeners() {
         if (window.location.hash) window.history.pushState(null, null, " ");
         bar(".sidebar.menu");
         document.body.classList.add("menu");
+        setSheetSnap($$(".sidebar.menu"), "half", MENU_SHEET_SNAPS);
       }
     });
   }
@@ -947,44 +950,34 @@ function bar(selector) {
 
 // Snap percentages mirror the CSS translateY values for .snap-{peek,half,full}
 const SPOT_SHEET_SNAPS = { peek: 80, half: 60, full: 10 };
+const MENU_SHEET_SNAPS = { half: 55, full: 0 };
+const ROUTING_SHEET_SNAPS = { half: 55, full: 0 };
 
-function setSpotSheetSnap(name) {
-  const sheet = $$(".sidebar.show-spot");
+function setSheetSnap(sheet, name, snaps) {
   if (!sheet) return;
-  sheet.classList.remove("snap-peek", "snap-half", "snap-full", "dragging");
+  for (const k in snaps) sheet.classList.remove("snap-" + k);
+  sheet.classList.remove("dragging");
   sheet.classList.add("snap-" + name);
   sheet.style.transform = "";
 }
 
-function setupSpotSheet() {
-  const sheet = $$(".sidebar.show-spot");
-  const handle = $$("#spot-sheet-handle");
-  const closeBtn = $$("#spot-close");
+// Backward-compat shim for the spot sheet — referenced by the rest of the file.
+function setSpotSheetSnap(name) {
+  setSheetSnap($$(".sidebar.show-spot"), name, SPOT_SHEET_SNAPS);
+}
+
+function setupBottomSheet({ sheet, handle, snaps, defaultSnap, onClose }) {
   if (!sheet || !handle) return;
 
-  closeBtn.onclick = navigateHome;
-
-  // Keep the spot sheet stacked above the bottom action pane so the pane
-  // remains visible when the sheet is open. The pane's height varies with
-  // the iOS safe-area inset, so measure it at runtime.
-  const updateBottomPaneVar = () => {
-    const pane = $$("#bottom-action-pane");
-    const h = pane ? pane.getBoundingClientRect().height : 0;
-    document.documentElement.style.setProperty("--bottom-pane-h", h + "px");
-  };
-  updateBottomPaneVar();
-  window.addEventListener("resize", updateBottomPaneVar);
-  window.addEventListener("orientationchange", updateBottomPaneVar);
+  const orderedSnapNames = Object.keys(snaps).sort((a, b) => snaps[a] - snaps[b]); // top → bottom
+  const FLING_THRESHOLD = 0.5; // px/ms
 
   let dragStartY = 0;
-  let dragStartPct = 55;
-  let currentPct = 55;
+  let dragStartPct = snaps[defaultSnap];
+  let currentPct = dragStartPct;
   let dragging = false;
   let pointerId = null;
-  // Recent samples for velocity calc on release ({y, t})
   let samples = [];
-  // px/ms — anything above this magnitude is treated as a fling, not a drag-to-position
-  const FLING_THRESHOLD = 0.5;
 
   const recordSample = (y) => {
     const t = performance.now();
@@ -1003,22 +996,28 @@ function setupSpotSheet() {
     return (b.y - a.y) / dt;
   };
 
+  const currentSnapName = () => {
+    for (const name of orderedSnapNames) {
+      if (sheet.classList.contains("snap-" + name)) return name;
+    }
+    return defaultSnap;
+  };
+
+  const close = () => {
+    sheet.classList.remove("dragging");
+    sheet.style.transform = "";
+    if (onClose) onClose();
+  };
+
   const onPointerDown = (e) => {
     dragging = true;
     pointerId = e.pointerId;
     handle.setPointerCapture(pointerId);
-    const h = sheet.getBoundingClientRect().height;
-    // Read current snap from class so drag continues from the right spot
-    const snap = sheet.classList.contains("snap-full")
-      ? "full"
-      : sheet.classList.contains("snap-peek")
-        ? "peek"
-        : "half";
-    dragStartPct = SPOT_SHEET_SNAPS[snap];
+    sheet._sheetHeight = sheet.getBoundingClientRect().height;
+    dragStartPct = snaps[currentSnapName()];
     currentPct = dragStartPct;
     dragStartY = e.clientY;
     sheet.classList.add("dragging");
-    sheet._sheetHeight = h;
     samples = [];
     recordSample(e.clientY);
   };
@@ -1040,54 +1039,84 @@ function setupSpotSheet() {
       pointerId = null;
     }
 
-    const velocity = computeVelocity(); // px/ms, +ve = downward
-    const ordered = ["full", "half", "peek"]; // top → bottom
-    const currentIdx = ordered.indexOf(
-      sheet.classList.contains("snap-full") ? "full"
-      : sheet.classList.contains("snap-peek") ? "peek"
-      : "half"
-    );
+    const velocity = computeVelocity();
+    const currentIdx = orderedSnapNames.indexOf(currentSnapName());
+    const lastIdx = orderedSnapNames.length - 1;
 
-    // Fling: pick the next snap in the swipe direction (or close on hard down-fling from peek)
+    // Fling: jump one snap in the swipe direction; close on a hard down-fling
+    // from the bottom-most snap (or if the user dragged it most of the way off).
     if (Math.abs(velocity) > FLING_THRESHOLD) {
       if (velocity > 0) {
-        // Swiping down — go one step toward closed, or close from peek
-        if (ordered[currentIdx] === "peek" || currentPct > 75) {
-          sheet.classList.remove("dragging");
-          sheet.style.transform = "";
-          navigateHome();
-          return;
-        }
-        const nextDown = Math.min(ordered.length - 1, currentIdx + 1);
-        setSpotSheetSnap(ordered[nextDown]);
+        if (currentIdx === lastIdx || currentPct > 75) return close();
+        setSheetSnap(sheet, orderedSnapNames[Math.min(lastIdx, currentIdx + 1)], snaps);
       } else {
-        // Swiping up — go one step toward full
-        const nextUp = Math.max(0, currentIdx - 1);
-        setSpotSheetSnap(ordered[nextUp]);
+        setSheetSnap(sheet, orderedSnapNames[Math.max(0, currentIdx - 1)], snaps);
       }
       return;
     }
 
-    // Slow release: close if dragged below peek, otherwise snap to nearest
-    if (currentPct > 90) {
-      sheet.classList.remove("dragging");
-      sheet.style.transform = "";
-      navigateHome();
-      return;
-    }
-    let nearest = "half";
+    // Slow release: close if dragged near the bottom, otherwise snap to nearest.
+    if (currentPct > 90) return close();
+    let nearest = orderedSnapNames[0];
     let bestDist = Infinity;
-    for (const name in SPOT_SHEET_SNAPS) {
-      const d = Math.abs(SPOT_SHEET_SNAPS[name] - currentPct);
+    for (const name of orderedSnapNames) {
+      const d = Math.abs(snaps[name] - currentPct);
       if (d < bestDist) { bestDist = d; nearest = name; }
     }
-    setSpotSheetSnap(nearest);
+    setSheetSnap(sheet, nearest, snaps);
   };
 
   handle.addEventListener("pointerdown", onPointerDown);
   handle.addEventListener("pointermove", onPointerMove);
   handle.addEventListener("pointerup", onPointerUp);
   handle.addEventListener("pointercancel", onPointerUp);
+}
+
+function setupSpotSheet() {
+  const sheet = $$(".sidebar.show-spot");
+  const closeBtn = $$("#spot-close");
+  if (!sheet) return;
+  if (closeBtn) closeBtn.onclick = navigateHome;
+
+  // Keep the spot sheet stacked above the bottom action pane so the pane
+  // remains visible when the sheet is open. The pane's height varies with
+  // the iOS safe-area inset, so measure it at runtime.
+  const updateBottomPaneVar = () => {
+    const pane = $$("#bottom-action-pane");
+    const h = pane ? pane.getBoundingClientRect().height : 0;
+    document.documentElement.style.setProperty("--bottom-pane-h", h + "px");
+  };
+  updateBottomPaneVar();
+  window.addEventListener("resize", updateBottomPaneVar);
+  window.addEventListener("orientationchange", updateBottomPaneVar);
+
+  setupBottomSheet({
+    sheet,
+    handle: $$("#spot-sheet-handle"),
+    snaps: SPOT_SHEET_SNAPS,
+    defaultSnap: "half",
+    onClose: navigateHome,
+  });
+}
+
+function setupMenuSheet() {
+  setupBottomSheet({
+    sheet: $$(".sidebar.menu"),
+    handle: $$("#menu-sheet-handle"),
+    snaps: MENU_SHEET_SNAPS,
+    defaultSnap: "half",
+    onClose: () => { bar(); document.body.classList.remove("menu"); },
+  });
+}
+
+function setupRoutingSheet() {
+  setupBottomSheet({
+    sheet: $$(".sidebar.routing"),
+    handle: $$("#routing-sheet-handle"),
+    snaps: ROUTING_SHEET_SNAPS,
+    defaultSnap: "half",
+    onClose: navigateHome,
+  });
 }
 
 function showSuccessOverlay() {
@@ -1427,6 +1456,7 @@ async function navigate() {
   } else if (mainArgs[0] == "routing") {
     clear();
     bar(".sidebar.routing");
+    setSheetSnap($$(".sidebar.routing"), "half", ROUTING_SHEET_SNAPS);
     // Initialize geocoders after sidebar is shown
     setTimeout(() => setupRoutingGeocoders(), 100);
   } else if (mainArgs[0] == "select-pickup" || mainArgs[0] == "select-destination") {

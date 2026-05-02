@@ -470,7 +470,7 @@ body.adding-spot .leaflet-control-attribution {
   padding: 0 20px 20px 20px;
   box-shadow: 2px 0 10px;
 }
-.sidebar.show-spot {
+.sidebar.bottom-sheet {
   position: fixed;
   left: 0;
   right: 0;
@@ -486,18 +486,25 @@ body.adding-spot .leaflet-control-attribution {
   overflow: hidden;
   touch-action: none;
 }
-.sidebar.show-spot.snap-peek {
+.sidebar.bottom-sheet.snap-peek {
   transform: translateY(80%);
 }
-.sidebar.show-spot.snap-half {
+.sidebar.bottom-sheet.snap-half {
   transform: translateY(55%);
 }
-.sidebar.show-spot.snap-full {
+.sidebar.bottom-sheet.snap-full {
   transform: translateY(0);
 }
-.sidebar.show-spot.dragging {
+.sidebar.bottom-sheet.dragging {
   transition: none;
 }
+.sheet-body {
+  height: 100%;
+  overflow-y: auto;
+  padding: 0 20px 20px 20px;
+  -webkit-overflow-scrolling: touch;
+}
+/* Keep #spot-sheet-body for backward compat with code that references it. */
 #spot-sheet-body {
   height: 100%;
   overflow-y: auto;
@@ -522,7 +529,7 @@ body.adding-spot .leaflet-control-attribution {
   border-radius: 3px;
   background: #ccc;
 }
-.sidebar.show-spot.dragging .sheet-handle {
+.sidebar.bottom-sheet.dragging .sheet-handle {
   cursor: grabbing;
 }
 #spot-rate-prompt {
@@ -882,9 +889,7 @@ ul.no-style {
   display: inline-block;
   color: black;
 }
-.sidebar.menu {
-  padding-top: 25px;
-}
+/* Menu sheet body: extra top padding handled by the .sheet-handle. */
 .sidebar.menu a {
   border-bottom: 1px solid blue;
   color: #000;
@@ -1043,7 +1048,7 @@ ul.no-style {
     max-width: 100%;
   }
 
-  .sidebar.show-spot {
+  .sidebar.bottom-sheet {
     max-width: 100%;
     bottom: var(--bottom-pane-h, 0px);
     top: 32px;
