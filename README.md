@@ -1,3 +1,4 @@
+
 This project is deployed on the Hitchwiki server at the following locations:
 * the Map `maps.hitchwiki.org` at`/var/www/maps.hitchwiki.org`
 * the Nostr relay used as a the central data store `wss://relay.nomadwiki.org` at `/var/www/relay.nomadwiki.org`
@@ -54,6 +55,7 @@ pip install -r requirements.txt
 
 ```bash
 cp example.env .env
+# skip if you do not have a Hitchwiki bot account yet
 cp pywikibot/user-password.py.example pywikibot/user-password.py
 ```
 And set the missing env variables and wiki bot passwords.
