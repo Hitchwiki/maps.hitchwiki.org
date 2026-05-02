@@ -2,6 +2,7 @@ import json
 import logging
 import math
 import os
+import shutil
 import warnings
 
 import numpy as np
@@ -32,7 +33,13 @@ def should_regenerate_json():
     db_mtime = os.path.getmtime(db_path)
     
     # Check each JSON file
-    json_files = ["spots.json", "rides.json", "spots_recent.json"]
+    json_files = ["spots.json", "rides_index.json", "spots_recent.json"]
+
+    # Per-spot ride directory — treat the dir itself as the canary.
+    by_spot_dir = os.path.join(dirs["dist"], "rides", "by-spot")
+    if not os.path.isdir(by_spot_dir):
+        logger.info("Regeneration needed: rides/by-spot directory is missing")
+        return True
     
     # Only check heatmap if it's enabled
     if current_app.config.get("GENERATE_HEATMAP", True):
@@ -506,7 +513,81 @@ for _, ride in rides_df.iterrows():
     }
     rides_data.append(ride_data)
 
-write_json_file(rides_data, "rides.json")
+# Slim rides index for client-side filtering (filter by user, comment search,
+# min distance, last 24h, official spots, hitchwiki). Short keys keep the
+# payload small since field names repeat across all rides. Full ride details
+# are loaded lazily per-spot when a popup opens.
+spot_flags = {
+    generate_spot_id(p["lat"], p["lon"]): (
+        p["nearby_osm_id"] is not None and pd.notna(p["nearby_osm_id"]),
+        p["nearby_hitchwiki_link"] is not None and pd.notna(p["nearby_hitchwiki_link"]),
+    )
+    for _, p in places.iterrows()
+}
+
+COMMENT_EXCERPT_LEN = 200
+
+# Build distance lookup once (avoid O(n²) per-row search inside the loop).
+distance_by_d = {
+    d: (round(float(dist), 1) if pd.notna(dist) else None)
+    for d, dist in zip(rides_df["d"], rides_df["distance"])
+    if pd.notna(d)
+}
+
+submission_ms = pd.to_datetime(rides_df["submission_time"], errors="coerce", utc=True).astype("int64") // 10**6
+ts_by_d = {
+    d: (int(ms) if ms > 0 else None)
+    for d, ms in zip(rides_df["d"], submission_ms)
+    if pd.notna(d)
+}
+
+rides_index = []
+for r in rides_data:
+    sid = r["spot_id"]
+    has_osm, has_wiki = spot_flags.get(sid, (False, False))
+    comment = r["comment"]
+
+    rides_index.append({
+        "id": r["id"],
+        "sid": sid,
+        "lat": r["lat"],
+        "lon": r["lon"],
+        "u": r["hitchhiker_name"],
+        "t": ts_by_d.get(r["id"]),
+        "r": r["rating"],
+        "km": distance_by_d.get(r["id"]),
+        "osm": bool(has_osm),
+        "wiki": bool(has_wiki),
+        "c": comment[:COMMENT_EXCERPT_LEN] if comment else None,
+    })
+
+write_json_file(rides_index, "rides_index.json")
+
+# Per-spot ride detail files for lazy popup loading. Each file holds only the
+# fields the popup card renders. Wipe-and-rewrite ensures spots that lost all
+# their rides don't leave stale files behind.
+by_spot_dir = os.path.join(dirs["dist"], "rides", "by-spot")
+if os.path.exists(by_spot_dir):
+    shutil.rmtree(by_spot_dir)
+os.makedirs(by_spot_dir, exist_ok=True)
+
+logger.info(f"Writing per-spot ride files to {by_spot_dir}")
+rides_by_spot: dict[str, list] = {}
+for r in rides_data:
+    rides_by_spot.setdefault(r["spot_id"], []).append({
+        "id": r["id"],
+        "rating": r["rating"],
+        "wait": r["wait"],
+        "comment": r["comment"],
+        "hitchhiker_name": r["hitchhiker_name"],
+        "submission_time": r["submission_time"],
+        "ride_datetime": r["ride_datetime"],
+    })
+
+for sid, spot_rides in rides_by_spot.items():
+    with open(os.path.join(by_spot_dir, f"{sid}.json"), "w") as f:
+        json.dump(spot_rides, f)
+logger.info(f"Wrote {len(rides_by_spot)} per-spot ride files")
 
 # TODO: Remove spots_with_destination.json - replaced by spots.json with ride filtering
 # places_with_destination = places[~places.distance.isnull()]

@@ -21,7 +21,7 @@ var allMarkers = [],
   normalLayer = null,
   heatmapLegend = null,
   spotsData = null,
-  ridesData = null,
+  ridesIndex = null,
   routeLayer = null,
   routeMarkers = [];
 
@@ -112,23 +112,33 @@ async function loadMarkers(map) {
     });
 }
 
-// Load rides data with lazy loading
-async function loadRides() {
-  if (ridesData) {
-    return ridesData;
+// Slim per-ride index for filtering (user, comment excerpt, distance, recency,
+// official spot, hitchwiki). Used for filtering and lat/lon/spot_id lookups.
+// Full ride details (comments, popup HTML) come from per-spot files served at
+// /rides/by-spot/<sid>.json, fetched lazily in handleMarkerClick().
+async function loadRidesIndex() {
+  if (ridesIndex) {
+    return ridesIndex;
   }
-  
+
+  // Show the filter-pane spinner while the index downloads — the index is
+  // several MB and noticeable on slow connections.
+  const spinner = document.getElementById("filter-loading-spinner");
+  if (spinner) spinner.style.display = "inline-block";
+
   try {
-    const response = await fetch('/rides.json');
+    const response = await fetch('/rides_index.json');
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    ridesData = await response.json();
-    console.log(`Loaded ${ridesData.length} rides`);
-    return ridesData;
+    ridesIndex = await response.json();
+    console.log(`Loaded ${ridesIndex.length} rides (index)`);
+    return ridesIndex;
   } catch (error) {
-    console.error("Error loading rides:", error);
+    console.error("Error loading rides index:", error);
     return [];
+  } finally {
+    if (spinner) spinner.style.display = "none";
   }
 }
 
@@ -506,8 +516,8 @@ async function displayRoute(routeData) {
       opacity: 0.7
     }).addTo(map);
     
-    // Load rides data to filter route spots
-    const rides = await loadRides();
+    // Load rides index to filter route spots — only lat/lon are needed here.
+    const rides = await loadRidesIndex();
     const tolerance = 0.001; // ~100m tolerance for coordinate matching
     
     // Add markers for intermediate stops and highlight those with actual rides
@@ -821,10 +831,19 @@ async function handleMarkerClick(marker, point, e) {
   reportDuplicate(marker);
   window.location.hash = `${point.lat},${point.lng}`;
 
-  // Load rides for this spot
+  // Load rides for this spot from the per-spot detail file.
   const spotId = marker.options.spotId;
-  const rides = await loadRides();
-  const spotRides = rides.filter(ride => ride.spot_id === spotId);
+  let spotRides = [];
+  try {
+    const resp = await fetch(`/rides/by-spot/${encodeURIComponent(spotId)}.json`);
+    if (resp.ok) {
+      spotRides = await resp.json();
+    } else if (resp.status !== 404) {
+      console.error(`Failed to load rides for spot ${spotId}: HTTP ${resp.status}`);
+    }
+  } catch (error) {
+    console.error(`Error loading rides for spot ${spotId}:`, error);
+  }
 
   // Sort newest-first by submission time so the freshest ride is at the top
   spotRides.sort((a, b) => {
@@ -1312,19 +1331,19 @@ async function applyParams() {
     if (fp) fp.classList.add('visible');
 
     if (userFilter.value) {
-      // Load rides data for filtering
-      const rides = await loadRides();
+      // Use slim rides index — only username + spot_id are needed here.
+      const rides = await loadRidesIndex();
       // MediaWiki-style match: only the first letter is case-insensitive, rest matches as-is
       const normalizeFirstLetter = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
       const username = normalizeFirstLetter(userFilter.value);
 
       const userRides = rides.filter(ride =>
-        ride.hitchhiker_name &&
-        normalizeFirstLetter(ride.hitchhiker_name).includes(username)
+        ride.u &&
+        normalizeFirstLetter(ride.u).includes(username)
       );
-      
+
       // Get unique spot IDs from user rides
-      const userSpotIds = [...new Set(userRides.map(ride => ride.spot_id))];
+      const userSpotIds = [...new Set(userRides.map(ride => ride.sid))];
       
       // Filter markers to only show spots where this user has rides
       filterMarkers = filterMarkers.filter(marker => 
