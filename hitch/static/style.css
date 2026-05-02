@@ -500,9 +500,11 @@ body.adding-spot .leaflet-control-attribution {
   transition: transform 0.25s ease;
   overflow: hidden;
   touch-action: none;
-  /* Flex column so .sheet-handle keeps its natural height and .sheet-body
-     fills the rest. Without this, .sheet-body's height:100% overflows the
-     sheet by the handle's height and gets clipped at the bottom. */
+}
+/* When visible, lay out as a flex column so .sheet-handle keeps its natural
+   height and .sheet-body fills the rest. Scoped to .visible so the base
+   `.sidebar { display: none }` rule still hides closed sheets. */
+.sidebar.bottom-sheet.visible {
   display: flex;
   flex-direction: column;
 }
