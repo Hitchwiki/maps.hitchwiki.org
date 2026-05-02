@@ -368,6 +368,7 @@ function setupEventListeners() {
         if (window.location.hash) window.history.pushState(null, null, " ");
         bar(".sidebar.menu");
         document.body.classList.add("menu");
+        updateBottomPaneVar();
         setSheetSnap($$(".sidebar.menu"), "full", MENU_SHEET_SNAPS);
       }
     });
@@ -875,6 +876,7 @@ function markerClick(marker) {
 
   setTimeout(() => {
     bar(".sidebar.show-spot");
+    updateBottomPaneVar();
     setSpotSheetSnap("half");
     $$("#spot-header").innerText = `${data.lat.toFixed(4)}, ${data.lon.toFixed(4)}`;
     $$("#spot-google-link").href = window.ontouchstart
@@ -1076,21 +1078,27 @@ function setupBottomSheet({ sheet, handle, snaps, defaultSnap, onClose }) {
   handle.addEventListener("pointercancel", onPointerUp);
 }
 
+// Bottom-sheet sheets sit above the bottom action pane via
+// `bottom: var(--bottom-pane-h)`. The pane's height depends on web fonts and
+// the iOS safe-area inset, so we measure it lazily and refresh on each open.
+function updateBottomPaneVar() {
+  const pane = $$("#bottom-action-pane");
+  const h = pane ? pane.getBoundingClientRect().height : 0;
+  if (h > 0) {
+    document.documentElement.style.setProperty("--bottom-pane-h", h + "px");
+  }
+}
+
 function setupSpotSheet() {
   const sheet = $$(".sidebar.show-spot");
   const closeBtn = $$("#spot-close");
   if (!sheet) return;
   if (closeBtn) closeBtn.onclick = navigateHome;
 
-  // Keep the spot sheet stacked above the bottom action pane so the pane
-  // remains visible when the sheet is open. The pane's height varies with
-  // the iOS safe-area inset, so measure it at runtime.
-  const updateBottomPaneVar = () => {
-    const pane = $$("#bottom-action-pane");
-    const h = pane ? pane.getBoundingClientRect().height : 0;
-    document.documentElement.style.setProperty("--bottom-pane-h", h + "px");
-  };
   updateBottomPaneVar();
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(updateBottomPaneVar);
+  }
   window.addEventListener("resize", updateBottomPaneVar);
   window.addEventListener("orientationchange", updateBottomPaneVar);
 
@@ -1460,6 +1468,7 @@ async function navigate() {
   } else if (mainArgs[0] == "routing") {
     clear();
     bar(".sidebar.routing");
+    updateBottomPaneVar();
     setSheetSnap($$(".sidebar.routing"), "full", ROUTING_SHEET_SNAPS);
     // Initialize geocoders after sidebar is shown
     setTimeout(() => setupRoutingGeocoders(), 100);
