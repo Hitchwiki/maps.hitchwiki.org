@@ -1112,16 +1112,21 @@ function setupSpotSheet() {
 }
 
 function setupMenuSheet() {
+  const closeMenu = () => { bar(); document.body.classList.remove("menu"); };
+  const closeBtn = $$("#menu-close");
+  if (closeBtn) closeBtn.onclick = closeMenu;
   setupBottomSheet({
     sheet: $$(".sidebar.menu"),
     handle: $$("#menu-sheet-handle"),
     snaps: MENU_SHEET_SNAPS,
     defaultSnap: "half",
-    onClose: () => { bar(); document.body.classList.remove("menu"); },
+    onClose: closeMenu,
   });
 }
 
 function setupRoutingSheet() {
+  const closeBtn = $$("#routing-close");
+  if (closeBtn) closeBtn.onclick = navigateHome;
   setupBottomSheet({
     sheet: $$(".sidebar.routing"),
     handle: $$("#routing-sheet-handle"),

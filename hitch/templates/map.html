@@ -98,7 +98,12 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
 </div>
 <div class="sidebar menu bottom-sheet">
     <div class="sheet-handle" id="menu-sheet-handle" aria-hidden="true"></div>
-    <div class="sheet-body">
+    <a href="javascript:void(0);" class="sheet-close" id="menu-close" title="Close" aria-label="Close">
+        <svg width="14" height="14" version="1.1" xmlns="http://www.w3.org/2000/svg">
+            <line x1="1" y1="13" x2="13" y2="1" stroke="black" stroke-width="2" />
+            <line x1="1" y1="1" x2="13" y2="13" stroke="black" stroke-width="2" />
+        </svg>
+    </a>
     <figure class="menu-hero">
         <img src="/static/Hitchhiker-Luxemburg-1977.jpg" alt="Hitchhiker on a roadside in Luxembourg, 1977" />
         <figcaption>
@@ -107,6 +112,7 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
             <a href="https://commons.wikimedia.org/w/index.php?curid=354545" target="_blank" rel="noopener">Link</a>
         </figcaption>
     </figure>
+    <div class="sheet-body">
     <ul class="no-style">
         <li><i class="fab fa-github"></i><a href="https://github.com/Hitchwiki/maps.hitchwiki.org">Contribute</a></li>
         <li><i class="fab fa-github"></i><a href="https://github.com/Hitchwiki/maps.hitchwiki.org/issues/new">Report bugs</a></li>
@@ -194,6 +200,12 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
 </div>
 <div class="sidebar routing bottom-sheet">
     <div class="sheet-handle" id="routing-sheet-handle" aria-hidden="true"></div>
+    <a href="javascript:void(0);" class="sheet-close" id="routing-close" title="Close" aria-label="Close">
+        <svg width="14" height="14" version="1.1" xmlns="http://www.w3.org/2000/svg">
+            <line x1="1" y1="13" x2="13" y2="1" stroke="black" stroke-width="2" />
+            <line x1="1" y1="1" x2="13" y2="13" stroke="black" stroke-width="2" />
+        </svg>
+    </a>
     <div class="sheet-body">
         <h3>Route Planning</h3>
         <label for="start-place">Start Location</label>

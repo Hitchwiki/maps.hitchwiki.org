@@ -547,6 +547,21 @@ body.adding-spot .leaflet-control-attribution {
 .sidebar.bottom-sheet.dragging .sheet-handle {
   cursor: grabbing;
 }
+/* Close button anchored to the sheet's top-right (instead of the page's). */
+.sheet-close {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  padding: 8px;
+  cursor: pointer;
+  z-index: 1;
+  line-height: 1;
+}
+/* Suppress the global #sb-close button when a bottom-sheet is visible
+   (each sheet now has its own .sheet-close). */
+.sidebar.bottom-sheet.visible ~ #sb-close {
+  display: none;
+}
 #spot-rate-prompt {
   margin: 14px 0 6px;
   padding: 12px 14px;
@@ -907,7 +922,8 @@ ul.no-style {
 /* Menu sheet body: extra top padding handled by the .sheet-handle. */
 .menu-hero {
   position: relative;
-  margin: 0 -20px 16px; /* Bleed past the .sheet-body horizontal padding */
+  margin: 0;
+  flex-shrink: 0; /* Don't squeeze the image when the sheet is short */
 }
 .menu-hero img {
   display: block;
