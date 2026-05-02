@@ -44,3 +44,22 @@
     color: #666;
     margin-top: 0.5rem;
 }
+.map-thumbnail-view-link {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.92);
+    color: #007bff;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: 500;
+    text-decoration: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.map-thumbnail-view-link:hover {
+    background: #007bff;
+    color: #fff;
+    text-decoration: none;
+}
