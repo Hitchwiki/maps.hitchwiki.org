@@ -33,7 +33,7 @@ This project is deployed on the Hitchwiki server at the following locations:
 
 ## About The Project
 
-Read more [here](https://hitchwiki.org/en/Hitchwiki:Maps). This project embraces Nostr - hitchhiking rides that are submitted are published as Nostr event following the [data standard](https://github.com/Hitchwiki/hitchhiking-data-standard) in the first place. So Nostr become the single source of truth (database) for hitchhiking rides that also other apps (not only this one) can contribute to.
+This project embraces Nostr - hitchhiking rides that are submitted are published as Nostr event following the [data standard](https://github.com/Hitchwiki/hitchhiking-data-standard) in the first place. So events on Nostr relays become the single source of truth (database) for hitchhiking rides that also other apps (not only this one) can contribute to.
 
 Join the conversation about a map for hitchhiking in our [Signal Chat](https://signal.group/#CjQKIFSj0oaPjMY_eB1uHfXEuxH459W6gtfEke0krGgTabZBEhB1ZK3YP53QSPBuviWzHO_F).
 
