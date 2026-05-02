@@ -520,6 +520,16 @@ body.adding-spot .leaflet-control-attribution {
 .sidebar.bottom-sheet.dragging {
   transition: none;
 }
+/* On desktop, match the width of the search bar and filter pane
+   (left: 16px, right: 68px, max-width: 600px) instead of full-width. */
+@media only screen and (min-width: 701px) {
+  .sidebar.bottom-sheet {
+    left: 16px;
+    right: 68px;
+    width: auto;
+    max-width: 600px;
+  }
+}
 .sheet-body,
 #spot-sheet-body {
   flex: 1;
