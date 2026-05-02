@@ -18,6 +18,14 @@
     margin-bottom: 0.75rem;
     font-size: 0.85em;
 }
+.ride-card[data-ride-href] {
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+.ride-card[data-ride-href]:hover {
+    background: #eef2f6;
+    border-color: #c7ced3;
+}
 .ride-card.co-hitchhiker-card {
     border-left: 3px solid #fd7e14;
 }
@@ -93,7 +101,7 @@ escaped_trustroots_username)|safe if escaped_trustroots_username else "-" }}
 <h2>{{ "Your Rides" if is_me else "Rides" }}</h2>
 {% if rides %}
   {% for ride in rides %}
-  <div class="ride-card {% if ride.type == 'co_hitchhiker' %}co-hitchhiker-card{% endif %}">
+  <div class="ride-card {% if ride.type == 'co_hitchhiker' %}co-hitchhiker-card{% endif %}"{% if ride.d_tag %} data-ride-href="/ride/{{ ride.d_tag }}"{% endif %}>
       <div class="ride-meta">
           {{ ride.created }}
           {% if ride.rating > 0 %}&nbsp;{{ "⭐" * ride.rating }}{% endif %}
@@ -141,6 +149,16 @@ document.addEventListener('DOMContentLoaded', function() {
         if (ride.pickup_lat && ride.pickup_lon) {
             initMapThumbnail(`ride-thumb-${i}`, ride.pickup_lat, ride.pickup_lon);
         }
+    });
+
+    // Whole-card navigation to ride detail. Ignore clicks on nested
+    // links/buttons/forms so Edit / Accept / Reject and the map thumbnail
+    // link keep working.
+    document.querySelectorAll('.ride-card[data-ride-href]').forEach((card) => {
+        card.addEventListener('click', (e) => {
+            if (e.target.closest('a, button, form')) return;
+            window.location.href = card.dataset.rideHref;
+        });
     });
 });
 </script>
