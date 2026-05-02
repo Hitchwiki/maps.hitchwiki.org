@@ -58,7 +58,14 @@ cp example.env .env
 # skip if you do not have a Hitchwiki bot account yet
 cp pywikibot/user-password.py.example pywikibot/user-password.py
 ```
-And set the missing env variables and wiki bot passwords.
+And set the missing env variables and wiki bot passwords. If you do not have a Nostr key pair you can use the below snipped to create one:
+
+```python
+from pynostr.key import PrivateKey
+private_key = PrivateKey()
+print(f"Private Key (nsec): {private_key.bech32()}")
+print(f"Public Key (npub):  {private_key.public_key.bech32()}")
+```
 
 Put file from `https://simplemaps.com/static/data/world-cities/basic/simplemaps_worldcities_basicv1.901.zip` into `dist/` as `worldcities.zip` but any `worldcities.csv` file with `city`, `country`, `population` column works.
 
