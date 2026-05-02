@@ -1,0 +1,267 @@
+{% extends 'base.html' %}
+
+{% block title %}Ride Details | Hitchhiking Map{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<link rel="stylesheet" href="/static/style.css" />
+<link rel="stylesheet" href="/static/map_thumbnail.css" />
+<style>
+.ride-detail-page {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 0 1rem 3rem;
+}
+.ride-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+.ride-header h1 {
+    margin: 0.25rem 0;
+    font-size: 1.6em;
+    color: #333;
+}
+.ride-stars {
+    color: #f5b301;
+    font-size: 1.2em;
+    letter-spacing: 2px;
+}
+.ride-meta-line {
+    color: #666;
+    font-size: 0.95em;
+    margin-bottom: 0.25rem;
+}
+.location-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+@media (max-width: 600px) {
+    .location-grid { grid-template-columns: 1fr; }
+}
+.location-card {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 0.75rem;
+}
+.location-card h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1em;
+    color: #444;
+}
+.location-card .map-thumbnail {
+    height: 180px;
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: default;
+}
+.location-card .coords {
+    font-size: 0.85em;
+    color: #777;
+    margin-top: 0.4rem;
+    font-family: monospace;
+}
+.detail-section {
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+}
+.detail-row {
+    display: flex;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.95em;
+}
+.detail-row:last-child { border-bottom: none; }
+.detail-label {
+    flex: 0 0 160px;
+    color: #888;
+    font-weight: 500;
+}
+.detail-value {
+    flex: 1;
+    color: #333;
+}
+.ride-comment-box {
+    background: #f8f9fa;
+    border-left: 4px solid #28a745;
+    padding: 0.75rem 1rem;
+    border-radius: 4px;
+    white-space: pre-wrap;
+    color: #333;
+}
+.hitchhiker-chip {
+    display: inline-block;
+    background: #e9ecef;
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-size: 0.9em;
+    margin: 2px 4px 2px 0;
+    color: #333;
+    text-decoration: none;
+}
+a.hitchhiker-chip:hover { background: #d6dadd; }
+.section-title {
+    font-size: 0.85em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #888;
+    margin: 0 0 0.5rem 0;
+}
+.back-link {
+    display: inline-block;
+    color: #555;
+    text-decoration: none;
+    font-size: 0.9em;
+    margin-bottom: 1rem;
+}
+.back-link:hover { text-decoration: underline; }
+.edit-link {
+    font-size: 0.85em;
+    color: #007bff;
+    text-decoration: none;
+}
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="ride-detail-page">
+    <a href="/" class="back-link">← Back to map</a>
+
+    <div class="ride-header">
+        <div>
+            <div class="ride-meta-line">
+                {% set first = ride.hitchhikers[0] if ride.hitchhikers else None %}
+                {% set name = first.nickname if first else 'Anonymous' %}
+                {% set sign = '♂' if first and first.gender == 'male' else ('♀' if first and first.gender == 'female' else '') %}
+                Ride by
+                {% if name and name != 'Anonymous' %}
+                    <a href="/account/{{ name }}">{% if sign %}{{ sign }} {% endif %}{{ name }}</a>
+                {% else %}
+                    <span>Anonymous</span>
+                {% endif %}
+            </div>
+            <h1>
+                {% if ride.rating %}
+                    <span class="ride-stars">{{ '★' * ride.rating }}{{ '☆' * (5 - ride.rating) }}</span>
+                {% else %}
+                    <span style="color:#aaa;">Unrated</span>
+                {% endif %}
+            </h1>
+        </div>
+        {% if ride.is_owner %}
+            <a href="/ride?edit={{ ride.d_tag }}" class="edit-link"><i class="fa fa-pen"></i> Edit ride</a>
+        {% endif %}
+    </div>
+
+    <div class="location-grid">
+        {% if ride.pickup_lat is not none and ride.pickup_lon is not none %}
+        <div class="location-card">
+            <h4><i class="fa fa-map-marker" style="color:#28a745;"></i> Pickup</h4>
+            <div class="map-thumbnail" id="pickup-map"></div>
+            <div class="coords">{{ "%.4f, %.4f"|format(ride.pickup_lat, ride.pickup_lon) }}</div>
+        </div>
+        {% endif %}
+        {% if ride.dest_lat is not none and ride.dest_lon is not none %}
+        <div class="location-card">
+            <h4><i class="fa fa-flag" style="color:#dc3545;"></i> Destination</h4>
+            <div class="map-thumbnail" id="dest-map"></div>
+            <div class="coords">{{ "%.4f, %.4f"|format(ride.dest_lat, ride.dest_lon) }}</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="detail-section">
+        <p class="section-title">Ride information</p>
+
+        {% if ride.wait is not none %}
+        <div class="detail-row">
+            <div class="detail-label"><i class="fa fa-clock"></i> Waiting time</div>
+            <div class="detail-value">{{ ride.wait }} min</div>
+        </div>
+        {% endif %}
+
+        {% if ride.distance_km is not none %}
+        <div class="detail-row">
+            <div class="detail-label"><i class="fa fa-route"></i> Distance</div>
+            <div class="detail-value">{{ "%.0f km"|format(ride.distance_km) }}</div>
+        </div>
+        {% endif %}
+
+        {% if ride.signal_methods %}
+        <div class="detail-row">
+            <div class="detail-label"><i class="fa fa-hand-paper"></i> Signal</div>
+            <div class="detail-value">{{ ride.signal_methods|join(', ') }}</div>
+        </div>
+        {% endif %}
+
+        {% if ride.departure_time %}
+        <div class="detail-row">
+            <div class="detail-label"><i class="fa fa-calendar"></i> Ride date</div>
+            <div class="detail-value">{{ ride.departure_time.replace('T', ' ')[:16] }}</div>
+        </div>
+        {% endif %}
+
+        {% if ride.submission_time %}
+        <div class="detail-row">
+            <div class="detail-label"><i class="fa fa-upload"></i> Submitted</div>
+            <div class="detail-value">{{ ride.submission_time.replace('T', ' ')[:16] }}</div>
+        </div>
+        {% endif %}
+
+        {% if ride.source %}
+        <div class="detail-row">
+            <div class="detail-label"><i class="fa fa-globe"></i> Source</div>
+            <div class="detail-value">{{ ride.source }}</div>
+        </div>
+        {% endif %}
+
+        {% if ride.hitchhikers %}
+        <div class="detail-row">
+            <div class="detail-label"><i class="fa fa-users"></i> Hitchhikers</div>
+            <div class="detail-value">
+                {% for h in ride.hitchhikers %}
+                    {% set sign = '♂' if h.gender == 'male' else ('♀' if h.gender == 'female' else '') %}
+                    {% if h.nickname and h.nickname != 'Anonymous' %}
+                        <a class="hitchhiker-chip" href="/account/{{ h.nickname }}">{% if sign %}{{ sign }} {% endif %}{{ h.nickname }}</a>
+                    {% else %}
+                        <span class="hitchhiker-chip">Anonymous</span>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if ride.comment %}
+    <div class="detail-section">
+        <p class="section-title">Comment</p>
+        <div class="ride-comment-box">{{ ride.comment }}</div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="/static/map_thumbnail.js"></script>
+<script>
+(function() {
+    {% if ride.pickup_lat is not none and ride.pickup_lon is not none %}
+    initMapThumbnail('pickup-map', {{ ride.pickup_lat }}, {{ ride.pickup_lon }}, 7);
+    {% endif %}
+    {% if ride.dest_lat is not none and ride.dest_lon is not none %}
+    initMapThumbnail('dest-map', {{ ride.dest_lat }}, {{ ride.dest_lon }}, 7);
+    {% endif %}
+})();
+</script>
+{% endblock %}

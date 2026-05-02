@@ -14,6 +14,16 @@
     padding: 0.75rem;
     margin-bottom: 0.75rem;
     font-size: 0.85em;
+    display: block;
+    color: inherit;
+    text-decoration: none;
+    transition: background 0.15s, border-color 0.15s;
+}
+a.ride-card:hover {
+    background: #eef2f6;
+    border-color: #c7ced3;
+    text-decoration: none;
+    color: inherit;
 }
 .ride-meta {
     color: #666;
@@ -35,7 +45,8 @@
 <p style="color:#666; font-size:0.85em;">Last {{ rides|length }} added rides</p>
 {% if rides %}
   {% for ride in rides %}
-  <div class="ride-card">
+  {% set tag = "a" if ride.d_tag else "div" %}
+  <{{ tag }} class="ride-card"{% if ride.d_tag %} href="/ride/{{ ride.d_tag }}"{% endif %}>
       <div class="ride-meta">
           {{ ride.created }}
           {% if ride.rating > 0 %}&nbsp;{{ "\u2b50" * ride.rating }}{% endif %}
@@ -48,7 +59,7 @@
       {% if ride.comment %}
       <div class="ride-comment">{{ ride.comment }}</div>
       {% endif %}
-  </div>
+  </{{ tag }}>
   {% endfor %}
 {% else %}
   <p style="color:#666; font-size:0.9em;">No rides yet.</p>

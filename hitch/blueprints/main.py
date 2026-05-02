@@ -6,6 +6,7 @@ from datetime import datetime
 import pandas as pd
 from flask import (
     Blueprint,
+    abort,
     current_app,
     jsonify,
     redirect,
@@ -81,6 +82,7 @@ def recent_spots():
         nickname = hitchhikers[0].get("nickname", "Anonymous") if hitchhikers else "Anonymous"
         ride_list.append(
             {
+                "d_tag": ride.d,
                 "created": pd.to_datetime(ride.created_at, unit="s").strftime("%Y-%m-%d %H:%M") if ride.created_at else "N/A",
                 "rating": int(ride.rating) if ride.rating else 0,
                 "comment": ride.comment or "",
@@ -90,6 +92,80 @@ def recent_spots():
             }
         )
     return render_template("recent.html", rides=ride_list)
+
+
+@main_bp.route("/ride/<d_tag>")
+def ride_detail(d_tag):
+    """Public read-only page showing all details of a single ride."""
+    ride = db.session.query(RideEvent).filter_by(d=d_tag).first()
+    if not ride:
+        abort(404)
+
+    content = ride.content or {}
+    stops = content.get("stops") or []
+    pickup_lat = pickup_lon = dest_lat = dest_lon = None
+    departure_time = None
+    waiting_minutes = None
+    if stops:
+        first = stops[0]
+        loc = first.get("location") or {}
+        pickup_lat = loc.get("latitude")
+        pickup_lon = loc.get("longitude")
+        departure_time = first.get("departure_time")
+        wd = first.get("waiting_duration")
+        if wd:
+            m = re.match(r"PT(\d+)M", wd)
+            if m:
+                waiting_minutes = int(m.group(1))
+        if len(stops) > 1:
+            last_loc = (stops[-1].get("location") or {})
+            dest_lat = last_loc.get("latitude")
+            dest_lon = last_loc.get("longitude")
+
+    signal_methods = []
+    for sig in content.get("signals") or []:
+        for method in sig.get("methods") or []:
+            if method not in signal_methods:
+                signal_methods.append(method)
+
+    hitchhikers = [
+        {"nickname": h.get("nickname") or "Anonymous", "gender": h.get("gender")}
+        for h in (content.get("hitchhikers") or [])
+    ]
+
+    distance_km = None
+    if pickup_lat is not None and dest_lat is not None and pickup_lon is not None and dest_lon is not None:
+        # Haversine
+        lat1, lon1, lat2, lon2 = map(math.radians, [pickup_lat, pickup_lon, dest_lat, dest_lon])
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+        a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+        distance_km = 2 * 6371 * math.asin(math.sqrt(a))
+
+    submission_dt = None
+    if ride.submission_time:
+        submission_dt = ride.submission_time
+    elif ride.created_at:
+        submission_dt = datetime.utcfromtimestamp(ride.created_at).isoformat() + "Z"
+
+    ride_view = {
+        "d_tag": d_tag,
+        "rating": ride.rating,
+        "comment": ride.comment,
+        "wait": waiting_minutes,
+        "signal_methods": signal_methods,
+        "hitchhikers": hitchhikers,
+        "pickup_lat": pickup_lat,
+        "pickup_lon": pickup_lon,
+        "dest_lat": dest_lat,
+        "dest_lon": dest_lon,
+        "departure_time": departure_time,
+        "submission_time": submission_dt,
+        "source": content.get("source") or ride.source,
+        "distance_km": distance_km,
+        "is_owner": _user_owns_ride(ride, current_user),
+    }
+    return render_template("ride_detail.html", ride=ride_view)
 
 
 @main_bp.route("/ride", methods=["GET", "POST"])
