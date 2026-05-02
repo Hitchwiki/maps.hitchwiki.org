@@ -39,6 +39,9 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
 
 {% block main %}
 <div id="map"></div>
+<div id="spots-loading-overlay" aria-label="Loading spots">
+    <i class="fa-solid fa-circle-notch fa-spin"></i>
+</div>
 <div class="sidebar show-spot spot bottom-sheet">
     <div class="sheet-handle" id="spot-sheet-handle" aria-hidden="true"></div>
     <a href="javascript:void(0);" id="spot-close" title="Close" aria-label="Close">

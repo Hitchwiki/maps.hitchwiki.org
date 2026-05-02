@@ -109,6 +109,10 @@ async function loadMarkers(map) {
     .catch((error) => {
       console.error("Error loading markers:", error);
       throw error;
+    })
+    .finally(() => {
+      const overlay = document.getElementById("spots-loading-overlay");
+      if (overlay) overlay.classList.add("hidden");
     });
 }
 

@@ -470,6 +470,21 @@ body.adding-spot .leaflet-control-attribution {
   padding: 0 20px 20px 20px;
   box-shadow: 2px 0 10px;
 }
+#spots-loading-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 1000;
+  font-size: 48px;
+  color: #555;
+  background: rgba(255, 255, 255, 0.4);
+}
+#spots-loading-overlay.hidden {
+  display: none;
+}
 .sidebar.bottom-sheet {
   position: fixed;
   left: 0;
