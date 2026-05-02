@@ -905,6 +905,28 @@ ul.no-style {
   color: black;
 }
 /* Menu sheet body: extra top padding handled by the .sheet-handle. */
+.menu-hero {
+  margin: 0 -20px 16px; /* Bleed past the .sheet-body horizontal padding */
+}
+.menu-hero img {
+  display: block;
+  width: 100%;
+  /* Image is ~785x590; cropping to the top ~half (~295px) gives ~8:3 */
+  aspect-ratio: 8 / 3;
+  object-fit: cover;
+  object-position: top center;
+}
+.menu-hero figcaption {
+  font-size: 11px;
+  line-height: 1.3;
+  color: #888;
+  padding: 4px 20px 0;
+  font-family: inherit;
+}
+.menu-hero figcaption a {
+  color: #888;
+  text-decoration: underline;
+}
 .sidebar.menu a {
   border-bottom: 1px solid blue;
   color: #000;
