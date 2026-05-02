@@ -265,10 +265,7 @@ def _get_rides_for_user(user, include_pending_co=True, display_only=False):
         content = ride.content if ride.content else {}
         nicknames = [_norm(h.get("nickname")) for h in (content.get("hitchhikers") or [])]
         if normalized_username in nicknames:
-            if display_only or content.get("source") != THIS_NOSTR_SOURCE:
-                ride_type = "own_external"
-            else:
-                ride_type = "own"
+            ride_type = "own_external" if display_only or content.get("source") != THIS_NOSTR_SOURCE else "own"
             own_rides.append(_extract_ride_info(ride, ride_type))
 
     co_rides = []

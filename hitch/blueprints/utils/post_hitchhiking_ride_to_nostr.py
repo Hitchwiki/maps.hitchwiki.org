@@ -68,7 +68,9 @@ class HitchhikingDataStandardToNostrPoster:
             tags=[
                 ["d", d_tag ],  # Use existing d tag if updating, otherwise create a new one
                 *geohash_tags, # geohash is always updated in case the ride's location changes
-                ["published_at", published_at_tag], # published_at stays the same across versions of the same ride, so that we can identify updates to the same ride across versions
+                # published_at stays the same across versions of the same ride,
+                # so that we can identify updates to the same ride across versions
+                ["published_at", published_at_tag],
             ]
         )
 

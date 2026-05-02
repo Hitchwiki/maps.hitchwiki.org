@@ -122,7 +122,8 @@ def register_commands(app):
 
             ram_log = os.path.join(app.root_path, "..", "logs", f"{script}_ram.log")
             with open(ram_log, "a") as f:
-                f.write(f"{datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')} peak_rss={peak_mb:.1f}MB elapsed={elapsed:.1f}s\n")
+                ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                f.write(f"{ts} peak_rss={peak_mb:.1f}MB elapsed={elapsed:.1f}s\n")
         except Exception as e:
             print(e)
 

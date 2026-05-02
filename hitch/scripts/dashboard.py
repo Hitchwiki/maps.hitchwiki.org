@@ -1,4 +1,5 @@
 import html
+import json
 import logging
 import os
 from string import Template
@@ -71,8 +72,6 @@ users = pd.read_sql("select * from user", get_db())
 
 # Count rides per hitchhiker nickname from ride_event
 rides = pd.read_sql("select hitchhikers, source from ride_event", get_db())
-
-import json
 
 nickname_counts = {}
 for _, row in rides.iterrows():

@@ -122,7 +122,10 @@ def routing(
 #     df = filtered_df
 #
 #     # Calculate distance and ride time for each ride
-#     df["distance"] = df.apply(lambda row: haversine_np(lat1=row.lat, lon1=row.lon, lat2=row.dest_lat, lon2=row.dest_lon), axis=1)
+#     df["distance"] = df.apply(
+#         lambda row: haversine_np(lat1=row.lat, lon1=row.lon, lat2=row.dest_lat, lon2=row.dest_lon),
+#         axis=1,
+#     )
 #     df["ride_time"] = df["distance"] / RIDE_SPEED * 60  # in minutes
 #
 #     # Calculate waiting time at each spot (average wait time from the data)

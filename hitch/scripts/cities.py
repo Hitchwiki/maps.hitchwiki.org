@@ -1,4 +1,5 @@
 """Create separate HTML pages for major cities mentioned in hitchhiking reviews. Also for SEO purposes."""
+
 import json
 import logging
 import os
@@ -7,9 +8,9 @@ import zipfile
 import numpy as np
 import pandas as pd
 from jinja2 import Environment, FileSystemLoader
+from tqdm import tqdm
 
 from hitch.helpers import get_dirs
-from tqdm import tqdm
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
