@@ -5,6 +5,7 @@ Contributions are greatly appreciated and we are happy to help you get started w
 File an [issue](https://github.com/Hitchwiki/hitchmap/issues) if you have a feature request or found a bug.
 
 Perform a [pull request](https://github.com/Hitchwiki/hitchmap/pulls) from your [fork](https://github.com/Hitchwiki/hitchmap/fork) of the repository if you solved an issue. (It's best to file an issue first so we can discuss it and reference it in the PR.)
+You cannot push to `main` directly. Instead your pull request has to be approved by at least one administrator of this repository.
 
 ## How the project is maintained
 ...
