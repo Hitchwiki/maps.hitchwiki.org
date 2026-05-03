@@ -68,7 +68,8 @@ cache/
 env/
 build/
 develop-eggs/
-dist/
+dist/*
+!dist/.gitkeep
 downloads/
 eggs/
 .eggs/
@@ -478,8 +479,6 @@ junit/
 
 *log.txt
 
-# pywikibot
-pywikibot/user-password.py
 .claude/
 
 last_deploy.txt

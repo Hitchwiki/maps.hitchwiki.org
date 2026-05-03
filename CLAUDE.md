@@ -224,18 +224,23 @@ The `show.py` script runs every minute and generates map data files from the dat
    - Links to nearby OSM spots and Hitchwiki articles (within 100m)
    - Structure: `{id, lat, lon, rating, wait, distance, ride_count, osm_id, hitchwiki_article}`
 
-2. **`rides.json`** - Individual ride records
-   - Complete ride details for sidebar display
-   - Links rides to spots via coordinate-based spot_id
-   - Includes formatted HTML text for popups
-   - Structure: `{id, spot_id, lat, lon, rating, wait, comment, hitchhiker_name, ride_datetime}`
+2. **`rides_index.json`** - Lightweight index of all rides (replaces deprecated `rides.json`)
+   - One compact entry per ride, used by the map UI to power filters, search, and the recent-rides list without loading full popup details
+   - Fields are short-keyed to keep the file small: `{id, sid (spot_id), lat, lon, u (hitchhiker_name), t (submission_time ms), r (rating), km (distance), osm (bool), wiki (bool), c (truncated comment excerpt)}`
+   - Loaded once on map startup (`map.js` fetches `/rides_index.json`)
 
-3. **`spots_recent.json`** - Latest 1000 rides
+3. **`rides/by-spot/<spot_id>.json`** - Per-spot ride detail files
+   - One JSON file per spot, written under `dist/rides/by-spot/`
+   - Contains the full ride details needed to render a spot's popup card: `{id, rating, wait, comment, hitchhiker_name, submission_time, ride_datetime}`
+   - Fetched lazily by the frontend only when a marker is clicked (`map.js` handleMarkerClick)
+   - The `by-spot` directory is wiped and rewritten on each `show.py` run so deleted spots don't leave stale files
+
+4. **`spots_recent.json`** - Latest 1000 rides
    - Sorted by submission time (descending)
    - Used for tabular "Recent Rides" page
    - Includes ride URL, timestamp, username, rating, distance
 
-4. **`heatmap.json`** - Predicted waiting times
+5. **`heatmap.json`** - Predicted waiting times
    - Generated using sklearn Gaussian Process model
    - RGBA image overlay data (lat/lon bounds: -56 to 80, -180 to 180)
    - Legend with color boundaries for waiting time visualization
@@ -256,7 +261,8 @@ Hitchwiki API → sync_hitchwiki.py → HitchwikiArticle* tables ↓
                                                               ↓
                                                          show.py
                                                               ↓
-                                          dist/{spots,rides,heatmap}.json
+                                  dist/{spots,rides_index,spots_recent,heatmap}.json
+                                          + dist/rides/by-spot/<sid>.json
                                                               ↓
                                                         Map UI (map.js)
 ```
@@ -282,7 +288,8 @@ Flask → Nostr Relays (publish ride event)
     ↓ (~10 min, cron)
 fetch_nostr → Nostr Relays → dist/allPosts.json → RideEvent table
     ↓ (~1 min, cron)
-show.py → dist/{spots,rides,heatmap}.json
+show.py → dist/{spots,rides_index,spots_recent,heatmap}.json
+        → dist/rides/by-spot/<sid>.json (one file per spot, lazy-loaded)
     ↓
 Map UI loads updated JSON → ride visible on map
 ```

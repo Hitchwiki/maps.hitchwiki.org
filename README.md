@@ -55,8 +55,7 @@ pip install -r requirements.txt
 
 ```bash
 cp example.env .env
-# skip if you do not have a Hitchwiki bot account yet
-cp pywikibot/user-password.py.example pywikibot/user-password.py
+cp tests/hitchwiki_articles.json dist/hitchwiki_articles.json
 ```
 And set the missing env variables and wiki bot passwords. If you do not have a Nostr key pair you can use the below snipped to create one:
 
@@ -72,11 +71,11 @@ Put file from `https://simplemaps.com/static/data/world-cities/basic/simplemaps_
 ### Deploy with Docker
 
 ```bash
-sudo docker build -t hitch .
-sudo docker run -p 4242:4242 --name hitchhiking-map -d hitch
-# or
+sudo docker compose up --build
+# or to deploy form production
 sudo docker compose up --build -d --remove-orphans
 
+# connect to the container
 sudo docker exec -it hitchhiking-map /bin/bash  
 
 # if down just:

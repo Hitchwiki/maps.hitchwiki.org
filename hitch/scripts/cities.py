@@ -1,5 +1,6 @@
 """Create separate HTML pages for major cities mentioned in hitchhiking reviews. Also for SEO purposes."""
 
+import html
 import json
 import logging
 import os
@@ -8,9 +9,8 @@ import zipfile
 import numpy as np
 import pandas as pd
 from jinja2 import Environment, FileSystemLoader
-from tqdm import tqdm
 
-from hitch.helpers import get_dirs
+from hitch.helpers import get_db, get_dirs
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -23,13 +23,63 @@ env = Environment(loader=FileSystemLoader('hitch/templates'))
 city_template = env.get_template('city_template.html')
 city_index = env.get_template('city_index.html')
 
-# Load rides data from rides.json created by show.py
-logger.info("Loading rides data from rides.json")
-with open(os.path.join(dist_dir, "rides.json")) as f:
-    rides_data = json.load(f)
+# Load rides directly from the ride_event table (rides.json may not exist yet on a
+# fresh install; the DB is the canonical source — see CLAUDE.md "Database Storage").
+logger.info("Loading rides from ride_event table")
+rides = pd.read_sql("select stops, comment, hitchhikers, submission_time from ride_event", get_db())
+rides["stops"] = rides["stops"].apply(lambda x: json.loads(x) if isinstance(x, str) else x)
+rides["hitchhikers"] = rides["hitchhikers"].apply(lambda x: json.loads(x) if isinstance(x, str) else x)
 
-# Convert to DataFrame for easier processing
-rides = pd.DataFrame(rides_data)
+
+def _hitchhiker_name(hitchhikers):
+    if isinstance(hitchhikers, list) and hitchhikers:
+        first = hitchhikers[0]
+        if (
+            isinstance(first, dict)
+            and isinstance(first.get("nickname"), str)
+            and first["nickname"].strip() != ""
+        ):
+            return first["nickname"]
+    return "Anonymous"
+
+
+rides["hitchhiker_name"] = rides["hitchhikers"].apply(_hitchhiker_name)
+
+
+def _coords(row):
+    stops = row["stops"] or []
+    if not stops:
+        return pd.Series({"lat": None, "lon": None, "dest_lat": None, "dest_lon": None})
+    start = stops[0]["location"]
+    if len(stops) > 1:
+        end = stops[-1]["location"]
+        return pd.Series(
+            {"lat": start["latitude"], "lon": start["longitude"],
+             "dest_lat": end["latitude"], "dest_lon": end["longitude"]}
+        )
+    return pd.Series({"lat": start["latitude"], "lon": start["longitude"], "dest_lat": None, "dest_lon": None})
+
+
+rides[["lat", "lon", "dest_lat", "dest_lon"]] = rides.apply(_coords, axis=1)
+
+
+def _ride_datetime(stops):
+    if isinstance(stops, list) and stops:
+        first = stops[0]
+        if isinstance(first, dict):
+            return first.get("departure_time")
+    return None
+
+
+rides["ride_datetime"] = pd.to_datetime(rides["stops"].apply(_ride_datetime), errors="coerce", utc=True)
+
+# Build the HTML "text" the city template renders for each review.
+rides["hitchhiker_name"] = rides["hitchhiker_name"].fillna("Anonymous")
+rides["text"] = (
+    rides["comment"].fillna("").map(html.escape).str.replace("\n", "<br>")
+    + "<br>―" + rides["hitchhiker_name"].map(html.escape)
+)
+rides = rides.dropna(subset=["lat", "lon"])
 logger.info(f"Loaded {len(rides)} rides")
 
 cities_csv_path = os.path.join(dist_dir, "worldcities.csv")
@@ -79,7 +129,12 @@ def haversine_km(lat1, lon1, lat2, lon2):
     return 6371 * 2 * np.arcsin(np.sqrt(a))
 
 
-for city in tqdm(cities.itertuples(), total=len(cities), desc="Rendering city pages"):
+total_cities = len(cities)
+# Log progress every ~10% so cron logs show forward motion without spamming a line per city
+log_every = max(1, total_cities // 10)
+for i, city in enumerate(cities.itertuples(), start=1):
+    if i % log_every == 0 or i == total_cities:
+        logger.info(f"Rendering city pages: {i}/{total_cities} ({i * 100 // total_cities}%)")
     country_folder = os.path.join(dist_dir, "city", city.country)
     os.makedirs(country_folder, exist_ok=True)
 

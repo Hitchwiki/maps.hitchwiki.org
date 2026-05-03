@@ -39,7 +39,7 @@ if (!process.env.NOSTR_EVENT_KIND) {
     process.exit(1);
 }
 const eventKind = parseInt(process.env.NOSTR_EVENT_KIND, 10);
-console.log("Fetching Nostr event kind:", eventKind);
+console.log("Fetching Nostr event kind (this can take a while):", eventKind);
 
 // Fetch from each relay individually to track which relays have each event
 const eventMap = new Map<string, { event: any; relays: string[] }>();

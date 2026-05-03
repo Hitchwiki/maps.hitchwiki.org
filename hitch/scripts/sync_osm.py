@@ -22,32 +22,45 @@ nwr["highway"="hitchhiking"];
 out meta;
 """
 
-response = requests.post(overpass_url, data={'data': overpass_query})
+logger.info(f"SYNC OSM SCRIPT STARTED — querying Overpass at {overpass_url}")
+
+# Overpass mirrors reject the default `python-requests/X` User-Agent with HTTP 406; identify ourselves explicitly.
+headers = {"User-Agent": "maps.hitchwiki.org sync_osm (+https://maps.hitchwiki.org)"}
+response = requests.post(overpass_url, data={"data": overpass_query}, headers=headers, timeout=60)
+logger.info(f"Overpass responded: status={response.status_code}, body_bytes={len(response.content)}")
+if not response.ok:
+    # Log the body so 4xx/5xx tell us *why* (Overpass returns the reason in plain text/HTML)
+    logger.error(f"Overpass body: {response.text[:1000]}")
+response.raise_for_status()
+
 data = response.json()
+elements = data.get("elements", [])
+nodes = [el for el in elements if el["type"] == "node"]
+logger.info(f"Parsed {len(elements)} elements, {len(nodes)} nodes")
 
-# Extract nodes
-elements = data['elements']
-nodes = [el for el in elements if el['type'] == 'node']
+# Refuse to wipe the table if Overpass returned nothing — protects against transient API failures leaving us with 0 spots
+if not nodes:
+    logger.error("Overpass returned 0 nodes — aborting without touching the database")
+    raise SystemExit(1)
 
-# Save fetched hitchhiking spots into the database
-logger.info("Saving fetched hitchhiking spots into the database...")
+prior_count = db.session.query(OsmHitchhikingSpot).count()
+logger.info(f"Replacing {prior_count} existing spots with {len(nodes)} fresh ones")
 
-# Remove all existing spots for a fresh start
 db.session.query(OsmHitchhikingSpot).delete()
 db.session.commit()
 
 for node in nodes:
     spot = OsmHitchhikingSpot(
-        id=node['id'],
-        latitude=node['lat'],
-        longitude=node['lon'],
-        tags=node.get('tags', {}),
-        timestamp=node.get('timestamp'),
-        user=node.get('user'),
-        uid=node.get('uid'),
+        id=node["id"],
+        latitude=node["lat"],
+        longitude=node["lon"],
+        tags=node.get("tags", {}),
+        timestamp=node.get("timestamp"),
+        user=node.get("user"),
+        uid=node.get("uid"),
     )
     db.session.add(spot)
 db.session.commit()
 
-logger.info(f"Saved {len(nodes)} hitchhiking spots from OSM into the database.")
-logger.info("SYNC OSM SCRIPT FINISHED")
+final_count = db.session.query(OsmHitchhikingSpot).count()
+logger.info(f"SYNC OSM SCRIPT FINISHED — {final_count} spots saved (prior: {prior_count})")
