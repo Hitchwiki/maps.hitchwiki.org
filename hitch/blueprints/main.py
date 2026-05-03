@@ -25,7 +25,7 @@ from hitch.scripts.routing import routing
 main_bp = Blueprint("main", __name__)
 
 THIS_NOSTR_SOURCE = os.getenv("THIS_NOSTR_SOURCE", "yourdomain.com")
-
+THIS_DATA_LICENSE=os.getenv("THIS_DATA_LICENSE", "odbl")
 
 def _user_owns_ride(ride, user):
     """Check if the current user owns this ride."""
@@ -327,7 +327,7 @@ def ride_form():
 
         # Create new record with updated form data to get updated fields
         # TODO: define license properly instead of using "xxx"
-        updated_record = create_record_from_custom_object(custom_object=data, source=THIS_NOSTR_SOURCE, license="xxx")
+        updated_record = create_record_from_custom_object(custom_object=data, source=THIS_NOSTR_SOURCE, license=THIS_DATA_LICENSE)
 
         # post the updated event (maintaining all original tags including d tag)
         poster = HitchhikingDataStandardToNostrPoster()
@@ -337,7 +337,7 @@ def ride_form():
     else:
         # This is a new ride - normal flow
         # TODO: define license properly instead of using "xxx"
-        record = create_record_from_custom_object(custom_object=data, source=THIS_NOSTR_SOURCE, license="xxx")
+        record = create_record_from_custom_object(custom_object=data, source=THIS_NOSTR_SOURCE, license=THIS_DATA_LICENSE)
 
         poster = HitchhikingDataStandardToNostrPoster()
         d_tag = poster.post(ride_record=record)
