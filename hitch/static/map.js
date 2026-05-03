@@ -816,13 +816,8 @@ function renderRideCards(rides) {
     const date = formatRideDate(r.ride_datetime || r.submission_time);
     const metaBits = [date, wait].filter(Boolean).join(" · ");
     const startTime = r.ride_datetime ? formatRideDateTime(r.ride_datetime) : "";
-    const arrivalTime = r.arrival_datetime ? formatRideDateTime(r.arrival_datetime) : "";
-    const timesLine = (startTime || arrivalTime)
-      ? `<div class="ride-times" style="font-size:0.85em; color:#666;">${
-          startTime ? `▶ ${startTime}` : ""
-        }${startTime && arrivalTime ? " &nbsp;·&nbsp; " : ""}${
-          arrivalTime ? `🏁 ${arrivalTime}` : ""
-        }</div>`
+    const timesLine = startTime
+      ? `<div class="ride-times" style="font-size:0.85em; color:#666;">▶ ${startTime}</div>`
       : "";
     const name = r.hitchhiker_name && r.hitchhiker_name !== "Anonymous"
       ? `<a class="hitchhiker-name" href="/account/${encodeURIComponent(r.hitchhiker_name)}">${escapeHtml(r.hitchhiker_name)}</a>`
