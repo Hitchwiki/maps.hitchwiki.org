@@ -206,14 +206,14 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
 
         {% if ride.departure_time %}
         <div class="detail-row">
-            <div class="detail-label"><i class="fa fa-calendar"></i> Ride date</div>
+            <div class="detail-label"><i class="fa fa-play"></i> Ride start time</div>
             <div class="detail-value">{{ ride.departure_time.replace('T', ' ')[:16] }}</div>
         </div>
         {% endif %}
 
         {% if ride.arrival_time %}
         <div class="detail-row">
-            <div class="detail-label"><i class="fa fa-flag-checkered"></i> Arrival</div>
+            <div class="detail-label"><i class="fa fa-flag-checkered"></i> Arrival time</div>
             <div class="detail-value">{{ ride.arrival_time.replace('T', ' ')[:16] }}</div>
         </div>
         {% endif %}

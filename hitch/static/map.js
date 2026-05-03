@@ -787,6 +787,13 @@ function formatRideDate(iso) {
   return d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 }
 
+function formatRideDateTime(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  return d.toLocaleString(undefined, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
 function highlightStars(stars, upTo) {
   stars.forEach((s) => {
     s.classList.toggle("active", Number(s.dataset.rate) <= upTo);
@@ -800,6 +807,15 @@ function renderRideCards(rides) {
     const wait = r.wait != null && !Number.isNaN(r.wait) ? `${r.wait} min wait` : "";
     const date = formatRideDate(r.ride_datetime || r.submission_time);
     const metaBits = [date, wait].filter(Boolean).join(" · ");
+    const startTime = r.ride_datetime ? formatRideDateTime(r.ride_datetime) : "";
+    const arrivalTime = r.arrival_datetime ? formatRideDateTime(r.arrival_datetime) : "";
+    const timesLine = (startTime || arrivalTime)
+      ? `<div class="ride-times" style="font-size:0.85em; color:#666;">${
+          startTime ? `▶ ${startTime}` : ""
+        }${startTime && arrivalTime ? " &nbsp;·&nbsp; " : ""}${
+          arrivalTime ? `🏁 ${arrivalTime}` : ""
+        }</div>`
+      : "";
     const name = r.hitchhiker_name && r.hitchhiker_name !== "Anonymous"
       ? `<a class="hitchhiker-name" href="/account/${encodeURIComponent(r.hitchhiker_name)}">${escapeHtml(r.hitchhiker_name)}</a>`
       : `<span class="hitchhiker-name">Anonymous</span>`;
@@ -809,6 +825,7 @@ function renderRideCards(rides) {
     return `
       <div class="ride-card"${clickable}>
         <div class="ride-meta">${metaBits}${rating} &mdash; ${name}</div>
+        ${timesLine}
         ${comment}
       </div>`;
   }).join("");

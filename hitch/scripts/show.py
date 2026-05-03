@@ -147,8 +147,17 @@ def get_ride_datetime(row):
     return ride_datetime
 
 
+def get_arrival_datetime(row):
+    stops = row["stops"]
+    if not stops or len(stops) < 2:
+        return None
+    return stops[-1].get("arrival_time", None)
+
+
 rides_df["ride_datetime"] = rides_df.apply(get_ride_datetime, axis=1)
 rides_df["ride_datetime"] = pd.to_datetime(rides_df["ride_datetime"], errors="coerce")
+rides_df["arrival_datetime"] = rides_df.apply(get_arrival_datetime, axis=1)
+rides_df["arrival_datetime"] = pd.to_datetime(rides_df["arrival_datetime"], errors="coerce")
 
 rads = rides_df[["lat", "lon", "dest_lat", "dest_lon"]].values.T
 
@@ -496,6 +505,13 @@ for _, ride in rides_df.iterrows():
         else:
             ride_datetime = str(ride["ride_datetime"])
 
+    arrival_datetime = None
+    if pd.notna(ride.get("arrival_datetime")):
+        if hasattr(ride["arrival_datetime"], "isoformat"):
+            arrival_datetime = ride["arrival_datetime"].isoformat()
+        else:
+            arrival_datetime = str(ride["arrival_datetime"])
+
     ride_data = {
         "id": ride["d"] if pd.notna(ride.get("d")) else f"ride_{ride.name}",  # Fallback to index if no d_tag
         "spot_id": generate_spot_id(ride["lat"], ride["lon"]),
@@ -509,6 +525,7 @@ for _, ride in rides_df.iterrows():
         "hitchhiker_name": ride["hitchhiker_name"] if pd.notna(ride.get("hitchhiker_name")) else "Anonymous",
         "submission_time": submission_time,
         "ride_datetime": ride_datetime,
+        "arrival_datetime": arrival_datetime,
         "source": ride["source"] if pd.notna(ride.get("source")) else None,
     }
     rides_data.append(ride_data)
@@ -582,6 +599,7 @@ for r in rides_data:
         "hitchhiker_name": r["hitchhiker_name"],
         "submission_time": r["submission_time"],
         "ride_datetime": r["ride_datetime"],
+        "arrival_datetime": r["arrival_datetime"],
     })
 
 for sid, spot_rides in rides_by_spot.items():
