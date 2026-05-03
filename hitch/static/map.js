@@ -161,52 +161,59 @@ async function loadHeatmapData() {
   }
 }
 
-// Toggle heatmap layer
+// Toggle heatmap layer (also updates ?heatmap= query param so the state is shareable)
 async function toggleHeatmap() {
+  if (heatmapActive) {
+    await setHeatmapActive(false);
+    setQueryParameter('heatmap', false);
+  } else {
+    const ok = await setHeatmapActive(true);
+    if (ok) setQueryParameter('heatmap', true);
+  }
+}
+
+// Apply or remove the heatmap layer/legend without touching the URL.
+// Returns true if the requested state was reached.
+async function setHeatmapActive(active) {
   const btn = $$('#heatmap-toggle-btn');
   const text = $$('#heatmap-toggle-text');
-  
-  var legendPane = document.getElementById('heatmap-legend-pane');
+  const legendPane = document.getElementById('heatmap-legend-pane');
 
-  if (heatmapActive) {
-    // Switch back to normal view
-    if (heatmapLayer) {
-      map.removeLayer(heatmapLayer);
-    }
+  if (!active) {
+    if (heatmapLayer) map.removeLayer(heatmapLayer);
     if (legendPane) legendPane.style.display = 'none';
     positionLegendPane();
-    btn.classList.remove('active');
-    text.textContent = 'Heatmap';
+    if (btn) btn.classList.remove('active');
+    if (text) text.textContent = 'Heatmap';
     heatmapActive = false;
-  } else {
-    // Switch to heatmap view
-    if (!heatmapData) {
-      heatmapData = await loadHeatmapData();
-      if (!heatmapData) {
-        alert('Heatmap data is not available');
-        return;
-      }
-    }
-
-    // Create heatmap layer using pre-rendered PNG
-    if (!heatmapLayer) {
-      heatmapLayer = L.imageOverlay(
-        heatmapData.image_url,
-        heatmapData.bounds,
-        { opacity: 0.7 }
-      );
-    }
-
-    // Populate and show the legend pane
-    populateHeatmapLegend(heatmapData.legend);
-    if (legendPane) legendPane.style.display = 'block';
-    positionLegendPane();
-
-    heatmapLayer.addTo(map);
-    btn.classList.add('active');
-    text.textContent = 'Normal';
-    heatmapActive = true;
+    return true;
   }
+
+  if (!heatmapData) {
+    heatmapData = await loadHeatmapData();
+    if (!heatmapData) {
+      alert('Heatmap data is not available');
+      return false;
+    }
+  }
+
+  if (!heatmapLayer) {
+    heatmapLayer = L.imageOverlay(
+      heatmapData.image_url,
+      heatmapData.bounds,
+      { opacity: 0.7 }
+    );
+  }
+
+  populateHeatmapLegend(heatmapData.legend);
+  if (legendPane) legendPane.style.display = 'block';
+  positionLegendPane();
+
+  heatmapLayer.addTo(map);
+  if (btn) btn.classList.add('active');
+  if (text) text.textContent = 'Normal';
+  heatmapActive = true;
+  return true;
 }
 
 // Position the heatmap legend pane below the filter pane
@@ -1350,6 +1357,12 @@ function clearParams() {
 }
 
 async function applyParams() {
+  // Sync heatmap visibility with ?heatmap=true so links can deep-link into the heatmap view
+  const heatmapWanted = getQueryParameter("heatmap") == "true";
+  if (heatmapWanted !== heatmapActive) {
+    await setHeatmapActive(heatmapWanted);
+  }
+
   recentToggle.checked = getQueryParameter("recent") == "true";
   osmToggle.checked = getQueryParameter("osmonly") == "true";
   hitchwikiToggle.checked = getQueryParameter("hitchwikionly") == "true";
