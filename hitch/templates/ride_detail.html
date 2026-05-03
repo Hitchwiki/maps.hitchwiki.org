@@ -211,6 +211,13 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
         </div>
         {% endif %}
 
+        {% if ride.arrival_time %}
+        <div class="detail-row">
+            <div class="detail-label"><i class="fa fa-flag-checkered"></i> Arrival</div>
+            <div class="detail-value">{{ ride.arrival_time.replace('T', ' ')[:16] }}</div>
+        </div>
+        {% endif %}
+
         {% if ride.submission_time %}
         <div class="detail-row">
             <div class="detail-label"><i class="fa fa-upload"></i> Submitted</div>

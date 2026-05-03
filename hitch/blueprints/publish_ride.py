@@ -101,13 +101,20 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
         ),
     ]
     if pd.notna(dest_lat) and pd.notna(dest_lon):
+        arrival_dt = custom_object.get("arrival_datetime")
+        arrival_time = (
+            pd.to_datetime(arrival_dt).strftime("%Y-%m-%dT%H:%M:%S")
+            if arrival_dt is not None and pd.notna(arrival_dt) and arrival_dt != ""
+            else None
+        )
         stops.append(
             Stop(
                 location=Location(
                     latitude=dest_lat,
                     longitude=dest_lon,
                     is_exact=True, # assume that our UI allows to select the destination accurately
-                )
+                ),
+                arrival_time=arrival_time,
             )
         )
 

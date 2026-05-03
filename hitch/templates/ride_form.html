@@ -37,6 +37,10 @@
                             <i class="fa fa-times"></i>
                         </button>
                     </div>
+                    <div style="margin-top:0.6rem;">
+                        <label for="datetime_ride" style="display:block; font-size:0.9em; color:#555; margin-bottom:2px;">When did you get the ride?</label>
+                        <input form="ride-form" id="datetime_ride" type="datetime-local" name="datetime_ride" class="form-control" min="2020-01-01T00:00" value="{{ ride_data.datetime_ride if ride_data and ride_data.datetime_ride else '' }}">
+                    </div>
                 </div>
             </div>
             <div class="col-md-6">
@@ -52,6 +56,11 @@
                         <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearLocation('destination')" title="Clear destination" style="display: none;" id="destination-clear-btn">
                             <i class="fa fa-times"></i>
                         </button>
+                    </div>
+                    <div style="margin-top:0.6rem;">
+                        <label for="arrival_datetime" style="display:block; font-size:0.9em; color:#555; margin-bottom:2px;">When did you arrive at the destination?</label>
+                        <input form="ride-form" id="arrival_datetime" type="datetime-local" name="arrival_datetime" class="form-control" min="2020-01-01T00:00" value="{{ ride_data.arrival_datetime if ride_data and ride_data.arrival_datetime else '' }}">
+                        <span id="arrival-error-message" class="error text-danger" style="display:block; font-size:0.85em;"></span>
                     </div>
                 </div>
             </div>
@@ -148,14 +157,6 @@
             </div>
         </div>
 
-        <div class="form-group">
-            <label for="datetime_ride">
-                When did you get the ride?
-            </label>
-            <input id="datetime_ride" type="datetime-local" name="datetime_ride" class="form-control" min="2020-01-01T00:00" value="{{ ride_data.datetime_ride if ride_data and ride_data.datetime_ride else '' }}">
-            <span id="datetime-error-message" class="error text-danger"></span>
-        </div>
-
         <div class="form-group" style="margin-top: 2rem;">
             <button type="submit" class="btn btn-primary btn-lg">Submit</button>
             <a href="/" class="btn btn-secondary btn-lg" style="margin-left: 1rem;">Cancel</a>
@@ -168,6 +169,7 @@
 <script>
     // Set maximum date to today
     document.getElementById("datetime_ride").max = (new Date().toISOString().slice(0, 11)) + "23:59";
+    document.getElementById("arrival_datetime").max = (new Date().toISOString().slice(0, 11)) + "23:59";
     
     // Initialize map thumbnails
     let pickupMap, destinationMap;
@@ -235,6 +237,7 @@
             co_hitchhiker: document.getElementById('co-hitchhiker-hidden')?.value || '',
             signal: document.querySelector('select[name="signal"]')?.value || 'null',
             datetime_ride: document.querySelector('input[name="datetime_ride"]')?.value || '',
+            arrival_datetime: document.querySelector('input[name="arrival_datetime"]')?.value || '',
             pickup_lat: coords.pickup ? coords.pickup[0] : '',
             pickup_lon: coords.pickup ? coords.pickup[1] : '',
             destination_lat: coords.destination ? coords.destination[0] : '',
@@ -304,6 +307,7 @@
             }
             if (data.signal && data.signal !== 'null') document.querySelector('select[name="signal"]').value = data.signal;
             if (data.datetime_ride) document.querySelector('input[name="datetime_ride"]').value = data.datetime_ride;
+            if (data.arrival_datetime) document.querySelector('input[name="arrival_datetime"]').value = data.arrival_datetime;
             if (data.vehicle_kind !== undefined) document.getElementById('vehicle_kind').value = data.vehicle_kind;
             if (data.vehicle_make !== undefined) document.getElementById('vehicle_make').value = data.vehicle_make;
             if (data.vehicle_model !== undefined) document.getElementById('vehicle_model').value = data.vehicle_model;
@@ -357,12 +361,21 @@
     // Add form validation
     function validateForm() {
         const coords = getCoordinates();
-        
+
         if (!coords.pickup) {
             alert('Please select a pickup location by clicking on the pickup map thumbnail.');
             return false;
         }
-        
+
+        const dep = document.getElementById('datetime_ride').value;
+        const arr = document.getElementById('arrival_datetime').value;
+        const errSpan = document.getElementById('arrival-error-message');
+        errSpan.textContent = '';
+        if (dep && arr && new Date(arr) <= new Date(dep)) {
+            errSpan.textContent = 'Arrival must be later than the pickup time.';
+            return false;
+        }
+
         return true;
     }
     

@@ -125,6 +125,7 @@ def ride_detail(d_tag):
     stops = content.get("stops") or []
     pickup_lat = pickup_lon = dest_lat = dest_lon = None
     departure_time = None
+    arrival_time = None
     waiting_minutes = None
     if stops:
         first = stops[0]
@@ -138,9 +139,11 @@ def ride_detail(d_tag):
             if m:
                 waiting_minutes = int(m.group(1))
         if len(stops) > 1:
-            last_loc = (stops[-1].get("location") or {})
+            last_stop = stops[-1]
+            last_loc = (last_stop.get("location") or {})
             dest_lat = last_loc.get("latitude")
             dest_lon = last_loc.get("longitude")
+            arrival_time = last_stop.get("arrival_time")
 
     signal_methods = []
     for sig in content.get("signals") or []:
@@ -193,6 +196,7 @@ def ride_detail(d_tag):
         "dest_lat": dest_lat,
         "dest_lon": dest_lon,
         "departure_time": departure_time,
+        "arrival_time": arrival_time,
         "submission_time": submission_dt,
         "source": content.get("source") or ride.source,
         "distance_km": distance_km,
@@ -228,6 +232,7 @@ def ride_form():
                     "wait": "",
                     "signal": "",
                     "datetime_ride": "",
+                    "arrival_datetime": "",
                     "co_hitchhiker": "",
                     "vehicle_kind": "",
                     "vehicle_make": "",
@@ -268,6 +273,9 @@ def ride_form():
                         coords = last_stop.get("location", {})
                         ride_data["destination_lat"] = coords.get("latitude", "")
                         ride_data["destination_lon"] = coords.get("longitude", "")
+                        arrival_time = last_stop.get("arrival_time")
+                        if arrival_time:
+                            ride_data["arrival_datetime"] = arrival_time[:16]
 
                 # Extract signal from signals[0].methods
                 signals = content.get("signals", [])
@@ -345,6 +353,17 @@ def ride_form():
         val = (data.get(free_field) or "").strip()
         assert len(val) <= 255, f"{free_field} must be <= 255 characters"
         data[free_field] = val
+
+    # Arrival must be strictly after pickup time when both are provided so the
+    # Nostr stops timeline is monotonic.
+    departure_str = (data.get("datetime_ride") or "").strip()
+    arrival_str = (data.get("arrival_datetime") or "").strip()
+    if departure_str and arrival_str:
+        assert datetime.fromisoformat(arrival_str) > datetime.fromisoformat(departure_str), (
+            "Arrival time must be later than the pickup time."
+        )
+    data["datetime_ride"] = departure_str
+    data["arrival_datetime"] = arrival_str
 
 
     # TODO: store IP and nostr event d tag pairs in a db table to prevent abuse
