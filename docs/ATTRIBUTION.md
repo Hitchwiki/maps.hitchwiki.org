@@ -1,4 +1,4 @@
-This project is a fork from https://github.com/hitchmap/hitchmap by Bob de Ruiter and Till Wenke.
+This project is a fork from https://github.com/hitchmap/hitchmap by [Bob de Ruiter](https://github.com/bopjesvla) and [Till Wenke](https://tillwenke.github.io/about).
 
 ## Data Sources
 
