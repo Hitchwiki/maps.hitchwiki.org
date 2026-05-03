@@ -201,7 +201,7 @@ async function setHeatmapActive(active) {
     heatmapLayer = L.imageOverlay(
       heatmapData.image_url,
       heatmapData.bounds,
-      { opacity: 0.7 }
+      { opacity: 0.7, pane: "heatmap" }
     );
   }
 
@@ -394,6 +394,11 @@ function setupEventListeners() {
 
   map.createPane("arrowlines");
   filterMapPane.style.zIndex = 1450;
+
+  // Dedicated pane for the heatmap image overlay so it stays visible while
+  // filtering (the filtering CSS hides .leaflet-overlay-pane).
+  let heatmapPane = map.createPane("heatmap");
+  heatmapPane.style.zIndex = 350;
 }
 
 // Handle map click events
