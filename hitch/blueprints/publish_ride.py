@@ -102,7 +102,7 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
                 location=Location(
                     latitude=dest_lat,
                     longitude=dest_lon,
-                    is_exact=False,
+                    is_exact=True, # assume that our UI allows to select the destination accurately
                 )
             )
         )
