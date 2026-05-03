@@ -39,7 +39,7 @@ Join the conversation about a map for hitchhiking in our [Signal Chat](https://s
 
 ### History
 
-This repository, [`Hitchwiki/maps.hitchwiki.org`](https://github.com/Hitchwiki/maps.hitchwiki.org), is a fork of [`bobjesvla/hitch`](https://github.com/bopjesvla/hitch).
+This repository, [`Hitchwiki/maps.hitchwiki.org`](https://github.com/Hitchwiki/maps.hitchwiki.org), is a fork of [`hitchmap/hitchmap`](https://github.com/hitchmap/hitchmap).
 
 ## Getting Started locally (Docker setup below)
 
@@ -71,6 +71,7 @@ Put file from `https://simplemaps.com/static/data/world-cities/basic/simplemaps_
 ### Deploy with Docker
 
 ```bash
+# recommended for local testing
 sudo docker compose up --build
 # or to deploy form production
 sudo docker compose up --build -d --remove-orphans
