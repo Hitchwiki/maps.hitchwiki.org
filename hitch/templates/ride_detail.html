@@ -242,6 +242,37 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
         {% endif %}
     </div>
 
+    {% if ride.vehicle %}
+    <div class="detail-section">
+        <p class="section-title">Vehicle</p>
+        <div class="detail-row">
+            <div class="detail-label"><i class="fa fa-car"></i> Kind</div>
+            <div class="detail-value">{{ ride.vehicle.emoji }} {{ ride.vehicle.kind }}</div>
+        </div>
+        {% if ride.vehicle.make %}
+        <div class="detail-row">
+            <div class="detail-label">Make</div>
+            <div class="detail-value">{{ ride.vehicle.make }}</div>
+        </div>
+        {% endif %}
+        {% if ride.vehicle.model %}
+        <div class="detail-row">
+            <div class="detail-label">Model</div>
+            <div class="detail-value">{{ ride.vehicle.model }}</div>
+        </div>
+        {% endif %}
+        {% if ride.vehicle.license_plate_country or ride.vehicle.license_plate_identifier %}
+        <div class="detail-row">
+            <div class="detail-label">License plate</div>
+            <div class="detail-value">
+                {% if ride.vehicle.license_plate_country %}{{ ride.vehicle.license_plate_country }}{% endif %}
+                {% if ride.vehicle.license_plate_identifier %} · {{ ride.vehicle.license_plate_identifier }}{% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
     {% if ride.comment %}
     <div class="detail-section">
         <p class="section-title">Comment</p>

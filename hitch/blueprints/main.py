@@ -15,7 +15,8 @@ from flask import (
 )
 from flask_security import current_user
 
-from hitch.blueprints.publish_ride import create_record_from_custom_object
+from hitch.blueprints.publish_ride import ALLOWED_VEHICLE_KINDS, create_record_from_custom_object
+from hitch.blueprints.utils.iso_country_codes import ISO_3166_1_ALPHA_2
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.extensions import db
 from hitch.helpers import get_db
@@ -26,6 +27,24 @@ main_bp = Blueprint("main", __name__)
 
 THIS_NOSTR_SOURCE = os.getenv("THIS_NOSTR_SOURCE", "yourdomain.com")
 THIS_DATA_LICENSE=os.getenv("THIS_DATA_LICENSE", "odbl")
+
+VEHICLE_KIND_EMOJIS = {
+    "car": "\U0001F697",
+    "bus": "\U0001F68C",
+    "van": "\U0001F690",
+    "truck": "\U0001F69A",
+    "motorbike": "\U0001F3CD️",
+    "scooter": "\U0001F6F5",
+    "taxi": "\U0001F695",
+    "horse-cart": "\U0001F40E",
+    "train": "\U0001F686",
+    "camper": "\U0001F3D5️",
+    "tractor": "\U0001F69C",
+    "plane": "✈️",
+    "ferry": "⛴️",
+    "boat": "⛵",
+}
+VEHICLE_KIND_CHOICES = [(k, VEHICLE_KIND_EMOJIS[k]) for k in ALLOWED_VEHICLE_KINDS]
 
 def _user_owns_ride(ride, user):
     """Check if the current user owns this ride."""
@@ -149,6 +168,19 @@ def ride_detail(d_tag):
     elif ride.created_at:
         submission_dt = datetime.utcfromtimestamp(ride.created_at).isoformat() + "Z"
 
+    mot = content.get("mode_of_transportation") or {}
+    vehicle = None
+    if isinstance(mot, dict) and mot.get("kind"):
+        kind = mot.get("kind")
+        vehicle = {
+            "kind": kind,
+            "emoji": VEHICLE_KIND_EMOJIS.get(kind, ""),
+            "make": mot.get("make"),
+            "model": mot.get("model"),
+            "license_plate_country": mot.get("license_plate_country"),
+            "license_plate_identifier": mot.get("license_plate_identifier"),
+        }
+
     ride_view = {
         "d_tag": d_tag,
         "rating": ride.rating,
@@ -165,6 +197,7 @@ def ride_detail(d_tag):
         "source": content.get("source") or ride.source,
         "distance_km": distance_km,
         "is_owner": _user_owns_ride(ride, current_user),
+        "vehicle": vehicle,
     }
     return render_template("ride_detail.html", ride=ride_view)
 
@@ -196,7 +229,20 @@ def ride_form():
                     "signal": "",
                     "datetime_ride": "",
                     "co_hitchhiker": "",
+                    "vehicle_kind": "",
+                    "vehicle_make": "",
+                    "vehicle_model": "",
+                    "vehicle_license_plate_country": "",
+                    "vehicle_license_plate_identifier": "",
                 }
+
+                mot = content.get("mode_of_transportation") or {}
+                if isinstance(mot, dict):
+                    ride_data["vehicle_kind"] = mot.get("kind") or ""
+                    ride_data["vehicle_make"] = mot.get("make") or ""
+                    ride_data["vehicle_model"] = mot.get("model") or ""
+                    ride_data["vehicle_license_plate_country"] = mot.get("license_plate_country") or ""
+                    ride_data["vehicle_license_plate_identifier"] = mot.get("license_plate_identifier") or ""
 
                 # Extract coordinates from stops
                 if stops:
@@ -257,7 +303,12 @@ def ride_form():
                 ride_data["co_hitchhiker"] = ",".join(all_co)
                 ride_data["co_hitchhiker_locked"] = ",".join(locked_co_hitchhikers)
 
-        return render_template("ride_form.html", ride_data=ride_data)
+        return render_template(
+            "ride_form.html",
+            ride_data=ride_data,
+            vehicle_kinds=VEHICLE_KIND_CHOICES,
+            country_codes=ISO_3166_1_ALPHA_2,
+        )
 
     # POST request - process the form submission (same logic as experience route)
     data = request.form
@@ -277,6 +328,23 @@ def ride_form():
     assert signal in ["thumb", "sign", "ask", None], (
         f"Signal must be one of thumb, sign, ask - the signal is {signal}."
     )
+
+    # Validate vehicle fields: kind must be one of the allowed enum values (or empty),
+    # license_plate_country must be a valid ISO 3166-1 alpha-2 code (or empty). Other
+    # vehicle fields are free text and length-capped to avoid abuse.
+    vehicle_kind = (data.get("vehicle_kind") or "").strip()
+    assert vehicle_kind == "" or vehicle_kind in ALLOWED_VEHICLE_KINDS, (
+        f"Invalid vehicle kind: {vehicle_kind}"
+    )
+    vehicle_country = (data.get("vehicle_license_plate_country") or "").strip().upper()
+    assert vehicle_country == "" or vehicle_country in ISO_3166_1_ALPHA_2, (
+        f"Invalid license plate country: {vehicle_country}"
+    )
+    data["vehicle_license_plate_country"] = vehicle_country
+    for free_field in ("vehicle_make", "vehicle_model", "vehicle_license_plate_identifier"):
+        val = (data.get(free_field) or "").strip()
+        assert len(val) <= 255, f"{free_field} must be <= 255 characters"
+        data[free_field] = val
 
 
     # TODO: store IP and nostr event d tag pairs in a db table to prevent abuse

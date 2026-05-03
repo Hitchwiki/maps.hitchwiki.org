@@ -12,10 +12,14 @@ from flask_security import current_user
 from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import (
     Hitchhiker,
     HitchhikingRecord,
+    KindEnum,
     Location,
+    ModeOfTranportation,
     Signal,
     Stop,
 )
+
+ALLOWED_VEHICLE_KINDS = [k.value for k in KindEnum]
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -128,6 +132,20 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
 
     now = pd.Timestamp.now()
 
+    # Build mode_of_transportation only when a kind is provided. Per the standard,
+    # `kind` is the only required field of the vehicle object — other fields stay free text.
+    vehicle_kind = (custom_object.get("vehicle_kind") or "").strip()
+    mode_of_transportation = None
+    if vehicle_kind in ALLOWED_VEHICLE_KINDS:
+        country = (custom_object.get("vehicle_license_plate_country") or "").strip().upper() or None
+        mode_of_transportation = ModeOfTranportation(
+            kind=vehicle_kind,
+            make=(custom_object.get("vehicle_make") or "").strip() or None,
+            model=(custom_object.get("vehicle_model") or "").strip() or None,
+            license_plate_country=country,
+            license_plate_identifier=(custom_object.get("vehicle_license_plate_identifier") or "").strip() or None,
+        )
+
     record = HitchhikingRecord(
         version="0.0.0",
         stops=stops,
@@ -136,7 +154,7 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
         comment=None if custom_object["comment"] == "" else custom_object["comment"],
         signals=signals,
         occupants=None,
-        mode_of_transportation=None,
+        mode_of_transportation=mode_of_transportation,
         ride=None,
         declined_rides=None,
         source=source,

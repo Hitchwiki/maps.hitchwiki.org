@@ -118,6 +118,37 @@
         </div>
         
         <div class="form-group">
+            <label>Vehicle (optional)</label>
+            <div class="row">
+                <div class="col-sm-6" style="margin-bottom:8px;">
+                    <select id="vehicle_kind" name="vehicle_kind" class="form-control">
+                        <option value="">— Kind —</option>
+                        {% for k, emoji in vehicle_kinds %}
+                        <option value="{{ k }}" {% if ride_data and ride_data.vehicle_kind == k %}selected{% endif %}>{{ emoji }} {{ k }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-sm-6" style="margin-bottom:8px;">
+                    <select id="vehicle_license_plate_country" name="vehicle_license_plate_country" class="form-control">
+                        <option value="">— License plate country —</option>
+                        {% for c in country_codes %}
+                        <option value="{{ c }}" {% if ride_data and ride_data.vehicle_license_plate_country == c %}selected{% endif %}>{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-sm-6" style="margin-bottom:8px;">
+                    <input type="text" id="vehicle_make" name="vehicle_make" class="form-control" maxlength="255" placeholder="Make (e.g. Toyota)" value="{{ ride_data.vehicle_make if ride_data and ride_data.vehicle_make else '' }}">
+                </div>
+                <div class="col-sm-6" style="margin-bottom:8px;">
+                    <input type="text" id="vehicle_model" name="vehicle_model" class="form-control" maxlength="255" placeholder="Model (e.g. Corolla)" value="{{ ride_data.vehicle_model if ride_data and ride_data.vehicle_model else '' }}">
+                </div>
+                <div class="col-sm-12" style="margin-bottom:8px;">
+                    <input type="text" id="vehicle_license_plate_identifier" name="vehicle_license_plate_identifier" class="form-control" maxlength="255" placeholder="License plate identifier (e.g. B, 93, Georgia)" value="{{ ride_data.vehicle_license_plate_identifier if ride_data and ride_data.vehicle_license_plate_identifier else '' }}">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
             <label for="datetime_ride">
                 When did you get the ride?
             </label>
@@ -209,7 +240,12 @@
             destination_lat: coords.destination ? coords.destination[0] : '',
             destination_lon: coords.destination ? coords.destination[1] : '',
             // Preserve edit mode so location selection redirects back to the correct edit URL
-            edit_d_tag: document.querySelector('input[name="edit_d_tag"]')?.value || ''
+            edit_d_tag: document.querySelector('input[name="edit_d_tag"]')?.value || '',
+            vehicle_kind: document.getElementById('vehicle_kind')?.value || '',
+            vehicle_make: document.getElementById('vehicle_make')?.value || '',
+            vehicle_model: document.getElementById('vehicle_model')?.value || '',
+            vehicle_license_plate_country: document.getElementById('vehicle_license_plate_country')?.value || '',
+            vehicle_license_plate_identifier: document.getElementById('vehicle_license_plate_identifier')?.value || ''
         };
         
         sessionStorage.setItem('rideFormData', JSON.stringify(formData));
@@ -268,6 +304,11 @@
             }
             if (data.signal && data.signal !== 'null') document.querySelector('select[name="signal"]').value = data.signal;
             if (data.datetime_ride) document.querySelector('input[name="datetime_ride"]').value = data.datetime_ride;
+            if (data.vehicle_kind !== undefined) document.getElementById('vehicle_kind').value = data.vehicle_kind;
+            if (data.vehicle_make !== undefined) document.getElementById('vehicle_make').value = data.vehicle_make;
+            if (data.vehicle_model !== undefined) document.getElementById('vehicle_model').value = data.vehicle_model;
+            if (data.vehicle_license_plate_country !== undefined) document.getElementById('vehicle_license_plate_country').value = data.vehicle_license_plate_country;
+            if (data.vehicle_license_plate_identifier !== undefined) document.getElementById('vehicle_license_plate_identifier').value = data.vehicle_license_plate_identifier;
             
             // Restore coordinates to form fields
             if (data.pickup_lat) document.getElementById('pickup_lat').value = data.pickup_lat;
