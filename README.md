@@ -39,7 +39,7 @@ Join the conversation about a map for hitchhiking in our [Signal Chat](https://s
 
 ### History
 
-This repository, [`Hitchwiki/hitchmap`](https://github.com/Hitchwiki/hitchmap), is a fork of [`bobjesvla/hitch`](https://github.com/bopjesvla/hitch).
+This repository, [`Hitchwiki/maps.hitchwiki.org`](https://github.com/Hitchwiki/maps.hitchwiki.org), is a fork of [`bobjesvla/hitch`](https://github.com/bopjesvla/hitch).
 
 ## Getting Started locally (Docker setup below)
 
@@ -76,7 +76,7 @@ flask init
 flask run
 ```
 
-In order to run the project continuously, use `deploy/cron.sh` to set up corresponding cronjobs to update the views and `hitchmap.conf` as a basic NGINX configuration.
+In order to run the project continuously, use `deploy/cron.sh` to set up corresponding cronjobs to update the views and `deploy/apache.conf` as a basic NGINX configuration.
 
 ### Deploy with Docker
 
@@ -140,20 +140,20 @@ url = {https://maps.hitchwiki.org},
 
 ## License
 
-The software provided in this repository is licensed under AGPL 3.0. The Hitchmap database is licensed under the ODBL, the license used by OpenStreetMap.
+The software provided in this repository is licensed under AGPL 3.0. The Hitchwiki Maps database is licensed under the ODBL, the license used by OpenStreetMap.
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[contributors-shield]: https://img.shields.io/github/contributors/Hitchwiki/hitchmap.svg?style=for-the-badge
-[contributors-url]: https://github.com/Hitchwiki/hitchmap/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/Hitchwiki/hitchmap.svg?style=for-the-badge
-[forks-url]: https://github.com/Hitchwiki/hitchmap/network/members
-[stars-shield]: https://img.shields.io/github/stars/Hitchwiki/hitchmap.svg?style=for-the-badge
-[stars-url]: https://github.com/Hitchwiki/hitchmap/stargazers
-[issues-shield]: https://img.shields.io/github/issues/Hitchwiki/hitchmap.svg?style=for-the-badge
-[issues-url]: https://github.com/Hitchwiki/hitchmap/issues
-[license-shield]: https://img.shields.io/github/license/Hitchwiki/hitchmap.svg?style=for-the-badge
-[license-url]: https://github.com/Hitchwiki/hitchmap/blob/master/LICENSE.txt
+[contributors-shield]: https://img.shields.io/github/contributors/Hitchwiki/maps.hitchwiki.org.svg?style=for-the-badge
+[contributors-url]: https://github.com/Hitchwiki/maps.hitchwiki.org/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/Hitchwiki/maps.hitchwiki.org.svg?style=for-the-badge
+[forks-url]: https://github.com/Hitchwiki/maps.hitchwiki.org/network/members
+[stars-shield]: https://img.shields.io/github/stars/Hitchwiki/maps.hitchwiki.org.svg?style=for-the-badge
+[stars-url]: https://github.com/Hitchwiki/maps.hitchwiki.org/stargazers
+[issues-shield]: https://img.shields.io/github/issues/Hitchwiki/maps.hitchwiki.org.svg?style=for-the-badge
+[issues-url]: https://github.com/Hitchwiki/maps.hitchwiki.org/issues
+[license-shield]: https://img.shields.io/github/license/Hitchwiki/maps.hitchwiki.org.svg?style=for-the-badge
+[license-url]: https://github.com/Hitchwiki/maps.hitchwiki.org/blob/master/LICENSE.txt
 [Flask]: https://img.shields.io/badge/flask-000000?style=for-the-badge&logo=flask&logoColor=white
 [Flask-url]: https://flask.palletsprojects.com/en/stable/
 

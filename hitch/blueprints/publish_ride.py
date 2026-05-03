@@ -77,7 +77,6 @@ def construct_hitchhiker_from_current_user() -> Hitchhiker:
 
 
 def create_record_from_custom_object(custom_object: dict, source: str, license: str) -> HitchhikingRecord:
-    """Caters for setup of hitchmap.com on 2025/08/31."""
     lat = float(custom_object["pickup_lat"]) if custom_object.get("pickup_lat") else None
     lon = float(custom_object["pickup_lon"]) if custom_object.get("pickup_lon") else None
     dest_lat = float(custom_object["destination_lat"]) if custom_object.get("destination_lat") else None

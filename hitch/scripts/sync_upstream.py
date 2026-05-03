@@ -1,5 +1,4 @@
 # TODO: check what this does and why it is needed
-"""Script to fetch and merge upstream hitchmap database dump from hitchwiki.org."""
 import gzip
 import logging
 import os
