@@ -69,6 +69,18 @@ logger.info(f"Got {len(rides_df)} rides")
 
 rides_df["stops"] = rides_df["stops"].apply(lambda x: json.loads(x) if isinstance(x, str) else x)
 rides_df["hitchhikers"] = rides_df["hitchhikers"].apply(lambda x: json.loads(x) if isinstance(x, str) else x)
+rides_df["mode_of_transportation"] = rides_df["mode_of_transportation"].apply(
+    lambda x: json.loads(x) if isinstance(x, str) else x
+)
+
+
+def get_vehicle_kind(mot):
+    if isinstance(mot, dict):
+        return mot.get("kind") or None
+    return None
+
+
+rides_df["vehicle_kind"] = rides_df["mode_of_transportation"].apply(get_vehicle_kind)
 
 
 logger.info("Extracting start and end coordinates")
@@ -526,6 +538,7 @@ for _, ride in rides_df.iterrows():
         "submission_time": submission_time,
         "ride_datetime": ride_datetime,
         "arrival_datetime": arrival_datetime,
+        "vehicle_kind": ride["vehicle_kind"] if pd.notna(ride.get("vehicle_kind")) else None,
         "source": ride["source"] if pd.notna(ride.get("source")) else None,
     }
     rides_data.append(ride_data)
@@ -575,6 +588,7 @@ for r in rides_data:
         "km": distance_by_d.get(r["id"]),
         "osm": bool(has_osm),
         "wiki": bool(has_wiki),
+        "v": r.get("vehicle_kind"),
         "c": comment[:COMMENT_EXCERPT_LEN] if comment else None,
     })
 

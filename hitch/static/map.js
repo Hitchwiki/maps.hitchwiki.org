@@ -449,6 +449,9 @@ function setupFilterEventListeners() {
   distanceFilter.addEventListener("input", () =>
     setQueryParameter("mindistance", distanceFilter.value)
   );
+  vehicleFilter.addEventListener("change", () =>
+    setQueryParameter("vehicle", vehicleFilter.value)
+  );
 }
 
 // Routing functionality
@@ -1344,6 +1347,7 @@ const hitchwikiToggle = document.getElementById("hitchwiki-toggle");
 const textFilter = document.getElementById("text-filter");
 const userFilter = document.getElementById("user-filter");
 const distanceFilter = document.getElementById("distance-filter");
+const vehicleFilter = document.getElementById("vehicle-filter");
 const clearFilters = document.getElementById("clear-filters");
 
 function setQueryParameter(key, value) {
@@ -1386,6 +1390,7 @@ async function applyParams() {
   textFilter.value = getQueryParameter("text");
   userFilter.value = getQueryParameter("user");
   distanceFilter.value = getQueryParameter("mindistance");
+  vehicleFilter.value = getQueryParameter("vehicle") || "";
 
   if (
     recentToggle.checked ||
@@ -1393,7 +1398,8 @@ async function applyParams() {
     hitchwikiToggle.checked ||
     textFilter.value ||
     userFilter.value ||
-    distanceFilter.value
+    distanceFilter.value ||
+    vehicleFilter.value
   ) {
     if (filterMarkerGroup) filterMarkerGroup.remove();
     if (filterDestLineGroup) filterDestLineGroup.remove();
@@ -1463,6 +1469,16 @@ async function applyParams() {
       filterMarkers = filterMarkers.filter((x) => {
         return x.options._data.hitchwiki_article !== null && x.options._data.hitchwiki_article !== undefined;
       });
+    }
+    if (vehicleFilter.value) {
+      const rides = await loadRidesIndex();
+      const wantedKind = vehicleFilter.value;
+      const matchingSpotIds = new Set(
+        rides.filter(ride => ride.v === wantedKind).map(ride => ride.sid)
+      );
+      filterMarkers = filterMarkers.filter(marker =>
+        matchingSpotIds.has(marker.options.spotId)
+      );
     }
     // duplicate all markers to the filtering pane
     filterMarkers = filterMarkers.map((spot) => {
