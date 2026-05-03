@@ -69,15 +69,6 @@ print(f"Public Key (npub):  {private_key.public_key.bech32()}")
 
 Put file from `https://simplemaps.com/static/data/world-cities/basic/simplemaps_worldcities_basicv1.901.zip` into `dist/` as `worldcities.zip` but any `worldcities.csv` file with `city`, `country`, `population` column works.
 
-Initialize and run the Flask server:
-
-```bash
-flask init
-flask run
-```
-
-In order to run the project continuously, use `deploy/cron.sh` to set up corresponding cronjobs to update the views and `deploy/apache.conf` as a basic NGINX configuration.
-
 ### Deploy with Docker
 
 ```bash
@@ -108,6 +99,8 @@ Pick the lightest option that covers the files you changed. The host's `./hitch/
 | `db/*.sqlite` schema (new column added to a model) | run the manual `ALTER TABLE` against the prod DB *before* rebuilding — see `CLAUDE.md` → "Database migrations" | There is no migration framework; `flask init` won't add columns to existing tables. |
 
 #### Serving with Apache
+
+In order to run the project continuously, use `deploy/cron.sh` to set up corresponding cronjobs to update the views and `deploy/apache.conf` as a basic NGINX configuration.
 
 ```shell
 sudo cp deploy/apache.conf /etc/apache2/sites-available/25-hwmaptest.conf
