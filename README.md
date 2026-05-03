@@ -71,6 +71,7 @@ Put file from `https://simplemaps.com/static/data/world-cities/basic/simplemaps_
 ### Deploy with Docker
 
 ```bash
+# recommended for local testing
 sudo docker compose up --build
 # or to deploy form production
 sudo docker compose up --build -d --remove-orphans
