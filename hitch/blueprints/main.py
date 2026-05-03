@@ -55,7 +55,8 @@ def render_map(map_variation):
         "map.html", 
         map_variation=map_variation,
         hide_add_spot_button=current_app.config.get("HIDE_ADD_SPOT_BUTTON", False),
-        hide_account_button=current_app.config.get("HIDE_ACCOUNT_BUTTON", False)
+        hide_account_button=current_app.config.get("HIDE_ACCOUNT_BUTTON", False),
+        is_logged_in=not current_user.is_anonymous,
     )
 
 
