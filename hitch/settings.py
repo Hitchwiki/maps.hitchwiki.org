@@ -1,5 +1,6 @@
 import os
 import sys
+from datetime import timedelta
 
 from flask_security import utils
 
@@ -47,6 +48,11 @@ class BaseConfig:
     # Strict would block the cookie when returning from hitchwiki.org, breaking the OAuth flow.
     SESSION_COOKIE_SAMESITE = "Lax"
 
+    # Keep users logged in across browser restarts via Flask-Login's remember-me cookie.
+    REMEMBER_COOKIE_DURATION = timedelta(days=365)
+    REMEMBER_COOKIE_SAMESITE = "Lax"
+    REMEMBER_COOKIE_HTTPONLY = True
+
     # Database Config
     DATABASE_NAME = os.getenv("DATABASE_NAME", "points.sqlite")
     DATABASE_URI = os.getenv("DATABASE_URI", os.path.join(baseDir, "db", DATABASE_NAME))
@@ -70,7 +76,8 @@ class DevelopmentConfig(BaseConfig):
 
 
 class ProductionConfig(BaseConfig):
-    pass
+    REMEMBER_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = True
 
 
 class TestingConfig(BaseConfig):

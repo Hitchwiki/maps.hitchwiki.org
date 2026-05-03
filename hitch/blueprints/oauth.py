@@ -125,9 +125,9 @@ def _handle_callback(code):
         current_app.logger.info(f"Created new user from Hitchwiki OAuth: {hitchwiki_username}")
 
         # Log in and redirect to profile setup
-        login_user(user)
+        login_user(user, remember=True)
         return redirect("/edit-user")
 
     # Existing user - just log in
-    login_user(user)
+    login_user(user, remember=True)
     return redirect("/me")
