@@ -442,6 +442,9 @@ function setupFilterEventListeners() {
   osmToggle.addEventListener("input", () =>
     setQueryParameter("osmonly", osmToggle.checked)
   );
+  carPoolingToggle.addEventListener("input", () =>
+    setQueryParameter("carpoolingonly", carPoolingToggle.checked)
+  );
   hitchwikiToggle.addEventListener("input", () =>
     setQueryParameter("hitchwikionly", hitchwikiToggle.checked)
   );
@@ -845,6 +848,9 @@ document.addEventListener("click", (e) => {
 
 function summaryText(data) {
   const osmLink = data.osm_id ? `<br>🚏 <a href="https://www.openstreetmap.org/node/${data.osm_id}" target="_blank" rel="noopener noreferrer">Official hitchhiking spot</a>` : '';
+  const carPoolingLink = data.car_pooling
+    ? `<br>🚗 <a href="https://www.openstreetmap.org/${data.car_pooling.osm_type}/${data.car_pooling.id}" target="_blank" rel="noopener noreferrer">Car pooling spot</a>`
+    : '';
   const hitchwikiLink = data.hitchwiki_article
     ? `<br>📄 <a href="${data.hitchwiki_article}" target="_blank" rel="noopener noreferrer">Mentioned on Hitchwiki</a>`
     : '';
@@ -856,7 +862,7 @@ function summaryText(data) {
       !data.wait || Number.isNaN(data.wait) ? "-" : data.wait.toFixed(0) + " min"
     }<br>Ride distance: ${
       !data.distance || Number.isNaN(data.distance) ? "-" : data.distance.toFixed(0) + " km"
-    }${osmLink}${hitchwikiLink}${hitchwikiMapLink}`;
+    }${osmLink}${carPoolingLink}${hitchwikiLink}${hitchwikiMapLink}`;
 }
 
 async function handleMarkerClick(marker, point, e) {
@@ -1343,6 +1349,7 @@ function exportAsGPX() {
 
 const recentToggle = document.getElementById("recent-toggle");
 const osmToggle = document.getElementById("osm-toggle");
+const carPoolingToggle = document.getElementById("car-pooling-toggle");
 const hitchwikiToggle = document.getElementById("hitchwiki-toggle");
 const textFilter = document.getElementById("text-filter");
 const userFilter = document.getElementById("user-filter");
@@ -1386,6 +1393,7 @@ async function applyParams() {
 
   recentToggle.checked = getQueryParameter("recent") == "true";
   osmToggle.checked = getQueryParameter("osmonly") == "true";
+  carPoolingToggle.checked = getQueryParameter("carpoolingonly") == "true";
   hitchwikiToggle.checked = getQueryParameter("hitchwikionly") == "true";
   textFilter.value = getQueryParameter("text");
   userFilter.value = getQueryParameter("user");
@@ -1395,6 +1403,7 @@ async function applyParams() {
   if (
     recentToggle.checked ||
     osmToggle.checked ||
+    carPoolingToggle.checked ||
     hitchwikiToggle.checked ||
     textFilter.value ||
     userFilter.value ||
@@ -1463,6 +1472,11 @@ async function applyParams() {
     if (osmToggle.checked) {
       filterMarkers = filterMarkers.filter((x) => {
         return x.options._data.osm_id !== null && x.options._data.osm_id !== undefined;
+      });
+    }
+    if (carPoolingToggle.checked) {
+      filterMarkers = filterMarkers.filter((x) => {
+        return x.options._data.car_pooling !== null && x.options._data.car_pooling !== undefined;
       });
     }
     if (hitchwikiToggle.checked) {

@@ -344,6 +344,9 @@ def generate_spot_id(lat, lon):
 logger.info("Fetching OSM hitchhiking spots")
 osm_spots_df = pd.read_sql("select id, latitude, longitude from osm_hitchhiking_spot", get_db())
 
+logger.info("Fetching OSM car pooling spots")
+car_pooling_df = pd.read_sql("select id, osm_type, latitude, longitude from osm_car_pooling_spot", get_db())
+
 
 def find_nearby_osm_spot(lat, lon, osm_spots, max_distance_km=0.1) -> int | None:
     """Find the nearest OSM hitchhiking spot within max_distance_km (default 100m)."""
@@ -368,6 +371,33 @@ def find_nearby_osm_spot(lat, lon, osm_spots, max_distance_km=0.1) -> int | None
     nearby_distances = distances[nearby_mask]
     closest_idx = nearby_distances.argmin()
     return nearby_spots.iloc[closest_idx]["id"]
+
+
+def find_nearby_car_pooling_spot(lat, lon, car_pooling_spots, max_distance_km=0.1) -> dict | None:
+    """Find the nearest OSM car pooling spot within max_distance_km (default 100m).
+
+    Returns {"id": int, "osm_type": str} or None — both are needed to build a stable OSM URL,
+    since car_pooling is often tagged on ways/relations rather than nodes.
+    """
+    if car_pooling_spots.empty:
+        return None
+
+    distances = haversine_np(
+        lat1=np.array([lat] * len(car_pooling_spots)),
+        lon1=np.array([lon] * len(car_pooling_spots)),
+        lat2=car_pooling_spots["latitude"].values,
+        lon2=car_pooling_spots["longitude"].values,
+    )
+
+    nearby_mask = distances <= max_distance_km
+    if not nearby_mask.any():
+        return None
+
+    nearby = car_pooling_spots[nearby_mask]
+    nearby_distances = distances[nearby_mask]
+    closest_idx = nearby_distances.argmin()
+    row = nearby.iloc[closest_idx]
+    return {"id": int(row["id"]), "osm_type": row["osm_type"]}
 
 
 hitchwiki_df = pd.read_sql(
@@ -461,6 +491,12 @@ logger.info("Finding nearby OSM spots")
 places["nearby_osm_id"] = places.apply(lambda row: find_nearby_osm_spot(row["lat"], row["lon"], osm_spots_df), axis=1)
 logger.info(f"Found {places['nearby_osm_id'].notnull().sum()} places with nearby OSM spots")
 
+logger.info("Finding nearby OSM car pooling spots")
+places["nearby_car_pooling"] = places.apply(
+    lambda row: find_nearby_car_pooling_spot(row["lat"], row["lon"], car_pooling_df), axis=1
+)
+logger.info(f"Found {places['nearby_car_pooling'].notnull().sum()} places with nearby car pooling spots")
+
 logger.info("Finding nearby Hitchwiki articles")
 places["nearby_hitchwiki_link"] = places.apply(
     lambda row: find_nearby_hitchwiki_article(row["lat"], row["lon"], hitchwiki_df), axis=1
@@ -490,6 +526,7 @@ for _, place in places.iterrows():
         "dest_lats": place["dest_lats"],
         "dest_lons": place["dest_lons"],
         "osm_id": place["nearby_osm_id"],
+        "car_pooling": place["nearby_car_pooling"],
         "hitchwiki_article": place["nearby_hitchwiki_link"],
         "hitchwiki_map": place["hitchwiki_map_link"],
         "latest_submission": place["latest_submission"].isoformat() if pd.notna(place["latest_submission"]) else None,
@@ -551,6 +588,7 @@ spot_flags = {
     generate_spot_id(p["lat"], p["lon"]): (
         p["nearby_osm_id"] is not None and pd.notna(p["nearby_osm_id"]),
         p["nearby_hitchwiki_link"] is not None and pd.notna(p["nearby_hitchwiki_link"]),
+        p["nearby_car_pooling"] is not None,
     )
     for _, p in places.iterrows()
 }
@@ -574,7 +612,7 @@ ts_by_d = {
 rides_index = []
 for r in rides_data:
     sid = r["spot_id"]
-    has_osm, has_wiki = spot_flags.get(sid, (False, False))
+    has_osm, has_wiki, has_cp = spot_flags.get(sid, (False, False, False))
     comment = r["comment"]
 
     rides_index.append({
@@ -588,6 +626,7 @@ for r in rides_data:
         "km": distance_by_d.get(r["id"]),
         "osm": bool(has_osm),
         "wiki": bool(has_wiki),
+        "cp": bool(has_cp),
         "v": r.get("vehicle_kind"),
         "c": comment[:COMMENT_EXCERPT_LEN] if comment else None,
     })

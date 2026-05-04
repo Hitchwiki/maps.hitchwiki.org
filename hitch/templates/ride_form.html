@@ -133,7 +133,8 @@
                     <select id="vehicle_kind" name="vehicle_kind" class="form-control">
                         <option value="">— Kind —</option>
                         {% for k, emoji in vehicle_kinds %}
-                        <option value="{{ k }}" {% if ride_data and ride_data.vehicle_kind == k %}selected{% endif %}>{{ emoji }} {{ k }}</option>
+                        {# Default to "car" when no ride data is preloaded — it's by far the most common pickup. #}
+                        <option value="{{ k }}" {% if (ride_data and ride_data.vehicle_kind == k) or (not ride_data and k == "car") %}selected{% endif %}>{{ emoji }} {{ k }}</option>
                         {% endfor %}
                     </select>
                 </div>

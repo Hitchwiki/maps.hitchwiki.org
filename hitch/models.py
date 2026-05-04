@@ -71,6 +71,19 @@ class OsmHitchhikingSpot(db.Model):
     uid = db.Column(db.BigInteger, nullable=True)
 
 
+class OsmCarPoolingSpot(db.Model):
+    # OSM (id, type) is only globally unique together — car_pooling is often tagged on ways/relations,
+    # not just nodes, so the same numeric id can collide across element types.
+    id = db.Column(db.BigInteger, primary_key=True)
+    osm_type = db.Column(db.String(16), primary_key=True)  # 'node', 'way', or 'relation'
+    latitude = db.Column(db.Float, nullable=False)
+    longitude = db.Column(db.Float, nullable=False)
+    tags = db.Column(db.JSON, nullable=True)
+    timestamp = db.Column(db.String(64), nullable=True)
+    user = db.Column(db.String(255), nullable=True)
+    uid = db.Column(db.BigInteger, nullable=True)
+
+
 class HitchwikiArticleLocation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False)

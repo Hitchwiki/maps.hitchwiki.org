@@ -142,6 +142,7 @@ def register_commands(app):
         output_checks = {
             "fetch_nostr": os.path.join(dist_dir, "allPosts.json"),
             "sync_osm": "__check_db:osm_hitchhiking_spot",
+            "sync_car_pooling": "__check_db:osm_car_pooling_spot",
             "sync_hitchwiki": os.path.join(dist_dir, "hitchwiki_articles.json"),
             "show": os.path.join(dist_dir, "spots.json"),
             "dashboard": os.path.join(dist_dir, "dashboard.html"),
@@ -152,6 +153,7 @@ def register_commands(app):
         scripts = [
             *([("fetch_nostr", "")] if ENVIRONMENT == "prod" else []),
             *([("sync_osm", "")] if ENVIRONMENT == "prod" else []),
+            *([("sync_car_pooling", "")] if ENVIRONMENT == "prod" else []),
             *([("sync_hitchwiki", "")] if ENVIRONMENT == "prod" else []),
             ("show", ""),
             ("dashboard", ""),
