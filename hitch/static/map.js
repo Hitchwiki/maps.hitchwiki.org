@@ -460,6 +460,12 @@ function setupFilterEventListeners() {
   vehicleFilter.addEventListener("change", () =>
     setQueryParameter("vehicle", vehicleFilter.value)
   );
+  minDateFilter.addEventListener("change", () =>
+    setQueryParameter("mindate", minDateFilter.value)
+  );
+  maxDateFilter.addEventListener("change", () =>
+    setQueryParameter("maxdate", maxDateFilter.value)
+  );
 }
 
 // Routing functionality
@@ -1355,6 +1361,8 @@ const textFilter = document.getElementById("text-filter");
 const userFilter = document.getElementById("user-filter");
 const distanceFilter = document.getElementById("distance-filter");
 const vehicleFilter = document.getElementById("vehicle-filter");
+const minDateFilter = document.getElementById("min-date-filter");
+const maxDateFilter = document.getElementById("max-date-filter");
 const clearFilters = document.getElementById("clear-filters");
 
 function setQueryParameter(key, value) {
@@ -1399,6 +1407,8 @@ async function applyParams() {
   userFilter.value = getQueryParameter("user");
   distanceFilter.value = getQueryParameter("mindistance");
   vehicleFilter.value = getQueryParameter("vehicle") || "";
+  minDateFilter.value = getQueryParameter("mindate") || "";
+  maxDateFilter.value = getQueryParameter("maxdate") || "";
 
   if (
     recentToggle.checked ||
@@ -1408,7 +1418,9 @@ async function applyParams() {
     textFilter.value ||
     userFilter.value ||
     distanceFilter.value ||
-    vehicleFilter.value
+    vehicleFilter.value ||
+    minDateFilter.value ||
+    maxDateFilter.value
   ) {
     if (filterMarkerGroup) filterMarkerGroup.remove();
     if (filterDestLineGroup) filterDestLineGroup.remove();
@@ -1489,6 +1501,28 @@ async function applyParams() {
       const wantedKind = vehicleFilter.value;
       const matchingSpotIds = new Set(
         rides.filter(ride => ride.v === wantedKind).map(ride => ride.sid)
+      );
+      filterMarkers = filterMarkers.filter(marker =>
+        matchingSpotIds.has(marker.options.spotId)
+      );
+    }
+    if (minDateFilter.value || maxDateFilter.value) {
+      // Filter spots to those that have at least one ride whose ride_datetime
+      // falls within the configured [min, max] window. The min bound covers
+      // the start of its day; the max bound covers the end of its day so
+      // a user-entered max date is inclusive.
+      const minMs = minDateFilter.value ? Date.parse(minDateFilter.value + "T00:00:00Z") : null;
+      const maxMs = maxDateFilter.value ? Date.parse(maxDateFilter.value + "T23:59:59.999Z") : null;
+      const rides = await loadRidesIndex();
+      const matchingSpotIds = new Set(
+        rides
+          .filter(ride => {
+            if (ride.rd == null) return false;
+            if (minMs != null && ride.rd < minMs) return false;
+            if (maxMs != null && ride.rd > maxMs) return false;
+            return true;
+          })
+          .map(ride => ride.sid)
       );
       filterMarkers = filterMarkers.filter(marker =>
         matchingSpotIds.has(marker.options.spotId)

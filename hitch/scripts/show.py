@@ -609,6 +609,13 @@ ts_by_d = {
     if pd.notna(d)
 }
 
+ride_dt_ms = pd.to_datetime(rides_df["ride_datetime"], errors="coerce", utc=True).astype("int64") // 10**6
+ride_dt_by_d = {
+    d: (int(ms) if ms > 0 else None)
+    for d, ms in zip(rides_df["d"], ride_dt_ms)
+    if pd.notna(d)
+}
+
 rides_index = []
 for r in rides_data:
     sid = r["spot_id"]
@@ -628,6 +635,7 @@ for r in rides_data:
         "wiki": bool(has_wiki),
         "cp": bool(has_cp),
         "v": r.get("vehicle_kind"),
+        "rd": ride_dt_by_d.get(r["id"]),
         "c": comment[:COMMENT_EXCERPT_LEN] if comment else None,
     })
 
