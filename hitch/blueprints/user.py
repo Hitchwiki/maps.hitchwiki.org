@@ -363,24 +363,19 @@ def leaderboard():
 
     all_users = User.query.order_by(User.username).all()
 
-    # Count rides per user: rides from this source where username appears in hitchhikers
-    all_rides = (
-        db.session.query(RideEvent)
-        .all()
-    )
+    # Count rides per nickname directly in SQL via json_each — avoids loading every
+    # RideEvent into Python and JSON-parsing each one. Group case-insensitively, which
+    # is at least as permissive as the previous MediaWiki-style first-letter rule.
+    rows = db.session.execute(
+        text(
+            "SELECT lower(json_extract(value, '$.nickname')) AS nick, COUNT(*) AS n "
+            "FROM ride_event, json_each(ride_event.hitchhikers) "
+            "WHERE json_extract(value, '$.nickname') IS NOT NULL "
+            "GROUP BY nick"
+        )
+    ).all()
+    counts_by_lower = {nick: n for nick, n in rows if nick}
 
-    # MediaWiki-style: first letter is case-insensitive so "john" matches "John"
-    def _norm(s):
-        return (s[:1].upper() + s[1:]) if s else s
-
-    ride_counts_by_norm = {_norm(u.username): 0 for u in all_users}
-    for ride in all_rides:
-        content = ride.content if ride.content else {}
-        for h in content.get("hitchhikers") or []:
-            nickname = _norm(h.get("nickname"))
-            if nickname and nickname in ride_counts_by_norm:
-                ride_counts_by_norm[nickname] += 1
-
-    ride_counts = {u.username: ride_counts_by_norm[_norm(u.username)] for u in all_users}
+    ride_counts = {u.username: counts_by_lower.get(u.username.lower(), 0) for u in all_users}
     ranked = sorted(all_users, key=lambda u: ride_counts[u.username], reverse=True)
     return render_template("leaderboard.html", users=ranked, ride_counts=ride_counts)
