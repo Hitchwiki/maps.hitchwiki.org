@@ -219,7 +219,9 @@ html {
 
 .filter-pane-row input[type="text"],
 .filter-pane-row input[type="search"],
-.filter-pane-row input[type="number"] {
+.filter-pane-row input[type="number"],
+.filter-pane-row input[type="date"],
+.filter-pane-row select {
   flex: 1;
   height: 34px;
   padding: 0 10px;
@@ -228,10 +230,28 @@ html {
   font-size: 13px;
   outline: none;
   min-width: 0;
+  background: white;
+  color: #333;
+  font-family: inherit;
 }
 
-.filter-pane-row input:focus {
+.filter-pane-row input:focus,
+.filter-pane-row select:focus {
   border-color: #1a73e8;
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.filter-field > span {
+  font-size: 11px;
+  color: #777;
+  font-weight: 500;
 }
 
 .filter-toggles {
@@ -282,7 +302,10 @@ html {
 
   .filter-pane-row input[type="text"],
   .filter-pane-row input[type="search"],
-  .filter-pane-row input[type="number"] {
+  .filter-pane-row input[type="number"],
+  .filter-pane-row input[type="date"],
+  .filter-pane-row select,
+  .filter-field {
     flex: 1 1 100%;
   }
 }

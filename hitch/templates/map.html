@@ -179,25 +179,36 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
             <input id="user-filter" type="text" value="" placeholder="Filter by user" />
             <input id="text-filter" type="search" value="" placeholder="Search comments" />
             <input id="distance-filter" type="number" value="" placeholder="Min ride distance (km)" />
-            <select id="vehicle-filter">
-                <option value="">Any vehicle</option>
-                <option value="car">🚗 car</option>
-                <option value="bus">🚌 bus</option>
-                <option value="van">🚐 van</option>
-                <option value="truck">🚚 truck</option>
-                <option value="motorbike">🏍️ motorbike</option>
-                <option value="scooter">🛵 scooter</option>
-                <option value="taxi">🚕 taxi</option>
-                <option value="horse-cart">🐎 horse-cart</option>
-                <option value="train">🚆 train</option>
-                <option value="camper">🏕️ camper</option>
-                <option value="tractor">🚜 tractor</option>
-                <option value="plane">✈️ plane</option>
-                <option value="ferry">⛴️ ferry</option>
-                <option value="boat">⛵ boat</option>
-            </select>
-            <input id="min-date-filter" type="date" value="" title="Earliest ride date" />
-            <input id="max-date-filter" type="date" value="" title="Latest ride date" />
+        </div>
+        <div class="filter-pane-row">
+            <label class="filter-field">
+                <span>Vehicle</span>
+                <select id="vehicle-filter">
+                    <option value="">Any</option>
+                    <option value="car">🚗 car</option>
+                    <option value="bus">🚌 bus</option>
+                    <option value="van">🚐 van</option>
+                    <option value="truck">🚚 truck</option>
+                    <option value="motorbike">🏍️ motorbike</option>
+                    <option value="scooter">🛵 scooter</option>
+                    <option value="taxi">🚕 taxi</option>
+                    <option value="horse-cart">🐎 horse-cart</option>
+                    <option value="train">🚆 train</option>
+                    <option value="camper">🏕️ camper</option>
+                    <option value="tractor">🚜 tractor</option>
+                    <option value="plane">✈️ plane</option>
+                    <option value="ferry">⛴️ ferry</option>
+                    <option value="boat">⛵ boat</option>
+                </select>
+            </label>
+            <label class="filter-field">
+                <span>Ride date from</span>
+                <input id="min-date-filter" type="date" value="" />
+            </label>
+            <label class="filter-field">
+                <span>Ride date to</span>
+                <input id="max-date-filter" type="date" value="" />
+            </label>
         </div>
         <div class="filter-pane-row filter-toggles">
             <label><input id="recent-toggle" type="checkbox" value="" /> Last 24h</label>
