@@ -1433,24 +1433,40 @@ async function applyParams() {
     var fp = document.getElementById('filter-pane');
     if (fp) fp.classList.add('visible');
 
-    if (userFilter.value) {
-      // Use slim rides index — only username + spot_id are needed here.
+    // Ride-attribute filters (user, vehicle, ride date range) must AND together
+    // at the *ride* level: a spot only matches if a single ride at that spot
+    // satisfies ALL active ride-attribute filters. Combining them per-filter
+    // and intersecting spot IDs would falsely match a spot when one ride
+    // satisfies one filter and a *different* ride at the same spot satisfies
+    // another.
+    const hasRideAttrFilter =
+      userFilter.value || vehicleFilter.value || minDateFilter.value || maxDateFilter.value;
+    if (hasRideAttrFilter) {
       const rides = await loadRidesIndex();
       // MediaWiki-style match: only the first letter is case-insensitive, rest matches as-is
       const normalizeFirstLetter = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
-      const username = normalizeFirstLetter(userFilter.value);
+      const username = userFilter.value ? normalizeFirstLetter(userFilter.value) : null;
+      const wantedKind = vehicleFilter.value || null;
+      const minMs = minDateFilter.value ? Date.parse(minDateFilter.value + "T00:00:00Z") : null;
+      // The max bound covers the end of its day so a user-entered max date is inclusive.
+      const maxMs = maxDateFilter.value ? Date.parse(maxDateFilter.value + "T23:59:59.999Z") : null;
 
-      const userRides = rides.filter(ride =>
-        ride.u &&
-        normalizeFirstLetter(ride.u).includes(username)
+      const matchingSpotIds = new Set(
+        rides
+          .filter(ride => {
+            if (username && !(ride.u && normalizeFirstLetter(ride.u).includes(username))) return false;
+            if (wantedKind && ride.v !== wantedKind) return false;
+            if (minMs != null || maxMs != null) {
+              if (ride.rd == null) return false;
+              if (minMs != null && ride.rd < minMs) return false;
+              if (maxMs != null && ride.rd > maxMs) return false;
+            }
+            return true;
+          })
+          .map(ride => ride.sid)
       );
-
-      // Get unique spot IDs from user rides
-      const userSpotIds = [...new Set(userRides.map(ride => ride.sid))];
-      
-      // Filter markers to only show spots where this user has rides
-      filterMarkers = filterMarkers.filter(marker => 
-        userSpotIds.includes(marker.options.spotId)
+      filterMarkers = filterMarkers.filter(marker =>
+        matchingSpotIds.has(marker.options.spotId)
       );
     }
     if (textFilter.value) {
@@ -1495,38 +1511,6 @@ async function applyParams() {
       filterMarkers = filterMarkers.filter((x) => {
         return x.options._data.hitchwiki_article !== null && x.options._data.hitchwiki_article !== undefined;
       });
-    }
-    if (vehicleFilter.value) {
-      const rides = await loadRidesIndex();
-      const wantedKind = vehicleFilter.value;
-      const matchingSpotIds = new Set(
-        rides.filter(ride => ride.v === wantedKind).map(ride => ride.sid)
-      );
-      filterMarkers = filterMarkers.filter(marker =>
-        matchingSpotIds.has(marker.options.spotId)
-      );
-    }
-    if (minDateFilter.value || maxDateFilter.value) {
-      // Filter spots to those that have at least one ride whose ride_datetime
-      // falls within the configured [min, max] window. The min bound covers
-      // the start of its day; the max bound covers the end of its day so
-      // a user-entered max date is inclusive.
-      const minMs = minDateFilter.value ? Date.parse(minDateFilter.value + "T00:00:00Z") : null;
-      const maxMs = maxDateFilter.value ? Date.parse(maxDateFilter.value + "T23:59:59.999Z") : null;
-      const rides = await loadRidesIndex();
-      const matchingSpotIds = new Set(
-        rides
-          .filter(ride => {
-            if (ride.rd == null) return false;
-            if (minMs != null && ride.rd < minMs) return false;
-            if (maxMs != null && ride.rd > maxMs) return false;
-            return true;
-          })
-          .map(ride => ride.sid)
-      );
-      filterMarkers = filterMarkers.filter(marker =>
-        matchingSpotIds.has(marker.options.spotId)
-      );
     }
     // duplicate all markers to the filtering pane
     filterMarkers = filterMarkers.map((spot) => {

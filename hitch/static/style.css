@@ -195,13 +195,16 @@ html {
 
 .filter-pane-body {
   margin-top: 8px;
-  overflow: hidden;
+  overflow-y: auto;
   transition: max-height 0.2s ease, opacity 0.2s ease;
-  max-height: 200px;
+  /* Cap to viewport so the pane never extends past the bottom edge on small screens
+     (100vh - top offset of pane - header height - padding/margin buffer). */
+  max-height: calc(100vh - 160px);
   opacity: 1;
 }
 
 .filter-pane.collapsed .filter-pane-body {
+  overflow: hidden;
   max-height: 0;
   opacity: 0;
   margin-top: 0;
