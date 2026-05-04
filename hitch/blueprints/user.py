@@ -3,6 +3,7 @@ import os
 import pandas as pd
 from flask import Blueprint, current_app, jsonify, redirect, render_template, request
 from flask_security import current_user
+from sqlalchemy import text
 
 from hitch.blueprints.publish_ride import construct_hitchhiker_from_current_user
 from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import HitchhikingRecord
@@ -253,7 +254,21 @@ def _extract_ride_info(ride, ride_type):
 
 def _get_rides_for_user(user, include_pending_co=True, display_only=False):
     """Return merged list of own rides and pending co-hitchhiker rides, newest first."""
-    all_rides = db.session.query(RideEvent).order_by(RideEvent.created_at.desc()).all()
+    # Pre-filter in SQL using JSON1 so we don't load and JSON-parse every RideEvent in Python.
+    # This is a permissive case-insensitive match; the Python loop below still applies the
+    # exact MediaWiki-style _norm comparison for correctness.
+    candidate_query = (
+        db.session.query(RideEvent)
+        .filter(
+            text(
+                "EXISTS (SELECT 1 FROM json_each(ride_event.hitchhikers) "
+                "WHERE lower(json_extract(value, '$.nickname')) = lower(:uname))"
+            )
+        )
+        .params(uname=user.username)
+        .order_by(RideEvent.created_at.desc())
+    )
+    all_rides = candidate_query.all()
 
     # MediaWiki-style: first letter is case-insensitive so "John" matches "john" and vice versa
     def _norm(s):
