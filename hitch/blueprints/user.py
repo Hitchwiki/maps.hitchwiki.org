@@ -298,11 +298,6 @@ def _get_rides_for_user(user, include_pending_co=True, display_only=False):
     return combined
 
 
-@user_bp.route("/co-hitchhiking-rides", methods=["GET", "POST"])
-def co_hitchhiking_rides():
-    return redirect("/me")
-
-
 # TODO: check if all data from the new co-hitchhiker added to the new event and that no data was lost
 @user_bp.route("/accept-co-hitchhiking-ride/<ride_d_tag>", methods=["GET", "POST"])
 def accept_co_hitchhiker(ride_d_tag: str):
