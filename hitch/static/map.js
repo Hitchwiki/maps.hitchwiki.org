@@ -1439,14 +1439,19 @@ async function applyParams() {
     var fp = document.getElementById('filter-pane');
     if (fp) fp.classList.add('visible');
 
-    // Ride-attribute filters (user, vehicle, ride date range) must AND together
-    // at the *ride* level: a spot only matches if a single ride at that spot
-    // satisfies ALL active ride-attribute filters. Combining them per-filter
-    // and intersecting spot IDs would falsely match a spot when one ride
-    // satisfies one filter and a *different* ride at the same spot satisfies
-    // another.
+    // Ride-attribute filters (user, vehicle, ride date range, recent) must AND
+    // together at the *ride* level: a spot only matches if a single ride at that
+    // spot satisfies ALL active ride-attribute filters.  Combining them
+    // per-filter and intersecting spot IDs would falsely match a spot when one
+    // ride satisfies one filter and a *different* ride at the same spot
+    // satisfies another.  The "recent" toggle is also included here so that it
+    // ANDs with other ride-level filters instead of operating independently on
+    // spot-level latest_submission metadata.
+    const recentCutoff = recentToggle.checked
+      ? Date.now() - 24 * 60 * 60 * 1000
+      : null;
     const hasRideAttrFilter =
-      userFilter.value || vehicleFilter.value || minDateFilter.value || maxDateFilter.value;
+      userFilter.value || vehicleFilter.value || minDateFilter.value || maxDateFilter.value || recentCutoff !== null;
     if (hasRideAttrFilter) {
       const rides = await loadRidesIndex();
       // MediaWiki-style match: only the first letter is case-insensitive, rest matches as-is
@@ -1467,6 +1472,11 @@ async function applyParams() {
               if (ride.rd == null) return false;
               if (minMs != null && ride.rd < minMs) return false;
               if (maxMs != null && ride.rd > maxMs) return false;
+            }
+            // AND the recent toggle at the ride level: the ride's submission
+            // time must fall within the last 24 hours.
+            if (recentCutoff !== null) {
+              if (ride.t == null || ride.t < recentCutoff) return false;
             }
             return true;
           })
@@ -1504,12 +1514,8 @@ async function applyParams() {
         (x) => (x.options._data.ride_count || 0) >= minRides
       );
     }
-    if (recentToggle.checked) {
-      const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      filterMarkers = filterMarkers.filter((x) => {
-        return x.options._data.latest_submission && x.options._data.latest_submission >= cutoff;
-      });
-    }
+    // Note: the "recent" toggle is now handled in the ride-level AND block
+    // above, so it is no longer filtered independently at the spot level.
     if (osmToggle.checked) {
       filterMarkers = filterMarkers.filter((x) => {
         return x.options._data.osm_id !== null && x.options._data.osm_id !== undefined;
