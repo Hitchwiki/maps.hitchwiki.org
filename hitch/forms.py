@@ -38,5 +38,5 @@ class UserEditForm(FlaskForm):
     origin_city = StringField("Which city are you from?", validators=[Optional()])
     hitchwiki_username = StringField("Hitchwiki Username", validators=[Optional()], default=None)
     trustroots_username = StringField("Trustroots Username", validators=[Optional()], default=None)
-    email_notifications = BooleanField("Receive notifications and updates via email", default=True)
+    email_notifications = BooleanField("Receive notifications and updates via email", default=False)
     submit = SubmitField("Submit")
