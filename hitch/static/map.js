@@ -878,6 +878,11 @@ async function handleMarkerClick(marker, point, e) {
   if ($$(".topbar.visible") || $$(".sidebar.spot-form-container.visible"))
     return;
 
+  // Stop propagation synchronously — otherwise the click bubbles to the map
+  // (handleMapClick) before the awaits below resolve, and on desktop the map
+  // handler closes the spot pane we just opened.
+  if (e) L.DomEvent.stopPropagation(e);
+
   reportDuplicate(marker);
   window.location.hash = `${point.lat},${point.lng}`;
 
@@ -912,8 +917,6 @@ async function handleMarkerClick(marker, point, e) {
   if (spotRides.length === 0 && (!marker.options._data.distance || Number.isNaN(marker.options._data.distance)))
     $$("#extra-text").innerHTML = "No comments/ride info.";
   else $$("#extra-text").innerHTML = "";
-
-  if (e) L.DomEvent.stopPropagation(e);
 }
 
 function markerClick(marker) {
