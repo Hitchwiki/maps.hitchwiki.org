@@ -1455,7 +1455,8 @@ async function applyParams() {
         rides
           .filter(ride => {
             if (username && !(ride.u && normalizeFirstLetter(ride.u).includes(username))) return false;
-            if (wantedKind && ride.v !== wantedKind) return false;
+            // Treat rides with unspecified vehicle as cars, since most rides are cars.
+            if (wantedKind && ride.v !== wantedKind && !(wantedKind === "car" && ride.v == null)) return false;
             if (minMs != null || maxMs != null) {
               if (ride.rd == null) return false;
               if (minMs != null && ride.rd < minMs) return false;
