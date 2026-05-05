@@ -457,6 +457,9 @@ function setupFilterEventListeners() {
   distanceFilter.addEventListener("input", () =>
     setQueryParameter("mindistance", distanceFilter.value)
   );
+  minRidesFilter.addEventListener("input", () =>
+    setQueryParameter("minrides", minRidesFilter.value)
+  );
   vehicleFilter.addEventListener("change", () =>
     setQueryParameter("vehicle", vehicleFilter.value)
   );
@@ -1360,6 +1363,7 @@ const hitchwikiToggle = document.getElementById("hitchwiki-toggle");
 const textFilter = document.getElementById("text-filter");
 const userFilter = document.getElementById("user-filter");
 const distanceFilter = document.getElementById("distance-filter");
+const minRidesFilter = document.getElementById("min-rides-filter");
 const vehicleFilter = document.getElementById("vehicle-filter");
 const minDateFilter = document.getElementById("min-date-filter");
 const maxDateFilter = document.getElementById("max-date-filter");
@@ -1406,6 +1410,7 @@ async function applyParams() {
   textFilter.value = getQueryParameter("text");
   userFilter.value = getQueryParameter("user");
   distanceFilter.value = getQueryParameter("mindistance");
+  minRidesFilter.value = getQueryParameter("minrides");
   vehicleFilter.value = getQueryParameter("vehicle") || "";
   minDateFilter.value = getQueryParameter("mindate") || "";
   maxDateFilter.value = getQueryParameter("maxdate") || "";
@@ -1418,6 +1423,7 @@ async function applyParams() {
     textFilter.value ||
     userFilter.value ||
     distanceFilter.value ||
+    minRidesFilter.value ||
     vehicleFilter.value ||
     minDateFilter.value ||
     maxDateFilter.value
@@ -1491,6 +1497,12 @@ async function applyParams() {
         }
         return false;
       });
+    }
+    if (minRidesFilter.value) {
+      const minRides = parseInt(minRidesFilter.value, 10);
+      filterMarkers = filterMarkers.filter(
+        (x) => (x.options._data.ride_count || 0) >= minRides
+      );
     }
     if (recentToggle.checked) {
       const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
