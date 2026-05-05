@@ -924,7 +924,7 @@ function markerClick(marker) {
 
   bar(".sidebar.show-spot");
   updateBottomPaneVar();
-  setSpotSheetSnap("half");
+  setSpotSheetSnap("full");
   $$("#spot-header").innerText = `${data.lat.toFixed(4)}, ${data.lon.toFixed(4)}`;
   $$("#spot-google-link").href = window.ontouchstart
     ? `geo:${data.lat},${data.lon}`
