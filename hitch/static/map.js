@@ -907,7 +907,7 @@ async function handleMarkerClick(marker, point, e) {
   // Call the original marker click handler to show sidebar
   markerClick(marker);
 
-  L.DomEvent.stopPropagation(e);
+  if (e) L.DomEvent.stopPropagation(e);
 }
 
 function markerClick(marker) {
@@ -1591,7 +1591,7 @@ async function navigate() {
     // Try to find an exact marker match first
     for (let m of allMarkers) {
       if (m._latlng.lat === lat && m._latlng.lng === lon) {
-        markerClick(m);
+        await handleMarkerClick(m, m.getLatLng(), null);
         if (map.getZoom() < 3) map.setView(m.getLatLng(), zoom || 16);
         return;
       }
