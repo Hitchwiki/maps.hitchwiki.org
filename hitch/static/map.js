@@ -881,6 +881,9 @@ async function handleMarkerClick(marker, point, e) {
   reportDuplicate(marker);
   window.location.hash = `${point.lat},${point.lng}`;
 
+  // Show the spot pane immediately with a loading spinner for rides
+  markerClick(marker);
+
   // Load rides for this spot from the per-spot detail file.
   const spotId = marker.options.spotId;
   let spotRides = [];
@@ -904,8 +907,11 @@ async function handleMarkerClick(marker, point, e) {
 
   marker.options._data.rides = spotRides;
 
-  // Call the original marker click handler to show sidebar
-  markerClick(marker);
+  // Update rides content now that the fetch is complete
+  $$("#spot-text").innerHTML = renderRideCards(spotRides);
+  if (spotRides.length === 0 && (!marker.options._data.distance || Number.isNaN(marker.options._data.distance)))
+    $$("#extra-text").innerHTML = "No comments/ride info.";
+  else $$("#extra-text").innerHTML = "";
 
   if (e) L.DomEvent.stopPropagation(e);
 }
@@ -916,77 +922,73 @@ function markerClick(marker) {
 
   renderPoints();
 
-  setTimeout(() => {
-    bar(".sidebar.show-spot");
-    updateBottomPaneVar();
-    setSpotSheetSnap("half");
-    $$("#spot-header").innerText = `${data.lat.toFixed(4)}, ${data.lon.toFixed(4)}`;
-    $$("#spot-google-link").href = window.ontouchstart
-      ? `geo:${data.lat},${data.lon}`
-      : `https://www.google.com/maps/place/${data.lat},${data.lon}`;
-    $$("#spot-osm-link").href =
-      `https://www.openstreetmap.org/?mlat=${data.lat}&mlon=${data.lon}#map=18/${data.lat}/${data.lon}`;
+  bar(".sidebar.show-spot");
+  updateBottomPaneVar();
+  setSpotSheetSnap("half");
+  $$("#spot-header").innerText = `${data.lat.toFixed(4)}, ${data.lon.toFixed(4)}`;
+  $$("#spot-google-link").href = window.ontouchstart
+    ? `geo:${data.lat},${data.lon}`
+    : `https://www.google.com/maps/place/${data.lat},${data.lon}`;
+  $$("#spot-osm-link").href =
+    `https://www.openstreetmap.org/?mlat=${data.lat}&mlon=${data.lon}#map=18/${data.lat}/${data.lon}`;
 
-    $$("#spot-summary").innerHTML = summaryText(data);
+  $$("#spot-summary").innerHTML = summaryText(data);
 
-    $$("#spot-text").innerHTML = renderRideCards(data.rides || []);
-    if ((!data.rides || data.rides.length === 0) && (!data.distance || Number.isNaN(data.distance)))
-      $$("#extra-text").innerHTML =
-        "No comments/ride info.";
-    else $$("#extra-text").innerHTML = "";
-    
-    // Star rating prompt — clicking a star jumps straight into the ride form
-    // with the chosen rating preselected and the spot's coords as pickup
-    const stars = document.querySelectorAll("#spot-rate-stars .rate-star");
-    stars.forEach((star) => {
-      star.onmouseenter = () => highlightStars(stars, Number(star.dataset.rate));
-      star.onmouseleave = () => highlightStars(stars, 0);
-      star.onclick = () => {
-        const rate = Number(star.dataset.rate);
-        const formData = {
-          pickup_lat: data.lat,
-          pickup_lon: data.lon,
-          destination_lat: "",
-          destination_lon: "",
-          rate: rate,
-        };
-        sessionStorage.setItem("rideFormData", JSON.stringify(formData));
-        window.location.href = "/ride";
+  // Show a loading spinner while rides are fetched asynchronously
+  $$("#spot-text").innerHTML = '<div class="spot-loading" role="status" aria-live="polite"><i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i><span class="sr-only">Loading rides</span></div>';
+  $$("#extra-text").innerHTML = "";
+
+  // Star rating prompt — clicking a star jumps straight into the ride form
+  // with the chosen rating preselected and the spot's coords as pickup
+  const stars = document.querySelectorAll("#spot-rate-stars .rate-star");
+  stars.forEach((star) => {
+    star.onmouseenter = () => highlightStars(stars, Number(star.dataset.rate));
+    star.onmouseleave = () => highlightStars(stars, 0);
+    star.onclick = () => {
+      const rate = Number(star.dataset.rate);
+      const formData = {
+        pickup_lat: data.lat,
+        pickup_lon: data.lon,
+        destination_lat: "",
+        destination_lon: "",
+        rate: rate,
       };
-    });
-    highlightStars(stars, 0);
+      sessionStorage.setItem("rideFormData", JSON.stringify(formData));
+      window.location.href = "/ride";
+    };
+  });
+  highlightStars(stars, 0);
 
-    // Share button
-    const spotUrl = `${location.origin}/#${data.lat},${data.lon}`;
-    const shareText = `Hitchhiking spot at ${data.lat.toFixed(4)}, ${data.lon.toFixed(4)}`;
-    const shareBtn = $$("#share-spot-btn");
-    const shareMenu = $$("#share-spot-menu");
+  // Share button
+  const spotUrl = `${location.origin}/#${data.lat},${data.lon}`;
+  const shareText = `Hitchhiking spot at ${data.lat.toFixed(4)}, ${data.lon.toFixed(4)}`;
+  const shareBtn = $$("#share-spot-btn");
+  const shareMenu = $$("#share-spot-menu");
 
-    if (navigator.share) {
+  if (navigator.share) {
+    shareMenu.hidden = true;
+    shareBtn.onclick = () => navigator.share({ title: shareText, url: spotUrl });
+  } else {
+    shareBtn.onclick = (e) => {
+      e.stopPropagation();
+      shareMenu.hidden = !shareMenu.hidden;
+    };
+    document.addEventListener('click', () => { shareMenu.hidden = true; }, { once: false });
+
+    $$("#share-copy-link").onclick = (e) => {
+      e.preventDefault();
+      navigator.clipboard.writeText(spotUrl).then(() => {
+        const orig = $$("#share-copy-link").textContent;
+        $$("#share-copy-link").textContent = 'Copied!';
+        setTimeout(() => { $$("#share-copy-link").textContent = orig; }, 1500);
+      });
       shareMenu.hidden = true;
-      shareBtn.onclick = () => navigator.share({ title: shareText, url: spotUrl });
-    } else {
-      shareBtn.onclick = (e) => {
-        e.stopPropagation();
-        shareMenu.hidden = !shareMenu.hidden;
-      };
-      document.addEventListener('click', () => { shareMenu.hidden = true; }, { once: false });
+    };
 
-      $$("#share-copy-link").onclick = (e) => {
-        e.preventDefault();
-        navigator.clipboard.writeText(spotUrl).then(() => {
-          const orig = $$("#share-copy-link").textContent;
-          $$("#share-copy-link").textContent = 'Copied!';
-          setTimeout(() => { $$("#share-copy-link").textContent = orig; }, 1500);
-        });
-        shareMenu.hidden = true;
-      };
-
-      $$("#share-whatsapp").href = `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + spotUrl)}`;
-      $$("#share-telegram").href = `https://t.me/share/url?url=${encodeURIComponent(spotUrl)}&text=${encodeURIComponent(shareText)}`;
-      $$("#share-signal").href = `sgnl://send?text=${encodeURIComponent(shareText + ' ' + spotUrl)}`;
-    }
-  }, 100);
+    $$("#share-whatsapp").href = `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + spotUrl)}`;
+    $$("#share-telegram").href = `https://t.me/share/url?url=${encodeURIComponent(spotUrl)}&text=${encodeURIComponent(shareText)}`;
+    $$("#share-signal").href = `sgnl://send?text=${encodeURIComponent(shareText + ' ' + spotUrl)}`;
+  }
 }
 
 function bar(selector) {
