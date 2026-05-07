@@ -3,9 +3,11 @@ Class to allow posting hitchhiking rides in the standardized format to Nostr.
 """
 
 import ast
+import json
 import os
 import time
 import uuid
+from pathlib import Path
 
 import geohash2
 from pynostr.event import Event
@@ -17,11 +19,30 @@ from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import Hitc
 NSEC = os.getenv("NSEC")
 RELAYS = ast.literal_eval(os.getenv("RELAYS"))
 
+# Mirror every signed event we publish into dist/temporary.json so we have a local
+# record independent of whether the relay accepted it / fetch_nostr has run yet.
+TEMPORARY_EVENTS_FILE = Path(__file__).resolve().parents[3] / "dist" / "temporary.json"
+
+
+def _append_event_to_temporary_json(event: Event) -> None:
+    try:
+        existing = json.loads(TEMPORARY_EVENTS_FILE.read_text()) if TEMPORARY_EVENTS_FILE.exists() else []
+        if not isinstance(existing, list):
+            existing = []
+    except (OSError, json.JSONDecodeError):
+        existing = []
+    existing.append(event.to_dict())
+    TEMPORARY_EVENTS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    TEMPORARY_EVENTS_FILE.write_text(json.dumps(existing, indent=2))
+
 
 class HitchhikingDataStandardToNostrPoster:
     def __init__(self):
         private_key_obj = PrivateKey.from_nsec(NSEC)
         self.private_key_hex = private_key_obj.hex()
+        # Nostr requires the event's pubkey to be 64-char lowercase hex; bech32 npub
+        # produces an event whose id/signature won't validate and the relay silently rejects it.
+        self.pubkey_hex = private_key_obj.public_key.hex()
         self.npub = private_key_obj.public_key.bech32()
         print(f"Posting as npub {self.npub}")
 
@@ -62,7 +83,7 @@ class HitchhikingDataStandardToNostrPoster:
             kind=self.event_kind,
             created_at=unix_timestamp_now,
             content=content,
-            pubkey=self.npub,
+            pubkey=self.pubkey_hex,
             id=None, # ID will be computed when signing
             sig=None,  # Signature will be added later
             tags=[
@@ -75,6 +96,8 @@ class HitchhikingDataStandardToNostrPoster:
         )
 
         event.sign(self.private_key_hex)
+
+        _append_event_to_temporary_json(event)
 
         print("posting to relays")
         self.relay_manager.publish_event(event)

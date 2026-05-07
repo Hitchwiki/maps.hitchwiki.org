@@ -15,3 +15,17 @@ services:
     env_file:
       - .env
     restart: unless-stopped
+    networks:
+      - default
+      - nomadwiki-relay
+
+networks:
+  # Shared external network with the nomadwiki nostr relay container running on the same host
+  # (see /var/www/relay.nomadwiki.org/docker-compose.yml). Joining this lets us reach the relay
+  # via ws://nomadwiki-relay:8080 instead of the public wss://relay.nomadwiki.org URL, which
+  # avoids hairpin NAT (Docker drops cross-bridge forwarding to a sibling container's published
+  # port). When deploying on a different host, drop this network and point RELAYS in .env at
+  # the public wss URL instead.
+  nomadwiki-relay:
+    name: nomadwiki-relay
+    external: true

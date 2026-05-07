@@ -106,6 +106,14 @@ If the `hitchhiking-map` container is down with exit code 137 (`Exited (137)`), 
 - Add swap or more RAM to the host
 - Set a Docker memory limit on the container so Docker's own OOM handling kicks in before the kernel's indiscriminate kill
 
+## Temporary workarounds (revert when relay is fixed)
+
+While the nomadwiki nostr relay setup is being debugged, the following temporary changes are in place. Revert all of them once the relay reliably accepts and serves events again:
+
+1. **`docker-compose.yml`** — joins the external `nomadwiki-relay` Docker network so the app can reach the relay container directly via `ws://nomadwiki-relay:8080` instead of `wss://relay.nomadwiki.org` (works around hairpin NAT on the host). When the public URL works again, drop the `networks:` blocks and revert `RELAYS` in `.env` to the public wss URL.
+2. **`hitch/blueprints/utils/post_hitchhiking_ride_to_nostr.py`** — every signed event is also appended to `dist/temporary.json` as a local fallback record, independent of relay acceptance / `fetch_nostr` cron. Remove `_append_event_to_temporary_json` and its call site, plus the `json` / `pathlib.Path` imports, once we trust the relay round-trip again.
+3. **`hitch/blueprints/utils/post_hitchhiking_ride_to_nostr.py`** — the event's `pubkey` field was changed from `self.npub` (bech32) to `self.pubkey_hex` (64-char hex) because relays were silently rejecting bech32-pubkey events. This one is actually a bug fix and should stay; do **not** revert it with the rest.
+
 ## Data Flow and Storage
 
 ### Data Sources
