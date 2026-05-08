@@ -1,4 +1,5 @@
 import os
+from types import SimpleNamespace
 
 import pandas as pd
 from flask import Blueprint, current_app, jsonify, redirect, render_template, request
@@ -120,16 +121,31 @@ def show_account(username, is_me: bool = False):
         else f"Received request to show user {username}."
     )
 
-    # TODO: Proper 404
-    if user is None:
-        return "User not found."
+    # When the requested name doesn't belong to a registered user, still render the
+    # account page using just the requested name as the username, so that rides
+    # logged under that hitchhiker nickname (e.g. legacy / external sources) are
+    # still browsable. Personal-profile fields are hidden via `user_known=False`.
+    user_known = user is not None
+    if not user_known:
+        user = SimpleNamespace(
+            username=username,
+            gender=None,
+            year_of_birth=None,
+            hitchhiking_since=None,
+            origin_city=None,
+            origin_country=None,
+            hitchwiki_username=None,
+            trustroots_username=None,
+        )
 
     if is_me:
         rides_data = _get_rides_for_user(current_user)
     else:
         rides_data = _get_rides_for_user(user, include_pending_co=False, display_only=True)
 
-    return render_template("security/account.html", user=user, is_me=is_me, rides=rides_data)
+    return render_template(
+        "security/account.html", user=user, is_me=is_me, rides=rides_data, user_known=user_known
+    )
 
 
 @user_bp.route("/contributors", methods=["GET"])
@@ -238,11 +254,17 @@ def _extract_ride_info(ride, ride_type):
             coords = stops[-1].get("location", {})
             destination_lat = coords.get("latitude")
             destination_lon = coords.get("longitude")
+    # Display the user-supplied submission time (RFC 9557) on the card; leave it
+    # blank when the ride has none rather than falling back to the Nostr event's
+    # publish time (`created_at`), which is a different concept.
+    submission_dt = pd.to_datetime(ride.submission_time, errors="coerce", utc=True) if ride.submission_time else None
+    submission_display = submission_dt.strftime("%Y-%m-%d %H:%M") if submission_dt is not None and pd.notna(submission_dt) else ""
+    submission_sort_key = submission_dt.value if submission_dt is not None and pd.notna(submission_dt) else None
     return {
         "type": ride_type,
         "d_tag": ride.d,
-        "created": pd.to_datetime(ride.created_at, unit="s").strftime("%Y-%m-%d %H:%M") if ride.created_at else "N/A",
-        "created_at": ride.created_at or 0,
+        "created": submission_display,
+        "submission_sort_key": submission_sort_key,
         "rating": int(ride.rating) if ride.rating else 0,
         "comment": ride.comment or "",
         "pickup_lat": pickup_lat,
@@ -253,7 +275,12 @@ def _extract_ride_info(ride, ride_type):
 
 
 def _get_rides_for_user(user, include_pending_co=True, display_only=False):
-    """Return merged list of own rides and pending co-hitchhiker rides, newest first."""
+    """Return merged list of own rides and pending co-hitchhiker rides, newest first.
+
+    `user` may be a real User object or any object with a `.username` attribute
+    (e.g. a stub for an unregistered hitchhiker name found only in ride events).
+    """
+    username = user.username
     # Pre-filter in SQL using JSON1 so we don't load and JSON-parse every RideEvent in Python.
     # This is a permissive case-insensitive match; the Python loop below still applies the
     # exact MediaWiki-style _norm comparison for correctness.
@@ -265,7 +292,7 @@ def _get_rides_for_user(user, include_pending_co=True, display_only=False):
                 "WHERE lower(json_extract(value, '$.nickname')) = lower(:uname))"
             )
         )
-        .params(uname=user.username)
+        .params(uname=username)
         .order_by(RideEvent.created_at.desc())
     )
     all_rides = candidate_query.all()
@@ -274,7 +301,7 @@ def _get_rides_for_user(user, include_pending_co=True, display_only=False):
     def _norm(s):
         return (s[:1].upper() + s[1:]) if s else s
 
-    normalized_username = _norm(user.username)
+    normalized_username = _norm(username)
     own_rides = []
     for ride in all_rides:
         content = ride.content if ride.content else {}
@@ -285,16 +312,21 @@ def _get_rides_for_user(user, include_pending_co=True, display_only=False):
 
     co_rides = []
     if include_pending_co:
-        pending = CoHitchhiker.query.filter_by(co_hitchhiker=user.username, accepted="open").all()
+        pending = CoHitchhiker.query.filter_by(co_hitchhiker=username, accepted="open").all()
         for ch in pending:
             ride = db.session.query(RideEvent).filter_by(d=ch.nostr_ride_event_d_tag).first()
             if ride:
                 co_rides.append(_extract_ride_info(ride, "co_hitchhiker"))
 
     combined = own_rides + co_rides
-    combined.sort(key=lambda r: r["created_at"], reverse=True)
+    # Rides without a submission_time sort to the bottom regardless of direction:
+    # `has_time=False` ranks before `True` when reverse=True, so those entries land last.
+    combined.sort(
+        key=lambda r: (r["submission_sort_key"] is not None, r["submission_sort_key"] or 0),
+        reverse=True,
+    )
     for r in combined:
-        del r["created_at"]
+        del r["submission_sort_key"]
     return combined
 
 

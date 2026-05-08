@@ -218,12 +218,10 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
         </div>
         {% endif %}
 
-        {% if ride.submission_time %}
         <div class="detail-row">
             <div class="detail-label"><i class="fa fa-upload"></i> Submitted</div>
-            <div class="detail-value">{{ ride.submission_time.replace('T', ' ')[:16] }}</div>
+            <div class="detail-value">{% if ride.submission_time %}{{ ride.submission_time.replace('T', ' ')[:16] }}{% else %}--:--:--{% endif %}</div>
         </div>
-        {% endif %}
 
         {% if ride.source %}
         <div class="detail-row">
