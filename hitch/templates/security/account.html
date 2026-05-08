@@ -1,7 +1,7 @@
 {% extends "security/base.html" %}
 
 {% set escaped_hitchwiki_username = user.username | escape %}
-{% set escaped_trustroots_username = user.trustroots_username | escape %}
+{% set escaped_trustroots_username = (user.trustroots_username or "") | escape %}
 
 {% set title = user.username %}
 
