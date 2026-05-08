@@ -21,9 +21,7 @@ var allMarkers = [],
   normalLayer = null,
   heatmapLegend = null,
   spotsData = null,
-  ridesIndex = null,
-  routeLayer = null,
-  routeMarkers = [];
+  ridesIndex = null;
 
 // Create the Leaflet map synchronously so controls are in their final position immediately
 function createMap() {
@@ -355,7 +353,6 @@ function setupEventListeners() {
   };
 
   setupFilterEventListeners();
-  setupRoutingEventListeners();
 
   // Bottom action pane handlers
   var addSpotBtn = document.getElementById('action-add-spot');
@@ -469,258 +466,6 @@ function setupFilterEventListeners() {
   maxDateFilter.addEventListener("change", () =>
     setQueryParameter("maxdate", maxDateFilter.value)
   );
-}
-
-// Routing functionality
-async function planRoute(startLat, startLon, endLat, endLon, startName, endName) {
-  try {
-    // Clear any existing route first
-    clearRoute();
-    
-    // Add start and end markers
-    const startMarker = L.marker([startLat, startLon], {
-      icon: L.icon({
-        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
-      })
-    }).addTo(map).bindPopup("Start");
-    
-    const endMarker = L.marker([endLat, endLon], {
-      icon: L.icon({
-        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
-      })
-    }).addTo(map).bindPopup("End");
-    
-    routeMarkers.push(startMarker, endMarker);
-    
-    // Fit the map to show both points
-    const bounds = L.latLngBounds([[startLat, startLon], [endLat, endLon]]);
-    map.fitBounds(bounds, { padding: [20, 20] });
-    
-    // Call the backend routing endpoint
-    const response = await fetch('/route', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        start: [startLat, startLon],
-        end: [endLat, endLon],
-        start_name: startName || '',
-        end_name: endName || ''
-      })
-    });
-    
-    if (response.ok) {
-      const routeData = await response.json();
-      await displayRoute(routeData);
-    } else {
-      const errorData = await response.json().catch(() => ({ error: response.statusText }));
-      console.error('Routing failed:', errorData);
-      alert(`Routing failed: ${errorData.error || response.statusText}
-      
-This might happen if:
-- No ride data exists near your start/end points
-- The coordinates are in an area without hitchhiking activity
-- Try coordinates closer to major cities or highways`);
-    }
-  } catch (error) {
-    console.error('Routing error:', error);
-    alert(`Routing failed: ${error.message}
-    
-Please check your connection and try again.`);
-  }
-}
-
-async function displayRoute(routeData) {
-  if (routeData && routeData.route && routeData.route.length > 0) {
-    // Create polyline for the route
-    const routeCoords = routeData.route.map(coord => [coord[0], coord[1]]); // coords are [lat, lon]
-    routeLayer = L.polyline(routeCoords, {
-      color: 'blue',
-      weight: 4,
-      opacity: 0.7
-    }).addTo(map);
-    
-    // Load rides index to filter route spots — only lat/lon are needed here.
-    const rides = await loadRidesIndex();
-    const tolerance = 0.001; // ~100m tolerance for coordinate matching
-    
-    // Add markers for intermediate stops and highlight those with actual rides
-    routeData.route.slice(1, -1).forEach((coord, index) => {
-      const lat = coord[0];
-      const lon = coord[1];
-      
-      // Find rides that match this coordinate (within tolerance)
-      const matchingRides = rides.filter(ride => 
-        Math.abs(ride.lat - lat) <= tolerance && 
-        Math.abs(ride.lon - lon) <= tolerance
-      );
-      
-      const hasRides = matchingRides.length > 0;
-      
-      // Choose marker color based on whether there are actual rides
-      const iconUrl = hasRides 
-        ? 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-gold.png'
-        : 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png';
-      
-      const popupContent = hasRides 
-        ? `Stop ${index + 1} (${matchingRides.length} ride${matchingRides.length > 1 ? 's' : ''})`
-        : `Stop ${index + 1} (no rides)`;
-      
-      const marker = L.marker([lat, lon], {
-        icon: L.icon({
-          iconUrl: iconUrl,
-          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-          iconSize: [25, 41],
-          iconAnchor: [12, 41],
-          popupAnchor: [1, -34],
-          shadowSize: [41, 41]
-        })
-      }).addTo(map).bindPopup(popupContent);
-      
-      routeMarkers.push(marker);
-    });
-    
-    // Show route info with ride statistics
-    const totalStops = routeData.route.length - 2; // Exclude start and end points
-    const ridesPromises = routeData.route.slice(1, -1).map(async (coord) => {
-      const lat = coord[1];
-      const lon = coord[0];
-      const matchingRides = rides.filter(ride => 
-        Math.abs(ride.lat - lat) <= tolerance && 
-        Math.abs(ride.lon - lon) <= tolerance
-      );
-      return matchingRides.length > 0;
-    });
-    
-    Promise.all(ridesPromises).then(rideResults => {
-      const stopsWithRides = rideResults.filter(hasRides => hasRides).length;
-      const timeInfo = routeData.total_time_formatted || `${Math.round(routeData.total_time_hours || 0)}h`;
-      alert(`Route found! Total time: ${timeInfo}
-${totalStops} intermediate stops
-${stopsWithRides} stops with actual ride data
-Gold markers = spots with rides, Blue markers = stops without rides
-
-Time includes: riding (100 km/h avg) + walking (5 km/h) + waiting at spots`);
-    });
-  }
-}
-
-function clearRoute() {
-  // Remove route layer
-  if (routeLayer) {
-    map.removeLayer(routeLayer);
-    routeLayer = null;
-  }
-  
-  // Remove all route markers
-  routeMarkers.forEach(marker => {
-    map.removeLayer(marker);
-  });
-  routeMarkers = [];
-}
-
-// Global variables to store selected coordinates
-let startCoords = null;
-let endCoords = null;
-let routingGeocodersInitialized = false;
-
-function setupRoutingGeocoders() {
-  // Prevent multiple initializations
-  if (routingGeocodersInitialized) return;
-  routingGeocodersInitialized = true;
-  
-  // Create geocoder options similar to setupGeocoder()
-  const geocoderOpts = {
-    collapsed: false,
-    defaultMarkGeocode: false,
-    provider: "photon",
-    geocoder: L.Control.Geocoder.photon(),
-  };
-  
-  // Setup start location geocoder
-  const startGeocoderOpts = {
-    ...geocoderOpts,
-    placeholder: "e.g. Amsterdam, Netherlands"
-  };
-  
-  const startGeocoderDiv = document.getElementById("start-geocoder");
-  if (startGeocoderDiv) {
-    const startGeocoder = L.Control.geocoder(startGeocoderOpts);
-    const container = startGeocoder.onAdd(map);
-    startGeocoderDiv.appendChild(container);
-    
-    startGeocoder.on("markgeocode", function(e) {
-      startCoords = e.geocode.center;
-      const input = startGeocoderDiv.querySelector('input');
-      if (input) {
-        input.value = e.geocode.name;
-      }
-    });
-  }
-  
-  // Setup end location geocoder
-  const endGeocoderOpts = {
-    ...geocoderOpts,
-    placeholder: "e.g. Berlin, Germany"
-  };
-  
-  const endGeocoderDiv = document.getElementById("end-geocoder");
-  if (endGeocoderDiv) {
-    const endGeocoder = L.Control.geocoder(endGeocoderOpts);
-    const container = endGeocoder.onAdd(map);
-    endGeocoderDiv.appendChild(container);
-    
-    endGeocoder.on("markgeocode", function(e) {
-      endCoords = e.geocode.center;
-      const input = endGeocoderDiv.querySelector('input');
-      if (input) {
-        input.value = e.geocode.name;
-      }
-    });
-  }
-}
-
-function setupRoutingEventListeners() {
-  const planRouteBtn = document.getElementById("plan-route-btn");
-  const clearRouteBtn = document.getElementById("clear-route-btn");
-  
-  if (planRouteBtn) {
-    planRouteBtn.onclick = () => {
-      if (!startCoords || !endCoords) {
-        alert('Please select both start location and destination from the suggestions.');
-        return;
-      }
-      
-      var startName = document.querySelector('#start-geocoder input')?.value || '';
-      var endName = document.querySelector('#end-geocoder input')?.value || '';
-      planRoute(startCoords.lat, startCoords.lng, endCoords.lat, endCoords.lng, startName, endName);
-    };
-  }
-  
-  if (clearRouteBtn) {
-    clearRouteBtn.onclick = () => {
-      clearRoute();
-      // Reset coordinates
-      startCoords = null;
-      endCoords = null;
-      // Clear input fields
-      const startInput = document.querySelector('#start-geocoder input');
-      const endInput = document.querySelector('#end-geocoder input');
-      if (startInput) startInput.value = '';
-      if (endInput) endInput.value = '';
-    };
-  }
 }
 
 // Handle changes in the URL hash; used for initialization of the map
@@ -1451,7 +1196,7 @@ async function applyParams() {
     // satisfies one filter and a *different* ride at the same spot satisfies
     // another.
     const hasRideAttrFilter =
-      userFilter.value || vehicleFilter.value || minDateFilter.value || maxDateFilter.value;
+      userFilter.value || vehicleFilter.value || minDateFilter.value || maxDateFilter.value || textFilter.value;
     if (hasRideAttrFilter) {
       const rides = await loadRidesIndex();
       // MediaWiki-style match: only the first letter is case-insensitive, rest matches as-is
@@ -1461,6 +1206,9 @@ async function applyParams() {
       const minMs = minDateFilter.value ? Date.parse(minDateFilter.value + "T00:00:00Z") : null;
       // The max bound covers the end of its day so a user-entered max date is inclusive.
       const maxMs = maxDateFilter.value ? Date.parse(maxDateFilter.value + "T23:59:59.999Z") : null;
+      // Comment search runs against the truncated excerpt (`c`) in rides_index.json,
+      // so matches deep in long comments may be missed.
+      const commentNeedle = textFilter.value ? textFilter.value.toLowerCase() : null;
 
       const matchingSpotIds = new Set(
         rides
@@ -1473,17 +1221,13 @@ async function applyParams() {
               if (minMs != null && ride.rd < minMs) return false;
               if (maxMs != null && ride.rd > maxMs) return false;
             }
+            if (commentNeedle && !(ride.c && ride.c.toLowerCase().includes(commentNeedle))) return false;
             return true;
           })
           .map(ride => ride.sid)
       );
       filterMarkers = filterMarkers.filter(marker =>
         matchingSpotIds.has(marker.options.spotId)
-      );
-    }
-    if (textFilter.value) {
-      filterMarkers = filterMarkers.filter((x) =>
-        x.options._data.text.toLowerCase().includes(textFilter.value.toLowerCase())
       );
     }
     if (distanceFilter.value) {
@@ -1555,10 +1299,7 @@ async function navigate() {
   let args = window.location.hash.slice(1).split("/");
   let mainArgs = args[0].split(",");
   
-  if (mainArgs[0] == "route") {
-    clear();
-    planRoute(+mainArgs[1], +mainArgs[2], +mainArgs[3], +mainArgs[4]);
-  } else if (mainArgs[0] == "location") {
+  if (mainArgs[0] == "location") {
     clear();
     map.setView([+mainArgs[1], +mainArgs[2]], mainArgs[3]);
   } else if (mainArgs[0] == "filters") {
@@ -1571,8 +1312,6 @@ async function navigate() {
     bar(".sidebar.routing");
     updateBottomPaneVar();
     setSheetSnap($$(".sidebar.routing"), "full", ROUTING_SHEET_SNAPS);
-    // Initialize geocoders after sidebar is shown
-    setTimeout(() => setupRoutingGeocoders(), 100);
   } else if (mainArgs[0] == "select-pickup" || mainArgs[0] == "select-destination") {
     clear();
     setupLocationSelection(mainArgs[0], args[1]);

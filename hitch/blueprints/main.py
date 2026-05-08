@@ -8,7 +8,6 @@ from flask import (
     Blueprint,
     abort,
     current_app,
-    jsonify,
     redirect,
     render_template,
     request,
@@ -20,8 +19,7 @@ from hitch.blueprints.utils.iso_country_codes import ISO_3166_1_ALPHA_2
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.extensions import db
 from hitch.helpers import get_db
-from hitch.models import CoHitchhiker, RideEvent, RoutingSearch, User
-from hitch.scripts.routing import routing
+from hitch.models import CoHitchhiker, RideEvent, User
 
 main_bp = Blueprint("main", __name__)
 
@@ -165,11 +163,7 @@ def ride_detail(d_tag):
         a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
         distance_km = 2 * 6371 * math.asin(math.sqrt(a))
 
-    submission_dt = None
-    if ride.submission_time:
-        submission_dt = ride.submission_time
-    elif ride.created_at:
-        submission_dt = datetime.utcfromtimestamp(ride.created_at).isoformat() + "Z"
+    submission_dt = ride.submission_time or None
 
     mot = content.get("mode_of_transportation") or {}
     vehicle = None
@@ -490,83 +484,3 @@ def report_duplicate():
 
     return redirect("/#success-duplicate")
 
-
-@main_bp.route("/route", methods=["POST"])
-def calculate_route():
-    """Calculate route between two points using the routing algorithm."""
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({"error": "No JSON data provided"}), 400
-
-        start = data.get("start")  # [lat, lon]
-        end = data.get("end")  # [lat, lon]
-
-        if not start or not end:
-            return jsonify({"error": "Both start and end coordinates are required"}), 400
-
-        if len(start) != 2 or len(end) != 2:
-            return jsonify({"error": "Coordinates must be [latitude, longitude] arrays"}), 400
-
-        try:
-            start_coords = (float(start[0]), float(start[1]))
-            end_coords = (float(end[0]), float(end[1]))
-        except (ValueError, TypeError):
-            return jsonify({"error": "Invalid coordinate format"}), 400
-
-        # Validate coordinate ranges (now start[0] is lat, start[1] is lon)
-        if not (-90 <= start[0] <= 90 and -180 <= start[1] <= 180):
-            return jsonify({"error": "Invalid start coordinates"}), 400
-        if not (-90 <= end[0] <= 90 and -180 <= end[1] <= 180):
-            return jsonify({"error": "Invalid end coordinates"}), 400
-
-        # Log the search request
-        db.session.add(RoutingSearch(
-            start_lat=start_coords[0], start_lon=start_coords[1],
-            start_name=data.get("start_name", "")[:255],
-            end_lat=end_coords[0], end_lon=end_coords[1],
-            end_name=data.get("end_name", "")[:255],
-        ))
-        db.session.commit()
-
-        # Call the routing function
-        try:
-            _, route, total_time_minutes = routing(A=start_coords, B=end_coords)
-
-            # Check if we got valid results
-            if not route or len(route) < 2:
-                return jsonify(
-                    {"error": "No route found between these points. Try coordinates closer to areas with hitchhiking activity."}
-                ), 404
-
-            # Format the route for the frontend
-            route_coords = [[coord[0], coord[1]] for coord in route]  # [lat, lon] format
-
-            # Convert time to more readable format
-            hours = int(total_time_minutes // 60)
-            minutes = int(total_time_minutes % 60)
-
-            return jsonify(
-                {
-                    "route": route_coords,
-                    "total_time_hours": hours,
-                    "total_time_formatted": f"{hours}h {minutes}m" if hours > 0 else f"{minutes}m",
-                    "num_stops": len(route),
-                }
-            )
-
-        except Exception as routing_error:
-            error_msg = str(routing_error)
-            if "not found in graph" in error_msg:
-                return jsonify(
-                    {
-                        "error": """No hitchhiking data found near your start or end point.
-                        Try coordinates closer to major cities or highways where hitchhikers are active."""
-                    }
-                ), 404
-            else:
-                raise  # Re-raise other routing errors
-
-    except Exception as e:
-        current_app.logger.error(f"Routing error: {str(e)}")
-        return jsonify({"error": "Internal server error during route calculation"}), 500
