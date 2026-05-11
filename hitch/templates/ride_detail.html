@@ -278,6 +278,42 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     </div>
     {% endif %}
 
+    {% if ride.driver %}
+    <div class="detail-section">
+        <p class="section-title">Driver</p>
+        {% if ride.driver.reasons %}
+        <div class="detail-row">
+            <div class="detail-label"><i class="fa fa-hand-holding-heart"></i> Reason to pick up</div>
+            <div class="detail-value">{{ ride.driver.reasons|join(', ') }}</div>
+        </div>
+        {% endif %}
+        {% if ride.driver.origin_country_name %}
+        <div class="detail-row">
+            <div class="detail-label"><i class="fa fa-globe"></i> Origin country</div>
+            <div class="detail-value">{{ ride.driver.origin_country_name }}</div>
+        </div>
+        {% endif %}
+        {% if ride.driver.age is not none %}
+        <div class="detail-row">
+            <div class="detail-label"><i class="fa fa-birthday-cake"></i> Age</div>
+            <div class="detail-value">{{ ride.driver.age }}</div>
+        </div>
+        {% endif %}
+        {% if ride.driver.gender %}
+        <div class="detail-row">
+            <div class="detail-label"><i class="fa fa-venus-mars"></i> Gender</div>
+            <div class="detail-value">{{ ride.driver.gender|replace('_', ' ')|capitalize }}</div>
+        </div>
+        {% endif %}
+        {% if ride.driver.languages %}
+        <div class="detail-row">
+            <div class="detail-label"><i class="fa fa-language"></i> Languages</div>
+            <div class="detail-value">{{ ride.driver.languages|join(', ') }}</div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
     {% if ride.comment %}
     <div class="detail-section">
         <p class="section-title">Comment</p>

@@ -20,9 +20,12 @@ from hitch.blueprints.utils.driver_info_choices import (
     ALLOWED_REASONS_TO_PICK_UP,
     COUNTRY_CHOICES,
     COUNTRY_CODES,
+    COUNTRY_NAME_BY_CODE,
     GENDER_CHOICES,
     LANGUAGE_CHOICES,
     LANGUAGE_CODES,
+    LANGUAGE_NAME_BY_CODE,
+    REASON_DESCRIPTION_BY_CODE,
     REASON_TO_PICK_UP_CHOICES,
 )
 from hitch.blueprints.utils.iso_country_codes import ISO_3166_1_ALPHA_2
@@ -175,6 +178,37 @@ def ride_detail(d_tag):
 
     submission_dt = ride.submission_time or None
 
+    # Build a presentable "driver" view object from the first occupant flagged as the driver.
+    driver = None
+    driver_obj = next(
+        (o for o in (content.get("occupants") or []) if isinstance(o, dict) and o.get("was_driver")),
+        None,
+    )
+    if driver_obj:
+        reasons_raw = driver_obj.get("reasons_to_pick_up") or []
+        if isinstance(reasons_raw, str):
+            reasons_raw = [reasons_raw]
+        languages_raw = driver_obj.get("languages") or []
+        country_code = (driver_obj.get("origin_country") or "").upper() or None
+        yob = driver_obj.get("year_of_birth")
+        age = None
+        if yob:
+            try:
+                age = max(0, datetime.now().year - int(yob))
+            except (TypeError, ValueError):
+                age = None
+        driver = {
+            "reasons": [REASON_DESCRIPTION_BY_CODE.get(r, r) for r in reasons_raw],
+            "origin_country_code": country_code,
+            "origin_country_name": COUNTRY_NAME_BY_CODE.get(country_code) if country_code else None,
+            "age": age,
+            "gender": driver_obj.get("gender") or None,
+            "languages": [LANGUAGE_NAME_BY_CODE.get(c, c) for c in languages_raw],
+        }
+        # Only attach the driver section if at least one field has a value.
+        if not any([driver["reasons"], driver["origin_country_name"], driver["age"], driver["gender"], driver["languages"]]):
+            driver = None
+
     mot = content.get("mode_of_transportation") or {}
     vehicle = None
     if isinstance(mot, dict) and mot.get("kind"):
@@ -206,6 +240,7 @@ def ride_detail(d_tag):
         "distance_km": distance_km,
         "is_owner": _user_owns_ride(ride, current_user),
         "vehicle": vehicle,
+        "driver": driver,
     }
     return render_template("ride_detail.html", ride=ride_view)
 

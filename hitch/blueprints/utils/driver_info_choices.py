@@ -22,6 +22,7 @@ REASON_TO_PICK_UP_CHOICES = [
     ("opposed", "Opposed the pick-up but was overruled by another occupant"),
 ]
 ALLOWED_REASONS_TO_PICK_UP = [code for code, _ in REASON_TO_PICK_UP_CHOICES]
+REASON_DESCRIPTION_BY_CODE = {code: desc for code, desc in REASON_TO_PICK_UP_CHOICES}
 
 # (alpha_2, name) — sorted alphabetically by name.
 COUNTRY_CHOICES = sorted(
@@ -29,6 +30,7 @@ COUNTRY_CHOICES = sorted(
     key=lambda x: x[1].lower(),
 )
 COUNTRY_CODE_BY_NAME = {name.lower(): code for code, name in COUNTRY_CHOICES}
+COUNTRY_NAME_BY_CODE = {code: name for code, name in COUNTRY_CHOICES}
 COUNTRY_CODES = {code for code, _ in COUNTRY_CHOICES}
 
 # (alpha_3, name) — ISO 639-3 since the data standard example uses 3-letter codes.
