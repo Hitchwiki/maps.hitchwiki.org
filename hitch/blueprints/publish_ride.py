@@ -15,6 +15,7 @@ from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import (
     KindEnum,
     Location,
     ModeOfTranportation,
+    Occupant,
     Signal,
     Stop,
 )
@@ -118,15 +119,25 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
             )
         )
 
-    # logger.info(custom_object["signal"], type(custom_object["signal"]))
-    signals = (
-        [map_signal(custom_object["signal"])]
-        if custom_object["signal"] != "" and custom_object["signal"] is not None and custom_object["signal"] != "null"
-        else None
-    )
-    # logger.info(f"mapped signals: {signals}", type(signals), type(signals[0]) if signals is not None else None)
-    if signals is not None and len(signals) == 1 and pd.notna(custom_object["wait"]):
-        signals = [Signal(methods=signals[0].methods, duration=f"PT{int(custom_object['wait'])}M")]
+    # "signal" may arrive as a list (multi-select checkboxes), a single string (legacy),
+    # or empty/None. Normalize to a list of allowed values, map to standard method names,
+    # and emit a single Signal carrying every chosen method (plus the wait duration if set).
+    raw_signal = custom_object.get("signal")
+    if isinstance(raw_signal, str):
+        raw_signal = [raw_signal]
+    elif raw_signal is None:
+        raw_signal = []
+    method_map = {"sign": "sign", "thumb": "thumb", "ask": "asking"}
+    methods = []
+    for s in raw_signal:
+        m = method_map.get(s)
+        if m and m not in methods:
+            methods.append(m)
+    if methods:
+        duration = f"PT{int(custom_object['wait'])}M" if pd.notna(custom_object.get("wait")) else None
+        signals = [Signal(methods=methods, duration=duration)]
+    else:
+        signals = None
 
     hitchhiker = Hitchhiker(nickname="Anonymous") if current_user.is_anonymous else construct_hitchhiker_from_current_user()
 
@@ -153,6 +164,28 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
             license_plate_identifier=(custom_object.get("vehicle_license_plate_identifier") or "").strip() or None,
         )
 
+    # Build driver Occupant from optional driver-info fields. If at least one field
+    # is set we emit an occupant entry with was_driver=True so downstream consumers
+    # know the info refers to the person who picked up the hitchhiker.
+    driver_reasons = custom_object.get("driver_reason_to_pick_up") or []
+    driver_country = (custom_object.get("driver_origin_country") or "").strip().upper() or None
+    driver_yob = custom_object.get("driver_year_of_birth")
+    driver_gender = (custom_object.get("driver_gender") or "").strip() or None
+    driver_languages = custom_object.get("driver_languages") or []
+    if driver_reasons or driver_country or driver_yob or driver_gender or driver_languages:
+        occupants = [
+            Occupant(
+                origin_country=driver_country,
+                year_of_birth=int(driver_yob) if driver_yob else None,
+                gender=driver_gender,
+                languages=list(driver_languages) or None,
+                was_driver=True,
+                reasons_to_pick_up=list(driver_reasons) or None,
+            )
+        ]
+    else:
+        occupants = None
+
     record = HitchhikingRecord(
         version="0.0.0",
         stops=stops,
@@ -160,7 +193,7 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
         hitchhikers=hitchhikers,
         comment=None if custom_object["comment"] == "" else custom_object["comment"],
         signals=signals,
-        occupants=None,
+        occupants=occupants,
         mode_of_transportation=mode_of_transportation,
         ride=None,
         declined_rides=None,

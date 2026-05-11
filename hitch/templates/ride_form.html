@@ -117,13 +117,14 @@
         </div>
             
         <div class="form-group">
-            <label for="signal">How did you signal to drivers?</label>
-            <select id="signal" name="signal" class="form-control driver-signal">
-                <option value="null" {% if not ride_data or not ride_data.signal or ride_data.signal == 'null' %}selected{% endif %}>Select an option</option>
-                <option value="sign" {% if ride_data and ride_data.signal == 'sign' %}selected{% endif %}>Sign</option>
-                <option value="thumb" {% if ride_data and ride_data.signal == 'thumb' %}selected{% endif %}>Thumb</option>
-                <option value="ask" {% if ride_data and ride_data.signal == 'ask' %}selected{% endif %}>Asked around</option>
-            </select>
+            <label>How did you signal to drivers? <span style="font-weight:normal; color:#666;">(select all that apply)</span></label>
+            {% set selected_signals = ride_data.signal if ride_data and ride_data.signal else [] %}
+            {% if selected_signals is string %}{% set selected_signals = [selected_signals] %}{% endif %}
+            <div class="driver-signal">
+                <label style="display:block; font-weight:normal;"><input type="checkbox" name="signal" value="sign" {% if 'sign' in selected_signals %}checked{% endif %}> Sign</label>
+                <label style="display:block; font-weight:normal;"><input type="checkbox" name="signal" value="thumb" {% if 'thumb' in selected_signals %}checked{% endif %}> Thumb</label>
+                <label style="display:block; font-weight:normal;"><input type="checkbox" name="signal" value="ask" {% if 'ask' in selected_signals %}checked{% endif %}> Asked around</label>
+            </div>
         </div>
         
         <div class="form-group">
@@ -154,6 +155,64 @@
                 </div>
                 <div class="col-sm-12" style="margin-bottom:8px;">
                     <input type="text" id="vehicle_license_plate_identifier" name="vehicle_license_plate_identifier" class="form-control" maxlength="255" placeholder="License plate identifier (e.g. B, 93, Georgia)" value="{{ ride_data.vehicle_license_plate_identifier if ride_data and ride_data.vehicle_license_plate_identifier else '' }}">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>About the driver (optional)</label>
+            <div style="background:#fafafa; border:1px solid #eee; padding:12px; border-radius:4px;">
+
+                <div style="margin-bottom:10px;">
+                    <div style="font-weight:600; margin-bottom:4px;">Why did they pick you up? <span style="font-weight:normal; color:#666;">(select all that apply)</span></div>
+                    {% set selected_reasons = ride_data.driver_reason_to_pick_up if ride_data and ride_data.driver_reason_to_pick_up else [] %}
+                    {% for code, desc in reason_to_pick_up_choices %}
+                    <label style="display:block; font-weight:normal;">
+                        <input type="checkbox" name="driver_reason_to_pick_up" value="{{ code }}" {% if code in selected_reasons %}checked{% endif %}>
+                        {{ desc }}
+                    </label>
+                    {% endfor %}
+                </div>
+
+                <div class="row">
+                    <div class="col-sm-6" style="margin-bottom:8px;">
+                        <label for="driver_origin_country_input" style="font-weight:normal;">Origin country</label>
+                        {% set selected_country_code = ride_data.driver_origin_country if ride_data and ride_data.driver_origin_country else '' %}
+                        <input list="driver-country-list" id="driver_origin_country_input" class="form-control" placeholder="Type to search…" autocomplete="off"
+                               data-selected-code="{{ selected_country_code }}">
+                        <input type="hidden" id="driver_origin_country" name="driver_origin_country" value="{{ selected_country_code }}">
+                        <datalist id="driver-country-list">
+                            {% for code, name in country_choices %}
+                            <option data-code="{{ code }}" value="{{ name }}"></option>
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                    <div class="col-sm-3" style="margin-bottom:8px;">
+                        <label for="driver_age" style="font-weight:normal;">Age</label>
+                        <input type="number" id="driver_age" name="driver_age" class="form-control" min="0" max="120" placeholder="e.g. 45" value="{{ ride_data.driver_age if ride_data and ride_data.driver_age else '' }}">
+                    </div>
+                    <div class="col-sm-3" style="margin-bottom:8px;">
+                        <label for="driver_gender" style="font-weight:normal;">Gender</label>
+                        <select id="driver_gender" name="driver_gender" class="form-control">
+                            <option value="">—</option>
+                            {% for code, label in gender_choices %}
+                            <option value="{{ code }}" {% if ride_data and ride_data.driver_gender == code %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-top:8px;">
+                    <label style="font-weight:normal;">Languages spoken by the driver</label>
+                    {% set selected_langs = ride_data.driver_languages if ride_data and ride_data.driver_languages else [] %}
+                    <input type="hidden" id="driver_languages" name="driver_languages" value="{{ selected_langs|join(',') }}">
+                    <div id="driver-language-tags" style="display:flex; flex-wrap:wrap; gap:6px; padding:6px 8px; border:1px solid #ccc; border-radius:4px; background:#fff; min-height:38px; align-items:center; cursor:text;" onclick="document.getElementById('driver-language-input').focus()"></div>
+                    <input id="driver-language-input" list="driver-language-list" class="form-control" autocomplete="off" placeholder="Type a language and pick from the list…" style="margin-top:6px;">
+                    <datalist id="driver-language-list">
+                        {% for code, name in language_choices %}
+                        <option data-code="{{ code }}" value="{{ name }}"></option>
+                        {% endfor %}
+                    </datalist>
                 </div>
             </div>
         </div>
@@ -236,7 +295,7 @@
             wait: document.querySelector('input[name="wait"]')?.value || '',
             comment: document.querySelector('textarea[name="comment"]')?.value || '',
             co_hitchhiker: document.getElementById('co-hitchhiker-hidden')?.value || '',
-            signal: document.querySelector('select[name="signal"]')?.value || 'null',
+            signal: Array.from(document.querySelectorAll('input[name="signal"]:checked')).map(el => el.value),
             datetime_ride: document.querySelector('input[name="datetime_ride"]')?.value || '',
             arrival_datetime: document.querySelector('input[name="arrival_datetime"]')?.value || '',
             pickup_lat: coords.pickup ? coords.pickup[0] : '',
@@ -249,7 +308,12 @@
             vehicle_make: document.getElementById('vehicle_make')?.value || '',
             vehicle_model: document.getElementById('vehicle_model')?.value || '',
             vehicle_license_plate_country: document.getElementById('vehicle_license_plate_country')?.value || '',
-            vehicle_license_plate_identifier: document.getElementById('vehicle_license_plate_identifier')?.value || ''
+            vehicle_license_plate_identifier: document.getElementById('vehicle_license_plate_identifier')?.value || '',
+            driver_reason_to_pick_up: Array.from(document.querySelectorAll('input[name="driver_reason_to_pick_up"]:checked')).map(el => el.value),
+            driver_origin_country: document.getElementById('driver_origin_country')?.value || '',
+            driver_age: document.getElementById('driver_age')?.value || '',
+            driver_gender: document.getElementById('driver_gender')?.value || '',
+            driver_languages: document.getElementById('driver_languages')?.value || ''
         };
         
         sessionStorage.setItem('rideFormData', JSON.stringify(formData));
@@ -306,7 +370,10 @@
                 document.getElementById('co-hitchhiker-hidden').value = data.co_hitchhiker;
                 if (window._coHitchhikerRenderTags) window._coHitchhikerRenderTags();
             }
-            if (data.signal && data.signal !== 'null') document.querySelector('select[name="signal"]').value = data.signal;
+            if (data.signal) {
+                const signals = Array.isArray(data.signal) ? data.signal : (data.signal && data.signal !== 'null' ? [data.signal] : []);
+                document.querySelectorAll('input[name="signal"]').forEach(el => { el.checked = signals.includes(el.value); });
+            }
             if (data.datetime_ride) document.querySelector('input[name="datetime_ride"]').value = data.datetime_ride;
             if (data.arrival_datetime) document.querySelector('input[name="arrival_datetime"]').value = data.arrival_datetime;
             if (data.vehicle_kind !== undefined) document.getElementById('vehicle_kind').value = data.vehicle_kind;
@@ -314,6 +381,24 @@
             if (data.vehicle_model !== undefined) document.getElementById('vehicle_model').value = data.vehicle_model;
             if (data.vehicle_license_plate_country !== undefined) document.getElementById('vehicle_license_plate_country').value = data.vehicle_license_plate_country;
             if (data.vehicle_license_plate_identifier !== undefined) document.getElementById('vehicle_license_plate_identifier').value = data.vehicle_license_plate_identifier;
+            if (Array.isArray(data.driver_reason_to_pick_up)) {
+                const set = new Set(data.driver_reason_to_pick_up);
+                document.querySelectorAll('input[name="driver_reason_to_pick_up"]').forEach(el => { el.checked = set.has(el.value); });
+            }
+            if (data.driver_origin_country !== undefined) {
+                document.getElementById('driver_origin_country').value = data.driver_origin_country;
+                const countryInput = document.getElementById('driver_origin_country_input');
+                if (countryInput) {
+                    const opt = document.querySelector(`#driver-country-list option[data-code="${data.driver_origin_country}"]`);
+                    countryInput.value = opt ? opt.value : '';
+                }
+            }
+            if (data.driver_age !== undefined) document.getElementById('driver_age').value = data.driver_age;
+            if (data.driver_gender !== undefined) document.getElementById('driver_gender').value = data.driver_gender;
+            if (data.driver_languages !== undefined) {
+                document.getElementById('driver_languages').value = data.driver_languages;
+                if (window._driverLanguagesRenderTags) window._driverLanguagesRenderTags();
+            }
             
             // Restore coordinates to form fields
             if (data.pickup_lat) document.getElementById('pickup_lat').value = data.pickup_lat;
@@ -577,6 +662,112 @@
 
         return true;
     };
+
+    // Driver origin country picker: typed name → ISO alpha-2 code (stored in hidden input).
+    (function() {
+        const input = document.getElementById('driver_origin_country_input');
+        const hidden = document.getElementById('driver_origin_country');
+        const datalist = document.getElementById('driver-country-list');
+        if (!input || !hidden || !datalist) return;
+
+        // Build name↔code maps from the datalist.
+        const nameToCode = {};
+        const codeToName = {};
+        for (const opt of datalist.options) {
+            const code = opt.getAttribute('data-code');
+            nameToCode[opt.value.toLowerCase()] = code;
+            codeToName[code] = opt.value;
+        }
+
+        // If a code is preselected (edit mode), render its name in the visible input.
+        const preCode = input.dataset.selectedCode;
+        if (preCode && codeToName[preCode]) input.value = codeToName[preCode];
+
+        function sync() {
+            const code = nameToCode[input.value.trim().toLowerCase()];
+            hidden.value = code || '';
+        }
+        input.addEventListener('input', sync);
+        input.addEventListener('change', sync);
+        input.addEventListener('blur', () => {
+            // If the user typed something that doesn't match a country, clear the visible input
+            // so we don't submit a free-text country that the server will reject.
+            if (input.value && !nameToCode[input.value.trim().toLowerCase()]) {
+                input.value = '';
+                hidden.value = '';
+            }
+        });
+    })();
+
+    // Driver languages: chip-style multi-select. The hidden input holds comma-separated ISO 639-3 codes.
+    (function() {
+        const input = document.getElementById('driver-language-input');
+        const tagsContainer = document.getElementById('driver-language-tags');
+        const hidden = document.getElementById('driver_languages');
+        const datalist = document.getElementById('driver-language-list');
+        if (!input || !tagsContainer || !hidden || !datalist) return;
+
+        const nameToCode = {};
+        const codeToName = {};
+        for (const opt of datalist.options) {
+            const code = opt.getAttribute('data-code');
+            nameToCode[opt.value.toLowerCase()] = code;
+            codeToName[code] = opt.value;
+        }
+
+        function getCodes() {
+            return hidden.value ? hidden.value.split(',').map(s => s.trim()).filter(Boolean) : [];
+        }
+        function setCodes(codes) {
+            hidden.value = codes.join(',');
+        }
+
+        function renderTags() {
+            tagsContainer.innerHTML = '';
+            getCodes().forEach((code, idx) => {
+                const tag = document.createElement('span');
+                tag.style.cssText = 'display:inline-flex; align-items:center; background:#e0e0e0; border-radius:3px; padding:2px 6px; font-size:0.9em; gap:4px;';
+                tag.textContent = codeToName[code] || code;
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.textContent = '×';
+                remove.style.cssText = 'background:none; border:none; cursor:pointer; padding:0; font-size:1.1em; line-height:1; color:#555;';
+                remove.addEventListener('click', () => {
+                    const codes = getCodes();
+                    codes.splice(idx, 1);
+                    setCodes(codes);
+                    renderTags();
+                });
+                tag.appendChild(remove);
+                tagsContainer.appendChild(tag);
+            });
+        }
+
+        function tryAddFromInput() {
+            const code = nameToCode[input.value.trim().toLowerCase()];
+            if (!code) return false;
+            const codes = getCodes();
+            if (!codes.includes(code)) {
+                codes.push(code);
+                setCodes(codes);
+                renderTags();
+            }
+            input.value = '';
+            return true;
+        }
+
+        // Datalist selection fires "change" (not just "input") when the user picks an option.
+        input.addEventListener('change', tryAddFromInput);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                tryAddFromInput();
+            }
+        });
+
+        renderTags();
+        window._driverLanguagesRenderTags = renderTags;
+    })();
 
     // Initialize when page loads
     document.addEventListener('DOMContentLoaded', function() {

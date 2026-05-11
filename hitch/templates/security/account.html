@@ -13,6 +13,9 @@
 {% endblock %}
 
 {% block content %}
+{% if not is_me %}
+<p><a href="https://hitchwiki.org/en/index.php?title=User_talk:{{ escaped_hitchwiki_username }}&action=edit&section=new">Reach out - write a message</a></p>
+{% endif %}
 <h1>User</h1>
 
 Username: {{ user.username }}<br>

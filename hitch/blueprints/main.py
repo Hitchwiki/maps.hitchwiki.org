@@ -15,6 +15,16 @@ from flask import (
 from flask_security import current_user
 
 from hitch.blueprints.publish_ride import ALLOWED_VEHICLE_KINDS, create_record_from_custom_object
+from hitch.blueprints.utils.driver_info_choices import (
+    ALLOWED_GENDERS,
+    ALLOWED_REASONS_TO_PICK_UP,
+    COUNTRY_CHOICES,
+    COUNTRY_CODES,
+    GENDER_CHOICES,
+    LANGUAGE_CHOICES,
+    LANGUAGE_CODES,
+    REASON_TO_PICK_UP_CHOICES,
+)
 from hitch.blueprints.utils.iso_country_codes import ISO_3166_1_ALPHA_2
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.extensions import db
@@ -224,7 +234,7 @@ def ride_form():
                     "destination_lat": "",
                     "destination_lon": "",
                     "wait": "",
-                    "signal": "",
+                    "signal": [],
                     "datetime_ride": "",
                     "arrival_datetime": "",
                     "co_hitchhiker": "",
@@ -233,7 +243,29 @@ def ride_form():
                     "vehicle_model": "",
                     "vehicle_license_plate_country": "",
                     "vehicle_license_plate_identifier": "",
+                    "driver_reason_to_pick_up": [],
+                    "driver_origin_country": "",
+                    "driver_age": "",
+                    "driver_gender": "",
+                    "driver_languages": [],
                 }
+
+                # Driver = the occupant with was_driver=True (first such occupant wins).
+                occupants = content.get("occupants") or []
+                driver = next((o for o in occupants if isinstance(o, dict) and o.get("was_driver")), None)
+                if driver:
+                    reasons = driver.get("reasons_to_pick_up") or []
+                    # Backwards-compat: model used to allow a single string here.
+                    if isinstance(reasons, str):
+                        reasons = [reasons]
+                    ride_data["driver_reason_to_pick_up"] = [r for r in reasons if r in ALLOWED_REASONS_TO_PICK_UP]
+                    ride_data["driver_origin_country"] = (driver.get("origin_country") or "").upper()
+                    yob = driver.get("year_of_birth")
+                    if yob:
+                        ride_data["driver_age"] = max(0, datetime.now().year - int(yob))
+                    ride_data["driver_gender"] = driver.get("gender") or ""
+                    langs = driver.get("languages") or []
+                    ride_data["driver_languages"] = [code for code in langs if code in LANGUAGE_CODES]
 
                 mot = content.get("mode_of_transportation") or {}
                 if isinstance(mot, dict):
@@ -271,16 +303,15 @@ def ride_form():
                         if arrival_time:
                             ride_data["arrival_datetime"] = arrival_time[:16]
 
-                # Extract signal from signals[0].methods
-                signals = content.get("signals", [])
-                if signals:
-                    methods = signals[0].get("methods", [])
-                    signal_map = {
-                        ("sign",): "sign",
-                        ("thumb",): "thumb",
-                        ("asking",): "ask",
-                    }
-                    ride_data["signal"] = signal_map.get(tuple(methods), "")
+                # Extract signals — flatten methods across all Signal entries
+                method_to_form = {"sign": "sign", "thumb": "thumb", "asking": "ask"}
+                selected = []
+                for sig in content.get("signals", []) or []:
+                    for method in sig.get("methods", []) or []:
+                        mapped = method_to_form.get(method)
+                        if mapped and mapped not in selected:
+                            selected.append(mapped)
+                ride_data["signal"] = selected
 
                 # Requirement: co-hitchhikers already on a ride cannot be removed when editing,
                 # only new ones can be added. "Already present" means either:
@@ -310,12 +341,21 @@ def ride_form():
             ride_data=ride_data,
             vehicle_kinds=VEHICLE_KIND_CHOICES,
             country_codes=ISO_3166_1_ALPHA_2,
+            country_choices=COUNTRY_CHOICES,
+            language_choices=LANGUAGE_CHOICES,
+            gender_choices=GENDER_CHOICES,
+            reason_to_pick_up_choices=REASON_TO_PICK_UP_CHOICES,
         )
 
     # POST request - process the form submission (same logic as experience route)
-    data = request.form
-    # make the ImmutableMultiDict into a normal dict
-    data = data.to_dict(flat=True)
+    form = request.form
+    # Preserve multi-valued fields before flattening: signal checkboxes and
+    # driver reason-to-pick-up checkboxes.
+    signal_values = form.getlist("signal")
+    driver_reason_values = form.getlist("driver_reason_to_pick_up")
+    data = form.to_dict(flat=True)
+    data["signal"] = signal_values
+    data["driver_reason_to_pick_up"] = driver_reason_values
     rating = int(data["rate"])
     data["wait"] = int(data["wait"]) if data["wait"] != "" else None
     wait = data["wait"]
@@ -326,10 +366,43 @@ def ride_form():
         f"Comment must be less than 10000 characters, the comment length is {len(comment)}."
     )
 
-    signal = data["signal"] if data["signal"] != "null" else None
-    assert signal in ["thumb", "sign", "ask", None], (
-        f"Signal must be one of thumb, sign, ask - the signal is {signal}."
-    )
+    signals_selected = [s for s in data["signal"] if s and s != "null"]
+    for s in signals_selected:
+        assert s in ["thumb", "sign", "ask"], f"Signal must be one of thumb, sign, ask - got {s}."
+    data["signal"] = signals_selected
+
+    # Driver-info parsing.
+    # reason_to_pick_up: validate against the enum allowlist.
+    driver_reasons = [r for r in data["driver_reason_to_pick_up"] if r]
+    for r in driver_reasons:
+        assert r in ALLOWED_REASONS_TO_PICK_UP, f"Invalid reason_to_pick_up: {r}"
+    data["driver_reason_to_pick_up"] = driver_reasons
+
+    # Gender: empty or one of the enum values.
+    driver_gender = (data.get("driver_gender") or "").strip()
+    assert driver_gender == "" or driver_gender in ALLOWED_GENDERS, f"Invalid driver gender: {driver_gender}"
+    data["driver_gender"] = driver_gender
+
+    # Age -> year_of_birth. We translate here so publish_ride doesn't need the current date.
+    driver_age_raw = (data.get("driver_age") or "").strip()
+    if driver_age_raw:
+        driver_age = int(driver_age_raw)
+        assert 0 <= driver_age <= 120, f"Driver age out of range: {driver_age}"
+        data["driver_year_of_birth"] = datetime.now().year - driver_age
+    else:
+        data["driver_year_of_birth"] = None
+
+    # Origin country: arrives as ISO alpha-2 code (the country picker stores codes).
+    driver_country = (data.get("driver_origin_country") or "").strip().upper()
+    assert driver_country == "" or driver_country in COUNTRY_CODES, f"Invalid driver origin country: {driver_country}"
+    data["driver_origin_country"] = driver_country
+
+    # Languages: comma-separated ISO 639-3 codes from the chip input.
+    driver_lang_raw = (data.get("driver_languages") or "").strip()
+    driver_languages = [code for code in (c.strip() for c in driver_lang_raw.split(",")) if code]
+    for code in driver_languages:
+        assert code in LANGUAGE_CODES, f"Invalid language code: {code}"
+    data["driver_languages"] = driver_languages
 
     # Validate vehicle fields: kind must be one of the allowed enum values (or empty),
     # license_plate_country must be a valid ISO 3166-1 alpha-2 code (or empty). Other

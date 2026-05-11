@@ -70,7 +70,7 @@ class ReasonToPickUpEnum(str, Enum):
     opposed = "opposed"
 
 class Occupant(Person, use_enum_values=True):
-    reasons_to_pick_up: Optional[ReasonToPickUpEnum] = None
+    reasons_to_pick_up: Optional[list[ReasonToPickUpEnum]] = None
 
 
 class KindEnum(str, Enum):
