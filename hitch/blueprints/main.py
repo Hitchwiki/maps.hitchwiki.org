@@ -29,6 +29,7 @@ from hitch.blueprints.utils.driver_info_choices import (
     REASON_TO_PICK_UP_CHOICES,
 )
 from hitch.blueprints.utils.iso_country_codes import ISO_3166_1_ALPHA_2
+from hitch.blueprints.utils.license_plate_country_codes import LICENSE_PLATE_COUNTRY_CHOICES
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.extensions import db
 from hitch.helpers import get_db
@@ -377,6 +378,7 @@ def ride_form():
             vehicle_kinds=VEHICLE_KIND_CHOICES,
             country_codes=ISO_3166_1_ALPHA_2,
             country_choices=COUNTRY_CHOICES,
+            license_plate_country_choices=LICENSE_PLATE_COUNTRY_CHOICES,
             language_choices=LANGUAGE_CHOICES,
             gender_choices=GENDER_CHOICES,
             reason_to_pick_up_choices=REASON_TO_PICK_UP_CHOICES,

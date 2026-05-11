@@ -159,12 +159,13 @@
                 </div>
                 <div class="col-sm-6" style="margin-bottom:8px;">
                     {% set selected_plate_code = ride_data.vehicle_license_plate_country if ride_data and ride_data.vehicle_license_plate_country else '' %}
-                    <input list="vehicle-plate-country-list" id="vehicle_license_plate_country_input" class="form-control" placeholder="License plate country (type to search)…" autocomplete="off"
+                    <input list="vehicle-plate-country-list" id="vehicle_license_plate_country_input" class="form-control" placeholder="License plate code (e.g. D, F, GB)…" autocomplete="off"
                            data-selected-code="{{ selected_plate_code }}">
                     <input type="hidden" id="vehicle_license_plate_country" name="vehicle_license_plate_country" value="{{ selected_plate_code }}">
+                    {# Searchable by the code that appears on the plate (e.g. "D" for Germany). data-code stores the ISO 3166-1 alpha-2 we persist. #}
                     <datalist id="vehicle-plate-country-list">
-                        {% for code, name in country_choices %}
-                        <option data-code="{{ code }}" value="{{ name }}"></option>
+                        {% for iso_code, plate_code, name in license_plate_country_choices %}
+                        <option data-code="{{ iso_code }}" value="{{ plate_code }}" label="{{ name }}"></option>
                         {% endfor %}
                     </datalist>
                 </div>
