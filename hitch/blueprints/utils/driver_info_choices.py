@@ -33,10 +33,27 @@ COUNTRY_CODE_BY_NAME = {name.lower(): code for code, name in COUNTRY_CHOICES}
 COUNTRY_NAME_BY_CODE = {code: name for code, name in COUNTRY_CHOICES}
 COUNTRY_CODES = {code for code, _ in COUNTRY_CHOICES}
 
+# Curated list of widely spoken languages (ISO 639-3). The full ~7000-entry
+# pycountry list is too noisy for a driver-info picker; pick the ones most
+# users will need.
+MAJOR_LANGUAGE_CODES = {
+    "eng", "spa", "fra", "deu", "ita", "por", "rus", "zho", "jpn", "kor",
+    "ara", "hin", "ben", "urd", "fas", "tur", "nld", "pol", "ukr", "ron",
+    "ces", "ell", "swe", "nor", "dan", "fin", "hun", "bul", "srp", "hrv",
+    "slk", "slv", "lit", "lav", "est", "heb", "tha", "vie", "ind", "msa",
+    "tgl", "swa", "afr", "cat", "eus", "isl", "sqi", "mkd", "bos", "kat",
+    "hye", "aze", "kaz", "uzb", "mon", "nep", "sin", "tam", "tel", "mal",
+    "kan", "mar", "guj", "pan", "ori", "asm", "amh", "som", "yor", "ibo",
+    "hau", "zul", "xho", "mlt", "gle", "cym", "epo", "lat",
+}
 # (alpha_3, name) — ISO 639-3 since the data standard example uses 3-letter codes.
-# Skip languages without a name; sort alphabetically by name.
+# Skip languages without a name; sort alphabetically by name. Filter to majors.
 LANGUAGE_CHOICES = sorted(
-    [(getattr(lang, "alpha_3", None), lang.name) for lang in pycountry.languages if getattr(lang, "alpha_3", None) and getattr(lang, "name", None)],
+    [
+        (getattr(lang, "alpha_3", None), lang.name)
+        for lang in pycountry.languages
+        if getattr(lang, "alpha_3", None) in MAJOR_LANGUAGE_CODES and getattr(lang, "name", None)
+    ],
     key=lambda x: x[1].lower(),
 )
 LANGUAGE_CODE_BY_NAME = {name.lower(): code for code, name in LANGUAGE_CHOICES}

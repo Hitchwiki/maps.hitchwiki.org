@@ -384,13 +384,12 @@ def ride_form():
 
     # POST request - process the form submission (same logic as experience route)
     form = request.form
-    # Preserve multi-valued fields before flattening: signal checkboxes and
-    # driver reason-to-pick-up checkboxes.
-    signal_values = form.getlist("signal")
-    driver_reason_values = form.getlist("driver_reason_to_pick_up")
     data = form.to_dict(flat=True)
-    data["signal"] = signal_values
-    data["driver_reason_to_pick_up"] = driver_reason_values
+    # Signal and reason-to-pick-up arrive as comma-separated codes from the chip widgets.
+    data["signal"] = [s.strip() for s in (data.get("signal") or "").split(",") if s.strip()]
+    data["driver_reason_to_pick_up"] = [
+        r.strip() for r in (data.get("driver_reason_to_pick_up") or "").split(",") if r.strip()
+    ]
     rating = int(data["rate"])
     data["wait"] = int(data["wait"]) if data["wait"] != "" else None
     wait = data["wait"]
