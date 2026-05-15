@@ -119,11 +119,10 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
     <ul class="no-style">
         <li><i class="fab fa-github"></i><a href="https://github.com/Hitchwiki/maps.hitchwiki.org">Contribute</a></li>
         <li><i class="fab fa-github"></i><a href="https://github.com/Hitchwiki/maps.hitchwiki.org/issues/new">Report bugs</a></li>
-        <li><i class="fa fa-download"></i>Download spots</li>
+        <li><i class="fa fa-download"></i>Download rides</li>
         <ul>
-            <li><a href="/dump.sqlite">As SQLite</a></li>
-            <li><a href="/dump.csv">As CSV</a></li>
-            <li><a href="javascript:exportAsGPX()">As GPX</a></li>
+            <li><a href="https://huggingface.co/datasets/Hitchwiki/hitchhiking-rides-dataset">Full dataset</a></li>
+            <li><a href="javascript:exportAsGPX()">As GPX (to import into offline maps)</a></li>
         </ul>
         <li><i class="fa fa-map-pin"></i><a href="/recent">Recent rides</a></li>
         <li><i class="fa fa-chart-simple"></i><a href="/dashboard.html">Charts & graphs</a></li>
@@ -318,7 +317,7 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
         <h2>Success!</h2>
         <p>Thank you for your contribution!</p>
         <p>We'd love to hear your thoughts! <a href="https://docs.google.com/forms/d/e/1FAIpQLSdGLlPKhjRXIjG2VB-BlkxbsagNeXce5eI3sKFHe-_scJMFnw/viewform?usp=header" target="_blank" rel="noopener">Share feedback</a> to help us improve Hitchhiking Map.</p>
-        <p>Your review will appear on the map within 10 minutes. Refreshing may be needed.</p>
+        <p>Your ride will appear on the map within 10 minutes. Refreshing may be needed.</p>
         <button id="success-close-btn" class="success-close-btn">Continue</button>
     </div>
 </div>
