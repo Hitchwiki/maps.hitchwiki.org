@@ -130,6 +130,28 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     color: #007bff;
     text-decoration: none;
 }
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.share-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    color: #333;
+    font: inherit;
+    font-size: 0.85em;
+    cursor: pointer;
+    text-decoration: none;
+}
+.share-btn:hover { background: #e4e4e4; }
+.share-btn.copied { background: #d4edda; border-color: #28a745; color: #155724; }
 </style>
 {% endblock %}
 
@@ -158,9 +180,15 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
                 {% endif %}
             </h1>
         </div>
-        {% if ride.is_owner %}
-            <a href="/ride?edit={{ ride.d_tag }}" class="edit-link"><i class="fa fa-pen"></i> Edit ride</a>
-        {% endif %}
+        <div class="header-actions">
+            <button type="button" class="share-btn" id="share-btn" data-share-url="{{ url_for('main.ride_detail', d_tag=ride.d_tag, _external=True) }}" data-share-title="Hitchhiking ride on Hitchmap">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                <span class="share-btn-label">Share</span>
+            </button>
+            {% if ride.is_owner %}
+                <a href="/ride?edit={{ ride.d_tag }}" class="edit-link"><i class="fa fa-pen"></i> Edit ride</a>
+            {% endif %}
+        </div>
     </div>
 
     <div class="location-grid">
@@ -334,6 +362,30 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     {% if ride.dest_lat is not none and ride.dest_lon is not none %}
     initMapThumbnail('dest-map', {{ ride.dest_lat }}, {{ ride.dest_lon }}, 7);
     {% endif %}
+
+    const shareBtn = document.getElementById('share-btn');
+    if (shareBtn) {
+        shareBtn.addEventListener('click', async () => {
+            const url = shareBtn.dataset.shareUrl;
+            const title = shareBtn.dataset.shareTitle;
+            try {
+                if (navigator.share) {
+                    await navigator.share({ title: title, url: url });
+                    return;
+                }
+            } catch (e) { if (e.name === 'AbortError') return; }
+            try {
+                await navigator.clipboard.writeText(url);
+                const label = shareBtn.querySelector('.share-btn-label');
+                const prev = label.textContent;
+                shareBtn.classList.add('copied');
+                label.textContent = 'Link copied!';
+                setTimeout(() => { shareBtn.classList.remove('copied'); label.textContent = prev; }, 1800);
+            } catch (e) {
+                window.prompt('Copy this link:', url);
+            }
+        });
+    }
 })();
 </script>
 {% endblock %}
