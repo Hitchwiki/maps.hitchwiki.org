@@ -41,6 +41,31 @@ Join the conversation about a map for hitchhiking in our [Signal Chat](https://s
 
 This repository, [`Hitchwiki/maps.hitchwiki.org`](https://github.com/Hitchwiki/maps.hitchwiki.org), is a fork of [`hitchmap/hitchmap`](https://github.com/hitchmap/hitchmap).
 
+## Accessing the data
+
+Every ride submitted through maps.hitchwiki.org is published to the Nostr network
+following the [hitchhiking data standard](https://github.com/Hitchwiki/hitchhiking-data-standard),
+so the data is open for anyone to use. There are two supported ways to consume it:
+
+### For researchers — download the full dataset
+
+A periodically exported snapshot of all rides is published on Hugging Face:
+
+[**Hitchwiki/hitchhiking-rides-dataset**](https://huggingface.co/datasets/Hitchwiki/hitchhiking-rides-dataset)
+
+This is the simplest option when you just want a single, ready-to-analyze file.
+
+### For other hitchhiking sites — sync rides continuously
+
+If you run another hitchhiking platform and want to stay up to date, fetch rides
+straight from the Nostr relays rather than downloading static snapshots. The
+`fetch_hitchhiking_events` script does this and can filter by date and source,
+so you can pull only recent rides or only those from a given app:
+
+[**fetch_hitchhiking_events**](https://github.com/Hitchwiki/hitchhiking-data-standard/tree/main/nostr/fetch_hitchhiking_events)
+
+See that script's README for setup and usage examples.
+
 ## Getting Started locally (Docker setup below)
 
 Set up Python virtual environment, install requirements and download the latest database dump:
