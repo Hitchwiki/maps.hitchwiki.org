@@ -219,6 +219,45 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
         </div>
     </div>
 </div>
+<!-- Insights pane: shown instead of the map when #insights is in the URL hash.
+     The filter pane above still drives which rides are summarised here. -->
+<div id="insights-pane" class="insights-pane" style="display: none;">
+    <div class="insights-inner">
+        <header class="insights-header">
+            <h2>Insights</h2>
+            <p class="insights-subtitle" id="insights-subtitle">Stats for the rides currently selected by your filters.</p>
+        </header>
+
+        <section class="insights-stats" id="insights-stats" aria-label="Summary statistics"></section>
+
+        <section class="insights-chart-block">
+            <div class="insights-chart-head">
+                <h3>Waiting time</h3>
+                <span class="insights-chart-unit">minutes</span>
+            </div>
+            <div class="insights-chart-wrap">
+                <canvas id="insights-wait-chart" class="insights-chart" aria-label="Histogram of waiting time"></canvas>
+                <div class="insights-chart-empty" id="insights-wait-empty" hidden>No waiting-time data for these rides.</div>
+            </div>
+        </section>
+
+        <section class="insights-chart-block">
+            <div class="insights-chart-head">
+                <h3>Ride distance</h3>
+                <span class="insights-chart-unit">kilometres</span>
+            </div>
+            <div class="insights-chart-wrap">
+                <canvas id="insights-distance-chart" class="insights-chart" aria-label="Histogram of ride distance"></canvas>
+                <div class="insights-chart-empty" id="insights-distance-empty" hidden>No distance data for these rides.</div>
+            </div>
+        </section>
+
+        <p class="insights-foot">
+            <a href="#" id="insights-back-link">← Back to map</a>
+        </p>
+    </div>
+</div>
+
 <!-- Heatmap legend pane (shown when heatmap is active) -->
 <div class="heatmap-legend-pane" id="heatmap-legend-pane" style="display: none;">
     <div class="filter-pane-header">
@@ -292,6 +331,10 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
         <i class="fa fa-fire"></i>
         <span id="heatmap-toggle-text">Heatmap</span>
     </button>
+    <a class="action-btn" href="#insights" id="action-insights" title="Insights">
+        <i class="fa-solid fa-chart-column"></i>
+        <span>Insights</span>
+    </a>
     <button class="action-btn" id="action-route" title="Route planning">
         <i class="fa-solid fa-route"></i>
         <span>Route</span>

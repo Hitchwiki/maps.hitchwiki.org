@@ -631,6 +631,9 @@ for r in rides_data:
         "t": ts_by_d.get(r["id"]),
         "r": r["rating"],
         "km": distance_by_d.get(r["id"]),
+        # Included so the /#insights view can plot a waiting-time histogram from the
+        # rides index alone, without fetching every per-spot detail file.
+        "w": r["wait"],
         "osm": bool(has_osm),
         "wiki": bool(has_wiki),
         "cp": bool(has_cp),

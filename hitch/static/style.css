@@ -1204,3 +1204,187 @@ ul.no-style {
     top: 32px;
   }
 }
+
+/* ===== Insights view (#insights) =====
+   Covers the map area without removing the filter pane on top of it. Sits
+   above the map (z 1500) but below the filter pane (z 999, but the pane is
+   positioned absolutely at top:100px so it's still visible above this). */
+.insights-pane {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1500;
+  background: #f6f7fb;
+  overflow-y: auto;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #1a1a1a;
+  -webkit-overflow-scrolling: touch;
+}
+
+.insights-inner {
+  /* Leave space at the top for the search bar (top:48px height ~44px) and
+     filter pane (top:100px) so they stay readable above the scrolling content.
+     Bottom padding leaves room for the bottom action pane. */
+  padding: 280px 24px calc(96px + env(safe-area-inset-bottom, 0px));
+  max-width: 980px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.insights-header {
+  margin-bottom: 18px;
+}
+
+.insights-header h2 {
+  margin: 0 0 4px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1a1a;
+  letter-spacing: -0.2px;
+}
+
+.insights-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: #5f6368;
+}
+
+.insights-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.insights-stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 6px rgba(0, 0, 0, 0.06);
+}
+
+.insights-stat-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #5f6368;
+  margin-bottom: 10px;
+}
+
+.insights-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 4px 0;
+  font-size: 13px;
+}
+
+.insights-stat-row + .insights-stat-row {
+  border-top: 1px dashed #eef0f4;
+}
+
+.insights-stat-key {
+  color: #5f6368;
+}
+
+.insights-stat-val {
+  color: #1a1a1a;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.insights-stat-empty {
+  color: #888;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.insights-chart-block {
+  background: white;
+  border-radius: 14px;
+  padding: 16px 18px 12px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 6px rgba(0, 0, 0, 0.06);
+}
+
+.insights-chart-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.insights-chart-head h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.insights-chart-unit {
+  font-size: 11px;
+  color: #5f6368;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.insights-chart-wrap {
+  position: relative;
+  width: 100%;
+  height: 240px;
+}
+
+.insights-chart {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.insights-chart-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-style: italic;
+  font-size: 13px;
+}
+
+.insights-foot {
+  text-align: center;
+  margin: 6px 0 0;
+}
+
+.insights-foot a {
+  color: #1a73e8;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.insights-foot a:hover {
+  text-decoration: underline;
+}
+
+/* While insights are showing, suppress map overlays that would distract or
+   intercept clicks behind the pane. */
+body.showing-insights .leaflet-control-container,
+body.showing-insights #spots-loading-overlay,
+body.showing-insights .heatmap-legend-pane {
+  display: none !important;
+}
+
+@media only screen and (max-width: 700px) {
+  .insights-inner {
+    padding: 240px 14px calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+  .insights-chart-wrap {
+    height: 200px;
+  }
+  .insights-header h2 {
+    font-size: 19px;
+  }
+}

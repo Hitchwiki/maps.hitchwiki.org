@@ -1298,7 +1298,16 @@ async function navigate() {
 
   let args = window.location.hash.slice(1).split("/");
   let mainArgs = args[0].split(",");
-  
+
+  // #insights swaps the map for the insights view. Filter pane stays visible
+  // so users can keep narrowing the selection and see the histograms update.
+  if (mainArgs[0] === "insights") {
+    await showInsightsView();
+    return;
+  } else {
+    hideInsightsView();
+  }
+
   if (mainArgs[0] == "location") {
     clear();
     map.setView([+mainArgs[1], +mainArgs[2]], mainArgs[3]);
@@ -1345,6 +1354,463 @@ async function navigate() {
   } else {
     clear();
   }
+}
+
+// =====================
+// Insights view (#insights)
+// =====================
+// Renders histograms of waiting time + distance plus summary stats for the
+// rides currently selected by the filter pane. The filter pane stays mounted
+// above the insights pane, so filter changes re-trigger navigate() →
+// showInsightsView() and the charts refresh in place.
+
+const INSIGHTS_BAR_COLOR = "#1a73e8";
+const INSIGHTS_BAR_COLOR_TOP = "#4a9bff";
+const INSIGHTS_MEAN_COLOR = "#d9342b";
+const INSIGHTS_MEDIAN_COLOR = "#0f9d58";
+
+function applyRideFilters(rides) {
+  const normalizeFirstLetter = (s) =>
+    s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+  const username = userFilter.value ? normalizeFirstLetter(userFilter.value) : null;
+  const wantedKind = vehicleFilter.value || null;
+  const minMs = minDateFilter.value
+    ? Date.parse(minDateFilter.value + "T00:00:00Z")
+    : null;
+  const maxMs = maxDateFilter.value
+    ? Date.parse(maxDateFilter.value + "T23:59:59.999Z")
+    : null;
+  const commentNeedle = textFilter.value ? textFilter.value.toLowerCase() : null;
+  const minDistanceKm = distanceFilter.value ? parseFloat(distanceFilter.value) : null;
+  const minRides = minRidesFilter.value ? parseInt(minRidesFilter.value, 10) : null;
+  const recentCutoffMs = recentToggle.checked
+    ? Date.now() - 24 * 60 * 60 * 1000
+    : null;
+  const osmOnly = osmToggle.checked;
+  const wikiOnly = hitchwikiToggle.checked;
+  const cpOnly = carPoolingToggle.checked;
+
+  let filtered = rides.filter((ride) => {
+    if (username && !(ride.u && normalizeFirstLetter(ride.u).includes(username)))
+      return false;
+    // Match the map's vehicle filter: rides with no vehicle counted as cars.
+    if (wantedKind && ride.v !== wantedKind && !(wantedKind === "car" && ride.v == null))
+      return false;
+    if (minMs != null || maxMs != null) {
+      if (ride.rd == null) return false;
+      if (minMs != null && ride.rd < minMs) return false;
+      if (maxMs != null && ride.rd > maxMs) return false;
+    }
+    if (commentNeedle && !(ride.c && ride.c.toLowerCase().includes(commentNeedle)))
+      return false;
+    if (minDistanceKm != null && !(ride.km != null && ride.km >= minDistanceKm))
+      return false;
+    if (recentCutoffMs != null && !(ride.t != null && ride.t >= recentCutoffMs))
+      return false;
+    if (osmOnly && !ride.osm) return false;
+    if (wikiOnly && !ride.wiki) return false;
+    if (cpOnly && !ride.cp) return false;
+    return true;
+  });
+
+  if (minRides != null) {
+    const ridesPerSpot = new Map();
+    for (const r of filtered) {
+      ridesPerSpot.set(r.sid, (ridesPerSpot.get(r.sid) || 0) + 1);
+    }
+    filtered = filtered.filter((r) => (ridesPerSpot.get(r.sid) || 0) >= minRides);
+  }
+
+  return filtered;
+}
+
+function anyFilterActive() {
+  return Boolean(
+    userFilter.value ||
+      textFilter.value ||
+      distanceFilter.value ||
+      minRidesFilter.value ||
+      vehicleFilter.value ||
+      minDateFilter.value ||
+      maxDateFilter.value ||
+      recentToggle.checked ||
+      osmToggle.checked ||
+      carPoolingToggle.checked ||
+      hitchwikiToggle.checked
+  );
+}
+
+function computeStats(values) {
+  if (!values.length) return null;
+  const sorted = values.slice().sort((a, b) => a - b);
+  const n = sorted.length;
+  const sum = sorted.reduce((a, b) => a + b, 0);
+  const mean = sum / n;
+  const median =
+    n % 2 ? sorted[(n - 1) / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
+  const variance =
+    n > 1 ? sorted.reduce((acc, v) => acc + (v - mean) ** 2, 0) / (n - 1) : 0;
+  const stdev = Math.sqrt(variance);
+  return {
+    n,
+    mean,
+    median,
+    stdev,
+    min: sorted[0],
+    max: sorted[n - 1],
+  };
+}
+
+// Freedman–Diaconis bin width with a Sturges fallback; clamped to [8, 40] bins
+// so very small or very wide datasets still render readably.
+function chooseBins(sortedValues) {
+  const n = sortedValues.length;
+  if (n < 2) return 1;
+  const q1 = sortedValues[Math.floor((n - 1) * 0.25)];
+  const q3 = sortedValues[Math.floor((n - 1) * 0.75)];
+  const iqr = q3 - q1;
+  const range = sortedValues[n - 1] - sortedValues[0];
+  if (range === 0) return 1;
+  let bins;
+  if (iqr > 0) {
+    const width = (2 * iqr) / Math.cbrt(n);
+    bins = Math.ceil(range / width);
+  } else {
+    bins = Math.ceil(Math.log2(n) + 1);
+  }
+  return Math.max(8, Math.min(40, bins));
+}
+
+// Pick a "nice" axis tick step (1, 2, 2.5, 5 × 10^k).
+function niceStep(rawStep) {
+  if (rawStep <= 0) return 1;
+  const exp = Math.floor(Math.log10(rawStep));
+  const frac = rawStep / Math.pow(10, exp);
+  let nice;
+  if (frac < 1.5) nice = 1;
+  else if (frac < 3) nice = 2;
+  else if (frac < 4) nice = 2.5;
+  else if (frac < 7) nice = 5;
+  else nice = 10;
+  return nice * Math.pow(10, exp);
+}
+
+function formatTick(v, decimals) {
+  if (decimals === 0) return Math.round(v).toString();
+  return v.toFixed(decimals);
+}
+
+function drawHistogram(canvas, values, opts) {
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = canvas.clientWidth || 400;
+  const cssH = canvas.clientHeight || 220;
+  canvas.width = Math.round(cssW * dpr);
+  canvas.height = Math.round(cssH * dpr);
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, cssW, cssH);
+
+  if (!values || values.length === 0) return;
+
+  const sorted = values.slice().sort((a, b) => a - b);
+  const min = sorted[0];
+  const max = sorted[sorted.length - 1];
+  let bins = chooseBins(sorted);
+
+  let binWidth = (max - min) / bins;
+  let lo = min;
+  let hi = max;
+  if (binWidth === 0) {
+    binWidth = 1;
+    lo = min - 0.5;
+    hi = max + 0.5;
+    bins = 1;
+  } else {
+    binWidth = niceStep(binWidth);
+    lo = Math.floor(min / binWidth) * binWidth;
+    hi = Math.ceil(max / binWidth) * binWidth;
+    if (hi === lo) hi = lo + binWidth;
+    bins = Math.round((hi - lo) / binWidth);
+  }
+
+  const counts = new Array(bins).fill(0);
+  for (const v of sorted) {
+    let idx = Math.floor((v - lo) / binWidth);
+    if (idx >= bins) idx = bins - 1;
+    if (idx < 0) idx = 0;
+    counts[idx]++;
+  }
+  const maxCount = Math.max(...counts);
+
+  // Layout
+  const padL = 44;
+  const padR = 16;
+  const padT = 14;
+  const padB = 36;
+  const plotW = cssW - padL - padR;
+  const plotH = cssH - padT - padB;
+
+  // Y axis ticks
+  const yStep = niceStep(maxCount / 4 || 1);
+  const yMax = Math.ceil(maxCount / yStep) * yStep || yStep;
+
+  // Grid + Y labels
+  ctx.font = "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+  ctx.fillStyle = "#888";
+  ctx.strokeStyle = "#eee";
+  ctx.lineWidth = 1;
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+  for (let y = 0; y <= yMax; y += yStep) {
+    const py = padT + plotH - (y / yMax) * plotH;
+    ctx.beginPath();
+    ctx.moveTo(padL, py);
+    ctx.lineTo(padL + plotW, py);
+    ctx.stroke();
+    ctx.fillText(String(Math.round(y)), padL - 6, py);
+  }
+
+  // Bars (with a slight top→bottom gradient for a cleaner look)
+  const barGap = bins > 20 ? 1 : 2;
+  for (let i = 0; i < bins; i++) {
+    if (counts[i] === 0) continue;
+    const bx = padL + (i / bins) * plotW + barGap / 2;
+    const bw = plotW / bins - barGap;
+    const bh = (counts[i] / yMax) * plotH;
+    const by = padT + plotH - bh;
+    const grad = ctx.createLinearGradient(0, by, 0, by + bh);
+    grad.addColorStop(0, INSIGHTS_BAR_COLOR_TOP);
+    grad.addColorStop(1, INSIGHTS_BAR_COLOR);
+    ctx.fillStyle = grad;
+    // Rounded top corners — falls back to a plain rect when unsupported
+    const r = Math.min(3, bw / 2, bh);
+    ctx.beginPath();
+    if (typeof ctx.roundRect === "function") {
+      ctx.roundRect(bx, by, bw, bh, [r, r, 0, 0]);
+    } else {
+      ctx.rect(bx, by, bw, bh);
+    }
+    ctx.fill();
+  }
+
+  // X axis line
+  ctx.strokeStyle = "#bbb";
+  ctx.beginPath();
+  ctx.moveTo(padL, padT + plotH);
+  ctx.lineTo(padL + plotW, padT + plotH);
+  ctx.stroke();
+  // Y axis line
+  ctx.beginPath();
+  ctx.moveTo(padL, padT);
+  ctx.lineTo(padL, padT + plotH);
+  ctx.stroke();
+
+  // X axis ticks (target ~6 labels, snap to bin edges)
+  const xTickStep = niceStep((hi - lo) / 6);
+  const decimals = xTickStep < 1 ? Math.min(2, Math.ceil(-Math.log10(xTickStep))) : 0;
+  ctx.fillStyle = "#666";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  const xStart = Math.ceil(lo / xTickStep) * xTickStep;
+  for (let xv = xStart; xv <= hi + 1e-9; xv += xTickStep) {
+    const px = padL + ((xv - lo) / (hi - lo)) * plotW;
+    ctx.strokeStyle = "#bbb";
+    ctx.beginPath();
+    ctx.moveTo(px, padT + plotH);
+    ctx.lineTo(px, padT + plotH + 4);
+    ctx.stroke();
+    ctx.fillText(formatTick(xv, decimals), px, padT + plotH + 7);
+  }
+
+  // Mean & median lines
+  const stats = computeStats(sorted);
+  const drawMarker = (value, color, label) => {
+    const px = padL + ((value - lo) / (hi - lo)) * plotW;
+    if (px < padL || px > padL + plotW) return;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.moveTo(px, padT);
+    ctx.lineTo(px, padT + plotH);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.lineWidth = 1;
+    // Label badge
+    ctx.fillStyle = color;
+    ctx.font = "10px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    const txt = `${label} ${formatTick(value, decimals + (decimals === 0 ? 0 : 0))}`;
+    const tw = ctx.measureText(txt).width + 8;
+    const tx = Math.max(padL + tw / 2, Math.min(padL + plotW - tw / 2, px));
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.fillRect(tx - tw / 2, padT + 2, tw, 14);
+    ctx.fillStyle = color;
+    ctx.fillText(txt, tx, padT + 4);
+  };
+  drawMarker(stats.mean, INSIGHTS_MEAN_COLOR, "mean");
+  drawMarker(stats.median, INSIGHTS_MEDIAN_COLOR, "med");
+
+  // Axis title
+  if (opts && opts.xLabel) {
+    ctx.fillStyle = "#555";
+    ctx.font = "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "bottom";
+    ctx.fillText(opts.xLabel, padL + plotW, cssH - 4);
+  }
+}
+
+function fmtNum(v, unit, decimals) {
+  if (v == null || Number.isNaN(v)) return "–";
+  const d = decimals == null ? (Math.abs(v) >= 100 ? 0 : 1) : decimals;
+  return `${v.toFixed(d)}${unit ? " " + unit : ""}`;
+}
+
+function renderStatsCard(containerId, statsSet) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const blocks = [
+    {
+      title: "Selection",
+      rows: [
+        ["Rides", statsSet.totalCount.toLocaleString()],
+        ["Spots", statsSet.spotCount.toLocaleString()],
+      ],
+    },
+    {
+      title: "Waiting time",
+      empty: !statsSet.wait,
+      rows: statsSet.wait
+        ? [
+            ["Samples", statsSet.wait.n.toLocaleString()],
+            ["Mean", fmtNum(statsSet.wait.mean, "min")],
+            ["Median", fmtNum(statsSet.wait.median, "min")],
+            ["Std dev", fmtNum(statsSet.wait.stdev, "min")],
+            ["Range", `${fmtNum(statsSet.wait.min, "")} – ${fmtNum(statsSet.wait.max, "min")}`],
+          ]
+        : [],
+    },
+    {
+      title: "Ride distance",
+      empty: !statsSet.distance,
+      rows: statsSet.distance
+        ? [
+            ["Samples", statsSet.distance.n.toLocaleString()],
+            ["Mean", fmtNum(statsSet.distance.mean, "km")],
+            ["Median", fmtNum(statsSet.distance.median, "km")],
+            ["Std dev", fmtNum(statsSet.distance.stdev, "km")],
+            ["Range", `${fmtNum(statsSet.distance.min, "")} – ${fmtNum(statsSet.distance.max, "km")}`],
+          ]
+        : [],
+    },
+  ];
+  el.innerHTML = blocks
+    .map(
+      (b) => `
+      <div class="insights-stat-card">
+        <div class="insights-stat-title">${b.title}</div>
+        ${
+          b.empty
+            ? '<div class="insights-stat-empty">No data</div>'
+            : b.rows
+                .map(
+                  ([k, v]) =>
+                    `<div class="insights-stat-row"><span class="insights-stat-key">${k}</span><span class="insights-stat-val">${v}</span></div>`
+                )
+                .join("")
+        }
+      </div>`
+    )
+    .join("");
+}
+
+function setInsightsSubtitle(text) {
+  const el = document.getElementById("insights-subtitle");
+  if (el) el.textContent = text;
+}
+
+let insightsResizeBound = false;
+let insightsLastDraw = null; // { waitValues, distValues }
+
+function redrawInsightsCharts() {
+  if (!insightsLastDraw) return;
+  const waitCanvas = document.getElementById("insights-wait-chart");
+  const distCanvas = document.getElementById("insights-distance-chart");
+  drawHistogram(waitCanvas, insightsLastDraw.waitValues, { xLabel: "minutes" });
+  drawHistogram(distCanvas, insightsLastDraw.distValues, { xLabel: "kilometres" });
+}
+
+async function showInsightsView() {
+  const pane = document.getElementById("insights-pane");
+  if (!pane) return;
+
+  pane.style.display = "block";
+  document.body.classList.add("showing-insights");
+
+  // Hide any open sidebars / sheets so the insights view has the screen.
+  bar();
+  document.body.classList.remove("menu", "adding-spot", "reporting-duplicate");
+
+  // Load rides index (cached after first call).
+  const rides = await loadRidesIndex();
+  const filtered = anyFilterActive() ? applyRideFilters(rides) : rides;
+
+  const waitValues = filtered
+    .map((r) => r.w)
+    .filter((v) => v != null && !Number.isNaN(v) && v >= 0);
+  const distValues = filtered
+    .map((r) => r.km)
+    .filter((v) => v != null && !Number.isNaN(v) && v >= 0);
+
+  const stats = {
+    totalCount: filtered.length,
+    spotCount: new Set(filtered.map((r) => r.sid)).size,
+    wait: computeStats(waitValues),
+    distance: computeStats(distValues),
+  };
+
+  renderStatsCard("insights-stats", stats);
+  setInsightsSubtitle(
+    anyFilterActive()
+      ? `Showing ${stats.totalCount.toLocaleString()} rides matching your active filters.`
+      : `Showing all ${stats.totalCount.toLocaleString()} rides. Use the filters above to narrow the selection.`
+  );
+
+  const waitEmpty = document.getElementById("insights-wait-empty");
+  const distEmpty = document.getElementById("insights-distance-empty");
+  if (waitEmpty) waitEmpty.hidden = waitValues.length > 0;
+  if (distEmpty) distEmpty.hidden = distValues.length > 0;
+
+  insightsLastDraw = { waitValues, distValues };
+  // Wait one frame so the pane has its final size before measuring canvases.
+  requestAnimationFrame(redrawInsightsCharts);
+
+  if (!insightsResizeBound) {
+    window.addEventListener("resize", () => {
+      if (document.body.classList.contains("showing-insights")) {
+        redrawInsightsCharts();
+      }
+    });
+    const backLink = document.getElementById("insights-back-link");
+    if (backLink) {
+      backLink.addEventListener("click", (e) => {
+        e.preventDefault();
+        navigateHome();
+      });
+    }
+    insightsResizeBound = true;
+  }
+}
+
+function hideInsightsView() {
+  const pane = document.getElementById("insights-pane");
+  if (!pane) return;
+  if (pane.style.display !== "none") {
+    pane.style.display = "none";
+  }
+  document.body.classList.remove("showing-insights");
 }
 
 // Map Controls
