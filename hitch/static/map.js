@@ -1747,6 +1747,32 @@ function setInsightsSubtitle(text) {
 
 let insightsResizeBound = false;
 let insightsLastDraw = null; // { waitValues, distValues }
+// Original DOM location of the filter pane, so we can put it back when leaving
+// the insights view. The same node is moved (not cloned) so all event
+// listeners and state remain attached.
+let filterPaneOriginalParent = null;
+let filterPaneOriginalNext = null;
+
+function moveFilterPaneIntoInsights() {
+  const pane = document.getElementById("filter-pane");
+  const slot = document.getElementById("insights-filter-slot");
+  if (!pane || !slot) return;
+  if (pane.parentNode === slot) return;
+  filterPaneOriginalParent = pane.parentNode;
+  filterPaneOriginalNext = pane.nextSibling;
+  slot.appendChild(pane);
+}
+
+function restoreFilterPaneFromInsights() {
+  const pane = document.getElementById("filter-pane");
+  if (!pane || !filterPaneOriginalParent) return;
+  if (pane.parentNode === filterPaneOriginalParent) return;
+  if (filterPaneOriginalNext && filterPaneOriginalNext.parentNode === filterPaneOriginalParent) {
+    filterPaneOriginalParent.insertBefore(pane, filterPaneOriginalNext);
+  } else {
+    filterPaneOriginalParent.appendChild(pane);
+  }
+}
 
 function redrawInsightsCharts() {
   if (!insightsLastDraw) return;
@@ -1762,6 +1788,7 @@ async function showInsightsView() {
 
   pane.style.display = "block";
   document.body.classList.add("showing-insights");
+  moveFilterPaneIntoInsights();
 
   // Hide any open sidebars / sheets so the insights view has the screen.
   bar();
@@ -1825,6 +1852,7 @@ function hideInsightsView() {
     pane.style.display = "none";
   }
   document.body.classList.remove("showing-insights");
+  restoreFilterPaneFromInsights();
 }
 
 // Map Controls

@@ -237,6 +237,9 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
     <div class="insights-inner">
         <header class="insights-header">
             <h2>Insights</h2>
+            <!-- The filter pane is moved into this slot while #insights is active so
+                 users can adjust filters without leaving the page. -->
+            <div id="insights-filter-slot"></div>
             <p class="insights-subtitle" id="insights-subtitle">Stats for the rides currently selected by your filters.</p>
         </header>
 
