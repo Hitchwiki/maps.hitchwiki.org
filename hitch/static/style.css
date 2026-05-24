@@ -1332,6 +1332,48 @@ ul.no-style {
   margin-bottom: 6px;
 }
 
+/* Stats line sitting directly above each histogram. Renders as chip-like
+   key/value pairs that wrap on narrow screens. */
+.insights-chart-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin: 6px 0 12px;
+  padding: 8px 10px;
+  background: #f6f8fc;
+  border: 1px solid #e8ecf3;
+  border-radius: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.insights-summary-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.insights-summary-key {
+  color: #5f6368;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  font-size: 10.5px;
+}
+
+.insights-summary-val {
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.insights-chart-note {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #888;
+  font-style: italic;
+  min-height: 14px;
+}
+
 .insights-chart-head h3 {
   margin: 0;
   font-size: 15px;

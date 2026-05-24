@@ -250,10 +250,12 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
                 <h3>Waiting time</h3>
                 <span class="insights-chart-unit">minutes</span>
             </div>
+            <div class="insights-chart-summary" id="insights-wait-summary"></div>
             <div class="insights-chart-wrap">
                 <canvas id="insights-wait-chart" class="insights-chart" aria-label="Histogram of waiting time"></canvas>
                 <div class="insights-chart-empty" id="insights-wait-empty" hidden>No waiting-time data for these rides.</div>
             </div>
+            <div class="insights-chart-note" id="insights-wait-note"></div>
         </section>
 
         <section class="insights-chart-block">
@@ -261,10 +263,12 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
                 <h3>Ride distance</h3>
                 <span class="insights-chart-unit">kilometres</span>
             </div>
+            <div class="insights-chart-summary" id="insights-distance-summary"></div>
             <div class="insights-chart-wrap">
                 <canvas id="insights-distance-chart" class="insights-chart" aria-label="Histogram of ride distance"></canvas>
                 <div class="insights-chart-empty" id="insights-distance-empty" hidden>No distance data for these rides.</div>
             </div>
+            <div class="insights-chart-note" id="insights-distance-note"></div>
         </section>
 
         <p class="insights-foot">

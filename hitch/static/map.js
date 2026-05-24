@@ -1375,8 +1375,9 @@ async function navigate() {
 
 const INSIGHTS_BAR_COLOR = "#1a73e8";
 const INSIGHTS_BAR_COLOR_TOP = "#4a9bff";
-const INSIGHTS_MEAN_COLOR = "#d9342b";
-const INSIGHTS_MEDIAN_COLOR = "#0f9d58";
+// Hide bars whose value is more than this many stdevs from the mean so a few
+// extreme outliers don't squash the rest of the distribution into one bin.
+const INSIGHTS_OUTLIER_STDEVS = 3;
 
 function applyRideFilters(rides) {
   const normalizeFirstLetter = (s) =>
@@ -1514,6 +1515,19 @@ function formatTick(v, decimals) {
   return v.toFixed(decimals);
 }
 
+// Returns { values, hidden } where `values` is the clipped sample (within
+// mean ± INSIGHTS_OUTLIER_STDEVS · stdev) and `hidden` is how many were
+// dropped. The original sample is preserved for the stats line above the chart.
+function clipForHistogram(values) {
+  if (!values || values.length < 2) return { values: values || [], hidden: 0 };
+  const stats = computeStats(values);
+  if (!stats || !(stats.stdev > 0)) return { values, hidden: 0 };
+  const lo = stats.mean - INSIGHTS_OUTLIER_STDEVS * stats.stdev;
+  const hi = stats.mean + INSIGHTS_OUTLIER_STDEVS * stats.stdev;
+  const kept = values.filter((v) => v >= lo && v <= hi);
+  return { values: kept, hidden: values.length - kept.length };
+}
+
 function drawHistogram(canvas, values, opts) {
   const dpr = window.devicePixelRatio || 1;
   const cssW = canvas.clientWidth || 400;
@@ -1636,36 +1650,6 @@ function drawHistogram(canvas, values, opts) {
     ctx.fillText(formatTick(xv, decimals), px, padT + plotH + 7);
   }
 
-  // Mean & median lines
-  const stats = computeStats(sorted);
-  const drawMarker = (value, color, label) => {
-    const px = padL + ((value - lo) / (hi - lo)) * plotW;
-    if (px < padL || px > padL + plotW) return;
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.5;
-    ctx.setLineDash([4, 3]);
-    ctx.beginPath();
-    ctx.moveTo(px, padT);
-    ctx.lineTo(px, padT + plotH);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.lineWidth = 1;
-    // Label badge
-    ctx.fillStyle = color;
-    ctx.font = "10px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "top";
-    const txt = `${label} ${formatTick(value, decimals + (decimals === 0 ? 0 : 0))}`;
-    const tw = ctx.measureText(txt).width + 8;
-    const tx = Math.max(padL + tw / 2, Math.min(padL + plotW - tw / 2, px));
-    ctx.fillStyle = "rgba(255,255,255,0.9)";
-    ctx.fillRect(tx - tw / 2, padT + 2, tw, 14);
-    ctx.fillStyle = color;
-    ctx.fillText(txt, tx, padT + 4);
-  };
-  drawMarker(stats.mean, INSIGHTS_MEAN_COLOR, "mean");
-  drawMarker(stats.median, INSIGHTS_MEDIAN_COLOR, "med");
-
   // Axis title
   if (opts && opts.xLabel) {
     ctx.fillStyle = "#555";
@@ -1682,62 +1666,57 @@ function fmtNum(v, unit, decimals) {
   return `${v.toFixed(d)}${unit ? " " + unit : ""}`;
 }
 
-function renderStatsCard(containerId, statsSet) {
+function renderSelectionCard(containerId, statsSet) {
   const el = document.getElementById(containerId);
   if (!el) return;
-  const blocks = [
-    {
-      title: "Selection",
-      rows: [
-        ["Rides", statsSet.totalCount.toLocaleString()],
-        ["Spots", statsSet.spotCount.toLocaleString()],
-      ],
-    },
-    {
-      title: "Waiting time",
-      empty: !statsSet.wait,
-      rows: statsSet.wait
-        ? [
-            ["Samples", statsSet.wait.n.toLocaleString()],
-            ["Mean", fmtNum(statsSet.wait.mean, "min")],
-            ["Median", fmtNum(statsSet.wait.median, "min")],
-            ["Std dev", fmtNum(statsSet.wait.stdev, "min")],
-            ["Range", `${fmtNum(statsSet.wait.min, "")} – ${fmtNum(statsSet.wait.max, "min")}`],
-          ]
-        : [],
-    },
-    {
-      title: "Ride distance",
-      empty: !statsSet.distance,
-      rows: statsSet.distance
-        ? [
-            ["Samples", statsSet.distance.n.toLocaleString()],
-            ["Mean", fmtNum(statsSet.distance.mean, "km")],
-            ["Median", fmtNum(statsSet.distance.median, "km")],
-            ["Std dev", fmtNum(statsSet.distance.stdev, "km")],
-            ["Range", `${fmtNum(statsSet.distance.min, "")} – ${fmtNum(statsSet.distance.max, "km")}`],
-          ]
-        : [],
-    },
+  const rows = [
+    ["Rides", statsSet.totalCount.toLocaleString()],
+    ["Spots", statsSet.spotCount.toLocaleString()],
   ];
-  el.innerHTML = blocks
+  el.innerHTML = `
+    <div class="insights-stat-card">
+      <div class="insights-stat-title">Selection</div>
+      ${rows
+        .map(
+          ([k, v]) =>
+            `<div class="insights-stat-row"><span class="insights-stat-key">${k}</span><span class="insights-stat-val">${v}</span></div>`
+        )
+        .join("")}
+    </div>`;
+}
+
+// Stats line that sits directly above a histogram — n, mean, median, std dev,
+// and the (uncropped) range. Rendered as a row of stat chips.
+function renderChartSummary(containerId, stats, unit) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (!stats) {
+    el.innerHTML = "";
+    return;
+  }
+  const items = [
+    ["n", stats.n.toLocaleString()],
+    ["mean", fmtNum(stats.mean, unit)],
+    ["median", fmtNum(stats.median, unit)],
+    ["std dev", fmtNum(stats.stdev, unit)],
+    ["range", `${fmtNum(stats.min, "")} – ${fmtNum(stats.max, unit)}`],
+  ];
+  el.innerHTML = items
     .map(
-      (b) => `
-      <div class="insights-stat-card">
-        <div class="insights-stat-title">${b.title}</div>
-        ${
-          b.empty
-            ? '<div class="insights-stat-empty">No data</div>'
-            : b.rows
-                .map(
-                  ([k, v]) =>
-                    `<div class="insights-stat-row"><span class="insights-stat-key">${k}</span><span class="insights-stat-val">${v}</span></div>`
-                )
-                .join("")
-        }
-      </div>`
+      ([k, v]) =>
+        `<div class="insights-summary-item"><span class="insights-summary-key">${k}</span><span class="insights-summary-val">${v}</span></div>`
     )
     .join("");
+}
+
+function renderChartNote(containerId, hidden, total, unit) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (!hidden) {
+    el.textContent = "";
+    return;
+  }
+  el.textContent = `Hiding ${hidden.toLocaleString()} of ${total.toLocaleString()} ${unit} values beyond ±${INSIGHTS_OUTLIER_STDEVS} std dev from the mean.`;
 }
 
 function setInsightsSubtitle(text) {
@@ -1746,7 +1725,9 @@ function setInsightsSubtitle(text) {
 }
 
 let insightsResizeBound = false;
-let insightsLastDraw = null; // { waitValues, distValues }
+// Snapshot of the values to draw; the chart bars are clipped (mean ± 3 stdev)
+// while the stats above each chart are computed from the full sample.
+let insightsLastDraw = null; // { wait: {full, clipped}, distance: {full, clipped} }
 // Original DOM location of the filter pane, so we can put it back when leaving
 // the insights view. The same node is moved (not cloned) so all event
 // listeners and state remain attached.
@@ -1778,8 +1759,8 @@ function redrawInsightsCharts() {
   if (!insightsLastDraw) return;
   const waitCanvas = document.getElementById("insights-wait-chart");
   const distCanvas = document.getElementById("insights-distance-chart");
-  drawHistogram(waitCanvas, insightsLastDraw.waitValues, { xLabel: "minutes" });
-  drawHistogram(distCanvas, insightsLastDraw.distValues, { xLabel: "kilometres" });
+  drawHistogram(waitCanvas, insightsLastDraw.wait.clipped, { xLabel: "minutes" });
+  drawHistogram(distCanvas, insightsLastDraw.distance.clipped, { xLabel: "kilometres" });
 }
 
 async function showInsightsView() {
@@ -1805,14 +1786,21 @@ async function showInsightsView() {
     .map((r) => r.km)
     .filter((v) => v != null && !Number.isNaN(v) && v >= 0);
 
+  const waitStats = computeStats(waitValues);
+  const distStats = computeStats(distValues);
+  const waitClip = clipForHistogram(waitValues);
+  const distClip = clipForHistogram(distValues);
+
   const stats = {
     totalCount: filtered.length,
     spotCount: new Set(filtered.map((r) => r.sid)).size,
-    wait: computeStats(waitValues),
-    distance: computeStats(distValues),
   };
 
-  renderStatsCard("insights-stats", stats);
+  renderSelectionCard("insights-stats", stats);
+  renderChartSummary("insights-wait-summary", waitStats, "min");
+  renderChartSummary("insights-distance-summary", distStats, "km");
+  renderChartNote("insights-wait-note", waitClip.hidden, waitValues.length, "waiting-time");
+  renderChartNote("insights-distance-note", distClip.hidden, distValues.length, "distance");
   setInsightsSubtitle(
     anyFilterActive()
       ? `Showing ${stats.totalCount.toLocaleString()} rides matching your active filters.`
@@ -1821,10 +1809,13 @@ async function showInsightsView() {
 
   const waitEmpty = document.getElementById("insights-wait-empty");
   const distEmpty = document.getElementById("insights-distance-empty");
-  if (waitEmpty) waitEmpty.hidden = waitValues.length > 0;
-  if (distEmpty) distEmpty.hidden = distValues.length > 0;
+  if (waitEmpty) waitEmpty.hidden = waitClip.values.length > 0;
+  if (distEmpty) distEmpty.hidden = distClip.values.length > 0;
 
-  insightsLastDraw = { waitValues, distValues };
+  insightsLastDraw = {
+    wait: { full: waitValues, clipped: waitClip.values },
+    distance: { full: distValues, clipped: distClip.values },
+  };
   // Wait one frame so the pane has its final size before measuring canvases.
   requestAnimationFrame(redrawInsightsCharts);
 
