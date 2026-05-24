@@ -1377,6 +1377,12 @@ body.showing-insights .heatmap-legend-pane {
   display: none !important;
 }
 
+/* Filter pane sits above the insights surface so filters stay reachable
+   and changes update the histograms below. */
+body.showing-insights .filter-pane {
+  z-index: 1600;
+}
+
 @media only screen and (max-width: 700px) {
   .insights-inner {
     padding: 240px 14px calc(96px + env(safe-area-inset-bottom, 0px));
