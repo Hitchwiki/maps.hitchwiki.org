@@ -1411,6 +1411,13 @@ ul.no-style {
   font-size: 13px;
 }
 
+/* `display: flex` above overrides the default behavior of the [hidden]
+   attribute, so the empty message would stay visible behind the chart bars
+   without this explicit rule. */
+.insights-chart-empty[hidden] {
+  display: none;
+}
+
 .insights-foot {
   text-align: center;
   margin: 6px 0 0;
