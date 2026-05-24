@@ -72,6 +72,10 @@ rides_df["hitchhikers"] = rides_df["hitchhikers"].apply(lambda x: json.loads(x) 
 rides_df["mode_of_transportation"] = rides_df["mode_of_transportation"].apply(
     lambda x: json.loads(x) if isinstance(x, str) else x
 )
+# SQLite returns the JSON column as a string; parse it so get_signals /
+# get_signal_methods (which require a list of approach dicts) actually see
+# the data instead of silently returning None.
+rides_df["signals"] = rides_df["signals"].apply(lambda x: json.loads(x) if isinstance(x, str) else x)
 
 
 def get_vehicle_kind(mot):
