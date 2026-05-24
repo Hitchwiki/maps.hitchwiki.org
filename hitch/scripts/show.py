@@ -241,7 +241,20 @@ def get_signals(approaches):
     return symbols
 
 
+def get_signal_methods(approaches):
+    """Return the unique list of signal methods used on a ride (or None)."""
+    if approaches is None or not isinstance(approaches, list):
+        return None
+    seen = []
+    for approach in approaches:
+        for m in approach.get("methods", []) or []:
+            if m and m not in seen:
+                seen.append(m)
+    return seen or None
+
+
 rides_df["signal"] = rides_df["signals"].apply(get_signals)
+rides_df["signal_methods"] = rides_df["signals"].apply(get_signal_methods)
 
 logger.info("Generating info texts")
 rides_df["wait_text"] = None
@@ -576,6 +589,7 @@ for _, ride in rides_df.iterrows():
         "ride_datetime": ride_datetime,
         "arrival_datetime": arrival_datetime,
         "vehicle_kind": ride["vehicle_kind"] if pd.notna(ride.get("vehicle_kind")) else None,
+        "signal_methods": ride.get("signal_methods") if isinstance(ride.get("signal_methods"), list) else None,
         "source": ride["source"] if pd.notna(ride.get("source")) else None,
     }
     rides_data.append(ride_data)
@@ -638,6 +652,9 @@ for r in rides_data:
         "wiki": bool(has_wiki),
         "cp": bool(has_cp),
         "v": r.get("vehicle_kind"),
+        # Unique list of signal methods used on this ride (e.g. ["thumb", "sign"]).
+        # Empty/missing → None so the JSON stays small.
+        "m": r.get("signal_methods"),
         "rd": ride_dt_by_d.get(r["id"]),
         "c": comment[:COMMENT_EXCERPT_LEN] if comment else None,
     })

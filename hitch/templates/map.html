@@ -202,6 +202,18 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
                 </select>
             </label>
             <label class="filter-field">
+                <span>Signal method</span>
+                <select id="method-filter">
+                    <option value="">Any</option>
+                    <option value="thumb">👍 thumb</option>
+                    <option value="sign">🪧 sign</option>
+                    <option value="asking">💬 asking</option>
+                    <option value="waving">👋 waving</option>
+                    <option value="invited">🎉 invited</option>
+                    <option value="prearranged">📅 prearranged</option>
+                </select>
+            </label>
+            <label class="filter-field">
                 <span>Ride date from</span>
                 <input id="min-date-filter" type="date" value="" />
             </label>

@@ -460,6 +460,9 @@ function setupFilterEventListeners() {
   vehicleFilter.addEventListener("change", () =>
     setQueryParameter("vehicle", vehicleFilter.value)
   );
+  methodFilter.addEventListener("change", () =>
+    setQueryParameter("method", methodFilter.value)
+  );
   minDateFilter.addEventListener("change", () =>
     setQueryParameter("mindate", minDateFilter.value)
   );
@@ -1115,6 +1118,7 @@ const userFilter = document.getElementById("user-filter");
 const distanceFilter = document.getElementById("distance-filter");
 const minRidesFilter = document.getElementById("min-rides-filter");
 const vehicleFilter = document.getElementById("vehicle-filter");
+const methodFilter = document.getElementById("method-filter");
 const minDateFilter = document.getElementById("min-date-filter");
 const maxDateFilter = document.getElementById("max-date-filter");
 const clearFilters = document.getElementById("clear-filters");
@@ -1162,6 +1166,7 @@ async function applyParams() {
   distanceFilter.value = getQueryParameter("mindistance");
   minRidesFilter.value = getQueryParameter("minrides");
   vehicleFilter.value = getQueryParameter("vehicle") || "";
+  methodFilter.value = getQueryParameter("method") || "";
   minDateFilter.value = getQueryParameter("mindate") || "";
   maxDateFilter.value = getQueryParameter("maxdate") || "";
 
@@ -1175,6 +1180,7 @@ async function applyParams() {
     distanceFilter.value ||
     minRidesFilter.value ||
     vehicleFilter.value ||
+    methodFilter.value ||
     minDateFilter.value ||
     maxDateFilter.value
   ) {
@@ -1196,13 +1202,14 @@ async function applyParams() {
     // satisfies one filter and a *different* ride at the same spot satisfies
     // another.
     const hasRideAttrFilter =
-      userFilter.value || vehicleFilter.value || minDateFilter.value || maxDateFilter.value || textFilter.value;
+      userFilter.value || vehicleFilter.value || methodFilter.value || minDateFilter.value || maxDateFilter.value || textFilter.value;
     if (hasRideAttrFilter) {
       const rides = await loadRidesIndex();
       // MediaWiki-style match: only the first letter is case-insensitive, rest matches as-is
       const normalizeFirstLetter = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
       const username = userFilter.value ? normalizeFirstLetter(userFilter.value) : null;
       const wantedKind = vehicleFilter.value || null;
+      const wantedMethod = methodFilter.value || null;
       const minMs = minDateFilter.value ? Date.parse(minDateFilter.value + "T00:00:00Z") : null;
       // The max bound covers the end of its day so a user-entered max date is inclusive.
       const maxMs = maxDateFilter.value ? Date.parse(maxDateFilter.value + "T23:59:59.999Z") : null;
@@ -1216,6 +1223,8 @@ async function applyParams() {
             if (username && !(ride.u && normalizeFirstLetter(ride.u).includes(username))) return false;
             // Treat rides with unspecified vehicle as cars, since most rides are cars.
             if (wantedKind && ride.v !== wantedKind && !(wantedKind === "car" && ride.v == null)) return false;
+            // Method filter: keep rides whose method list contains the selected method.
+            if (wantedMethod && !(Array.isArray(ride.m) && ride.m.includes(wantedMethod))) return false;
             if (minMs != null || maxMs != null) {
               if (ride.rd == null) return false;
               if (minMs != null && ride.rd < minMs) return false;
@@ -1374,6 +1383,7 @@ function applyRideFilters(rides) {
     s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
   const username = userFilter.value ? normalizeFirstLetter(userFilter.value) : null;
   const wantedKind = vehicleFilter.value || null;
+  const wantedMethod = methodFilter.value || null;
   const minMs = minDateFilter.value
     ? Date.parse(minDateFilter.value + "T00:00:00Z")
     : null;
@@ -1395,6 +1405,9 @@ function applyRideFilters(rides) {
       return false;
     // Match the map's vehicle filter: rides with no vehicle counted as cars.
     if (wantedKind && ride.v !== wantedKind && !(wantedKind === "car" && ride.v == null))
+      return false;
+    // Method filter: keep rides whose method list contains the selected method.
+    if (wantedMethod && !(Array.isArray(ride.m) && ride.m.includes(wantedMethod)))
       return false;
     if (minMs != null || maxMs != null) {
       if (ride.rd == null) return false;
@@ -1431,6 +1444,7 @@ function anyFilterActive() {
       distanceFilter.value ||
       minRidesFilter.value ||
       vehicleFilter.value ||
+      methodFilter.value ||
       minDateFilter.value ||
       maxDateFilter.value ||
       recentToggle.checked ||
