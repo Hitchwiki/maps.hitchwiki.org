@@ -34,10 +34,80 @@ var HIDE_ADD_SPOT_BUTTON = {{ hide_add_spot_button|tojson }};
 var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
 </script>
 <script src="/static/map.js"></script>
+<script>
+// Install-to-homescreen hint logic. Self-contained — no dependency on map.js.
+// Storage key holds the dismissal timestamp (ms); reappears after 30 days.
+(function () {
+    var HINT_KEY = 'installHintDismissedAt';
+    var REAPPEAR_MS = 30 * 24 * 60 * 60 * 1000;
+    var hint = document.getElementById('install-hint');
+    if (!hint) return;
+
+    // Don't pester users who already installed the PWA.
+    var standalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+    if (standalone || window.navigator.standalone) return;
+
+    try {
+        var dismissedAt = parseInt(localStorage.getItem(HINT_KEY) || '0', 10);
+        if (dismissedAt && Date.now() - dismissedAt < REAPPEAR_MS) return;
+    } catch (e) { /* localStorage may be unavailable; show anyway */ }
+
+    var ua = navigator.userAgent || '';
+    var isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+    var textEl = document.getElementById('install-hint-text');
+    var actionBtn = document.getElementById('install-hint-action');
+    var deferredPrompt = null;
+
+    if (isIOS) {
+        textEl.innerHTML = 'Tap the <strong>Share</strong> button, then <strong>Add to Home Screen</strong>.';
+    }
+
+    // Chromium fires beforeinstallprompt when the PWA is installable — capture it
+    // so the user can install with one tap via the Install button.
+    window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        deferredPrompt = e;
+        actionBtn.hidden = false;
+    });
+
+    actionBtn.addEventListener('click', function () {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.finally(function () {
+            deferredPrompt = null;
+            dismiss();
+        });
+    });
+
+    function dismiss() {
+        hint.hidden = true;
+        try { localStorage.setItem(HINT_KEY, String(Date.now())); } catch (e) {}
+    }
+    document.getElementById('install-hint-close').addEventListener('click', dismiss);
+
+    // Small delay so the hint doesn't fight with map load.
+    setTimeout(function () { hint.hidden = false; }, 1500);
+})();
+</script>
 <script async defer src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
 {% endblock %}
 
 {% block main %}
+<!-- Install-to-homescreen hint. Shown once until dismissed; reappears after ~30 days.
+     Hidden in standalone (already-installed) mode. Platform-specific copy is filled
+     in by the inline script below so iOS users get the Share→Add-to-Home-Screen
+     instructions instead of the install button (which only exists on Chromium). -->
+<div id="install-hint" class="install-hint" hidden>
+    <div class="install-hint-icon" aria-hidden="true">
+        <i class="fa-solid fa-mobile-screen"></i>
+    </div>
+    <div class="install-hint-body">
+        <div class="install-hint-title">Add Hitchhiking Map to your home screen</div>
+        <div class="install-hint-text" id="install-hint-text">Use it like a normal app — works offline-friendly and opens full-screen.</div>
+    </div>
+    <button type="button" id="install-hint-action" class="install-hint-action" hidden>Install</button>
+    <button type="button" id="install-hint-close" class="install-hint-close" aria-label="Dismiss">&times;</button>
+</div>
 <div id="map"></div>
 <div id="spots-loading-overlay" aria-label="Loading spots">
     <i class="fa-solid fa-circle-notch fa-spin"></i>

@@ -26,7 +26,7 @@
       "url": "https://hitchhikingmap.com",
       "icons": [
         {
-            "src": "https://maps.hitchwiki.comstatic/icon.png",
+            "src": "https://maps.hitchwiki.org/static/icon.png",
             "sizes": "512x512 256x256 128x128 96x96 48x48"
         }
       ],
