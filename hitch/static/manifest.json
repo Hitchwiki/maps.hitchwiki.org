@@ -15,10 +15,30 @@
   ],
   "screenshots": [],
   "icons": [
-      {
-          "src": "https://maps.hitchwiki.org/static/icon.png",
-          "sizes": "1024x1024 512x512 256x256 128x128 96x96 48x48"
-      }
+    {
+      "src": "https://maps.hitchwiki.org/static/logo_192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://maps.hitchwiki.org/static/logo_512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://maps.hitchwiki.org/static/logo_192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "https://maps.hitchwiki.org/static/logo_512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ],
   "shortcuts": [
     {
@@ -26,8 +46,9 @@
       "url": "https://hitchhikingmap.com",
       "icons": [
         {
-            "src": "https://maps.hitchwiki.org/static/icon.png",
-            "sizes": "512x512 256x256 128x128 96x96 48x48"
+          "src": "https://maps.hitchwiki.org/static/logo_512.png",
+          "sizes": "512x512",
+          "type": "image/png"
         }
       ],
       "description": "Hitchhiking Map"
