@@ -5,6 +5,9 @@
 {% block content %}
 <h1>Leaderboard</h1>
 <p style="color:#666; font-size:0.85em;">All users ranked by number of rides logged</p>
+{% if not current_user.is_authenticated %}
+<p style="color:#999; font-size:0.8em;">Want to show up here? <a href="{{ url_for_security('login') }}">Log in</a> and start logging your rides.</p>
+{% endif %}
 <table style="width:100%; border-collapse:collapse; font-size:0.9em;">
   <thead>
     <tr style="border-bottom:2px solid #ccc; text-align:left;">
