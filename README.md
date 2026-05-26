@@ -49,9 +49,15 @@ so the data is open for anyone to use. There are two supported ways to consume i
 
 ### For researchers — download the full dataset
 
-A periodically exported snapshot of all rides is published on Hugging Face:
+A snapshot of all rides is published on Hugging Face:
 
 [**Hitchwiki/hitchhiking-rides-dataset**](https://huggingface.co/datasets/Hitchwiki/hitchhiking-rides-dataset)
+
+- **Updated weekly** (Mondays) — see [`deploy/cron.sh`](deploy/cron.sh).
+- Built by [`hitch/scripts/sync_hitchhiking_rides_dataset.py`](hitch/scripts/sync_hitchhiking_rides_dataset.py),
+  which reads `dist/allPosts.json` (the Nostr ride events fetched by
+  [`hitch/scripts/fetch_hitchhiking_events/`](hitch/scripts/fetch_hitchhiking_events)).
+- One row per ride, sorted by `submission_time` descending (newest first; nulls last).
 
 This is the simplest option when you just want a single, ready-to-analyze file.
 
