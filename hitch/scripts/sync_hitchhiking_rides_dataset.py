@@ -5,7 +5,7 @@ from datetime import date
 
 import pandas as pd
 from datasets import Dataset
-from huggingface_hub import HfApi, login
+from huggingface_hub import login
 from tqdm import tqdm
 
 from hitch.helpers import get_dirs
@@ -76,44 +76,9 @@ HF_TOKEN = os.getenv("HF_TOKEN")
 login(token=HF_TOKEN)
 
 today = date.today().isoformat()
-repo_id = "Hitchwiki/hitchhiking-rides-dataset"
 
 hf_dataset = Dataset.from_pandas(huggingface_df)
 hf_dataset.push_to_hub(
-    repo_id,
+    "Hitchwiki/hitchhiking-rides-dataset",
     commit_message=f"new version {today}",
-)
-
-readme = f"""---
-license: cc-by-sa-4.0
----
-
-# Hitchhiking Rides Dataset
-
-A community-sourced dataset of hitchhiking rides aggregated from
-[hitchmap.com](https://hitchmap.com), [hitchwiki.org](https://hitchwiki.org)
-and [liftershalte.info](https://liftershalte.info).
-
-## Update schedule
-
-This dataset is regenerated **every week** from the latest Nostr ride events
-published to `relay.nomadwiki.org`. Last update: **{today}**.
-
-## Source
-
-Built by [`hitch/scripts/sync_hitchhiking_rides_dataset.py`](https://github.com/Hitchwiki/maps.hitchwiki.org/blob/main/hitch/scripts/sync_hitchhiking_rides_dataset.py)
-in the [maps.hitchwiki.org](https://github.com/Hitchwiki/maps.hitchwiki.org) repo.
-
-The script reads `dist/allPosts.json` (the snapshot of Nostr ride events
-fetched by [`hitch/scripts/fetch_hitchhiking_events/`](https://github.com/Hitchwiki/maps.hitchwiki.org/tree/main/hitch/scripts/fetch_hitchhiking_events)),
-parses each event's JSON `content`, and writes one row per ride sorted by
-`submission_time` (newest first; null values last).
-"""
-
-HfApi().upload_file(
-    path_or_fileobj=readme.encode("utf-8"),
-    path_in_repo="README.md",
-    repo_id=repo_id,
-    repo_type="dataset",
-    commit_message=f"update README ({today})",
 )
