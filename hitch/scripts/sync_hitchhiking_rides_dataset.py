@@ -4,8 +4,7 @@ import os
 from datetime import date
 
 import pandas as pd
-from datasets import Dataset
-from huggingface_hub import login
+from huggingface_hub import HfApi, login
 from tqdm import tqdm
 
 from hitch.helpers import get_dirs
@@ -76,9 +75,13 @@ HF_TOKEN = os.getenv("HF_TOKEN")
 login(token=HF_TOKEN)
 
 today = date.today().isoformat()
+parquet_path = os.path.join(dirs["dist"], "rides.parquet")
+huggingface_df.to_parquet(parquet_path, index=False)
 
-hf_dataset = Dataset.from_pandas(huggingface_df)
-hf_dataset.push_to_hub(
-    "Hitchwiki/hitchhiking-rides-dataset",
+HfApi().upload_file(
+    path_or_fileobj=parquet_path,
+    path_in_repo="rides.parquet",
+    repo_id="Hitchwiki/hitchhiking-rides-dataset",
+    repo_type="dataset",
     commit_message=f"new version {today}",
 )
