@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from types import SimpleNamespace
 
 import pandas as pd
@@ -143,8 +144,10 @@ def show_account(username, is_me: bool = False):
     else:
         rides_data = _get_rides_for_user(user, include_pending_co=False, display_only=True)
 
+    age = (datetime.utcnow().year - user.year_of_birth) if user.year_of_birth else None
+
     return render_template(
-        "security/account.html", user=user, is_me=is_me, rides=rides_data, user_known=user_known
+        "security/account.html", user=user, is_me=is_me, rides=rides_data, user_known=user_known, age=age
     )
 
 

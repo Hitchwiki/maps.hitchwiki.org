@@ -57,18 +57,13 @@ Name: {{ user.username }}<br>
 <h2>Public Profile</h2>
 {% endif %}
 
-Gender: {{ user.gender or "-" }}<br>
-Year of Birth: {{ user.year_of_birth or "-" }}<br>
-Hitchhiking Since: {{ user.hitchhiking_since or "-" }}<br>
-Origin: {{ [user.origin_city, user.origin_country]|reject("none")|reject("equalto", "")|reject("undefined")|join(", ")
-or "-" }}<br>
-On Hitchwiki:
-{{ "<a href=\"https://hitchwiki.org/en/User:%s\">%s</a>"|format(escaped_hitchwiki_username,
-escaped_hitchwiki_username)|safe if escaped_hitchwiki_username else "-" }}<br>
-On Trustroots:
-{{ "<a href=\"https://www.trustroots.org/profile/%s\">%s</a>"|format(escaped_trustroots_username,
-escaped_trustroots_username)|safe if escaped_trustroots_username else "-" }}
-<br>
+{% set origin = [user.origin_city, user.origin_country]|reject("none")|reject("equalto", "")|reject("undefined")|join(", ") %}
+{% set age_gender = [(age ~ " years") if age else None, user.gender]|reject("none")|reject("equalto", "")|join(". ") %}
+{% if age_gender %}{{ age_gender }}.<br>{% endif %}
+{% if user.hitchhiking_since %}Hitchhiking since {{ user.hitchhiking_since }}<br>{% endif %}
+{% if origin %}From {{ origin }}<br>{% endif %}
+{% if escaped_hitchwiki_username %}On Hitchwiki: <a href="https://hitchwiki.org/en/User:{{ escaped_hitchwiki_username }}">{{ escaped_hitchwiki_username }}</a><br>{% endif %}
+{% if escaped_trustroots_username %}On Trustroots: <a href="https://www.trustroots.org/profile/{{ escaped_trustroots_username }}">{{ escaped_trustroots_username }}</a><br>{% endif %}
 {% endif %}
 <br>
 <a href="/?user={{ user.username }}#filters">{{ "See my spots on the map" if is_me else "See their spots on the map"}}</a><br>
