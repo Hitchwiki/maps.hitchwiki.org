@@ -39,19 +39,20 @@
 }
 .account-header h1 { margin: 0; }
 </style>
-{% if not is_me %}
+{% if not is_me and user_known %}
 <p><a href="https://hitchwiki.org/en/index.php?title=User_talk:{{ escaped_hitchwiki_username }}&action=edit&section=new">Reach out - write a message</a></p>
 {% endif %}
 <div class="account-header">
-  <h1>User</h1>
+  <h1>Hitchhiker</h1>
   <button type="button" class="share-btn" id="share-btn" data-share-url="{{ url_for('user.show_account', username=user.username, _external=True) }}" data-share-title="{{ user.username }} on Hitchmap">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
     <span class="share-btn-label">Share</span>
   </button>
 </div>
 
-Username: {{ user.username }}<br>
+Name: {{ user.username }}<br>
 
+{% if user_known %}
 {% if is_me %}
 <h2>Public Profile</h2>
 {% endif %}
@@ -68,6 +69,7 @@ On Trustroots:
 {{ "<a href=\"https://www.trustroots.org/profile/%s\">%s</a>"|format(escaped_trustroots_username,
 escaped_trustroots_username)|safe if escaped_trustroots_username else "-" }}
 <br>
+{% endif %}
 <br>
 <a href="/?user={{ user.username }}#filters">{{ "See my spots on the map" if is_me else "See their spots on the map"}}</a><br>
 {% if is_me %}
