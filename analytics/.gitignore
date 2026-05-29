@@ -1,0 +1,6 @@
+# Generated analytics output (do not commit)
+*.png
+# Cached click data extracted from docker logs
+clicked_spots.csv
+# Cached map data
+ne_*_admin_0_countries.geojson
