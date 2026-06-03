@@ -120,6 +120,9 @@ def _handle_callback(code):
             email=email or f"{hitchwiki_username}@hitchwiki.oauth",
             password=secrets.token_urlsafe(64),
             hitchwiki_username=hitchwiki_username,
+            # New sign-ups are opted into the newsletter by default; they can opt out
+            # later on the /edit-user page.
+            email_notifications=True,
         )
         db.session.commit()
         current_app.logger.info(f"Created new user from Hitchwiki OAuth: {hitchwiki_username}")
