@@ -711,7 +711,10 @@ function markerClick(marker) {
   highlightStars(stars, 0);
 
   // Share button
-  const spotUrl = `${location.origin}/#${data.lat},${data.lon}`;
+  // Put the coordinates in query params, not the #fragment: many messengers
+  // strip the fragment when auto-linking a pasted URL, so a `/#lat,lon` link
+  // arrives without coordinates. `?lat=&lon=` survives and navigate() reads it.
+  const spotUrl = `${location.origin}/?lat=${data.lat}&lon=${data.lon}`;
   const shareText = `Hitchhiking spot at ${data.lat.toFixed(4)}, ${data.lon.toFixed(4)}`;
   const shareBtn = $$("#share-spot-btn");
   const shareMenu = $$("#share-spot-menu");
@@ -1307,6 +1310,19 @@ async function navigate() {
 
   let args = window.location.hash.slice(1).split("/");
   let mainArgs = args[0].split(",");
+
+  // Shareable spot links carry coordinates as ?lat=&lon= (the #fragment gets
+  // stripped by some messengers). When the hash has no coordinates of its own,
+  // fall back to these params so the link opens the spot like #lat,lon would.
+  const latParam = getQueryParameter("lat");
+  const lonParam = getQueryParameter("lon");
+  if (
+    !mainArgs[0] &&
+    latParam != null && lonParam != null &&
+    !isNaN(latParam) && !isNaN(lonParam)
+  ) {
+    mainArgs = [latParam, lonParam];
+  }
 
   // #insights swaps the map for the insights view. Filter pane stays visible
   // so users can keep narrowing the selection and see the histograms update.
