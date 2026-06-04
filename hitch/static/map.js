@@ -292,6 +292,10 @@ function populateHeatmapLegend(legendData) {
   // These functions make the navigation work
   handleHashChange();
   window.onhashchange = navigate;
+  // Spot selection now lives in ?lat=&lon= query params (changed via
+  // pushState), so back/forward fires popstate rather than hashchange — listen
+  // for it too, otherwise navigating history wouldn't update the map.
+  window.addEventListener("popstate", navigate);
   navigate();
   
   // Focus on search input after page loads
@@ -369,7 +373,7 @@ function setupEventListeners() {
         bar();
         document.body.classList.remove("menu");
       } else {
-        if (window.location.hash) window.history.pushState(null, null, " ");
+        clearSpotUrl();
         bar(".sidebar.menu");
         document.body.classList.add("menu");
         updateBottomPaneVar();
@@ -632,7 +636,7 @@ async function handleMarkerClick(marker, point, e) {
   if (e) L.DomEvent.stopPropagation(e);
 
   reportDuplicate(marker);
-  window.location.hash = `${point.lat},${point.lng}`;
+  setSpotUrl(point.lat, point.lng);
 
   // Show the spot pane immediately with a loading spinner for rides
   markerClick(marker);
@@ -1006,9 +1010,7 @@ function renderPoints() {
 }
 
 function navigateHome() {
-  if (window.location.hash) {
-    window.history.pushState(null, null, " ");
-  }
+  clearSpotUrl();
   navigate(); // clears rest
 }
 
@@ -1151,6 +1153,38 @@ function clearParams() {
   let newURL = url.origin + url.pathname + url.hash;
   window.history.replaceState({}, "", newURL.toString());
   navigate();
+}
+
+// Reflect the selected spot in the address bar as ?lat=&lon= rather than the
+// #lat,lon fragment: the fragment gets stripped by some messengers when the URL
+// is pasted, so a copied address-bar link arrived without coordinates. Other
+// query params (filters) are preserved. Idempotent — navigate() re-runs on
+// every filter change while a spot is open, so we must not push a duplicate
+// history entry when the URL already points at this spot.
+function setSpotUrl(lat, lon) {
+  const url = new URL(window.location.href);
+  const latStr = String(lat);
+  const lonStr = String(lon);
+  if (!url.hash && url.searchParams.get("lat") === latStr && url.searchParams.get("lon") === lonStr) {
+    return;
+  }
+  url.hash = "";
+  url.searchParams.set("lat", latStr);
+  url.searchParams.set("lon", lonStr);
+  window.history.pushState({}, "", url);
+}
+
+// Drop the selected-spot URL state (hash + ?lat=&lon=) without navigating.
+// Filters and other query params are kept.
+function clearSpotUrl() {
+  const url = new URL(window.location.href);
+  if (!url.hash && !url.searchParams.has("lat") && !url.searchParams.has("lon")) {
+    return;
+  }
+  url.hash = "";
+  url.searchParams.delete("lat");
+  url.searchParams.delete("lon");
+  window.history.pushState({}, "", url);
 }
 
 async function applyParams() {
@@ -1905,9 +1939,7 @@ var MenuButton = L.Control.extend({
         bar();
         document.body.classList.remove("menu");
       } else {
-        if (window.location.hash) {
-          window.history.pushState(null, null, " ");
-        }
+        clearSpotUrl();
         bar(".sidebar.menu");
         document.body.classList.add("menu");
       }
