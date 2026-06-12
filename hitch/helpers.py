@@ -1,3 +1,4 @@
+import gzip
 import html
 import logging
 import os
@@ -96,8 +97,17 @@ def write_json_file(data:pd.DataFrame | dict, filename):
     """
     filepath = os.path.join(dirs["dist"], filename)
     logger.info(f"Writing: {filepath}")
+    json_data = data.to_dict(orient="records") if hasattr(data, "to_dict") else data
+    payload = simplejson.dumps(json_data, ignore_nan=True)
     with open(filepath, "w", encoding="utf-8") as f:
-        json_data = data.to_dict(orient="records") if hasattr(data, "to_dict") else data
-        f.write(simplejson.dumps(json_data, ignore_nan=True))
+        f.write(payload)
 
-    logger.info(f"Wrote json of length {len(data)} to: {filepath}")
+    # Precompress once at generation time. The catch_all route serves the .gz
+    # sidecar with Content-Encoding: gzip, so the reverse proxy doesn't have to
+    # recompress these multi-MB files on every request. Written after the plain
+    # file so the sidecar's mtime is never older than the data it encodes (the
+    # route refuses sidecars older than the plain file).
+    with gzip.open(filepath + ".gz", "wb", compresslevel=9) as f:
+        f.write(payload.encode("utf-8"))
+
+    logger.info(f"Wrote json of length {len(data)} to: {filepath} (+ .gz sidecar)")

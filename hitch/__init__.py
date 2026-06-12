@@ -1,15 +1,17 @@
 """Initialize the Flask application at flask init."""
 
 import importlib
+import mimetypes
 import os
 import resource
 import sys
 import time as time_module
 
 import click
-from flask import Flask, render_template, send_from_directory
+from flask import Flask, render_template, request, send_from_directory
 from flask_security import SQLAlchemyUserDatastore
 from werkzeug.middleware.proxy_fix import ProxyFix
+from werkzeug.utils import safe_join
 
 from hitch.blueprints.main import main_bp
 from hitch.blueprints.oauth import oauth_bp
@@ -179,6 +181,30 @@ def register_routes(app):
     # Serve dist
     @app.route("/<path:path>")
     def catch_all(path):
+        dist_dir = os.path.join(baseDir, "dist")
+
+        # The big JSON files get a precompressed .gz sidecar at generation time
+        # (see write_json_file). Serving it with Content-Encoding: gzip means
+        # neither Flask nor the reverse proxy compresses multi-MB payloads on
+        # every request (Caddy's encode skips already-encoded responses).
+        if "gzip" in request.headers.get("Accept-Encoding", "").lower():
+            plain_path = safe_join(dist_dir, path)
+            gz_path = safe_join(dist_dir, path + ".gz")
+            # mtime guard: never serve a sidecar older than the plain file it
+            # encodes, e.g. if a regeneration crashed between the two writes.
+            if (
+                plain_path
+                and gz_path
+                and os.path.isfile(plain_path)
+                and os.path.isfile(gz_path)
+                and os.path.getmtime(gz_path) >= os.path.getmtime(plain_path)
+            ):
+                mimetype = mimetypes.guess_type(path)[0] or "application/octet-stream"
+                response = send_from_directory(dist_dir, path + ".gz", mimetype=mimetype)
+                response.headers["Content-Encoding"] = "gzip"
+                response.headers["Vary"] = "Accept-Encoding"
+                return response
+
         return send_from_directory(os.path.join(baseDir, "dist"), path)
 
     @app.route("/copyright")
