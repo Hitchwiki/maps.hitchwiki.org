@@ -1400,13 +1400,24 @@ async function navigate() {
     let lat = +mainArgs[0],
       lon = +mainArgs[1],
       zoom = mainArgs[2] ? +mainArgs[2] : null;
-    // Try to find an exact marker match first
+    // Spot coordinates in spots.json are rounded to 5 decimals (~1 m), but
+    // older shared links / #lat,lon hashes carry full-precision values, so an
+    // exact float comparison would miss. Match the nearest marker within the
+    // rounding error instead.
+    const EPS = 1.1e-5;
+    let nearest = null,
+      nearestDist = Infinity;
     for (let m of allMarkers) {
-      if (m._latlng.lat === lat && m._latlng.lng === lon) {
-        await handleMarkerClick(m, m.getLatLng(), null);
-        if (map.getZoom() < 3) map.setView(m.getLatLng(), zoom || 16);
-        return;
+      const d = Math.abs(m._latlng.lat - lat) + Math.abs(m._latlng.lng - lon);
+      if (d < nearestDist) {
+        nearestDist = d;
+        nearest = m;
       }
+    }
+    if (nearest && nearestDist < EPS) {
+      await handleMarkerClick(nearest, nearest.getLatLng(), null);
+      if (map.getZoom() < 3) map.setView(nearest.getLatLng(), zoom || 16);
+      return;
     }
     // No exact marker match — pan to the coordinates
     map.setView([lat, lon], zoom || 14);

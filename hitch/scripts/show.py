@@ -358,6 +358,13 @@ def generate_spot_id(lat, lon):
     return f"{lat:.4f}_{lon:.4f}"
 
 
+def round_coord(value):
+    """Round a coordinate to 5 decimals (~1 m) for JSON output, to keep the
+    served files small. Only applied at serialization time — grouping and spot
+    IDs still use the full-precision values."""
+    return round(float(value), 5)
+
+
 logger.info("Fetching OSM hitchhiking spots")
 osm_spots_df = pd.read_sql("select id, latitude, longitude from osm_hitchhiking_spot", get_db())
 
@@ -533,15 +540,15 @@ spots_data = []
 for _, place in places.iterrows():
     spot_data = {
         "id": generate_spot_id(place["lat"], place["lon"]),
-        "lat": place["lat"],
-        "lon": place["lon"],
+        "lat": round_coord(place["lat"]),
+        "lon": round_coord(place["lon"]),
         "rating": place["rating"],
         "wait": place["wait"],
         "distance": place["distance"],
         "ride_count": len(rides_df[(rides_df["lat"] == place["lat"]) & (rides_df["lon"] == place["lon"])]),
         "review_users": place["review_users"],
-        "dest_lats": place["dest_lats"],
-        "dest_lons": place["dest_lons"],
+        "dest_lats": [round_coord(v) for v in place["dest_lats"]] if isinstance(place["dest_lats"], list) else place["dest_lats"],
+        "dest_lons": [round_coord(v) for v in place["dest_lons"]] if isinstance(place["dest_lons"], list) else place["dest_lons"],
         "osm_id": place["nearby_osm_id"],
         "car_pooling": place["nearby_car_pooling"],
         "hitchwiki_article": place["nearby_hitchwiki_link"],
@@ -643,8 +650,8 @@ for r in rides_data:
     rides_index.append({
         "id": r["id"],
         "sid": sid,
-        "lat": r["lat"],
-        "lon": r["lon"],
+        "lat": round_coord(r["lat"]),
+        "lon": round_coord(r["lon"]),
         "u": r["hitchhiker_name"],
         "t": ts_by_d.get(r["id"]),
         "r": r["rating"],
