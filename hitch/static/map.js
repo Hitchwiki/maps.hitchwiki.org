@@ -85,7 +85,7 @@ async function loadMarkers(map) {
 
         var marker = L.circleMarker(coords, {
           radius: 5,
-          weight: 1 + (m.review_users?.length > 2),
+          weight: 1 + (m.review_count > 2),
           fillOpacity: opacity,
           color: "black",
           fillColor: color,
@@ -94,7 +94,7 @@ async function loadMarkers(map) {
         });
 
         marker.on("click", async (e) => await handleMarkerClick(marker, coords, e));
-        if (m.review_users?.length >= 3)
+        if (m.review_count >= 3)
           marker.on("add", (_) => setTimeout((_) => marker.bringToFront(), 0));
         if (m.dest_lats?.length) destinationMarkers.push(marker);
 
@@ -647,7 +647,17 @@ async function handleMarkerClick(marker, point, e) {
   try {
     const resp = await fetch(`/rides/by-spot/${encodeURIComponent(spotId)}.json`);
     if (resp.ok) {
-      spotRides = await resp.json();
+      const payload = await resp.json();
+      // Current files are {spot, rides}; tolerate the older bare-array shape
+      // so clicks keep working while a regeneration is still pending.
+      if (Array.isArray(payload)) {
+        spotRides = payload;
+      } else {
+        spotRides = payload.rides || [];
+        // Click-time spot info (wait/distance averages, OSM / car-pooling /
+        // Hitchwiki links) ships in the per-spot file, not spots.json.
+        Object.assign(marker.options._data, payload.spot || {});
+      }
     } else if (resp.status !== 404) {
       console.error(`Failed to load rides for spot ${spotId}: HTTP ${resp.status}`);
     }
@@ -663,6 +673,10 @@ async function handleMarkerClick(marker, point, e) {
   });
 
   marker.options._data.rides = spotRides;
+
+  // Re-render the summary now that the fetched spot details are merged in
+  // (the first render in markerClick only had the slim spots.json fields).
+  $$("#spot-summary").innerHTML = summaryText(marker.options._data);
 
   // Update rides content now that the fetch is complete
   $$("#spot-text").innerHTML = renderRideCards(spotRides);
@@ -1300,25 +1314,21 @@ async function applyParams() {
       );
     }
     if (recentToggle.checked) {
-      const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const cutoffMs = Date.now() - 24 * 60 * 60 * 1000;
       filterMarkers = filterMarkers.filter((x) => {
-        return x.options._data.latest_submission && x.options._data.latest_submission >= cutoff;
+        return x.options._data.latest_ms && x.options._data.latest_ms >= cutoffMs;
       });
     }
+    // osm/cp/wiki are presence flags in spots.json (omitted when false); the
+    // actual ids/links live in the lazy per-spot detail files.
     if (osmToggle.checked) {
-      filterMarkers = filterMarkers.filter((x) => {
-        return x.options._data.osm_id !== null && x.options._data.osm_id !== undefined;
-      });
+      filterMarkers = filterMarkers.filter((x) => !!x.options._data.osm);
     }
     if (carPoolingToggle.checked) {
-      filterMarkers = filterMarkers.filter((x) => {
-        return x.options._data.car_pooling !== null && x.options._data.car_pooling !== undefined;
-      });
+      filterMarkers = filterMarkers.filter((x) => !!x.options._data.cp);
     }
     if (hitchwikiToggle.checked) {
-      filterMarkers = filterMarkers.filter((x) => {
-        return x.options._data.hitchwiki_article !== null && x.options._data.hitchwiki_article !== undefined;
-      });
+      filterMarkers = filterMarkers.filter((x) => !!x.options._data.wiki);
     }
     // duplicate all markers to the filtering pane
     filterMarkers = filterMarkers.map((spot) => {

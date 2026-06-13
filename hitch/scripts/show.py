@@ -535,27 +535,61 @@ logger.info(f"Found {places['hitchwiki_map_link'].notnull().sum()} places visibl
 
 logger.info("Generating JSON data files")
 
-# Generate spots data with coordinate-based IDs and OSM spot matching
+# spots.json is downloaded by every visitor on map load, so it only carries
+# what the frontend needs to draw and filter the markers. Click-time detail
+# (wait/distance averages, OSM / car-pooling / Hitchwiki links) goes into the
+# lazy per-spot files instead — collected here into spot_details.
 spots_data = []
+spot_details = {}
 for _, place in places.iterrows():
+    spot_id = generate_spot_id(place["lat"], place["lon"])
     spot_data = {
-        "id": generate_spot_id(place["lat"], place["lon"]),
+        "id": spot_id,
         "lat": round_coord(place["lat"]),
         "lon": round_coord(place["lon"]),
         "rating": place["rating"],
-        "wait": place["wait"],
-        "distance": place["distance"],
         "ride_count": len(rides_df[(rides_df["lat"] == place["lat"]) & (rides_df["lon"] == place["lon"])]),
-        "review_users": place["review_users"],
-        "dest_lats": [round_coord(v) for v in place["dest_lats"]] if isinstance(place["dest_lats"], list) else place["dest_lats"],
-        "dest_lons": [round_coord(v) for v in place["dest_lons"]] if isinstance(place["dest_lons"], list) else place["dest_lons"],
-        "osm_id": place["nearby_osm_id"],
-        "car_pooling": place["nearby_car_pooling"],
-        "hitchwiki_article": place["nearby_hitchwiki_link"],
-        "hitchwiki_map": place["hitchwiki_map_link"],
-        "latest_submission": place["latest_submission"].isoformat() if pd.notna(place["latest_submission"]) else None,
+        # Only the count is used (marker stroke weight); reviewer names are never displayed.
+        "review_count": len(place["review_users"]) if isinstance(place["review_users"], list) else 0,
     }
+    # Epoch ms instead of an ISO string: smaller and directly comparable to Date.now()
+    # in the recent-rides filter. Omitted (like all sparse fields below) when absent.
+    if pd.notna(place["latest_submission"]):
+        spot_data["latest_ms"] = int(place["latest_submission"].timestamp() * 1000)
+    # Destination coords are needed at load time for the direction filter and the
+    # destination lines drawn for a selected spot.
+    if isinstance(place["dest_lats"], list) and len(place["dest_lats"]):
+        spot_data["dest_lats"] = [round_coord(v) for v in place["dest_lats"]]
+        spot_data["dest_lons"] = [round_coord(v) for v in place["dest_lons"]]
+    # The spot filters only check presence of these, so ship booleans; the actual
+    # ids/links are in the per-spot detail. Only a few hundred of ~45k spots have
+    # any of them, hence flags are omitted instead of written as false.
+    if pd.notna(place["nearby_osm_id"]):
+        spot_data["osm"] = True
+    if place["nearby_car_pooling"] is not None:
+        spot_data["cp"] = True
+    if place["nearby_hitchwiki_link"] is not None:
+        spot_data["wiki"] = True
+    if place["hitchwiki_map_link"] is not None:
+        spot_data["wikimap"] = True
     spots_data.append(spot_data)
+
+    detail = {}
+    if pd.notna(place["wait"]):
+        detail["wait"] = float(place["wait"])
+    if pd.notna(place["distance"]):
+        detail["distance"] = float(place["distance"])
+    if pd.notna(place["nearby_osm_id"]):
+        # int(): the column is float64 because it holds NaN, and a trailing ".0"
+        # would break the openstreetmap.org/node/<id> URL built in the frontend.
+        detail["osm_id"] = int(place["nearby_osm_id"])
+    if place["nearby_car_pooling"] is not None:
+        detail["car_pooling"] = place["nearby_car_pooling"]
+    if place["nearby_hitchwiki_link"] is not None:
+        detail["hitchwiki_article"] = place["nearby_hitchwiki_link"]
+    if place["hitchwiki_map_link"] is not None:
+        detail["hitchwiki_map"] = place["hitchwiki_map_link"]
+    spot_details[spot_id] = detail
 
 write_json_file(spots_data, "spots.json")
 
@@ -672,9 +706,11 @@ for r in rides_data:
 
 write_json_file(rides_index, "rides_index.json")
 
-# Per-spot ride detail files for lazy popup loading. Each file holds only the
-# fields the popup card renders. Wipe-and-rewrite ensures spots that lost all
-# their rides don't leave stale files behind.
+# Per-spot detail files for lazy popup loading: {"spot": {...}, "rides": [...]}.
+# "spot" holds the click-time spot info that was slimmed out of spots.json
+# (wait/distance averages, OSM / car-pooling / Hitchwiki links); "rides" holds
+# the fields the popup ride cards render. Wipe-and-rewrite ensures spots that
+# lost all their rides don't leave stale files behind.
 by_spot_dir = os.path.join(dirs["dist"], "rides", "by-spot")
 if os.path.exists(by_spot_dir):
     shutil.rmtree(by_spot_dir)
@@ -696,7 +732,7 @@ for r in rides_data:
 
 for sid, spot_rides in rides_by_spot.items():
     with open(os.path.join(by_spot_dir, f"{sid}.json"), "w") as f:
-        json.dump(spot_rides, f)
+        json.dump({"spot": spot_details.get(sid, {}), "rides": spot_rides}, f)
 logger.info(f"Wrote {len(rides_by_spot)} per-spot ride files")
 
 # TODO: Remove spots_with_destination.json - replaced by spots.json with ride filtering
