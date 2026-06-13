@@ -575,10 +575,12 @@ for _, place in places.iterrows():
     spots_data.append(spot_data)
 
     detail = {}
+    # The popup only ever shows these as whole numbers (toFixed(0)), so store
+    # them rounded to ints — smaller payload, no precision the UI would use.
     if pd.notna(place["wait"]):
-        detail["wait"] = float(place["wait"])
+        detail["wait"] = round(float(place["wait"]))
     if pd.notna(place["distance"]):
-        detail["distance"] = float(place["distance"])
+        detail["distance"] = round(float(place["distance"]))
     if pd.notna(place["nearby_osm_id"]):
         # int(): the column is float64 because it holds NaN, and a trailing ".0"
         # would break the openstreetmap.org/node/<id> URL built in the frontend.
