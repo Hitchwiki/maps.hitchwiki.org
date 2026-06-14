@@ -204,19 +204,37 @@ def _city_loc(country, city_name):
     return f"{SITE_URL}/city/{country_seg}/{city_seg}"
 
 
+# Static, server-rendered pages reachable from the map's menu / action buttons.
+# These are real distinct URLs (own HTML), so listing them helps crawlers find
+# pages the JS-driven UI would otherwise hide behind buttons.
+# NOTE on what is deliberately NOT here:
+#   - Route planning is "/#routing" — a hash fragment. Crawlers strip everything
+#     after "#", so it is the same URL as "/" and cannot be a separate entry.
+#   - "?heatmap=true" is a query-param view of "/" whose server HTML is identical
+#     to "/" (the heatmap is drawn client-side). We still list it so the heatmap
+#     view is explicitly advertised, but it intentionally shares "/"'s content.
+STATIC_PAGES = [
+    (f"{SITE_URL}/", "1.0"),
+    (f"{SITE_URL}/?heatmap=true", "0.6"),
+    (f"{SITE_URL}/recent", "0.6"),
+    (f"{SITE_URL}/leaderboard", "0.6"),
+    (f"{SITE_URL}/dashboard.html", "0.5"),
+    (f"{SITE_URL}/city/index.html", "0.5"),
+]
+
 sitemap_parts = [
     '<?xml version="1.0" encoding="UTF-8"?>\n',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n',
-    _sitemap_url(f"{SITE_URL}/", "1.0"),
-    _sitemap_url(f"{SITE_URL}/city/index.html", "0.5"),
 ]
+for loc, priority in STATIC_PAGES:
+    sitemap_parts.append(_sitemap_url(loc, priority))
 for city in cities[rendered_cities].itertuples():
     sitemap_parts.append(_sitemap_url(_city_loc(city.country, city.city), "0.7"))
 sitemap_parts.append("</urlset>\n")
 
 with open(os.path.join(dist_dir, "sitemap.xml"), "w", encoding="utf-8") as f:
     f.write("".join(sitemap_parts))
-logger.info(f"Wrote sitemap.xml with {sum(rendered_cities) + 2} URLs")
+logger.info(f"Wrote sitemap.xml with {sum(rendered_cities) + len(STATIC_PAGES)} URLs")
 
 # Open access so search engines and AI crawlers can discover the city pages.
 # Discovery is opt-in by NOT disallowing, so AI training/search bots (GPTBot,
