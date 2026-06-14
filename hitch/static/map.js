@@ -1929,7 +1929,7 @@ var AddSpotButton = L.Control.extend({
     );
     var container = L.DomUtil.create("a", "", controlDiv);
     container.href = "javascript:void(0);";
-    container.innerText = "📍 Add spot";
+    container.innerText = "🚗💨 Add your ride";
 
     container.onclick = function (e) {      
       // Redirect directly to ride form instead of crosshair selection

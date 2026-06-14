@@ -350,6 +350,11 @@ html {
   font-size: 20px;
 }
 
+.action-btn .action-emoji {
+  font-size: 18px;
+  line-height: 1;
+}
+
 .action-btn:hover,
 .action-btn:active {
   color: #1a73e8;
