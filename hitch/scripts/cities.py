@@ -4,7 +4,9 @@ import html
 import json
 import logging
 import os
+import urllib.parse
 import zipfile
+from datetime import date
 
 import numpy as np
 import pandas as pd
@@ -173,5 +175,64 @@ os.makedirs(os.path.join(dist_dir, "city"), exist_ok=True)
 index_rendered = city_index.render(grouped_cities=cities[rendered_cities].groupby("country"))
 with open(os.path.join(dist_dir, "city", "index.html"), "w") as f:
     f.write(index_rendered)
+
+# Generate sitemap.xml + robots.txt so search engines can discover the per-city
+# SEO pages (the rest of the site is the SPA map / JSON data, not worth indexing).
+# Built here because this is the only place that knows which cities actually got a
+# page (the rendered_cities mask) — pointing the sitemap at unrendered cities 404s.
+SITE_URL = "https://maps.hitchwiki.org"
+lastmod = date.today().isoformat()
+
+
+def _sitemap_url(loc, priority):
+    # loc is already absolute; XML-escape it (& -> &amp; etc.) for valid XML.
+    return (
+        f"  <url>\n"
+        f"    <loc>{html.escape(loc)}</loc>\n"
+        f"    <lastmod>{lastmod}</lastmod>\n"
+        f"    <priority>{priority}</priority>\n"
+        f"  </url>\n"
+    )
+
+
+def _city_loc(country, city_name):
+    # Match the on-disk filename (cities.py replaces "/" with "-"), then
+    # percent-encode each path segment so spaces/diacritics produce valid URLs.
+    safe_filename = city_name.replace("/", "-")
+    country_seg = urllib.parse.quote(country)
+    city_seg = urllib.parse.quote(f"{safe_filename}.html")
+    return f"{SITE_URL}/city/{country_seg}/{city_seg}"
+
+
+sitemap_parts = [
+    '<?xml version="1.0" encoding="UTF-8"?>\n',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n',
+    _sitemap_url(f"{SITE_URL}/", "1.0"),
+    _sitemap_url(f"{SITE_URL}/city/index.html", "0.5"),
+]
+for city in cities[rendered_cities].itertuples():
+    sitemap_parts.append(_sitemap_url(_city_loc(city.country, city.city), "0.7"))
+sitemap_parts.append("</urlset>\n")
+
+with open(os.path.join(dist_dir, "sitemap.xml"), "w", encoding="utf-8") as f:
+    f.write("".join(sitemap_parts))
+logger.info(f"Wrote sitemap.xml with {sum(rendered_cities) + 2} URLs")
+
+# Open access so search engines and AI crawlers can discover the city pages.
+# Discovery is opt-in by NOT disallowing, so AI training/search bots (GPTBot,
+# ClaudeBot, Google-Extended, Applebot-Extended, CCBot, PerplexityBot, …) are
+# all permitted. Crawl-delay gentles polite crawlers (Bing/Yandex/some AI bots;
+# Googlebot ignores it) — it is NOT overload protection, which belongs in Caddy.
+robots_txt = (
+    "# We welcome search engines and AI crawlers — access is open so our city\n"
+    "# pages can be discovered and indexed.\n"
+    "User-agent: *\n"
+    "Allow: /\n"
+    "Crawl-delay: 5\n"
+    "\n"
+    f"Sitemap: {SITE_URL}/sitemap.xml\n"
+)
+with open(os.path.join(dist_dir, "robots.txt"), "w", encoding="utf-8") as f:
+    f.write(robots_txt)
 
 logger.info("CITIES SCRIPT FINISHED")
