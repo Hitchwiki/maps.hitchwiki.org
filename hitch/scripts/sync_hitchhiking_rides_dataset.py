@@ -51,6 +51,18 @@ for post in tqdm(all_posts, total=len(all_posts)):
         "source": content_json.get("source"),
         "version": content_json.get("version"),
     }
+
+    # Nested objects/arrays (mode_of_transportation, stops, hitchhikers, …) have
+    # optional, evolving keys across rides. Letting pandas/pyarrow auto-infer an
+    # Arrow struct for them produces inconsistent schemas across Parquet row
+    # groups, which makes the HuggingFace viewer fail with
+    # "Couldn't cast array of type struct<…> to {…}". Serialize them to JSON
+    # strings so each column is a stable `string` type regardless of shape;
+    # consumers json.loads() them back. sort_keys keeps output deterministic.
+    for key, value in entry.items():
+        if isinstance(value, (dict, list)):
+            entry[key] = json.dumps(value, ensure_ascii=False, sort_keys=True)
+
     entries.append(entry)
 
 logger.info(f"Skipped {skipped} posts with empty or invalid content")
