@@ -8,6 +8,7 @@ import warnings
 import numpy as np
 import pandas as pd
 from flask import current_app
+from sklearn.cluster import DBSCAN
 from sklearn.exceptions import InconsistentVersionWarning
 
 from hitch.helpers import e, get_bearing, get_db, get_dirs, haversine_np, write_json_file
@@ -330,6 +331,51 @@ rides_df.loc[oldies, "text"] = (
     + rides_df.loc[oldies, "user_link"]
     + rides_df[oldies]["submission_time"].dt.strftime(", %B %Y").fillna("")
 )
+
+# Spots submitted within a few metres of each other are almost always the same
+# physical hitchhiking spot — GPS jitter or a slightly different pin drop. Merge
+# them so the map shows one marker whose popup aggregates all their rides instead
+# of a cluster of near-identical pins. DBSCAN with min_samples=1 gives
+# single-linkage "chaining": if A is within MERGE_RADIUS_M of B and B of C, then
+# A, B and C collapse into one spot even when A and C are further apart. This is
+# the modern, automatic replacement for the manual duplicate-merging above.
+MERGE_RADIUS_M = 3
+EARTH_RADIUS_M = 6_371_000
+
+unique_coords = rides_df[["lat", "lon"]].drop_duplicates().reset_index(drop=True)
+if len(unique_coords) > 1:
+    logger.info(f"Clustering {len(unique_coords)} distinct coordinates within {MERGE_RADIUS_M} m")
+    # haversine expects radians and returns the great-circle distance in radians,
+    # so eps is the merge radius expressed as an arc length on the unit sphere.
+    unique_coords["cluster"] = DBSCAN(
+        eps=MERGE_RADIUS_M / EARTH_RADIUS_M,
+        min_samples=1,
+        metric="haversine",
+        algorithm="ball_tree",
+    ).fit_predict(np.radians(unique_coords[["lat", "lon"]].values))
+
+    # Anchor each cluster on its busiest member coordinate (most rides, ties
+    # broken by lat then lon). Using a real submitted point keeps the spot id /
+    # URL stable as new rides arrive, instead of drifting like a centroid would.
+    ride_counts = rides_df.groupby(["lat", "lon"]).size().rename("n")
+    unique_coords = unique_coords.merge(ride_counts, on=["lat", "lon"], how="left")
+    unique_coords.sort_values(["cluster", "n", "lat", "lon"], ascending=[True, False, True, True], inplace=True)
+    anchors = unique_coords.groupby("cluster")[["lat", "lon"]].first()
+    anchors.columns = ["anchor_lat", "anchor_lon"]
+    unique_coords = unique_coords.merge(anchors, on="cluster", how="left")
+
+    logger.info(f"Merged {len(unique_coords) - int(unique_coords['cluster'].nunique())} coordinates into nearby spots")
+
+    # Remap every ride to its cluster anchor via a dict (preserves rides_df's
+    # index, unlike a merge). Everything downstream — the groupby, spot-id
+    # generation, per-spot ride counts — keys off lat/lon, so swapping the
+    # coordinates here merges the spots across all generated files with no other
+    # change.
+    anchor_lat = dict(zip(zip(unique_coords["lat"], unique_coords["lon"]), unique_coords["anchor_lat"]))
+    anchor_lon = dict(zip(zip(unique_coords["lat"], unique_coords["lon"]), unique_coords["anchor_lon"]))
+    keys = list(zip(rides_df["lat"], rides_df["lon"]))
+    rides_df["lat"] = [anchor_lat[k] for k in keys]
+    rides_df["lon"] = [anchor_lon[k] for k in keys]
 
 groups = rides_df.groupby(["lat", "lon"])
 
