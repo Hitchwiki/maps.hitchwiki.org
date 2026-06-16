@@ -20,6 +20,13 @@ class User(db.Model, fsqla.FsUserMixin):
     trustroots_username = db.Column(db.String(255), default=None)
     email_notifications = db.Column(db.Boolean, default=True, nullable=False, server_default="1")
 
+    # Lifetime hitchhiking stats, recomputed from all ride events on every show.py
+    # run (not maintained on ride submission). Shown in the profile "Insights"
+    # section so the page doesn't have to aggregate every ride on each load.
+    total_rides = db.Column(db.Integer, default=0)
+    total_distance_km = db.Column(db.Float, default=0)
+    total_waiting_time_min = db.Column(db.Integer, default=0)
+
 
 class CoHitchhiker(db.Model):
     id = db.Column(db.Integer, primary_key=True)

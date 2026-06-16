@@ -3,6 +3,7 @@ import logging
 import math
 import os
 import shutil
+import sqlite3
 import warnings
 
 import numpy as np
@@ -306,6 +307,50 @@ def get_hitchhiker_name(hitchhikers):
 
 rides_df["hitchhiker_name"] = rides_df["hitchhikers"].apply(get_hitchhiker_name)
 
+
+logger.info("Computing per-user lifetime stats and updating the user table")
+
+# Aggregate lifetime stats per hitchhiker so the profile "Insights" section can
+# render them without re-aggregating every ride on each page load. "Anonymous"
+# is the sentinel for rides with no nickname, so it's excluded from user stats.
+# distance/wait carry NaN for rides without a destination / waiting time;
+# pandas sum skips those (skipna=True) and yields 0 when a user has none.
+named_rides = rides_df[rides_df["hitchhiker_name"] != "Anonymous"]
+user_stats = named_rides.groupby("hitchhiker_name").agg(
+    total_rides=("hitchhiker_name", "size"),
+    total_distance_km=("distance", "sum"),
+    total_waiting_time_min=("wait", "sum"),
+)
+
+# This runs before any JSON file is written, so the DB write below stays older
+# than the generated files and won't make should_regenerate_json() loop forever.
+stats_conn = get_db()
+# No migration framework: ensure the columns exist so a fresh deploy doesn't 500
+# on the first profile load. Idempotent — a re-add raises OperationalError.
+for col, coltype in (("total_rides", "INTEGER"), ("total_distance_km", "REAL"), ("total_waiting_time_min", "INTEGER")):
+    try:
+        stats_conn.execute(f"ALTER TABLE user ADD COLUMN {col} {coltype}")
+    except sqlite3.OperationalError:
+        pass  # column already exists
+
+# Match nicknames to usernames case-insensitively (consistent with the leaderboard);
+# only registered users have a row to update — unregistered nicknames are ignored.
+stat_updates = [
+    (
+        int(row.total_rides),
+        round(float(row.total_distance_km), 1) if pd.notna(row.total_distance_km) else 0,
+        int(row.total_waiting_time_min) if pd.notna(row.total_waiting_time_min) else 0,
+        name.lower(),
+    )
+    for name, row in user_stats.iterrows()
+]
+stats_conn.executemany(
+    "UPDATE user SET total_rides = ?, total_distance_km = ?, total_waiting_time_min = ? WHERE lower(username) = ?",
+    stat_updates,
+)
+stats_conn.commit()
+logger.info(f"Applied user stats for {len(stat_updates)} distinct nicknames")
+
 rides_df["user_link"] = (
     "<a href='/account/" + e(rides_df["hitchhiker_name"]) + "'>" + e(rides_df["hitchhiker_name"]) + "</a>"
 ).fillna(
@@ -339,7 +384,7 @@ rides_df.loc[oldies, "text"] = (
 # single-linkage "chaining": if A is within MERGE_RADIUS_M of B and B of C, then
 # A, B and C collapse into one spot even when A and C are further apart. This is
 # the modern, automatic replacement for the manual duplicate-merging above.
-MERGE_RADIUS_M = 3
+MERGE_RADIUS_M = 5
 EARTH_RADIUS_M = 6_371_000
 
 unique_coords = rides_df[["lat", "lon"]].drop_duplicates().reset_index(drop=True)
