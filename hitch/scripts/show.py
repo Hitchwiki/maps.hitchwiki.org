@@ -430,10 +430,6 @@ places["wait"] = rides_df[~rides_df.wait.isnull()].groupby(["lat", "lon"]).wait.
 places["distance"] = rides_df[~rides_df.distance.isnull()].groupby(["lat", "lon"]).distance.mean()
 places["text"] = groups.text.apply(lambda t: "<hr>".join(t.dropna()))
 
-places["review_users"] = (
-    rides_df.dropna(subset=["text", "hitchhiker_name"]).groupby(["lat", "lon"])["hitchhiker_name"].unique().apply(list)
-)
-
 places["dest_lats"] = rides_df.dropna(subset=["dest_lat", "dest_lon"]).groupby(["lat", "lon"]).dest_lat.apply(list)
 places["dest_lons"] = rides_df.dropna(subset=["dest_lat", "dest_lon"]).groupby(["lat", "lon"]).dest_lon.apply(list)
 
@@ -445,8 +441,14 @@ places.sort_values("rating", inplace=True, ascending=False)
 
 
 def generate_spot_id(lat, lon):
-    """Generate coordinate-based spot ID."""
-    return f"{lat:.4f}_{lon:.4f}"
+    """Generate coordinate-based spot ID.
+
+    spots.json no longer carries an explicit `id`; the frontend derives it from
+    the served lat/lon via `lat.toFixed(4)_lon.toFixed(4)`. We round to 5 decimals
+    first (the same precision the coords are served at) so the id we generate here
+    — used for the per-spot filenames `rides/by-spot/<id>.json` — matches exactly
+    what the frontend computes, avoiding 404s on the lazy per-spot fetch."""
+    return f"{round_coord(lat):.4f}_{round_coord(lon):.4f}"
 
 
 def round_coord(value):
@@ -634,14 +636,15 @@ spots_data = []
 spot_details = {}
 for _, place in places.iterrows():
     spot_id = generate_spot_id(place["lat"], place["lon"])
+    # No explicit "id": it's redundant with lat/lon. The frontend re-derives the
+    # spot id (used to fetch rides/by-spot/<id>.json) from these rounded coords.
     spot_data = {
-        "id": spot_id,
         "lat": round_coord(place["lat"]),
         "lon": round_coord(place["lon"]),
         "rating": place["rating"],
-        "ride_count": len(rides_df[(rides_df["lat"] == place["lat"]) & (rides_df["lon"] == place["lon"])]),
-        # Only the count is used (marker stroke weight); reviewer names are never displayed.
-        "review_count": len(place["review_users"]) if isinstance(place["review_users"], list) else 0,
+        # Total number of ride entries logged at this spot. Drives the marker stroke
+        # weight / bring-to-front and the "minimum rides" filter on the frontend.
+        "review_count": len(rides_df[(rides_df["lat"] == place["lat"]) & (rides_df["lon"] == place["lon"])]),
     }
     # Epoch ms instead of an ISO string: smaller and directly comparable to Date.now()
     # in the recent-rides filter. Omitted (like all sparse fields below) when absent.

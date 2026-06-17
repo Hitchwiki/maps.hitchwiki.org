@@ -144,4 +144,4 @@ def test_at_least_one_spot_on_map(tmp_path):
     spot = spots[0]
     assert spot["lat"] == pytest.approx(52.52, abs=0.01)
     assert spot["lon"] == pytest.approx(13.405, abs=0.01)
-    assert spot["ride_count"] >= 1
+    assert spot["review_count"] >= 1

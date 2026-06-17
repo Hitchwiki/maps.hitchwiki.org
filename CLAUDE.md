@@ -227,7 +227,7 @@ The `show.py` script runs every minute and generates map data files from the dat
 
 1. **`spots.json`** - Aggregated hitchhiking spots (downloaded by every visitor on map load, so it's kept slim: only what's needed to draw and filter markers)
    - Groups rides by exact lat/lon coordinates; output coordinates rounded to 5 decimals (~1 m)
-   - Structure: `{id, lat, lon, rating, ride_count, review_count}` plus, only when present: `latest_ms` (epoch ms of newest submission), `dest_lats`/`dest_lons`, and presence flags `osm`/`cp`/`wiki`/`wikimap` (booleans, omitted when false)
+   - Structure: `{lat, lon, rating, review_count}` (`review_count` = total ride entries at the spot; the spot id is not stored — the frontend derives it from lat/lon as `lat.toFixed(4)_lon.toFixed(4)`, matching `generate_spot_id`) plus, only when present: `latest_ms` (epoch ms of newest submission), `dest_lats`/`dest_lons`, and presence flags `osm`/`cp`/`wiki`/`wikimap` (booleans, omitted when false)
    - Click-time detail (wait/distance averages, OSM / car-pooling / Hitchwiki links) lives in the per-spot files instead
 
 2. **`rides_index.json`** - Lightweight index of all rides (replaces deprecated `rides.json`)

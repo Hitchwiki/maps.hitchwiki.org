@@ -89,7 +89,10 @@ async function loadMarkers(map) {
           fillOpacity: opacity,
           color: "black",
           fillColor: color,
-          spotId: m.id, // Store spot ID for filtering and ride lookup
+          // spots.json carries no explicit id (redundant with lat/lon); re-derive
+          // it the same way generate_spot_id does in show.py (coords already rounded
+          // to 5 decimals there) so it matches the rides/by-spot/<id>.json filename.
+          spotId: `${m.lat.toFixed(4)}_${m.lon.toFixed(4)}`,
           _data: Object.assign({}, m, { rating: rating, text: "" })
         });
 
@@ -1310,7 +1313,7 @@ async function applyParams() {
     if (minRidesFilter.value) {
       const minRides = parseInt(minRidesFilter.value, 10);
       filterMarkers = filterMarkers.filter(
-        (x) => (x.options._data.ride_count || 0) >= minRides
+        (x) => (x.options._data.review_count || 0) >= minRides
       );
     }
     if (recentToggle.checked) {
