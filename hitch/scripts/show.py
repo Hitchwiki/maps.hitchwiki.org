@@ -307,6 +307,17 @@ def get_hitchhiker_name(hitchhikers):
 
 rides_df["hitchhiker_name"] = rides_df["hitchhikers"].apply(get_hitchhiker_name)
 
+# A ride is "low-value" when it is anonymous and carries no information beyond a
+# bare rating: no written comment and no recorded waiting time. These (mostly
+# legacy single-rating imports, e.g. 51.6816, 9.1609) clutter the map, so we drop
+# them from every detail view and remove spots made up entirely of them — while
+# still counting them toward a surviving spot's review_count (see
+# total_ride_counts below, computed before the rides are filtered out).
+comment_blank = rides_df["comment"].fillna("").astype(str).str.strip() == ""
+rides_df["is_informative"] = ~(
+    (rides_df["hitchhiker_name"] == "Anonymous") & comment_blank & rides_df["wait"].isnull()
+)
+
 
 logger.info("Computing per-user lifetime stats and updating the user table")
 
@@ -421,6 +432,18 @@ if len(unique_coords) > 1:
     keys = list(zip(rides_df["lat"], rides_df["lon"]))
     rides_df["lat"] = [anchor_lat[k] for k in keys]
     rides_df["lon"] = [anchor_lon[k] for k in keys]
+
+# Count every ride per (anchored) spot BEFORE dropping the low-value ones, so a
+# surviving spot's review_count still reflects the anonymous rating-only rides we
+# remove below. Keyed by the (lat, lon) tuple to match `place` rows further down.
+total_ride_counts = rides_df.groupby(["lat", "lon"]).size().to_dict()
+
+# Drop anonymous, information-free rides from everything downstream (places
+# aggregation, per-spot detail files, rides_index, recent). Spots left with no
+# informative ride simply won't appear in `places` below, removing them from the
+# map; their full ride tally is preserved in total_ride_counts for spots that
+# keep at least one informative ride.
+rides_df = rides_df[rides_df["is_informative"]].copy()
 
 groups = rides_df.groupby(["lat", "lon"])
 
@@ -642,9 +665,10 @@ for _, place in places.iterrows():
         "lat": round_coord(place["lat"]),
         "lon": round_coord(place["lon"]),
         "rating": place["rating"],
-        # Total number of ride entries logged at this spot. Drives the marker stroke
-        # weight / bring-to-front and the "minimum rides" filter on the frontend.
-        "review_count": len(rides_df[(rides_df["lat"] == place["lat"]) & (rides_df["lon"] == place["lon"])]),
+        # Total number of ride entries logged at this spot, including the dropped
+        # anonymous rating-only rides (see total_ride_counts). Drives the marker
+        # stroke weight / bring-to-front and the "minimum rides" frontend filter.
+        "review_count": int(total_ride_counts.get((place["lat"], place["lon"]), 0)),
     }
     # Epoch ms instead of an ISO string: smaller and directly comparable to Date.now()
     # in the recent-rides filter. Omitted (like all sparse fields below) when absent.

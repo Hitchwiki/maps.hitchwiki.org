@@ -229,6 +229,7 @@ The `show.py` script runs every minute and generates map data files from the dat
    - Groups rides by exact lat/lon coordinates; output coordinates rounded to 5 decimals (~1 m)
    - Structure: `{lat, lon, rating, review_count}` (`review_count` = total ride entries at the spot; the spot id is not stored — the frontend derives it from lat/lon as `lat.toFixed(4)_lon.toFixed(4)`, matching `generate_spot_id`) plus, only when present: `latest_ms` (epoch ms of newest submission), `dest_lats`/`dest_lons`, and presence flags `osm`/`cp`/`wiki`/`wikimap` (booleans, omitted when false)
    - Click-time detail (wait/distance averages, OSM / car-pooling / Hitchwiki links) lives in the per-spot files instead
+   - Low-value rides — anonymous AND no comment AND no wait time (rating only) — are dropped from all detail views (`places` aggregations, per-spot files, `rides_index`, `recent`); a spot whose rides are all low-value is removed entirely. Such rides are still counted in `review_count` of any spot that keeps ≥1 informative ride (`total_ride_counts` is computed before the filter in `show.py`)
 
 2. **`rides_index.json`** - Lightweight index of all rides (replaces deprecated `rides.json`)
    - One compact entry per ride, used by the map UI to power filters, search, and the recent-rides list without loading full popup details
