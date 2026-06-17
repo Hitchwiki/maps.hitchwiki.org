@@ -90,9 +90,10 @@ async function loadMarkers(map) {
           color: "black",
           fillColor: color,
           // spots.json carries no explicit id (redundant with lat/lon); re-derive
-          // it the same way generate_spot_id does in show.py (coords already rounded
-          // to 5 decimals there) so it matches the rides/by-spot/<id>.json filename.
-          spotId: `${m.lat.toFixed(4)}_${m.lon.toFixed(4)}`,
+          // it the same way generate_spot_id does in show.py (5 decimals, matching
+          // the served coord precision) so it matches the rides/by-spot/<id>.json
+          // filename.
+          spotId: `${m.lat.toFixed(5)}_${m.lon.toFixed(5)}`,
           _data: Object.assign({}, m, { rating: rating, text: "" })
         });
 

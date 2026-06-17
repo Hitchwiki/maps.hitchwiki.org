@@ -467,11 +467,13 @@ def generate_spot_id(lat, lon):
     """Generate coordinate-based spot ID.
 
     spots.json no longer carries an explicit `id`; the frontend derives it from
-    the served lat/lon via `lat.toFixed(4)_lon.toFixed(4)`. We round to 5 decimals
-    first (the same precision the coords are served at) so the id we generate here
-    — used for the per-spot filenames `rides/by-spot/<id>.json` — matches exactly
-    what the frontend computes, avoiding 404s on the lazy per-spot fetch."""
-    return f"{round_coord(lat):.4f}_{round_coord(lon):.4f}"
+    the served lat/lon via `lat.toFixed(5)_lon.toFixed(5)`. We use 5 decimals
+    (~1.1 m) — the same precision the coords are served at, and finer than the 5 m
+    spot-merge radius — so two anchors the clustering kept apart never collapse to
+    the same id. Rounding here matches exactly what the frontend computes, so the
+    per-spot filenames `rides/by-spot/<id>.json` line up and the lazy fetch doesn't
+    404."""
+    return f"{round_coord(lat):.5f}_{round_coord(lon):.5f}"
 
 
 def round_coord(value):
