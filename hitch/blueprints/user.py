@@ -13,7 +13,7 @@ from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDat
 from hitch.extensions import db, security
 from hitch.forms import UserEditForm
 from hitch.helpers import get_db
-from hitch.models import CoHitchhiker, RideEvent
+from hitch.models import CoHitchhiker, Follow, RideEvent, User
 
 THIS_NOSTR_SOURCE = os.getenv("THIS_NOSTR_SOURCE", "maps.hitchwiki.org")
 
@@ -87,8 +87,6 @@ def is_username_used(username):
 @user_bp.route("/search_usernames", methods=["GET"])
 def search_usernames():
     """Return usernames matching a query prefix, excluding the current user."""
-    from hitch.models import User
-
     query = request.args.get("q", "").strip()
     if len(query) < 1:
         return jsonify([])
@@ -146,9 +144,61 @@ def show_account(username, is_me: bool = False):
 
     age = (datetime.utcnow().year - user.year_of_birth) if user.year_of_birth else None
 
+    # The follow button only makes sense on another registered user's page while logged
+    # in. `can_follow` gates whether the button renders at all; `is_following` sets its
+    # initial state so a reload reflects the stored relationship.
+    can_follow = user_known and not is_me and not current_user.is_anonymous
+    is_following = False
+    if can_follow:
+        is_following = (
+            Follow.query.filter_by(follower_id=current_user.id, followed_id=user.id).first() is not None
+        )
+
     return render_template(
-        "security/account.html", user=user, is_me=is_me, rides=rides_data, user_known=user_known, age=age
+        "security/account.html",
+        user=user,
+        is_me=is_me,
+        rides=rides_data,
+        user_known=user_known,
+        age=age,
+        can_follow=can_follow,
+        is_following=is_following,
     )
+
+
+def _toggle_follow(username, follow):
+    """Shared follow/unfollow handler. Returns JSON with the resulting follow state."""
+    if current_user.is_anonymous:
+        return jsonify({"error": "login_required"}), 401
+
+    target = security.datastore.find_user(username=username)
+    if target is None:
+        return jsonify({"error": "user_not_found"}), 404
+    # Following yourself is meaningless; reject it so it never lands in the table.
+    if target.id == current_user.id:
+        return jsonify({"error": "cannot_follow_self"}), 400
+
+    existing = Follow.query.filter_by(follower_id=current_user.id, followed_id=target.id).first()
+    if follow and existing is None:
+        db.session.add(Follow(follower_id=current_user.id, followed_id=target.id))
+        db.session.commit()
+    elif not follow and existing is not None:
+        db.session.delete(existing)
+        db.session.commit()
+
+    return jsonify({"following": follow})
+
+
+@user_bp.route("/follow/<username>", methods=["POST"])
+def follow_user(username):
+    """Make the logged-in user follow `username`."""
+    return _toggle_follow(username, follow=True)
+
+
+@user_bp.route("/unfollow/<username>", methods=["POST"])
+def unfollow_user(username):
+    """Make the logged-in user stop following `username`."""
+    return _toggle_follow(username, follow=False)
 
 
 @user_bp.route("/contributors", methods=["GET"])
@@ -389,8 +439,6 @@ def my_rides():
 @user_bp.route("/leaderboard", methods=["GET"])
 def leaderboard():
     """Show all users sorted by number of rides, highest first."""
-    from hitch.models import User
-
     all_users = User.query.order_by(User.username).all()
 
     # Count rides per nickname directly in SQL via json_each — avoids loading every

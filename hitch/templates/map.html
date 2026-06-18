@@ -18,8 +18,8 @@
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css">
-<link rel="stylesheet" href="/static/ride_card.css" />
-<link rel="stylesheet" href="/static/style.css" />
+<link rel="stylesheet" href="{{ asset_url('/static/ride_card.css') }}" />
+<link rel="stylesheet" href="{{ asset_url('/static/style.css') }}" />
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -39,7 +39,7 @@
 var HIDE_ADD_SPOT_BUTTON = {{ hide_add_spot_button|tojson }};
 var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
 </script>
-<script src="/static/map.js"></script>
+<script src="{{ asset_url('/static/map.js') }}"></script>
 <script>
 // Install-to-homescreen hint logic. Self-contained — no dependency on map.js.
 // Storage key holds the dismissal timestamp (ms); reappears after 30 days.
@@ -201,7 +201,6 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
             <li><a href="https://huggingface.co/datasets/Hitchwiki/hitchhiking-rides-dataset">Full dataset</a></li>
             <li><a href="javascript:exportAsGPX()">As GPX (to import into offline maps)</a></li>
         </ul>
-        <li><i class="fa fa-map-pin"></i><a href="/recent">Recent rides</a></li>
         <li><i class="fa fa-chart-simple"></i><a href="/dashboard.html">Charts & graphs</a></li>
     </ul>
     <h4>Contact</h4>
@@ -425,12 +424,10 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
 
 <!-- Bottom action pane -->
 <div class="bottom-action-pane" id="bottom-action-pane">
-    {% if not hide_add_spot_button %}
-    <button class="action-btn" id="action-add-spot" title="Add your ride">
-        <span class="action-emoji">🚗💨</span>
-        <span>Add your ride</span>
-    </button>
-    {% endif %}
+    <a class="action-btn" href="/recent" id="action-activities" title="Activities">
+        <i class="fa-solid fa-calendar-days"></i>
+        <span>Activities</span>
+    </a>
     <button class="action-btn" id="heatmap-toggle-btn" title="Toggle heatmap">
         <i class="fa fa-fire"></i>
         <span id="heatmap-toggle-text">Heatmap</span>
@@ -439,10 +436,12 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
         <i class="fa-solid fa-chart-column"></i>
         <span>Insights</span>
     </a>
-    <button class="action-btn" id="action-route" title="Route planning">
-        <i class="fa-solid fa-route"></i>
-        <span>Route</span>
+    {% if not hide_add_spot_button %}
+    <button class="action-btn" id="action-add-spot" title="Add your ride">
+        <span class="action-emoji">🚗💨</span>
+        <span>Add your ride</span>
     </button>
+    {% endif %}
     <a class="action-btn" href="/leaderboard" title="Leaderboard">
         <i class="fa-solid fa-trophy"></i>
         <span>Leaderboard</span>

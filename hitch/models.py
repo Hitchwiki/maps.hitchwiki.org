@@ -1,4 +1,5 @@
 """Define database tables that are created at flask init."""
+
 from flask_security.models import fsqla_v3 as fsqla
 
 from hitch.extensions import db
@@ -26,6 +27,18 @@ class User(db.Model, fsqla.FsUserMixin):
     total_rides = db.Column(db.Integer, default=0)
     total_distance_km = db.Column(db.Float, default=0)
     total_waiting_time_min = db.Column(db.Integer, default=0)
+
+
+class Follow(db.Model):
+    # Directed follow relationship between two registered users: follower_id follows
+    # followed_id. A unique constraint on the pair makes a follow idempotent (a user
+    # can follow another at most once) and lets us toggle on a single row.
+    id = db.Column(db.Integer, primary_key=True)
+    follower_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    followed_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=db.func.now())
+
+    __table_args__ = (db.UniqueConstraint("follower_id", "followed_id", name="uq_follow_follower_followed"),)
 
 
 class CoHitchhiker(db.Model):
@@ -89,6 +102,25 @@ class OsmCarPoolingSpot(db.Model):
     timestamp = db.Column(db.String(64), nullable=True)
     user = db.Column(db.String(255), nullable=True)
     uid = db.Column(db.BigInteger, nullable=True)
+
+
+class ServiceArea(db.Model):
+    # A motorway service area / gas station polygon from OSM (amenity=fuel,
+    # highway=services|rest_area|service_area|parking). Built by sync_service_areas.py
+    # and used by show.py to merge every spot that falls inside one polygon into a
+    # single hitchhiking spot. geom_id is the OSM element id of the source feature.
+    geom_id = db.Column(db.BigInteger, primary_key=True)
+    name = db.Column(db.String(255), nullable=True)
+    # Convex hull of the OSM geometry, serialized as WKT (shapely reads it back).
+    geometry_wkt = db.Column(db.Text, nullable=False)
+
+
+class RoadIsland(db.Model):
+    # The patch of land enclosed by a ring of roads/slip-roads (a "road island").
+    # Built by sync_road_islands.py via polygonizing the surrounding road network;
+    # used by show.py to merge spots dropped around the same junction into one spot.
+    id = db.Column(db.Integer, primary_key=True)
+    geometry_wkt = db.Column(db.Text, nullable=False)
 
 
 class HitchwikiArticleLocation(db.Model):

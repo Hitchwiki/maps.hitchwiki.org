@@ -1,6 +1,6 @@
 {% extends "security/base.html" %}
 
-{% set title = "Recent Rides" %}
+{% set title = "Activities" %}
 
 {% block head %}
 {{ super() }}
@@ -9,26 +9,55 @@
 <link rel="stylesheet" href="/static/ride_card.css" />
 {% endblock %}
 
+{% macro ride_card(ride, thumb_prefix, idx) %}
+{% set tag = "a" if ride.d_tag else "div" %}
+<{{ tag }} class="ride-card"{% if ride.d_tag %} href="/ride/{{ ride.d_tag }}"{% endif %}>
+    <div class="ride-meta">
+        {{ ride.created }}
+        {% if ride.rating > 0 %}&nbsp;{{ "⭐" * ride.rating }}{% endif %}
+        &mdash; <span class="hitchhiker-name">{{ ride.hitchhiker_name }}</span>
+    </div>
+    {% if ride.pickup_lat and ride.pickup_lon %}
+    <div class="map-thumbnail" id="{{ thumb_prefix }}-{{ idx }}" style="height:100px;"></div>
+    <div style="color:#888; font-size:0.8em;">{{ "%.4f, %.4f"|format(ride.pickup_lat, ride.pickup_lon) }}</div>
+    {% endif %}
+    {% if ride.comment %}
+    <div class="ride-comment">{{ ride.comment }}</div>
+    {% endif %}
+</{{ tag }}>
+{% endmacro %}
+
 {% block content %}
-<h1>Recent Rides</h1>
+<h1>Activities</h1>
+
+{% if is_logged_in %}
+{% if followed_rides %}
+  <h2 style="margin-top:0.5em;">From people you follow</h2>
+  {% for ride in followed_rides %}
+  {{ ride_card(ride, "followed-thumb", loop.index0) }}
+  {% endfor %}
+{% elif follow_suggestions %}
+  <h2 style="margin-top:0.5em;">Hitchhikers to follow</h2>
+  <p style="color:#666; font-size:0.9em;">You're not following anyone yet. Here are some of the most active hitchhikers lately &mdash; follow them to see their latest rides here.</p>
+  {% for s in follow_suggestions %}
+  <a class="ride-card" href="/account/{{ s.username }}">
+      <div class="ride-meta">
+          <span class="hitchhiker-name">{{ s.username }}</span>
+          &mdash; {{ s.ride_count }} recent ride{{ "s" if s.ride_count != 1 else "" }}
+      </div>
+  </a>
+  {% endfor %}
+{% else %}
+  <h2 style="margin-top:0.5em;">From people you follow</h2>
+  <p style="color:#666; font-size:0.9em;">No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.</p>
+{% endif %}
+{% endif %}
+
+<h2{% if is_logged_in %} style="margin-top:1.5em;"{% endif %}>Recent rides</h2>
 <p style="color:#666; font-size:0.85em;">Last {{ rides|length }} added rides</p>
 {% if rides %}
   {% for ride in rides %}
-  {% set tag = "a" if ride.d_tag else "div" %}
-  <{{ tag }} class="ride-card"{% if ride.d_tag %} href="/ride/{{ ride.d_tag }}"{% endif %}>
-      <div class="ride-meta">
-          {{ ride.created }}
-          {% if ride.rating > 0 %}&nbsp;{{ "\u2b50" * ride.rating }}{% endif %}
-          &mdash; <span class="hitchhiker-name">{{ ride.hitchhiker_name }}</span>
-      </div>
-      {% if ride.pickup_lat and ride.pickup_lon %}
-      <div class="map-thumbnail" id="ride-thumb-{{ loop.index0 }}" style="height:100px;"></div>
-      <div style="color:#888; font-size:0.8em;">{{ "%.4f, %.4f"|format(ride.pickup_lat, ride.pickup_lon) }}</div>
-      {% endif %}
-      {% if ride.comment %}
-      <div class="ride-comment">{{ ride.comment }}</div>
-      {% endif %}
-  </{{ tag }}>
+  {{ ride_card(ride, "recent-thumb", loop.index0) }}
   {% endfor %}
 {% else %}
   <p style="color:#666; font-size:0.9em;">No rides yet.</p>
@@ -41,10 +70,16 @@
 <script src="/static/map_thumbnail.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const rides = {{ rides | tojson }};
-    rides.forEach((ride, i) => {
+    const followedRides = {{ followed_rides | tojson }};
+    const recentRides = {{ rides | tojson }};
+    followedRides.forEach((ride, i) => {
         if (ride.pickup_lat && ride.pickup_lon) {
-            initMapThumbnail(`ride-thumb-${i}`, ride.pickup_lat, ride.pickup_lon);
+            initMapThumbnail(`followed-thumb-${i}`, ride.pickup_lat, ride.pickup_lon);
+        }
+    });
+    recentRides.forEach((ride, i) => {
+        if (ride.pickup_lat && ride.pickup_lon) {
+            initMapThumbnail(`recent-thumb-${i}`, ride.pickup_lat, ride.pickup_lon);
         }
     });
 });

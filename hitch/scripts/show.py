@@ -4,11 +4,15 @@ import math
 import os
 import shutil
 import sqlite3
+import time
 import warnings
 
 import numpy as np
 import pandas as pd
 from flask import current_app
+from shapely import STRtree
+from shapely.geometry import Point
+from shapely.wkt import loads as wkt_loads
 from sklearn.cluster import DBSCAN
 from sklearn.exceptions import InconsistentVersionWarning
 
@@ -22,18 +26,19 @@ dirs = get_dirs()
 logger.info("Creating directories if they don't exist")
 os.makedirs(dirs["dist"], exist_ok=True)
 
+
 # Check if we need to regenerate JSON files
 def should_regenerate_json():
     """Check if JSON files need regeneration based on database modification time."""
     db_path = current_app.config["DATABASE_URI"]
-    
+
     # Check if database exists
     if not os.path.exists(db_path):
         logger.warning(f"Database file not found: {db_path}")
         return True
-    
+
     db_mtime = os.path.getmtime(db_path)
-    
+
     # Check each JSON file
     json_files = ["spots.json", "rides_index.json", "spots_recent.json"]
 
@@ -42,11 +47,11 @@ def should_regenerate_json():
     if not os.path.isdir(by_spot_dir):
         logger.info("Regeneration needed: rides/by-spot directory is missing")
         return True
-    
+
     # Only check heatmap if it's enabled
     if current_app.config.get("GENERATE_HEATMAP", True):
         json_files.append("heatmap.json")
-    
+
     for json_file in json_files:
         json_path = os.path.join(dirs["dist"], json_file)
         if not os.path.exists(json_path):
@@ -55,8 +60,9 @@ def should_regenerate_json():
         elif os.path.getmtime(json_path) < db_mtime:
             logger.info(f"Regeneration needed: {json_file} is outdated")
             return True
-    
+
     return False
+
 
 # Skip processing if JSON files are up to date (unless forced)
 if not current_app.config.get("FORCE_REGENERATE", False) and not should_regenerate_json():
@@ -90,6 +96,8 @@ rides_df["vehicle_kind"] = rides_df["mode_of_transportation"].apply(get_vehicle_
 
 
 logger.info("Extracting start and end coordinates")
+
+
 def get_start_end_coords(row):
     start_location = row["stops"][0]["location"]
 
@@ -314,9 +322,7 @@ rides_df["hitchhiker_name"] = rides_df["hitchhikers"].apply(get_hitchhiker_name)
 # still counting them toward a surviving spot's review_count (see
 # total_ride_counts below, computed before the rides are filtered out).
 comment_blank = rides_df["comment"].fillna("").astype(str).str.strip() == ""
-rides_df["is_informative"] = ~(
-    (rides_df["hitchhiker_name"] == "Anonymous") & comment_blank & rides_df["wait"].isnull()
-)
+rides_df["is_informative"] = ~((rides_df["hitchhiker_name"] == "Anonymous") & comment_blank & rides_df["wait"].isnull())
 
 
 logger.info("Computing per-user lifetime stats and updating the user table")
@@ -432,6 +438,92 @@ if len(unique_coords) > 1:
     keys = list(zip(rides_df["lat"], rides_df["lon"]))
     rides_df["lat"] = [anchor_lat[k] for k in keys]
     rides_df["lon"] = [anchor_lon[k] for k in keys]
+
+# Coarser grouping on top of the 5 m merge: spots inside the same OSM service area
+# (gas station / rest stop) or the same road island are the same physical hitchhiking
+# spot even when tens of metres apart, so people's scattered pins around one filling
+# station or junction should collapse to one marker. The polygons come from
+# sync_service_areas / sync_road_islands; we assign each coordinate the polygon that
+# contains it (service area wins over road island, matching hitchmap's precedence) and
+# remap every ride to a single busiest-member anchor per polygon — exactly the anchor
+# trick the 5 m merge uses, so the spot id / per-spot files stay stable.
+t_group = time.perf_counter()
+try:
+    service_areas_df = pd.read_sql("select geom_id, geometry_wkt from service_area", get_db())
+    road_islands_df = pd.read_sql("select id, geometry_wkt from road_island", get_db())
+except (pd.errors.DatabaseError, sqlite3.OperationalError):
+    # Tables absent (sync scripts never run, e.g. fresh/dev DB): keep the 5 m merge only.
+    logger.info("service_area / road_island tables not found — skipping polygon grouping")
+    service_areas_df = road_islands_df = None
+
+if service_areas_df is not None and (len(service_areas_df) or len(road_islands_df)):
+    logger.info(f"Polygon grouping: {len(service_areas_df)} service areas, {len(road_islands_df)} road islands")
+    unique_pts = rides_df[["lat", "lon"]].drop_duplicates().reset_index(drop=True)
+    lat_list = unique_pts["lat"].tolist()
+    lon_list = unique_pts["lon"].tolist()
+    # Polygons were built in (lon, lat) order, so query points must match.
+    points = [Point(lon, lat) for lat, lon in zip(lat_list, lon_list)]
+
+    def assign_polygon(geoms, ids):
+        """For each unique point, return the id of the containing polygon (largest if
+        several contain it) or None. An STRtree bbox prefilter keeps the no-match case —
+        the vast majority of spots — cheap."""
+        if not geoms:
+            return [None] * len(points)
+        tree = STRtree(geoms)
+        polygon_areas = [g.area for g in geoms]
+        assigned = []
+        for pt in points:
+            # STRtree tests query_geom.predicate(tree_geom); "within" → this point lies
+            # inside the tree polygon. (predicate="contains" would test point.contains(poly).)
+            candidates = tree.query(pt, predicate="within")
+            if len(candidates) == 0:
+                assigned.append(None)
+            else:
+                assigned.append(ids[max(candidates, key=lambda idx: polygon_areas[idx])])
+        return assigned
+
+    sa_geoms = [wkt_loads(w) for w in service_areas_df["geometry_wkt"]]
+    ri_geoms = [wkt_loads(w) for w in road_islands_df["geometry_wkt"]]
+    sa_ids = assign_polygon(sa_geoms, service_areas_df["geom_id"].tolist())
+    ri_ids = assign_polygon(ri_geoms, road_islands_df["id"].tolist())
+
+    # One grouping label per coordinate; service area takes precedence over road island,
+    # and points in neither keep their own coordinate (i.e. the 5 m-merge result). Build
+    # the labels as plain strings from Python lists — assigning a None/int list into a
+    # DataFrame column would coerce None to NaN (float), and `NaN is not None` is True, so
+    # every unmatched point would be mislabelled and collapse into one giant spot.
+    labels = []
+    for sa_id, ri_id, lat, lon in zip(sa_ids, ri_ids, lat_list, lon_list):
+        if sa_id is not None:
+            labels.append(f"sa:{sa_id}")
+        elif ri_id is not None:
+            labels.append(f"ri:{ri_id}")
+        else:
+            labels.append(f"pt:{lat}:{lon}")
+    unique_pts["label"] = labels
+
+    # Anchor each label on its busiest member coordinate (most rides, ties by lat/lon) so
+    # the chosen spot coordinate is a real submitted point and stays put as rides change.
+    ride_counts = rides_df.groupby(["lat", "lon"]).size().rename("n").reset_index()
+    unique_pts = unique_pts.merge(ride_counts, on=["lat", "lon"], how="left")
+    unique_pts.sort_values(["n", "lat", "lon"], ascending=[False, True, True], inplace=True)
+    anchors = unique_pts.groupby("label", sort=False)[["lat", "lon"]].first()
+    anchors.columns = ["anchor_lat", "anchor_lon"]
+    unique_pts = unique_pts.merge(anchors, on="label", how="left")
+
+    anchor_lat = dict(zip(zip(unique_pts["lat"], unique_pts["lon"]), unique_pts["anchor_lat"]))
+    anchor_lon = dict(zip(zip(unique_pts["lat"], unique_pts["lon"]), unique_pts["anchor_lon"]))
+    keys = list(zip(rides_df["lat"], rides_df["lon"]))
+    rides_df["lat"] = [anchor_lat[k] for k in keys]
+    rides_df["lon"] = [anchor_lon[k] for k in keys]
+
+    # Distinct polygons that actually captured ≥1 coordinate (not the per-coordinate "pt:" labels).
+    n_polygon_spots = len({lbl for lbl in labels if not lbl.startswith("pt:")})
+    logger.info(
+        f"Polygon grouping merged coords into {n_polygon_spots} service-area/road-island "
+        f"spots in {time.perf_counter() - t_group:.1f}s"
+    )
 
 # Count every ride per (anchored) spot BEFORE dropping the low-value ones, so a
 # surviving spot's review_count still reflects the anonymous rating-only rides we
@@ -778,24 +870,14 @@ COMMENT_EXCERPT_LEN = 200
 
 # Build distance lookup once (avoid O(n²) per-row search inside the loop).
 distance_by_d = {
-    d: (round(float(dist), 1) if pd.notna(dist) else None)
-    for d, dist in zip(rides_df["d"], rides_df["distance"])
-    if pd.notna(d)
+    d: (round(float(dist), 1) if pd.notna(dist) else None) for d, dist in zip(rides_df["d"], rides_df["distance"]) if pd.notna(d)
 }
 
 submission_ms = pd.to_datetime(rides_df["submission_time"], errors="coerce", utc=True).astype("int64") // 10**6
-ts_by_d = {
-    d: (int(ms) if ms > 0 else None)
-    for d, ms in zip(rides_df["d"], submission_ms)
-    if pd.notna(d)
-}
+ts_by_d = {d: (int(ms) if ms > 0 else None) for d, ms in zip(rides_df["d"], submission_ms) if pd.notna(d)}
 
 ride_dt_ms = pd.to_datetime(rides_df["ride_datetime"], errors="coerce", utc=True).astype("int64") // 10**6
-ride_dt_by_d = {
-    d: (int(ms) if ms > 0 else None)
-    for d, ms in zip(rides_df["d"], ride_dt_ms)
-    if pd.notna(d)
-}
+ride_dt_by_d = {d: (int(ms) if ms > 0 else None) for d, ms in zip(rides_df["d"], ride_dt_ms) if pd.notna(d)}
 
 rides_index = []
 for r in rides_data:
@@ -803,28 +885,30 @@ for r in rides_data:
     has_osm, has_wiki, has_cp = spot_flags.get(sid, (False, False, False))
     comment = r["comment"]
 
-    rides_index.append({
-        "id": r["id"],
-        "sid": sid,
-        "lat": round_coord(r["lat"]),
-        "lon": round_coord(r["lon"]),
-        "u": r["hitchhiker_name"],
-        "t": ts_by_d.get(r["id"]),
-        "r": r["rating"],
-        "km": distance_by_d.get(r["id"]),
-        # Included so the /#insights view can plot a waiting-time histogram from the
-        # rides index alone, without fetching every per-spot detail file.
-        "w": r["wait"],
-        "osm": bool(has_osm),
-        "wiki": bool(has_wiki),
-        "cp": bool(has_cp),
-        "v": r.get("vehicle_kind"),
-        # Unique list of signal methods used on this ride (e.g. ["thumb", "sign"]).
-        # Empty/missing → None so the JSON stays small.
-        "m": r.get("signal_methods"),
-        "rd": ride_dt_by_d.get(r["id"]),
-        "c": comment[:COMMENT_EXCERPT_LEN] if comment else None,
-    })
+    rides_index.append(
+        {
+            "id": r["id"],
+            "sid": sid,
+            "lat": round_coord(r["lat"]),
+            "lon": round_coord(r["lon"]),
+            "u": r["hitchhiker_name"],
+            "t": ts_by_d.get(r["id"]),
+            "r": r["rating"],
+            "km": distance_by_d.get(r["id"]),
+            # Included so the /#insights view can plot a waiting-time histogram from the
+            # rides index alone, without fetching every per-spot detail file.
+            "w": r["wait"],
+            "osm": bool(has_osm),
+            "wiki": bool(has_wiki),
+            "cp": bool(has_cp),
+            "v": r.get("vehicle_kind"),
+            # Unique list of signal methods used on this ride (e.g. ["thumb", "sign"]).
+            # Empty/missing → None so the JSON stays small.
+            "m": r.get("signal_methods"),
+            "rd": ride_dt_by_d.get(r["id"]),
+            "c": comment[:COMMENT_EXCERPT_LEN] if comment else None,
+        }
+    )
 
 write_json_file(rides_index, "rides_index.json")
 
@@ -841,16 +925,18 @@ os.makedirs(by_spot_dir, exist_ok=True)
 logger.info(f"Writing per-spot ride files to {by_spot_dir}")
 rides_by_spot: dict[str, list] = {}
 for r in rides_data:
-    rides_by_spot.setdefault(r["spot_id"], []).append({
-        "id": r["id"],
-        "rating": r["rating"],
-        "wait": r["wait"],
-        "comment": r["comment"],
-        "hitchhiker_name": r["hitchhiker_name"],
-        "submission_time": r["submission_time"],
-        "ride_datetime": r["ride_datetime"],
-        "arrival_datetime": r["arrival_datetime"],
-    })
+    rides_by_spot.setdefault(r["spot_id"], []).append(
+        {
+            "id": r["id"],
+            "rating": r["rating"],
+            "wait": r["wait"],
+            "comment": r["comment"],
+            "hitchhiker_name": r["hitchhiker_name"],
+            "submission_time": r["submission_time"],
+            "ride_datetime": r["ride_datetime"],
+            "arrival_datetime": r["arrival_datetime"],
+        }
+    )
 
 for sid, spot_rides in rides_by_spot.items():
     with open(os.path.join(by_spot_dir, f"{sid}.json"), "w") as f:

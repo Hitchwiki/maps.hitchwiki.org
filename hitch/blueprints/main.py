@@ -4,6 +4,7 @@ import re
 from datetime import datetime
 
 import pandas as pd
+from sqlalchemy import text
 from flask import (
     Blueprint,
     abort,
@@ -33,7 +34,7 @@ from hitch.blueprints.utils.license_plate_country_codes import LICENSE_PLATE_COU
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.extensions import db
 from hitch.helpers import get_db
-from hitch.models import CoHitchhiker, RideEvent, User
+from hitch.models import CoHitchhiker, Follow, RideEvent, User
 
 main_bp = Blueprint("main", __name__)
 
@@ -91,9 +92,103 @@ def render_map(map_variation):
     )
 
 
+def _ride_to_card(ride):
+    """Build the card dict the activities/recent template renders for a RideEvent."""
+    content = ride.content if ride.content else {}
+    stops = content.get("stops") or []
+    pickup_lat, pickup_lon = None, None
+    if stops:
+        coords = stops[0].get("location", {})
+        pickup_lat = coords.get("latitude")
+        pickup_lon = coords.get("longitude")
+    hitchhikers = content.get("hitchhikers") or []
+    nickname = hitchhikers[0].get("nickname", "Anonymous") if hitchhikers else "Anonymous"
+    return {
+        "d_tag": ride.d,
+        "created": pd.to_datetime(ride.created_at, unit="s").strftime("%Y-%m-%d %H:%M") if ride.created_at else "N/A",
+        "rating": int(ride.rating) if ride.rating else 0,
+        "comment": ride.comment or "",
+        "pickup_lat": pickup_lat,
+        "pickup_lon": pickup_lon,
+        "hitchhiker_name": nickname,
+    }
+
+
+def _followed_usernames():
+    """Usernames the logged-in user follows (empty for anonymous users)."""
+    if current_user.is_anonymous:
+        return []
+    return [
+        row[0]
+        for row in db.session.query(User.username)
+        .join(Follow, Follow.followed_id == User.id)
+        .filter(Follow.follower_id == current_user.id)
+        .all()
+    ]
+
+
+def _followed_rides(followed_usernames, limit=10):
+    """The most recent rides by the given followed users.
+
+    Rides link to users by hitchhiker nickname (name-based, not a foreign key), so we
+    match the followed users' usernames against the nicknames stored in the ride's
+    content JSON. A json_each subquery does the filtering in SQL so we only load the
+    newest `limit` matching rides instead of scanning every ride in Python.
+    """
+    if not followed_usernames:
+        return []
+
+    placeholders = ",".join(f":n{i}" for i in range(len(followed_usernames)))
+    params = {f"n{i}": name for i, name in enumerate(followed_usernames)}
+    params["lim"] = limit
+    sql = text(
+        f"""
+        SELECT re.id FROM ride_event re
+        WHERE re.submission_time IS NOT NULL
+          AND EXISTS (
+            SELECT 1 FROM json_each(json_extract(re.content, '$.hitchhikers')) je
+            WHERE json_extract(je.value, '$.nickname') IN ({placeholders})
+          )
+        ORDER BY re.submission_time DESC
+        LIMIT :lim
+        """
+    )
+    ids = [r[0] for r in db.session.execute(sql, params).all()]
+    if not ids:
+        return []
+    rides_by_id = {r.id: r for r in db.session.query(RideEvent).filter(RideEvent.id.in_(ids)).all()}
+    # Preserve the submission-time ordering from the SQL query.
+    return [_ride_to_card(rides_by_id[i]) for i in ids if i in rides_by_id]
+
+
+def _suggested_hitchhikers(ride_cards, limit=3):
+    """Follow suggestions for users who follow nobody yet: the most active hitchhikers
+    among the recent ride cards. Only registered users are suggested — they have a
+    profile page and can actually be followed (rides by unregistered nicknames can't)."""
+    me = None if current_user.is_anonymous else current_user.username
+    counts = {}
+    for ride in ride_cards:
+        name = ride.get("hitchhiker_name")
+        # Skip anonymous rides and the viewer themselves (can't follow yourself).
+        if not name or name == "Anonymous" or name == me:
+            continue
+        counts[name] = counts.get(name, 0) + 1
+    if not counts:
+        return []
+    registered = {
+        row[0] for row in db.session.query(User.username).filter(User.username.in_(counts.keys())).all()
+    }
+    ranked = sorted(
+        ((name, count) for name, count in counts.items() if name in registered),
+        key=lambda kv: kv[1],
+        reverse=True,
+    )[:limit]
+    return [{"username": name, "ride_count": count} for name, count in ranked]
+
+
 @main_bp.route("/recent")
 def recent_spots():
-    """Show the last 100 added rides in card format."""
+    """Activities page: rides from people you follow, then the last 100 added rides."""
     rides = (
         db.session.query(RideEvent)
         .filter(RideEvent.submission_time.isnot(None))
@@ -101,29 +196,21 @@ def recent_spots():
         .limit(100)
         .all()
     )
-    ride_list = []
-    for ride in rides:
-        content = ride.content if ride.content else {}
-        stops = content.get("stops") or []
-        pickup_lat, pickup_lon = None, None
-        if stops:
-            coords = stops[0].get("location", {})
-            pickup_lat = coords.get("latitude")
-            pickup_lon = coords.get("longitude")
-        hitchhikers = content.get("hitchhikers") or []
-        nickname = hitchhikers[0].get("nickname", "Anonymous") if hitchhikers else "Anonymous"
-        ride_list.append(
-            {
-                "d_tag": ride.d,
-                "created": pd.to_datetime(ride.created_at, unit="s").strftime("%Y-%m-%d %H:%M") if ride.created_at else "N/A",
-                "rating": int(ride.rating) if ride.rating else 0,
-                "comment": ride.comment or "",
-                "pickup_lat": pickup_lat,
-                "pickup_lon": pickup_lon,
-                "hitchhiker_name": nickname,
-            }
-        )
-    return render_template("recent.html", rides=ride_list)
+    ride_list = [_ride_to_card(ride) for ride in rides]
+
+    followed_usernames = _followed_usernames()
+    followed_rides = _followed_rides(followed_usernames)
+    # When the user follows nobody yet, suggest active hitchhikers to follow instead.
+    follow_suggestions = (
+        _suggested_hitchhikers(ride_list) if (not current_user.is_anonymous and not followed_usernames) else []
+    )
+    return render_template(
+        "recent.html",
+        rides=ride_list,
+        followed_rides=followed_rides,
+        follow_suggestions=follow_suggestions,
+        is_logged_in=not current_user.is_anonymous,
+    )
 
 
 @main_bp.route("/ride/<d_tag>")

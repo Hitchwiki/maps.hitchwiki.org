@@ -55,16 +55,47 @@
 }
 .stat-value { display: block; font-size: 1.4em; font-weight: 600; line-height: 1.1; }
 .stat-label { display: block; font-size: 0.8em; color: #666; margin-top: 2px; }
+.header-actions { display: inline-flex; gap: 8px; flex-wrap: wrap; }
+.follow-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: #2d7dd2;
+    border: 1px solid #2d7dd2;
+    border-radius: 6px;
+    color: #fff;
+    font: inherit;
+    font-size: 0.85em;
+    cursor: pointer;
+}
+.follow-btn:hover { background: #2569b3; border-color: #2569b3; }
+.follow-btn[aria-pressed="true"] {
+    background: #f0f0f0;
+    border-color: #ccc;
+    color: #333;
+}
+.follow-btn[aria-pressed="true"]:hover { background: #e4e4e4; }
+.follow-btn:disabled { opacity: 0.6; cursor: default; }
 </style>
 {% if not is_me and user_known %}
 <p><a href="https://hitchwiki.org/en/index.php?title=User_talk:{{ escaped_hitchwiki_username }}&action=edit&section=new">Reach out - write a message</a></p>
 {% endif %}
 <div class="account-header">
   <h1>Hitchhiker</h1>
-  <button type="button" class="share-btn" id="share-btn" data-share-url="{{ url_for('user.show_account', username=user.username, _external=True) }}" data-share-title="{{ user.username }} on Hitchmap">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-    <span class="share-btn-label">Share</span>
-  </button>
+  <div class="header-actions">
+    {% if can_follow %}
+    <button type="button" class="follow-btn" id="follow-btn"
+            data-username="{{ user.username }}"
+            aria-pressed="{{ 'true' if is_following else 'false' }}">
+      <span class="follow-btn-label">{{ "Following" if is_following else "Follow" }}</span>
+    </button>
+    {% endif %}
+    <button type="button" class="share-btn" id="share-btn" data-share-url="{{ url_for('user.show_account', username=user.username, _external=True) }}" data-share-title="{{ user.username }} on Hitchmap">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      <span class="share-btn-label">Share</span>
+    </button>
+  </div>
 </div>
 
 Name: {{ user.username }}<br>
@@ -180,6 +211,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(() => { shareBtn.classList.remove('copied'); label.textContent = prev; }, 1800);
             } catch (e) {
                 window.prompt('Copy this link:', url);
+            }
+        });
+    }
+
+    // Follow / unfollow toggle. Optimistically flip the button, POST to the
+    // matching endpoint, and revert the label if the request fails.
+    const followBtn = document.getElementById('follow-btn');
+    if (followBtn) {
+        const label = followBtn.querySelector('.follow-btn-label');
+        followBtn.addEventListener('click', async () => {
+            const wasFollowing = followBtn.getAttribute('aria-pressed') === 'true';
+            const username = followBtn.dataset.username;
+            followBtn.disabled = true;
+            try {
+                const res = await fetch(`/${wasFollowing ? 'unfollow' : 'follow'}/${encodeURIComponent(username)}`, {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json' },
+                });
+                if (!res.ok) throw new Error('request failed');
+                const data = await res.json();
+                const following = !!data.following;
+                followBtn.setAttribute('aria-pressed', following ? 'true' : 'false');
+                label.textContent = following ? 'Following' : 'Follow';
+            } catch (e) {
+                // Leave the previous state untouched on failure.
+            } finally {
+                followBtn.disabled = false;
             }
         });
     }

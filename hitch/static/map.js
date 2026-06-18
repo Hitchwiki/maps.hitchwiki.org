@@ -329,6 +329,21 @@ function setupGeocoder() {
   let geocoderInput = $$(".leaflet-control-geocoder input");
   geocoderInput.type = "search";
 
+  // Google-Maps-style route button anchored at the right end of the search bar
+  // (replaces the old bottom-pane "Route" action). Navigating to #routing opens
+  // the routing bottom sheet via the hash handler in main().
+  const routeBtn = L.DomUtil.create(
+    "a",
+    "geocoder-route-btn",
+    geocoderController.getContainer()
+  );
+  routeBtn.href = "#routing";
+  routeBtn.title = "Route planning";
+  routeBtn.setAttribute("aria-label", "Route planning");
+  routeBtn.innerHTML = '<i class="fa-solid fa-route"></i>';
+  // Keep clicks on the button from reaching the map (pan/zoom on the control).
+  L.DomEvent.disableClickPropagation(routeBtn);
+
 
   geocoderController.on("markgeocode", function (e) {
     var zoom = geocoderOpts.zoom || map.getZoom();
@@ -386,13 +401,6 @@ function setupEventListeners() {
     });
   }
 
-
-  var routeBtn = document.getElementById('action-route');
-  if (routeBtn) {
-    routeBtn.addEventListener('click', function() {
-      window.location.hash = '#routing';
-    });
-  }
 
   let filterMapPane = map.createPane("filtering");
   filterMapPane.style.zIndex = 450;

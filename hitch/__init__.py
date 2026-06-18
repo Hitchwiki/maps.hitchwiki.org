@@ -42,8 +42,28 @@ def create_app(config_name=None):
     register_blueprints(app)
     register_commands(app)
     register_routes(app)
+    register_template_globals(app)
 
     return app
+
+
+def register_template_globals(app):
+    @app.template_global()
+    def asset_url(path):
+        """Static asset URL with a cache-busting ?v=<mtime> so browsers (notably
+        mobile Chrome) pick up CSS/JS changes immediately instead of serving a stale
+        cached copy. Falls back to the bare path if the file can't be stat'd."""
+        rel = path.lstrip("/")
+        if rel.startswith("static/"):
+            fs_path = os.path.join(app.root_path, rel)
+        else:
+            fs_path = os.path.join(app.root_path, "static", rel)
+        try:
+            version = int(os.path.getmtime(fs_path))
+        except OSError:
+            return path
+        sep = "&" if "?" in path else "?"
+        return f"{path}{sep}v={version}"
 
 
 def register_extensions(app):
