@@ -71,11 +71,20 @@ html {
   float: none !important;
 }
 
+/* The form is the only in-flow child, so the search bar's height is always a
+   single input row. The magnifier icon and route button are absolute overlays
+   (below) and never push the input onto a second line on narrow viewports. */
+.leaflet-control-container .leaflet-control-geocoder-form {
+  display: block !important;
+  width: 100% !important;
+  margin: 0 !important;
+}
+
 .leaflet-control-container .leaflet-control-geocoder-form input {
   height: 44px !important;
   font-size: 16px !important;
-  /* Extra right padding leaves room for the route button at the end of the bar */
-  padding: 0 52px 0 16px !important;
+  /* Left padding clears the magnifier icon, right padding the route button */
+  padding: 0 52px 0 44px !important;
   border-radius: 24px !important;
   border: none !important;
   width: 100% !important;
@@ -85,10 +94,12 @@ html {
 /* Google-Maps-style route button at the right end of the search bar.
    Uses !important throughout because Leaflet's .leaflet-touch .leaflet-bar a
    rules (higher specificity) otherwise pull the button back into flow on mobile,
-   stacking it below the input and making the search bar grow a second line. */
+   stacking it below the input and making the search bar grow a second line.
+   Anchored to the 44px input row (top: 22px) rather than 50% so it stays
+   centred on the bar even when the results dropdown extends the container. */
 .geocoder-route-btn {
   position: absolute !important;
-  top: 50% !important;
+  top: 22px !important;
   right: 6px !important;
   transform: translateY(-50%) !important;
   width: 36px !important;
@@ -119,13 +130,21 @@ html {
   border-left: 1px solid #dadce0;
 }
 
+/* Magnifier icon as an absolute overlay at the left of the bar, so it doesn't
+   sit in flow and force the form/input onto a second line on mobile. */
 .leaflet-control-container .leaflet-control-geocoder-icon {
-  width: 44px !important;
-  height: 44px !important;
-  line-height: 44px !important;
+  position: absolute !important;
+  top: 22px !important;
+  left: 4px !important;
+  transform: translateY(-50%) !important;
+  width: 40px !important;
+  height: 40px !important;
+  line-height: 40px !important;
+  background-color: transparent !important;
   background-size: 20px !important;
   background-position: center !important;
-  border-radius: 24px !important;
+  border-radius: 50% !important;
+  z-index: 3;
 }
 
 /* Top-right account button */
