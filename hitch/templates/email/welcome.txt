@@ -1,0 +1,21 @@
+Hi {{ name }},
+
+Welcome to the Hitchwiki Map (https://maps.hitchwiki.org) — the community map
+to hitchhiking the world. Thanks for signing in!
+
+Here are a few things you can do now:
+
+  * Find spots: browse hitchhiking spots, ratings and tips shared by other hitchhikers.
+  * Log your rides: add the spots and rides from your own trips to help the next traveller.
+  * Follow hitchhikers: follow other users and see their latest rides.
+
+Open the map: https://maps.hitchwiki.org
+
+Safe travels and happy hitchhiking!
+The Hitchwiki team
+
+--
+You receive this because you signed in at maps.hitchwiki.org. You can turn off
+emails any time on your profile settings page: https://maps.hitchwiki.org/edit-user
+
+Hitchwiki — the hitchhiker's guide to hitchhiking — https://hitchwiki.org

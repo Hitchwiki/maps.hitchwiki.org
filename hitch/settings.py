@@ -70,6 +70,15 @@ class BaseConfig:
     MAIL_PASSWORD = os.getenv("HITCHWIKI_MAIL_PASSWORD", "password")  # Load password from env
     MAIL_DEFAULT_SENDER = ("Hitchhiking Map", "no-reply@hitchwiki.org")
 
+    # SparkPost (welcome emails) — shares the hitchwiki account/credentials with the
+    # hitchhiking-newsletter project. The first-login welcome email goes out via the
+    # SparkPost transmissions API rather than the SMTP2GO/Flask-Mailman path above.
+    # FROM must be a SparkPost-verified sender (hi@hitchwiki.org is the verified one).
+    SPARKPOST_API_KEY = os.getenv("SPARKPOST_API_KEY")
+    SPARKPOST_BASE_URL = os.getenv("SPARKPOST_BASE_URL", "https://api.eu.sparkpost.com/api/v1")
+    WELCOME_FROM_EMAIL = os.getenv("WELCOME_FROM_EMAIL", "hi@hitchwiki.org")
+    WELCOME_FROM_NAME = os.getenv("WELCOME_FROM_NAME", "Hitchwiki Maps")
+
 
 class DevelopmentConfig(BaseConfig):
     pass

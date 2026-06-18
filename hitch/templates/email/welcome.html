@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <style type="text/css">
+        body { margin: 0; padding: 0; background-color: #EDE3C8; font-family: Georgia, 'Times New Roman', serif; }
+        .email-container { max-width: 100%; width: 100%; margin: 0 auto; background-color: #FFFDF7; border-top: 4px solid #C99416; }
+        .content { padding: 30px; max-width: 800px; margin: 0 auto; }
+        .post-content { color: #3B2A1A; font-size: 18px; line-height: 1.8; }
+        .post-content p { margin: 15px 0; }
+        .post-content a { color: #8A5212; text-decoration: underline; }
+        .post-content ul { margin: 15px 0; padding-left: 24px; }
+        .post-content li { margin: 8px 0; }
+        .button { display: inline-block; background-color: #C99416; color: #FFFDF7 !important; text-decoration: none !important; padding: 12px 28px; border-radius: 4px; font-size: 18px; }
+        .footer { text-align: center; padding: 20px 30px; font-size: 16px; color: #5E2802; background-color: #F1D666; margin: 0; border-top: 1px solid #C99416; }
+        .footer a { color: #5E2802; text-decoration: underline; }
+        .header { text-align: center; padding: 24px 20px; background-color: #F1D666; border-bottom: 1px solid #C99416; }
+        .header img { border: 0; display: block; margin: 0 auto; }
+        .header a { text-decoration: none; }
+        .tagline { color: #5E2802; font-size: 14px; font-style: italic; margin: 10px 0 0 0; }
+        @media only screen and (max-width: 800px) {
+            .content { padding: 20px !important; max-width: 100% !important; }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #EDE3C8; font-family: Georgia, 'Times New Roman', serif;">
+    <div class="email-container" style="max-width: 100%; width: 100%; margin: 0 auto; background-color: #FFFDF7; border-top: 4px solid #C99416;">
+        <div class="header" style="text-align: center; padding: 24px 20px; background-color: #F1D666; border-bottom: 1px solid #C99416;">
+            <a href="https://maps.hitchwiki.org" style="text-decoration: none;">
+                <img src="https://hitchwiki.org/en/images/logo.png" width="144" height="152" alt="Hitchwiki" style="border: 0; display: block; margin: 0 auto;"/>
+            </a>
+            <p class="tagline" style="color: #5E2802; font-size: 14px; font-style: italic; margin: 10px 0 0 0;">the map to hitchhiking the world</p>
+        </div>
+
+        <div class="content" style="padding: 30px; max-width: 800px; margin: 0 auto;">
+            <div class="post-content" style="color: #3B2A1A; font-size: 18px; line-height: 1.8;">
+                <p>Hi {{ name }},</p>
+
+                <p>Welcome to the <a href="https://maps.hitchwiki.org" style="color: #8A5212; text-decoration: underline;">Hitchwiki Map</a> — the community map to hitchhiking the world. Thanks for signing in!</p>
+
+                <p>Here are a few things you can do now:</p>
+                <ul style="margin: 15px 0; padding-left: 24px;">
+                    <li style="margin: 8px 0;"><strong>Find spots:</strong> browse hitchhiking spots, ratings and tips shared by other hitchhikers.</li>
+                    <li style="margin: 8px 0;"><strong>Log your rides:</strong> add the spots and rides from your own trips to help the next traveller.</li>
+                    <li style="margin: 8px 0;"><strong>Follow hitchhikers:</strong> follow other users and see their latest rides.</li>
+                </ul>
+
+                <p style="text-align: center; margin: 30px 0;">
+                    <a href="https://maps.hitchwiki.org" class="button" style="display: inline-block; background-color: #C99416; color: #FFFDF7; text-decoration: none; padding: 12px 28px; border-radius: 4px; font-size: 18px;">Open the map</a>
+                </p>
+
+                <p>Safe travels and happy hitchhiking!<br/>The Hitchwiki team</p>
+            </div>
+        </div>
+
+        <div class="footer" style="text-align: center; padding: 20px 30px; font-size: 16px; color: #5E2802; background-color: #F1D666; margin: 0; border-top: 1px solid #C99416;">
+            <p style="margin: 0 0 15px 0;">
+                You receive this because you signed in at
+                <a href="https://maps.hitchwiki.org" style="color: #5E2802; text-decoration: underline;">maps.hitchwiki.org</a>.
+                You can turn off emails any time on your
+                <a href="https://maps.hitchwiki.org/edit-user" style="color: #5E2802; text-decoration: underline;">profile settings</a> page.
+            </p>
+            <p style="margin: 0;">
+                <a href="https://hitchwiki.org" style="color: #5E2802; text-decoration: underline;">Hitchwiki</a><br/>
+                The hitchhiker's guide to hitchhiking
+            </p>
+        </div>
+    </div>
+</body>
+</html>

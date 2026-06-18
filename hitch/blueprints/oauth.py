@@ -10,6 +10,7 @@ import requests as http_requests
 from flask import Blueprint, current_app, redirect, render_template, request, session, url_for
 from flask_security import login_user, logout_user
 
+from hitch.blueprints.utils.send_welcome_email import maybe_send_welcome_email
 from hitch.extensions import db, security
 
 oauth_bp = Blueprint("oauth", __name__)
@@ -129,8 +130,13 @@ def _handle_callback(code):
 
         # Log in and redirect to profile setup
         login_user(user, remember=True)
+        # First-ever login: send the one-time welcome email (gated + non-fatal).
+        maybe_send_welcome_email(user)
         return redirect("/edit-user")
 
     # Existing user - just log in
     login_user(user, remember=True)
+    # Existing users created before the welcome email shipped get it on this first
+    # login after rollout; the gate ensures it's still sent at most once per user.
+    maybe_send_welcome_email(user)
     return redirect("/me")

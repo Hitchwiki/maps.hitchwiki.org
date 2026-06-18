@@ -20,6 +20,10 @@ class User(db.Model, fsqla.FsUserMixin):
     hitchwiki_username = db.Column(db.String(255), default=None)
     trustroots_username = db.Column(db.String(255), default=None)
     email_notifications = db.Column(db.Boolean, default=True, nullable=False, server_default="1")
+    # Whether the one-time first-login welcome email has been sent to this user.
+    # Defaults to False (incl. for users created before this column existed), so every
+    # existing user also receives the welcome the first time they log in after it ships.
+    welcome_email_sent = db.Column(db.Boolean, default=False, nullable=False, server_default="0")
 
     # Lifetime hitchhiking stats, recomputed from all ride events on every show.py
     # run (not maintained on ride submission). Shown in the profile "Insights"
