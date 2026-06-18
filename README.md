@@ -199,3 +199,22 @@ python -m pytest tests/ -v
 ## OpenStreetMap Integration
 
 We use the [`highway=hitchhiking`](https://wiki.openstreetmap.org/wiki/Tag:highway=hitchhiking) OSM tag to bridge the gap between official, everyday hitchhiking spots and unofficial ones submitted by users. Rides submitted near an OSM-tagged spot are automatically linked to it, connecting community-reported experiences with officially mapped infrastructure.
+
+### Grouping spots by OSM areas (one-off manual sync)
+
+Spots that fall inside the same gas station / motorway service area or the same "road island" (the patch of land enclosed by the slip-roads of a junction) are the same physical hitchhiking spot even when the pins are tens of metres apart. `show.py` merges them into a single marker using two polygon tables built from OpenStreetMap:
+
+- `service_area` — built by `sync_service_areas`
+- `road_island` — built by `sync_road_islands`
+
+These are **one-off jobs, not cron jobs.** They make thousands of Overpass calls and the data barely changes, so run them **manually** only when you want to (re)build the polygons — e.g. on first setup or occasionally as new spots accumulate:
+
+```bash
+# inside the container (or any env with the app + DB)
+flask --app hitch generate sync_service_areas   # build/refresh service_area
+flask --app hitch generate sync_road_islands    # build/refresh road_island (run after service areas)
+```
+
+Both are slow but **resumable**: they snapshot their work to `db/.<script>.snapshot.json` / `.progress.json`, commit incrementally, and a re-run picks up where an interrupted one left off. On successful completion those checkpoint files are deleted (their absence is how you know a run finished). Re-running never deletes existing rows, so it's safe to re-run anytime.
+
+They query the standard public Overpass endpoint (`https://overpass-api.de/api/interpreter`) with polite throttling and HTTP 429 back-off; override `OVERPASS_BULK_URL` to point at a different/bulk instance if needed. After a sync, the next `show.py` run automatically uses the updated polygons.
