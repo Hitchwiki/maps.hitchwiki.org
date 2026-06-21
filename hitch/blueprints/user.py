@@ -1,9 +1,10 @@
+import io
 import os
 from datetime import datetime
 from types import SimpleNamespace
 
 import pandas as pd
-from flask import Blueprint, current_app, jsonify, redirect, render_template, request
+from flask import Blueprint, current_app, jsonify, redirect, render_template, request, send_file, url_for
 from flask_security import current_user
 from sqlalchemy import text
 
@@ -14,6 +15,8 @@ from hitch.extensions import db, security
 from hitch.forms import UserEditForm
 from hitch.helpers import get_db
 from hitch.models import CoHitchhiker, Follow, RideEvent, Trip, TripRide, User
+
+os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
 
 THIS_NOSTR_SOURCE = os.getenv("THIS_NOSTR_SOURCE", "maps.hitchwiki.org")
 
@@ -446,6 +449,18 @@ def _trip_route_points(rides):
     return pts
 
 
+def _trip_preview_description(owner, date_span, rides):
+    parts = []
+    if owner:
+        parts.append(f"Trip by {owner.username}")
+    else:
+        parts.append("Hitchhiking trip")
+    if date_span:
+        parts.append(date_span)
+    parts.append(f"{len(rides)} ride{'' if len(rides) == 1 else 's'}")
+    return " · ".join(parts)
+
+
 def _get_trips_for_user(user):
     """Return the user's trips (newest first) with rides, date span and route points.
 
@@ -556,15 +571,151 @@ def show_trip(trip_id):
     owner = db.session.get(User, trip.user_id)
     is_owner = not current_user.is_anonymous and current_user.id == trip.user_id
     rides = _rides_for_trip(trip.id)
+    date_span = _trip_date_span(rides)
     return render_template(
         "security/trip.html",
         trip=trip,
         owner=owner,
         rides=rides,
         is_owner=is_owner,
-        date_span=_trip_date_span(rides),
+        date_span=date_span,
         points=_trip_route_points(rides),
+        preview_description=_trip_preview_description(owner, date_span, rides),
+        preview_image_url=url_for("user.trip_preview_image", trip_id=trip.id, _external=True),
     )
+
+
+@user_bp.route("/trip/<int:trip_id>/preview.png", methods=["GET"])
+def trip_preview_image(trip_id):
+    """Social preview image for a trip.
+
+    Link preview crawlers do not execute the Leaflet JavaScript on the trip page,
+    so this endpoint renders a small static route map server-side for og:image.
+    """
+    trip = db.session.get(Trip, trip_id)
+    if trip is None:
+        return redirect("/")
+
+    owner = db.session.get(User, trip.user_id)
+    rides = _rides_for_trip(trip.id)
+    points = _trip_route_points(rides)
+    description = _trip_preview_description(owner, _trip_date_span(rides), rides)
+    png = _render_trip_preview_png(trip.name, description, points)
+    response = send_file(png, mimetype="image/png", max_age=3600)
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
+
+
+def _render_trip_preview_png(title, description, points):
+    import matplotlib
+
+    matplotlib.use("Agg")
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    from matplotlib.figure import Figure
+
+    fig = Figure(figsize=(12, 6.3), dpi=100, facecolor="#f4f1ea")
+    canvas = FigureCanvasAgg(fig)
+    ax = fig.add_axes([0, 0, 1, 1])
+    ax.set_axis_off()
+    ax.set_xlim(0, 1200)
+    ax.set_ylim(0, 630)
+
+    # Subtle paper-map background.
+    ax.add_patch(_plot_rect(0, 0, 1200, 630, "#f4f1ea"))
+    for x in range(-100, 1300, 90):
+        ax.plot([x, x + 260], [0, 630], color="#e1ddd2", linewidth=1.2, alpha=0.55)
+    for y in range(20, 660, 80):
+        ax.plot([0, 1200], [y, y + 35], color="#e8e3d7", linewidth=1, alpha=0.7)
+
+    map_box = (72, 86, 1056, 420)
+    if points:
+        route = _project_trip_points(points, map_box)
+        if len(route) > 1:
+            xs, ys = zip(*route)
+            ax.plot(
+                xs,
+                ys,
+                color="#ffffff",
+                linewidth=12,
+                solid_capstyle="round",
+                solid_joinstyle="round",
+                alpha=0.95,
+            )
+            ax.plot(xs, ys, color="#2d7dd2", linewidth=7, solid_capstyle="round", solid_joinstyle="round")
+        for idx, (x, y) in enumerate(route):
+            marker_color = "#2fb344" if idx == 0 else ("#d94848" if idx == len(route) - 1 else "#2d7dd2")
+            ax.scatter([x], [y], s=190, color="#ffffff", linewidth=0, zorder=4)
+            ax.scatter([x], [y], s=94, color=marker_color, edgecolors="#ffffff", linewidths=2.5, zorder=5)
+    else:
+        ax.text(600, 292, "No route points yet", ha="center", va="center", fontsize=30, color="#706b60")
+
+    ax.add_patch(_plot_rect(0, 508, 1200, 122, "#ffffff", alpha=0.9))
+    ax.text(
+        72,
+        585,
+        _truncate_text(title, 70),
+        ha="left",
+        va="center",
+        fontsize=34,
+        fontweight="bold",
+        color="#222222",
+    )
+    ax.text(72, 538, _truncate_text(description, 110), ha="left", va="center", fontsize=21, color="#555555")
+    ax.text(1128, 538, "maps.hitchwiki.org", ha="right", va="center", fontsize=18, color="#666666")
+
+    buf = io.BytesIO()
+    canvas.print_png(buf)
+    buf.seek(0)
+    return buf
+
+
+def _plot_rect(x, y, width, height, color, alpha=1):
+    from matplotlib.patches import Rectangle
+
+    return Rectangle((x, y), width, height, facecolor=color, edgecolor="none", alpha=alpha)
+
+
+def _project_trip_points(points, box):
+    left, bottom, width, height = box
+    mercator = [(_lon_to_x(p["lon"]), _lat_to_y(p["lat"])) for p in points]
+    xs = [p[0] for p in mercator]
+    ys = [p[1] for p in mercator]
+    min_x, max_x = min(xs), max(xs)
+    min_y, max_y = min(ys), max(ys)
+
+    if max_x == min_x:
+        max_x += 0.01
+        min_x -= 0.01
+    if max_y == min_y:
+        max_y += 0.01
+        min_y -= 0.01
+
+    scale = min(width / (max_x - min_x), height / (max_y - min_y)) * 0.78
+    cx = (min_x + max_x) / 2
+    cy = (min_y + max_y) / 2
+    out = []
+    for x, y in mercator:
+        px = left + width / 2 + (x - cx) * scale
+        py = bottom + height / 2 + (y - cy) * scale
+        out.append((px, py))
+    return out
+
+
+def _lon_to_x(lon):
+    return float(lon)
+
+
+def _lat_to_y(lat):
+    import math
+
+    lat = max(min(float(lat), 85.05112878), -85.05112878)
+    rad = math.radians(lat)
+    return math.log(math.tan(math.pi / 4 + rad / 2))
+
+
+def _truncate_text(value, max_len):
+    value = str(value or "")
+    return value if len(value) <= max_len else value[: max_len - 1].rstrip() + "…"
 
 
 # TODO: check if all data from the new co-hitchhiker added to the new event and that no data was lost
