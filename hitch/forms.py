@@ -39,4 +39,5 @@ class UserEditForm(FlaskForm):
     hitchwiki_username = StringField("Hitchwiki Username", validators=[Optional()], default=None)
     trustroots_username = StringField("Trustroots Username", validators=[Optional()], default=None)
     email_notifications = BooleanField("Receive notifications and updates via email", default=True)
+    nearby_hitchhikers_email = BooleanField("Email me about other hitchhikers who were close by", default=False)
     submit = SubmitField("Submit")

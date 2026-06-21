@@ -25,6 +25,12 @@ class User(db.Model, fsqla.FsUserMixin):
     # existing user also receives the welcome the first time they log in after it ships.
     welcome_email_sent = db.Column(db.Boolean, default=False, nullable=False, server_default="0")
 
+    # Opt-in: email this user a daily digest of other registered hitchhikers whose
+    # rides were logged near theirs on the same day (see notify_nearby_hitchhikers.py).
+    # Privacy-sensitive (it reveals rough co-location to the recipient), so it
+    # defaults to off — the user must explicitly tick the box in their profile.
+    nearby_hitchhikers_email = db.Column(db.Boolean, default=False, nullable=False, server_default="0")
+
     # Lifetime hitchhiking stats, recomputed from all ride events on every show.py
     # run (not maintained on ride submission). Shown in the profile "Insights"
     # section so the page doesn't have to aggregate every ride on each load.
