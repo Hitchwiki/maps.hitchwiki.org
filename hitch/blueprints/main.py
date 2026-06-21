@@ -4,7 +4,6 @@ import re
 from datetime import datetime
 
 import pandas as pd
-from sqlalchemy import text
 from flask import (
     Blueprint,
     abort,
@@ -14,6 +13,7 @@ from flask import (
     request,
 )
 from flask_security import current_user
+from sqlalchemy import text
 
 from hitch.blueprints.publish_ride import ALLOWED_VEHICLE_KINDS, create_record_from_custom_object
 from hitch.blueprints.utils.driver_info_choices import (

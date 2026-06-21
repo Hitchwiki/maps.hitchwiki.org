@@ -54,10 +54,7 @@ def register_template_globals(app):
         mobile Chrome) pick up CSS/JS changes immediately instead of serving a stale
         cached copy. Falls back to the bare path if the file can't be stat'd."""
         rel = path.lstrip("/")
-        if rel.startswith("static/"):
-            fs_path = os.path.join(app.root_path, rel)
-        else:
-            fs_path = os.path.join(app.root_path, "static", rel)
+        fs_path = os.path.join(app.root_path, rel) if rel.startswith("static/") else os.path.join(app.root_path, "static", rel)
         try:
             version = int(os.path.getmtime(fs_path))
         except OSError:

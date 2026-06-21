@@ -1,3 +1,4 @@
+import contextlib
 import json
 import logging
 import math
@@ -345,10 +346,9 @@ stats_conn = get_db()
 # No migration framework: ensure the columns exist so a fresh deploy doesn't 500
 # on the first profile load. Idempotent — a re-add raises OperationalError.
 for col, coltype in (("total_rides", "INTEGER"), ("total_distance_km", "REAL"), ("total_waiting_time_min", "INTEGER")):
-    try:
+    # Idempotent re-add raises OperationalError when the column already exists.
+    with contextlib.suppress(sqlite3.OperationalError):
         stats_conn.execute(f"ALTER TABLE user ADD COLUMN {col} {coltype}")
-    except sqlite3.OperationalError:
-        pass  # column already exists
 
 # Match nicknames to usernames case-insensitively (consistent with the leaderboard);
 # only registered users have a row to update — unregistered nicknames are ignored.
