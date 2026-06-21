@@ -974,6 +974,11 @@ function showSuccessOverlay() {
     if (closeBtn) {
       closeBtn.onclick = function() {
         overlay.style.display = "none";
+        // Logged-in users continue to their account page (template sets the URL); others stay on the map
+        const continueUrl = closeBtn.dataset.continueUrl;
+        if (continueUrl) {
+          window.location.href = continueUrl;
+        }
       };
     }
     
