@@ -51,6 +51,29 @@ class Follow(db.Model):
     __table_args__ = (db.UniqueConstraint("follower_id", "followed_id", name="uq_follow_follower_followed"),)
 
 
+class Trip(db.Model):
+    # A named collection of rides belonging to one user (e.g. "Summer 2026 Balkans").
+    # Rides are attached via TripRide rows keyed on the ride's Nostr d-tag.
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+    # Optional free-text blurb the user writes to describe the trip.
+    description = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=db.func.now())
+
+
+class TripRide(db.Model):
+    # Membership of a ride in a trip. The ride is referenced by its Nostr d-tag
+    # (RideEvent.d) rather than a local row id, since rides live canonically on Nostr
+    # and the local RideEvent table is fully rebuilt on every fetch. A ride can appear
+    # in a trip at most once (unique pair).
+    id = db.Column(db.Integer, primary_key=True)
+    trip_id = db.Column(db.Integer, db.ForeignKey("trip.id"), nullable=False)
+    ride_d_tag = db.Column(db.String(255), nullable=False)
+
+    __table_args__ = (db.UniqueConstraint("trip_id", "ride_d_tag", name="uq_trip_ride_trip_dtag"),)
+
+
 class CoHitchhiker(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nostr_ride_event_d_tag = db.Column(db.String(255), nullable=False)

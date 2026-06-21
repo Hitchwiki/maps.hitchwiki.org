@@ -1,0 +1,82 @@
+{% extends "security/base.html" %}
+
+{% set title = "Edit trip" if trip else "Create trip" %}
+
+{% block content %}
+<style>
+textarea {
+    display: block;
+    width: 100%;
+    font: inherit;
+    box-sizing: border-box;
+    resize: vertical;
+}
+.trip-rides-list { margin: 8px 0 4px; }
+.trip-ride-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px;
+    border: 1px solid #e2e2e2;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    cursor: pointer;
+}
+.trip-ride-option:hover { background: #f5f7f9; }
+.trip-ride-option input[type=checkbox] { margin-top: 4px; }
+.trip-ride-option .opt-body { font-size: 0.85em; }
+.trip-ride-option .opt-meta { color: #666; }
+.trip-ride-option .opt-comment { color: #333; white-space: pre-wrap; }
+.delete-trip-btn {
+    color: #dc3545;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    font: inherit;
+    text-decoration: underline;
+}
+</style>
+
+<h1>{{ "Edit trip" if trip else "Create trip" }}</h1>
+
+<form method="post" action="/save-trip">
+    {% if trip %}<input type="hidden" name="trip_id" value="{{ trip.id }}">{% endif %}
+
+    <label for="trip-name">Trip name</label>
+    <input type="text" id="trip-name" name="name" required maxlength="255"
+           value="{{ trip.name if trip else '' }}" placeholder="e.g. Summer 2026 Balkans">
+
+    <label for="trip-description">Description <span style="color:#888; font-weight:normal;">(optional)</span></label>
+    <textarea id="trip-description" name="description" rows="3" maxlength="2000"
+              placeholder="A few words about this trip…">{{ trip.description if trip and trip.description else '' }}</textarea>
+
+    <label>Select the rides that belong to this trip</label>
+    {% if rides %}
+    <div class="trip-rides-list">
+        {% for ride in rides %}
+        <label class="trip-ride-option">
+            <input type="checkbox" name="ride_d_tags" value="{{ ride.d_tag }}"
+                   {% if ride.d_tag in selected_dtags %}checked{% endif %}>
+            <span class="opt-body">
+                <span class="opt-meta">{{ ride.created or "No date" }}{% if ride.rating > 0 %} · {{ "⭐" * ride.rating }}{% endif %}</span>
+                {% if ride.comment %}<br><span class="opt-comment">{{ ride.comment[:120] }}{% if ride.comment|length > 120 %}…{% endif %}</span>{% endif %}
+                {% if ride.pickup_lat and ride.pickup_lon %}<br><span class="opt-meta">{{ "%.4f, %.4f"|format(ride.pickup_lat, ride.pickup_lon) }}</span>{% endif %}
+            </span>
+        </label>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p style="color:#666; font-size:0.9em;">You have no rides to add yet.</p>
+    {% endif %}
+
+    <input type="submit" value="{{ 'Save trip' if trip else 'Create trip' }}">
+</form>
+
+{% if trip %}
+<form method="post" action="/delete-trip/{{ trip.id }}"
+      onsubmit="return confirm('Delete this trip? This cannot be undone.');" style="margin-top:12px;">
+    <button type="submit" class="delete-trip-btn">Delete trip</button>
+</form>
+{% endif %}
+{% endblock %}

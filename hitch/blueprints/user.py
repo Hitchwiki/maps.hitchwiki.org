@@ -13,7 +13,7 @@ from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDat
 from hitch.extensions import db, security
 from hitch.forms import UserEditForm
 from hitch.helpers import get_db
-from hitch.models import CoHitchhiker, Follow, RideEvent, User
+from hitch.models import CoHitchhiker, Follow, RideEvent, Trip, TripRide, User
 
 THIS_NOSTR_SOURCE = os.getenv("THIS_NOSTR_SOURCE", "maps.hitchwiki.org")
 
@@ -144,6 +144,10 @@ def show_account(username, is_me: bool = False):
     else:
         rides_data = _get_rides_for_user(user, include_pending_co=False, display_only=True)
 
+    # Trips only exist for registered users (they hang off a user_id). Unregistered
+    # hitchhiker stubs have no id, so skip the query for them.
+    trips_data = _get_trips_for_user(user) if user_known else []
+
     age = (datetime.utcnow().year - user.year_of_birth) if user.year_of_birth else None
 
     # The follow button only makes sense on another registered user's page while logged
@@ -161,6 +165,7 @@ def show_account(username, is_me: bool = False):
         user=user,
         is_me=is_me,
         rides=rides_data,
+        trips=trips_data,
         user_known=user_known,
         age=age,
         can_follow=can_follow,
@@ -383,6 +388,183 @@ def _get_rides_for_user(user, include_pending_co=True, display_only=False):
     for r in combined:
         del r["submission_sort_key"]
     return combined
+
+
+def _rides_for_trip(trip_id):
+    """Resolve a trip's member d-tags into ride-info dicts, newest first.
+
+    Rides whose d-tag no longer resolves to a RideEvent (e.g. deleted on Nostr) are
+    omitted. The internal `submission_sort_key` is kept here (unlike _get_rides_for_user)
+    because the trip route/date-span helpers need it to order rides chronologically.
+    """
+    members = TripRide.query.filter_by(trip_id=trip_id).all()
+    rides = [
+        _extract_ride_info(ride, "trip")
+        for member in members
+        if (ride := db.session.query(RideEvent).filter_by(d=member.ride_d_tag).first())
+    ]
+    rides.sort(
+        key=lambda r: (r["submission_sort_key"] is not None, r["submission_sort_key"] or 0),
+        reverse=True,
+    )
+    return rides
+
+
+def _trip_date_span(rides):
+    """Human-readable date range covering a trip's rides, or '' if none are dated.
+
+    submission_sort_key is epoch nanoseconds (pandas Timestamp.value)."""
+    keys = [r["submission_sort_key"] for r in rides if r.get("submission_sort_key")]
+    if not keys:
+        return ""
+    start, end = pd.Timestamp(min(keys)), pd.Timestamp(max(keys))
+    if start.date() == end.date():
+        return start.strftime("%-d %b %Y")
+    if start.year != end.year:
+        return f"{start.strftime('%-d %b %Y')} – {end.strftime('%-d %b %Y')}"
+    if start.month != end.month:
+        return f"{start.strftime('%-d %b')} – {end.strftime('%-d %b %Y')}"
+    return f"{start.strftime('%-d')} – {end.strftime('%-d %b %Y')}"
+
+
+def _trip_route_points(rides):
+    """Ordered [{lat, lon}] tracing the trip oldest→newest.
+
+    Each ride contributes its pickup then destination (when present); consecutive
+    duplicate coordinates are collapsed so a shared spot isn't drawn twice."""
+    ordered = sorted(
+        rides, key=lambda r: (r.get("submission_sort_key") is not None, r.get("submission_sort_key") or 0)
+    )
+    pts = []
+    for r in ordered:
+        for lat, lon in ((r["pickup_lat"], r["pickup_lon"]), (r["destination_lat"], r["destination_lon"])):
+            if lat is None or lon is None:
+                continue
+            p = {"lat": lat, "lon": lon}
+            if not pts or pts[-1] != p:
+                pts.append(p)
+    return pts
+
+
+def _get_trips_for_user(user):
+    """Return the user's trips (newest first) with rides, date span and route points.
+
+    Each trip is a dict: {id, name, rides, date_span, points}. `points` drives the
+    little route-map thumbnail on the profile; `date_span` labels it.
+    """
+    trips = Trip.query.filter_by(user_id=user.id).order_by(Trip.created_at.desc()).all()
+    result = []
+    for trip in trips:
+        rides = _rides_for_trip(trip.id)
+        result.append(
+            {
+                "id": trip.id,
+                "name": trip.name,
+                "rides": rides,
+                "date_span": _trip_date_span(rides),
+                "points": _trip_route_points(rides),
+            }
+        )
+    return result
+
+
+def _selectable_rides_for_current_user():
+    """Rides the current user may put in a trip: their own logged rides (incl. external),
+    excluding pending co-hitchhiker invitations they haven't accepted."""
+    return [r for r in _get_rides_for_user(current_user) if r["type"] in ("own", "own_external")]
+
+
+@user_bp.route("/create-trip", methods=["GET"])
+def create_trip():
+    """Render the trip builder for a brand-new trip."""
+    if current_user.is_anonymous:
+        return redirect("/login")
+    return render_template(
+        "security/edit_trip.html", trip=None, rides=_selectable_rides_for_current_user(), selected_dtags=[]
+    )
+
+
+@user_bp.route("/edit-trip/<int:trip_id>", methods=["GET"])
+def edit_trip(trip_id):
+    """Render the trip builder pre-filled for an existing trip (owner only)."""
+    if current_user.is_anonymous:
+        return redirect("/login")
+    trip = db.session.get(Trip, trip_id)
+    if trip is None or trip.user_id != current_user.id:
+        return redirect("/me")
+    selected = [tr.ride_d_tag for tr in TripRide.query.filter_by(trip_id=trip.id).all()]
+    return render_template(
+        "security/edit_trip.html", trip=trip, rides=_selectable_rides_for_current_user(), selected_dtags=selected
+    )
+
+
+@user_bp.route("/save-trip", methods=["POST"])
+def save_trip():
+    """Create or update a trip and its ride membership, then redirect to the trip page."""
+    if current_user.is_anonymous:
+        return redirect("/login")
+
+    trip_id = request.form.get("trip_id", type=int)
+    name = (request.form.get("name") or "").strip() or "Untitled trip"
+    description = (request.form.get("description") or "").strip() or None
+
+    # Only accept d-tags that actually belong to the current user's rides, so a crafted
+    # POST can't attach someone else's ride to a trip. dict.fromkeys de-dupes while
+    # preserving order (the unique (trip_id, d_tag) constraint would otherwise trip up).
+    valid_dtags = {r["d_tag"] for r in _selectable_rides_for_current_user()}
+    selected = [d for d in dict.fromkeys(request.form.getlist("ride_d_tags")) if d in valid_dtags]
+
+    if trip_id:
+        trip = db.session.get(Trip, trip_id)
+        if trip is None or trip.user_id != current_user.id:
+            return redirect("/me")
+        trip.name = name
+        trip.description = description
+        # Membership is replaced wholesale on every save — simpler than diffing.
+        TripRide.query.filter_by(trip_id=trip.id).delete()
+    else:
+        trip = Trip(user_id=current_user.id, name=name, description=description)
+        db.session.add(trip)
+        db.session.flush()  # assign trip.id before we reference it below
+
+    for d_tag in selected:
+        db.session.add(TripRide(trip_id=trip.id, ride_d_tag=d_tag))
+    db.session.commit()
+
+    return redirect(f"/trip/{trip.id}")
+
+
+@user_bp.route("/delete-trip/<int:trip_id>", methods=["POST"])
+def delete_trip(trip_id):
+    """Delete a trip and its ride membership (owner only)."""
+    if current_user.is_anonymous:
+        return redirect("/login")
+    trip = db.session.get(Trip, trip_id)
+    if trip and trip.user_id == current_user.id:
+        TripRide.query.filter_by(trip_id=trip.id).delete()
+        db.session.delete(trip)
+        db.session.commit()
+    return redirect("/me")
+
+
+@user_bp.route("/trip/<int:trip_id>", methods=["GET"])
+def show_trip(trip_id):
+    """Public trip detail page: name, date span, a route map and all the trip's rides."""
+    trip = db.session.get(Trip, trip_id)
+    if trip is None:
+        return redirect("/")
+    owner = db.session.get(User, trip.user_id)
+    is_owner = not current_user.is_anonymous and current_user.id == trip.user_id
+    rides = _rides_for_trip(trip.id)
+    return render_template(
+        "security/trip.html",
+        trip=trip,
+        owner=owner,
+        rides=rides,
+        is_owner=is_owner,
+        date_span=_trip_date_span(rides),
+        points=_trip_route_points(rides),
+    )
 
 
 # TODO: check if all data from the new co-hitchhiker added to the new event and that no data was lost

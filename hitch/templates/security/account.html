@@ -77,6 +77,31 @@
 }
 .follow-btn[aria-pressed="true"]:hover { background: #e4e4e4; }
 .follow-btn:disabled { opacity: 0.6; cursor: default; }
+.trips-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.trips-header h2 { margin: 0; }
+.btn-create-trip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; background: #2d7dd2; border: 1px solid #2d7dd2;
+    border-radius: 6px; color: #fff; font-size: 0.85em; text-decoration: none;
+}
+.btn-create-trip:hover { background: #2569b3; border-color: #2569b3; }
+.trip-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+    margin: 12px 0;
+}
+.trip-thumb-card {
+    border: 1px solid #ddd; border-radius: 8px; overflow: hidden;
+    cursor: pointer; text-decoration: none; color: inherit; background: #f8f9fa;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.trip-thumb-card:hover { border-color: #c7ced3; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+.trip-thumb { height: 110px; width: 100%; background: #e9ecef; }
+.trip-thumb-info { padding: 8px 10px; }
+.trip-thumb-name { display: block; font-weight: 600; font-size: 0.9em; }
+.trip-thumb-dates { display: block; color: #555; font-size: 0.78em; margin-top: 2px; }
+.trip-thumb-count { display: block; color: #888; font-size: 0.76em; margin-top: 1px; }
 </style>
 {% if not is_me and user_known %}
 <p><a href="https://hitchwiki.org/en/index.php?title=User_talk:{{ escaped_hitchwiki_username }}&action=edit&section=new">Reach out - write a message</a></p>
@@ -134,6 +159,30 @@ Name: {{ user.username }}<br>
 <a href="/delete-user" style="color: red;">Delete my account</a>
 {% endif %}
 
+{% if is_me or trips %}
+<hr>
+<div class="trips-header">
+  <h2>{{ "Your Trips" if is_me else "Trips" }}</h2>
+  {% if is_me %}<a class="btn-create-trip" href="/create-trip">+ Create trip</a>{% endif %}
+</div>
+{% if trips %}
+<div class="trip-grid">
+  {% for trip in trips %}
+  <div class="trip-thumb-card" data-trip-href="/trip/{{ trip.id }}">
+    <div class="trip-thumb" id="trip-thumb-{{ loop.index0 }}" data-points='{{ trip.points | tojson }}'></div>
+    <div class="trip-thumb-info">
+      <span class="trip-thumb-name">{{ trip.name }}</span>
+      {% if trip.date_span %}<span class="trip-thumb-dates">{{ trip.date_span }}</span>{% endif %}
+      <span class="trip-thumb-count">{{ trip.rides|length }} ride{{ '' if trip.rides|length == 1 else 's' }}</span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% elif is_me %}
+<p style="color:#666; font-size:0.9em;">No trips yet. Create one to group your rides into a journey.</p>
+{% endif %}
+{% endif %}
+
 <hr>
 <h2>{{ "Your Rides" if is_me else "Rides" }}</h2>
 {% if rides %}
@@ -179,6 +228,7 @@ Name: {{ user.username }}<br>
 {{ super() }}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="/static/map_thumbnail.js"></script>
+<script src="/static/trip_map.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const rides = {{ rides | tojson }};
@@ -186,6 +236,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (ride.pickup_lat && ride.pickup_lon) {
             initMapThumbnail(`ride-thumb-${i}`, ride.pickup_lat, ride.pickup_lon);
         }
+    });
+
+    // Trip thumbnails: a small route map (markers + road-following line) per trip.
+    document.querySelectorAll('.trip-thumb').forEach((el) => {
+        let pts = [];
+        try { pts = JSON.parse(el.dataset.points || '[]'); } catch (e) {}
+        if (pts.length) initTripMap(el.id, pts, { interactive: false });
+    });
+
+    // Whole-card navigation to the trip detail page.
+    document.querySelectorAll('.trip-thumb-card[data-trip-href]').forEach((card) => {
+        card.addEventListener('click', () => { window.location.href = card.dataset.tripHref; });
     });
 
     // Whole-card navigation to ride detail. Ignore clicks on nested

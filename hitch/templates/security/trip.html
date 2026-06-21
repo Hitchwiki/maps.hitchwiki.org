@@ -1,0 +1,99 @@
+{% extends "security/base.html" %}
+
+{% set title = trip.name %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<link rel="stylesheet" href="/static/map_thumbnail.css" />
+<link rel="stylesheet" href="/static/ride_card.css" />
+{% endblock %}
+
+{% block content %}
+<style>
+.trip-detail-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.trip-detail-header h1 { margin: 0; }
+.trip-byline { color: #666; margin: 4px 0 0; font-size: 0.9em; }
+.btn-edit-trip {
+    display: inline-flex; align-items: center; padding: 6px 14px;
+    border: 1px solid #0d6efd; border-radius: 6px; color: #0d6efd;
+    font-size: 0.85em; text-decoration: none;
+}
+.btn-edit-trip:hover { background: #eef4ff; }
+#trip-map { height: 280px; width: 100%; border-radius: 8px; margin: 12px 0; background: #e9ecef; }
+.trip-description { margin: 10px 0 0; white-space: pre-wrap; color: #333; }
+</style>
+
+<div class="trip-detail-header">
+  <h1>{{ trip.name }}</h1>
+  {% if is_owner %}<a class="btn-edit-trip" href="/edit-trip/{{ trip.id }}">Edit trip</a>{% endif %}
+</div>
+<p class="trip-byline">
+  {% if owner %}by <a href="{{ url_for('user.show_account', username=owner.username) }}">{{ owner.username }}</a> · {% endif %}
+  {% if date_span %}{{ date_span }} · {% endif %}{{ rides|length }} ride{{ '' if rides|length == 1 else 's' }}
+</p>
+{% if trip.description %}
+<p class="trip-description">{{ trip.description }}</p>
+{% endif %}
+
+{% if points %}
+<div id="trip-map"></div>
+{% endif %}
+
+<hr>
+
+{% if rides %}
+  {% for ride in rides %}
+  <div class="ride-card"{% if ride.d_tag %} data-ride-href="/ride/{{ ride.d_tag }}"{% endif %}>
+      <div class="ride-meta">
+          {{ ride.created }}
+          {% if ride.rating > 0 %}&nbsp;{{ "⭐" * ride.rating }}{% endif %}
+      </div>
+      {% if ride.pickup_lat and ride.pickup_lon %}
+      <a href="/#{{ ride.pickup_lat }},{{ ride.pickup_lon }}" title="View spot on map" style="display:block; text-decoration:none;">
+        <div class="map-thumbnail" id="ride-thumb-{{ loop.index0 }}" style="height:100px;">
+          <div class="map-thumbnail-overlay">View on map ↗</div>
+        </div>
+        <div style="color:#888; font-size:0.8em;">{{ "%.4f, %.4f"|format(ride.pickup_lat, ride.pickup_lon) }}</div>
+      </a>
+      {% endif %}
+      {% if ride.comment %}
+      <div class="ride-comment">{{ ride.comment }}</div>
+      {% endif %}
+  </div>
+  {% endfor %}
+{% else %}
+  <p style="color:#666; font-size:0.9em;">This trip has no rides yet.</p>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="/static/map_thumbnail.js"></script>
+<script src="/static/trip_map.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Full trip route: markers at every spot connected by road-following lines.
+    const tripPoints = {{ points | tojson }};
+    if (tripPoints.length && document.getElementById('trip-map')) {
+        initTripMap('trip-map', tripPoints, { interactive: true });
+    }
+
+    const rides = {{ rides | tojson }};
+    rides.forEach((ride, i) => {
+        if (ride.pickup_lat && ride.pickup_lon) {
+            initMapThumbnail(`ride-thumb-${i}`, ride.pickup_lat, ride.pickup_lon);
+        }
+    });
+
+    // Whole-card navigation to ride detail; ignore clicks on the nested map link.
+    document.querySelectorAll('.ride-card[data-ride-href]').forEach((card) => {
+        card.addEventListener('click', (e) => {
+            if (e.target.closest('a, button, form')) return;
+            window.location.href = card.dataset.rideHref;
+        });
+    });
+});
+</script>
+{% endblock %}
