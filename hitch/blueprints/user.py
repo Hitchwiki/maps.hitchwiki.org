@@ -606,111 +606,201 @@ def trip_preview_image(trip_id):
     return response
 
 
+# Social-preview image geometry.
+PREVIEW_W, PREVIEW_H = 1200, 630
+PREVIEW_FOOTER_H = 122
+TILE_SIZE = 256
+PREVIEW_BG = (233, 229, 217)  # fallback fill where tiles are missing
+
+
 def _render_trip_preview_png(title, description, points):
-    import matplotlib
+    """Render the og:image: a real OSM-tiled map with the trip's road route drawn on it.
 
-    matplotlib.use("Agg")
-    from matplotlib.backends.backend_agg import FigureCanvasAgg
-    from matplotlib.figure import Figure
+    Crawlers don't run the page's Leaflet JS, so we stitch OSM tiles and draw the
+    OSRM road geometry server-side. Any network failure degrades gracefully (missing
+    tiles leave the paper-coloured fill; failed routing falls back to straight lines).
+    """
+    from PIL import Image, ImageDraw
 
-    fig = Figure(figsize=(12, 6.3), dpi=100, facecolor="#f4f1ea")
-    canvas = FigureCanvasAgg(fig)
-    ax = fig.add_axes([0, 0, 1, 1])
-    ax.set_axis_off()
-    ax.set_xlim(0, 1200)
-    ax.set_ylim(0, 630)
+    img = Image.new("RGB", (PREVIEW_W, PREVIEW_H), PREVIEW_BG)
 
-    # Subtle paper-map background.
-    ax.add_patch(_plot_rect(0, 0, 1200, 630, "#f4f1ea"))
-    for x in range(-100, 1300, 90):
-        ax.plot([x, x + 260], [0, 630], color="#e1ddd2", linewidth=1.2, alpha=0.55)
-    for y in range(20, 660, 80):
-        ax.plot([0, 1200], [y, y + 35], color="#e8e3d7", linewidth=1, alpha=0.7)
-
-    map_box = (72, 86, 1056, 420)
     if points:
-        route = _project_trip_points(points, map_box)
-        if len(route) > 1:
-            xs, ys = zip(*route)
-            ax.plot(
-                xs,
-                ys,
-                color="#ffffff",
-                linewidth=12,
-                solid_capstyle="round",
-                solid_joinstyle="round",
-                alpha=0.95,
-            )
-            ax.plot(xs, ys, color="#2d7dd2", linewidth=7, solid_capstyle="round", solid_joinstyle="round")
-        for idx, (x, y) in enumerate(route):
-            marker_color = "#2fb344" if idx == 0 else ("#d94848" if idx == len(route) - 1 else "#2d7dd2")
-            ax.scatter([x], [y], s=190, color="#ffffff", linewidth=0, zorder=4)
-            ax.scatter([x], [y], s=94, color=marker_color, edgecolors="#ffffff", linewidths=2.5, zorder=5)
-    else:
-        ax.text(600, 292, "No route points yet", ha="center", va="center", fontsize=30, color="#706b60")
+        zoom = _pick_preview_zoom(points)
+        # Center the route in the area above the footer.
+        world = [_lonlat_to_world(p["lon"], p["lat"], zoom) for p in points]
+        cx = (min(w[0] for w in world) + max(w[0] for w in world)) / 2
+        cy = (min(w[1] for w in world) + max(w[1] for w in world)) / 2
+        origin_x = cx - PREVIEW_W / 2
+        origin_y = cy - (PREVIEW_H - PREVIEW_FOOTER_H) / 2
 
-    ax.add_patch(_plot_rect(0, 508, 1200, 122, "#ffffff", alpha=0.9))
-    ax.text(
-        72,
-        585,
-        _truncate_text(title, 70),
-        ha="left",
-        va="center",
-        fontsize=34,
-        fontweight="bold",
-        color="#222222",
-    )
-    ax.text(72, 538, _truncate_text(description, 110), ha="left", va="center", fontsize=21, color="#555555")
-    ax.text(1128, 538, "maps.hitchwiki.org", ha="right", va="center", fontsize=18, color="#666666")
+        _paste_tiles(img, zoom, origin_x, origin_y)
+
+        draw = ImageDraw.Draw(img, "RGBA")
+
+        # Route geometry following actual roads (OSRM), or the waypoints as a fallback.
+        geometry = _osrm_route_geometry(points) or [(p["lon"], p["lat"]) for p in points]
+        route_px = [
+            _world_to_px(_lonlat_to_world(lon, lat, zoom), origin_x, origin_y) for lon, lat in geometry
+        ]
+        if len(route_px) > 1:
+            draw.line(route_px, fill=(255, 255, 255, 235), width=11, joint="curve")
+            draw.line(route_px, fill=(45, 125, 210, 255), width=6, joint="curve")
+
+        # Spot markers: green start, red end, blue in between.
+        marker_px = [_world_to_px(w, origin_x, origin_y) for w in world]
+        for idx, (x, y) in enumerate(marker_px):
+            color = (47, 179, 68) if idx == 0 else (217, 72, 72) if idx == len(marker_px) - 1 else (45, 125, 210)
+            _draw_marker(draw, x, y, color)
+    else:
+        draw = ImageDraw.Draw(img, "RGBA")
+        title_font, _, _ = _preview_fonts()
+        draw.text((PREVIEW_W / 2, 280), "No route points yet", fill=(112, 107, 96), font=title_font, anchor="mm")
+
+    _draw_preview_footer(img, title, description)
 
     buf = io.BytesIO()
-    canvas.print_png(buf)
+    img.save(buf, format="PNG")
     buf.seek(0)
     return buf
 
 
-def _plot_rect(x, y, width, height, color, alpha=1):
-    from matplotlib.patches import Rectangle
-
-    return Rectangle((x, y), width, height, facecolor=color, edgecolor="none", alpha=alpha)
-
-
-def _project_trip_points(points, box):
-    left, bottom, width, height = box
-    mercator = [(_lon_to_x(p["lon"]), _lat_to_y(p["lat"])) for p in points]
-    xs = [p[0] for p in mercator]
-    ys = [p[1] for p in mercator]
-    min_x, max_x = min(xs), max(xs)
-    min_y, max_y = min(ys), max(ys)
-
-    if max_x == min_x:
-        max_x += 0.01
-        min_x -= 0.01
-    if max_y == min_y:
-        max_y += 0.01
-        min_y -= 0.01
-
-    scale = min(width / (max_x - min_x), height / (max_y - min_y)) * 0.78
-    cx = (min_x + max_x) / 2
-    cy = (min_y + max_y) / 2
-    out = []
-    for x, y in mercator:
-        px = left + width / 2 + (x - cx) * scale
-        py = bottom + height / 2 + (y - cy) * scale
-        out.append((px, py))
-    return out
+def _draw_marker(draw, x, y, color):
+    draw.ellipse([x - 11, y - 11, x + 11, y + 11], fill=(255, 255, 255, 255))
+    draw.ellipse([x - 7, y - 7, x + 7, y + 7], fill=color + (255,))
 
 
-def _lon_to_x(lon):
-    return float(lon)
+def _draw_preview_footer(img, title, description):
+    from PIL import Image, ImageDraw
+
+    title_font, desc_font, small_font = _preview_fonts()
+    overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    odraw = ImageDraw.Draw(overlay)
+    odraw.rectangle([0, PREVIEW_H - PREVIEW_FOOTER_H, PREVIEW_W, PREVIEW_H], fill=(255, 255, 255, 235))
+    img.paste(Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB"), (0, 0))
+
+    draw = ImageDraw.Draw(img)
+    draw.text((72, PREVIEW_H - 78), _truncate_text(title, 60), fill=(34, 34, 34), font=title_font)
+    draw.text((72, PREVIEW_H - 36), _truncate_text(description, 95), fill=(85, 85, 85), font=desc_font)
+    draw.text(
+        (PREVIEW_W - 72, PREVIEW_H - 36), "maps.hitchwiki.org", fill=(102, 102, 102), font=small_font, anchor="rm"
+    )
 
 
-def _lat_to_y(lat):
+def _preview_fonts():
+    from matplotlib import font_manager
+    from PIL import ImageFont
+
+    try:
+        bold = font_manager.findfont(font_manager.FontProperties(family="DejaVu Sans", weight="bold"))
+        regular = font_manager.findfont(font_manager.FontProperties(family="DejaVu Sans"))
+        return ImageFont.truetype(bold, 40), ImageFont.truetype(regular, 26), ImageFont.truetype(regular, 22)
+    except Exception:
+        default = ImageFont.load_default()
+        return default, default, default
+
+
+def _osrm_route_geometry(points):
+    """Fetch the driving route geometry (list of (lon, lat)) through the trip's spots.
+
+    Returns None on any failure so the caller can fall back to straight segments.
+    """
+    if len(points) < 2:
+        return None
+    sampled = _sample_evenly(points, 25)  # keep the OSRM demo URL and load reasonable
+    coords = ";".join(f"{p['lon']},{p['lat']}" for p in sampled)
+    url = f"https://router.project-osrm.org/route/v1/driving/{coords}?overview=full&geometries=geojson"
+    try:
+        import requests
+
+        resp = requests.get(url, timeout=8, headers={"User-Agent": "hitchmap-trip-preview"})
+        data = resp.json()
+        return [(c[0], c[1]) for c in data["routes"][0]["geometry"]["coordinates"]]
+    except Exception:
+        return None
+
+
+def _sample_evenly(items, max_count):
+    if len(items) <= max_count:
+        return items
+    step = (len(items) - 1) / (max_count - 1)
+    return [items[round(i * step)] for i in range(max_count)]
+
+
+def _pick_preview_zoom(points):
+    """Largest tile zoom at which the route bbox fits the on-image map area (with margins)."""
+    if len(points) < 2:
+        return 11
+    inner_w = PREVIEW_W - 140
+    inner_h = PREVIEW_H - PREVIEW_FOOTER_H - 120
+    for zoom in range(18, 0, -1):
+        world = [_lonlat_to_world(p["lon"], p["lat"], zoom) for p in points]
+        bbox_w = max(w[0] for w in world) - min(w[0] for w in world)
+        bbox_h = max(w[1] for w in world) - min(w[1] for w in world)
+        if bbox_w <= inner_w and bbox_h <= inner_h:
+            return zoom
+    return 1
+
+
+def _lonlat_to_world(lon, lat, zoom):
+    """Web-mercator world pixel coordinates (top-left origin) at a given tile zoom."""
     import math
 
     lat = max(min(float(lat), 85.05112878), -85.05112878)
+    n = 2**zoom
+    x = (float(lon) + 180.0) / 360.0 * n * TILE_SIZE
     rad = math.radians(lat)
-    return math.log(math.tan(math.pi / 4 + rad / 2))
+    y = (1.0 - math.log(math.tan(rad) + 1.0 / math.cos(rad)) / math.pi) / 2.0 * n * TILE_SIZE
+    return x, y
+
+
+def _world_to_px(world, origin_x, origin_y):
+    return (world[0] - origin_x, world[1] - origin_y)
+
+
+def _paste_tiles(img, zoom, origin_x, origin_y):
+    """Download the OSM tiles covering the view window and paste them into `img`."""
+    import math
+    from concurrent.futures import ThreadPoolExecutor
+
+    n = 2**zoom
+    tx_min = math.floor(origin_x / TILE_SIZE)
+    tx_max = math.floor((origin_x + PREVIEW_W) / TILE_SIZE)
+    ty_min = math.floor(origin_y / TILE_SIZE)
+    ty_max = math.floor((origin_y + PREVIEW_H) / TILE_SIZE)
+
+    jobs = []
+    for tx in range(tx_min, tx_max + 1):
+        for ty in range(ty_min, ty_max + 1):
+            if ty < 0 or ty >= n:
+                continue
+            jobs.append((tx, ty))
+
+    def fetch(job):
+        tx, ty = job
+        return job, _fetch_tile(zoom, tx % n, ty)
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        for (tx, ty), tile in pool.map(fetch, jobs):
+            if tile is None:
+                continue
+            px = int(round(tx * TILE_SIZE - origin_x))
+            py = int(round(ty * TILE_SIZE - origin_y))
+            img.paste(tile, (px, py))
+
+
+def _fetch_tile(zoom, x, y):
+    from PIL import Image
+
+    url = f"https://tile.openstreetmap.org/{zoom}/{x}/{y}.png"
+    try:
+        import requests
+
+        resp = requests.get(url, timeout=5, headers={"User-Agent": "hitchmap-trip-preview"})
+        if resp.status_code != 200:
+            return None
+        return Image.open(io.BytesIO(resp.content)).convert("RGB")
+    except Exception:
+        return None
 
 
 def _truncate_text(value, max_len):
