@@ -14,3 +14,10 @@ def test_copyright_page(client):
     """The copyright page loads."""
     response = client.get("/copyright")
     assert response.status_code == 200
+
+
+def test_ride_form_shows_gps_buttons(client):
+    """The ride form exposes quick GPS actions for pickup/destination."""
+    response = client.get("/ride")
+    assert response.status_code == 200
+    assert b"Use GPS" in response.data
