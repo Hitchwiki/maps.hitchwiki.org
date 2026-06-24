@@ -52,6 +52,12 @@
                             <i class="fa fa-times"></i>
                         </button>
                     </div>
+                    <div style="margin-top:0.4rem;">
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="useCurrentLocation('pickup')" id="pickup-gps-btn">
+                            <i class="fa fa-crosshairs"></i> Use GPS
+                        </button>
+                        <span id="pickup-gps-status" style="margin-left:0.5rem; font-size:0.85em; color:#666;"></span>
+                    </div>
                     <div style="margin-top:0.6rem;">
                         <label for="datetime_ride" style="display:block; font-size:0.9em; color:#555; margin-bottom:2px;">When did you get the ride?</label>
                         <input form="ride-form" id="datetime_ride" type="datetime-local" name="datetime_ride" class="form-control" min="2020-01-01T00:00" value="{{ ride_data.datetime_ride if ride_data and ride_data.datetime_ride else '' }}">
@@ -71,6 +77,12 @@
                         <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearLocation('destination')" title="Clear destination" style="display: none;" id="destination-clear-btn">
                             <i class="fa fa-times"></i>
                         </button>
+                    </div>
+                    <div style="margin-top:0.4rem;">
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="useCurrentLocation('destination')" id="destination-gps-btn">
+                            <i class="fa fa-crosshairs"></i> Use GPS
+                        </button>
+                        <span id="destination-gps-status" style="margin-left:0.5rem; font-size:0.85em; color:#666;"></span>
                     </div>
                     <div style="margin-top:0.6rem;">
                         <label for="arrival_datetime" style="display:block; font-size:0.9em; color:#555; margin-bottom:2px;">When did you arrive at the destination?</label>
@@ -516,8 +528,11 @@
         
         // Update displays and thumbnails
         updateCoordinateDisplays();
-        
-        // Destroy and recreate thumbnail maps
+        refreshThumbnailMaps();
+    }
+
+    function refreshThumbnailMaps() {
+        // Destroy and recreate thumbnail maps so newly selected GPS/manual coordinates render immediately.
         if (pickupMap) {
             pickupMap.remove();
             pickupMap = null;
@@ -526,8 +541,48 @@
             destinationMap.remove();
             destinationMap = null;
         }
-        
+
         setTimeout(initThumbnailMaps, 100);
+    }
+
+    function useCurrentLocation(type) {
+        const status = document.getElementById(type + '-gps-status');
+        const button = document.getElementById(type + '-gps-btn');
+        if (!navigator.geolocation) {
+            if (status) status.textContent = 'GPS not supported by this browser.';
+            return;
+        }
+
+        if (button) button.disabled = true;
+        if (status) status.textContent = 'Getting GPS location...';
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude.toFixed(6);
+                const lon = position.coords.longitude.toFixed(6);
+                document.getElementById(type + '_lat').value = lat;
+                document.getElementById(type + '_lon').value = lon;
+                updateCoordinateDisplays();
+                refreshThumbnailMaps();
+                if (status) status.textContent = 'Location set.';
+                if (button) button.disabled = false;
+            },
+            (error) => {
+                const errorMap = {
+                    1: 'Location permission denied.',
+                    2: 'Location unavailable.',
+                    3: 'Location request timed out.'
+                };
+                if (status) status.textContent = errorMap[error.code] || 'Could not get GPS location.';
+                if (button) button.disabled = false;
+            },
+            {
+                // Requirement: quick ride logging needs fast GPS fill while still preferring accurate fixes.
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 60000
+            }
+        );
     }
     
     // Co-hitchhiker multi-tag input
