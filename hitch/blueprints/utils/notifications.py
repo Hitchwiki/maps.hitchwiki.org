@@ -14,7 +14,7 @@ MAX_NOTIFICATIONS_PER_USER = 10
 # The default first notification every user gets, inviting them into the two core
 # social features. Kept as a constant so `ensure_welcome_notification` can dedupe on it.
 WELCOME_MESSAGE = (
-    "Welcome to Hitchmap! 👋 Follow other hitchhikers to see their rides on the map, "
+    "Welcome to Hitchwiki Maps! 👋 Follow other hitchhikers to see their rides on the map, "
     "and create a trip to group your own rides into a journey."
 )
 
