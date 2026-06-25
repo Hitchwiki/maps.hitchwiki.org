@@ -22,14 +22,17 @@ _SYNTHETIC_EMAIL_SUFFIX = "@hitchwiki.oauth"
 WELCOME_SUBJECT = "Welcome to the Hitchwiki Map"
 
 
-def _send_via_sparkpost(to_email, to_name, subject, html, text):
-    """POST a single transactional transmission to SparkPost. Raises on HTTP error."""
+def _send_via_sparkpost(to_email, to_name, subject, html, text, transactional=True):
+    """POST a single transmission to SparkPost. Raises on HTTP error.
+
+    `transactional` marks the message type on SparkPost's side. Transactional emails
+    (e.g. the one-time welcome) bypass list-unsubscribe suppression; non-transactional
+    (marketing/digest) emails honour it, so recurring digests should pass False.
+    """
     base_url = current_app.config["SPARKPOST_BASE_URL"].rstrip("/")
     api_key = current_app.config["SPARKPOST_API_KEY"]
     payload = {
-        # Transactional: this is a one-time account email, not marketing — so it is not
-        # subject to list-unsubscribe suppression on SparkPost's side.
-        "options": {"open_tracking": False, "click_tracking": False, "transactional": True},
+        "options": {"open_tracking": False, "click_tracking": False, "transactional": transactional},
         "content": {
             "from": {
                 "email": current_app.config["WELCOME_FROM_EMAIL"],
