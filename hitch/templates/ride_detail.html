@@ -152,6 +152,28 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
 }
 .share-btn:hover { background: #e4e4e4; }
 .share-btn.copied { background: #d4edda; border-color: #28a745; color: #155724; }
+.report-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    color: #b02a37;
+    font-size: 0.85em;
+    text-decoration: none;
+}
+.report-btn:hover { background: #fdf0f1; border-color: #e3b6ba; color: #b02a37; text-decoration: none; }
+.report-confirm {
+    background: #d4edda;
+    border: 1px solid #28a745;
+    color: #155724;
+    border-radius: 6px;
+    padding: 0.6rem 0.9rem;
+    margin-bottom: 1rem;
+    font-size: 0.95em;
+}
 </style>
 {% endblock %}
 
@@ -187,9 +209,18 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
             </button>
             {% if ride.is_owner %}
                 <a href="/ride?edit={{ ride.d_tag }}" class="edit-link"><i class="fa fa-pen"></i> Edit ride</a>
+            {% else %}
+                <a href="/report-ride/{{ ride.d_tag }}" class="report-btn">
+                    <i class="fa fa-flag"></i>
+                    <span>{{ 'Reported' if already_reported else 'Report' }}</span>
+                </a>
             {% endif %}
         </div>
     </div>
+
+    {% if report_confirmed %}
+    <div class="report-confirm"><i class="fa fa-check-circle"></i> Thanks — your report has been recorded.</div>
+    {% endif %}
 
     <div class="location-grid">
         {% if ride.pickup_lat is not none and ride.pickup_lon is not none %}

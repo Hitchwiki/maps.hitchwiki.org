@@ -17,6 +17,7 @@ from shapely.wkt import loads as wkt_loads
 from sklearn.cluster import DBSCAN
 from sklearn.exceptions import InconsistentVersionWarning
 
+from hitch.blueprints.utils.report_ride import REPORTS_TO_HIDE
 from hitch.helpers import e, get_bearing, get_db, get_dirs, haversine_np, write_json_file
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
@@ -75,6 +76,34 @@ logger.info("Database has been updated, regenerating JSON files")
 logger.info("Fetching rides")
 rides_df = pd.read_sql("select * from ride_event", get_db())
 logger.info(f"Got {len(rides_df)} rides")
+
+
+def get_reported_dtags():
+    """Nostr d-tags of rides hidden by community reports.
+
+    A ride is hidden once at least REPORTS_TO_HIDE distinct users have reported it for
+    the same reason. Reports are unique per (ride, user), so each row is a distinct
+    person, making the per-reason count a count of distinct reporters. Returns an empty
+    set if the ride_report table doesn't exist yet (e.g. a DB that predates the feature).
+    """
+    try:
+        reported = pd.read_sql(
+            "select ride_d_tag from ride_report group by ride_d_tag, reason "
+            f"having count(*) >= {REPORTS_TO_HIDE}",
+            get_db(),
+        )
+    except pd.errors.DatabaseError:
+        return set()
+    return set(reported["ride_d_tag"])
+
+
+# Drop reported rides up front so they're excluded from every downstream output
+# (spots aggregation, per-spot files, rides_index, recent).
+reported_dtags = get_reported_dtags()
+if reported_dtags:
+    before = len(rides_df)
+    rides_df = rides_df[~rides_df["d"].isin(reported_dtags)].reset_index(drop=True)
+    logger.info(f"Excluded {before - len(rides_df)} reported ride(s) across {len(reported_dtags)} d-tag(s)")
 
 rides_df["stops"] = rides_df["stops"].apply(lambda x: json.loads(x) if isinstance(x, str) else x)
 rides_df["hitchhikers"] = rides_df["hitchhikers"].apply(lambda x: json.loads(x) if isinstance(x, str) else x)

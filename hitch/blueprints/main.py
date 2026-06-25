@@ -33,9 +33,10 @@ from hitch.blueprints.utils.iso_country_codes import ISO_3166_1_ALPHA_2
 from hitch.blueprints.utils.license_plate_country_codes import LICENSE_PLATE_COUNTRY_CHOICES
 from hitch.blueprints.utils.notifications import notify_co_hitchhiker_invite, unread_count
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
+from hitch.blueprints.utils.report_ride import REPORT_REASONS
 from hitch.extensions import db
 from hitch.helpers import get_db
-from hitch.models import CoHitchhiker, Follow, RideEvent, User
+from hitch.models import CoHitchhiker, Follow, RideEvent, RideReport, User
 
 main_bp = Blueprint("main", __name__)
 
@@ -332,7 +333,60 @@ def ride_detail(d_tag):
         "vehicle": vehicle,
         "driver": driver,
     }
-    return render_template("ride_detail.html", ride=ride_view)
+
+    # Whether the current user has already reported this ride (drives the button label).
+    already_reported = (
+        not current_user.is_anonymous
+        and RideReport.query.filter_by(ride_d_tag=d_tag, user_id=current_user.id).first() is not None
+    )
+    return render_template(
+        "ride_detail.html",
+        ride=ride_view,
+        already_reported=already_reported,
+        report_confirmed=request.args.get("reported") == "1",
+    )
+
+
+@main_bp.route("/report-ride/<d_tag>", methods=["GET", "POST"])
+def report_ride(d_tag):
+    """Let a logged-in user report a ride for a reason (advertising / non-existing spot).
+
+    Anonymous visitors are sent to the login page. A user can report a given ride only
+    once — re-reporting updates their chosen reason rather than adding a second row, so
+    one person can never reach the auto-hide threshold (>= 2 reports of the same reason)
+    on their own.
+    """
+    # Only logged-in users may report; bounce anonymous visitors to login and bring them
+    # back to this report page afterwards.
+    if current_user.is_anonymous:
+        return redirect(f"/login?next=/report-ride/{d_tag}")
+
+    ride = db.session.query(RideEvent).filter_by(d=d_tag).first()
+    if not ride:
+        abort(404)
+
+    existing = RideReport.query.filter_by(ride_d_tag=d_tag, user_id=current_user.id).first()
+
+    if request.method == "POST":
+        reason = request.form.get("reason", "")
+        if reason not in REPORT_REASONS:
+            return render_template(
+                "report_ride.html", d_tag=d_tag, reasons=REPORT_REASONS, selected=reason, error="Please choose a reason."
+            )
+        if existing:
+            existing.reason = reason  # one report per (ride, user): update, don't duplicate
+        else:
+            db.session.add(RideReport(ride_d_tag=d_tag, user_id=current_user.id, reason=reason))
+        db.session.commit()
+        return redirect(f"/ride/{d_tag}?reported=1")
+
+    return render_template(
+        "report_ride.html",
+        d_tag=d_tag,
+        reasons=REPORT_REASONS,
+        selected=existing.reason if existing else None,
+        error=None,
+    )
 
 
 @main_bp.route("/ride", methods=["GET", "POST"])

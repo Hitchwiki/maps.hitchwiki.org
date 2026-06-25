@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}Report ride | Hitchhiking Map{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css">
+<link rel="stylesheet" href="/static/style.css" />
+<style>
+.report-page { max-width: 520px; margin: 2.5rem auto; padding: 0 1rem 3rem; }
+.report-page h1 { font-size: 1.4em; color: #333; margin-bottom: 0.25rem; }
+.report-page .intro { color: #666; font-size: 0.95em; margin-bottom: 1.25rem; }
+.report-options { list-style: none; padding: 0; margin: 0 0 1.25rem; }
+.report-option {
+    display: flex; align-items: center; gap: 10px;
+    border: 1px solid #e2e2e2; border-radius: 8px;
+    padding: 12px 14px; margin-bottom: 10px; cursor: pointer;
+}
+.report-option:hover { border-color: #c7ced3; background: #fafafa; }
+.report-option input { margin: 0; }
+.report-actions { display: flex; gap: 10px; align-items: center; }
+.btn-report-submit {
+    padding: 8px 18px; background: #b02a37; border: 1px solid #b02a37;
+    border-radius: 6px; color: #fff; font: inherit; font-size: 0.9em; cursor: pointer;
+}
+.btn-report-submit:hover { background: #97232f; border-color: #97232f; }
+.btn-cancel { color: #555; text-decoration: none; font-size: 0.9em; }
+.report-error { color: #b02a37; font-size: 0.9em; margin-bottom: 0.75rem; }
+.back-link { display: inline-block; color: #555; text-decoration: none; font-size: 0.9em; margin-bottom: 1rem; }
+.back-link:hover { text-decoration: underline; }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="report-page">
+    <a href="/ride/{{ d_tag }}" class="back-link">← Back to ride</a>
+    <h1><i class="fa fa-flag"></i> Report this ride</h1>
+    <p class="intro">Why are you reporting this ride? A ride is hidden from the map once enough people report it for the same reason.</p>
+
+    {% if error %}<div class="report-error">{{ error }}</div>{% endif %}
+
+    <form method="post" action="/report-ride/{{ d_tag }}">
+        <ul class="report-options">
+            {% for code, label in reasons.items() %}
+            <li>
+                <label class="report-option">
+                    <input type="radio" name="reason" value="{{ code }}" {% if selected == code %}checked{% endif %}>
+                    <span>{{ label }}</span>
+                </label>
+            </li>
+            {% endfor %}
+        </ul>
+        <div class="report-actions">
+            <button type="submit" class="btn-report-submit">Submit report</button>
+            <a href="/ride/{{ d_tag }}" class="btn-cancel">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

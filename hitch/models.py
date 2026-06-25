@@ -102,6 +102,20 @@ class CoHitchhiker(db.Model):
     accepted = db.Column(db.String(4), nullable=False)  # 'yes', 'no', 'open'
 
 
+class RideReport(db.Model):
+    # A logged-in user's report flagging a ride (by Nostr d-tag) as problematic.
+    # One report per (ride, user): re-reporting updates the reason rather than adding a
+    # new row, so a single person can never push a ride over the auto-hide threshold on
+    # their own. show.py hides any ride with >= 2 reports sharing the same reason.
+    id = db.Column(db.Integer, primary_key=True)
+    ride_d_tag = db.Column(db.String(255), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    reason = db.Column(db.String(32), nullable=False)  # see REPORT_REASONS in report_ride.py
+    created_at = db.Column(db.DateTime, nullable=False, default=db.func.now())
+
+    __table_args__ = (db.UniqueConstraint("ride_d_tag", "user_id", name="uq_ride_report_dtag_user"),)
+
+
 class RideEvent(db.Model):
     id = db.Column(db.String(64), primary_key=True)
     kind = db.Column(db.Integer, nullable=False)
