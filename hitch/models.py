@@ -31,6 +31,12 @@ class User(db.Model, fsqla.FsUserMixin):
     # defaults to off — the user must explicitly tick the box in their profile.
     nearby_hitchhikers_email = db.Column(db.Boolean, default=False, nullable=False, server_default="0")
 
+    # Epoch seconds of the last nearby-hitchhikers email sent to this user, or NULL if
+    # never. The job runs daily over a 3-day rolling window, so the same encounter would
+    # otherwise be reported up to 3 days in a row. We throttle to one email per 3 days
+    # per user so they aren't notified repeatedly about the same encounter.
+    nearby_hitchhikers_email_last_sent = db.Column(db.Integer, default=None)
+
     # Lifetime hitchhiking stats, recomputed from all ride events on every show.py
     # run (not maintained on ride submission). Shown in the profile "Insights"
     # section so the page doesn't have to aggregate every ride on each load.
@@ -49,6 +55,21 @@ class Follow(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=db.func.now())
 
     __table_args__ = (db.UniqueConstraint("follower_id", "followed_id", name="uq_follow_follower_followed"),)
+
+
+class Notification(db.Model):
+    # Lightweight in-app notification shown in the user's profile. We keep only the
+    # newest few per user (older rows are trimmed on insert — see utils/notifications.py),
+    # so this table never grows unbounded. `kind` lets us dedupe one-off system messages
+    # (e.g. the single welcome notification) without an extra per-user flag column.
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    kind = db.Column(db.String(32), nullable=False, default="general")
+    message = db.Column(db.Text, nullable=False)
+    # Optional in-app link the notification points to (e.g. "/create-trip"); NULL = no link.
+    link = db.Column(db.String(255), nullable=True)
+    is_read = db.Column(db.Boolean, nullable=False, default=False, server_default="0")
+    created_at = db.Column(db.DateTime, nullable=False, default=db.func.now())
 
 
 class Trip(db.Model):

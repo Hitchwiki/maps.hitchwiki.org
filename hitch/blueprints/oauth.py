@@ -10,6 +10,7 @@ import requests as http_requests
 from flask import Blueprint, current_app, redirect, render_template, request, session, url_for
 from flask_security import login_user, logout_user
 
+from hitch.blueprints.utils.notifications import ensure_welcome_notification
 from hitch.blueprints.utils.send_welcome_email import maybe_send_welcome_email
 from hitch.extensions import db, security
 
@@ -132,6 +133,8 @@ def _handle_callback(code):
         login_user(user, remember=True)
         # First-ever login: send the one-time welcome email (gated + non-fatal).
         maybe_send_welcome_email(user)
+        # Seed the default in-app welcome notification (idempotent).
+        ensure_welcome_notification(user)
         return redirect("/edit-user")
 
     # Existing user - just log in
@@ -139,4 +142,7 @@ def _handle_callback(code):
     # Existing users created before the welcome email shipped get it on this first
     # login after rollout; the gate ensures it's still sent at most once per user.
     maybe_send_welcome_email(user)
+    # Back-fills the welcome notification for users who registered before notifications
+    # existed; idempotent, so existing users get it exactly once.
+    ensure_welcome_notification(user)
     return redirect("/me")

@@ -31,6 +31,7 @@ from hitch.blueprints.utils.driver_info_choices import (
 )
 from hitch.blueprints.utils.iso_country_codes import ISO_3166_1_ALPHA_2
 from hitch.blueprints.utils.license_plate_country_codes import LICENSE_PLATE_COUNTRY_CHOICES
+from hitch.blueprints.utils.notifications import notify_co_hitchhiker_invite, unread_count
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.extensions import db
 from hitch.helpers import get_db
@@ -89,6 +90,7 @@ def render_map(map_variation):
         hide_add_spot_button=current_app.config.get("HIDE_ADD_SPOT_BUTTON", False),
         hide_account_button=current_app.config.get("HIDE_ACCOUNT_BUTTON", False),
         is_logged_in=not current_user.is_anonymous,
+        unread_notifications=unread_count(current_user),
     )
 
 
@@ -629,6 +631,7 @@ def ride_form():
         existing_co = {
             c.co_hitchhiker for c in db.session.query(CoHitchhiker).filter_by(nostr_ride_event_d_tag=d_tag).all()
         }
+        invited_user_ids = []
         for ch in data["co_hitchhiker"].split(","):
             username = ch.strip()
             if username == "" or username == "Anonymous":
@@ -637,7 +640,8 @@ def ride_form():
                 continue  # skip self
             if username in existing_co:
                 continue  # already present, cannot be removed so no need to re-add
-            if not User.query.filter_by(username=username).first():
+            invited_user = User.query.filter_by(username=username).first()
+            if not invited_user:
                 continue  # skip non-existent users
             co_hitchhiker = CoHitchhiker(
                 nostr_ride_event_d_tag=d_tag,
@@ -645,7 +649,13 @@ def ride_form():
                 accepted="open",
             )
             db.session.add(co_hitchhiker)
+            invited_user_ids.append(invited_user.id)
         db.session.commit()
+        # Notify newly invited co-hitchhikers (after commit, so the pending invite exists
+        # by the time they open their profile to accept/reject it).
+        inviter_name = current_username or "Someone"
+        for uid in invited_user_ids:
+            notify_co_hitchhiker_invite(uid, inviter_name)
 
     return redirect("/#success")
 

@@ -10,11 +10,12 @@ from sqlalchemy import text
 
 from hitch.blueprints.publish_ride import construct_hitchhiker_from_current_user
 from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import HitchhikingRecord
+from hitch.blueprints.utils.notifications import notify_new_follower
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.extensions import db, security
 from hitch.forms import UserEditForm
 from hitch.helpers import get_db
-from hitch.models import CoHitchhiker, Follow, RideEvent, Trip, TripRide, User
+from hitch.models import CoHitchhiker, Follow, Notification, RideEvent, Trip, TripRide, User
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
 
@@ -142,6 +143,20 @@ def show_account(username, is_me: bool = False):
             trustroots_username=None,
         )
 
+    # In-app notifications are private, so only load them when viewing your own page.
+    # Capture them (newest first) before marking unread ones read, so the red bell on
+    # the account button clears once the user has actually seen the list.
+    notifications = []
+    if is_me:
+        notifications = (
+            Notification.query.filter_by(user_id=current_user.id)
+            .order_by(Notification.created_at.desc(), Notification.id.desc())
+            .all()
+        )
+        if any(not n.is_read for n in notifications):
+            Notification.query.filter_by(user_id=current_user.id, is_read=False).update({"is_read": True})
+            db.session.commit()
+
     if is_me:
         rides_data = _get_rides_for_user(current_user)
     else:
@@ -169,6 +184,7 @@ def show_account(username, is_me: bool = False):
         is_me=is_me,
         rides=rides_data,
         trips=trips_data,
+        notifications=notifications,
         user_known=user_known,
         age=age,
         can_follow=can_follow,
@@ -192,6 +208,9 @@ def _toggle_follow(username, follow):
     if follow and existing is None:
         db.session.add(Follow(follower_id=current_user.id, followed_id=target.id))
         db.session.commit()
+        # Only notify on a genuinely new follow (not on repeat clicks), so the target
+        # doesn't get a fresh notification each time someone re-follows them.
+        notify_new_follower(target.id, current_user.username)
     elif not follow and existing is not None:
         db.session.delete(existing)
         db.session.commit()

@@ -14,7 +14,11 @@ Runs once a day at midnight (deploy/cron.sh). The flow:
      of each other, the users behind those two rides count as "near" each other.
   4. For each user who ticked "Email me about other hitchhikers who were close by"
      (and hasn't globally opted out of email), send one email listing the profiles
-     of all other users they were near in the window.
+     of all other users they were near in the window — but only if they weren't already
+     emailed within the last window. Because the job runs daily over a 3-day window, the
+     same encounter would otherwise be reported up to 3 days in a row; throttling to one
+     email per 3 days per user (tracked via user.nearby_hitchhikers_email_last_sent)
+     ensures a user isn't notified repeatedly about the same encounter.
 
 A rolling window (rather than a strict calendar day) is used deliberately: the job
 fires at 00:00, so it covers the days that just ended, and a rolling window sidesteps
@@ -29,6 +33,7 @@ from math import asin, cos, radians, sin, sqrt
 
 from flask import current_app
 
+from hitch.blueprints.utils.notifications import notify_nearby_hitchhikers
 from hitch.blueprints.utils.send_nearby_hitchhikers_email import send_nearby_hitchhikers_email
 from hitch.extensions import db
 from hitch.helpers import get_db
@@ -57,12 +62,16 @@ def _ensure_column():
     working even if the manual ALTER was missed. A re-add raises OperationalError.
     """
     conn = get_db()
-    try:
-        conn.execute("ALTER TABLE user ADD COLUMN nearby_hitchhikers_email BOOLEAN NOT NULL DEFAULT 0")
-        conn.commit()
-        logger.info("Added missing column user.nearby_hitchhikers_email")
-    except sqlite3.OperationalError:
-        pass  # column already exists
+    for ddl, name in (
+        ("ALTER TABLE user ADD COLUMN nearby_hitchhikers_email BOOLEAN NOT NULL DEFAULT 0", "nearby_hitchhikers_email"),
+        ("ALTER TABLE user ADD COLUMN nearby_hitchhikers_email_last_sent INTEGER", "nearby_hitchhikers_email_last_sent"),
+    ):
+        try:
+            conn.execute(ddl)
+            conn.commit()
+            logger.info(f"Added missing column user.{name}")
+        except sqlite3.OperationalError:
+            pass  # column already exists
 
 
 def _haversine_km(lat1, lon1, lat2, lon2):
@@ -222,6 +231,12 @@ def run():
             continue
         if not user.email or user.email.endswith(_SYNTHETIC_EMAIL_SUFFIX):
             continue
+        # Throttle: the job runs daily over a 3-day window, so the same encounter recurs
+        # for up to 3 days. Only email a user if they haven't been emailed in the last
+        # window, so they aren't notified repeatedly about the same encounter.
+        last_sent = user.nearby_hitchhikers_email_last_sent
+        if last_sent is not None and now - last_sent < WINDOW_SECONDS:
+            continue
 
         nearby_users = [db.session.get(User, vid) for vid in nearby_ids]
         profiles = [_profile_for(u) for u in sorted(filter(None, nearby_users), key=lambda u: u.username.lower())]
@@ -230,10 +245,18 @@ def run():
 
         try:
             send_nearby_hitchhikers_email(user, profiles)
+            # Record the send so the throttle above suppresses repeat emails about the
+            # same encounter on the next daily runs within the window.
+            user.nearby_hitchhikers_email_last_sent = now
+            db.session.commit()
+            # Mirror the email in-app so the encounter is also recorded in the profile.
+            notify_nearby_hitchhikers(user.id, [p["username"] for p in profiles])
             sent += 1
             logger.info(f"Sent nearby-hitchhikers email to {user.username} <{user.email}> ({len(profiles)} profiles)")
         except Exception:
-            # One bad send must not abort the rest of the run.
+            # One bad send must not abort the rest of the run; roll back any pending
+            # timestamp write so the session stays usable for the next user.
+            db.session.rollback()
             logger.exception(f"Failed to send nearby-hitchhikers email to {user.username}")
 
     logger.info(f"Done — {sent} emails sent")
