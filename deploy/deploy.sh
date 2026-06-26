@@ -10,8 +10,11 @@ git reset --hard origin/main
 echo "==> Rebuilding and restarting container"
 sudo docker compose up -d --build
 
-echo "==> Pruning dangling images"
+echo "==> Pruning dangling images and stale build cache"
 sudo docker image prune -f
+# Build cache (not touched by 'image prune') is what fills the disk over time.
+# Drop cache older than 7 days; keep recent layers so the next build stays fast.
+sudo docker builder prune -f --filter "until=168h"
 
 mkdir -p logs
 date -u +"%Y-%m-%dT%H:%M:%SZ commit=$(git rev-parse --short HEAD)" > logs/last_deploy.txt
