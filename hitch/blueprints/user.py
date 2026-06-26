@@ -1,4 +1,5 @@
 import io
+import json
 import os
 from datetime import datetime
 from types import SimpleNamespace
@@ -14,7 +15,7 @@ from hitch.blueprints.utils.notifications import notify_new_follower
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.extensions import db, security
 from hitch.forms import UserEditForm
-from hitch.helpers import get_db
+from hitch.helpers import get_db, get_dirs
 from hitch.models import CoHitchhiker, Follow, Notification, RideEvent, Trip, TripRide, User
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
@@ -880,6 +881,18 @@ def my_rides():
     return redirect("/me")
 
 
+def _longest_ride_cards():
+    """The 10 longest rides as recent-style ride cards. Precomputed every minute by
+    show.py into dist/longest_rides.json so this route doesn't scan and haversine every
+    ride on each request (that made /leaderboard slow). Returns [] if not generated yet."""
+    path = os.path.join(get_dirs()["dist"], "longest_rides.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return []
+
+
 @user_bp.route("/leaderboard", methods=["GET"])
 def leaderboard():
     """Show all users sorted by number of rides, highest first."""
@@ -900,4 +913,9 @@ def leaderboard():
 
     ride_counts = {u.username: counts_by_lower.get(u.username.lower(), 0) for u in all_users}
     ranked = sorted(all_users, key=lambda u: ride_counts[u.username], reverse=True)
-    return render_template("leaderboard.html", users=ranked, ride_counts=ride_counts)
+    return render_template(
+        "leaderboard.html",
+        users=ranked,
+        ride_counts=ride_counts,
+        longest_rides=_longest_ride_cards(),
+    )

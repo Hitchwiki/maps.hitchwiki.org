@@ -42,7 +42,7 @@ def should_regenerate_json():
     db_mtime = os.path.getmtime(db_path)
 
     # Check each JSON file
-    json_files = ["spots.json", "rides_index.json", "spots_recent.json"]
+    json_files = ["spots.json", "rides_index.json", "spots_recent.json", "longest_rides.json"]
 
     # Per-spot ride directory — treat the dir itself as the canary.
     by_spot_dir = os.path.join(dirs["dist"], "rides", "by-spot")
@@ -985,6 +985,22 @@ recent["distance"] = recent["distance"].round(1)
 recent["submission_time"] = recent["submission_time"].astype(str)
 recent["submission_time"] += np.where(~recent.ride_datetime.isnull(), " 🕒", "")
 write_json_file(recent[["url", "submission_time", "hitchhiker_name", "rating", "distance", "text"]], "spots_recent.json")
+
+# Precompute the 10 longest rides for the leaderboard so the /leaderboard route can
+# just read this file instead of scanning and haversine-ing every ride on each request.
+# Card fields mirror main._ride_to_card so the recent-style ride_card template renders them.
+longest = rides_df.dropna(subset=["distance"]).sort_values("distance", ascending=False).iloc[:10].copy()
+longest["d_tag"] = longest["d"]
+longest["created"] = pd.to_datetime(longest["created_at"], unit="s").dt.strftime("%Y-%m-%d %H:%M")
+longest["rating"] = longest["rating"].fillna(0).astype(int)
+longest["comment"] = longest["comment"].fillna("")
+longest["pickup_lat"] = longest["lat"]
+longest["pickup_lon"] = longest["lon"]
+longest["distance"] = longest["distance"].round().astype(int)
+write_json_file(
+    longest[["d_tag", "created", "rating", "comment", "pickup_lat", "pickup_lon", "hitchhiker_name", "distance"]],
+    "longest_rides.json",
+)
 
 # duplicates["from_url"] = "#" + duplicates.from_lat.astype(str) + "," + duplicates.from_lon.astype(str)
 # duplicates["to_url"] = "#" + duplicates.to_lat.astype(str) + "," + duplicates.to_lon.astype(str)

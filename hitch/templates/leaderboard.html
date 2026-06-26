@@ -2,30 +2,129 @@
 
 {% set title = "Leaderboard" %}
 
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<link rel="stylesheet" href="/static/map_thumbnail.css" />
+<link rel="stylesheet" href="/static/ride_card.css" />
+<style>
+  .leaderboard-tabs { display:flex; gap:0.5rem; margin:0.5rem 0 1rem; border-bottom:1px solid #ddd; }
+  .leaderboard-tab {
+    background:none; border:none; cursor:pointer; padding:0.5rem 0.8rem;
+    font-size:0.95em; color:#666; border-bottom:2px solid transparent; margin-bottom:-1px;
+  }
+  .leaderboard-tab.active { color:#000; border-bottom-color:#333; font-weight:600; }
+  .leaderboard-pane { display:none; }
+  .leaderboard-pane.active { display:block; }
+</style>
+{% endblock %}
+
+{% macro ride_card(ride, thumb_prefix, idx) %}
+{% set tag = "a" if ride.d_tag else "div" %}
+<{{ tag }} class="ride-card"{% if ride.d_tag %} href="/ride/{{ ride.d_tag }}"{% endif %}>
+    <div class="ride-meta">
+        {{ ride.created }}
+        {% if ride.rating > 0 %}&nbsp;{{ "⭐" * ride.rating }}{% endif %}
+        &mdash; <span class="hitchhiker-name">{{ ride.hitchhiker_name }}</span>
+        {% if ride.distance is not none %}&mdash; {{ ride.distance }} km{% endif %}
+    </div>
+    {% if ride.pickup_lat and ride.pickup_lon %}
+    <div class="map-thumbnail" id="{{ thumb_prefix }}-{{ idx }}" style="height:100px;"></div>
+    <div style="color:#888; font-size:0.8em;">{{ "%.4f, %.4f"|format(ride.pickup_lat, ride.pickup_lon) }}</div>
+    {% endif %}
+    {% if ride.comment %}
+    <div class="ride-comment">{{ ride.comment }}</div>
+    {% endif %}
+</{{ tag }}>
+{% endmacro %}
+
 {% block content %}
 <h1>Leaderboard</h1>
-<p style="color:#666; font-size:0.85em;">All users ranked by number of rides logged</p>
-{% if not current_user.is_authenticated %}
-<p style="color:#999; font-size:0.8em;">Want to show up here? <a href="{{ url_for_security('login') }}">Log in</a> and start logging your rides.</p>
-{% endif %}
-<table style="width:100%; border-collapse:collapse; font-size:0.9em;">
-  <thead>
-    <tr style="border-bottom:2px solid #ccc; text-align:left;">
-      <th style="padding:0.4rem 0.6rem;">#</th>
-      <th style="padding:0.4rem 0.6rem;">User</th>
-      <th style="padding:0.4rem 0.6rem; text-align:right;">Rides</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for user in users %}
-    <tr style="border-bottom:1px solid #eee;">
-      <td style="padding:0.4rem 0.6rem; color:#999;">{{ loop.index }}</td>
-      <td style="padding:0.4rem 0.6rem;">
-        <a href="/account/{{ user.username }}">{{ user.username }}</a>
-      </td>
-      <td style="padding:0.4rem 0.6rem; text-align:right;">{{ ride_counts[user.username] }}</td>
-    </tr>
+
+<div class="leaderboard-tabs">
+  <button class="leaderboard-tab active" data-pane="most-rides">Most rides</button>
+  <button class="leaderboard-tab" data-pane="longest-ride">Longest ride</button>
+</div>
+
+<div class="leaderboard-pane active" id="pane-most-rides">
+  <p style="color:#666; font-size:0.85em;">All users ranked by number of rides logged</p>
+  {% if not current_user.is_authenticated %}
+  <p style="color:#999; font-size:0.8em;">Want to show up here? <a href="{{ url_for_security('login') }}">Log in</a> and start logging your rides.</p>
+  {% endif %}
+  <table style="width:100%; border-collapse:collapse; font-size:0.9em;">
+    <thead>
+      <tr style="border-bottom:2px solid #ccc; text-align:left;">
+        <th style="padding:0.4rem 0.6rem;">#</th>
+        <th style="padding:0.4rem 0.6rem;">User</th>
+        <th style="padding:0.4rem 0.6rem; text-align:right;">Rides</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in users %}
+      <tr style="border-bottom:1px solid #eee;">
+        <td style="padding:0.4rem 0.6rem; color:#999;">{{ loop.index }}</td>
+        <td style="padding:0.4rem 0.6rem;">
+          <a href="/account/{{ user.username }}">{{ user.username }}</a>
+        </td>
+        <td style="padding:0.4rem 0.6rem; text-align:right;">{{ ride_counts[user.username] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="leaderboard-pane" id="pane-longest-ride">
+  <p style="color:#666; font-size:0.85em;">The 10 longest rides by start-to-destination distance</p>
+  {% if longest_rides %}
+    {% for ride in longest_rides %}
+    {{ ride_card(ride, "longest-thumb", loop.index0) }}
     {% endfor %}
-  </tbody>
-</table>
+  {% else %}
+    <p style="color:#666; font-size:0.9em;">No rides with a destination yet.</p>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="/static/map_thumbnail.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const longestRides = {{ longest_rides | tojson }};
+    const longestMaps = [];
+    let longestInitialized = false;
+
+    // Leaflet can't size a map inside a display:none container, so the longest-ride
+    // thumbnails are built only once the pane is first shown, then invalidated so
+    // tiles fill the now-visible container.
+    function initLongestThumbnails() {
+        if (longestInitialized) {
+            longestMaps.forEach(m => m.invalidateSize());
+            return;
+        }
+        longestInitialized = true;
+        longestRides.forEach((ride, i) => {
+            if (ride.pickup_lat && ride.pickup_lon) {
+                const m = initMapThumbnail(`longest-thumb-${i}`, ride.pickup_lat, ride.pickup_lon);
+                if (m) longestMaps.push(m);
+            }
+        });
+    }
+
+    // Tab switching between the leaderboard panes.
+    const tabs = document.querySelectorAll('.leaderboard-tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            tabs.forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.leaderboard-pane').forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById('pane-' + tab.dataset.pane).classList.add('active');
+            if (tab.dataset.pane === 'longest-ride') {
+                initLongestThumbnails();
+            }
+        });
+    });
+});
+</script>
 {% endblock %}
