@@ -42,7 +42,7 @@ def should_regenerate_json():
     db_mtime = os.path.getmtime(db_path)
 
     # Check each JSON file
-    json_files = ["spots.json", "rides_index.json", "spots_recent.json", "longest_rides.json"]
+    json_files = ["spots.json", "rides_index.json", "spots_recent.json", "longest_rides.json", "longest_24h.json"]
 
     # Per-spot ride directory — treat the dir itself as the canary.
     by_spot_dir = os.path.join(dirs["dist"], "rides", "by-spot")
@@ -1001,6 +1001,82 @@ write_json_file(
     longest[["d_tag", "created", "rating", "comment", "pickup_lat", "pickup_lon", "hitchhiker_name", "distance"]],
     "longest_rides.json",
 )
+
+# Precompute the "longest distance in 24h" leaderboard. Per named hitchhiker, find the
+# best contiguous sequence of their rides whose span (first departure -> last arrival)
+# fits in 24h, maximizing total distance. Only rides with a real username AND both a
+# departure and arrival time qualify. The leaderboard then ranks users by that total and
+# lists every ride in the winning window. Done here (not per-request) to keep /leaderboard fast.
+WINDOW_24H = pd.Timedelta(hours=24)
+
+
+def _build_ride_card(row):
+    """A recent-style ride_card dict for one rides_df row."""
+    return {
+        "d_tag": row["d"],
+        "created": pd.to_datetime(row["created_at"], unit="s").strftime("%Y-%m-%d %H:%M"),
+        "rating": int(row["rating"]) if pd.notna(row["rating"]) else 0,
+        "comment": row["comment"] if pd.notna(row["comment"]) else "",
+        "pickup_lat": row["lat"],
+        "pickup_lon": row["lon"],
+        "hitchhiker_name": row["hitchhiker_name"],
+        "distance": int(round(row["distance"])),
+    }
+
+
+# Normalize departure/arrival to UTC so windows can be compared regardless of the
+# timezone offsets stored in the original event timestamps.
+window_df = rides_df.copy()
+window_df["start_dt"] = pd.to_datetime(window_df["ride_datetime"], utc=True, errors="coerce")
+window_df["end_dt"] = pd.to_datetime(window_df["arrival_datetime"], utc=True, errors="coerce")
+qualifying_24h = window_df[
+    (window_df["hitchhiker_name"] != "Anonymous")
+    & window_df["start_dt"].notna()
+    & window_df["end_dt"].notna()
+    & window_df["distance"].notna()
+]
+
+leaderboard_24h = []
+for name, group in qualifying_24h.groupby("hitchhiker_name"):
+    # Order rides by departure; a "sequence" is a contiguous run in this order.
+    group = group.sort_values("start_dt").reset_index(drop=True)
+    starts = group["start_dt"].tolist()
+    ends = group["end_dt"].tolist()
+    dists = group["distance"].tolist()
+    n = len(group)
+
+    best_sum, best_range = -1.0, None
+    for i in range(n):
+        running_sum = 0.0
+        max_end = ends[i]
+        for j in range(i, n):
+            # max_end is non-decreasing as j grows, so once the span exceeds 24h
+            # no further j can bring it back under — stop extending this window.
+            if ends[j] > max_end:
+                max_end = ends[j]
+            if (max_end - starts[i]) > WINDOW_24H:
+                break
+            running_sum += dists[j]
+            if running_sum > best_sum:
+                best_sum = running_sum
+                best_range = (i, j)
+
+    if best_range is None:
+        continue
+    i, j = best_range
+    window = group.iloc[i : j + 1]
+    leaderboard_24h.append(
+        {
+            "hitchhiker_name": name,
+            "total_distance": int(round(best_sum)),
+            "window_start": starts[i].strftime("%Y-%m-%d %H:%M"),
+            "window_end": window["end_dt"].max().strftime("%Y-%m-%d %H:%M"),
+            "rides": [_build_ride_card(row) for _, row in window.iterrows()],
+        }
+    )
+
+leaderboard_24h.sort(key=lambda e: e["total_distance"], reverse=True)
+write_json_file(leaderboard_24h[:10], "longest_24h.json")
 
 # duplicates["from_url"] = "#" + duplicates.from_lat.astype(str) + "," + duplicates.from_lon.astype(str)
 # duplicates["to_url"] = "#" + duplicates.to_lat.astype(str) + "," + duplicates.to_lon.astype(str)

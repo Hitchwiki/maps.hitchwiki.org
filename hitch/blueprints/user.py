@@ -881,11 +881,11 @@ def my_rides():
     return redirect("/me")
 
 
-def _longest_ride_cards():
-    """The 10 longest rides as recent-style ride cards. Precomputed every minute by
-    show.py into dist/longest_rides.json so this route doesn't scan and haversine every
-    ride on each request (that made /leaderboard slow). Returns [] if not generated yet."""
-    path = os.path.join(get_dirs()["dist"], "longest_rides.json")
+def _read_leaderboard_json(filename):
+    """Read a precomputed leaderboard file from dist/. show.py regenerates these every
+    minute so /leaderboard doesn't scan and haversine every ride on each request (that
+    made the page slow). Returns [] if the file isn't generated yet."""
+    path = os.path.join(get_dirs()["dist"], filename)
     try:
         with open(path, encoding="utf-8") as f:
             return json.load(f)
@@ -917,5 +917,6 @@ def leaderboard():
         "leaderboard.html",
         users=ranked,
         ride_counts=ride_counts,
-        longest_rides=_longest_ride_cards(),
+        longest_rides=_read_leaderboard_json("longest_rides.json"),
+        longest_24h=_read_leaderboard_json("longest_24h.json"),
     )
