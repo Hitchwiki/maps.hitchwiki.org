@@ -14,7 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Initialize Database**: `flask init` - Creates tables and default roles, runs generate-all
 - **Run Server**: `flask run` - Starts development server
 - **Execute Script**: `flask generate <script_name>` - Runs scripts from hitch/scripts/
-- **Run All Scripts**: `flask generate-all` - Executes fetch_nostr and show scripts
+- **Run All Scripts**: `flask generate-all` - Runs the scripts needed to populate `dist/` on first boot, only if their output doesn't already exist (cron keeps them fresh afterwards): `fetch_nostr`, `sync_osm`, `sync_car_pooling`, `sync_hitchwiki`, `show`, `dashboard`, `cities`. Most are gated on `ENVIRONMENT == "prod"`; only `show` and `dashboard` run in dev (see `hitch/__init__.py`)
 
 ## Coding Conventions
 
@@ -33,31 +33,44 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Core Structure
 - **Flask Application**: Main app factory in `hitch/__init__.py` with blueprint registration
 - **Database Models**: SQLAlchemy models in `hitch/models.py` including User, RideEvent, OsmHitchhikingSpot
-- **Blueprints**: 
+- **Blueprints** (registered in `register_blueprints`, `hitch/__init__.py`):
+  - `oauth` - Hitchwiki OAuth2 login flow
   - `main` - Map rendering, experience logging, ride submission
   - `user` - User management and authentication
-  - `publish_ride` - Ride publishing to Nostr protocol
+  - Note: `hitch/blueprints/publish_ride.py` is an example/utility module showing how to transform a ride into the standard and post it to Nostr — it is **not** a registered Flask blueprint despite its filename/location.
 - **Extensions**: Flask-Security for auth, Flask-SQLAlchemy for DB, Flask-Mailman for email
 
 ### Key Models
+`hitch/models.py` defines ~15 models; the most relevant:
 - **RideEvent**: Stores Nostr ride events with JSON content and extracted columns
-- **OsmHitchhikingSpot**: OpenStreetMap hitchhiking locations
-- **HitchwikiArticleLocation**: Hitchwiki article coordinates
+- **OsmHitchhikingSpot** / **OsmCarPoolingSpot**: OpenStreetMap hitchhiking / car-pooling spot locations
+- **HitchwikiArticleLocation** / **HitchwikiArticleMap**: Hitchwiki article coordinates and embedded map views
 - **CoHitchhiker**: Co-hitchhiker acceptance tracking
+- **User** / **Role**: Flask-Security accounts and roles
+- **Follow** / **Notification**: User following and notifications
+- **Trip** / **TripRide**: Trips grouping multiple rides
+- **RideReport**: User-reported issues on rides
+- **ServiceArea** / **RoadIsland** / **RoutingSearch**: Routing-support data
 
 ### Data Processing Scripts (hitch/scripts/)
-- **fetch_nostr.py**: Fetches ride data from Nostr relays (runs every 10min via cron)
-- **show.py**: Generates map data views (runs every minute via cron)
-- **dashboard.py**: Analytics dashboard generation
+- **fetch_nostr.py**: Fetches ride data from Nostr relays (runs every 30min via cron)
+- **show.py**: Generates map data views (runs every 10min via cron)
+- **dashboard.py**: Analytics dashboard generation (daily)
+- **cities.py**: Per-city page generation (daily)
 - **dump.py**: Database export functionality
-- **sync_osm.py**: OSM data synchronization (fetches highway=hitchhiking spots)
-- **sync_hitchwiki.py**: Hitchwiki article synchronization (extracts coordinates from wiki articles)
+- **sync_osm.py**: OSM hitchhiking-spot synchronization (fetches highway=hitchhiking spots, daily)
+- **sync_car_pooling.py**: OSM car-pooling spot synchronization (daily)
+- **sync_hitchwiki.py**: Hitchwiki article synchronization (extracts coordinates from wiki articles, daily)
+- **sync_upstream.py**: Legacy hitchmap.com data sync (daily at 7 AM)
+- **sync_hitchhiking_rides_dataset.py**: Push rides to the Hugging Face dataset (weekly)
+- **notify_nearby_hitchhikers.py**: Email notifications for nearby hitchhikers (daily)
+- Additional helpers: `fetch_osm_areas.py`, `fetch_osm_roads.py`, `sync_service_areas.py`, `sync_road_islands.py`, `routing.py`, `migrate.py`, `add-descriptions.py`
 
 ### Configuration
-- **Environment-based**: Development/Production/Testing configs in `settings.py`
+- **Environment-based**: BaseConfig + Development/Production/Testing configs in `hitch/settings.py`; selected via the `ENVIRONMENT` env var
 - **Database**: SQLite with configurable paths via DATABASE_URI
 - **Security**: Flask-Security with username-based auth, password hashing
-- **Email**: SMTP2GO integration for user communication
+- **Email**: Two paths — Flask-Mailman SMTP (defaults to SMTP2GO, `hitch/settings.py`) for Flask-Security mail, and SparkPost (`SPARKPOST_API_KEY` in `.env`) for welcome and nearby-hitchhiker emails (`hitch/blueprints/utils/send_welcome_email.py`, `send_nearby_hitchhikers_email.py`)
 
 ### Deployment
 - **Docker**: Dockerfile and docker-compose.yml for containerization
@@ -122,7 +135,7 @@ The application aggregates hitchhiking data from multiple sources:
 1. **Nostr Protocol Network** (Primary ride data source)
    - **Source**: Decentralized Nostr relays (relay.nomadwiki.org)
    - **Data Type**: Hitchhiking ride events (Nostr event kind 36820)
-   - **Fetching**: Every 10 minutes via `fetch_nostr.py`
+   - **Fetching**: Every 30 minutes via `fetch_nostr.py`
    - **Process Flow**:
      - Node.js script (`hitch/scripts/fetch_hitchhiking_events/src/index.ts`) fetches events from relays - relays might contain new rides from other apps and also new rides from this app that were directly sent to the nostr relay on creation (because doing it natively in .ts is easier than in python)
      - Writes raw events to `dist/allPosts.json` and `dist/allPosts.csv` (those are just intermediate files, actually we want the latest state of rides from nostr to go straight into our local database - we do this in the next step by recreating the database, this is simpler than only trying to sync the changes)
@@ -150,9 +163,15 @@ The application aggregates hitchhiking data from multiple sources:
      - `HitchwikiArticleMap` - Embedded map coordinates with zoom levels
    - **Purpose**: Link rides to relevant wiki articles (and specific section) and link spots to city articles if they are within the map that is shown for a city
 
+4. **OpenStreetMap car-pooling spots**
+   - **Source**: Overpass API (amenity/highway car-pooling tags)
+   - **Fetching**: Daily via `sync_car_pooling.py`
+   - **Storage**: `OsmCarPoolingSpot` table
+   - **Purpose**: Surface nearby car-pooling spots on the map (the `cp` flag in `spots.json` and `car_pooling` field in per-spot files)
+
 ### Database Storage (SQLite)
 
-**Primary Database**: `db/points.sqlite` (configured via `DATABASE_URI` in `settings.py:46-47`)
+**Primary Database**: `db/points.sqlite` (configured via `DATABASE_URI` in `hitch/settings.py:57-58`)
 - **Location**: `db/` directory (relative to project root)
 - **Default name**: `points.sqlite` (dev), `prod-points.sqlite` (production via `DATABASE_NAME` env var)
 - **Path resolution**: `{project_root}/db/{DATABASE_NAME}`
@@ -160,7 +179,7 @@ The application aggregates hitchhiking data from multiple sources:
 #### Database Initialization
 The database must exist before the application can run. Two initialization paths:
 
-1. **Fresh Start**: `flask init` (`hitch/__init__.py:55-70`)
+1. **Fresh Start**: `flask init` (`hitch/__init__.py:84-101`)
    - Creates all tables via `db.create_all()`
    - Creates default roles (admin, monitor, user, reader)
    - Runs `flask generate-all` to populate initial data
@@ -181,7 +200,7 @@ We use the sqlite tables as a canonical format to easily translate between the n
   - Parsed content fields: stops, signals, hitchhikers, rating, waiting_duration
   - Extracted coordinates: start lat/lon, destination lat/lon
   - User metadata: hitchhiker nicknames, submission times
-  - **Written by**: `fetch_nostr.py:33-74` (full table delete/recreate every 10 min)
+  - **Written by**: `fetch_nostr.py:33-74` (full table delete/recreate every 30 min)
   - **Read by**: `show.py:57`, `main.py:64,191` (ride submission/editing)
 
 - **`osm_hitchhiking_spot`**: OSM official spots (id, latitude, longitude, tags)
@@ -215,15 +234,15 @@ We use the sqlite tables as a canonical format to easily translate between the n
 ### Generated JSON Files
 
 **Location**: `dist/` directory (relative to project root)
-- **Path resolution**: `{project_root}/dist/` (`helpers.py:89-101`)
-- **Served by**: Flask at `/<path>` routes (`__init__.py:127-129`)
+- **Path resolution**: `{project_root}/dist/` (`helpers.py:24-36`, `get_dirs`)
+- **Served by**: Flask at `/<path>` routes (`__init__.py:199-225`, `catch_all`)
 
 #### Files Generated by `fetch_nostr.py` (via Node.js script) - not needed to serve the app
 - **`allPosts.json`** - Raw Nostr events in JSON format
 - **`allPosts.csv`** - Raw Nostr events in CSV format
 
 #### Files Generated by `show.py` - we find it simpler to serve data to the app via those files than from the database by just sending them to the frontend
-The `show.py` script runs every minute and generates map data files from the database:
+The `show.py` script runs every 10 minutes and generates map data files from the database:
 
 1. **`spots.json`** - Aggregated hitchhiking spots (downloaded by every visitor on map load, so it's kept slim: only what's needed to draw and filter markers)
    - Groups rides by exact lat/lon coordinates; output coordinates rounded to 5 decimals (~1 m)
@@ -282,9 +301,9 @@ When a user submits a new ride or edits an existing one:
    - No immediate write to the local `RideEvent` table — the ride only exists on Nostr relays at this point
    - Exception: co-hitchhiker records ARE written to the local `CoHitchhiker` table immediately, because co-hitchhiker acceptance is app-local state (not stored on Nostr). The submitter lists co-hitchhiker usernames, and each co-hitchhiker must accept via `/accept-co-hitchhiking-ride/<d_tag>` — this acceptance workflow only exists in the local DB.
    - For edits, the updated event is re-published to Nostr with the same `d_tag`
-2. **~10 min later**: `fetch_nostr` cron runs → Node.js fetches all events from relays → Python deletes & rebuilds entire `RideEvent` table (ride now in local DB)
-3. **~1 min later**: `show.py` cron detects DB modification → regenerates `spots.json`, `rides.json`, etc.
-4. **Ride appears on map** — total latency up to ~11 minutes after submission
+2. **up to ~30 min later**: `fetch_nostr` cron runs (every 30 min) → Node.js fetches all events from relays → Python deletes & rebuilds entire `RideEvent` table (ride now in local DB)
+3. **up to ~10 min later**: `show.py` cron (every 10 min) detects DB modification → regenerates `spots.json`, `rides_index.json`, etc.
+4. **Ride appears on map** — total latency up to ~40 minutes after submission
 
 ```
 User submits form
@@ -292,9 +311,9 @@ User submits form
 Flask → Nostr Relays (publish ride event)
     ↓ (redirect to /#success, ride NOT on map yet)
     ...
-    ↓ (~10 min, cron)
+    ↓ (up to ~30 min, cron)
 fetch_nostr → Nostr Relays → dist/allPosts.json → RideEvent table
-    ↓ (~1 min, cron)
+    ↓ (up to ~10 min, cron)
 show.py → dist/{spots,rides_index,spots_recent,heatmap}.json
         → dist/rides/by-spot/<sid>.json (one file per spot, lazy-loaded)
     ↓
@@ -302,6 +321,15 @@ Map UI loads updated JSON → ride visible on map
 ```
 
 ### Cron Schedule (deploy/cron.sh)
-- **Every 10 minutes**: `fetch_nostr` - Fetch new rides from Nostr
-- **Every minute**: `show` - Regenerate JSON map data
-- **Daily at 7 AM**: `sync_upstream` - Upstream data synchronization
+- **Every 30 minutes**: `fetch_nostr` - Fetch new rides from Nostr
+- **Every 10 minutes**: `show` - Regenerate JSON map data
+- **Daily at 3 AM**: `sync_osm` - Sync OSM hitchhiking spots
+- **Daily at 3:30 AM**: `sync_car_pooling` - Sync OSM car-pooling spots
+- **Daily at 4 AM**: `sync_hitchwiki` - Sync Hitchwiki article coordinates
+- **Daily at 5 AM**: `dashboard` - Regenerate analytics dashboard
+- **Daily at 6 AM**: `cities` - Regenerate per-city pages
+- **Daily at 7 AM**: `sync_upstream` - Upstream (legacy hitchmap.com) data synchronization
+- **Daily at midnight**: `notify_nearby_hitchhikers` - Send nearby-hitchhiker notification emails
+- **Weekly (Mon 8 AM)**: `sync_hitchhiking_rides_dataset` - Push rides to the Hugging Face dataset
+
+(Several legacy jobs — `dump`, `fetch-roads`, `fetch-areas` — are commented out in `deploy/cron.sh`.)
