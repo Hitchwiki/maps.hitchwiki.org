@@ -21,6 +21,7 @@ var allMarkers = [],
   normalLayer = null,
   heatmapLegend = null,
   spotsData = null,
+  markerCluster = null,
   ridesIndex = null;
 
 // Create the Leaflet map synchronously so controls are in their final position immediately
@@ -55,7 +56,9 @@ async function loadMarkers(map) {
   return fetch(url)
     .then((response) => response.json())
     .then((data) => {
-      var markerCluster = L.markerClusterGroup({
+      // Module-scoped so findNearbySpotMarker() can ask whether a marker is
+      // currently hidden inside a cluster (getVisibleParent) when snapping.
+      markerCluster = L.markerClusterGroup({
         disableClusteringAtZoom: 7,
         spiderfyOnMaxZoom: false,
       });
@@ -369,6 +372,9 @@ function setupEventListeners() {
   map.on("zoom", () =>
     document.body.classList.toggle("zoomed-out", map.getZoom() < 9)
   );
+
+  // Long-press (touch) / right-click (desktop) drops a pin to add a hitch site.
+  setupAddSpotGesture();
 
   clearFilters.onclick = () => {
     clearParams();
@@ -2059,10 +2065,17 @@ function confirmClaimReview(url) {
 // Location selection functionality for ride form
 let locationSelectionMarker = null;
 let locationSelectionType = null;
+// True when selection was started from a map gesture (add a new hitch site) rather
+// than from the ride form's "pick location" flow — controls cancel behavior and copy.
+let locationSelectionIsNewSpot = false;
+// Stored so cleanup removes only this handler (map.off('click') with no function
+// would strip handleMapClick too, breaking the map when we stay on it after cancel).
+let locationSelectionClickHandler = null;
 
-function setupLocationSelection(selectionType, initialCoords) {
+function setupLocationSelection(selectionType, initialCoords, opts = {}) {
     locationSelectionType = selectionType;
-    
+    locationSelectionIsNewSpot = !!opts.isNewSpot;
+
     // Parse initial coordinates if provided
     if (initialCoords) {
         const coords = initialCoords.split(',');
@@ -2073,10 +2086,11 @@ function setupLocationSelection(selectionType, initialCoords) {
             map.setView([lat, lon], zoom);
         }
     }
-    
-    // Add a draggable marker for location selection
-    const center = map.getCenter();
-    locationSelectionMarker = L.marker(center, {
+
+    // Place the draggable marker at the explicit seed location (gesture-initiated
+    // add) when given, otherwise at the current map center (form-initiated pick).
+    const markerLatLng = opts.initialLatLng || map.getCenter();
+    locationSelectionMarker = L.marker(markerLatLng, {
         draggable: true,
         icon: L.icon({
             iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
@@ -2087,27 +2101,48 @@ function setupLocationSelection(selectionType, initialCoords) {
             shadowSize: [41, 41]
         })
     }).addTo(map);
-    
-    // Update marker position when map is clicked
-    map.on('click', function(e) {
+
+    // Update marker position when map is clicked (kept in a named handler so
+    // cleanup can detach only this one — see locationSelectionClickHandler).
+    locationSelectionClickHandler = function(e) {
         locationSelectionMarker.setLatLng(e.latlng);
-    });
-    
+    };
+    map.on('click', locationSelectionClickHandler);
+
+    // Panel copy: gesture-initiated adds get add-a-site wording (and a distinct
+    // variant when snapped onto an existing spot); the form-initiated pick keeps
+    // the original "Select Pickup/Destination Location" copy.
+    let heading, instruction, confirmLabel;
+    if (opts.isNewSpot && opts.existingSpot) {
+        heading = 'Add a ride to this spot';
+        instruction = 'This matches an existing hitch spot. Confirm to add your ride here.';
+        confirmLabel = 'Add ride';
+    } else if (opts.isNewSpot) {
+        heading = 'Add a hitch spot here?';
+        instruction = 'Drag the pin to fine-tune, then confirm.';
+        confirmLabel = 'Add spot';
+    } else {
+        const what = selectionType === 'select-pickup' ? 'Pickup' : 'Destination';
+        heading = `Select ${what} Location`;
+        instruction = `Click on the map or drag the marker to choose your ${what.toLowerCase()} location`;
+        confirmLabel = 'Confirm Location';
+    }
+
     // Add custom UI for location selection
     const selectionUI = L.DomUtil.create('div', 'location-selection-ui');
     selectionUI.innerHTML = `
-        <div style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); 
+        <div style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
                     background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.3);
                     z-index: 1000; text-align: center; min-width: 300px;">
-            <h4 style="margin: 0 0 10px 0;">Select ${selectionType === 'select-pickup' ? 'Pickup' : 'Destination'} Location</h4>
+            <h4 style="margin: 0 0 10px 0;">${heading}</h4>
             <p style="margin: 0 0 15px 0; font-size: 14px; color: #666;">
-                Click on the map or drag the marker to choose your ${selectionType === 'select-pickup' ? 'pickup' : 'destination'} location
+                ${instruction}
             </p>
-            <button onclick="confirmLocationSelection()" style="background: #007bff; color: white; border: none; 
+            <button onclick="confirmLocationSelection()" style="background: #007bff; color: white; border: none;
                            padding: 8px 20px; border-radius: 4px; margin-right: 10px; cursor: pointer;">
-                Confirm Location
+                ${confirmLabel}
             </button>
-            <button onclick="cancelLocationSelection()" style="background: #6c757d; color: white; border: none; 
+            <button onclick="cancelLocationSelection()" style="background: #6c757d; color: white; border: none;
                            padding: 8px 20px; border-radius: 4px; cursor: pointer;">
                 Cancel
             </button>
@@ -2140,10 +2175,18 @@ function confirmLocationSelection() {
 }
 
 function cancelLocationSelection() {
-    // Clean up and return to ride form without changing coordinates
+    const wasNewSpot = locationSelectionIsNewSpot;
+
+    // Clean up without changing coordinates
     cleanupLocationSelection();
 
-    // Return to ride form, preserving edit mode if editing an existing ride
+    // Gesture-initiated add: the user never left the map, so just stay here.
+    if (wasNewSpot) {
+        history.replaceState(null, null, " ");
+        return;
+    }
+
+    // Form-initiated pick: return to ride form, preserving edit mode if editing.
     const formData = JSON.parse(sessionStorage.getItem('rideFormData') || '{}');
     const editDTag = formData.edit_d_tag;
     window.location.href = editDTag ? '/ride?edit=' + encodeURIComponent(editDTag) : '/ride';
@@ -2155,14 +2198,102 @@ function cleanupLocationSelection() {
         map.removeLayer(locationSelectionMarker);
         locationSelectionMarker = null;
     }
-    
+
     const ui = document.querySelector('.location-selection-ui');
     if (ui) {
         ui.remove();
     }
-    
-    // Remove event listener
-    map.off('click');
-    
+
+    // Remove only our reposition handler — a bare map.off('click') would also
+    // detach handleMapClick, which matters when we stay on the map after cancel.
+    if (locationSelectionClickHandler) {
+        map.off('click', locationSelectionClickHandler);
+        locationSelectionClickHandler = null;
+    }
+
     locationSelectionType = null;
+    locationSelectionIsNewSpot = false;
+}
+
+// Wire up the "drop a pin to add a hitch site" gesture: touch long-press on
+// mobile, right-click on desktop. Called once from setupEventListeners.
+function setupAddSpotGesture() {
+    // Desktop: right-click drops a pin (and suppress the browser context menu).
+    map.on('contextmenu', function(e) {
+        if (e.originalEvent) e.originalEvent.preventDefault();
+        startAddSpotFromGesture(e.latlng, e.containerPoint);
+    });
+
+    // Touch: long-press drops a pin. Cancel on move (panning), lift, or a second
+    // finger (pinch-zoom) so only a deliberate stationary press triggers it.
+    const LONG_PRESS_MS = 500;
+    const MOVE_CANCEL_PX = 10;
+    const container = map.getContainer();
+    let timer = null, startX = 0, startY = 0;
+
+    const clearTimer = () => { if (timer) { clearTimeout(timer); timer = null; } };
+
+    container.addEventListener('touchstart', function(e) {
+        // Any non-single-touch (e.g. pinch) cancels a pending press.
+        if (e.touches.length !== 1) { clearTimer(); return; }
+        const t = e.touches[0];
+        startX = t.clientX;
+        startY = t.clientY;
+        clearTimer();
+        timer = setTimeout(function() {
+            timer = null;
+            const rect = container.getBoundingClientRect();
+            const cp = L.point(startX - rect.left, startY - rect.top);
+            startAddSpotFromGesture(map.containerPointToLatLng(cp), cp);
+        }, LONG_PRESS_MS);
+    }, { passive: true });
+
+    container.addEventListener('touchmove', function(e) {
+        if (!timer) return;
+        const t = e.touches[0];
+        if (Math.abs(t.clientX - startX) > MOVE_CANCEL_PX ||
+            Math.abs(t.clientY - startY) > MOVE_CANCEL_PX) {
+            clearTimer();
+        }
+    }, { passive: true });
+
+    container.addEventListener('touchend', clearTimer, { passive: true });
+    container.addEventListener('touchcancel', clearTimer, { passive: true });
+}
+
+// Return the nearest visible spot marker to a screen point within thresholdPx,
+// or null. Markers hidden inside a cluster are skipped so we only ever snap to a
+// pin the user can actually see.
+function findNearbySpotMarker(containerPoint, thresholdPx = 22) {
+    let best = null, bestDist = thresholdPx;
+    for (const marker of allMarkers) {
+        if (markerCluster && markerCluster.getVisibleParent(marker) !== marker) continue;
+        const d = map.latLngToContainerPoint(marker.getLatLng()).distanceTo(containerPoint);
+        if (d <= bestDist) {
+            bestDist = d;
+            best = marker;
+        }
+    }
+    return best;
+}
+
+// Begin adding a hitch site from a map gesture: seed a draggable pin (snapping
+// onto an existing spot when the press lands on one) and show the confirm panel.
+function startAddSpotFromGesture(latlng, containerPoint) {
+    // Ignore if a selection is already in progress.
+    if (locationSelectionMarker) return;
+
+    // Fresh ride — drop any leftover form state (edit mode, stale fields).
+    sessionStorage.removeItem('rideFormData');
+
+    // Snap onto a nearby existing spot so the new ride merges into it rather than
+    // creating a near-duplicate anchor (spot id derives from lat/lon at 5 decimals).
+    const snapped = containerPoint ? findNearbySpotMarker(containerPoint) : null;
+    const seedLatLng = snapped ? snapped.getLatLng() : latlng;
+
+    setupLocationSelection('select-pickup', null, {
+        initialLatLng: seedLatLng,
+        isNewSpot: true,
+        existingSpot: !!snapped,
+    });
 }
