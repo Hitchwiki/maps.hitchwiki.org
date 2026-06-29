@@ -29,6 +29,7 @@ var allMarkers = [],
 let locateButtonEl = null;
 let locationMarker = null;
 let locationAccuracyCircle = null;
+let locationFadeTimer = null;
 
 // Create the Leaflet map synchronously so controls are in their final position immediately
 function createMap() {
@@ -409,6 +410,19 @@ function showLocation(e) {
     }).addTo(map);
   }
 
+  // Restart the blue->grey freshness fade on every fix. The dot element is
+  // re-created implicitly only when the marker is new, so always re-query it
+  // and toggle .stale off (blue) then on (animate to grey) across a frame.
+  const dotEl = locationMarker.getElement()
+    ? locationMarker.getElement().querySelector(".user-location-dot")
+    : null;
+  if (dotEl) {
+    dotEl.classList.remove("stale");
+    // Force a reflow so removing/re-adding .stale restarts the transition.
+    void dotEl.offsetWidth;
+    requestAnimationFrame(() => dotEl.classList.add("stale"));
+  }
+
   if (locationAccuracyCircle) {
     locationAccuracyCircle.setLatLng(e.latlng).setRadius(radius);
   } else {
@@ -421,6 +435,15 @@ function showLocation(e) {
       fillOpacity: 0.12,
     }).addTo(map);
   }
+
+  // Match the dot: circle starts blue, becomes grey after the 30s fade window.
+  locationAccuracyCircle.setStyle({ color: "#1e88e5", fillColor: "#1e88e5" });
+  if (locationFadeTimer) clearTimeout(locationFadeTimer);
+  locationFadeTimer = setTimeout(function () {
+    if (locationAccuracyCircle) {
+      locationAccuracyCircle.setStyle({ color: "#9e9e9e", fillColor: "#9e9e9e" });
+    }
+  }, 30000);
 
   setLocateButtonState("active");
 }

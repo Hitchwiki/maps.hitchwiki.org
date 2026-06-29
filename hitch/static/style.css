@@ -1630,4 +1630,10 @@ body.showing-insights .heatmap-legend-pane {
   border: 3px solid #fff;
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
   box-sizing: border-box;
+  /* Freshness fade: blue (fresh fix) -> grey (stale, not live-updated) over 30s */
+  transition: background-color 30s linear;
+}
+
+.user-location-dot.stale {
+  background: #9e9e9e;
 }
