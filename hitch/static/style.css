@@ -455,7 +455,7 @@ body.adding-spot .leaflet-control-attribution {
 
 /* OsmAnd-style current-location button, stacked above the zoom control */
 .leaflet-bottom.leaflet-right .locate-control {
-  margin-bottom: 134px !important; /* sits above zoom (84px) + zoom height */
+  margin-bottom: 152px !important; /* sits above zoom: zoom is 84px from bottom + ~62px tall on touch */
   margin-right: 10px !important;
 }
 
@@ -473,7 +473,7 @@ body.adding-spot .leaflet-control-attribution {
 }
 
 .locate-control-btn:hover {
-  background: #f5f5f5;
+  background: #f5f5f5 !important;
   color: #1a73e8 !important;
 }
 

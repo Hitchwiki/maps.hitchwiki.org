@@ -370,10 +370,10 @@ function setLocateButtonState(state) {
   locateButtonEl.classList.remove("locate-busy", "locate-active");
   if (state === "busy") {
     locateButtonEl.classList.add("locate-busy");
-    locateButtonEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+    locateButtonEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>';
   } else {
     if (state === "active") locateButtonEl.classList.add("locate-active");
-    locateButtonEl.innerHTML = '<i class="fa-solid fa-location-crosshairs"></i>';
+    locateButtonEl.innerHTML = '<i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i>';
   }
 }
 
@@ -413,9 +413,8 @@ function showLocation(e) {
   // Restart the blue->grey freshness fade on every fix. The dot element is
   // re-created implicitly only when the marker is new, so always re-query it
   // and toggle .stale off (blue) then on (animate to grey) across a frame.
-  const dotEl = locationMarker.getElement()
-    ? locationMarker.getElement().querySelector(".user-location-dot")
-    : null;
+  const markerEl = locationMarker.getElement();
+  const dotEl = markerEl ? markerEl.querySelector(".user-location-dot") : null;
   if (dotEl) {
     dotEl.classList.remove("stale");
     // Force a reflow so removing/re-adding .stale restarts the transition.
@@ -468,7 +467,7 @@ function setupLocateControl() {
       btn.title = "Show my location";
       btn.setAttribute("role", "button");
       btn.setAttribute("aria-label", "Show my location");
-      btn.innerHTML = '<i class="fa-solid fa-location-crosshairs"></i>';
+      btn.innerHTML = '<i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i>';
       // Keep taps on the button from reaching the map (pan/zoom/add-point).
       L.DomEvent.disableClickPropagation(container);
       L.DomEvent.on(btn, "click", function (e) {
