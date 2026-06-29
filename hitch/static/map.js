@@ -361,13 +361,26 @@ function setupGeocoder() {
   });
 }
 
+// Restart a CSS keyframes fade on an element: remove the class, force a reflow
+// so the browser drops the running animation, then re-add it so it plays again
+// from the start. Used so a repeat tap resets the blue->grey fade back to blue.
+function restartFade(el, cls) {
+  el.classList.remove(cls);
+  // Reading offsetWidth forces a synchronous reflow, which is what lets the
+  // re-added class start a fresh animation instead of continuing the old one.
+  void el.offsetWidth;
+  el.classList.add(cls);
+}
+
 // Single source of truth for the locate button's visual state.
 //   idle   -> crosshairs, default colour
 //   busy   -> spinner, while waiting for a fix
 //   active -> crosshairs, blue, while a fix is shown on the map
+// Clears the fade class so busy/idle are never mid-fade; showLocation restarts
+// the fade after setting the active state.
 function setLocateButtonState(state) {
   if (!locateButtonEl) return;
-  locateButtonEl.classList.remove("locate-busy", "locate-active");
+  locateButtonEl.classList.remove("locate-busy", "locate-active", "locate-fading");
   if (state === "busy") {
     locateButtonEl.classList.add("locate-busy");
     locateButtonEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>';
@@ -410,17 +423,12 @@ function showLocation(e) {
     }).addTo(map);
   }
 
-  // Restart the blue->grey freshness fade on every fix. The dot element is
-  // re-created implicitly only when the marker is new, so always re-query it
-  // and toggle .stale off (blue) then on (animate to grey) across a frame.
+  // Restart the blue->grey freshness fade on every fix. The marker (and its dot
+  // element) is re-used across taps, so restart the animation rather than relying
+  // on a fresh element — otherwise a repeat tap would leave the dot stuck grey.
   const markerEl = locationMarker.getElement();
   const dotEl = markerEl ? markerEl.querySelector(".user-location-dot") : null;
-  if (dotEl) {
-    dotEl.classList.remove("stale");
-    // Force a reflow so removing/re-adding .stale restarts the transition.
-    void dotEl.offsetWidth;
-    requestAnimationFrame(() => dotEl.classList.add("stale"));
-  }
+  if (dotEl) restartFade(dotEl, "fading");
 
   if (locationAccuracyCircle) {
     locationAccuracyCircle.setLatLng(e.latlng).setRadius(radius);
@@ -444,7 +452,10 @@ function showLocation(e) {
     }
   }, 30000);
 
+  // Active state + restart the button's own blue->grey fade so the button goes
+  // stale in sync with the dot, signalling the fix is a one-time snapshot.
   setLocateButtonState("active");
+  if (locateButtonEl) restartFade(locateButtonEl, "locate-fading");
 }
 
 // locationerror handler: permission denied, position unavailable, or timeout.
