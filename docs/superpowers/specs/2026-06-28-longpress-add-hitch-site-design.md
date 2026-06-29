@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-28
 **Status:** Approved (design)
-**Scope:** Frontend only — `hitch/static/map.js`. No backend, template, or service-worker changes.
+**Scope:** Frontend only — `hitch/static/map.js`, `hitch/static/style.css`, and `hitch/templates/map.html`. No backend or service-worker changes.
 
 ## Goal
 

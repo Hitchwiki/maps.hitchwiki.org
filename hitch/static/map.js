@@ -2214,7 +2214,12 @@ function cleanupLocationSelection() {
 function setupAddSpotGesture() {
     // Desktop: right-click drops a pin (and suppress the browser context menu).
     map.on('contextmenu', function(e) {
-        if (e.originalEvent) e.originalEvent.preventDefault();
+        const oe = e.originalEvent;
+        // Ignore right-clicks landing on a Leaflet control (search box, the
+        // leaflet-bar buttons): the user is operating the control, not the map.
+        // Those controls only stopPropagation on click, not on contextmenu.
+        if (oe && oe.target.closest && oe.target.closest('.leaflet-control')) return;
+        if (oe) oe.preventDefault();
         startAddSpotFromGesture(e.latlng, e.containerPoint);
     });
 
@@ -2228,6 +2233,11 @@ function setupAddSpotGesture() {
     const clearTimer = () => { if (timer) { clearTimeout(timer); timer = null; } };
 
     container.addEventListener('touchstart', function(e) {
+        // Don't start a long-press over a Leaflet control (search box, the
+        // leaflet-bar buttons): the press is meant to operate the control, not
+        // drop a pin on top of it. Those controls only stopPropagation on click,
+        // so their native touchstart still bubbles up to this container listener.
+        if (e.target.closest && e.target.closest('.leaflet-control')) { clearTimer(); return; }
         // Any non-single-touch (e.g. pinch) cancels a pending press.
         if (e.touches.length !== 1) { clearTimer(); return; }
         const t = e.touches[0];
