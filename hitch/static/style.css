@@ -443,6 +443,68 @@ body.adding-spot .bottom-action-pane {
   display: none;
 }
 
+/* Hide the bottom action pane while dropping/confirming a pin so the compact
+   selection card can sit at the bottom without overlapping it. */
+body.selecting-location .bottom-action-pane {
+  display: none;
+}
+
+/* Compact confirm card for the long-press / "pick location on map" flow.
+   Pinned bottom-centre (Google-Maps style) so it never covers the top search bar. */
+.location-selection-ui {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 2002;
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+  padding: 10px 14px;
+  text-align: center;
+}
+
+.location-selection-ui h4 {
+  margin: 0 0 2px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.location-selection-ui p {
+  margin: 0 0 10px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #666;
+  max-width: 260px;
+}
+
+.location-selection-ui .lsel-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.location-selection-ui .lsel-actions button {
+  border: none;
+  border-radius: 7px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.location-selection-ui .lsel-confirm {
+  background: #1a73e8;
+  color: #fff;
+}
+
+.location-selection-ui .lsel-cancel {
+  background: #e9ecef;
+  color: #333;
+}
+
 body.adding-spot .leaflet-control-attribution {
   display: none;
 }

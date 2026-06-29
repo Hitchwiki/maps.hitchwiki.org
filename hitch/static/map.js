@@ -2128,27 +2128,20 @@ function setupLocationSelection(selectionType, initialCoords, opts = {}) {
         confirmLabel = 'Confirm Location';
     }
 
-    // Add custom UI for location selection
+    // Add custom UI for location selection — a compact card pinned to the bottom
+    // (styled in style.css under .location-selection-ui) so it never covers the
+    // top search bar. The body class hides the bottom action pane while selecting.
     const selectionUI = L.DomUtil.create('div', 'location-selection-ui');
     selectionUI.innerHTML = `
-        <div style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-                    background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-                    z-index: 1000; text-align: center; min-width: 300px;">
-            <h4 style="margin: 0 0 10px 0;">${heading}</h4>
-            <p style="margin: 0 0 15px 0; font-size: 14px; color: #666;">
-                ${instruction}
-            </p>
-            <button onclick="confirmLocationSelection()" style="background: #007bff; color: white; border: none;
-                           padding: 8px 20px; border-radius: 4px; margin-right: 10px; cursor: pointer;">
-                ${confirmLabel}
-            </button>
-            <button onclick="cancelLocationSelection()" style="background: #6c757d; color: white; border: none;
-                           padding: 8px 20px; border-radius: 4px; cursor: pointer;">
-                Cancel
-            </button>
+        <h4>${heading}</h4>
+        <p>${instruction}</p>
+        <div class="lsel-actions">
+            <button class="lsel-confirm" onclick="confirmLocationSelection()">${confirmLabel}</button>
+            <button class="lsel-cancel" onclick="cancelLocationSelection()">Cancel</button>
         </div>
     `;
     document.body.appendChild(selectionUI);
+    document.body.classList.add('selecting-location');
 }
 
 function confirmLocationSelection() {
@@ -2203,6 +2196,7 @@ function cleanupLocationSelection() {
     if (ui) {
         ui.remove();
     }
+    document.body.classList.remove('selecting-location');
 
     // Remove only our reposition handler — a bare map.off('click') would also
     // detach handleMapClick, which matters when we stay on the map after cancel.
