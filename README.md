@@ -163,6 +163,13 @@ url = {https://maps.hitchwiki.org},
 }
 ```
 
+### Other applications using our data
+
+We are aware of the following applications making downstream usage of data collected under this or its predecessor project, we expect them to use correct attribution and licensing:
+
+- hitchmap.com
+- hitchr.world
+
 ## License
 
 The software provided in this repository is licensed under AGPL 3.0. The Hitchwiki Maps database is licensed under the ODBL, the license used by OpenStreetMap.
