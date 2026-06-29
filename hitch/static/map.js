@@ -360,6 +360,77 @@ function setupGeocoder() {
   });
 }
 
+// Single source of truth for the locate button's visual state.
+//   idle   -> crosshairs, default colour
+//   busy   -> spinner, while waiting for a fix
+//   active -> crosshairs, blue, while a fix is shown on the map
+function setLocateButtonState(state) {
+  if (!locateButtonEl) return;
+  locateButtonEl.classList.remove("locate-busy", "locate-active");
+  if (state === "busy") {
+    locateButtonEl.classList.add("locate-busy");
+    locateButtonEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+  } else {
+    if (state === "active") locateButtonEl.classList.add("locate-active");
+    locateButtonEl.innerHTML = '<i class="fa-solid fa-location-crosshairs"></i>';
+  }
+}
+
+// The ONLY place geolocation is requested. Called from the button tap handler,
+// never on load. setView pans/zooms the map to the fix.
+function requestLocation() {
+  setLocateButtonState("busy");
+  map.locate({
+    setView: true,
+    maxZoom: 16,
+    enableHighAccuracy: true,
+    timeout: 10000,
+  });
+}
+
+// locationfound handler. Re-uses a single marker + accuracy circle so repeated
+// taps never stack markers on the map.
+function showLocation(e) {
+  const radius = e.accuracy; // metres
+
+  if (locationMarker) {
+    locationMarker.setLatLng(e.latlng);
+  } else {
+    const icon = L.divIcon({
+      className: "user-location-marker",
+      html: '<div class="user-location-dot"></div>',
+      iconSize: [18, 18],
+      iconAnchor: [9, 9],
+    });
+    locationMarker = L.marker(e.latlng, {
+      icon: icon,
+      interactive: false,
+      keyboard: false,
+    }).addTo(map);
+  }
+
+  if (locationAccuracyCircle) {
+    locationAccuracyCircle.setLatLng(e.latlng).setRadius(radius);
+  } else {
+    locationAccuracyCircle = L.circle(e.latlng, {
+      radius: radius,
+      interactive: false,
+      color: "#1e88e5",
+      weight: 1,
+      fillColor: "#1e88e5",
+      fillOpacity: 0.12,
+    }).addTo(map);
+  }
+
+  setLocateButtonState("active");
+}
+
+// locationerror handler: permission denied, position unavailable, or timeout.
+function onLocationError(e) {
+  setLocateButtonState(locationMarker ? "active" : "idle");
+  alert("Could not get your location: " + e.message);
+}
+
 // OsmAnd-style "current location" button. Anchored bottom-right above the zoom
 // control. Requirement: geolocation must NOT be requested on page load — the
 // only call to map.locate()/navigator.geolocation happens in the tap handler
@@ -379,13 +450,15 @@ function setupLocateControl() {
       L.DomEvent.disableClickPropagation(container);
       L.DomEvent.on(btn, "click", function (e) {
         L.DomEvent.preventDefault(e);
-        // Behavior wired in Task 2.
+        requestLocation();
       });
       locateButtonEl = btn;
       return container;
     },
   });
   new LocateControl().addTo(map);
+  map.on("locationfound", showLocation);
+  map.on("locationerror", onLocationError);
 }
 
 // Set up various event listeners for the map and UI elements

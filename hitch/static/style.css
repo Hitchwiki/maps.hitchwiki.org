@@ -1619,3 +1619,15 @@ body.showing-insights .heatmap-legend-pane {
   cursor: pointer;
 }
 .install-hint-close:hover { color: #222; }
+
+/* "You are here" dot (inner element of the Leaflet divIcon). Task 3 animates
+   its colour from blue to grey; this static colour is the starting point. */
+.user-location-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #1e88e5;
+  border: 3px solid #fff;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
+  box-sizing: border-box;
+}
