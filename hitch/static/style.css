@@ -453,9 +453,13 @@ body.adding-spot .leaflet-control-attribution {
   margin-bottom: 84px !important;
 }
 
-/* OsmAnd-style current-location button, stacked above the zoom control */
+/* OsmAnd-style current-location button, stacked just above the zoom control.
+   In the bottom-right corner the locate control sits above the zoom control, so
+   this margin-bottom is the GAP between the two (not a distance from the screen
+   bottom). The zoom control's own 84px margin already clears the bottom action
+   pane, so the locate button only needs a small gap to sit right above it. */
 .leaflet-bottom.leaflet-right .locate-control {
-  margin-bottom: 152px !important; /* sits above zoom: zoom is 84px from bottom + ~62px tall on touch */
+  margin-bottom: 12px !important;
   margin-right: 10px !important;
 }
 
