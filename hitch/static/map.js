@@ -24,6 +24,14 @@ var allMarkers = [],
   markerCluster = null,
   ridesIndex = null;
 
+// Current-location button state. The marker/circle are created lazily on the
+// first successful locate and re-used on subsequent taps so taps never stack
+// markers. Geolocation is only ever requested from the button's click handler.
+let locateButtonEl = null;
+let locationMarker = null;
+let locationAccuracyCircle = null;
+let locationFadeTimer = null;
+
 // Create the Leaflet map synchronously so controls are in their final position immediately
 function createMap() {
   map = L.map("map", {
@@ -263,6 +271,7 @@ function populateHeatmapLegend(legendData) {
   // Create map + geocoder synchronously so zoom/search appear in final position immediately
   map = createMap();
   setupGeocoder();
+  setupLocateControl();
 
   // Load markers asynchronously
   await loadMarkers(map);
@@ -353,6 +362,139 @@ function setupGeocoder() {
     map.setView(e.geocode.center, zoom);
     geocoderInput.value = "";
   });
+}
+
+// Restart a CSS keyframes fade on an element: remove the class, force a reflow
+// so the browser drops the running animation, then re-add it so it plays again
+// from the start. Used so a repeat tap resets the blue->grey fade back to blue.
+function restartFade(el, cls) {
+  el.classList.remove(cls);
+  // Reading offsetWidth forces a synchronous reflow, which is what lets the
+  // re-added class start a fresh animation instead of continuing the old one.
+  void el.offsetWidth;
+  el.classList.add(cls);
+}
+
+// Single source of truth for the locate button's visual state.
+//   idle   -> crosshairs, default colour
+//   busy   -> spinner, while waiting for a fix
+//   active -> crosshairs, blue, while a fix is shown on the map
+// Clears the fade class so busy/idle are never mid-fade; showLocation restarts
+// the fade after setting the active state.
+function setLocateButtonState(state) {
+  if (!locateButtonEl) return;
+  locateButtonEl.classList.remove("locate-busy", "locate-active", "locate-fading");
+  if (state === "busy") {
+    locateButtonEl.classList.add("locate-busy");
+    locateButtonEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>';
+  } else {
+    if (state === "active") locateButtonEl.classList.add("locate-active");
+    locateButtonEl.innerHTML = '<i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i>';
+  }
+}
+
+// The ONLY place geolocation is requested. Called from the button tap handler,
+// never on load. setView pans/zooms the map to the fix.
+function requestLocation() {
+  setLocateButtonState("busy");
+  map.locate({
+    setView: true,
+    maxZoom: 16,
+    enableHighAccuracy: true,
+    timeout: 10000,
+  });
+}
+
+// locationfound handler. Re-uses a single marker + accuracy circle so repeated
+// taps never stack markers on the map.
+function showLocation(e) {
+  const radius = e.accuracy; // metres
+
+  if (locationMarker) {
+    locationMarker.setLatLng(e.latlng);
+  } else {
+    const icon = L.divIcon({
+      className: "user-location-marker",
+      html: '<div class="user-location-dot"></div>',
+      iconSize: [18, 18],
+      iconAnchor: [9, 9],
+    });
+    locationMarker = L.marker(e.latlng, {
+      icon: icon,
+      interactive: false,
+      keyboard: false,
+    }).addTo(map);
+  }
+
+  // Restart the blue->grey freshness fade on every fix. The marker (and its dot
+  // element) is re-used across taps, so restart the animation rather than relying
+  // on a fresh element — otherwise a repeat tap would leave the dot stuck grey.
+  const markerEl = locationMarker.getElement();
+  const dotEl = markerEl ? markerEl.querySelector(".user-location-dot") : null;
+  if (dotEl) restartFade(dotEl, "fading");
+
+  if (locationAccuracyCircle) {
+    locationAccuracyCircle.setLatLng(e.latlng).setRadius(radius);
+  } else {
+    locationAccuracyCircle = L.circle(e.latlng, {
+      radius: radius,
+      interactive: false,
+      color: "#1e88e5",
+      weight: 1,
+      fillColor: "#1e88e5",
+      fillOpacity: 0.12,
+    }).addTo(map);
+  }
+
+  // Match the dot: circle starts blue, becomes grey after the 30s fade window.
+  locationAccuracyCircle.setStyle({ color: "#1e88e5", fillColor: "#1e88e5" });
+  if (locationFadeTimer) clearTimeout(locationFadeTimer);
+  locationFadeTimer = setTimeout(function () {
+    if (locationAccuracyCircle) {
+      locationAccuracyCircle.setStyle({ color: "#9e9e9e", fillColor: "#9e9e9e" });
+    }
+  }, 30000);
+
+  // Active state + restart the button's own blue->grey fade so the button goes
+  // stale in sync with the dot, signalling the fix is a one-time snapshot.
+  setLocateButtonState("active");
+  if (locateButtonEl) restartFade(locateButtonEl, "locate-fading");
+}
+
+// locationerror handler: permission denied, position unavailable, or timeout.
+function onLocationError(e) {
+  setLocateButtonState(locationMarker ? "active" : "idle");
+  alert("Could not get your location: " + e.message);
+}
+
+// OsmAnd-style "current location" button. Anchored bottom-right above the zoom
+// control. Requirement: geolocation must NOT be requested on page load — the
+// only call to map.locate()/navigator.geolocation happens in the tap handler
+// (wired in Task 2). This task only renders the idle button.
+function setupLocateControl() {
+  const LocateControl = L.Control.extend({
+    options: { position: "bottomright" },
+    onAdd: function () {
+      const container = L.DomUtil.create("div", "leaflet-bar locate-control");
+      const btn = L.DomUtil.create("a", "locate-control-btn", container);
+      btn.href = "#";
+      btn.title = "Show my location";
+      btn.setAttribute("role", "button");
+      btn.setAttribute("aria-label", "Show my location");
+      btn.innerHTML = '<i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i>';
+      // Keep taps on the button from reaching the map (pan/zoom/add-point).
+      L.DomEvent.disableClickPropagation(container);
+      L.DomEvent.on(btn, "click", function (e) {
+        L.DomEvent.preventDefault(e);
+        requestLocation();
+      });
+      locateButtonEl = btn;
+      return container;
+    },
+  });
+  new LocateControl().addTo(map);
+  map.on("locationfound", showLocation);
+  map.on("locationerror", onLocationError);
 }
 
 // Set up various event listeners for the map and UI elements
