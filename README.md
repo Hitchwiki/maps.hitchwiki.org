@@ -32,6 +32,7 @@ This project is deployed on the Hitchwiki server at the following locations:
 </div>
 
 ## About The Project
+This project is the continuation of a similar map on Hitchwiki that was present until 2022. Read [this paper](https://arxiv.org/pdf/2506.21946) to learn more about the history.
 
 This project embraces Nostr - hitchhiking rides that are submitted are published as Nostr event following the [data standard](https://github.com/Hitchwiki/hitchhiking-data-standard) in the first place. So events on Nostr relays become the single source of truth (database) for hitchhiking rides that also other apps (not only this one) can contribute to.
 
@@ -161,6 +162,13 @@ year = {2025},
 url = {https://maps.hitchwiki.org},
 }
 ```
+
+### Other applications using our data
+
+We are aware of the following applications making downstream usage of data collected under this or its predecessor project, we expect them to use correct attribution and licensing:
+
+- hitchmap.com
+- hitchr.world
 
 ## License
 
