@@ -23,6 +23,13 @@ var allMarkers = [],
   spotsData = null,
   ridesIndex = null;
 
+// Current-location button state. The marker/circle are created lazily on the
+// first successful locate and re-used on subsequent taps so taps never stack
+// markers. Geolocation is only ever requested from the button's click handler.
+let locateButtonEl = null;
+let locationMarker = null;
+let locationAccuracyCircle = null;
+
 // Create the Leaflet map synchronously so controls are in their final position immediately
 function createMap() {
   map = L.map("map", {
@@ -260,6 +267,7 @@ function populateHeatmapLegend(legendData) {
   // Create map + geocoder synchronously so zoom/search appear in final position immediately
   map = createMap();
   setupGeocoder();
+  setupLocateControl();
 
   // Load markers asynchronously
   await loadMarkers(map);
@@ -350,6 +358,34 @@ function setupGeocoder() {
     map.setView(e.geocode.center, zoom);
     geocoderInput.value = "";
   });
+}
+
+// OsmAnd-style "current location" button. Anchored bottom-right above the zoom
+// control. Requirement: geolocation must NOT be requested on page load — the
+// only call to map.locate()/navigator.geolocation happens in the tap handler
+// (wired in Task 2). This task only renders the idle button.
+function setupLocateControl() {
+  const LocateControl = L.Control.extend({
+    options: { position: "bottomright" },
+    onAdd: function () {
+      const container = L.DomUtil.create("div", "leaflet-bar locate-control");
+      const btn = L.DomUtil.create("a", "locate-control-btn", container);
+      btn.href = "#";
+      btn.title = "Show my location";
+      btn.setAttribute("role", "button");
+      btn.setAttribute("aria-label", "Show my location");
+      btn.innerHTML = '<i class="fa-solid fa-location-crosshairs"></i>';
+      // Keep taps on the button from reaching the map (pan/zoom/add-point).
+      L.DomEvent.disableClickPropagation(container);
+      L.DomEvent.on(btn, "click", function (e) {
+        L.DomEvent.preventDefault(e);
+        // Behavior wired in Task 2.
+      });
+      locateButtonEl = btn;
+      return container;
+    },
+  });
+  new LocateControl().addTo(map);
 }
 
 // Set up various event listeners for the map and UI elements
