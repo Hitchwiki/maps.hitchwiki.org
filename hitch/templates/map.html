@@ -404,6 +404,25 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
                target="_blank" rel="noopener noreferrer">Signal Chat</a>.</p>
     </div>
 </div>
+<!-- Country info sheet: Hitchwiki lead section for a country tapped in Countries mode.
+     Content is loaded client-side by openCountrySheet() in map.js. -->
+<div class="sidebar country bottom-sheet">
+    <div class="sheet-handle" id="country-sheet-handle" aria-hidden="true"></div>
+    <a href="javascript:void(0);" class="sheet-close" id="country-close" title="Close" aria-label="Close">
+        <svg width="14" height="14" version="1.1" xmlns="http://www.w3.org/2000/svg">
+            <line x1="1" y1="13" x2="13" y2="1" stroke="black" stroke-width="2" />
+            <line x1="1" y1="1" x2="13" y2="13" stroke="black" stroke-width="2" />
+        </svg>
+    </a>
+    <div class="sheet-body">
+        <div class="country-header">
+            <h1 id="country-sheet-name"></h1>
+            <span class="country-rating" id="country-sheet-rating" style="display:none;"></span>
+        </div>
+        <div class="country-lead" id="country-sheet-lead"></div>
+        <div class="country-source" id="country-sheet-source"></div>
+    </div>
+</div>
 <a href="javascript:void(0);" id="sb-close">
     <svg width="14" height="14" version="1.1" xmlns="http://www.w3.org/2000/svg">
         <line x1="1" y1="13" x2="13" y2="1" stroke="black" stroke-width="2" />

@@ -9,8 +9,12 @@ This is a standalone, manually-triggered script (NOT wired into cron or
 
 Each ride's country is derived from its start coordinate (stops[0].location)
 via offline reverse geocoding (the `reverse_geocoder` package — no API calls,
-no network). Output is written to dist/country_ratings.csv, sorted by average
-rating (descending).
+no network).
+
+Outputs:
+  - dist/country_ratings.csv  — sorted by average rating (descending)
+  - dist/country_ratings.json — {cc: {rating, count}}, consumed by the map's
+    "Countries" mode to colour each country by its rating
 """
 
 import csv
@@ -29,6 +33,7 @@ DATABASE_URI = os.getenv("DATABASE_URI", os.path.join(BASE_DIR, "db", DATABASE_N
 
 DIST_DIR = os.path.join(BASE_DIR, "dist")
 OUTPUT_CSV = os.path.join(DIST_DIR, "country_ratings.csv")
+OUTPUT_JSON = os.path.join(DIST_DIR, "country_ratings.json")
 
 
 def main():
@@ -70,7 +75,12 @@ def main():
         writer.writerow(["country_code", "average_rating", "ride_count"])
         writer.writerows(country_rows)
 
-    print(f"Wrote {len(country_rows)} countries ({sum(counts.values())} rides) to {OUTPUT_CSV}")
+    # Same data keyed by country code for the map's "Countries" overlay.
+    ratings_by_cc = {cc: {"rating": rating, "count": count} for cc, rating, count in country_rows}
+    with open(OUTPUT_JSON, "w") as f:
+        json.dump(ratings_by_cc, f)
+
+    print(f"Wrote {len(country_rows)} countries ({sum(counts.values())} rides) to {OUTPUT_CSV} and {OUTPUT_JSON}")
 
 
 if __name__ == "__main__":

@@ -537,6 +537,128 @@ body.adding-spot .leaflet-control-attribution {
   border-radius: 4px !important;
 }
 
+/* Map-mode switcher (Spots / Heatmap / Countries) — stacked just above the
+   locate button in the bottom-right corner. */
+.leaflet-bottom.leaflet-right .mapmode-control {
+  margin-bottom: 8px !important;
+  margin-right: 10px !important;
+}
+
+.mapmode-btn {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 34px !important;
+  height: 34px !important;
+  background: white;
+  color: #5f6368;
+  font-size: 16px;
+  text-decoration: none;
+}
+
+.mapmode-btn:hover {
+  background: #f5f5f5 !important;
+  color: #1a73e8;
+}
+
+/* Active mode reads as a filled blue chip. */
+.mapmode-control .mapmode-btn.active {
+  background: #1a73e8 !important;
+  color: #fff;
+}
+
+/* Country-ratings legend, bottom-left, only mounted in Countries mode. */
+.country-legend {
+  background: rgba(255, 255, 255, 0.92);
+  padding: 6px 9px;
+  border-radius: 6px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  font-size: 12px;
+  line-height: 1.5;
+  color: #333;
+}
+.country-legend-title {
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+.country-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.country-legend-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+
+/* Country info bottom sheet (Hitchwiki lead section for a tapped country). */
+.sidebar.country .country-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.sidebar.country .country-header h1 {
+  margin: 0;
+  font-size: 1.6rem;
+  color: #222;
+}
+.sidebar.country .country-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  background: #9e9e9e;
+}
+.sidebar.country .country-rating .fa-star {
+  font-size: 0.85em;
+}
+.sidebar.country .country-rating-count {
+  font-weight: 400;
+  opacity: 0.9;
+  font-size: 0.85em;
+}
+.sidebar.country .country-lead {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #222;
+}
+.sidebar.country .country-lead a {
+  color: #1a73e8;
+  text-decoration: none;
+}
+.sidebar.country .country-lead a:hover {
+  text-decoration: underline;
+}
+.sidebar.country .country-lead p {
+  margin: 0 0 1rem;
+}
+.sidebar.country .country-status {
+  color: #666;
+  font-style: italic;
+}
+.sidebar.country .country-source {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+  font-size: 0.85rem;
+  color: #666;
+}
+.sidebar.country .country-source a {
+  color: #1a73e8;
+  text-decoration: none;
+}
+.sidebar.country .country-source a:hover {
+  text-decoration: underline;
+}
+
 /* Button colours are scoped with the .locate-control parent (specificity 0,2,0)
    to beat Leaflet's `.leaflet-bar a` colour WITHOUT !important. This matters
    because !important author rules outrank CSS animations, so an !important

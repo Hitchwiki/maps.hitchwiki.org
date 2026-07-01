@@ -22,7 +22,12 @@ var allMarkers = [],
   heatmapLegend = null,
   spotsData = null,
   markerCluster = null,
-  ridesIndex = null;
+  ridesIndex = null,
+  // Map-mode switcher: "spots" (default), "heatmap", or "countries".
+  mapMode = "spots",
+  countryLayer = null,
+  countryLegend = null,
+  mapModeButtons = {};
 
 // Current-location button state. The marker/circle are created lazily on the
 // first successful locate and re-used on subsequent taps so taps never stack
@@ -271,6 +276,8 @@ function populateHeatmapLegend(legendData) {
   // Create map + geocoder synchronously so zoom/search appear in final position immediately
   map = createMap();
   setupGeocoder();
+  // Added before the locate control so it stacks directly above the GPS button.
+  setupMapModeControl();
   setupLocateControl();
 
   // Load markers asynchronously
@@ -299,10 +306,20 @@ function populateHeatmapLegend(legendData) {
     });
   }
 
-  // Set up heatmap toggle
+  // Set up heatmap toggle — routed through the map-mode switcher so the two
+  // controls never disagree about which mode is active.
   const heatmapBtn = $$('#heatmap-toggle-btn');
   if (heatmapBtn) {
-    heatmapBtn.addEventListener('click', toggleHeatmap);
+    heatmapBtn.addEventListener('click', () =>
+      setMapMode(mapMode === 'heatmap' ? 'spots' : 'heatmap'));
+  }
+
+  // Restore the requested map mode from the URL: ?mapmode=countries takes
+  // precedence, otherwise the legacy ?heatmap=true selects heatmap mode.
+  if (getQueryParameter('mapmode') === 'countries') {
+    await setMapMode('countries');
+  } else if (getQueryParameter('heatmap') === 'true') {
+    await setMapMode('heatmap');
   }
 
   // These functions make the navigation work
@@ -471,6 +488,289 @@ function onLocationError(e) {
 // control. Requirement: geolocation must NOT be requested on page load — the
 // only call to map.locate()/navigator.geolocation happens in the tap handler
 // (wired in Task 2). This task only renders the idle button.
+// ---- Map mode switcher (Spots / Heatmap / Countries) -----------------------
+
+// Rating (1..5) -> choropleth colour, matching the country page badge colours.
+const COUNTRY_RATING_COLORS = { 1: "#d73027", 2: "#fc8d59", 3: "#fee08b", 4: "#91cf60", 5: "#1a9850" };
+
+function countryStyle(feature) {
+  const cc = feature.properties.cc;
+  const entry = countryRatings && countryRatings[cc];
+  const color = entry ? COUNTRY_RATING_COLORS[entry.rating] : null;
+  return {
+    pane: "countries",
+    color: "#ffffff",
+    weight: 1,
+    fillColor: color || "#000000",
+    // Rated countries read as a solid choropleth; unrated ones stay faint.
+    fillOpacity: color ? 0.65 : 0.05,
+  };
+}
+
+let countryRatings = null;
+
+// Build the country choropleth layer once (fetches boundaries + ratings).
+async function loadCountryLayer() {
+  if (countryLayer) return countryLayer;
+  const [geo, ratings] = await Promise.all([
+    fetch("/static/countries.geojson").then((r) => r.json()),
+    fetch("/country_ratings.json").then((r) => (r.ok ? r.json() : {})).catch(() => ({})),
+  ]);
+  countryRatings = ratings;
+  countryLayer = L.geoJSON(geo, {
+    // Force SVG so countries stay clickable over the canvas-preferring base map.
+    renderer: L.svg({ pane: "countries" }),
+    style: countryStyle,
+    onEachFeature: (feature, layer) => {
+      const { cc, name } = feature.properties;
+      const entry = countryRatings[cc];
+      const label = entry
+        ? `${name}: ${entry.rating}★ (${entry.count} rides)`
+        : `${name}: no rides yet`;
+      layer.bindTooltip(label, { sticky: true });
+      // Tapping a country opens its info sheet, reflected in the address bar as
+      // #country/<name> so it's deep-linkable and the back button closes it.
+      layer.on("click", () => {
+        location.hash = "country/" + encodeURIComponent(name);
+      });
+      layer.on("mouseover", () => layer.setStyle({ weight: 2, color: "#333" }));
+      layer.on("mouseout", () => countryLayer.resetStyle(layer));
+    },
+  });
+  return countryLayer;
+}
+
+// ---- Country info sheet -----------------------------------------------------
+// Renders a country's Hitchwiki lead section + rating badge into the #country
+// bottom sheet when a country is tapped in the map's "Countries" mode.
+// The lead section is fetched client-side because the Hitchwiki API sits behind
+// Cloudflare's bot challenge, which blocks server-side requests from this host's
+// datacenter IP but lets real end-user browsers through.
+
+const COUNTRY_WIKI_BASE = "https://hitchwiki.org/en/";
+
+// Some Natural Earth country names don't match the Hitchwiki page title.
+const COUNTRY_WIKI_TITLE_ALIASES = {
+  "United States of America": "United States",
+  "People's Republic of China": "China",
+  "Republic of Serbia": "Serbia",
+  "United Republic of Tanzania": "Tanzania",
+  Czechia: "Czech Republic",
+};
+
+// Turn a Hitchwiki page target into an absolute article URL.
+function countryWikiLink(target) {
+  const page = target.trim().replace(/ /g, "_");
+  return COUNTRY_WIKI_BASE + encodeURI(page).replace(/"/g, "%22");
+}
+
+// Remove {{...}} templates, honouring nesting, from raw wikitext.
+function stripWikiTemplates(text) {
+  let out = "",
+    depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === "{" && text[i + 1] === "{") { depth++; i++; continue; }
+    if (text[i] === "}" && text[i + 1] === "}" && depth > 0) { depth--; i++; continue; }
+    if (depth === 0) out += text[i];
+  }
+  return out;
+}
+
+// Render lead-section wikitext as safe HTML (prose + links only).
+function renderCountryWikitext(raw) {
+  let t = raw;
+  t = t.replace(/<!--[\s\S]*?-->/g, ""); // HTML comments
+  t = t.replace(/<ref[^>]*\/>/gi, ""); // self-closing <ref/>
+  t = t.replace(/<ref[^>]*>[\s\S]*?<\/ref>/gi, ""); // <ref>...</ref>
+  t = stripWikiTemplates(t);
+  t = t.replace(/__[A-Z]+__/g, ""); // magic words (__TOC__, __NOTOC__, …)
+  t = t.replace(/\[\[(?:File|Image):[^\[\]]*(?:\[\[[^\]]*\]\][^\[\]]*)*\]\]/gi, ""); // images
+  t = t.replace(/^\s*[*#:;].*$/gm, ""); // list/indent lines (keep it prose-only)
+
+  // Escape any remaining raw HTML before we inject our own safe markup.
+  t = escapeHtml(t);
+
+  // Internal links: [[target|label]] and [[target]]
+  t = t.replace(/\[\[([^\[\]|]+)\|([^\[\]]+)\]\]/g, (m, target, label) =>
+    `<a href="${countryWikiLink(target)}" target="_blank" rel="noopener">${label}</a>`);
+  t = t.replace(/\[\[([^\[\]]+)\]\]/g, (m, target) =>
+    `<a href="${countryWikiLink(target)}" target="_blank" rel="noopener">${target}</a>`);
+  // External links: [url label] and [url]
+  t = t.replace(/\[(https?:\/\/[^\s\]]+)\s+([^\]]+)\]/g, (m, url, label) =>
+    `<a href="${encodeURI(url)}" target="_blank" rel="noopener">${label}</a>`);
+  t = t.replace(/\[(https?:\/\/[^\s\]]+)\]/g, (m, url) =>
+    `<a href="${encodeURI(url)}" target="_blank" rel="noopener">${escapeHtml(url)}</a>`);
+  // Bold / italic
+  t = t.replace(/'''(.+?)'''/g, "<strong>$1</strong>");
+  t = t.replace(/''(.+?)''/g, "<em>$1</em>");
+
+  // Paragraphs on blank lines
+  const paras = t.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+  return paras.map((p) => `<p>${p.replace(/\n/g, " ")}</p>`).join("");
+}
+
+// Rating badge — sourced from the same file the map's Countries mode uses.
+async function loadCountrySheetRating(name) {
+  const badge = $$("#country-sheet-rating");
+  badge.style.display = "none";
+  try {
+    // Reuse the already-loaded Countries-mode data when available; otherwise
+    // fetch it so deep links (#country/<name>) work without Countries mode on.
+    const ratings = countryRatings || (await fetch("/country_ratings.json").then((r) => (r.ok ? r.json() : {})));
+    const geo = await fetch("/static/countries.geojson").then((r) => r.json());
+    const feature = geo.features.find((f) => f.properties.name === name);
+    const cc = feature && feature.properties.cc;
+    const entry = cc && ratings[cc];
+    if (!entry) return;
+    badge.style.background = COUNTRY_RATING_COLORS[entry.rating] || "#9e9e9e";
+    badge.innerHTML =
+      `<i class="fa-solid fa-star"></i>${entry.rating}` +
+      `<span class="country-rating-count">· ${entry.count} rides</span>`;
+    badge.style.display = "inline-flex";
+  } catch (e) { /* rating is optional */ }
+}
+
+// Fetch and render the Hitchwiki lead section for the currently open country.
+async function loadCountrySheetLead(name) {
+  const title = COUNTRY_WIKI_TITLE_ALIASES[name] || name;
+  const wikiUrl = COUNTRY_WIKI_BASE + encodeURIComponent(title.replace(/ /g, "_"));
+  $$("#country-sheet-source").innerHTML =
+    `Text from <a href="${wikiUrl}" target="_blank" rel="noopener">Hitchwiki: ${escapeHtml(title)}</a>, ` +
+    `licensed <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA</a>.`;
+
+  const lead = $$("#country-sheet-lead");
+  const api =
+    COUNTRY_WIKI_BASE + "api.php?action=parse&prop=wikitext&section=0&redirects=1&format=json&origin=*" +
+    "&page=" + encodeURIComponent(title);
+  try {
+    const data = await fetch(api).then((r) => r.json());
+    const wikitext = data && data.parse && data.parse.wikitext && data.parse.wikitext["*"];
+    if (!wikitext) {
+      lead.innerHTML = `<p class="country-status">No Hitchwiki summary could be loaded for ${escapeHtml(name)}.</p>`;
+      return;
+    }
+    const html = renderCountryWikitext(wikitext);
+    lead.innerHTML = html || `<p class="country-status">No summary text available for ${escapeHtml(name)}.</p>`;
+  } catch (e) {
+    console.warn("Could not load Hitchwiki lead section:", e);
+    lead.innerHTML = `<p class="country-status">No Hitchwiki summary could be loaded for ${escapeHtml(name)}.</p>`;
+  }
+}
+
+// Open the country info sheet for `name` (invoked from navigate() via #country/<name>).
+function openCountrySheet(name) {
+  clear();
+  $$("#country-sheet-name").textContent = name;
+  $$("#country-sheet-rating").style.display = "none";
+  $$("#country-sheet-lead").innerHTML = `<p class="country-status">Loading from Hitchwiki…</p>`;
+  $$("#country-sheet-source").innerHTML = "";
+  bar(".sidebar.country");
+  updateBottomPaneVar();
+  setSheetSnap($$(".sidebar.country"), "full", COUNTRY_SHEET_SNAPS);
+  loadCountrySheetRating(name);
+  loadCountrySheetLead(name);
+}
+
+// Small legend explaining the country colours; only shown in Countries mode.
+function setCountryLegendVisible(visible) {
+  if (!visible) {
+    if (countryLegend) map.removeControl(countryLegend);
+    countryLegend = null;
+    return;
+  }
+  if (countryLegend) return;
+  countryLegend = L.control({ position: "bottomleft" });
+  countryLegend.onAdd = function () {
+    const div = L.DomUtil.create("div", "country-legend");
+    let rows = '<div class="country-legend-title">Avg. rating</div>';
+    for (let r = 5; r >= 1; r--) {
+      rows += `<div class="country-legend-row"><span class="country-legend-swatch" style="background:${COUNTRY_RATING_COLORS[r]}"></span>${r}★</div>`;
+    }
+    div.innerHTML = rows;
+    return div;
+  };
+  countryLegend.addTo(map);
+}
+
+// Show or hide the hitchhiking-spot markers (hidden in Countries mode).
+function setSpotsVisible(visible) {
+  if (!markerCluster) return;
+  if (visible) {
+    if (!map.hasLayer(markerCluster)) markerCluster.addTo(map);
+  } else if (map.hasLayer(markerCluster)) {
+    map.removeLayer(markerCluster);
+  }
+}
+
+// Single source of truth for which map mode is active.
+async function setMapMode(mode) {
+  mapMode = mode;
+
+  // Countries mode replaces spots with the choropleth; the other modes show spots.
+  if (mode === "countries") {
+    await setHeatmapActive(false);
+    setSpotsVisible(false);
+    const layer = await loadCountryLayer();
+    if (!map.hasLayer(layer)) layer.addTo(map);
+    setCountryLegendVisible(true);
+  } else {
+    if (countryLayer && map.hasLayer(countryLayer)) map.removeLayer(countryLayer);
+    setCountryLegendVisible(false);
+    setSpotsVisible(true);
+    await setHeatmapActive(mode === "heatmap");
+  }
+
+  updateMapModeButtons();
+  // Keep the state shareable. Heatmap keeps using the legacy ?heatmap param so
+  // existing deep-links stay valid; Countries mode uses ?mapmode=countries.
+  setQueryParameter("heatmap", mode === "heatmap");
+  setQueryParameter("mapmode", mode === "countries" ? "countries" : false);
+}
+
+function updateMapModeButtons() {
+  Object.entries(mapModeButtons).forEach(([mode, btn]) => {
+    btn.classList.toggle("active", mode === mapMode);
+    btn.setAttribute("aria-pressed", mode === mapMode ? "true" : "false");
+  });
+  // Keep the legacy bottom-pane heatmap button in sync with the switcher.
+  const legacyBtn = $$("#heatmap-toggle-btn");
+  const legacyText = $$("#heatmap-toggle-text");
+  if (legacyBtn) legacyBtn.classList.toggle("active", mapMode === "heatmap");
+  if (legacyText) legacyText.textContent = mapMode === "heatmap" ? "Normal" : "Heatmap";
+}
+
+// Vertical Spots/Heatmap/Countries switcher, sitting just above the locate button.
+function setupMapModeControl() {
+  const modes = [
+    { mode: "spots", icon: "fa-solid fa-location-dot", title: "Spots" },
+    { mode: "heatmap", icon: "fa fa-fire", title: "Waiting-time heatmap" },
+    { mode: "countries", icon: "fa-solid fa-earth-europe", title: "Country ratings" },
+  ];
+  const ModeControl = L.Control.extend({
+    options: { position: "bottomright" },
+    onAdd: function () {
+      const container = L.DomUtil.create("div", "leaflet-bar mapmode-control");
+      modes.forEach(({ mode, icon, title }) => {
+        const btn = L.DomUtil.create("a", "mapmode-btn", container);
+        btn.href = "#";
+        btn.title = title;
+        btn.setAttribute("role", "button");
+        btn.setAttribute("aria-label", title);
+        btn.innerHTML = `<i class="${icon}" aria-hidden="true"></i>`;
+        L.DomEvent.on(btn, "click", function (e) {
+          L.DomEvent.preventDefault(e);
+          setMapMode(mode);
+        });
+        mapModeButtons[mode] = btn;
+      });
+      L.DomEvent.disableClickPropagation(container);
+      return container;
+    },
+  });
+  new ModeControl().addTo(map);
+  updateMapModeButtons();
+}
+
 function setupLocateControl() {
   const LocateControl = L.Control.extend({
     options: { position: "bottomright" },
@@ -503,6 +803,7 @@ function setupEventListeners() {
   setupSpotSheet();
   setupMenuSheet();
   setupRoutingSheet();
+  setupCountrySheet();
   const reportDup = $$(".report-dup");
   if (reportDup) reportDup.onclick = () =>
     document.body.classList.add("reporting-duplicate");
@@ -536,15 +837,13 @@ function setupEventListeners() {
   var menuBtn = document.getElementById('action-menu');
   if (menuBtn) {
     menuBtn.addEventListener('click', function() {
+      // Reflect the menu in the address bar as #menu (like #routing) so it's
+      // deep-linkable and the back button closes it. navigate() does the actual
+      // pane work via the hashchange handler.
       if (document.body.classList.contains("menu")) {
-        bar();
-        document.body.classList.remove("menu");
+        navigateHome();
       } else {
-        clearSpotUrl();
-        bar(".sidebar.menu");
-        document.body.classList.add("menu");
-        updateBottomPaneVar();
-        setSheetSnap($$(".sidebar.menu"), "full", MENU_SHEET_SNAPS);
+        location.hash = "menu";
       }
     });
   }
@@ -560,6 +859,14 @@ function setupEventListeners() {
   // filtering (the filtering CSS hides .leaflet-overlay-pane).
   let heatmapPane = map.createPane("heatmap");
   heatmapPane.style.zIndex = 350;
+
+  // Country-choropleth pane. Sits above the default overlay pane (z 400) so its
+  // SVG paths receive clicks — the map uses preferCanvas, and an empty overlay
+  // canvas would otherwise swallow clicks meant for the choropleth — but stays
+  // below the marker pane (z 600). The layer is rendered as SVG (not canvas) so
+  // clicks land on filled countries while ocean gaps pass through.
+  let countryPane = map.createPane("countries");
+  countryPane.style.zIndex = 450;
 }
 
 // Handle map click events
@@ -934,6 +1241,7 @@ function bar(selector) {
 const SPOT_SHEET_SNAPS = { peek: 80, half: 60, full: 10 };
 const MENU_SHEET_SNAPS = { half: 55, full: 0 };
 const ROUTING_SHEET_SNAPS = { half: 55, full: 0 };
+const COUNTRY_SHEET_SNAPS = { half: 55, full: 0 };
 
 function setSheetSnap(sheet, name, snaps) {
   if (!sheet) return;
@@ -1088,15 +1396,15 @@ function setupSpotSheet() {
 }
 
 function setupMenuSheet() {
-  const closeMenu = () => { bar(); document.body.classList.remove("menu"); };
+  // Close via navigateHome so the #menu hash is cleared (keeps URL and pane in sync).
   const closeBtn = $$("#menu-close");
-  if (closeBtn) closeBtn.onclick = closeMenu;
+  if (closeBtn) closeBtn.onclick = navigateHome;
   setupBottomSheet({
     sheet: $$(".sidebar.menu"),
     handle: $$("#menu-sheet-handle"),
     snaps: MENU_SHEET_SNAPS,
     defaultSnap: "half",
-    onClose: closeMenu,
+    onClose: navigateHome,
   });
 }
 
@@ -1107,6 +1415,18 @@ function setupRoutingSheet() {
     sheet: $$(".sidebar.routing"),
     handle: $$("#routing-sheet-handle"),
     snaps: ROUTING_SHEET_SNAPS,
+    defaultSnap: "half",
+    onClose: navigateHome,
+  });
+}
+
+function setupCountrySheet() {
+  const closeBtn = $$("#country-close");
+  if (closeBtn) closeBtn.onclick = navigateHome;
+  setupBottomSheet({
+    sheet: $$(".sidebar.country"),
+    handle: $$("#country-sheet-handle"),
+    snaps: COUNTRY_SHEET_SNAPS,
     defaultSnap: "half",
     onClose: navigateHome,
   });
@@ -1555,6 +1875,16 @@ async function navigate() {
     bar(".sidebar.routing");
     updateBottomPaneVar();
     setSheetSnap($$(".sidebar.routing"), "full", ROUTING_SHEET_SNAPS);
+  } else if (mainArgs[0] == "menu") {
+    clear();
+    bar(".sidebar.menu");
+    // clear() drops the "menu" body class; re-add it so menu-specific chrome shows.
+    document.body.classList.add("menu");
+    updateBottomPaneVar();
+    setSheetSnap($$(".sidebar.menu"), "full", MENU_SHEET_SNAPS);
+  } else if (mainArgs[0] == "country" && args[1]) {
+    // #country/<name> opens the Hitchwiki country info sheet.
+    openCountrySheet(decodeURIComponent(args[1]));
   } else if (mainArgs[0] == "select-pickup" || mainArgs[0] == "select-destination") {
     clear();
     setupLocationSelection(mainArgs[0], args[1]);
@@ -2121,13 +2451,11 @@ var MenuButton = L.Control.extend({
     container.innerHTML = "☰";
 
     container.onclick = function (e) {
+      // Menu open/close state lives in the #menu hash (see navigate()).
       if (document.body.classList.contains("menu")) {
-        bar();
-        document.body.classList.remove("menu");
+        navigateHome();
       } else {
-        clearSpotUrl();
-        bar(".sidebar.menu");
-        document.body.classList.add("menu");
+        location.hash = "menu";
       }
       L.DomEvent.stopPropagation(e);
     };

@@ -281,6 +281,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Whole-card navigation to the trip detail page.
     document.querySelectorAll('.trip-thumb-card[data-trip-href]').forEach((card) => {
         card.addEventListener('click', () => { window.location.href = card.dataset.tripHref; });
+
     });
 
     // Whole-card navigation to ride detail. Ignore clicks on nested
