@@ -26,7 +26,6 @@ var allMarkers = [],
   // Map-mode switcher: "spots" (default), "heatmap", or "countries".
   mapMode = "spots",
   countryLayer = null,
-  countryLegend = null,
   mapModeButtons = {};
 
 // Current-location button state. The marker/circle are created lazily on the
@@ -793,27 +792,6 @@ async function openCountrySheet(name) {
   loadCountryInsights(cc);
 }
 
-// Small legend explaining the country colours; only shown in Countries mode.
-function setCountryLegendVisible(visible) {
-  if (!visible) {
-    if (countryLegend) map.removeControl(countryLegend);
-    countryLegend = null;
-    return;
-  }
-  if (countryLegend) return;
-  countryLegend = L.control({ position: "bottomleft" });
-  countryLegend.onAdd = function () {
-    const div = L.DomUtil.create("div", "country-legend");
-    let rows = '<div class="country-legend-title">Avg. rating</div>';
-    for (let r = 5; r >= 1; r--) {
-      rows += `<div class="country-legend-row"><span class="country-legend-swatch" style="background:${COUNTRY_RATING_COLORS[r]}"></span>${r}★</div>`;
-    }
-    div.innerHTML = rows;
-    return div;
-  };
-  countryLegend.addTo(map);
-}
-
 // Show or hide the hitchhiking-spot markers (hidden in Countries mode).
 function setSpotsVisible(visible) {
   if (!markerCluster) return;
@@ -834,10 +812,8 @@ async function setMapMode(mode) {
     setSpotsVisible(false);
     const layer = await loadCountryLayer();
     if (!map.hasLayer(layer)) layer.addTo(map);
-    setCountryLegendVisible(true);
   } else {
     if (countryLayer && map.hasLayer(countryLayer)) map.removeLayer(countryLayer);
-    setCountryLegendVisible(false);
     setSpotsVisible(true);
     await setHeatmapActive(mode === "heatmap");
   }

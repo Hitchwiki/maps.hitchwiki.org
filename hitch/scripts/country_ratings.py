@@ -29,6 +29,7 @@ import math
 import os
 import sqlite3
 from collections import defaultdict
+from datetime import datetime, timedelta
 
 import reverse_geocoder as rg
 
@@ -49,6 +50,12 @@ MIN_RIDE_DISTANCE_KM = 1
 # Histogram bars are clipped to mean ± this many std devs (matches map.js
 # INSIGHTS_OUTLIER_STDEVS) so a few outliers don't squash the distribution.
 OUTLIER_STDEVS = 3
+# A country needs at least this many rides before it gets a colour on the map
+# and its own statistics; below it the sample is too small to be meaningful.
+MIN_RIDES_FOR_STATS = 25
+# The choropleth colour reflects only recent experience: the average rating is
+# computed from rides submitted within this many years.
+RATING_WINDOW_YEARS = 3
 
 
 def haversine_km(lat1, lon1, lat2, lon2):
@@ -197,16 +204,29 @@ def build_metric(values):
     }
 
 
+def is_recent(submission_time, cutoff):
+    """True if submission_time (ISO string) is on/after cutoff. Unknown dates → False."""
+    if not isinstance(submission_time, str):
+        return False
+    try:
+        return datetime.fromisoformat(submission_time) >= cutoff
+    except ValueError:
+        return False
+
+
 def main():
     conn = sqlite3.connect(DATABASE_URI)
-    rows = conn.execute("SELECT stops, rating FROM ride_event").fetchall()
+    rows = conn.execute("SELECT stops, rating, submission_time FROM ride_event").fetchall()
     conn.close()
+
+    # The rating average only reflects rides from the last RATING_WINDOW_YEARS.
+    rating_cutoff = datetime.now() - timedelta(days=365.25 * RATING_WINDOW_YEARS)
 
     coords = []
     # Per-ride metrics, index-aligned with `coords` so we can group by country
     # after the batched reverse-geocode.
     per_ride = []
-    for stops, rating in rows:
+    for stops, rating, submission_time in rows:
         stops = json.loads(stops) if isinstance(stops, str) else stops
         # Skip rides we can't place (missing/malformed start location).
         try:
@@ -228,17 +248,27 @@ def main():
             except (TypeError, KeyError, IndexError):
                 pass
 
-        per_ride.append({"rating": rating, "wait": parse_wait_minutes(stops[0]), "distance": distance})
+        per_ride.append(
+            {
+                # Only recent ratings feed the colour; older ones are ignored.
+                "rating": rating if is_recent(submission_time, rating_cutoff) else None,
+                "wait": parse_wait_minutes(stops[0]),
+                "distance": distance,
+            }
+        )
 
     # Single batched, offline reverse-geocode of every start coordinate.
     results = rg.search(coords)
 
     sums = defaultdict(float)
     counts = defaultdict(int)
+    totals = defaultdict(int)
     waits = defaultdict(list)
     distances = defaultdict(list)
     for res, ride in zip(results, per_ride):
         cc = res["cc"]
+        # Every placed ride counts toward the country's total (the MIN_RIDES_FOR_STATS gate).
+        totals[cc] += 1
         # Ratings feed the choropleth; only count rides that actually have one.
         if ride["rating"] is not None:
             sums[cc] += ride["rating"]
@@ -248,8 +278,11 @@ def main():
         if ride["distance"] is not None:
             distances[cc].append(ride["distance"])
 
+    # Only surface countries with enough rides to be meaningful.
+    rated_ccs = {cc for cc in sums if totals[cc] >= MIN_RIDES_FOR_STATS}
+
     country_rows = [
-        (cc, round(sums[cc] / counts[cc]), counts[cc]) for cc in sums
+        (cc, round(sums[cc] / counts[cc]), counts[cc]) for cc in rated_ccs
     ]
     # Sort by average rating (desc), then by number of rides (desc) as tiebreak.
     country_rows.sort(key=lambda r: (r[1], r[2]), reverse=True)
@@ -265,9 +298,12 @@ def main():
     with open(OUTPUT_JSON, "w") as f:
         json.dump(ratings_by_cc, f)
 
-    # Pre-computed waiting-time / distance histograms per country for the sheet.
+    # Pre-computed waiting-time / distance histograms, only for countries that
+    # clear the ride threshold (same gate as the choropleth colour).
     insights_by_cc = {}
     for cc in set(waits) | set(distances):
+        if totals[cc] < MIN_RIDES_FOR_STATS:
+            continue
         metrics = {}
         wait_metric = build_metric(waits[cc])
         dist_metric = build_metric(distances[cc])
