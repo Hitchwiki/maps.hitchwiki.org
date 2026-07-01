@@ -604,23 +604,61 @@ function renderCountryWikitext(raw) {
   t = t.replace(/'''(.+?)'''/g, "<strong>$1</strong>");
   t = t.replace(/''(.+?)''/g, "<em>$1</em>");
 
-  // Paragraphs on blank lines
-  const paras = t.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
-  return paras.map((p) => `<p>${p.replace(/\n/g, " ")}</p>`).join("");
+  // Build blocks: heading lines (== .. ==) become <h4>, everything else is
+  // gathered into paragraphs. A fetched section starts with its own heading,
+  // and may contain === subsections ===, so headings aren't always blank-line
+  // separated — split per line rather than only on blank lines.
+  const out = [];
+  for (const block of t.split(/\n{2,}/)) {
+    let para = [];
+    const flush = () => {
+      const text = para.join(" ").trim();
+      if (text) out.push(`<p>${text}</p>`);
+      para = [];
+    };
+    for (const line of block.split("\n")) {
+      const heading = line.trim().match(/^={2,6}\s*(.+?)\s*={2,6}$/);
+      if (heading) {
+        flush();
+        const label = heading[1].trim();
+        // Drop the redundant top-level "Hitchhiking" heading — the sheet is
+        // already titled with the country name.
+        if (label.toLowerCase() !== "hitchhiking") out.push(`<h4>${label}</h4>`);
+      } else {
+        para.push(line);
+      }
+    }
+    flush();
+  }
+  return out.join("");
+}
+
+// Country name → ISO code map from countries.geojson (the code keys the ratings
+// and insights files). Cached after the first lookup.
+let countryCcByName = null;
+async function getCountryCc(name) {
+  try {
+    if (!countryCcByName) {
+      const geo = await fetch("/static/countries.geojson").then((r) => r.json());
+      countryCcByName = {};
+      for (const f of geo.features) countryCcByName[f.properties.name] = f.properties.cc;
+    }
+    return countryCcByName[name] || null;
+  } catch (e) {
+    return null;
+  }
 }
 
 // Rating badge — sourced from the same file the map's Countries mode uses.
-async function loadCountrySheetRating(name) {
+async function loadCountrySheetRating(cc) {
   const badge = $$("#country-sheet-rating");
   badge.style.display = "none";
+  if (!cc) return;
   try {
     // Reuse the already-loaded Countries-mode data when available; otherwise
     // fetch it so deep links (#country/<name>) work without Countries mode on.
     const ratings = countryRatings || (await fetch("/country_ratings.json").then((r) => (r.ok ? r.json() : {})));
-    const geo = await fetch("/static/countries.geojson").then((r) => r.json());
-    const feature = geo.features.find((f) => f.properties.name === name);
-    const cc = feature && feature.properties.cc;
-    const entry = cc && ratings[cc];
+    const entry = ratings[cc];
     if (!entry) return;
     badge.style.background = COUNTRY_RATING_COLORS[entry.rating] || "#9e9e9e";
     badge.innerHTML =
@@ -630,7 +668,85 @@ async function loadCountrySheetRating(name) {
   } catch (e) { /* rating is optional */ }
 }
 
-// Fetch and render the Hitchwiki lead section for the currently open country.
+// Pre-computed per-country waiting-time / distance histograms (built by
+// country_ratings.py). Fetched once and cached; the country sheet renders them
+// with the same renderer as /insights, so no client-side binning is needed.
+let countryInsightsData = null;
+let countryInsightsLastDraw = null; // { wait, distance } histograms currently drawn
+async function loadCountryInsights(cc) {
+  const wrap = $$("#country-sheet-insights");
+  countryInsightsLastDraw = null;
+  wrap.hidden = true;
+  if (!cc) return;
+  try {
+    if (!countryInsightsData) {
+      countryInsightsData = await fetch("/country_insights.json").then((r) => (r.ok ? r.json() : {}));
+    }
+  } catch (e) {
+    return;
+  }
+  const entry = countryInsightsData[cc];
+  if (!entry || (!entry.wait && !entry.distance)) return;
+  wrap.hidden = false;
+
+  renderCountryMetric("wait", entry.wait, "min", "waiting-time");
+  renderCountryMetric("distance", entry.distance, "km", "distance");
+
+  countryInsightsLastDraw = {
+    wait: entry.wait ? entry.wait.hist : null,
+    distance: entry.distance ? entry.distance.hist : null,
+  };
+  // Draw after a frame so the sheet has its final width before we size canvases.
+  requestAnimationFrame(redrawCountryInsightsCharts);
+}
+
+// Fill the summary line + note for one metric block and toggle its visibility.
+function renderCountryMetric(key, metric, unit, noteLabel) {
+  const block = $$("#country-" + key + "-block");
+  if (!metric) {
+    block.hidden = true;
+    return;
+  }
+  block.hidden = false;
+  renderChartSummary("country-" + key + "-summary", metric.stats, unit);
+  renderChartNote("country-" + key + "-note", metric.hidden, metric.stats.n, noteLabel);
+  const empty = $$("#country-" + key + "-empty");
+  if (empty) empty.hidden = !!(metric.hist && metric.hist.counts && metric.hist.counts.length);
+}
+
+function redrawCountryInsightsCharts() {
+  if (!countryInsightsLastDraw) return;
+  if (countryInsightsLastDraw.wait)
+    renderHistogram($$("#country-wait-chart"), countryInsightsLastDraw.wait, { xLabel: "minutes" });
+  if (countryInsightsLastDraw.distance)
+    renderHistogram($$("#country-distance-chart"), countryInsightsLastDraw.distance, { xLabel: "kilometres" });
+}
+
+function countryWikiApi(title, params) {
+  return (
+    COUNTRY_WIKI_BASE + "api.php?action=parse&redirects=1&format=json&origin=*" +
+    params + "&page=" + encodeURIComponent(title)
+  );
+}
+
+// Find the index of the top-level "== Hitchhiking ==" section, or null if the
+// article has none. Country articles usually put the practical advice under this
+// heading, which is more useful than the lead's generic intro.
+async function findHitchhikingSection(title) {
+  try {
+    const data = await fetch(countryWikiApi(title, "&prop=sections")).then((r) => r.json());
+    const sections = (data && data.parse && data.parse.sections) || [];
+    const match = sections.find(
+      (s) => s.toclevel === 1 && s.line && s.line.trim().toLowerCase() === "hitchhiking"
+    );
+    return match ? match.index : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Fetch and render a country's Hitchwiki summary: the "== Hitchhiking ==" section
+// when present, otherwise the lead section.
 async function loadCountrySheetLead(name) {
   const title = COUNTRY_WIKI_TITLE_ALIASES[name] || name;
   const wikiUrl = COUNTRY_WIKI_BASE + encodeURIComponent(title.replace(/ /g, "_"));
@@ -639,11 +755,10 @@ async function loadCountrySheetLead(name) {
     `licensed <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA</a>.`;
 
   const lead = $$("#country-sheet-lead");
-  const api =
-    COUNTRY_WIKI_BASE + "api.php?action=parse&prop=wikitext&section=0&redirects=1&format=json&origin=*" +
-    "&page=" + encodeURIComponent(title);
   try {
-    const data = await fetch(api).then((r) => r.json());
+    // Prefer the Hitchhiking section; fall back to the lead (section 0).
+    const section = (await findHitchhikingSection(title)) || "0";
+    const data = await fetch(countryWikiApi(title, "&prop=wikitext&section=" + section)).then((r) => r.json());
     const wikitext = data && data.parse && data.parse.wikitext && data.parse.wikitext["*"];
     if (!wikitext) {
       lead.innerHTML = `<p class="country-status">No Hitchwiki summary could be loaded for ${escapeHtml(name)}.</p>`;
@@ -652,23 +767,27 @@ async function loadCountrySheetLead(name) {
     const html = renderCountryWikitext(wikitext);
     lead.innerHTML = html || `<p class="country-status">No summary text available for ${escapeHtml(name)}.</p>`;
   } catch (e) {
-    console.warn("Could not load Hitchwiki lead section:", e);
+    console.warn("Could not load Hitchwiki section:", e);
     lead.innerHTML = `<p class="country-status">No Hitchwiki summary could be loaded for ${escapeHtml(name)}.</p>`;
   }
 }
 
 // Open the country info sheet for `name` (invoked from navigate() via #country/<name>).
-function openCountrySheet(name) {
+async function openCountrySheet(name) {
   clear();
   $$("#country-sheet-name").textContent = name;
   $$("#country-sheet-rating").style.display = "none";
+  $$("#country-sheet-insights").hidden = true;
   $$("#country-sheet-lead").innerHTML = `<p class="country-status">Loading from Hitchwiki…</p>`;
   $$("#country-sheet-source").innerHTML = "";
   bar(".sidebar.country");
   updateBottomPaneVar();
   setSheetSnap($$(".sidebar.country"), "full", COUNTRY_SHEET_SNAPS);
-  loadCountrySheetRating(name);
   loadCountrySheetLead(name);
+  // Rating + histograms are keyed by ISO code, resolved from the country name.
+  const cc = await getCountryCc(name);
+  loadCountrySheetRating(cc);
+  loadCountryInsights(cc);
 }
 
 // Small legend explaining the country colours; only shown in Countries mode.
@@ -1430,6 +1549,10 @@ function setupCountrySheet() {
     defaultSnap: "half",
     onClose: navigateHome,
   });
+  // Re-fit the histograms when the viewport width changes while the sheet is open.
+  window.addEventListener("resize", () => {
+    if ($$(".sidebar.country").classList.contains("visible")) redrawCountryInsightsCharts();
+  });
 }
 
 function showSuccessOverlay() {
@@ -2094,18 +2217,11 @@ function clipForHistogram(values) {
   return { values: kept, hidden: values.length - kept.length };
 }
 
-function drawHistogram(canvas, values, opts) {
-  const dpr = window.devicePixelRatio || 1;
-  const cssW = canvas.clientWidth || 400;
-  const cssH = canvas.clientHeight || 220;
-  canvas.width = Math.round(cssW * dpr);
-  canvas.height = Math.round(cssH * dpr);
-  const ctx = canvas.getContext("2d");
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, cssW, cssH);
-
-  if (!values || values.length === 0) return;
-
+// Bin raw values into { lo, hi, binWidth, counts }. Kept separate from the
+// renderer so histograms can also be precomputed server-side (the country sheet
+// ships these bins directly — see country_ratings.py compute_histogram).
+function computeHistogram(values) {
+  if (!values || values.length === 0) return null;
   const sorted = values.slice().sort((a, b) => a - b);
   const min = sorted[0];
   const max = sorted[sorted.length - 1];
@@ -2134,6 +2250,29 @@ function drawHistogram(canvas, values, opts) {
     if (idx < 0) idx = 0;
     counts[idx]++;
   }
+  return { lo, hi, binWidth, counts };
+}
+
+function drawHistogram(canvas, values, opts) {
+  renderHistogram(canvas, computeHistogram(values), opts);
+}
+
+// Render a { lo, hi, binWidth, counts } histogram (from computeHistogram or a
+// precomputed server-side equivalent) onto a canvas.
+function renderHistogram(canvas, hist, opts) {
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = canvas.clientWidth || 400;
+  const cssH = canvas.clientHeight || 220;
+  canvas.width = Math.round(cssW * dpr);
+  canvas.height = Math.round(cssH * dpr);
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, cssW, cssH);
+
+  if (!hist || !hist.counts || hist.counts.length === 0) return;
+
+  const { lo, hi, binWidth, counts } = hist;
+  const bins = counts.length;
   const maxCount = Math.max(...counts);
 
   // Layout
