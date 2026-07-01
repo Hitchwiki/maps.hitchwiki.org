@@ -530,7 +530,10 @@ async function loadCountryLayer() {
       layer.bindTooltip(label, { sticky: true });
       // Tapping a country opens its info sheet, reflected in the address bar as
       // #country/<name> so it's deep-linkable and the back button closes it.
-      layer.on("click", () => {
+      // Stop propagation so the map's own click handler (handleMapClick) doesn't
+      // also fire and open a nearby spot on top of the country sheet.
+      layer.on("click", (e) => {
+        L.DomEvent.stopPropagation(e);
         location.hash = "country/" + encodeURIComponent(name);
       });
       layer.on("mouseover", () => layer.setStyle({ weight: 2, color: "#333" }));
@@ -991,7 +994,10 @@ function setupEventListeners() {
 // Handle map click events
 function handleMapClick(e) {
   var added = false;
-  if (window.innerWidth < 780) {
+  // Countries mode hides the spot markers (but keeps them in `allMarkers`), so
+  // skip the tap-to-nearest-spot shortcut — otherwise tapping a country would
+  // open an underlying spot instead of the country sheet.
+  if (window.innerWidth < 780 && mapMode !== "countries") {
     var layerPoint = map.latLngToLayerPoint(e.latlng);
     let markers = document.body.classList.contains("filtering")
       ? filterMarkerGroup
