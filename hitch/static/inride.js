@@ -67,7 +67,10 @@
   // Build the form body from journey + destination and POST to /ride.
   // The X-Requested-With: inride header makes the backend return JSON instead of
   // redirecting, so we can stay in-page and handle success/failure here.
-  function submitRide(j, dest) {
+  // finishMs is captured at the START of journeyFlow.finish() (not submit time), so
+  // GPS-fix delay / manual-pin delay don't inflate the arrival time; also prevents
+  // arrival == departure on same-minute short rides (backend asserts arrival > departure).
+  function submitRide(j, dest, finishMs) {
     const d = j.details || {};
     const body = new URLSearchParams({
       rate: String(d.rating || ""),
@@ -78,7 +81,7 @@
       pickup_lat: j.pickup.lat, pickup_lon: j.pickup.lon,
       destination_lat: dest.lat, destination_lon: dest.lon,
       datetime_ride: isoLocal(j.gotRideMs),
-      arrival_datetime: isoLocal(Date.now()),
+      arrival_datetime: isoLocal(finishMs),
     });
     return fetch("/ride", {
       method: "POST",
@@ -92,8 +95,8 @@
 
   // Submit and route the result: success → whatsNext; failure → error banner
   // while keeping in-ride state so the user can retry without data loss.
-  function completeFinish(j, dest) {
-    submitRide(j, dest)
+  function completeFinish(j, dest, finishMs) {
+    submitRide(j, dest, finishMs)
       .then(function (res) {
         journeyUI.setFinishBusy(false);
         if (res && res.ok) {
@@ -196,10 +199,14 @@
   // fall back to a manual pin so Finish is never a dead end.
   journeyFlow.finish = function () {
     const j = journeyStore.get(); if (!j || j.state !== "in-ride") return;
+    // Capture arrival time NOW, before GPS fix or manual-pin delay can inflate it.
+    // The backend asserts arrival > departure; stamping here rather than at submit
+    // prevents same-minute rides yielding arrival == departure → 400 → stuck retry.
+    const finishMs = Date.now();
     // Lock the button immediately — Nostr publish takes ~5 s.
     journeyUI.setFinishBusy(true);
     getFixWithRetry().then(
-      function (dest) { completeFinish(j, dest); },
+      function (dest) { completeFinish(j, dest, finishMs); },
       // GPS denied/unavailable — clear busy state before opening manual-pin UI;
       // the user is choosing a destination, not saving yet.
       function () {
@@ -207,7 +214,7 @@
         journeyUI.manualPin(function (dest) {
           // Pin confirmed — re-enter busy state for the actual ~5 s Nostr submit.
           journeyUI.setFinishBusy(true);
-          completeFinish(j, dest);
+          completeFinish(j, dest, finishMs);
         });
       }
     );
@@ -215,11 +222,15 @@
 
   // After a ride is saved, ask whether to start another leg or call it a day.
   journeyFlow.whatsNext = function (dropoff) {
+    // Clear the in-ride dock, chip, pickup pin, and tick interval so they don't
+    // show through behind the dialog. State remains in-ride in the store until
+    // nextRide (which calls render) or end (which calls teardown again harmlessly).
+    journeyUI.teardown();
     journeyUI.dialog({
       title: "What's next?",
       body: "Ride saved — dropped off here. Waiting for another ride from this spot?",
       actions: [
-        { label: "Next Ride", cls: "inr-go",   onClick: () => journeyUI.setWaitingSpot(dropoff, journeyFlow.nextRide) },
+        { label: "Next Ride", cls: "inr-go",   onClick: () => journeyUI.setWaitingSpot(dropoff, journeyFlow.nextRide, () => journeyFlow.whatsNext(dropoff)) },
         { label: "End Hitch", cls: "inr-grey",  onClick: () => journeyFlow.end() },
       ],
     });
@@ -331,13 +342,12 @@
         { tx: 120, ry: -60, sc: 0.7,  op: 0.6,  zi: 0 },  // offset +3 (outermost, 4-tile span)
       ];
 
-      // Derive the initial face from the current map mode so the face matches
-      // whatever layer is active when the journey starts.
-      const curMode = typeof window.getMapMode === "function" ? window.getMapMode() : null;
-      if (curMode === "spots")     journeyUI._cfFaceIdx = 1;
-      else if (curMode === "heatmap")   journeyUI._cfFaceIdx = 2;
-      else if (curMode === "countries") journeyUI._cfFaceIdx = 3;
-      else journeyUI._cfFaceIdx = 0; // default to Locate
+      // Default the collapsed face to Locate (0) when a journey begins — the spec
+      // says the stack opens on Locate, not on whatever map layer is currently active.
+      // After the user picks a control via the cover-flow, applyControl updates
+      // _cfFaceIdx so the chosen tile persists through subsequent state transitions.
+      // (_cfFaceIdx is initialized to 0 on journeyUI; teardown does not reset it,
+      // so user selections survive waiting → in-ride → etc. without re-reading map mode.)
 
       // ── Build collapsed tile ──────────────────────────────────────────────
       function buildCollapsed() {
@@ -586,6 +596,10 @@
 
       document.body.appendChild(dock);
       journeyUI._dockEl = dock;
+
+      // Show grey pickup pin so the user sees their waiting spot on the map.
+      // Also drawn in paused and in-ride so the boarding spot is always visible.
+      journeyUI._addPickupPin(j);
     },
 
     // Build the paused dock bar + frozen chip (mirrors waiting but timer is frozen
@@ -640,6 +654,10 @@
 
       document.body.appendChild(dock);
       journeyUI._dockEl = dock;
+
+      // Grey pickup pin — redrawn in waiting/paused/in-ride so the boarding spot
+      // stays visible in all live journey states.
+      journeyUI._addPickupPin(j);
     },
 
     // Build the in-ride dock bar + elapsed-time chip + grey pickup pin.
@@ -670,17 +688,9 @@
       }, 1000);
 
       // ── Grey pickup pin: marks the boarding spot while in-ride ────────────
-      // Grey colour signals "past / reference" rather than "active action".
-      if (window.L && window.map && j.pickup) {
-        const greyIcon = L.icon({
-          iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-grey.png",
-          shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
-          iconSize: [25, 41], iconAnchor: [12, 41],
-          popupAnchor: [1, -34], shadowSize: [41, 41],
-        });
-        journeyUI._pickupPin = L.marker([j.pickup.lat, j.pickup.lon], { icon: greyIcon })
-          .addTo(window.map);
-      }
+      // Factored into _addPickupPin (also called from waiting/paused) so the pin
+      // is always visible regardless of which live state the journey is in.
+      journeyUI._addPickupPin(j);
 
       // ── Docked action bar: single Finish Ride button ───────────────────────
       const dock = document.createElement("div");
@@ -700,6 +710,22 @@
 
       document.body.appendChild(dock);
       journeyUI._dockEl = dock;
+    },
+
+    // Place (or replace) the grey pickup pin on the map.
+    // Called from all three journey states so the boarding spot is always visible —
+    // teardown() removes it between state transitions so pins don't stack.
+    _addPickupPin(j) {
+      if (window.L && window.map && j.pickup) {
+        const greyIcon = L.icon({
+          iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-grey.png",
+          shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+          iconSize: [25, 41], iconAnchor: [12, 41],
+          popupAnchor: [1, -34], shadowSize: [41, 41],
+        });
+        journeyUI._pickupPin = L.marker([j.pickup.lat, j.pickup.lon], { icon: greyIcon })
+          .addTo(window.map);
+      }
     },
 
     // Toggle the Finish Ride button's busy state during the ~5s Nostr publish.
@@ -862,14 +888,16 @@
       ].forEach(function (opt) {
         const chip = document.createElement("button");
         chip.type = "button";
-        chip.className = "inr-chip" + (opt.code === "car" ? " inr-chip--on" : "");
+        // inr-optchip (not inr-chip) avoids the CSS collision with the fixed status
+        // pill — both are bare selectors of equal specificity and would merge otherwise.
+        chip.className = "inr-optchip" + (opt.code === "car" ? " inr-optchip--on" : "");
         chip.textContent = opt.label;
         chip.setAttribute("data-code", opt.code);
         chip.addEventListener("click", function () {
           vehicleKind = opt.code;
           // Single-select: deactivate siblings, activate tapped chip.
-          vehicleChipsEl.querySelectorAll(".inr-chip").forEach(function (c) {
-            c.classList.toggle("inr-chip--on", c.getAttribute("data-code") === vehicleKind);
+          vehicleChipsEl.querySelectorAll(".inr-optchip").forEach(function (c) {
+            c.classList.toggle("inr-optchip--on", c.getAttribute("data-code") === vehicleKind);
           });
         });
         vehicleChipsEl.appendChild(chip);
@@ -894,13 +922,13 @@
       ].forEach(function (opt) {
         const chip = document.createElement("button");
         chip.type = "button";
-        chip.className = "inr-chip";
+        chip.className = "inr-optchip"; // inr-optchip: distinct from status-pill .inr-chip
         chip.textContent = opt.label;
         chip.setAttribute("data-code", opt.code);
         chip.addEventListener("click", function () {
           // Toggle: each signal method can be selected independently.
-          if (signals.has(opt.code)) { signals.delete(opt.code); chip.classList.remove("inr-chip--on"); }
-          else { signals.add(opt.code); chip.classList.add("inr-chip--on"); }
+          if (signals.has(opt.code)) { signals.delete(opt.code); chip.classList.remove("inr-optchip--on"); }
+          else { signals.add(opt.code); chip.classList.add("inr-optchip--on"); }
         });
         signalChipsEl.appendChild(chip);
       });
@@ -1042,7 +1070,8 @@
     //   - GPS fix (getFixWithRetry): {lat, lon} — moved onto the marker via setLatLng
     //   - onConfirm OUT: marker.getLatLng() → Leaflet LatLng (has .lat / .lng)
     //     nextRide reads latlng.lng, so we must pass a Leaflet LatLng — NOT {lat, lon}.
-    setWaitingSpot(defaultLatLng, onConfirm) {
+    //   - onCancel (optional): called when user taps Cancel; used to return to whatsNext.
+    setWaitingSpot(defaultLatLng, onConfirm, onCancel) {
       if (!window.L || !window.map) return;
 
       // Pre-place the pin at the drop-off so one tap confirms (common case: wait here).
@@ -1066,8 +1095,11 @@
         "<h4>Where are you waiting?</h4>",
         "<p>Drag the pin or tap the map, then confirm.</p>",
         '<div class="lsel-actions">',
-        '<button class="lsel-cancel" id="inr-waiting-myloc">Use my location</button>',
+        // "Use my location" is a positive/neutral action — give it confirm styling so
+        // it doesn't read as a dismiss button; Cancel gets lsel-cancel (muted style).
+        '<button class="lsel-confirm" id="inr-waiting-myloc">Use my location</button>',
         '<button class="lsel-confirm" id="inr-waiting-confirm">Confirm</button>',
+        '<button class="lsel-cancel" id="inr-waiting-cancel">Cancel</button>',
         "</div>",
       ].join("");
       document.body.appendChild(ui);
@@ -1096,6 +1128,12 @@
         const ll = marker.getLatLng();
         cleanup();
         onConfirm(ll);
+      });
+
+      // Cancel returns the user to the "What's next?" dialog (e.g. to choose End Hitch).
+      document.getElementById("inr-waiting-cancel").addEventListener("click", function () {
+        cleanup();
+        if (onCancel) onCancel();
       });
     },
   };
@@ -1153,8 +1191,9 @@
     const pend = localStorage.getItem(PENDING_KEY);
     if (pend && window.IS_LOGGED_IN) {
       localStorage.removeItem(PENDING_KEY);
-      try { const p = JSON.parse(pend); journeyFlow.start(L.latLng(p.lat, p.lon)); } catch (e) {}
-      return; // journeyFlow.start already rendered; skip the resume path
+      // return is INSIDE the try so a malformed PENDING_KEY that throws falls through
+      // to the store-resume path below instead of short-circuiting the whole init.
+      try { const p = JSON.parse(pend); journeyFlow.start(L.latLng(p.lat, p.lon)); return; } catch (e) {}
     } else if (pend) {
       // Returned still anonymous (login cancelled or failed) — discard the stash.
       localStorage.removeItem(PENDING_KEY);

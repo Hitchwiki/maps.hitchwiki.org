@@ -2099,7 +2099,11 @@ body.showing-insights .heatmap-legend-pane {
   flex-wrap: wrap;
 }
 
-.inr-chip {
+/* .inr-optchip: vehicle/signal selection chips inside the ride-details sheet.
+   Named differently from .inr-chip (the fixed status pill) to avoid CSS collision —
+   both would be bare selectors of equal specificity and would merge position:fixed
+   rules onto the sheet chips, floating them over the map. */
+.inr-optchip {
   border: 1.5px solid #d8d8d8;
   border-radius: 18px;
   padding: 6px 12px;
@@ -2111,8 +2115,8 @@ body.showing-insights .heatmap-legend-pane {
   line-height: 1;
 }
 
-/* Selected chip: blue outline + tinted fill */
-.inr-chip--on {
+/* Selected optchip: blue outline + tinted fill */
+.inr-optchip--on {
   border-color: #1a73e8;
   background: #eaf2fe;
   color: #1a73e8;

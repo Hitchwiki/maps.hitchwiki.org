@@ -3025,7 +3025,7 @@ function startAddSpotFromGesture(latlng, containerPoint) {
 }
 
 // Expose the pieces the in-ride tracker composes with (it loads after map.js).
-window.map = map;
+window.map = map; // intentional: exposes the Leaflet instance for inride.js (marker placement, layer removal)
 window.getLocationMarker = () => locationMarker;
 window.setMapMode = setMapMode;
 window.toggleHeatmap = toggleHeatmap;
