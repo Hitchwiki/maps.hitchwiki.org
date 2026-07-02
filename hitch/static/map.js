@@ -283,7 +283,11 @@ function populateHeatmapLegend(legendData) {
   await loadMarkers(map);
 
   setupEventListeners();
-  
+
+  // Nudge first-time users toward the view switcher; short delay so the pointer
+  // doesn't fight the initial map load/animation.
+  setTimeout(showNextModeHint, 1500);
+
   // Set up filter pane collapse toggle
   var filterCollapseBtn = document.getElementById('filter-collapse-btn');
   var filterPaneEl = document.getElementById('filter-pane');
@@ -612,6 +616,31 @@ function stripWikiTemplates(text) {
   return out;
 }
 
+// Remove [[File:...]] / [[Image:...]] embeds, honouring nested [[ ]].
+// A regex can't do this reliably: captions routinely contain single-bracket
+// external links ([https://... label]) and nested [[wikilinks]], which throw
+// off any bracket-counting pattern and let the whole embed leak through as
+// prose. Scan instead — track [[ ]] depth and drop everything from an image's
+// opening [[ to its matching ]], whatever brackets the caption holds.
+function stripWikiImages(text) {
+  let out = "";
+  for (let i = 0; i < text.length; ) {
+    if (text[i] === "[" && text[i + 1] === "[" && /^(?:File|Image):/i.test(text.slice(i + 2))) {
+      let depth = 1;
+      i += 2;
+      while (i < text.length && depth > 0) {
+        if (text[i] === "[" && text[i + 1] === "[") { depth++; i += 2; }
+        else if (text[i] === "]" && text[i + 1] === "]") { depth--; i += 2; }
+        else i++;
+      }
+      continue;
+    }
+    out += text[i];
+    i++;
+  }
+  return out;
+}
+
 // Render lead-section wikitext as safe HTML (prose + links only).
 function renderCountryWikitext(raw) {
   let t = raw;
@@ -619,12 +648,12 @@ function renderCountryWikitext(raw) {
   t = t.replace(/<ref[^>]*\/>/gi, ""); // self-closing <ref/>
   t = t.replace(/<ref[^>]*>[\s\S]*?<\/ref>/gi, ""); // <ref>...</ref>
   // <gallery>…</gallery> blocks list images as bare "File:name.jpg|caption"
-  // lines (no [[ ]]), so the image regex below won't catch them — drop the
+  // lines (no [[ ]]), so stripWikiImages below won't catch them — drop the
   // whole block, otherwise the filenames leak through as prose text.
   t = t.replace(/<gallery[^>]*>[\s\S]*?<\/gallery>/gi, "");
   t = stripWikiTemplates(t);
   t = t.replace(/__[A-Z]+__/g, ""); // magic words (__TOC__, __NOTOC__, …)
-  t = t.replace(/\[\[(?:File|Image):[^\[\]]*(?:\[\[[^\]]*\]\][^\[\]]*)*\]\]/gi, ""); // images
+  t = stripWikiImages(t); // [[File:...]] / [[Image:...]] embeds
   t = t.replace(/^\s*[*#:;].*$/gm, ""); // list/indent lines (keep it prose-only)
 
   // Escape any remaining raw HTML before we inject our own safe markup.
@@ -906,6 +935,56 @@ function setupMapModeControl() {
   });
   new ModeControl().addTo(map);
   updateMapModeButtons();
+}
+
+// ---- One-time feature pointers for the map-mode switcher ------------------
+// Ordered queue: each entry drops a red pointer next to a mode button, shown
+// ONCE per user (a boolean flag in localStorage — no reappear window). Only the
+// first not-yet-seen pointer is shown at a time, and it is dismissed ONLY by
+// clicking the feature it points at; that click then advances to the next
+// pointer. So the heatmap and country pointers never appear together but strictly
+// in sequence, each waiting for the user to actually try the feature.
+const MODE_HINTS = [
+  { mode: "heatmap", key: "hintSeen.heatmap" },
+  { mode: "countries", key: "hintSeen.countries" },
+];
+
+function hintSeen(key) {
+  // If storage is blocked, treat as seen so we never nag users we can't remember.
+  try { return localStorage.getItem(key) === "1"; } catch (e) { return true; }
+}
+function markHintSeen(key) {
+  try { localStorage.setItem(key, "1"); } catch (e) {}
+}
+
+function showNextModeHint() {
+  const hint = MODE_HINTS.find((h) => !hintSeen(h.key));
+  if (!hint) return; // all features already tried
+  const btn = mapModeButtons[hint.mode];
+  if (!btn) return;
+
+  const pointer = document.createElement("div");
+  pointer.className = "mode-hint-pointer";
+  pointer.innerHTML = '<i class="fa-solid fa-arrow-right" aria-hidden="true"></i>';
+  document.body.appendChild(pointer);
+
+  // The switcher is docked bottom-right, so sit just to its left pointing in.
+  function position() {
+    const r = btn.getBoundingClientRect();
+    pointer.style.top = `${r.top + r.height / 2}px`;
+    pointer.style.right = `${window.innerWidth - r.left + 8}px`;
+  }
+  position();
+  window.addEventListener("resize", position);
+
+  function dismiss() {
+    markHintSeen(hint.key);
+    pointer.remove();
+    window.removeEventListener("resize", position);
+    showNextModeHint(); // advance to the next unseen feature, if any
+  }
+  // Dismissal is clicking the feature itself — no banner, no close button.
+  btn.addEventListener("click", dismiss, { once: true });
 }
 
 function setupLocateControl() {
