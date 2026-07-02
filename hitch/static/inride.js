@@ -113,6 +113,19 @@
     journeyUI.render(j);
   };
 
+  // Gave up waiting: hand off to the normal add-spot form, prefilled with the
+  // pause-aware wait time and the waiting location; the user adds a comment + rating.
+  journeyFlow.giveUp = function () {
+    const j = journeyStore.get(); if (!j) return;
+    const waitMin = Math.round(journeyStore.currentWaitMs(j, Date.now()) / 60000);
+    sessionStorage.setItem("rideFormData", JSON.stringify({
+      pickup_lat: j.pickup.lat, pickup_lon: j.pickup.lon, wait: waitMin,
+    }));
+    journeyStore.clear();
+    journeyUI.teardown();
+    window.location.href = "/ride";
+  };
+
   // ── journeyUI ────────────────────────────────────────────────────────────────
   // Renders a scrim + bottom card mirroring .location-selection-ui.
   // Returns a close handle { close() } so callers can dismiss programmatically.
