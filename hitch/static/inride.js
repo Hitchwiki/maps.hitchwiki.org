@@ -901,4 +901,60 @@
   };
 
   window.inride = { journeyStore, journeyUI, journeyFlow }; // more attached in later tasks
+
+  // ── On-load init ─────────────────────────────────────────────────────────────
+
+  const STALE_MS = 24 * 60 * 60 * 1000; // 24 h: threshold for "Welcome back" affordance
+
+  // Determine the last-active timestamp for staleness detection.
+  // waiting  → waitSegmentStartMs (current segment's anchor in localStorage)
+  // paused   → approximate journey-start (now minus banked wait; no explicit pause-time stored)
+  // in-ride  → gotRideMs (when the user boarded)
+  function lastActiveMs(j) {
+    if (j.state === "waiting") return j.waitSegmentStartMs || Date.now();
+    if (j.state === "in-ride") return j.gotRideMs || Date.now();
+    // paused: waitSegmentStartMs is null; derive from banked total as best available proxy
+    return Date.now() - (j.waitAccumMs || 0);
+  }
+
+  // Rehydrate on load: restore the docked UI + timer for an in-progress journey.
+  // Also complete a login round-trip (pendingStart) begun from the soft prompt.
+  function initInride() {
+    // Complete the login round-trip: the "Log in" button stashed the chosen spot in
+    // PENDING_KEY before redirecting; on return we pick it up and start the journey.
+    const pend = localStorage.getItem(PENDING_KEY);
+    if (pend && window.IS_LOGGED_IN) {
+      localStorage.removeItem(PENDING_KEY);
+      try { const p = JSON.parse(pend); journeyFlow.start(L.latLng(p.lat, p.lon)); } catch (e) {}
+      return; // journeyFlow.start already rendered; skip the resume path
+    } else if (pend) {
+      // Returned still anonymous (login cancelled or failed) — discard the stash.
+      localStorage.removeItem(PENDING_KEY);
+    }
+
+    const j = journeyStore.get();
+    if (!j) return;
+
+    // Old-journey affordance: if the current segment's anchor is > 24 h old, offer
+    // Resume (restore as-is) or Discard before drawing the timer and dock, so the
+    // user isn't silently dropped into a stale journey after overnight or longer.
+    if (Date.now() - lastActiveMs(j) > STALE_MS) {
+      journeyUI.dialog({
+        title: "Welcome back!",
+        body: "You have a hitching journey from more than 24 hours ago. Continue where you left off?",
+        actions: [
+          { label: "Resume",  cls: "inr-primary", onClick: function () { journeyUI.render(j); } },
+          { label: "Discard", cls: "inr-grey",    onClick: function () { journeyFlow.end(); } },
+        ],
+      });
+      return;
+    }
+
+    journeyUI.render(j); // waiting | paused | in-ride
+  }
+
+  // Run only after Leaflet's window.map is ready — _renderInRide places a Leaflet marker
+  // and needs the map instance to exist first. Poll at 100 ms; interval clears itself.
+  if (window.map) initInride();
+  else { const t = setInterval(function () { if (window.map) { clearInterval(t); initInride(); } }, 100); }
 })();
