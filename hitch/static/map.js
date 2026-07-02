@@ -430,6 +430,13 @@ function requestLocation() {
 function showLocation(e) {
   const radius = e.accuracy; // metres
 
+  // While selecting a location (notably the destination leg, which starts with
+  // no pin), a GPS-button tap is the user asking to drop the endpoint on their
+  // current position — so place/move the selection pin there too.
+  if (locationSelectionType) {
+    placeOrMoveSelectionMarker(e.latlng);
+  }
+
   if (locationMarker) {
     locationMarker.setLatLng(e.latlng);
   } else {
@@ -1087,6 +1094,13 @@ function setupEventListeners() {
 
 // Handle map click events
 function handleMapClick(e) {
+  // While selecting a location, every tap is meant to place/move the endpoint
+  // pin (handled by locationSelectionClickHandler). Bail out before the
+  // tap-to-nearest-spot shortcut below, which would otherwise fire a nearby
+  // spot's click — opening its popup or navigating away and tearing down the
+  // selection, which is exactly what forced the user to tap several times.
+  if (locationSelectionType) return;
+
   var added = false;
   // Countries mode hides the spot markers (but keeps them in `allMarkers`), so
   // skip the tap-to-nearest-spot shortcut — otherwise tapping a country would
@@ -2781,6 +2795,38 @@ let locationSelectionIsNewSpot = false;
 // would strip handleMapClick too, breaking the map when we stay on it after cancel).
 let locationSelectionClickHandler = null;
 
+// If a tap/press lands within snapping range of a visible spot marker, treat
+// it as choosing THAT spot (merge the endpoint onto the spot's exact coords)
+// rather than creating a near-duplicate anchor next to it — the user is plausibly
+// aiming for that spot as their drop-off. Falls back to the raw latlng when the
+// press is nowhere near a spot, or when no screen point is available (e.g. GPS).
+function snapSelectionLatLng(latlng, containerPoint) {
+    const snapped = containerPoint ? findNearbySpotMarker(containerPoint) : null;
+    return snapped ? snapped.getLatLng() : latlng;
+}
+
+// Create the draggable selection pin on first placement, or move it if it
+// already exists. Shared by every way of placing the endpoint — single tap
+// (Leaflet click), long-press gesture, and the GPS button — so all three
+// behave identically and never stack a second marker.
+function placeOrMoveSelectionMarker(latlng) {
+    if (locationSelectionMarker) {
+        locationSelectionMarker.setLatLng(latlng);
+        return;
+    }
+    locationSelectionMarker = L.marker(latlng, {
+        draggable: true,
+        icon: L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        })
+    }).addTo(map);
+}
+
 function setupLocationSelection(selectionType, initialCoords, opts = {}) {
     locationSelectionType = selectionType;
     locationSelectionIsNewSpot = !!opts.isNewSpot;
@@ -2796,25 +2842,21 @@ function setupLocationSelection(selectionType, initialCoords, opts = {}) {
         }
     }
 
-    // Place the draggable marker at the explicit seed location (gesture-initiated
-    // add) when given, otherwise at the current map center (form-initiated pick).
-    const markerLatLng = opts.initialLatLng || map.getCenter();
-    locationSelectionMarker = L.marker(markerLatLng, {
-        draggable: true,
-        icon: L.icon({
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34],
-            shadowSize: [41, 41]
-        })
-    }).addTo(map);
+    // The destination leg starts with NO pin: the map centers on the pickup for
+    // context, but auto-dropping a marker there would silently set the endpoint
+    // to the origin. The user must place it themselves (single/long tap) or via
+    // the GPS button. Pickup picks and gesture-initiated adds keep a pre-placed
+    // pin (at the seed location, or the current map center).
+    if (selectionType !== 'select-destination') {
+        placeOrMoveSelectionMarker(opts.initialLatLng || map.getCenter());
+    }
 
-    // Update marker position when map is clicked (kept in a named handler so
-    // cleanup can detach only this one — see locationSelectionClickHandler).
+    // A single tap (Leaflet click) places or moves the pin. Long-press is routed
+    // to the same helper via the add-spot gesture path (see startAddSpotFromGesture)
+    // so both a quick tap and a long press set/move the endpoint. Kept in a named
+    // handler so cleanup can detach only this one — see locationSelectionClickHandler.
     locationSelectionClickHandler = function(e) {
-        locationSelectionMarker.setLatLng(e.latlng);
+        placeOrMoveSelectionMarker(snapSelectionLatLng(e.latlng, e.containerPoint));
     };
     map.on('click', locationSelectionClickHandler);
 
@@ -2993,6 +3035,15 @@ function findNearbySpotMarker(containerPoint, thresholdPx = 22) {
 // Begin adding a hitch site from a map gesture: seed a draggable pin (snapping
 // onto an existing spot when the press lands on one) and show the confirm panel.
 function startAddSpotFromGesture(latlng, containerPoint) {
+    // A location selection is already active (e.g. picking a destination): a
+    // long-press means "place/move the endpoint here", not "start a new add".
+    // This is what makes a long tap set the pin — the destination leg has no
+    // marker yet, so we can't rely on the `if (marker) return` guard below.
+    if (locationSelectionType) {
+        placeOrMoveSelectionMarker(snapSelectionLatLng(latlng, containerPoint));
+        return;
+    }
+
     // Ignore if a selection is already in progress.
     if (locationSelectionMarker) return;
 
