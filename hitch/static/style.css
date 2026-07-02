@@ -567,6 +567,23 @@ body.adding-spot .leaflet-control-attribution {
   color: #fff;
 }
 
+/* One-time red pointer nudging first-time users to try a view-switcher button.
+   pointer-events:none so it never blocks the click it's inviting. */
+.mode-hint-pointer {
+  position: fixed;
+  transform: translateY(-50%);
+  z-index: 1000;
+  color: #e53935;
+  font-size: 22px;
+  pointer-events: none;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  animation: mode-hint-nudge 0.8s ease-in-out infinite;
+}
+@keyframes mode-hint-nudge {
+  0%, 100% { transform: translateY(-50%) translateX(0); }
+  50%      { transform: translateY(-50%) translateX(-6px); }
+}
+
 /* Country info bottom sheet (Hitchwiki lead section for a tapped country). */
 .sidebar.country .country-header {
   display: flex;
