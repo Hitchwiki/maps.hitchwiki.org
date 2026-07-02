@@ -81,6 +81,23 @@
     });
   };
 
+  // Bank the running wait segment and freeze the timer — paused time is never
+  // counted toward the recorded wait. State transitions: waiting → paused.
+  journeyFlow.pause = function () {
+    const j = journeyStore.get(); if (!j || j.state !== "waiting") return;
+    // Bank the active segment and stop the clock so a break/overnight is excluded.
+    j.waitAccumMs = journeyStore.currentWaitMs(j, Date.now());
+    j.waitSegmentStartMs = null; j.state = "paused";
+    journeyUI.render(journeyStore.set(j));
+  };
+
+  // Restart the wait segment from now — continues from where it froze. State: paused → waiting.
+  journeyFlow.resume = function () {
+    const j = journeyStore.get(); if (!j || j.state !== "paused") return;
+    j.waitSegmentStartMs = Date.now(); j.state = "waiting";
+    journeyUI.render(journeyStore.set(j));
+  };
+
   // Seed the waiting journey. Pickup = the chosen latlng; wait timer starts now.
   journeyFlow.start = function (latlng) {
     const j = journeyStore.set({
@@ -129,10 +146,7 @@
           journeyUI._renderWaiting(j);
           break;
         case "paused":
-          // TODO(Task 6): render the paused state (frozen chip, Resume pill, disabled Got a Ride!).
-          // Not trivially safe to fall through — the tick would run while paused —
-          // so no-op until Task 6 lands.
-          console.log("[inride] paused render not yet implemented (Task 6)");
+          journeyUI._renderPaused(j);
           break;
         case "in-ride":
           // TODO(Task 9): render the in-ride state (single orange Finish Ride button).
@@ -202,6 +216,60 @@
         // journeyFlow.gotRide is implemented in Task 8; tapping is a no-op until it lands.
         journeyFlow.gotRide && journeyFlow.gotRide();
       });
+      dock.appendChild(gotRideBtn);
+
+      document.body.appendChild(dock);
+      journeyUI._dockEl = dock;
+    },
+
+    // Build the paused dock bar + frozen chip (mirrors waiting but timer is frozen
+    // and Got a Ride! is disabled — resume first before claiming a ride).
+    _renderPaused(j) {
+      // ── Status chip (FROZEN — no tick interval while paused) ────────────────
+      // Shows the banked accumulator only; the null segment contributes zero.
+      const chip = document.createElement("div");
+      chip.className = "inr-chip inr-chip--paused";
+
+      const dot = document.createElement("span");
+      dot.className = "inr-chip__dot";
+      chip.appendChild(dot);
+
+      const label = document.createElement("span");
+      label.className = "inr-chip__label";
+      // waitSegmentStartMs is null so currentWaitMs equals waitAccumMs — display is frozen.
+      label.textContent = "Paused · waited " + fmtHMS(journeyStore.currentWaitMs(j, Date.now()));
+      chip.appendChild(label);
+
+      // Resume pill: restarts the wait segment from now.
+      const resumeBtn = document.createElement("button");
+      resumeBtn.className = "inr-pausepill";
+      resumeBtn.innerHTML = '<i class="fa-solid fa-play"></i> Resume';
+      resumeBtn.addEventListener("click", function () {
+        journeyFlow.resume();
+      });
+      chip.appendChild(resumeBtn);
+
+      document.body.appendChild(chip);
+      journeyUI._chipEl = chip;
+
+      // ── Docked action bar ────────────────────────────────────────────────────
+      const dock = document.createElement("div");
+      dock.className = "inr-dock";
+
+      // Give Up (red) — active even while paused; implemented in Task 7.
+      const giveUpBtn = document.createElement("button");
+      giveUpBtn.className = "inr-big inr-big--red";
+      giveUpBtn.innerHTML = '<i class="fa-solid fa-flag"></i> Give Up';
+      giveUpBtn.addEventListener("click", function () {
+        journeyFlow.giveUp && journeyFlow.giveUp();
+      });
+      dock.appendChild(giveUpBtn);
+
+      // Got a Ride! — disabled while paused so accidental taps can't cut the wait short.
+      const gotRideBtn = document.createElement("button");
+      gotRideBtn.className = "inr-big inr-big--green inr-disabled";
+      gotRideBtn.disabled = true;
+      gotRideBtn.innerHTML = '<i class="fa-solid fa-thumbs-up"></i> Got a Ride!';
       dock.appendChild(gotRideBtn);
 
       document.body.appendChild(dock);

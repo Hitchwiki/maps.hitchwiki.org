@@ -1983,6 +1983,20 @@ body.showing-insights .heatmap-legend-pane {
   box-shadow: 0 0 0 4px rgba(255, 204, 51, .3);
 }
 
+/* Disabled big button (e.g. Got a Ride! while paused — must resume first) */
+.inr-big.inr-disabled {
+  background: #c7ccd1;
+  color: #eef2f5;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* Paused state: grey dot */
+.inr-chip--paused .inr-chip__dot {
+  background: #9aa0a6;
+  box-shadow: 0 0 0 4px rgba(154, 160, 166, .3);
+}
+
 /* Pause / Resume pill inside the chip */
 .inr-pausepill {
   margin-left: 8px;
