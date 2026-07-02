@@ -553,18 +553,16 @@ body.inride-active .locate-control {
   display: none;
 }
 
-/* During a journey the docked Give Up / Got a Ride / Finish Ride bar replaces the
-   main bottom nav (Activities/Heatmap/Insights/Ride/Leaderboard/Menu), which
-   otherwise sits on top of the dock (its z-index 2001 > .inr-dock 1200). Hide it,
-   mirroring the adding-spot / selecting-location patterns. */
-body.inride-active .bottom-action-pane {
-  display: none;
-}
+/* The docked journey bar (Give Up / Got a Ride / Finish Ride) rides ABOVE the main
+   bottom nav rather than replacing it. All journey chrome is offset up by the nav's
+   measured height (--bottom-pane-h, set by updateBottomPaneVar in map.js) so the
+   nav stays usable and nothing overlaps. See .inr-dock / .inr-chip / .inr-cf* and
+   the zoom margin below. */
 
 /* Push the zoom control up so it clears the docked bar (≈84 px) + status chip
    (≈36 px) + gap, leaving room for the cover-flow stack above it. */
 body.inride-active .leaflet-bottom.leaflet-right .leaflet-control-zoom {
-  margin-bottom: 130px !important;
+  margin-bottom: calc(130px + var(--bottom-pane-h, 0px)) !important;
 }
 
 .mapmode-btn {
@@ -1945,10 +1943,12 @@ body.showing-insights .heatmap-legend-pane {
   position: fixed;
   left: 10px;
   right: 10px;
-  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  /* Ride above the bottom nav (its measured height), with a 10px gap. z-index over
+     the nav (2001) as a belt-and-suspenders against rounding in the measurement. */
+  bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 10px);
   display: flex;
   gap: 10px;
-  z-index: 1200;
+  z-index: 2002;
 }
 
 /* Big action buttons — bold, rounded, coloured per action */
@@ -1977,9 +1977,10 @@ body.showing-insights .heatmap-legend-pane {
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
-  /* 84 px clears the dock (~16 bottom + 48 button height + 20 gap) plus safe area */
-  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
-  z-index: 1200;
+  /* Sits ~68px above the dock (which is itself above the nav via --bottom-pane-h),
+     so it clears the two big buttons + a gap. */
+  bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 78px);
+  z-index: 2002;
   background: rgba(17, 17, 17, .85);
   color: #fff;
   border-radius: 20px;
@@ -2206,7 +2207,7 @@ body.showing-insights .heatmap-legend-pane {
 .inr-cf-collapsed {
   position: fixed;
   right: 10px;
-  bottom: 214px;
+  bottom: calc(214px + var(--bottom-pane-h, 0px));
   width: 44px;
   height: 44px;
   z-index: 1201;
@@ -2250,7 +2251,7 @@ body.showing-insights .heatmap-legend-pane {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 216px;
+  bottom: calc(216px + var(--bottom-pane-h, 0px));
   height: 150px;
   z-index: 1201;
   perspective: 760px;
