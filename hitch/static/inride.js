@@ -252,8 +252,9 @@
     _chipEl: null,       // the status chip above the dock
     _finishBtn: null,    // the Finish Ride button (for setFinishBusy)
     _pickupPin: null,    // Leaflet marker at the pickup location (in-ride state)
-    _cfEl: null,         // the cover-flow root element (collapsed or expanded)
-    _cfFaceIdx: 0,       // index of the last-used control (default: Locate = 0)
+    _cfEl: null,          // the cover-flow root element (collapsed or expanded)
+    _cfFaceIdx: 0,        // index of the last-used control (default: Locate = 0)
+    _onOutsideClick: null, // hoisted so destroyControlStack can remove it unconditionally
 
     // Remove all journey chrome and stop the live timer.
     teardown() {
@@ -321,10 +322,13 @@
 
       // Per-offset 3-D transforms for the cover-flow tiles.
       // offset 0 = selected (centre, face-on); ±1 = immediate neighbours; ±2+ = far.
+      // With 4 controls the extreme selection puts one tile at offset ±3; include it
+      // so all four tiles are always visible regardless of which index is selected.
       const TILE_STYLE = [
         null, // placeholder for offset 0 — handled separately as the selected tile
         { tx:  46, ry: -40, sc: 0.9,  op: 0.92, zi: 2 },  // offset +1 (right neighbour)
         { tx:  86, ry: -52, sc: 0.8,  op: 0.8,  zi: 1 },  // offset +2 (far right)
+        { tx: 120, ry: -60, sc: 0.7,  op: 0.6,  zi: 0 },  // offset +3 (outermost, 4-tile span)
       ];
 
       // Derive the initial face from the current map mode so the face matches
@@ -380,8 +384,8 @@
           tiles.forEach(function (tile, i) {
             const offset = i - selIdx;
             const absOff = Math.abs(offset);
-            if (absOff > 2) {
-              // Hide items more than 2 away — keep in DOM to make swipe smooth.
+            if (absOff > 3) {
+              // Hide items more than 3 away — keep in DOM to make swipe smooth.
               tile.style.opacity = "0";
               tile.style.pointerEvents = "none";
               return;
@@ -463,20 +467,29 @@
         }, { passive: true });
 
         // Tap outside the expanded flow collapses with no change.
-        function onOutsideClick() {
-          document.removeEventListener("click", onOutsideClick);
+        // Stored on journeyUI so destroyControlStack() can remove it unconditionally,
+        // preventing a ghost tile rebuild if the journey ends while expanded.
+        journeyUI._onOutsideClick = function () {
+          document.removeEventListener("click", journeyUI._onOutsideClick);
+          journeyUI._onOutsideClick = null;
           journeyUI.destroyControlStack();
           buildCollapsed();
-        }
+        };
         // Use setTimeout so this listener doesn't fire on the same tap that opened the flow.
-        setTimeout(function () { document.addEventListener("click", onOutsideClick); }, 0);
+        setTimeout(function () {
+          // Guard: journey may have been torn down during the 0-ms delay.
+          if (journeyUI._onOutsideClick) {
+            document.addEventListener("click", journeyUI._onOutsideClick);
+          }
+        }, 0);
 
         document.body.appendChild(cf);
         journeyUI._cfEl = cf;
 
         // Apply a control and collapse back to the face tile.
         function applyControl(idx) {
-          document.removeEventListener("click", onOutsideClick);
+          document.removeEventListener("click", journeyUI._onOutsideClick);
+          journeyUI._onOutsideClick = null;
           journeyUI._cfFaceIdx = idx;
           // Apply the selected layer — does NOT touch journey state.
           const id = CONTROLS[idx].id;
@@ -500,6 +513,12 @@
         journeyUI._cfEl.parentNode.removeChild(journeyUI._cfEl);
       }
       journeyUI._cfEl = null;
+      // Remove the outside-click listener if the flow was torn down while expanded,
+      // preventing a ghost tile rebuild on the next document click after teardown.
+      if (journeyUI._onOutsideClick) {
+        document.removeEventListener("click", journeyUI._onOutsideClick);
+        journeyUI._onOutsideClick = null;
+      }
     },
 
     // Build the waiting dock bar + live-timer chip.
