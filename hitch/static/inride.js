@@ -126,6 +126,17 @@
     window.location.href = "/ride";
   };
 
+  // Boarded: departure time = now, wait is frozen (pause-aware), ride details are
+  // captured; submission is deferred to Finish Ride (destination not known yet).
+  journeyFlow.gotRide = function (details) {
+    const j = journeyStore.get(); if (!j || (j.state !== "waiting")) return;
+    j.gotRideMs = Date.now();
+    j.finalWaitMs = journeyStore.currentWaitMs(j, j.gotRideMs);
+    j.details = details; // {rating, vehicle_kind, signal:[...], comment}
+    j.state = "in-ride";
+    journeyUI.render(journeyStore.set(j));
+  };
+
   // ── journeyUI ────────────────────────────────────────────────────────────────
   // Renders a scrim + bottom card mirroring .location-selection-ui.
   // Returns a close handle { close() } so callers can dismiss programmatically.
@@ -221,13 +232,15 @@
       });
       dock.appendChild(giveUpBtn);
 
-      // Got a Ride! (green) — implemented in Task 8; wired defensively.
+      // Got a Ride! (green) — opens the ride-details sheet; sheet's Ride On! calls gotRide.
       const gotRideBtn = document.createElement("button");
       gotRideBtn.className = "inr-big inr-big--green";
       gotRideBtn.innerHTML = '<i class="fa-solid fa-thumbs-up"></i> Got a Ride!';
       gotRideBtn.addEventListener("click", function () {
-        // journeyFlow.gotRide is implemented in Task 8; tapping is a no-op until it lands.
-        journeyFlow.gotRide && journeyFlow.gotRide();
+        // Open the slim sheet to capture rating/details; gotRide is called on Ride On!.
+        journeyUI.rideDetailsSheet(function (details) {
+          journeyFlow.gotRide(details);
+        });
       });
       dock.appendChild(gotRideBtn);
 
@@ -287,6 +300,191 @@
 
       document.body.appendChild(dock);
       journeyUI._dockEl = dock;
+    },
+
+    // ── Slim "How was the spot?" bottom sheet ──────────────────────────────────
+    // Opens over the scrim. onSave({ rating, vehicle_kind, signal:[...], comment })
+    // is called when the user taps "Ride On!" (requires a rating to enable).
+    // Signal codes match ride_form.html datalist: thumb / sign / ask.
+    // Vehicle kind codes match KindEnum: car / truck / van.
+    rideDetailsSheet(onSave) {
+      // Close any already-open dialog so we can't stack overlays.
+      if (journeyUI._openDialog) journeyUI._openDialog.close();
+
+      const scrim = document.createElement("div");
+      scrim.className = "inride-scrim";
+
+      const sheet = document.createElement("div");
+      sheet.className = "inr-sheet";
+
+      // Drag handle visual cue
+      const grab = document.createElement("div");
+      grab.className = "inr-sheet__grab";
+      sheet.appendChild(grab);
+
+      // Title
+      const titleEl = document.createElement("h4");
+      titleEl.textContent = "How was the spot?";
+      sheet.appendChild(titleEl);
+
+      // ── 5-star rating (required — Ride On! stays disabled until a star is tapped) ──
+      let rating = 0;
+      const starsEl = document.createElement("div");
+      starsEl.className = "inr-stars";
+      const starEls = [];
+      for (let i = 1; i <= 5; i++) {
+        const star = document.createElement("span");
+        star.className = "inr-star";
+        star.setAttribute("data-value", String(i));
+        star.textContent = "★";
+        star.addEventListener("click", (function (val) {
+          return function () { rating = val; updateStars(); updateRideOnBtn(); };
+        }(i)));
+        starsEl.appendChild(star);
+        starEls.push(star);
+      }
+      function updateStars() {
+        starEls.forEach(function (s, idx) {
+          s.classList.toggle("inr-star--on", idx < rating);
+        });
+      }
+      sheet.appendChild(starsEl);
+
+      // ── Vehicle-kind chips: single-select, default = car ──────────────────────
+      let vehicleKind = "car";
+      const vehicleField = document.createElement("div");
+      vehicleField.className = "inr-field";
+      const vehicleLabel = document.createElement("label");
+      vehicleLabel.textContent = "Who picked you up?";
+      vehicleField.appendChild(vehicleLabel);
+      const vehicleChipsEl = document.createElement("div");
+      vehicleChipsEl.className = "inr-chips";
+      [
+        { code: "car",   label: "🚗 Car"   },
+        { code: "truck", label: "🚚 Truck" },
+        { code: "van",   label: "🚐 Van"   },
+      ].forEach(function (opt) {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "inr-chip" + (opt.code === "car" ? " inr-chip--on" : "");
+        chip.textContent = opt.label;
+        chip.setAttribute("data-code", opt.code);
+        chip.addEventListener("click", function () {
+          vehicleKind = opt.code;
+          // Single-select: deactivate siblings, activate tapped chip.
+          vehicleChipsEl.querySelectorAll(".inr-chip").forEach(function (c) {
+            c.classList.toggle("inr-chip--on", c.getAttribute("data-code") === vehicleKind);
+          });
+        });
+        vehicleChipsEl.appendChild(chip);
+      });
+      vehicleField.appendChild(vehicleChipsEl);
+      sheet.appendChild(vehicleField);
+
+      // ── Signal chips: multi-select (array of codes sent to /ride) ─────────────
+      // Codes verified against ride_form.html datalist: thumb / sign / ask.
+      const signals = new Set();
+      const signalField = document.createElement("div");
+      signalField.className = "inr-field";
+      const signalLabel = document.createElement("label");
+      signalLabel.textContent = "How did you signal?";
+      signalField.appendChild(signalLabel);
+      const signalChipsEl = document.createElement("div");
+      signalChipsEl.className = "inr-chips";
+      [
+        { code: "thumb", label: "👍 Thumb"  },
+        { code: "sign",  label: "📝 Sign"   },
+        { code: "ask",   label: "🗣 Asking" },
+      ].forEach(function (opt) {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "inr-chip";
+        chip.textContent = opt.label;
+        chip.setAttribute("data-code", opt.code);
+        chip.addEventListener("click", function () {
+          // Toggle: each signal method can be selected independently.
+          if (signals.has(opt.code)) { signals.delete(opt.code); chip.classList.remove("inr-chip--on"); }
+          else { signals.add(opt.code); chip.classList.add("inr-chip--on"); }
+        });
+        signalChipsEl.appendChild(chip);
+      });
+      signalField.appendChild(signalChipsEl);
+      sheet.appendChild(signalField);
+
+      // ── Optional comment ───────────────────────────────────────────────────────
+      const commentField = document.createElement("div");
+      commentField.className = "inr-field";
+      const commentLabel = document.createElement("label");
+      commentLabel.textContent = "Comment (optional)";
+      commentField.appendChild(commentLabel);
+      const textarea = document.createElement("textarea");
+      textarea.className = "inr-sheet__textarea";
+      textarea.placeholder = "Anything worth noting about this spot…";
+      commentField.appendChild(textarea);
+      sheet.appendChild(commentField);
+
+      // ── Ride On! CTA (green, disabled until rating chosen) ────────────────────
+      const rideOnBtn = document.createElement("button");
+      rideOnBtn.type = "button";
+      rideOnBtn.className = "inr-big inr-big--green inr-sheet__save inr-disabled";
+      rideOnBtn.disabled = true;
+      rideOnBtn.innerHTML = '<i class="fa-solid fa-check"></i> Ride On!';
+      function updateRideOnBtn() {
+        const ready = rating > 0;
+        rideOnBtn.disabled = !ready;
+        rideOnBtn.classList.toggle("inr-disabled", !ready);
+      }
+      rideOnBtn.addEventListener("click", function () {
+        if (!rating) return; // guard: button should be disabled, but double-check
+        const details = {
+          rating: rating,
+          vehicle_kind: vehicleKind,
+          signal: Array.from(signals),
+          comment: textarea.value.trim(),
+        };
+        close();
+        onSave(details);
+      });
+      sheet.appendChild(rideOnBtn);
+
+      // ── "Add driver / vehicle details" link ────────────────────────────────────
+      // Prefills rideFormData in sessionStorage so the full /ride form picks it up,
+      // carrying the sheet's selections plus the journey's pickup location and wait time.
+      const moreLink = document.createElement("a");
+      moreLink.className = "inr-sheet__more";
+      moreLink.href = "#";
+      moreLink.textContent = "＋ Add driver / vehicle details";
+      moreLink.addEventListener("click", function (e) {
+        e.preventDefault();
+        const j = journeyStore.get();
+        const waitMin = j ? Math.round(journeyStore.currentWaitMs(j, Date.now()) / 60000) : null;
+        sessionStorage.setItem("rideFormData", JSON.stringify({
+          pickup_lat: j ? j.pickup.lat : null,
+          pickup_lon: j ? j.pickup.lon : null,
+          wait: waitMin,
+          rating: rating,
+          vehicle_kind: vehicleKind,
+          signal: Array.from(signals),
+          comment: textarea.value.trim(),
+        }));
+        close();
+        window.location.href = "/ride";
+      });
+      sheet.appendChild(moreLink);
+
+      function close() {
+        if (scrim.parentNode) scrim.parentNode.removeChild(scrim);
+        if (sheet.parentNode) sheet.parentNode.removeChild(sheet);
+        journeyUI._openDialog = null;
+      }
+
+      // Scrim tap (outside the sheet) dismisses without saving.
+      scrim.addEventListener("click", close);
+
+      document.body.appendChild(scrim);
+      document.body.appendChild(sheet);
+      journeyUI._openDialog = { close };
+      return { close };
     },
 
     dialog({ title, body, actions }) {
