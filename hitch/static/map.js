@@ -584,6 +584,10 @@ function renderCountryWikitext(raw) {
   t = t.replace(/<!--[\s\S]*?-->/g, ""); // HTML comments
   t = t.replace(/<ref[^>]*\/>/gi, ""); // self-closing <ref/>
   t = t.replace(/<ref[^>]*>[\s\S]*?<\/ref>/gi, ""); // <ref>...</ref>
+  // <gallery>…</gallery> blocks list images as bare "File:name.jpg|caption"
+  // lines (no [[ ]]), so the image regex below won't catch them — drop the
+  // whole block, otherwise the filenames leak through as prose text.
+  t = t.replace(/<gallery[^>]*>[\s\S]*?<\/gallery>/gi, "");
   t = stripWikiTemplates(t);
   t = t.replace(/__[A-Z]+__/g, ""); // magic words (__TOC__, __NOTOC__, …)
   t = t.replace(/\[\[(?:File|Image):[^\[\]]*(?:\[\[[^\]]*\]\][^\[\]]*)*\]\]/gi, ""); // images
