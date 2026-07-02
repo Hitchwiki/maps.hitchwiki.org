@@ -1911,3 +1911,88 @@ body.showing-insights .heatmap-legend-pane {
   color: #1a73e8;
   border: 1.5px solid #1a73e8;
 }
+
+/* ── Waiting-state persistent chrome (Task 5) ───────────────────────────────
+   The docked bar and status chip sit above the map but BELOW the map controls;
+   Task 12 will raise the controls above them. z-index 1200 clears the Leaflet
+   tile/vector layers (~600) and the locate button while leaving room above. */
+
+/* Docked action bar: two big buttons pinned to the bottom edge */
+.inr-dock {
+  position: fixed;
+  left: 10px;
+  right: 10px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  gap: 10px;
+  z-index: 1200;
+}
+
+/* Big action buttons — bold, rounded, coloured per action */
+.inr-big {
+  flex: 1;
+  border: none;
+  border-radius: 14px;
+  padding: 15px 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .2);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.inr-big--red   { background: #d73027; }
+.inr-big--green { background: #1a9850; }
+
+/* Status chip: dark pill, bottom-centre, above the dock */
+.inr-chip {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  /* 84 px clears the dock (~16 bottom + 48 button height + 20 gap) plus safe area */
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  z-index: 1200;
+  background: rgba(17, 17, 17, .85);
+  color: #fff;
+  border-radius: 20px;
+  padding: 7px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+/* Coloured dot on the left of the chip */
+.inr-chip__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Waiting state: yellow dot */
+.inr-chip--wait .inr-chip__dot {
+  background: #ffcc33;
+  box-shadow: 0 0 0 4px rgba(255, 204, 51, .3);
+}
+
+/* Pause / Resume pill inside the chip */
+.inr-pausepill {
+  margin-left: 8px;
+  background: rgba(255, 255, 255, .22);
+  border: none;
+  color: #fff;
+  border-radius: 14px;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}

@@ -46,6 +46,15 @@
     });
   }
 
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+  // Format milliseconds as HH:MM:SS for the waiting chip.
+  function fmtHMS(ms) {
+    const s = Math.floor(ms / 1000), h = Math.floor(s / 3600),
+          m = Math.floor((s % 3600) / 60), ss = s % 60;
+    const p = (n) => String(n).padStart(2, "0");
+    return `${p(h)}:${p(m)}:${p(ss)}`;
+  }
+
   // ── journeyFlow ──────────────────────────────────────────────────────────────
   const journeyFlow = {};
 
@@ -84,19 +93,119 @@
       details: null,
       legIndex: 0,
     });
-    // journeyUI.render is a stub until Task 5; call defensively in case order varies.
-    journeyUI.render && journeyUI.render(j);
+    journeyUI.render(j);
   };
 
   // ── journeyUI ────────────────────────────────────────────────────────────────
   // Renders a scrim + bottom card mirroring .location-selection-ui.
   // Returns a close handle { close() } so callers can dismiss programmatically.
   const journeyUI = {
-    _openDialog: null, // guard: only one dialog open at a time (see Task-3 note)
+    _openDialog: null,   // guard: only one dialog open at a time (see Task-3 note)
+    _tickInterval: null, // 1-s live-timer interval; at most one running at a time
+    _dockEl: null,       // the persistent docked action bar
+    _chipEl: null,       // the status chip above the dock
 
-    // Stub until Task 5 fills in the waiting-state UI.
+    // Remove all journey chrome and stop the live timer.
+    teardown() {
+      if (journeyUI._tickInterval) {
+        clearInterval(journeyUI._tickInterval);
+        journeyUI._tickInterval = null;
+      }
+      [journeyUI._dockEl, journeyUI._chipEl].forEach((el) => {
+        if (el && el.parentNode) el.parentNode.removeChild(el);
+      });
+      journeyUI._dockEl = null;
+      journeyUI._chipEl = null;
+    },
+
+    // Single entry point for all journey-state rendering.
+    // Always tears down first so re-renders (state changes, reloads) start clean.
     render(j) {
-      console.log("[inride] render state:", j && j.state, j);
+      journeyUI.teardown();
+      if (!j) return;
+
+      switch (j.state) {
+        case "waiting":
+          journeyUI._renderWaiting(j);
+          break;
+        case "paused":
+          // TODO(Task 6): render the paused state (frozen chip, Resume pill, disabled Got a Ride!).
+          // Not trivially safe to fall through — the tick would run while paused —
+          // so no-op until Task 6 lands.
+          console.log("[inride] paused render not yet implemented (Task 6)");
+          break;
+        case "in-ride":
+          // TODO(Task 9): render the in-ride state (single orange Finish Ride button).
+          console.log("[inride] in-ride render not yet implemented (Task 9)");
+          break;
+        default:
+          console.log("[inride] render: unknown state", j.state);
+      }
+    },
+
+    // Build the waiting dock bar + live-timer chip.
+    _renderWaiting(j) {
+      // ── Status chip ────────────────────────────────────────────────────────
+      // Chip value derives from stored timestamps via currentWaitMs — never a
+      // free-running counter — so reloads and pauses both stay exact.
+      const chip = document.createElement("div");
+      chip.className = "inr-chip inr-chip--wait";
+
+      const dot = document.createElement("span");
+      dot.className = "inr-chip__dot";
+      chip.appendChild(dot);
+
+      const label = document.createElement("span");
+      label.className = "inr-chip__label";
+      label.textContent = "Waiting · " + fmtHMS(journeyStore.currentWaitMs(j, Date.now()));
+      chip.appendChild(label);
+
+      // Pause pill: wired defensively — journeyFlow.pause is implemented in Task 6;
+      // tapping is a no-op until that task lands.
+      const pauseBtn = document.createElement("button");
+      pauseBtn.className = "inr-pausepill";
+      pauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i> Pause';
+      pauseBtn.addEventListener("click", function () {
+        journeyFlow.pause && journeyFlow.pause();
+      });
+      chip.appendChild(pauseBtn);
+
+      document.body.appendChild(chip);
+      journeyUI._chipEl = chip;
+
+      // 1-second tick: re-reads authoritative stored timestamps each tick so the
+      // display stays correct across tab switches, device sleep, and future pauses.
+      journeyUI._tickInterval = setInterval(function () {
+        const cur = journeyStore.get();
+        label.textContent = "Waiting · " + fmtHMS(journeyStore.currentWaitMs(cur, Date.now()));
+      }, 1000);
+
+      // ── Docked action bar ──────────────────────────────────────────────────
+      const dock = document.createElement("div");
+      dock.className = "inr-dock";
+
+      // Give Up (red) — implemented in Task 7; wired defensively.
+      const giveUpBtn = document.createElement("button");
+      giveUpBtn.className = "inr-big inr-big--red";
+      giveUpBtn.innerHTML = '<i class="fa-solid fa-flag"></i> Give Up';
+      giveUpBtn.addEventListener("click", function () {
+        // journeyFlow.giveUp is implemented in Task 7; tapping is a no-op until it lands.
+        journeyFlow.giveUp && journeyFlow.giveUp();
+      });
+      dock.appendChild(giveUpBtn);
+
+      // Got a Ride! (green) — implemented in Task 8; wired defensively.
+      const gotRideBtn = document.createElement("button");
+      gotRideBtn.className = "inr-big inr-big--green";
+      gotRideBtn.innerHTML = '<i class="fa-solid fa-thumbs-up"></i> Got a Ride!';
+      gotRideBtn.addEventListener("click", function () {
+        // journeyFlow.gotRide is implemented in Task 8; tapping is a no-op until it lands.
+        journeyFlow.gotRide && journeyFlow.gotRide();
+      });
+      dock.appendChild(gotRideBtn);
+
+      document.body.appendChild(dock);
+      journeyUI._dockEl = dock;
     },
 
     dialog({ title, body, actions }) {
