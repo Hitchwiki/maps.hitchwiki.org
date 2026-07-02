@@ -654,7 +654,10 @@ def ride_form():
         edit_d_tag = data.get("edit_d_tag", "").strip()
         if edit_d_tag:
             existing_ride = db.session.query(RideEvent).filter_by(d=edit_d_tag).first()
+            # Inride requests use fetch (no navigation), so return JSON instead of redirecting.
             if not existing_ride or not _user_owns_ride(existing_ride, current_user):
+                if wants_json:
+                    return jsonify({"ok": False, "error": "unauthorized"}), 400
                 return redirect("/#error")  # User doesn't own this ride
 
             # Create new record with updated form data to get updated fields
