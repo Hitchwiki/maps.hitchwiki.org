@@ -213,10 +213,33 @@
     );
   };
 
-  // Task-10 stub — will show a "next leg / done" sheet; log for now so the
-  // post-submit state is inspectable in the console during manual testing.
-  journeyFlow.whatsNext = function (dest) {
-    console.log("[inride] whatsNext (Task 10 stub): dest =", dest);
+  // After a ride is saved, ask whether to start another leg or call it a day.
+  journeyFlow.whatsNext = function (dropoff) {
+    journeyUI.dialog({
+      title: "What's next?",
+      body: "Ride saved — dropped off here. Waiting for another ride from this spot?",
+      actions: [
+        { label: "Next Ride", cls: "inr-go",   onClick: () => journeyUI.setWaitingSpot(dropoff, journeyFlow.nextRide) },
+        { label: "End Hitch", cls: "inr-grey",  onClick: () => journeyFlow.end() },
+      ],
+    });
+  };
+
+  // End the journey: wipe stored state and remove all journey chrome.
+  journeyFlow.end = function () { journeyStore.clear(); journeyUI.teardown(); };
+
+  // New leg: drop-off is the DEFAULT waiting location but the user can move it
+  // (dropped at an exit, walks to a better spot). Fresh timers; pickup = confirmed pt.
+  // latlng is a Leaflet LatLng (has .lat / .lng) — delivered by setWaitingSpot's Confirm.
+  journeyFlow.nextRide = function (latlng) {
+    const prev = journeyStore.get();
+    const j = journeyStore.set({
+      state: "waiting", pickup: { lat: latlng.lat, lon: latlng.lng },
+      waitAccumMs: 0, waitSegmentStartMs: Date.now(),
+      gotRideMs: null, finalWaitMs: null, details: null,
+      legIndex: (prev && prev.legIndex || 0) + 1,
+    });
+    journeyUI.render(j);
   };
 
   // ── journeyUI ────────────────────────────────────────────────────────────────
@@ -781,6 +804,71 @@
 
       journeyUI._openDialog = { close };
       return { close };
+    },
+
+    // Confirm-step for choosing a new waiting spot after a drop-off.
+    // Reuses the draggable-pin pattern from manualPin with a "Use my location" shortcut.
+    //
+    // Coordinate contract:
+    //   - defaultLatLng IN: {lat, lon}  (drop-off from finish, matches submitRide shape)
+    //   - GPS fix (getFixWithRetry): {lat, lon} — moved onto the marker via setLatLng
+    //   - onConfirm OUT: marker.getLatLng() → Leaflet LatLng (has .lat / .lng)
+    //     nextRide reads latlng.lng, so we must pass a Leaflet LatLng — NOT {lat, lon}.
+    setWaitingSpot(defaultLatLng, onConfirm) {
+      if (!window.L || !window.map) return;
+
+      // Pre-place the pin at the drop-off so one tap confirms (common case: wait here).
+      const marker = L.marker([defaultLatLng.lat, defaultLatLng.lon], {
+        draggable: true,
+        icon: L.icon({
+          iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
+          shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+          iconSize: [25, 41], iconAnchor: [12, 41],
+          popupAnchor: [1, -34], shadowSize: [41, 41],
+        }),
+      }).addTo(window.map);
+
+      // Tapping the map also repositions the waiting pin (mirrors manualPin / main map UX).
+      function onMapClick(e) { marker.setLatLng(e.latlng); }
+      window.map.on("click", onMapClick);
+
+      const ui = document.createElement("div");
+      ui.className = "location-selection-ui";
+      ui.innerHTML = [
+        "<h4>Where are you waiting?</h4>",
+        "<p>Drag the pin or tap the map, then confirm.</p>",
+        '<div class="lsel-actions">',
+        '<button class="lsel-cancel" id="inr-waiting-myloc">Use my location</button>',
+        '<button class="lsel-confirm" id="inr-waiting-confirm">Confirm</button>',
+        "</div>",
+      ].join("");
+      document.body.appendChild(ui);
+
+      function cleanup() {
+        window.map.removeLayer(marker);
+        window.map.off("click", onMapClick);
+        if (ui.parentNode) ui.parentNode.removeChild(ui);
+      }
+
+      document.getElementById("inr-waiting-myloc").addEventListener("click", function () {
+        // GPS fix returns {lat, lon}; convert to array for Leaflet's setLatLng.
+        getFixWithRetry().then(
+          function (fix) {
+            marker.setLatLng([fix.lat, fix.lon]);
+            window.map.setView([fix.lat, fix.lon]);
+          },
+          function () {
+            journeyUI.error("Couldn't get your location — drag the pin instead.");
+          }
+        );
+      });
+
+      document.getElementById("inr-waiting-confirm").addEventListener("click", function () {
+        // Pass Leaflet LatLng (has .lat / .lng) so nextRide's latlng.lng read is correct.
+        const ll = marker.getLatLng();
+        cleanup();
+        onConfirm(ll);
+      });
     },
   };
 
