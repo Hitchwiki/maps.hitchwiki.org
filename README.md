@@ -190,13 +190,8 @@ The software provided in this repository is licensed under AGPL 3.0. The Hitchwi
 [Flask-url]: https://flask.palletsprojects.com/en/stable/
 
 # Development
-TODO: specify
 
-CONTRIBUTING.md
-
-Install pre-commit
-
-install ruff
+How we want to work on Hirchwiki Maps is defined in GOVERNANCE.md and refined in CONTRIBUTING.md.
 
 ## Testing
 
