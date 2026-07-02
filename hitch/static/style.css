@@ -1843,3 +1843,71 @@ body.showing-insights .heatmap-legend-pane {
 .user-location-dot.fading {
   animation: user-location-fade 30s linear forwards;
 }
+
+/* ── In-ride choose-action dialog ───────────────────────────────────────────────
+   Mirrors .location-selection-ui: same scrim, same white rounded card pinned
+   bottom-centre, same z-index stack. Only the button variants differ. */
+.inride-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 2001;
+  background: rgba(0, 0, 0, .28);
+}
+
+.inride-dialog {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 2002;
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+  padding: 14px 16px;
+  text-align: center;
+}
+
+.inride-dialog h4 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.inride-dialog p {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #666;
+  max-width: 260px;
+}
+
+.inride-dialog .inr-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.inride-dialog .inr-actions button {
+  border-radius: 7px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Primary: green "Start Hitching" */
+.inride-dialog .inr-go {
+  background: #1a9850;
+  color: #fff;
+  border: none;
+}
+
+/* Secondary: white card with blue outline "Log a past ride" */
+.inride-dialog .inr-ghost {
+  background: #fff;
+  color: #1a73e8;
+  border: 1.5px solid #1a73e8;
+}

@@ -441,9 +441,15 @@ function showLocation(e) {
     });
     locationMarker = L.marker(e.latlng, {
       icon: icon,
-      interactive: false,
+      // The bubble is an entry point to the choose-action dialog; interactive:true
+      // lets the click handler fire without itself setting pickup/destination.
+      interactive: true,
       keyboard: false,
     }).addTo(map);
+    locationMarker.on("click", function () {
+      const p = map.latLngToContainerPoint(locationMarker.getLatLng());
+      if (window.inrideOnEntryGesture) window.inrideOnEntryGesture(locationMarker.getLatLng(), p);
+    });
   }
 
   // Restart the blue->grey freshness fade on every fix. The marker (and its dot
@@ -2929,6 +2935,9 @@ function setupAddSpotGesture() {
         // Those controls only stopPropagation on click, not on contextmenu.
         if (oe && oe.target.closest && oe.target.closest('.leaflet-control')) return;
         if (oe) oe.preventDefault();
+        // The in-ride tracker owns the "what do you want to do here?" decision now.
+        // If it handles the gesture (shows its choose-action dialog), stop here.
+        if (window.inrideOnEntryGesture && window.inrideOnEntryGesture(e.latlng, e.containerPoint)) return;
         startAddSpotFromGesture(e.latlng, e.containerPoint);
     });
 
@@ -2957,7 +2966,11 @@ function setupAddSpotGesture() {
             timer = null;
             const rect = container.getBoundingClientRect();
             const cp = L.point(startX - rect.left, startY - rect.top);
-            startAddSpotFromGesture(map.containerPointToLatLng(cp), cp);
+            const latlng = map.containerPointToLatLng(cp);
+            // The in-ride tracker owns the "what do you want to do here?" decision now.
+            // If it handles the gesture (shows its choose-action dialog), stop here.
+            if (window.inrideOnEntryGesture && window.inrideOnEntryGesture(latlng, cp)) return;
+            startAddSpotFromGesture(latlng, cp);
         }, LONG_PRESS_MS);
     }, { passive: true });
 
@@ -3010,3 +3023,12 @@ function startAddSpotFromGesture(latlng, containerPoint) {
         existingSpot: !!snapped,
     });
 }
+
+// Expose the pieces the in-ride tracker composes with (it loads after map.js).
+window.map = map;
+window.getLocationMarker = () => locationMarker;
+window.setMapMode = setMapMode;
+window.toggleHeatmap = toggleHeatmap;
+window.startAddSpotFromGesture = startAddSpotFromGesture;
+window.setupLocationSelection = setupLocationSelection;
+window.findNearbySpotMarker = findNearbySpotMarker;
