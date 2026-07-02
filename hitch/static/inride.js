@@ -252,6 +252,8 @@
     _chipEl: null,       // the status chip above the dock
     _finishBtn: null,    // the Finish Ride button (for setFinishBusy)
     _pickupPin: null,    // Leaflet marker at the pickup location (in-ride state)
+    _cfEl: null,         // the cover-flow root element (collapsed or expanded)
+    _cfFaceIdx: 0,       // index of the last-used control (default: Locate = 0)
 
     // Remove all journey chrome and stop the live timer.
     teardown() {
@@ -270,6 +272,9 @@
       }
       journeyUI._pickupPin = null;
       journeyUI._finishBtn = null;
+      // Remove the cover-flow stack and restore stock controls.
+      journeyUI.destroyControlStack();
+      document.body.classList.remove("inride-active");
     },
 
     // Single entry point for all journey-state rendering.
@@ -277,6 +282,10 @@
     render(j) {
       journeyUI.teardown();
       if (!j) return;
+
+      // Hide stock controls and show the cover-flow stack for all journey states.
+      document.body.classList.add("inride-active");
+      journeyUI.buildControlStack();
 
       switch (j.state) {
         case "waiting":
@@ -291,6 +300,206 @@
         default:
           console.log("[inride] render: unknown state", j.state);
       }
+    },
+
+    // ── Cover-flow stack ─────────────────────────────────────────────────────
+    // Four controls in order: Locate(0), Spots(1), Heatmap(2), Countries(3).
+    // Collapsed = one white tile with a flip-stack hint and layers badge.
+    // Tap → expanded 3-D cover-flow; tap a tile → apply and collapse onto it.
+    // Tapping outside the expanded flow collapses with no mode change.
+    // Layer switching calls window.setMapMode / requestLocationRaw and does NOT
+    // touch journey state, timers, pins, or docked buttons.
+    buildControlStack() {
+      journeyUI.destroyControlStack(); // idempotent: no-op if nothing built yet
+
+      const CONTROLS = [
+        { id: "locate",    icon: "fa-solid fa-location-crosshairs", cls: "inr-tile--locate" },
+        { id: "spots",     icon: "fa-solid fa-location-dot",        cls: "" },
+        { id: "heatmap",   icon: "fa fa-fire",                      cls: "" },
+        { id: "countries", icon: "fa-solid fa-earth-europe",        cls: "" },
+      ];
+
+      // Per-offset 3-D transforms for the cover-flow tiles.
+      // offset 0 = selected (centre, face-on); ±1 = immediate neighbours; ±2+ = far.
+      const TILE_STYLE = [
+        null, // placeholder for offset 0 — handled separately as the selected tile
+        { tx:  46, ry: -40, sc: 0.9,  op: 0.92, zi: 2 },  // offset +1 (right neighbour)
+        { tx:  86, ry: -52, sc: 0.8,  op: 0.8,  zi: 1 },  // offset +2 (far right)
+      ];
+
+      // Derive the initial face from the current map mode so the face matches
+      // whatever layer is active when the journey starts.
+      const curMode = typeof window.getMapMode === "function" ? window.getMapMode() : null;
+      if (curMode === "spots")     journeyUI._cfFaceIdx = 1;
+      else if (curMode === "heatmap")   journeyUI._cfFaceIdx = 2;
+      else if (curMode === "countries") journeyUI._cfFaceIdx = 3;
+      else journeyUI._cfFaceIdx = 0; // default to Locate
+
+      // ── Build collapsed tile ──────────────────────────────────────────────
+      function buildCollapsed() {
+        const ctrl = CONTROLS[journeyUI._cfFaceIdx];
+        const wrap = document.createElement("div");
+        wrap.className = "inr-cf-collapsed";
+
+        const tile = document.createElement("div");
+        tile.className = "inr-tile" + (ctrl.cls ? " " + ctrl.cls : "");
+        tile.innerHTML = '<i class="' + ctrl.icon + '" aria-hidden="true"></i>';
+        wrap.appendChild(tile);
+
+        const badge = document.createElement("span");
+        badge.className = "inr-cf-badge";
+        badge.innerHTML = '<i class="fa-solid fa-layer-group" aria-hidden="true"></i>';
+        wrap.appendChild(badge);
+
+        // Tap on the collapsed tile → switch to expanded cover-flow.
+        wrap.addEventListener("click", function (e) {
+          e.stopPropagation();
+          buildExpanded();
+        });
+
+        document.body.appendChild(wrap);
+        journeyUI._cfEl = wrap;
+      }
+
+      // ── Build expanded cover-flow ─────────────────────────────────────────
+      function buildExpanded() {
+        // Remove collapsed tile before showing expanded flow.
+        journeyUI.destroyControlStack();
+
+        const cf = document.createElement("div");
+        cf.className = "inr-cf";
+
+        const stage = document.createElement("div");
+        stage.className = "inr-cf-stage";
+        cf.appendChild(stage);
+
+        let selIdx = journeyUI._cfFaceIdx;
+        let tiles = [];
+
+        function applyTransforms() {
+          tiles.forEach(function (tile, i) {
+            const offset = i - selIdx;
+            const absOff = Math.abs(offset);
+            if (absOff > 2) {
+              // Hide items more than 2 away — keep in DOM to make swipe smooth.
+              tile.style.opacity = "0";
+              tile.style.pointerEvents = "none";
+              return;
+            }
+            tile.style.pointerEvents = "";
+            if (offset === 0) {
+              tile.style.transform = "translate(-50%,-50%) rotateY(0deg) scale(1.34)";
+              tile.style.opacity   = "1";
+              tile.style.zIndex    = "5";
+            } else {
+              // Symmetric offsets: negative offset = left (negate tx, positive ry).
+              const s = TILE_STYLE[absOff];
+              const tx = offset < 0 ? -s.tx : s.tx;
+              const ry = offset < 0 ?  s.ry : -s.ry;
+              tile.style.transform = "translate(-50%,-50%) translateX(" + tx + "px) rotateY(" + ry + "deg) scale(" + s.sc + ")";
+              tile.style.opacity   = String(s.op);
+              tile.style.zIndex    = String(s.zi);
+            }
+          });
+          // Update dot indicators.
+          dots.forEach(function (dot, i) {
+            dot.classList.toggle("inr-dot-on", i === selIdx);
+          });
+          // Update selected tile ring.
+          tiles.forEach(function (tile, i) {
+            tile.classList.toggle("inr-tile--sel", i === selIdx);
+          });
+        }
+
+        // Build tiles.
+        CONTROLS.forEach(function (ctrl, i) {
+          const tile = document.createElement("div");
+          tile.className = "inr-tile" + (ctrl.cls ? " " + ctrl.cls : "");
+          tile.innerHTML = '<i class="' + ctrl.icon + '" aria-hidden="true"></i>';
+
+          // Tap a non-centre tile → shift selection; tap the centre tile → apply + collapse.
+          tile.addEventListener("click", function (e) {
+            e.stopPropagation();
+            if (i === selIdx) {
+              // Centre tap: apply this control and collapse.
+              applyControl(i);
+            } else {
+              // Non-centre tap: bring to centre.
+              selIdx = i;
+              applyTransforms();
+            }
+          });
+
+          stage.appendChild(tile);
+          tiles.push(tile);
+        });
+
+        // Paging dots.
+        const dotrow = document.createElement("div");
+        dotrow.className = "inr-dotrow";
+        const dots = [];
+        CONTROLS.forEach(function (_, i) {
+          const dot = document.createElement("span");
+          dotrow.appendChild(dot);
+          dots.push(dot);
+        });
+        cf.appendChild(dotrow);
+
+        applyTransforms();
+
+        // ── Touch swipe (left/right) to page through the flow ────────────────
+        var touchStartX = null;
+        cf.addEventListener("touchstart", function (e) {
+          touchStartX = e.touches[0].clientX;
+        }, { passive: true });
+        cf.addEventListener("touchend", function (e) {
+          if (touchStartX === null) return;
+          var dx = e.changedTouches[0].clientX - touchStartX;
+          touchStartX = null;
+          if (Math.abs(dx) < 20) return; // ignore tiny movements
+          // Swipe left (dx < 0) → move forward in the list (increase idx).
+          selIdx = Math.max(0, Math.min(CONTROLS.length - 1, selIdx + (dx < 0 ? 1 : -1)));
+          applyTransforms();
+        }, { passive: true });
+
+        // Tap outside the expanded flow collapses with no change.
+        function onOutsideClick() {
+          document.removeEventListener("click", onOutsideClick);
+          journeyUI.destroyControlStack();
+          buildCollapsed();
+        }
+        // Use setTimeout so this listener doesn't fire on the same tap that opened the flow.
+        setTimeout(function () { document.addEventListener("click", onOutsideClick); }, 0);
+
+        document.body.appendChild(cf);
+        journeyUI._cfEl = cf;
+
+        // Apply a control and collapse back to the face tile.
+        function applyControl(idx) {
+          document.removeEventListener("click", onOutsideClick);
+          journeyUI._cfFaceIdx = idx;
+          // Apply the selected layer — does NOT touch journey state.
+          const id = CONTROLS[idx].id;
+          if (id === "locate") {
+            if (typeof window.requestLocationRaw === "function") window.requestLocationRaw();
+          } else {
+            // Spots / Heatmap / Countries: direct mode set, matching the stock switcher.
+            if (typeof window.setMapMode === "function") window.setMapMode(id);
+          }
+          journeyUI.destroyControlStack();
+          buildCollapsed();
+        }
+      }
+
+      // Start in collapsed state.
+      buildCollapsed();
+    },
+
+    destroyControlStack() {
+      if (journeyUI._cfEl && journeyUI._cfEl.parentNode) {
+        journeyUI._cfEl.parentNode.removeChild(journeyUI._cfEl);
+      }
+      journeyUI._cfEl = null;
     },
 
     // Build the waiting dock bar + live-timer chip.

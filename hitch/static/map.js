@@ -3032,3 +3032,6 @@ window.toggleHeatmap = toggleHeatmap;
 window.startAddSpotFromGesture = startAddSpotFromGesture;
 window.setupLocationSelection = setupLocationSelection;
 window.findNearbySpotMarker = findNearbySpotMarker;
+// Used by the in-ride cover-flow to trigger locate and read the current mode.
+window.requestLocationRaw = requestLocation;
+window.getMapMode = () => mapMode;

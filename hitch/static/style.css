@@ -544,6 +544,21 @@ body.adding-spot .leaflet-control-attribution {
   margin-right: 10px !important;
 }
 
+/* ── In-ride journey: hide stock controls, push zoom up, show cover-flow ─────
+   body.inride-active is toggled by journeyUI.render / .teardown (inride.js).
+   Stock mode-switcher and locate controls are replaced by the cover-flow stack
+   while a journey is active; hiding them via display:none keeps z-index clean. */
+body.inride-active .mapmode-control,
+body.inride-active .locate-control {
+  display: none;
+}
+
+/* Push the zoom control up so it clears the docked bar (≈84 px) + status chip
+   (≈36 px) + gap, leaving room for the cover-flow stack above it. */
+body.inride-active .leaflet-bottom.leaflet-right .leaflet-control-zoom {
+  margin-bottom: 130px !important;
+}
+
 .mapmode-btn {
   display: flex !important;
   align-items: center;
@@ -2138,4 +2153,131 @@ body.showing-insights .heatmap-legend-pane {
 }
 .inr-sheet__more:hover {
   text-decoration: underline;
+}
+
+/* ── Cover-flow map controls (Task 12) ──────────────────────────────────────
+   Replaces the stock Spots/Heatmap/Countries + Locate controls while a journey
+   is active. Collapsed = one white tile + flip-stack hint; tap → 3-D coverflow.
+   Positioning mirrors the approved mockup (stack-coverflow.html / inride-mockups.html):
+   zoom pushed to bottom:130px; stack at bottom:214px; expanded cf at bottom:216px. */
+
+/* Original white Leaflet-style button tile (icon only, no text) */
+.inr-tile {
+  width: 44px;
+  height: 44px;
+  border-radius: 9px;
+  position: relative;
+  background: #fff;
+  border: 1px solid #e4e4e4;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .3);
+}
+.inr-tile i {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+  color: #4a4a4a;
+}
+/* Locate tile uses blue icon to match the stock locate button */
+.inr-tile--locate i { color: #1a73e8; }
+/* Selected tile: blue ring */
+.inr-tile--sel {
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 2px #1a73e8, 0 8px 20px rgba(0, 0, 0, .4);
+}
+.inr-tile--sel i { color: #1a73e8; }
+
+/* Collapsed stack: one tile in the bottom-right, just above the pushed-up zoom
+   (zoom top ≈ 130+76 = 206 px; 214 px keeps an 8 px gap above it). */
+.inr-cf-collapsed {
+  position: fixed;
+  right: 10px;
+  bottom: 214px;
+  width: 44px;
+  height: 44px;
+  z-index: 1201;
+  cursor: pointer;
+}
+/* Offset card behind the face tile — the flip-stack visual cue */
+.inr-cf-collapsed::before {
+  content: "";
+  position: absolute;
+  right: -4px;
+  top: 3px;
+  width: 44px;
+  height: 44px;
+  border-radius: 9px;
+  background: #e2e6ea;
+  border: 1px solid #d4d9de;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .22);
+  transform: rotate(7deg);
+  z-index: -1;
+}
+/* Small layers badge bottom-right of the collapsed tile */
+.inr-cf-badge {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  width: 18px;
+  height: 18px;
+  line-height: 18px;
+  text-align: center;
+  font-size: 9px;
+  background: #fff;
+  color: #666;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .3);
+  z-index: 5;
+}
+
+/* Expanded cover-flow band — full-width, raised above the zoom (bottom:216px).
+   Height 150px gives enough room for the 3-D tile spread + paging dots. */
+.inr-cf {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 216px;
+  height: 150px;
+  z-index: 1201;
+  perspective: 760px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Subtle dark gradient band so tiles read on any map background */
+  background: linear-gradient(180deg, transparent, rgba(10, 12, 16, .5) 22%, rgba(10, 12, 16, .62) 78%, transparent);
+}
+.inr-cf-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+/* Tiles inside the stage are absolutely positioned from the centre */
+.inr-cf-stage .inr-tile {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* Specific transforms are applied inline by buildControlStack() */
+}
+
+/* Paging dots row — centre-bottom of the expanded flow */
+.inr-dotrow {
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 5px;
+  z-index: 9;
+}
+.inr-dotrow span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .5);
+}
+.inr-dotrow span.inr-dot-on {
+  background: #fff;
 }
