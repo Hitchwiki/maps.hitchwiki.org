@@ -1011,7 +1011,7 @@
       return { close };
     },
 
-    dialog({ title, body, actions }) {
+    dialog({ title, body, actions, onClose }) {
       // Close any already-open dialog so rapid re-triggers don't stack overlays.
       if (journeyUI._openDialog) journeyUI._openDialog.close();
 
@@ -1037,6 +1037,9 @@
         if (scrim.parentNode) scrim.parentNode.removeChild(scrim);
         if (card.parentNode) card.parentNode.removeChild(card);
         journeyUI._openDialog = null;
+        // Fires on ANY dismissal (button or scrim tap) so callers can clean up
+        // transient chrome they attached alongside the dialog (e.g. a preview pin).
+        if (onClose) onClose();
       }
 
       actions.forEach(function (action) {
@@ -1146,9 +1149,26 @@
     // One journey at a time: if one is already running, ignore new gestures.
     if (journeyStore.get()) return true;
 
+    // Drop a preview pin at the pressed location so the user can SEE where the
+    // journey / spot will start while the choose-action dialog is up (the dialog's
+    // scrim dims but doesn't hide it). Removed on any dismissal via onClose. It is
+    // static — the semi-transparent scrim blocks dragging anyway; Start Hitching /
+    // Log a past ride use the original latlng/containerPoint.
+    let previewPin = null;
+    if (window.L && window.map) {
+      previewPin = L.marker(latlng, {
+        icon: L.icon({
+          iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png",
+          shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+          iconSize: [25, 41], iconAnchor: [12, 41], shadowSize: [41, 41],
+        }),
+      }).addTo(window.map);
+    }
+
     journeyUI.dialog({
       title: "This spot",
       body: "Track a ride from here now — or log a ride you already got.",
+      onClose: () => { if (previewPin && window.map) window.map.removeLayer(previewPin); previewPin = null; },
       actions: [
         {
           label: "Start Hitching",
