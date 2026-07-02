@@ -55,9 +55,14 @@
     return `${p(h)}:${p(m)}:${p(ss)}`;
   }
 
-  // "YYYY-MM-DDTHH:mm" — the datetime-local format the backend's /ride form
-  // expects. toISOString() gives UTC; slice(0,16) drops seconds + 'Z' suffix.
-  function isoLocal(ms) { return new Date(ms).toISOString().slice(0, 16); }
+  // The /ride datetime fields are `datetime-local` (local wall-clock, no zone), so
+  // build "YYYY-MM-DDTHH:mm" from LOCAL date components — NOT toISOString() (UTC).
+  // toISOString() would silently offset times by the user's UTC offset.
+  function isoLocal(ms) {
+    const d = new Date(ms);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
 
   // Build the form body from journey + destination and POST to /ride.
   // The X-Requested-With: inride header makes the backend return JSON instead of
@@ -195,8 +200,16 @@
     journeyUI.setFinishBusy(true);
     getFixWithRetry().then(
       function (dest) { completeFinish(j, dest); },
-      // denied/unavailable → let the user drop a pin rather than failing silently.
-      function () { journeyUI.manualPin(function (dest) { completeFinish(j, dest); }); }
+      // GPS denied/unavailable — clear busy state before opening manual-pin UI;
+      // the user is choosing a destination, not saving yet.
+      function () {
+        journeyUI.setFinishBusy(false);
+        journeyUI.manualPin(function (dest) {
+          // Pin confirmed — re-enter busy state for the actual ~5 s Nostr submit.
+          journeyUI.setFinishBusy(true);
+          completeFinish(j, dest);
+        });
+      }
     );
   };
 
