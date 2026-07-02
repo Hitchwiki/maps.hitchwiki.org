@@ -25,8 +25,8 @@ coordinates, waiting duration, departure/arrival times, and distance from those 
 
 A self-contained front-end state machine layered on top of the existing map, persisted
 in `localStorage` so it survives reloads and long waits. It reuses existing building
-blocks: the current-location marker, the location-selection/add-spot flow (for "Add
-Spot" and manual-pin fallbacks), and the existing ride submission backend.
+blocks: the current-location marker, the location-selection/add-spot flow (for "Log a past
+ride" and manual-pin fallbacks), and the existing ride submission backend.
 
 **New module:** `hitch/static/inride.js`, loaded after `map.js` in `map.html`. It owns
 the journey state, the persistent docked UI, the dialogs, and submission. It calls a
@@ -67,17 +67,47 @@ Because entry points are disabled during an active journey (see below), tapping 
 location **bubble** while `waiting`/`in-ride` does nothing (it does not re-open the
 choose-action dialog) — so a mid-ride "where am I?" tap on the GPS button is always safe.
 
-**The locate button is present on the persistent map states** — before initiating a ride
+**The locate control is present on the persistent map states** — before initiating a ride
 (`idle`), and while `waiting`, `paused`, or `in-ride` — so the user can re-center or refresh
 their fix throughout a journey. It is **not** shown on the transient dialog/sheet views
 (choose-action, soft-login, ride-details sheet, what's-next, set-waiting-spot, resume);
-those are brief and dismiss back to a state where the button is present again. Where shown,
-it behaves exactly as today (independent "show my location", never feeds the flow).
+those are brief and dismiss back to a state where it is present again. On `idle` the
+controls are unchanged (the existing separate mode switcher + locate button). During a
+journey they are combined into the cover-flow stack below.
+
+### Map controls during a journey — cover-flow stack
+
+Today the bottom-right stacks the map-mode switcher (Spots / Heatmap / Countries) above the
+locate button and the zoom control. During a journey the docked bar + status chip occupy
+the bottom, so to keep the map controls reachable **and** give access to the heatmap /
+country map variants mid-journey **without crowding**, the locate button and the three
+map-variant buttons are combined into a single **cover-flow stack** (one control slot),
+using the existing plain white control buttons as the "covers":
+
+- **Collapsed:** a single button — the most-recently-used of {Locate, Spots, Heatmap,
+  Countries} — with a small offset card + layers badge hinting a flip-stack behind it.
+  Defaults to **Locate** (`fa-location-crosshairs`) when a journey begins.
+- **Tap** the collapsed button → the four buttons flip into a horizontal **3-D cover-flow**:
+  the centre button is face-on (**= the current selection**), neighbours tilted back; paging
+  dots show position. Buttons are Locate, Spots (`fa-location-dot`), Heatmap (`fa-fire`),
+  Countries (`fa-earth-europe`). **No text labels** — the icon + the live map preview behind
+  carry the meaning.
+- **Swipe** left/right to bring another button to centre; **tapping** a button (or the
+  centre) applies it — it slides to centre, its action runs (locate, or switch map mode),
+  and the flow **collapses** onto it. Tapping outside collapses with no change.
+- The collapsed stack **and** the expanded cover-flow are positioned **above** the zoom
+  control (which itself is pushed up to clear the docked bar + status chip), so **nothing
+  ever covers the zoom control** or the docked buttons.
+
+Selecting Heatmap/Countries only swaps the map layer; it never affects journey state,
+timers, pins, or the docked buttons. Locate behaves exactly as today (independent "show my
+location"). This reuses the existing `setMapMode` / `toggleHeatmap` and locate logic — only
+the presentation (collapse into one cover-flow) is new, and only while a journey is active.
 
 ## State machine
 
 ```
-                 ┌─────────────────────────── Add Spot (existing flow) ──────────┐
+                 ┌──────────────── "Log a past ride" (existing add-spot flow) ───┐
                  │                                                                 │
   idle ──long-press / bubble-tap──▶ choose-action ──Start Hitching──▶ waiting     │
                  │                                  (anon → login prompt) │        │
@@ -109,12 +139,16 @@ Two ways to open the **choose-action** dialog at a location:
 
 **Dialog (Variant A — stacked, dark scrim):**
 - Title: "This spot"
-- **Start Hitching** — green primary (`--green #1a9850`)
-- **Add Spot** — secondary ghost/blue-outline
+- Body: "Track a ride from here now — or log a ride you already got."
+- **Start Hitching** — green primary (`--green #1a9850`); live tracking.
+- **Log a past ride** — secondary ghost/blue-outline (clock-rotate-left icon). This is the
+  existing add-spot flow, **renamed** so it clearly reads as retrospective — users
+  accustomed to "Add Spot" as the way to *start* shouldn't confuse it with live tracking.
 - Tap anywhere outside the card (on the scrim) cancels and returns to `idle`.
 
-"Add Spot" preserves the current behavior exactly (`setupLocationSelection('select-pickup',
-… isNewSpot)` with its snap-to-nearby-spot and confirm card).
+"Log a past ride" preserves the current add-spot behavior exactly
+(`setupLocationSelection('select-pickup', … isNewSpot)` with its snap-to-nearby-spot and
+confirm card); only the label/framing changes.
 
 ## Accounts — soft login prompt
 
@@ -131,8 +165,8 @@ If the user is **anonymous**, Start Hitching first shows a small prompt (title:
 - Tapping outside cancels back to `idle`.
 
 The final ride submits through the existing path, which already supports anonymous
-submission. Logged-in users' rides are attributed/owned exactly as today. "Add Spot" is
-unaffected (anonymous as today). Client-side, `inride.js` reads the `is_logged_in` flag
+submission. Logged-in users' rides are attributed/owned exactly as today. "Log a past ride"
+is unaffected (anonymous as today). Client-side, `inride.js` reads the `is_logged_in` flag
 that `map.html` already renders into the page to decide whether to show the prompt.
 
 ## Waiting state
@@ -292,9 +326,11 @@ On map init, `inride.js` reads `inride.journey`:
 
 - **`journeyStore`** — read/write/clear localStorage; single source of truth for state + timestamps.
 - **`journeyUI`** — render/tear down the docked bars (waiting / paused / in-ride), status
-  chip + live timer, and the dialogs (choose-action, soft-login, ride-details sheet,
-  what's-next, set-waiting-spot, welcome-back). Pure DOM + the app's existing CSS tokens
-  (new rules added to `style.css`).
+  chip + live timer, the cover-flow map-control stack (locate + Spots/Heatmap/Countries),
+  and the dialogs (choose-action, soft-login, ride-details sheet, what's-next,
+  set-waiting-spot, welcome-back). Pure DOM + the app's existing CSS tokens (new rules added
+  to `style.css`); the stack members reuse the existing `setMapMode` / `toggleHeatmap` /
+  locate logic.
 - **`journeyFlow`** — the transitions (start / pause / resume / giveUp / gotRide / finish /
   nextRide / setWaitingSpot / end) wiring store + UI + geolocation + submission together.
 - **map.js hooks** — long-press and bubble-tap open choose-action; expose `map`,
@@ -305,9 +341,11 @@ On map init, `inride.js` reads `inride.journey`:
 - **GPS denied** at start or finish → manual pin (existing selection UI). Never a dead end.
 - **GPS fix fails** (timeout / position-unavailable) → retry up to 3 attempts before
   reporting failure and offering the manual pin. Permission denial skips retries (terminal).
-- **Locate button** → shown before initiating a ride (`idle`) and while `waiting` /
+- **Locate control** → shown before initiating a ride (`idle`) and while `waiting` /
   `paused` / `in-ride`; not on the transient dialog/sheet views. Independent "show my
-  location", never feeds the flow.
+  location", never feeds the flow. During a journey it and the map-variant switcher become
+  one cover-flow stack (tap-to-open, swipe/tap a cover to select, collapses onto the
+  selection), positioned above the zoom control so nothing overlaps.
 - **Reload** mid-flow → resume from last persisted state; timers recompute from timestamps.
 - **Anonymous** at Start Hitching → soft prompt (Log in / Continue anonymously); never blocks.
 - **Submit failure** (network / Nostr) → state retained, retry, or hand off to full form.
