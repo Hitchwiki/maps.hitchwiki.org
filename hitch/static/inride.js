@@ -55,6 +55,55 @@
     return `${p(h)}:${p(m)}:${p(ss)}`;
   }
 
+  // "YYYY-MM-DDTHH:mm" — the datetime-local format the backend's /ride form
+  // expects. toISOString() gives UTC; slice(0,16) drops seconds + 'Z' suffix.
+  function isoLocal(ms) { return new Date(ms).toISOString().slice(0, 16); }
+
+  // Build the form body from journey + destination and POST to /ride.
+  // The X-Requested-With: inride header makes the backend return JSON instead of
+  // redirecting, so we can stay in-page and handle success/failure here.
+  function submitRide(j, dest) {
+    const d = j.details || {};
+    const body = new URLSearchParams({
+      rate: String(d.rating || ""),
+      wait: String(Math.round((j.finalWaitMs || 0) / 60000)),
+      signal: (d.signal || []).join(","),
+      comment: d.comment || "",
+      vehicle_kind: d.vehicle_kind || "",
+      pickup_lat: j.pickup.lat, pickup_lon: j.pickup.lon,
+      destination_lat: dest.lat, destination_lon: dest.lon,
+      datetime_ride: isoLocal(j.gotRideMs),
+      arrival_datetime: isoLocal(Date.now()),
+    });
+    return fetch("/ride", {
+      method: "POST",
+      headers: {
+        "X-Requested-With": "inride",
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body,
+    }).then(function (r) { return r.json(); });
+  }
+
+  // Submit and route the result: success → whatsNext; failure → error banner
+  // while keeping in-ride state so the user can retry without data loss.
+  function completeFinish(j, dest) {
+    submitRide(j, dest)
+      .then(function (res) {
+        journeyUI.setFinishBusy(false);
+        if (res && res.ok) {
+          journeyFlow.whatsNext(dest);
+        } else {
+          // Keep in-ride state — do NOT clear the journey on submit failure.
+          journeyUI.error("Couldn't save the ride — try again.");
+        }
+      })
+      .catch(function () {
+        journeyUI.setFinishBusy(false);
+        journeyUI.error("Network error — try again.");
+      });
+  }
+
   // ── journeyFlow ──────────────────────────────────────────────────────────────
   const journeyFlow = {};
 
@@ -137,6 +186,26 @@
     journeyUI.render(journeyStore.set(j));
   };
 
+  // Capture the destination, submit the ride, then hand off to whatsNext.
+  // GPS is tried first (up to 3 attempts); PERMISSION_DENIED or exhausted retries
+  // fall back to a manual pin so Finish is never a dead end.
+  journeyFlow.finish = function () {
+    const j = journeyStore.get(); if (!j || j.state !== "in-ride") return;
+    // Lock the button immediately — Nostr publish takes ~5 s.
+    journeyUI.setFinishBusy(true);
+    getFixWithRetry().then(
+      function (dest) { completeFinish(j, dest); },
+      // denied/unavailable → let the user drop a pin rather than failing silently.
+      function () { journeyUI.manualPin(function (dest) { completeFinish(j, dest); }); }
+    );
+  };
+
+  // Task-10 stub — will show a "next leg / done" sheet; log for now so the
+  // post-submit state is inspectable in the console during manual testing.
+  journeyFlow.whatsNext = function (dest) {
+    console.log("[inride] whatsNext (Task 10 stub): dest =", dest);
+  };
+
   // ── journeyUI ────────────────────────────────────────────────────────────────
   // Renders a scrim + bottom card mirroring .location-selection-ui.
   // Returns a close handle { close() } so callers can dismiss programmatically.
@@ -145,6 +214,8 @@
     _tickInterval: null, // 1-s live-timer interval; at most one running at a time
     _dockEl: null,       // the persistent docked action bar
     _chipEl: null,       // the status chip above the dock
+    _finishBtn: null,    // the Finish Ride button (for setFinishBusy)
+    _pickupPin: null,    // Leaflet marker at the pickup location (in-ride state)
 
     // Remove all journey chrome and stop the live timer.
     teardown() {
@@ -157,6 +228,12 @@
       });
       journeyUI._dockEl = null;
       journeyUI._chipEl = null;
+      // Remove the pickup pin placed during the in-ride state.
+      if (journeyUI._pickupPin && window.map) {
+        window.map.removeLayer(journeyUI._pickupPin);
+      }
+      journeyUI._pickupPin = null;
+      journeyUI._finishBtn = null;
     },
 
     // Single entry point for all journey-state rendering.
@@ -173,8 +250,7 @@
           journeyUI._renderPaused(j);
           break;
         case "in-ride":
-          // TODO(Task 9): render the in-ride state (single orange Finish Ride button).
-          console.log("[inride] in-ride render not yet implemented (Task 9)");
+          journeyUI._renderInRide(j);
           break;
         default:
           console.log("[inride] render: unknown state", j.state);
@@ -300,6 +376,162 @@
 
       document.body.appendChild(dock);
       journeyUI._dockEl = dock;
+    },
+
+    // Build the in-ride dock bar + elapsed-time chip + grey pickup pin.
+    _renderInRide(j) {
+      // ── Status chip: live elapsed time since boarding ──────────────────────
+      // Counts up from gotRideMs (not the wait timer); a 1-s tick re-reads the
+      // stored timestamp so backgrounded tabs stay accurate after resume.
+      const chip = document.createElement("div");
+      chip.className = "inr-chip inr-chip--inride";
+
+      const dot = document.createElement("span");
+      dot.className = "inr-chip__dot";
+      chip.appendChild(dot);
+
+      const label = document.createElement("span");
+      label.className = "inr-chip__label";
+      label.textContent = "In a ride · " + fmtHMS(Date.now() - j.gotRideMs);
+      chip.appendChild(label);
+
+      document.body.appendChild(chip);
+      journeyUI._chipEl = chip;
+
+      journeyUI._tickInterval = setInterval(function () {
+        const cur = journeyStore.get();
+        if (cur && cur.gotRideMs) {
+          label.textContent = "In a ride · " + fmtHMS(Date.now() - cur.gotRideMs);
+        }
+      }, 1000);
+
+      // ── Grey pickup pin: marks the boarding spot while in-ride ────────────
+      // Grey colour signals "past / reference" rather than "active action".
+      if (window.L && window.map && j.pickup) {
+        const greyIcon = L.icon({
+          iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-grey.png",
+          shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+          iconSize: [25, 41], iconAnchor: [12, 41],
+          popupAnchor: [1, -34], shadowSize: [41, 41],
+        });
+        journeyUI._pickupPin = L.marker([j.pickup.lat, j.pickup.lon], { icon: greyIcon })
+          .addTo(window.map);
+      }
+
+      // ── Docked action bar: single Finish Ride button ───────────────────────
+      const dock = document.createElement("div");
+      dock.className = "inr-dock";
+
+      // Orange (#ff6b35) signals a transitional/completion action — distinct from
+      // the permanent red "Give Up" or confirming green "Got a Ride!".
+      const finishBtn = document.createElement("button");
+      finishBtn.className = "inr-big";
+      finishBtn.style.background = "#ff6b35";
+      finishBtn.innerHTML = '<i class="fa-solid fa-flag-checkered"></i> Finish Ride';
+      finishBtn.addEventListener("click", function () {
+        journeyFlow.finish && journeyFlow.finish();
+      });
+      dock.appendChild(finishBtn);
+      journeyUI._finishBtn = finishBtn;
+
+      document.body.appendChild(dock);
+      journeyUI._dockEl = dock;
+    },
+
+    // Toggle the Finish Ride button's busy state during the ~5s Nostr publish.
+    // Keeps the user from double-tapping while a submission is in flight.
+    setFinishBusy(busy) {
+      const btn = journeyUI._finishBtn;
+      if (!btn) return;
+      btn.disabled = busy;
+      btn.classList.toggle("inr-disabled", busy);
+      btn.innerHTML = busy
+        ? '<i class="fa-solid fa-spinner fa-spin"></i> Saving…'
+        : '<i class="fa-solid fa-flag-checkered"></i> Finish Ride';
+    },
+
+    // Brief error banner above the dock; auto-removes after 5 s so stale errors
+    // don't linger. In-ride state is preserved so the user can retry.
+    error(msg) {
+      const existing = document.getElementById("inr-error-banner");
+      if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+      const banner = document.createElement("div");
+      banner.id = "inr-error-banner";
+      banner.style.cssText = [
+        "position:fixed", "left:10px", "right:10px",
+        "bottom:calc(90px + env(safe-area-inset-bottom,0px))",
+        "background:#b00020", "color:#fff", "border-radius:12px",
+        "padding:12px 16px", "font-size:14px", "font-weight:600",
+        "z-index:1300", "text-align:center",
+      ].join(";");
+      banner.textContent = msg;
+      document.body.appendChild(banner);
+      setTimeout(function () {
+        if (banner.parentNode) banner.parentNode.removeChild(banner);
+      }, 5000);
+    },
+
+    // Inline manual-pin fallback for destination selection.
+    // We cannot reuse setupLocationSelection() here because its confirmLocationSelection()
+    // writes to sessionStorage and then does window.location.href = "/ride" — a redirect
+    // that would exit the in-ride flow entirely. Instead we build a minimal pin-selection
+    // UI directly on the Leaflet map and hand the chosen latlng to the callback.
+    manualPin(cb) {
+      if (!window.L || !window.map) {
+        // No map available (edge case) — reset busy so the user isn't stuck.
+        journeyUI.setFinishBusy(false);
+        return;
+      }
+
+      // Leaflet LatLng exposes .lat and .lng (not .lon). submitRide reads dest.lon,
+      // so we normalize .lng → .lon when reading the marker position; passing a raw
+      // Leaflet LatLng would leave destination_lon=undefined and the backend would
+      // reject the submission without a clear error.
+      const marker = L.marker(window.map.getCenter(), {
+        draggable: true,
+        icon: L.icon({
+          iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png",
+          shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+          iconSize: [25, 41], iconAnchor: [12, 41],
+          popupAnchor: [1, -34], shadowSize: [41, 41],
+        }),
+      }).addTo(window.map);
+
+      // Tapping the map also repositions the destination pin (same UX as the
+      // standard location-selection UI in map.js).
+      function onMapClick(e) { marker.setLatLng(e.latlng); }
+      window.map.on("click", onMapClick);
+
+      const ui = document.createElement("div");
+      ui.className = "location-selection-ui";
+      ui.innerHTML = [
+        "<h4>Drop a pin for your destination</h4>",
+        "<p>Drag the pin or tap the map, then confirm.</p>",
+        '<div class="lsel-actions">',
+        '<button class="lsel-confirm" id="inr-pin-confirm">Confirm Destination</button>',
+        '<button class="lsel-cancel" id="inr-pin-cancel">Cancel</button>',
+        "</div>",
+      ].join("");
+      document.body.appendChild(ui);
+
+      function cleanup() {
+        window.map.removeLayer(marker);
+        window.map.off("click", onMapClick);
+        if (ui.parentNode) ui.parentNode.removeChild(ui);
+      }
+
+      document.getElementById("inr-pin-confirm").addEventListener("click", function () {
+        const ll = marker.getLatLng();
+        cleanup();
+        // Normalize Leaflet's .lng → .lon so submitRide receives the correct longitude.
+        cb({ lat: ll.lat, lon: ll.lng });
+      });
+
+      document.getElementById("inr-pin-cancel").addEventListener("click", function () {
+        cleanup();
+        // User dismissed the pin — stay in in-ride state with busy cleared (retry possible).
+        journeyUI.setFinishBusy(false);
+      });
     },
 
     // ── Slim "How was the spot?" bottom sheet ──────────────────────────────────
