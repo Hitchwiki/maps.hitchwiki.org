@@ -39,25 +39,63 @@ large; (b) a server-tracked journey (DB row per journey) — rejected as over-en
 the journey is inherently a single-device, single-user, transient thing, and only the
 **final** ride needs to be published.
 
+## Geolocation (GPS) usage — discrete only
+
+There is **no continuous or background location tracking**. GPS is read as a
+one-shot fix at exactly two points in the flow, plus the pre-existing manual button:
+
+1. **Start Hitching → pickup** — a single fix to set the pickup coords (skipped if we
+   already have a fresh fix from the bubble, or if the journey was started from a
+   long-pressed location). On denial → manual pin.
+2. **Finish Ride → destination** — a single fix to set the destination. On denial →
+   manual pin.
+
+**Retry on failure.** A "fix" here means up to **3 attempts**: if `getCurrentPosition`
+times out or returns a position error (but *not* a permission denial — that is terminal
+and goes straight to the manual-pin fallback), retry, up to three tries total, before
+reporting failure. Only after the third failed attempt do we surface the error / offer the
+manual pin. This applies to the two data-capturing fixes above and to the manual locate
+button. Each attempt uses a bounded timeout so three tries stay responsive.
+
+**The locate/GPS button stays an independent "show my location" control in every state
+(idle, waiting, in-ride).** Tapping it pans the map and drops/updates the location bubble
+as it does today — it **never** captures pickup or destination, and **never** advances or
+interrupts the journey. The two data-capturing fixes above are triggered internally by
+the Start Hitching / Finish Ride buttons, not by the locate button.
+
+Because entry points are disabled during an active journey (see below), tapping the
+location **bubble** while `waiting`/`in-ride` does nothing (it does not re-open the
+choose-action dialog) — so a mid-ride "where am I?" tap on the GPS button is always safe.
+
+**The locate button is present on the persistent map states** — before initiating a ride
+(`idle`), and while `waiting`, `paused`, or `in-ride` — so the user can re-center or refresh
+their fix throughout a journey. It is **not** shown on the transient dialog/sheet views
+(choose-action, soft-login, ride-details sheet, what's-next, set-waiting-spot, resume);
+those are brief and dismiss back to a state where the button is present again. Where shown,
+it behaves exactly as today (independent "show my location", never feeds the flow).
+
 ## State machine
 
 ```
                  ┌─────────────────────────── Add Spot (existing flow) ──────────┐
                  │                                                                 │
   idle ──long-press / bubble-tap──▶ choose-action ──Start Hitching──▶ waiting     │
-                 │                                       (login gate)     │        │
+                 │                                  (anon → login prompt) │        │
                  └──tap outside: cancel──────────────────────────────────┘        │
                                                                                    ▼
+   waiting  ⇄ Pause / Resume ⇄  paused        (wait timer only counts active segments)
    waiting ──Give Up──▶ Add-Spot ride form (prefilled wait + comment) ──save──▶ idle
    waiting ──Got a Ride!──▶ ride-details sheet ──save──▶ in-ride
    in-ride ──Finish Ride──▶ capture destination (auto-GPS / manual) ──submit──▶ whats-next
-   whats-next ──Next Ride──▶ waiting  (drop-off becomes new pickup, fresh timestamps)
+   whats-next ──Next Ride──▶ set-waiting-spot ──▶ waiting   (new leg, fresh timers)
    whats-next ──End Hitch──▶ idle
 ```
 
-Persisted states: `idle` (nothing stored), `waiting`, `in-ride`. `choose-action`,
-`whats-next`, and the details sheet are transient dialogs (not persisted; if the app
-closes while one is open, we resume the last persisted state — `waiting` or `in-ride`).
+Persisted states: `idle` (nothing stored), `waiting`, `paused`, `in-ride`.
+`choose-action`, `whats-next`, `set-waiting-spot`, and the details sheet are transient
+dialogs (not persisted; if the app closes while one is open, we resume the last persisted
+state — `waiting`, `paused`, or `in-ride`). Pause applies to **every** waiting phase — the
+initial wait and each post-drop-off leg (they are all the `waiting` state).
 
 ## Entry points → choose-action dialog
 
@@ -78,36 +116,66 @@ Two ways to open the **choose-action** dialog at a location:
 "Add Spot" preserves the current behavior exactly (`setupLocationSelection('select-pickup',
 … isNewSpot)` with its snap-to-nearby-spot and confirm card).
 
-## Login gate
+## Accounts — soft login prompt
 
-"Start Hitching" requires a logged-in user (submitting a tracked ride implies ownership).
+No hard gate. **Logged-in** users go straight from Start Hitching to `waiting`.
 
-- If anonymous: stash the intended pickup `{lat, lon}` in `localStorage`
-  (`inride.pendingStart`), then redirect to `/login?next=/` (the map). On return, if
-  `pendingStart` exists and the user is now logged in, go **straight to `waiting`** at
-  the stashed location (they already chose Start Hitching) and clear `pendingStart`. If
-  they return still anonymous (abandoned login), discard `pendingStart` and do nothing.
-- "Add Spot" remains available anonymously (unchanged).
+If the user is **anonymous**, Start Hitching first shows a small prompt (title:
+"Track your rides?"):
+- **Log in** — stash the intended pickup in `localStorage` (`inride.pendingStart`),
+  navigate to `/login?next=/`. On return logged-in, resume **straight to `waiting`** at
+  the stashed location and clear `pendingStart`. If they return still anonymous
+  (abandoned login), discard `pendingStart` and do nothing.
+- **Continue anonymously** — proceed to `waiting` immediately; the final ride submits
+  anonymously (as today's anonymous spot-add).
+- Tapping outside cancels back to `idle`.
 
-Whether the app knows "logged in" client-side: `map.html` already renders an
-`is_logged_in` flag into the page (used elsewhere). `inride.js` reads that flag.
+The final ride submits through the existing path, which already supports anonymous
+submission. Logged-in users' rides are attributed/owned exactly as today. "Add Spot" is
+unaffected (anonymous as today). Client-side, `inride.js` reads the `is_logged_in` flag
+that `map.html` already renders into the page to decide whether to show the prompt.
 
 ## Waiting state
 
-- **Journey start timestamp** recorded when `waiting` begins (this is `t_waitStart`).
 - Pickup coordinates = the chosen location. For "Start Hitching", if we have a fresh GPS
   fix (bubble tap) we use it; otherwise we prompt GPS permission, and on denial the user
-  drops the pin manually (reusing the location-selection pin UI).
+  drops the pin manually (reusing the location-selection pin UI). The waiting pin is
+  **draggable** so the user can nudge it to the exact spot at any time.
+- **Active-wait accumulator (pause-aware).** Wait time is measured as the sum of *active*
+  segments, not raw wall-clock. Two fields track it:
+  - `waitAccumMs` — active ms banked from completed segments (starts at 0).
+  - `waitSegmentStartMs` — start of the currently-running segment (`null` while paused).
+
+  Current wait = `waitAccumMs + (waitSegmentStartMs ? now − waitSegmentStartMs : 0)`.
+  When `waiting` begins, `waitSegmentStartMs = now`. This is reload-safe and pause-safe.
 - **Persistent docked bar** (`position:fixed`, above zoom controls), restored on reload:
   - **Give Up** — big red (`--red #d73027`)
   - **Got a Ride!** — big green (`--green`)
+  - **Pause** — compact tertiary control (icon + "Pause"), e.g. on the status-chip row so
+    the two big primary buttons stay uncrowded.
 - **Status chip** above the bar shows a live `Waiting · HH:MM:SS` timer (ticks each
-  second; the authoritative value is always `now − t_waitStart`, so reloads are exact).
+  second; the authoritative value is always the accumulator above, so reloads and pauses
+  are exact).
+
+### Pause / Resume
+
+Tapping **Pause** (from any waiting phase — initial or post-drop-off) enters the persisted
+`paused` state: bank the running segment (`waitAccumMs += now − waitSegmentStartMs`), set
+`waitSegmentStartMs = null`, and freeze the timer.
+
+Paused UI **mirrors the waiting bar**: the docked bar keeps **Give Up** (red) + **Got a
+Ride!** (green), but **Got a Ride! is greyed-out/disabled** until the user resumes (you
+can't board while paused). The **Resume** control lives in the **status chip**, in the same
+spot the Pause pill occupied — the chip reads `Paused · waited MM:SS  ▶ Resume`. Tapping
+Resume sets `waitSegmentStartMs = now`, re-enables Got a Ride!, and returns to `waiting`.
+Give Up stays active throughout. Pausing keeps a meal break or an overnight stop out of the
+recorded wait time.
 
 ### Give Up
 
 Opens the **existing Add-Spot → ride form** flow, pre-filled with:
-- `wait` = `round((t_giveUp − t_waitStart) / 60000)` minutes
+- `wait` = `round(currentWaitMs / 60000)` minutes (the pause-aware accumulator — excludes
+  paused time)
 - an empty comment field for the user to fill
 - pickup = the waiting location
 
@@ -120,17 +188,18 @@ Mechanism: reuse the existing `sessionStorage.rideFormData` prefill that
 ## Got a Ride! → ride-details sheet
 
 Tapping "Got a Ride!" records `t_gotRide` (= departure time, and the end of waiting) and
-opens a **slim bottom sheet** (not the full form):
+opens a **slim bottom sheet** (not the full form), titled **"How was the spot?"**:
 - Star **rating** (required)
 - **Vehicle kind** chips (Car/Truck/Van/…), default Car
 - **Signal** chips (Thumb/Sign/Asking)
 - **Comment** (optional)
-- **"Start ride"** primary button → transitions to `in-ride`
+- **"Ride On!"** primary button → transitions to `in-ride`
 - **"＋ Add driver / vehicle details"** link → opens the full ride form for power users
   (their in-sheet selections carried over via the existing sessionStorage prefill).
 
-The captured details + `t_gotRide` + pickup + wait duration are stored in the `in-ride`
-localStorage record; **submission is deferred** to Finish Ride (when the destination is known).
+The captured details + `t_gotRide` + pickup + final wait duration (the frozen accumulator)
+are stored in the `in-ride` localStorage record; **submission is deferred** to Finish Ride
+(when the destination is known).
 
 ## In-ride state
 
@@ -153,11 +222,23 @@ localStorage record; **submission is deferred** to Finish Ride (when the destina
 
 Transient dialog after a successful submit:
 - Title: "What's next?"
-- **Next Ride** — green: the drop-off location becomes the **new pickup**, a fresh
-  `t_waitStart = now` is set, and state returns to `waiting` (new leg, new timestamps).
+- **Next Ride** — green: start a new leg. The just-submitted ride keeps its **actual
+  drop-off** as its destination; the new leg's **waiting location is set separately** (see
+  below) because hitchhikers are often dropped at one spot and walk to a nearby, better
+  one. → `set-waiting-spot`.
 - **End Hitch** — grey: clear journey state → `idle`.
 
-This makes multi-leg trips effortless without re-selecting a location.
+### set-waiting-spot (new leg)
+
+A lightweight confirm step (reusing the location-selection pin UI), **defaulting the pin
+to the drop-off** so the common "wait where I was dropped" case is a single tap:
+- A draggable pin pre-placed at the drop-off, plus a **"Use my location"** (GPS) button
+  and free tap/drag to move it — for when the good spot is a short walk away.
+- **Confirm** → resets the wait accumulator (`waitAccumMs = 0`, `waitSegmentStartMs = now`),
+  sets pickup to the confirmed location, increments `legIndex`, and enters `waiting`.
+
+This keeps each leg's pickup and the previous leg's drop-off independent and accurate,
+while staying one-tap in the usual case.
 
 ## Data mapping (zero-typing capture)
 
@@ -166,7 +247,7 @@ Reusing the existing ride/Nostr shape (`stops[0]` = pickup, `stops[-1]` = destin
 | Ride field | Source |
 |---|---|
 | pickup lat/lon (`stops[0].location`) | journey start location |
-| `waiting_duration` (`PT<n>M`) | `t_gotRide − t_waitStart`, rounded to minutes |
+| `waiting_duration` (`PT<n>M`) | pause-aware active-wait accumulator at Got-a-Ride, rounded to minutes (excludes paused time) |
 | `departure_time` (`stops[0]`) | `t_gotRide` (ISO 8601) |
 | destination lat/lon (`stops[-1]`) | GPS fix at Finish Ride (manual fallback) |
 | `arrival_time` (`stops[-1]`) | `t_finish` (ISO 8601) |
@@ -181,46 +262,63 @@ a comment at "Give Up".
 Key `inride.journey`:
 ```json
 {
-  "state": "waiting | in-ride",
+  "state": "waiting | paused | in-ride",
   "pickup": { "lat": 48.20, "lon": 16.37 },
-  "waitStartMs": 1751459200000,
-  "gotRideMs": null,
-  "details": null,            // rating/vehicle/signal/comment once Got-a-Ride is saved
-  "legIndex": 0               // increments on Next Ride (informational)
+  "waitAccumMs": 0,               // active wait banked from completed segments
+  "waitSegmentStartMs": 1751459200000,  // current segment start; null while paused
+  "gotRideMs": null,              // set at Got-a-Ride (departure time)
+  "finalWaitMs": null,            // frozen active-wait accumulator at Got-a-Ride
+  "details": null,                // rating/vehicle/signal/comment once Got-a-Ride is saved
+  "legIndex": 0                   // increments on Next Ride (informational)
 }
 ```
-Key `inride.pendingStart`: `{ "lat": …, "lon": … }` (only across the login redirect).
+Key `inride.pendingStart`: `{ "lat": …, "lon": … }` — set only when an anonymous user
+picks "Log in" from the soft prompt, so the intended start survives the login redirect;
+cleared on return.
 
 Written on every transition; read once on page load to rehydrate the docked UI + timer.
 
 ## Resume on load
 
 On map init, `inride.js` reads `inride.journey`:
-- `waiting` → render the Give Up / Got a Ride bar + waiting timer; re-draw pickup pin.
+- `waiting` → render the Give Up / Got a Ride bar + running waiting timer; re-draw pickup pin.
+- `paused` → render the waiting bar (Give Up + greyed-out Got a Ride!) + frozen
+  `Paused · waited … ▶ Resume` chip; re-draw pickup pin.
 - `in-ride` → render the Finish Ride bar + in-ride timer; re-draw pickup pin.
-- If a journey is very old (e.g. `waitStart` > 24h ago), still resume but the "Welcome
-  back" card offers **Resume** / **Discard** so a forgotten journey is easy to clear.
+- If a journey is very old (e.g. current segment started > 24h ago), still resume but the
+  "Welcome back" card offers **Resume** / **Discard** so a forgotten journey is easy to clear.
 
 ## Components / responsibilities
 
 - **`journeyStore`** — read/write/clear localStorage; single source of truth for state + timestamps.
-- **`journeyUI`** — render/tear down the docked bars, status chip + live timer, and the
-  dialogs (choose-action, ride-details sheet, what's-next, welcome-back). Pure DOM +
-  the app's existing CSS tokens (new rules added to `style.css`).
-- **`journeyFlow`** — the transitions (start/giveUp/gotRide/finish/nextRide/end) wiring
-  store + UI + geolocation + submission together.
+- **`journeyUI`** — render/tear down the docked bars (waiting / paused / in-ride), status
+  chip + live timer, and the dialogs (choose-action, soft-login, ride-details sheet,
+  what's-next, set-waiting-spot, welcome-back). Pure DOM + the app's existing CSS tokens
+  (new rules added to `style.css`).
+- **`journeyFlow`** — the transitions (start / pause / resume / giveUp / gotRide / finish /
+  nextRide / setWaitingSpot / end) wiring store + UI + geolocation + submission together.
 - **map.js hooks** — long-press and bubble-tap open choose-action; expose `map`,
   `locationMarker`, `setupLocationSelection`, `findNearbySpotMarker`.
 
 ## Error handling & edge cases
 
 - **GPS denied** at start or finish → manual pin (existing selection UI). Never a dead end.
+- **GPS fix fails** (timeout / position-unavailable) → retry up to 3 attempts before
+  reporting failure and offering the manual pin. Permission denial skips retries (terminal).
+- **Locate button** → shown before initiating a ride (`idle`) and while `waiting` /
+  `paused` / `in-ride`; not on the transient dialog/sheet views. Independent "show my
+  location", never feeds the flow.
 - **Reload** mid-flow → resume from last persisted state; timers recompute from timestamps.
-- **Logged out** at Start Hitching → login redirect + resume via `pendingStart`.
+- **Anonymous** at Start Hitching → soft prompt (Log in / Continue anonymously); never blocks.
 - **Submit failure** (network / Nostr) → state retained, retry, or hand off to full form.
-- **Clock**: all durations derive from stored epoch-ms diffs, so they are reload-safe.
-- **Only one active journey** at a time; entry points are disabled/hidden while `waiting`
-  or `in-ride` (long-press/bubble-tap during a journey does nothing or re-shows the bar).
+- **Clock**: all durations derive from stored epoch-ms diffs (accumulator for wait), so
+  they are reload-safe and pause-safe.
+- **Pause**: available in every waiting phase (initial and each post-drop-off leg); paused
+  time is excluded from `waiting_duration`. Resume-on-load restores the paused UI frozen.
+- **Drop-off ≠ next waiting spot**: Next Ride keeps the finished ride's real drop-off and
+  lets the new leg's waiting location be set separately (defaulting to the drop-off).
+- **Only one active journey** at a time; entry points are disabled/hidden while `waiting`,
+  `paused`, or `in-ride` (long-press/bubble-tap during a journey does nothing).
 
 ## Testing
 
