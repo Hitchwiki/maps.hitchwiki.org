@@ -39,7 +39,10 @@
 var HIDE_ADD_SPOT_BUTTON = {{ hide_add_spot_button|tojson }};
 var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
 </script>
+<!-- Expose auth state to the in-ride tracker (it decides whether to show the soft login prompt). -->
+<script>window.IS_LOGGED_IN = {{ 'true' if is_logged_in else 'false' }};</script>
 <script src="{{ asset_url('/static/map.js') }}"></script>
+<script src="{{ asset_url('/static/inride.js') }}"></script>
 <script>
 // Install-to-homescreen hint logic. Self-contained — no dependency on map.js.
 // Storage key holds the dismissal timestamp (ms); reappears after 30 days.
