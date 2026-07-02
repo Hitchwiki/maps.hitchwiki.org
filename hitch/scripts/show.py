@@ -569,7 +569,7 @@ rides_df = rides_df[rides_df["is_informative"]].copy()
 groups = rides_df.groupby(["lat", "lon"])
 
 places = groups[["source"]].first()  # TODO: this is a trick for now
-places["rating"] = groups.rating.mean().round()
+places["rating"] = groups.rating.mean().round(1)
 places["wait"] = rides_df[~rides_df.wait.isnull()].groupby(["lat", "lon"]).wait.mean()
 places["distance"] = rides_df[~rides_df.distance.isnull()].groupby(["lat", "lon"]).distance.mean()
 places["text"] = groups.text.apply(lambda t: "<hr>".join(t.dropna()))

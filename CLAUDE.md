@@ -331,5 +331,6 @@ Map UI loads updated JSON → ride visible on map
 - **Daily at 7 AM**: `sync_upstream` - Upstream (legacy hitchmap.com) data synchronization
 - **Daily at midnight**: `notify_nearby_hitchhikers` - Send nearby-hitchhiker notification emails
 - **Weekly (Mon 8 AM)**: `sync_hitchhiking_rides_dataset` - Push rides to the Hugging Face dataset
+- **Monthly (1st, 9 AM)**: `country_ratings` - Regenerate country hitchability CSV + `country_ratings.json` / `country_insights.json`
 
 (Several legacy jobs — `dump`, `fetch-roads`, `fetch-areas` — are commented out in `deploy/cron.sh`.)

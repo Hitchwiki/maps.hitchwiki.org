@@ -489,19 +489,52 @@ function onLocationError(e) {
 // (wired in Task 2). This task only renders the idle button.
 // ---- Map mode switcher (Spots / Heatmap / Countries) -----------------------
 
-// Rating (1..5) -> choropleth colour, matching the country page badge colours.
+// Score (1..5) -> choropleth colour, matching the country page badge colours.
 const COUNTRY_RATING_COLORS = { 1: "#d73027", 2: "#fc8d59", 3: "#fee08b", 4: "#91cf60", 5: "#1a9850" };
+
+// The choropleth is coloured by the continuous 0–5 hitchability score, so we
+// interpolate between the five anchor colours above rather than bucketing to
+// integers (most countries would otherwise all land on the same "4" shade).
+const COUNTRY_COLOR_STOPS = [
+  [1, [0xd7, 0x30, 0x27]],
+  [2, [0xfc, 0x8d, 0x59]],
+  [3, [0xfe, 0xe0, 0x8b]],
+  [4, [0x91, 0xcf, 0x60]],
+  [5, [0x1a, 0x98, 0x50]],
+];
+
+function hitchColor(score) {
+  const s = Math.max(1, Math.min(5, score));
+  for (let i = 1; i < COUNTRY_COLOR_STOPS.length; i++) {
+    const [x0, c0] = COUNTRY_COLOR_STOPS[i - 1];
+    const [x1, c1] = COUNTRY_COLOR_STOPS[i];
+    if (s <= x1) {
+      const t = (s - x0) / (x1 - x0);
+      const ch = (k) => Math.round(c0[k] + (c1[k] - c0[k]) * t);
+      return `rgb(${ch(0)}, ${ch(1)}, ${ch(2)})`;
+    }
+  }
+  return "#1a9850";
+}
+
+// The value that drives a country's colour/label: hitchability when scored,
+// falling back to the integer rating for countries without a score.
+function countryScore(entry) {
+  if (!entry) return null;
+  return typeof entry.hitch === "number" ? entry.hitch : entry.rating;
+}
 
 function countryStyle(feature) {
   const cc = feature.properties.cc;
   const entry = countryRatings && countryRatings[cc];
-  const color = entry ? COUNTRY_RATING_COLORS[entry.rating] : null;
+  const score = countryScore(entry);
+  const color = score != null ? hitchColor(score) : null;
   return {
     pane: "countries",
     color: "#ffffff",
     weight: 1,
     fillColor: color || "#000000",
-    // Rated countries read as a solid choropleth; unrated ones stay faint.
+    // Scored countries read as a solid choropleth; unscored ones stay faint.
     fillOpacity: color ? 0.65 : 0.05,
   };
 }
@@ -523,8 +556,9 @@ async function loadCountryLayer() {
     onEachFeature: (feature, layer) => {
       const { cc, name } = feature.properties;
       const entry = countryRatings[cc];
+      const score = countryScore(entry);
       const label = entry
-        ? `${name}: ${entry.rating}★ (${entry.count} rides)`
+        ? `${name}: ${score != null ? score.toFixed(1) : "?"}/5 hitchability (${entry.count} rides)`
         : `${name}: no rides yet`;
       layer.bindTooltip(label, { sticky: true });
       // Tapping a country opens its info sheet, reflected in the address bar as
@@ -666,9 +700,10 @@ async function loadCountrySheetRating(cc) {
     const ratings = countryRatings || (await fetch("/country_ratings.json").then((r) => (r.ok ? r.json() : {})));
     const entry = ratings[cc];
     if (!entry) return;
-    badge.style.background = COUNTRY_RATING_COLORS[entry.rating] || "#9e9e9e";
+    const score = countryScore(entry);
+    badge.style.background = score != null ? hitchColor(score) : "#9e9e9e";
     badge.innerHTML =
-      `<i class="fa-solid fa-star"></i>${entry.rating}` +
+      `<i class="fa-solid fa-thumbs-up"></i>${score != null ? score.toFixed(1) : "?"}` +
       `<span class="country-rating-count">· ${entry.count} rides</span>`;
     badge.style.display = "inline-flex";
   } catch (e) { /* rating is optional */ }
@@ -846,7 +881,7 @@ function setupMapModeControl() {
   const modes = [
     { mode: "spots", icon: "fa-solid fa-location-dot", title: "Spots" },
     { mode: "heatmap", icon: "fa fa-fire", title: "Waiting-time heatmap" },
-    { mode: "countries", icon: "fa-solid fa-earth-europe", title: "Country ratings" },
+    { mode: "countries", icon: "fa-solid fa-earth-europe", title: "Country hitchability" },
   ];
   const ModeControl = L.Control.extend({
     options: { position: "bottomright" },
