@@ -61,6 +61,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **sync_osm.py**: OSM hitchhiking-spot synchronization (fetches highway=hitchhiking spots, daily)
 - **sync_car_pooling.py**: OSM car-pooling spot synchronization (daily)
 - **sync_hitchwiki.py**: Hitchwiki article synchronization (extracts coordinates from wiki articles, daily)
+- **sync_events.py**: Hitchwiki events synchronization. Pulls every page in `Category:Events`, extracts each `{{Event|name|start|end|lat|lon}}` template, keeps events whose end date is today or later, and writes `dist/events.json` directly (self-contained → no DB model, like `country_ratings`). The map draws a calendar-pin marker per event; clicking it opens a bottom sheet with the name, dates, a plain-text blurb from the wiki page, and a Hitchwiki link (daily at 4:15 AM). Note: Hitchwiki is behind Cloudflare, which 403s ("Just a moment…") requests without a browser-like `User-Agent`, so the script sends one.
 - **sync_upstream.py**: Legacy hitchmap.com data sync (daily at 7 AM)
 - **sync_hitchhiking_rides_dataset.py**: Push rides to the Hugging Face dataset (weekly)
 - **notify_nearby_hitchhikers.py**: Email notifications for nearby hitchhikers (daily)
@@ -79,6 +80,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Web Server**: Waitress for production, Apache/NGINX reverse proxy configs provided
 
 ## Debugging & Operations
+
+### Testing sync / generate scripts (run in the container, not the host venv)
+On the prod server the host `.venv` is minimal (only a few packages like `requests`) — the full dependency set lives inside the `hitchhiking-map` Docker image, so `flask ... generate <script>` will `ModuleNotFoundError` on the host. Test scripts inside the running container instead:
+```bash
+sudo docker exec hitchhiking-map /usr/local/bin/flask --app hitch generate <script>
+```
+Only `dist/`, `hitch/static/`, `hitch/templates/`, `db/`, and `logs/` are bind-mounted into the container (see `docker inspect hitchhiking-map`). `hitch/scripts/` is **not** mounted — it's baked into the image at build time. So a new/edited script won't exist in the running container until the image is rebuilt; to test it before a rebuild, copy it in first:
+```bash
+sudo docker cp hitch/scripts/<script>.py hitchhiking-map:/app/hitch/scripts/<script>.py
+```
+Because `dist/`, `static/`, and `templates/` **are** mounted, changes to generated JSON, `map.js`, `style.css`, and `map.html` are picked up live without a rebuild; changes under `hitch/scripts/` and `deploy/cron.sh` require a rebuild/redeploy to take effect (including the cron entry that schedules the script).
 
 ### Finding errors for internal server errors (500s)
 The app runs inside Docker. Flask tracebacks are NOT in the Apache logs — they go to the container's stdout/stderr. To get the real traceback:
@@ -326,6 +338,7 @@ Map UI loads updated JSON → ride visible on map
 - **Daily at 3 AM**: `sync_osm` - Sync OSM hitchhiking spots
 - **Daily at 3:30 AM**: `sync_car_pooling` - Sync OSM car-pooling spots
 - **Daily at 4 AM**: `sync_hitchwiki` - Sync Hitchwiki article coordinates
+- **Daily at 4:15 AM**: `sync_events` - Sync Hitchwiki `Category:Events` into `dist/events.json`
 - **Daily at 5 AM**: `dashboard` - Regenerate analytics dashboard
 - **Daily at 6 AM**: `cities` - Regenerate per-city pages
 - **Daily at 7 AM**: `sync_upstream` - Upstream (legacy hitchmap.com) data synchronization

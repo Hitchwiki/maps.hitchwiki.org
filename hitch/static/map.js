@@ -26,6 +26,9 @@ var allMarkers = [],
   // Map-mode switcher: "spots" (default), "heatmap", or "countries".
   mapMode = "spots",
   countryLayer = null,
+  // Hitchwiki Category:Event markers (dist/events.json), drawn on their own layer.
+  eventLayer = null,
+  eventsData = null,
   mapModeButtons = {};
 
 // Current-location button state. The marker/circle are created lazily on the
@@ -281,6 +284,9 @@ function populateHeatmapLegend(legendData) {
 
   // Load markers asynchronously
   await loadMarkers(map);
+
+  // Hitchwiki event markers — non-blocking, they're a small overlay.
+  loadEventMarkers(map);
 
   setupEventListeners();
 
@@ -870,6 +876,91 @@ function setSpotsVisible(visible) {
   }
 }
 
+// --- Hitchwiki events ---------------------------------------------------------
+// Load dist/events.json (upcoming/ongoing Category:Event markers) and draw each as
+// a distinct calendar-pin marker on its own layer, so events stand out from spots
+// and can be shown/hidden independently of the spot markers.
+async function loadEventMarkers(map) {
+  try {
+    const resp = await fetch("/events.json");
+    if (!resp.ok) return; // no events file yet (e.g. sync hasn't run) — silently skip
+    eventsData = await resp.json();
+  } catch (error) {
+    console.warn("Could not load events:", error);
+    return;
+  }
+  if (!Array.isArray(eventsData) || eventsData.length === 0) return;
+
+  eventLayer = L.layerGroup();
+  eventsData.forEach((ev) => {
+    if (typeof ev.lat !== "number" || typeof ev.lon !== "number") return;
+    const icon = L.divIcon({
+      className: "event-marker",
+      html: '<div class="event-marker-pin">📅</div>',
+      iconSize: [30, 30],
+      iconAnchor: [15, 15],
+    });
+    const marker = L.marker([ev.lat, ev.lon], { icon, title: ev.name });
+    marker.on("click", (e) => {
+      L.DomEvent.stopPropagation(e);
+      openEventSheet(ev);
+    });
+    marker.addTo(eventLayer);
+  });
+
+  // Events follow the spot markers: visible in spots/heatmap modes, hidden in Countries.
+  if (mapMode !== "countries") eventLayer.addTo(map);
+  console.log(`Loaded ${eventsData.length} event(s)`);
+}
+
+function setEventsVisible(visible) {
+  if (!eventLayer) return;
+  if (visible) {
+    if (!map.hasLayer(eventLayer)) eventLayer.addTo(map);
+  } else if (map.hasLayer(eventLayer)) {
+    map.removeLayer(eventLayer);
+  }
+}
+
+// Format an event's date range for the sheet, e.g. "1 Jul – 30 Aug 2026".
+function formatEventDates(ev) {
+  const opts = { day: "numeric", month: "short", year: "numeric" };
+  const end = ev.end ? new Date(ev.end) : null;
+  const start = ev.start ? new Date(ev.start) : null;
+  const fmt = (d) => (d && !isNaN(d) ? d.toLocaleDateString(undefined, opts) : null);
+  const s = fmt(start);
+  const e = fmt(end);
+  if (s && e) return `${s} – ${e}`;
+  return e || s || "";
+}
+
+function openEventSheet(ev) {
+  clear();
+  $$("#event-sheet-name").textContent = ev.name || "Event";
+  $$("#event-sheet-dates").textContent = formatEventDates(ev);
+  // Description is plain text from the wiki page; render as paragraphs, escaping HTML.
+  const desc = (ev.description || "").trim();
+  $$("#event-sheet-description").innerHTML = desc
+    ? desc
+        .split(/\n\n+/)
+        .map((p) => `<p>${escapeHtml(p).replace(/\n/g, "<br>")}</p>`)
+        .join("")
+    : "";
+  $$("#event-sheet-source").innerHTML = ev.url
+    ? `Source: <a href="${escapeHtml(ev.url)}" target="_blank" rel="noopener">${escapeHtml(ev.title || ev.name)} on Hitchwiki</a>`
+    : "";
+  bar(".sidebar.event");
+  updateBottomPaneVar();
+  setSheetSnap($$(".sidebar.event"), "full", EVENT_SHEET_SNAPS);
+  map.panTo([ev.lat, ev.lon]);
+}
+
+function escapeHtml(s) {
+  const div = document.createElement("div");
+  div.textContent = s;
+  return div.innerHTML;
+}
+
 // Single source of truth for which map mode is active.
 async function setMapMode(mode) {
   mapMode = mode;
@@ -878,11 +969,13 @@ async function setMapMode(mode) {
   if (mode === "countries") {
     await setHeatmapActive(false);
     setSpotsVisible(false);
+    setEventsVisible(false);
     const layer = await loadCountryLayer();
     if (!map.hasLayer(layer)) layer.addTo(map);
   } else {
     if (countryLayer && map.hasLayer(countryLayer)) map.removeLayer(countryLayer);
     setSpotsVisible(true);
+    setEventsVisible(true);
     await setHeatmapActive(mode === "heatmap");
   }
 
@@ -1020,6 +1113,7 @@ function setupEventListeners() {
   setupMenuSheet();
   setupRoutingSheet();
   setupCountrySheet();
+  setupEventSheet();
   const reportDup = $$(".report-dup");
   if (reportDup) reportDup.onclick = () =>
     document.body.classList.add("reporting-duplicate");
@@ -1461,6 +1555,7 @@ const SPOT_SHEET_SNAPS = { peek: 80, half: 60, full: 10 };
 const MENU_SHEET_SNAPS = { half: 55, full: 0 };
 const ROUTING_SHEET_SNAPS = { half: 55, full: 0 };
 const COUNTRY_SHEET_SNAPS = { half: 55, full: 0 };
+const EVENT_SHEET_SNAPS = { half: 55, full: 0 };
 
 function setSheetSnap(sheet, name, snaps) {
   if (!sheet) return;
@@ -1652,6 +1747,18 @@ function setupCountrySheet() {
   // Re-fit the histograms when the viewport width changes while the sheet is open.
   window.addEventListener("resize", () => {
     if ($$(".sidebar.country").classList.contains("visible")) redrawCountryInsightsCharts();
+  });
+}
+
+function setupEventSheet() {
+  const closeBtn = $$("#event-close");
+  if (closeBtn) closeBtn.onclick = navigateHome;
+  setupBottomSheet({
+    sheet: $$(".sidebar.event"),
+    handle: $$("#event-sheet-handle"),
+    snaps: EVENT_SHEET_SNAPS,
+    defaultSnap: "full",
+    onClose: navigateHome,
   });
 }
 
