@@ -662,8 +662,10 @@ function renderCountryWikitext(raw) {
   t = stripWikiImages(t); // [[File:...]] / [[Image:...]] embeds
   t = t.replace(/^\s*[*#:;].*$/gm, ""); // list/indent lines (keep it prose-only)
 
-  // Escape any remaining raw HTML before we inject our own safe markup.
-  t = escapeHtml(t);
+  // Escape HTML-significant chars before we inject our own safe markup, but keep
+  // apostrophes intact: escapeHtml() turns ' into &#39;, which would stop the
+  // '''bold''' / ''italic'' passes below from ever matching their quote markers.
+  t = t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
   // Internal links: [[target|label]] and [[target]]
   t = t.replace(/\[\[([^\[\]|]+)\|([^\[\]]+)\]\]/g, (m, target, label) =>
