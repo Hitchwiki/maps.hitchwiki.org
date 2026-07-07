@@ -951,6 +951,20 @@ function openEventSheet(ev) {
   loadEventSheetText(ev);
 }
 
+// Resolve the page-name magic words MediaWiki would normally expand server-side
+// ({{FULLPAGENAME}}, {{PAGENAME}}, {{BASEPAGENAME}}, {{SUBPAGENAME}}). We render raw
+// wikitext client-side, so these stay literal and — worse — get dropped by the
+// template stripper, leaving gaps like a stray '''''' bold. Substitute them with the
+// actual page title before rendering. The trailing "E" variants are URL-encoded forms.
+function substituteWikiPageName(wikitext, title) {
+  const base = title.includes("/") ? title.slice(0, title.lastIndexOf("/")) : title;
+  const sub = title.includes("/") ? title.slice(title.lastIndexOf("/") + 1) : title;
+  return wikitext
+    .replace(/\{\{\s*(?:FULLPAGENAME|PAGENAME)E?\s*\}\}/gi, title)
+    .replace(/\{\{\s*BASEPAGENAMEE?\s*\}\}/gi, base)
+    .replace(/\{\{\s*SUBPAGENAMEE?\s*\}\}/gi, sub);
+}
+
 // Fetch the event's full Hitchwiki page and render it with the same MediaWiki
 // reader used for country pages (renderCountryWikitext), so the sheet shows the
 // complete page text with working links instead of a truncated server excerpt.
@@ -962,6 +976,7 @@ async function loadEventSheetText(ev) {
     const data = await fetch(countryWikiApi(ev.title, "&prop=wikitext")).then((r) => r.json());
     let wikitext = data && data.parse && data.parse.wikitext && data.parse.wikitext["*"];
     if (wikitext) {
+      wikitext = substituteWikiPageName(wikitext, ev.title || ev.name || "");
       // Category tags aren't prose; renderCountryWikitext would otherwise turn
       // [[Category:Events]] into a stray link at the end of the article.
       wikitext = wikitext.replace(/\[\[Category:[^\]]*\]\]/gi, "");

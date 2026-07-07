@@ -145,12 +145,28 @@ def parse_date(value: str) -> datetime.date | None:
     return None
 
 
-def wikitext_to_description(text: str, max_len: int = 600) -> str:
+def substitute_page_name(text: str, title: str) -> str:
+    """Resolve the page-name magic words MediaWiki expands server-side.
+
+    {{FULLPAGENAME}} / {{PAGENAME}} / {{BASEPAGENAME}} / {{SUBPAGENAME}} stay literal in
+    raw wikitext and would otherwise be dropped by the template stripper below, so
+    replace them with the actual page title (the "E" suffixes are URL-encoded variants).
+    """
+    base = title.rsplit("/", 1)[0] if "/" in title else title
+    sub = title.rsplit("/", 1)[1] if "/" in title else title
+    text = re.sub(r"\{\{\s*(?:FULLPAGENAME|PAGENAME)E?\s*\}\}", title, text, flags=re.IGNORECASE)
+    text = re.sub(r"\{\{\s*BASEPAGENAMEE?\s*\}\}", base, text, flags=re.IGNORECASE)
+    text = re.sub(r"\{\{\s*SUBPAGENAMEE?\s*\}\}", sub, text, flags=re.IGNORECASE)
+    return text
+
+
+def wikitext_to_description(text: str, title: str, max_len: int = 600) -> str:
     """Turn a page's wikitext into a short plain-text blurb for the event sheet.
 
     This is deliberately light-touch — strip the templates and the noisiest markup so
     the sheet shows readable prose, and let the "read on Hitchwiki" link cover the rest.
     """
+    text = substitute_page_name(text, title)
     # Drop all templates (including the {{Event|...}} markers and infoboxes).
     text = re.sub(r"\{\{[^{}]*\}\}", "", text)
     # Category / file / image links.
@@ -187,7 +203,10 @@ def main():
     events = []
     skipped_past = 0
     for title, text in pages.items():
-        description = wikitext_to_description(text)
+        # Resolve page-name magic words up front so both the {{Event|...}} name field and
+        # the description show the page title instead of a literal {{FULLPAGENAME}}.
+        text = substitute_page_name(text, title)
+        description = wikitext_to_description(text, title)
         url = BASE_URL + title.replace(" ", "_")
         for match in EVENT_PATTERN.finditer(text):
             name, start_raw, end_raw, lat_raw, lon_raw = (g.strip() for g in match.groups())
