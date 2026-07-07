@@ -691,6 +691,22 @@ body.adding-spot .leaflet-control-attribution {
 .sidebar.event .event-description p {
   margin: 0 0 1rem;
 }
+.sidebar.event .event-description h4 {
+  margin: 1.2rem 0 0.4rem;
+  font-size: 1.05rem;
+  color: #222;
+}
+.sidebar.event .event-description a {
+  color: #1a73e8;
+  text-decoration: none;
+}
+.sidebar.event .event-description a:hover {
+  text-decoration: underline;
+}
+.sidebar.event .sheet-status {
+  color: #666;
+  font-style: italic;
+}
 .sidebar.event .event-source {
   margin-top: 1.5rem;
   padding-top: 1rem;

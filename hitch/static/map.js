@@ -938,27 +938,46 @@ function openEventSheet(ev) {
   clear();
   $$("#event-sheet-name").textContent = ev.name || "Event";
   $$("#event-sheet-dates").textContent = formatEventDates(ev);
-  // Description is plain text from the wiki page; render as paragraphs, escaping HTML.
-  const desc = (ev.description || "").trim();
-  $$("#event-sheet-description").innerHTML = desc
-    ? desc
-        .split(/\n\n+/)
-        .map((p) => `<p>${escapeHtml(p).replace(/\n/g, "<br>")}</p>`)
-        .join("")
+  const wikiUrl = ev.url || COUNTRY_WIKI_BASE + encodeURIComponent((ev.title || ev.name || "").replace(/ /g, "_"));
+  $$("#event-sheet-source").innerHTML = ev.title
+    ? `Text from <a href="${escapeHtml(wikiUrl)}" target="_blank" rel="noopener">Hitchwiki: ${escapeHtml(ev.title)}</a>, ` +
+      `licensed <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA</a>.`
     : "";
-  $$("#event-sheet-source").innerHTML = ev.url
-    ? `Source: <a href="${escapeHtml(ev.url)}" target="_blank" rel="noopener">${escapeHtml(ev.title || ev.name)} on Hitchwiki</a>`
-    : "";
+  $$("#event-sheet-description").innerHTML = `<p class="sheet-status">Loading from Hitchwiki…</p>`;
   bar(".sidebar.event");
   updateBottomPaneVar();
   setSheetSnap($$(".sidebar.event"), "full", EVENT_SHEET_SNAPS);
   map.panTo([ev.lat, ev.lon]);
+  loadEventSheetText(ev);
 }
 
-function escapeHtml(s) {
-  const div = document.createElement("div");
-  div.textContent = s;
-  return div.innerHTML;
+// Fetch the event's full Hitchwiki page and render it with the same MediaWiki
+// reader used for country pages (renderCountryWikitext), so the sheet shows the
+// complete page text with working links instead of a truncated server excerpt.
+// Falls back to the server-extracted blurb in events.json if the live fetch fails.
+async function loadEventSheetText(ev) {
+  const body = $$("#event-sheet-description");
+  try {
+    // No section param → the whole page's wikitext.
+    const data = await fetch(countryWikiApi(ev.title, "&prop=wikitext")).then((r) => r.json());
+    let wikitext = data && data.parse && data.parse.wikitext && data.parse.wikitext["*"];
+    if (wikitext) {
+      // Category tags aren't prose; renderCountryWikitext would otherwise turn
+      // [[Category:Events]] into a stray link at the end of the article.
+      wikitext = wikitext.replace(/\[\[Category:[^\]]*\]\]/gi, "");
+      const html = renderCountryWikitext(wikitext);
+      if (html) {
+        body.innerHTML = html;
+        return;
+      }
+    }
+  } catch (e) {
+    console.warn("Could not load event page from Hitchwiki:", e);
+  }
+  const desc = (ev.description || "").trim();
+  body.innerHTML = desc
+    ? desc.split(/\n\n+/).map((p) => `<p>${escapeHtml(p).replace(/\n/g, "<br>")}</p>`).join("")
+    : `<p class="sheet-status">No description available.</p>`;
 }
 
 // Single source of truth for which map mode is active.
