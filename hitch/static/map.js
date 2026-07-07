@@ -896,7 +896,7 @@ async function loadEventMarkers(map) {
     if (typeof ev.lat !== "number" || typeof ev.lon !== "number") return;
     const icon = L.divIcon({
       className: "event-marker",
-      html: '<div class="event-marker-pin">📅</div>',
+      html: '<div class="event-marker-pin">🎪</div>',
       iconSize: [30, 30],
       iconAnchor: [15, 15],
     });
