@@ -23,6 +23,31 @@
     },
   };
 
+  // Durable queue of ride submissions that haven't reached the server yet. Lives in
+  // localStorage beside the journey so a Finish/Give Up survives an offline stretch, a
+  // reload, or an app restart. status:"failed" = permanent (validation) — not auto-retried.
+  // Item shape: { id, kind:"finish"|"giveup", body, createdAt, attempts, lastError, status }.
+  const OUTBOX_KEY = "inride.outbox";
+  const outboxStore = {
+    get() {
+      try { const v = JSON.parse(localStorage.getItem(OUTBOX_KEY)); return Array.isArray(v) ? v : []; }
+      catch (e) { return []; }
+    },
+    set(list) { localStorage.setItem(OUTBOX_KEY, JSON.stringify(list)); return list; },
+    add(item) { const l = outboxStore.get(); l.push(item); outboxStore.set(l); return item; },
+    remove(id) { outboxStore.set(outboxStore.get().filter((it) => it.id !== id)); },
+    update(id, patch) {
+      const l = outboxStore.get();
+      const it = l.find((x) => x.id === id);
+      if (!it) return null;
+      Object.assign(it, patch);
+      outboxStore.set(l);
+      return it;
+    },
+    pending() { return outboxStore.get().filter((it) => it.status !== "failed"); },
+    count() { return outboxStore.get().length; },
+  };
+
   // ── GPS helper ───────────────────────────────────────────────────────────────
   // A GPS "fix" = up to 3 attempts. Timeout / position-unavailable → retry;
   // PERMISSION_DENIED (code 1) is terminal and rejects immediately so the caller
@@ -55,6 +80,15 @@
     return `${p(h)}:${p(m)}:${p(ss)}`;
   }
 
+  // Stable id for an outbox item; also becomes the Nostr d_tag so retries are idempotent.
+  function uuid() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+      const r = (Math.random() * 16) | 0, v = c === "x" ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  }
+
   // The /ride datetime fields are `datetime-local` (local wall-clock, no zone), so
   // build "YYYY-MM-DDTHH:mm" from LOCAL date components — NOT toISOString() (UTC).
   // toISOString() would silently offset times by the user's UTC offset.
@@ -64,15 +98,14 @@
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
-  // Build the form body from journey + destination and POST to /ride.
-  // The X-Requested-With: inride header makes the backend return JSON instead of
-  // redirecting, so we can stay in-page and handle success/failure here.
-  // finishMs is captured at the START of journeyFlow.finish() (not submit time), so
-  // GPS-fix delay / manual-pin delay don't inflate the arrival time; also prevents
-  // arrival == departure on same-minute short rides (backend asserts arrival > departure).
-  function submitRide(j, dest, finishMs) {
+  // Build the /ride form body from a journey + destination. client_d_tag pins the Nostr
+  // d_tag so outbox retries replace rather than duplicate. finishMs is captured at the
+  // START of journeyFlow.finish() (not submit time), so GPS-fix / manual-pin delay don't
+  // inflate the arrival time; also prevents arrival == departure on same-minute short
+  // rides (backend asserts arrival > departure).
+  function buildFinishBody(j, dest, finishMs, id) {
     const d = j.details || {};
-    const body = new URLSearchParams({
+    return {
       rate: String(d.rating || ""),
       wait: String(Math.round((j.finalWaitMs || 0) / 60000)),
       signal: (d.signal || []).join(","),
@@ -82,34 +115,85 @@
       destination_lat: dest.lat, destination_lon: dest.lon,
       datetime_ride: isoLocal(j.gotRideMs),
       arrival_datetime: isoLocal(finishMs),
-    });
-    return fetch("/ride", {
-      method: "POST",
-      headers: {
-        "X-Requested-With": "inride",
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body,
-    }).then(function (r) { return r.json(); });
+      client_d_tag: id,
+    };
   }
 
-  // Submit and route the result: success → whatsNext; failure → error banner
-  // while keeping in-ride state so the user can retry without data loss.
-  function completeFinish(j, dest, finishMs) {
-    submitRide(j, dest, finishMs)
-      .then(function (res) {
-        journeyUI.setFinishBusy(false);
-        if (res && res.ok) {
-          journeyFlow.whatsNext(dest);
-        } else {
-          // Keep in-ride state — do NOT clear the journey on submit failure.
-          journeyUI.error("Couldn't save the ride — try again.");
-        }
+  // POST a saved outbox body to /ride. Resolves with {status, json}; a thrown network
+  // error resolves as {status:0} (not a rejection) so the flush loop can classify it.
+  function submitBody(body) {
+    return fetch("/ride", {
+      method: "POST",
+      headers: { "X-Requested-With": "inride", "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams(body),
+    })
+      .then(function (r) {
+        return r.json().then(
+          function (j) { return { status: r.status, json: j }; },
+          function () { return { status: r.status, json: null }; }
+        );
       })
-      .catch(function () {
-        journeyUI.setFinishBusy(false);
-        journeyUI.error("Network error — try again.");
+      .catch(function () { return { status: 0, json: null }; });
+  }
+
+  // Drain pending outbox items. Classification:
+  //   success  (200 ok:true)             → remove
+  //   permanent(400 ok:false !transient) → mark "failed" (needs manual retry/discard)
+  //   transient(0 / 5xx / unparseable)   → keep, bump attempts, try again later
+  // A single `flushing` guard prevents the interval + online-event + enqueue triggers
+  // from overlapping and double-submitting the same item.
+  let flushing = false;
+  function flushOutbox() {
+    if (flushing) return Promise.resolve();
+    const items = outboxStore.pending();
+    if (!items.length) return Promise.resolve();
+    flushing = true;
+
+    // Sequential (reduce) so we don't fan out N parallel POSTs on a flaky link.
+    return items.reduce(function (chain, item) {
+      return chain.then(function () {
+        return submitBody(item.body).then(function (res) {
+          if (res.json && res.json.ok) {
+            outboxStore.remove(item.id);
+          } else if (res.status === 400 && res.json && res.json.transient !== true) {
+            outboxStore.update(item.id, {
+              status: "failed",
+              lastError: (res.json && res.json.error) || "Rejected",
+              attempts: item.attempts + 1,
+            });
+          } else {
+            outboxStore.update(item.id, {
+              lastError: (res.json && res.json.error) || "Offline",
+              attempts: item.attempts + 1,
+            });
+          }
+        });
       });
+    }, Promise.resolve()).then(
+      function () { flushing = false; if (window.inride.outboxUI) window.inride.outboxUI.refresh(); },
+      function () { flushing = false; } // never leave the guard stuck on an unexpected throw
+    );
+  }
+
+  // Replaced below (on-load section) with the real interval starter. Declared here so the
+  // capture flows can call it before that definition is reached at module-eval time.
+  let startOutboxTimer = function () {};
+
+  // Enqueue the finished ride durably, THEN proceed — the journey never blocks on the
+  // network. The outbox flush (now + on reconnect) performs the actual upload. If the
+  // enqueue happens while offline, reassure the user the ride is saved.
+  function completeFinish(j, dest, finishMs) {
+    const id = uuid();
+    outboxStore.add({
+      id: id, kind: "finish", createdAt: Date.now(), attempts: 0, lastError: null, status: "pending",
+      body: buildFinishBody(j, dest, finishMs, id),
+    });
+    journeyUI.setFinishBusy(false);
+    if (window.inride.outboxUI) window.inride.outboxUI.refresh();
+    startOutboxTimer();
+    if (navigator.onLine === false) journeyUI.toast("Saved — will upload when you're back online.");
+    journeyFlow.whatsNext(dest);
+    flushOutbox();
   }
 
   // ── journeyFlow ──────────────────────────────────────────────────────────────
@@ -295,9 +379,10 @@
       journeyUI.teardown();
       if (!j) return;
 
-      // Hide stock controls and show the cover-flow stack for all journey states.
-      document.body.classList.add("inride-active");
-      journeyUI.buildControlStack();
+      // Keep the stock map controls in their default layout during a journey.
+      // (The cover-flow takeover was removed per UX feedback — the docked bar and
+      // chip below ride above the bottom nav, so the stock controls don't need to
+      // be hidden or replaced.)
 
       switch (j.state) {
         case "waiting":
@@ -747,18 +832,32 @@
       if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
       const banner = document.createElement("div");
       banner.id = "inr-error-banner";
+      // Sit ABOVE the dock+chip stack (chip tops out at ~var+108px) and above their
+      // z-index (2002), so the message is readable and never hidden behind the
+      // Finish Ride button — the original 1300 rendered it behind the dock.
       banner.style.cssText = [
         "position:fixed", "left:10px", "right:10px",
-        "bottom:calc(90px + env(safe-area-inset-bottom,0px))",
+        "bottom:calc(var(--bottom-pane-h, env(safe-area-inset-bottom,0px)) + 120px)",
         "background:#b00020", "color:#fff", "border-radius:12px",
         "padding:12px 16px", "font-size:14px", "font-weight:600",
-        "z-index:1300", "text-align:center",
+        "z-index:2003", "text-align:center",
+        "box-shadow:0 3px 10px rgba(0,0,0,.25)",
       ].join(";");
       banner.textContent = msg;
       document.body.appendChild(banner);
       setTimeout(function () {
         if (banner.parentNode) banner.parentNode.removeChild(banner);
       }, 5000);
+    },
+
+    // Brief, non-blocking confirmation (distinct from error()'s red banner). Used to tell
+    // the user a ride was safely queued when they're offline. Auto-removes after 4 s.
+    toast(msg) {
+      const t = document.createElement("div");
+      t.className = "inr-toast";
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 4000);
     },
 
     // Inline manual-pin fallback for destination selection.
@@ -803,10 +902,15 @@
         "</div>",
       ].join("");
       document.body.appendChild(ui);
+      // While dropping the pin, neutralize overlay markers (e.g. Hitchwiki event
+      // pins) so a stray tap on one repositions the pin instead of opening its
+      // sheet and swallowing the click. See body.inr-picking rule in style.css.
+      document.body.classList.add("inr-picking");
 
       function cleanup() {
         window.map.removeLayer(marker);
         window.map.off("click", onMapClick);
+        document.body.classList.remove("inr-picking");
         if (ui.parentNode) ui.parentNode.removeChild(ui);
       }
 
@@ -1106,10 +1210,15 @@
         "</div>",
       ].join("");
       document.body.appendChild(ui);
+      // Neutralize overlay markers (e.g. Hitchwiki event pins) while choosing the
+      // new waiting spot, so a tap on one repositions the pin instead of opening
+      // its sheet. See body.inr-picking rule in style.css.
+      document.body.classList.add("inr-picking");
 
       function cleanup() {
         window.map.removeLayer(marker);
         window.map.off("click", onMapClick);
+        document.body.classList.remove("inr-picking");
         if (ui.parentNode) ui.parentNode.removeChild(ui);
       }
 
@@ -1186,7 +1295,7 @@
     return true;
   };
 
-  window.inride = { journeyStore, journeyUI, journeyFlow }; // more attached in later tasks
+  window.inride = { journeyStore, journeyUI, journeyFlow, outboxStore, submitBody, flushOutbox };
 
   // ── On-load init ─────────────────────────────────────────────────────────────
 
