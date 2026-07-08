@@ -1413,7 +1413,141 @@
     return true;
   };
 
-  window.inride = { journeyStore, journeyUI, journeyFlow, outboxStore, submitBody, flushOutbox };
+  // ── outboxUI: pending-upload chip + detail sheet ─────────────────────────────
+  // The chip shows whenever the outbox is non-empty; it turns into a warning when any
+  // item permanently failed. Tapping it opens a sheet to see status and Retry / Discard.
+  const outboxUI = {
+    _chip: null,
+
+    // Relative age like "2m" / "1h" for a queued item.
+    _age(ms) {
+      const s = Math.floor((Date.now() - ms) / 1000);
+      if (s < 60) return s + "s";
+      if (s < 3600) return Math.floor(s / 60) + "m";
+      return Math.floor(s / 3600) + "h";
+    },
+
+    // Create/update/remove the chip to match the current outbox contents.
+    refresh() {
+      const all = outboxStore.get();
+      if (!all.length) {
+        if (outboxUI._chip && outboxUI._chip.parentNode) outboxUI._chip.parentNode.removeChild(outboxUI._chip);
+        outboxUI._chip = null;
+        return;
+      }
+      const failed = all.some((it) => it.status === "failed");
+      if (!outboxUI._chip) {
+        const chip = document.createElement("button");
+        chip.id = "inr-outbox-chip";
+        chip.type = "button";
+        chip.addEventListener("click", outboxUI.openSheet);
+        document.body.appendChild(chip);
+        outboxUI._chip = chip;
+      }
+      outboxUI._chip.classList.toggle("inr-outbox-chip--failed", failed);
+      outboxUI._chip.innerHTML = failed
+        ? '<i class="fa-solid fa-triangle-exclamation"></i> ' + all.length + " to upload"
+        : '<i class="fa-solid fa-rotate"></i> ' + all.length + " to upload";
+    },
+
+    // Bottom sheet listing each queued item with per-item status and actions.
+    openSheet() {
+      if (journeyUI._openDialog) journeyUI._openDialog.close();
+
+      const scrim = document.createElement("div");
+      scrim.className = "inride-scrim";
+      const sheet = document.createElement("div");
+      sheet.className = "inr-sheet";
+
+      function close() {
+        if (scrim.parentNode) scrim.parentNode.removeChild(scrim);
+        if (sheet.parentNode) sheet.parentNode.removeChild(sheet);
+        journeyUI._openDialog = null;
+      }
+
+      function rebuild() {
+        sheet.innerHTML = "";
+        const grab = document.createElement("div");
+        grab.className = "inr-sheet__grab";
+        sheet.appendChild(grab);
+
+        const items = outboxStore.get();
+        if (!items.length) { close(); return; } // nothing left — dismiss
+
+        const titleEl = document.createElement("h4");
+        titleEl.textContent = "Rides to upload";
+        sheet.appendChild(titleEl);
+
+        const list = document.createElement("div");
+        list.className = "inr-outbox-list";
+        items.forEach((it) => {
+          const row = document.createElement("div");
+          row.className = "inr-outbox-row";
+
+          const info = document.createElement("div");
+          info.className = "inr-outbox-row__info";
+          const kindLabel = it.kind === "giveup" ? "Gave up" : "Ride";
+          const status = it.status === "failed"
+            ? '<span class="inr-outbox-row__err">Couldn\'t save: ' + (it.lastError || "rejected") + "</span>"
+            : '<span class="inr-outbox-row__wait">Waiting for connection…</span>';
+          info.innerHTML = "<strong>" + kindLabel + "</strong> · " + outboxUI._age(it.createdAt) +
+            " ago<br>" + status;
+          row.appendChild(info);
+
+          // Discard is offered only for permanently-failed items — pending ones upload
+          // on their own and shouldn't be casually thrown away.
+          if (it.status === "failed") {
+            const del = document.createElement("button");
+            del.type = "button";
+            del.className = "inr-outbox-row__discard";
+            del.innerHTML = '<i class="fa-solid fa-trash"></i>';
+            del.addEventListener("click", function () {
+              if (window.confirm("Discard this ride? It won't be saved.")) {
+                outboxStore.remove(it.id);
+                outboxUI.refresh();
+                rebuild();
+              }
+            });
+            row.appendChild(del);
+          }
+          list.appendChild(row);
+        });
+        sheet.appendChild(list);
+
+        // Retry all: reset failed items to pending and kick a flush.
+        if (items.some((it) => it.status === "failed")) {
+          const retry = document.createElement("button");
+          retry.type = "button";
+          retry.className = "inr-big inr-big--green inr-sheet__save";
+          retry.innerHTML = '<i class="fa-solid fa-rotate"></i> Retry now';
+          retry.addEventListener("click", function () {
+            outboxStore.get().forEach(function (it) {
+              if (it.status === "failed") outboxStore.update(it.id, { status: "pending" });
+            });
+            outboxUI.refresh();
+            flushOutbox().then(function () { outboxUI.refresh(); rebuild(); });
+            rebuild();
+          });
+          sheet.appendChild(retry);
+        }
+
+        const closeBtn = document.createElement("button");
+        closeBtn.type = "button";
+        closeBtn.className = "inr-sheet__more";
+        closeBtn.textContent = "Close";
+        closeBtn.addEventListener("click", close);
+        sheet.appendChild(closeBtn);
+      }
+
+      scrim.addEventListener("click", close);
+      rebuild();
+      document.body.appendChild(scrim);
+      document.body.appendChild(sheet);
+      journeyUI._openDialog = { close };
+    },
+  };
+
+  window.inride = { journeyStore, journeyUI, journeyFlow, outboxStore, submitBody, flushOutbox, outboxUI };
 
   // ── On-load init ─────────────────────────────────────────────────────────────
 
