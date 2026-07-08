@@ -980,6 +980,16 @@
       grab.className = "inr-sheet__grab";
       sheet.appendChild(grab);
 
+      // Explicit close so the user isn't forced to create a ride just because the sheet
+      // opened — dismisses without onSave, leaving the journey in its current (waiting) state.
+      const closeX = document.createElement("button");
+      closeX.type = "button";
+      closeX.className = "inr-sheet__close";
+      closeX.setAttribute("aria-label", "Close");
+      closeX.innerHTML = "&times;";
+      closeX.addEventListener("click", function () { close(); });
+      sheet.appendChild(closeX);
+
       // Title
       const titleEl = document.createElement("h4");
       titleEl.textContent = "How was the spot?";
@@ -1162,6 +1172,16 @@
       const grab = document.createElement("div");
       grab.className = "inr-sheet__grab";
       sheet.appendChild(grab);
+
+      // Explicit close so the user isn't forced to log a give-up just because the sheet
+      // opened — dismisses without onSave, leaving the journey in its current (waiting) state.
+      const closeX = document.createElement("button");
+      closeX.type = "button";
+      closeX.className = "inr-sheet__close";
+      closeX.setAttribute("aria-label", "Close");
+      closeX.innerHTML = "&times;";
+      closeX.addEventListener("click", function () { close(); });
+      sheet.appendChild(closeX);
 
       const titleEl = document.createElement("h4");
       titleEl.textContent = "How was the spot?";
