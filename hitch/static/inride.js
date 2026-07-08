@@ -299,6 +299,8 @@
   // fall back to a manual pin so Finish is never a dead end.
   journeyFlow.finish = function () {
     const j = journeyStore.get(); if (!j || j.state !== "in-ride") return;
+    // A pin picker is already open (e.g. Finish tapped again) — don't re-run GPS / stack.
+    if (journeyUI._picking) return;
     // Capture arrival time NOW, before GPS fix or manual-pin delay can inflate it.
     // The backend asserts arrival > departure; stamping here rather than at submit
     // prevents same-minute rides yielding arrival == departure → 400 → stuck retry.
@@ -358,6 +360,7 @@
   // Returns a close handle { close() } so callers can dismiss programmatically.
   const journeyUI = {
     _openDialog: null,   // guard: only one dialog open at a time (see Task-3 note)
+    _picking: false,     // guard: a pin picker (manualPin) is open — don't stack another
     _tickInterval: null, // 1-s live-timer interval; at most one running at a time
     _dockEl: null,       // the persistent docked action bar
     _chipEl: null,       // the status chip above the dock
@@ -887,13 +890,16 @@
         journeyUI.setFinishBusy(false);
         return;
       }
+      // Never stack two pin pickers: a second card would reuse the same button ids and
+      // steal the first card's Confirm/Cancel wiring, leaving the visible buttons dead.
+      if (journeyUI._picking) return;
+      journeyUI._picking = true;
 
       // Leaflet LatLng exposes .lat and .lng (not .lon). buildFinishBody reads dest.lon,
       // so we normalize .lng → .lon when reading the marker position; passing a raw
       // Leaflet LatLng would leave destination_lon=undefined and the backend would
       // reject the submission without a clear error.
-      // seedLatLng (optional) pre-places the pin — used by long-press-to-finish so the
-      // pin lands where the user pressed instead of at map center.
+      // seedLatLng (optional) pre-places the pin; defaults to the current map centre.
       const marker = L.marker(seedLatLng || window.map.getCenter(), {
         draggable: true,
         icon: L.icon({
@@ -929,6 +935,7 @@
         window.map.removeLayer(marker);
         window.map.off("click", onMapClick);
         document.body.classList.remove("inr-picking");
+        journeyUI._picking = false;
         if (ui.parentNode) ui.parentNode.removeChild(ui);
       }
 
@@ -1361,20 +1368,13 @@
   // Returning false is defensive — currently we always handle when no journey
   // is active, but the fallback keeps the contract explicit.
   window.inrideOnEntryGesture = function (latlng, containerPoint) {
-    // One journey at a time. While waiting/paused we swallow map gestures. But in-ride, a
-    // long-press is a deliberate "finish here" — drop a destination pin at the pressed
-    // point and run the finish capture on Confirm (a gesture alternative to Finish → GPS).
-    const active = journeyStore.get();
-    if (active) {
-      if (active.state === "in-ride") {
-        const finishMs = Date.now();
-        journeyUI.manualPin(function (dest) {
-          journeyUI.setFinishBusy(true);
-          completeFinish(active, dest, finishMs);
-        }, latlng);
-      }
-      return true;
-    }
+    // One journey at a time. While a journey is active (waiting / paused / in-ride) we
+    // swallow map gestures so the user can NEVER accidentally drop a pin. Finishing a ride
+    // — and thus dropping a destination pin — is initiated only by the explicit "Finish
+    // Ride" button, which opens the pin picker deliberately (GPS first, manual pin on
+    // denial). This also prevents a stray gesture from stacking a second pin-picker card,
+    // which would break the Confirm/Cancel buttons (duplicate element ids).
+    if (journeyStore.get()) return true;
 
     // Drop a preview pin at the pressed location so the user can SEE where the
     // journey / spot will start while the choose-action dialog is up (the dialog's
