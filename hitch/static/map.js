@@ -239,12 +239,21 @@ async function setHeatmapActive(active) {
 // Position the heatmap legend pane below the filter pane
 function positionLegendPane() {
   var legendPane = document.getElementById('heatmap-legend-pane');
-  var filterPane = document.getElementById('filter-pane');
   if (!legendPane || legendPane.style.display === 'none') return;
-  if (filterPane) {
-    var rect = filterPane.getBoundingClientRect();
-    legendPane.style.top = (rect.bottom + 8) + 'px';
-  }
+  // Filters moved out of a persistent top panel into an icon-launched modal, so anchor
+  // the heatmap legend at a fixed top just below the search bar instead of relative to it.
+  legendPane.style.top = '104px';
+}
+
+// Filters modal (opened by the search-bar filter icon). Remove `collapsed` so the body
+// shows, then flag the body so the modal + scrim become visible (see style.css).
+function openFiltersModal() {
+  var pane = document.getElementById('filter-pane');
+  if (pane) pane.classList.remove('collapsed');
+  document.body.classList.add('filters-open');
+}
+function closeFiltersModal() {
+  document.body.classList.remove('filters-open');
 }
 
 // Populate the heatmap legend pane with data
@@ -290,21 +299,35 @@ function populateHeatmapLegend(legendData) {
 
   setupEventListeners();
 
+  // Logged-out nudge: the account icon pulses a faint red glow and shows the "Log in to
+  // track your rides" badge until the user taps the screen. Dismissed on first tap and
+  // remembered so it doesn't nag on later visits. (Badge only exists when logged out.)
+  (function () {
+    var badge = document.querySelector(".login-prompt-badge");
+    var accountBtn = document.getElementById("top-account-btn");
+    if (!badge || !accountBtn) return;
+    if (localStorage.getItem("loginBadgeDismissed")) { badge.style.display = "none"; return; }
+    accountBtn.classList.add("login-pulse");
+    document.addEventListener("pointerdown", function () {
+      badge.style.display = "none";
+      accountBtn.classList.remove("login-pulse");
+      try { localStorage.setItem("loginBadgeDismissed", "1"); } catch (e) {}
+    }, { once: true });
+  })();
+
   // Nudge first-time users toward the view switcher; short delay so the pointer
   // doesn't fight the initial map load/animation.
   setTimeout(showNextModeHint, 1500);
 
-  // Set up filter pane collapse toggle
+  // Filters are now an icon-launched modal (opened from the search bar). The header
+  // button — and a tap on the scrim — close it.
   var filterCollapseBtn = document.getElementById('filter-collapse-btn');
   var filterPaneEl = document.getElementById('filter-pane');
   if (filterCollapseBtn && filterPaneEl) {
-    // Also allow clicking the header text to toggle
-    filterCollapseBtn.closest('.filter-pane-header').addEventListener('click', function() {
-      filterPaneEl.classList.toggle('collapsed');
-      // Reposition legend after collapse animation
-      setTimeout(positionLegendPane, 250);
-    });
+    filterCollapseBtn.closest('.filter-pane-header').addEventListener('click', closeFiltersModal);
   }
+  var filtersScrim = document.getElementById('filters-scrim');
+  if (filtersScrim) filtersScrim.addEventListener('click', closeFiltersModal);
 
   // Set up heatmap legend collapse toggle
   var legendCollapseBtn = document.getElementById('legend-collapse-btn');
@@ -382,6 +405,20 @@ function setupGeocoder() {
   // Keep clicks on the button from reaching the map (pan/zoom on the control).
   L.DomEvent.disableClickPropagation(routeBtn);
 
+  // Filter button, just left of the route button — opens the filters as a modal
+  // (replaces the old persistent top filter panel). Keeps filters out of the way
+  // until wanted, and one tap from the search bar.
+  const filterBtn = L.DomUtil.create("a", "geocoder-filter-btn", geocoderController.getContainer());
+  filterBtn.href = "#";
+  filterBtn.title = "Filters";
+  filterBtn.setAttribute("aria-label", "Filters");
+  filterBtn.innerHTML = '<i class="fa-solid fa-sliders"></i>';
+  L.DomEvent.disableClickPropagation(filterBtn);
+  L.DomEvent.on(filterBtn, "click", function (ev) {
+    L.DomEvent.preventDefault(ev);
+    openFiltersModal();
+  });
+
 
   geocoderController.on("markgeocode", function (e) {
     var zoom = geocoderOpts.zoom || map.getZoom();
@@ -447,9 +484,15 @@ function showLocation(e) {
     });
     locationMarker = L.marker(e.latlng, {
       icon: icon,
-      interactive: false,
+      // The bubble is an entry point to the choose-action dialog; interactive:true
+      // lets the click handler fire without itself setting pickup/destination.
+      interactive: true,
       keyboard: false,
     }).addTo(map);
+    locationMarker.on("click", function () {
+      const p = map.latLngToContainerPoint(locationMarker.getLatLng());
+      if (window.inrideOnEntryGesture) window.inrideOnEntryGesture(locationMarker.getLatLng(), p);
+    });
   }
 
   // Restart the blue->grey freshness fade on every fix. The marker (and its dot
@@ -1037,7 +1080,7 @@ function updateMapModeButtons() {
 // Vertical Spots/Heatmap/Countries switcher, sitting just above the locate button.
 function setupMapModeControl() {
   const modes = [
-    { mode: "spots", icon: "fa-solid fa-location-dot", title: "Spots" },
+    { mode: "spots", icon: "fa-solid fa-thumbs-up", title: "Spots" },
     { mode: "heatmap", icon: "fa fa-fire", title: "Waiting-time heatmap" },
     { mode: "countries", icon: "fa-solid fa-earth-europe", title: "Country hitchability" },
   ];
@@ -1518,6 +1561,21 @@ function markerClick(marker) {
     `https://www.openstreetmap.org/?mlat=${data.lat}&mlon=${data.lon}#map=18/${data.lat}/${data.lon}`;
 
   $$("#spot-summary").innerHTML = summaryText(data);
+
+  // "Hitch here" — start a tracked ride from THIS spot's canonical coordinates via the
+  // in-ride flow (same entry as the long-press "Start Hitching", incl. the soft login
+  // prompt). Seeding from the existing anchor keeps repeat rides on one spot rather than
+  // spawning near-duplicates. Hidden while a journey is already active (one at a time).
+  const hitchBtn = $$("#spot-hitch-here");
+  if (hitchBtn) {
+    const journeyActive = window.inride && window.inride.journeyStore && window.inride.journeyStore.get();
+    hitchBtn.style.display = window.inride && !journeyActive ? "" : "none";
+    hitchBtn.onclick = function () {
+      if (!window.inride || !window.L) return;
+      clear(); // close the spot sheet before the waiting UI takes over
+      window.inride.journeyFlow.startFromChoose(L.latLng(data.lat, data.lon));
+    };
+  }
 
   // Show a loading spinner while rides are fetched asynchronously
   $$("#spot-text").innerHTML = '<div class="spot-loading" role="status" aria-live="polite"><i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i><span class="sr-only">Loading rides</span></div>';
@@ -2945,8 +3003,8 @@ function setupLocationSelection(selectionType, initialCoords, opts = {}) {
     locationSelectionMarker = L.marker(markerLatLng, {
         draggable: true,
         icon: L.icon({
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconUrl: '/static/markers/marker-icon-2x-red.png',
+            shadowUrl: '/static/markers/marker-shadow.png',
             iconSize: [25, 41],
             iconAnchor: [12, 41],
             popupAnchor: [1, -34],
@@ -3072,6 +3130,9 @@ function setupAddSpotGesture() {
         // Those controls only stopPropagation on click, not on contextmenu.
         if (oe && oe.target.closest && oe.target.closest('.leaflet-control')) return;
         if (oe) oe.preventDefault();
+        // The in-ride tracker owns the "what do you want to do here?" decision now.
+        // If it handles the gesture (shows its choose-action dialog), stop here.
+        if (window.inrideOnEntryGesture && window.inrideOnEntryGesture(e.latlng, e.containerPoint)) return;
         startAddSpotFromGesture(e.latlng, e.containerPoint);
     });
 
@@ -3100,7 +3161,11 @@ function setupAddSpotGesture() {
             timer = null;
             const rect = container.getBoundingClientRect();
             const cp = L.point(startX - rect.left, startY - rect.top);
-            startAddSpotFromGesture(map.containerPointToLatLng(cp), cp);
+            const latlng = map.containerPointToLatLng(cp);
+            // The in-ride tracker owns the "what do you want to do here?" decision now.
+            // If it handles the gesture (shows its choose-action dialog), stop here.
+            if (window.inrideOnEntryGesture && window.inrideOnEntryGesture(latlng, cp)) return;
+            startAddSpotFromGesture(latlng, cp);
         }, LONG_PRESS_MS);
     }, { passive: true });
 
@@ -3153,3 +3218,15 @@ function startAddSpotFromGesture(latlng, containerPoint) {
         existingSpot: !!snapped,
     });
 }
+
+// Expose the pieces the in-ride tracker composes with (it loads after map.js).
+window.map = map; // intentional: exposes the Leaflet instance for inride.js (marker placement, layer removal)
+window.getLocationMarker = () => locationMarker;
+window.setMapMode = setMapMode;
+window.toggleHeatmap = toggleHeatmap;
+window.startAddSpotFromGesture = startAddSpotFromGesture;
+window.setupLocationSelection = setupLocationSelection;
+window.findNearbySpotMarker = findNearbySpotMarker;
+// Used by the in-ride cover-flow to trigger locate and read the current mode.
+window.requestLocationRaw = requestLocation;
+window.getMapMode = () => mapMode;

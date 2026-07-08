@@ -39,7 +39,10 @@
 var HIDE_ADD_SPOT_BUTTON = {{ hide_add_spot_button|tojson }};
 var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
 </script>
+<!-- Expose auth state to the in-ride tracker (it decides whether to show the soft login prompt). -->
+<script>window.IS_LOGGED_IN = {{ 'true' if is_logged_in else 'false' }};</script>
 <script src="{{ asset_url('/static/map.js') }}"></script>
+<script src="{{ asset_url('/static/inride.js') }}"></script>
 <script>
 // Install-to-homescreen hint logic. Self-contained — no dependency on map.js.
 // Storage key holds the dismissal timestamp (ms); reappears after 30 days.
@@ -139,6 +142,12 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
             <a id="share-signal" href="#" target="_blank" rel="noopener">Signal</a>
         </div>
     </div>
+    <!-- Start a tracked ride FROM this exact spot. Seeding the in-ride flow with the
+         canonical spot coordinates (instead of wherever the user long-presses) keeps
+         repeat rides on the same anchor, cutting down near-duplicate clustered spots. -->
+    <button type="button" id="spot-hitch-here">
+        <i class="fa-solid fa-thumbs-up" aria-hidden="true"></i> Hitch here
+    </button>
     <div id='spot-summary'></div>
     <div id="spot-rate-prompt">
         <div class="rate-label">Rate this spot</div>
@@ -240,13 +249,14 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
     </p>
     </div>
 </div>
-<!-- Filter pane below search bar -->
+<!-- Filters modal (opened by the search-bar filter icon; scrim dismisses it) -->
+<div class="filters-scrim" id="filters-scrim"></div>
 <div class="filter-pane collapsed" id="filter-pane">
     <div class="filter-pane-header">
         <span>Filters</span>
         <i id="filter-loading-spinner" class="fa-solid fa-circle-notch fa-spin" style="display: none; margin-left: 8px;" aria-label="Loading"></i>
-        <button id="filter-collapse-btn" class="filter-collapse-btn" title="Toggle filters">
-            <i class="fa-solid fa-chevron-up"></i>
+        <button id="filter-collapse-btn" class="filter-collapse-btn" title="Close filters" aria-label="Close filters">
+            <i class="fa-solid fa-xmark"></i>
         </button>
     </div>
     <div class="filter-pane-body" id="filter-pane-body">

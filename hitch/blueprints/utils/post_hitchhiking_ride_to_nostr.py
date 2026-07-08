@@ -24,6 +24,26 @@ RELAYS = ast.literal_eval(os.getenv("RELAYS"))
 TEMPORARY_EVENTS_FILE = Path(__file__).resolve().parents[3] / "dist" / "temporary.json"
 
 
+def build_ride_d_tag(source: str, tags: list | None, client_d_tag: str | None) -> str:
+    """Decide a ride event's `d` tag.
+
+    Precedence (why): an edit passes the original `tags` so we reuse its `d` (same ride,
+    new version); a new ride from the offline outbox passes a client-generated
+    `client_d_tag` so retries reuse it and REPLACE the event instead of duplicating it
+    (ride events are kind 36820, parameterized replaceable). The `source` prefix stays
+    server-authoritative — the client only supplies the bare id. Otherwise mint a uuid.
+    """
+    # An edit passes the original tags, but tolerate an empty/malformed list (no `d`
+    # entry) by falling through instead of raising StopIteration and breaking the post.
+    if tags is not None:
+        existing_d = next((tag[1] for tag in tags if tag[0] == "d"), None)
+        if existing_d is not None:
+            return existing_d
+    if client_d_tag:
+        return f"{source}-{client_d_tag}"
+    return f"{source}-{uuid.uuid4()}"
+
+
 def _append_event_to_temporary_json(event: Event) -> None:
     try:
         existing = json.loads(TEMPORARY_EVENTS_FILE.read_text()) if TEMPORARY_EVENTS_FILE.exists() else []
@@ -53,13 +73,15 @@ class HitchhikingDataStandardToNostrPoster:
 
         self.event_kind = int(os.getenv("NOSTR_EVENT_KIND"))
 
-    def post(self, ride_record: HitchhikingRecord, tags: list = None) -> str:
+    def post(self, ride_record: HitchhikingRecord, tags: list = None, d_tag: str = None) -> str:
         """Post a ride in the standardized format to Nostr and return the d tag.
-        
+
         Args:
             ride_record (HitchhikingRecord): The ride record to post.
             tags (list | None): A list of tags to include in the post.
                 Used when updating an existing post where tags stay the same.
+            d_tag (str | None): A client-supplied bare id for a NEW ride (offline outbox).
+                Reused across retries so a resend replaces rather than duplicates.
 
         Returns:
             str: The identifying d tag of the posted event.
@@ -75,7 +97,7 @@ class HitchhikingDataStandardToNostrPoster:
             ["g", geohash2.encode(start_location.latitude, start_location.longitude, precision=p)] for p in range(1, 11)
         ]
 
-        d_tag = f"{ride_record.source}-{uuid.uuid4()}" if tags is None else next(tag[1] for tag in tags if tag[0] == "d")
+        d_tag = build_ride_d_tag(ride_record.source, tags, d_tag)
 
         published_at_tag = str(unix_timestamp_now) if tags is None else next(tag[1] for tag in tags if tag[0] == "published_at")
 
