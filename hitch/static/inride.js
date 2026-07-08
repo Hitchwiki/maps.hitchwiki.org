@@ -881,18 +881,20 @@
     // writes to sessionStorage and then does window.location.href = "/ride" — a redirect
     // that would exit the in-ride flow entirely. Instead we build a minimal pin-selection
     // UI directly on the Leaflet map and hand the chosen latlng to the callback.
-    manualPin(cb) {
+    manualPin(cb, seedLatLng) {
       if (!window.L || !window.map) {
         // No map available (edge case) — reset busy so the user isn't stuck.
         journeyUI.setFinishBusy(false);
         return;
       }
 
-      // Leaflet LatLng exposes .lat and .lng (not .lon). submitRide reads dest.lon,
+      // Leaflet LatLng exposes .lat and .lng (not .lon). buildFinishBody reads dest.lon,
       // so we normalize .lng → .lon when reading the marker position; passing a raw
       // Leaflet LatLng would leave destination_lon=undefined and the backend would
       // reject the submission without a clear error.
-      const marker = L.marker(window.map.getCenter(), {
+      // seedLatLng (optional) pre-places the pin — used by long-press-to-finish so the
+      // pin lands where the user pressed instead of at map center.
+      const marker = L.marker(seedLatLng || window.map.getCenter(), {
         draggable: true,
         icon: L.icon({
           iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png",
@@ -1359,8 +1361,20 @@
   // Returning false is defensive — currently we always handle when no journey
   // is active, but the fallback keeps the contract explicit.
   window.inrideOnEntryGesture = function (latlng, containerPoint) {
-    // One journey at a time: if one is already running, ignore new gestures.
-    if (journeyStore.get()) return true;
+    // One journey at a time. While waiting/paused we swallow map gestures. But in-ride, a
+    // long-press is a deliberate "finish here" — drop a destination pin at the pressed
+    // point and run the finish capture on Confirm (a gesture alternative to Finish → GPS).
+    const active = journeyStore.get();
+    if (active) {
+      if (active.state === "in-ride") {
+        const finishMs = Date.now();
+        journeyUI.manualPin(function (dest) {
+          journeyUI.setFinishBusy(true);
+          completeFinish(active, dest, finishMs);
+        }, latlng);
+      }
+      return true;
+    }
 
     // Drop a preview pin at the pressed location so the user can SEE where the
     // journey / spot will start while the choose-action dialog is up (the dialog's
