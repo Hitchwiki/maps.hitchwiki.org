@@ -142,6 +142,12 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
             <a id="share-signal" href="#" target="_blank" rel="noopener">Signal</a>
         </div>
     </div>
+    <!-- Start a tracked ride FROM this exact spot. Seeding the in-ride flow with the
+         canonical spot coordinates (instead of wherever the user long-presses) keeps
+         repeat rides on the same anchor, cutting down near-duplicate clustered spots. -->
+    <button type="button" id="spot-hitch-here">
+        <i class="fa-solid fa-thumbs-up" aria-hidden="true"></i> Hitch here
+    </button>
     <div id='spot-summary'></div>
     <div id="spot-rate-prompt">
         <div class="rate-label">Rate this spot</div>

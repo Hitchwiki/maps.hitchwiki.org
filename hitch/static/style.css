@@ -605,6 +605,27 @@ body.inride-active .leaflet-bottom.leaflet-right .leaflet-control-zoom {
   50%      { transform: translateY(-50%) translateX(-6px); }
 }
 
+/* "Hitch here" CTA in the spot detail sheet — starts a tracked ride from this spot. */
+#spot-hitch-here {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin: 10px 0 4px;
+  padding: 12px 0;
+  border: none;
+  border-radius: 12px;
+  background: #1a9850;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .18);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+#spot-hitch-here:hover { background: #157a40; }
+
 /* Country info bottom sheet (Hitchwiki lead section for a tapped country). */
 .sidebar.country .country-header {
   display: flex;

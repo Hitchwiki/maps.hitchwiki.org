@@ -1525,6 +1525,21 @@ function markerClick(marker) {
 
   $$("#spot-summary").innerHTML = summaryText(data);
 
+  // "Hitch here" — start a tracked ride from THIS spot's canonical coordinates via the
+  // in-ride flow (same entry as the long-press "Start Hitching", incl. the soft login
+  // prompt). Seeding from the existing anchor keeps repeat rides on one spot rather than
+  // spawning near-duplicates. Hidden while a journey is already active (one at a time).
+  const hitchBtn = $$("#spot-hitch-here");
+  if (hitchBtn) {
+    const journeyActive = window.inride && window.inride.journeyStore && window.inride.journeyStore.get();
+    hitchBtn.style.display = window.inride && !journeyActive ? "" : "none";
+    hitchBtn.onclick = function () {
+      if (!window.inride || !window.L) return;
+      clear(); // close the spot sheet before the waiting UI takes over
+      window.inride.journeyFlow.startFromChoose(L.latLng(data.lat, data.lon));
+    };
+  }
+
   // Show a loading spinner while rides are fetched asynchronously
   $$("#spot-text").innerHTML = '<div class="spot-loading" role="status" aria-live="polite"><i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i><span class="sr-only">Loading rides</span></div>';
   $$("#extra-text").innerHTML = "";
