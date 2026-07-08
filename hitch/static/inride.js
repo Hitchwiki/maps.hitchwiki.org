@@ -207,6 +207,7 @@
     journeyUI.dialog({
       title: "Track your rides?",
       body: "Log in to keep your ride history, or just continue anonymously.",
+      centered: true,
       actions: [
         {
           label: "Log in",
@@ -1285,7 +1286,7 @@
       return { close };
     },
 
-    dialog({ title, body, actions, onClose }) {
+    dialog({ title, body, actions, onClose, centered }) {
       // Close any already-open dialog so rapid re-triggers don't stack overlays.
       if (journeyUI._openDialog) journeyUI._openDialog.close();
 
@@ -1294,7 +1295,9 @@
       scrim.className = "inride-scrim";
 
       const card = document.createElement("div");
-      card.className = "inride-dialog";
+      // centered: screen-centre modal (e.g. the "Track your rides?" prompt) instead of the
+      // default bottom card used for thumb-reachable spot actions.
+      card.className = "inride-dialog" + (centered ? " inride-dialog--centered" : "");
 
       const h = document.createElement("h4");
       h.textContent = title;

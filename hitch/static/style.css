@@ -188,6 +188,19 @@ html {
   justify-content: center;
 }
 
+/* Logged-out nudge: a faint red glow pulses around the account icon on load until the
+   user taps the screen (JS removes .login-pulse on first tap). Encourages sign-in. */
+.top-account-btn.login-pulse {
+  animation: login-pulse-glow 1.8s ease-in-out infinite;
+}
+@keyframes login-pulse-glow {
+  0%, 100% { box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), 0 0 0 0 rgba(229, 57, 53, 0); }
+  50%      { box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), 0 0 14px 5px rgba(229, 57, 53, 0.5); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .top-account-btn.login-pulse { animation: none; }
+}
+
 .top-account-btn a {
   color: #555;
   font-size: 24px;
@@ -638,6 +651,34 @@ body.inride-active .leaflet-bottom.leaflet-right {
 .mapmode-control .mapmode-btn.active {
   background: #1a73e8 !important;
   color: #fff;
+}
+
+/* ── Connected right control stack (uniform buttons, no gaps) ─────────────────
+   GPS (locate) → mode switcher (hitch / heat / wiki) → zoom (+/−) read as ONE
+   continuous control: same 34px button size, touching with no gaps, rounded only at
+   the very top (GPS) and the very bottom (zoom −). */
+.leaflet-bottom.leaflet-right .locate-control,
+.leaflet-bottom.leaflet-right .mapmode-control {
+  margin-bottom: 0 !important;
+}
+/* Uniform 34px buttons across the whole stack (zoom defaults to ~30px on touch). */
+.leaflet-bottom.leaflet-right .leaflet-control-zoom a {
+  width: 34px !important;
+  height: 34px !important;
+  line-height: 34px !important;
+}
+/* Round only the outer corners of the combined stack; square every internal seam. */
+.leaflet-bottom.leaflet-right .locate-control-btn {
+  border-radius: 6px 6px 0 0 !important;
+}
+.leaflet-bottom.leaflet-right .mapmode-control .mapmode-btn {
+  border-radius: 0 !important;
+}
+.leaflet-bottom.leaflet-right .leaflet-control-zoom .leaflet-control-zoom-in {
+  border-radius: 0 !important;
+}
+.leaflet-bottom.leaflet-right .leaflet-control-zoom .leaflet-control-zoom-out {
+  border-radius: 0 0 6px 6px !important;
 }
 
 /* One-time red pointer nudging first-time users to try a view-switcher button.
@@ -2040,6 +2081,13 @@ body.showing-insights .heatmap-legend-pane {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
   padding: 14px 16px;
   text-align: center;
+}
+
+/* Screen-centre variant (e.g. the "Track your rides?" prompt). */
+.inride-dialog--centered {
+  top: 50%;
+  bottom: auto;
+  transform: translate(-50%, -50%);
 }
 
 .inride-dialog h4 {

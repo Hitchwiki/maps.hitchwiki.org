@@ -299,14 +299,18 @@ function populateHeatmapLegend(legendData) {
 
   setupEventListeners();
 
-  // Dismiss the "Log in to track your rides" badge once the user taps the screen, and
-  // remember it so it doesn't nag on later visits. (Badge only exists when logged out.)
+  // Logged-out nudge: the account icon pulses a faint red glow and shows the "Log in to
+  // track your rides" badge until the user taps the screen. Dismissed on first tap and
+  // remembered so it doesn't nag on later visits. (Badge only exists when logged out.)
   (function () {
     var badge = document.querySelector(".login-prompt-badge");
-    if (!badge) return;
+    var accountBtn = document.getElementById("top-account-btn");
+    if (!badge || !accountBtn) return;
     if (localStorage.getItem("loginBadgeDismissed")) { badge.style.display = "none"; return; }
+    accountBtn.classList.add("login-pulse");
     document.addEventListener("pointerdown", function () {
       badge.style.display = "none";
+      accountBtn.classList.remove("login-pulse");
       try { localStorage.setItem("loginBadgeDismissed", "1"); } catch (e) {}
     }, { once: true });
   })();
