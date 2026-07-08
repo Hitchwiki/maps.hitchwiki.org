@@ -1494,22 +1494,37 @@
             " ago<br>" + status;
           row.appendChild(info);
 
-          // Discard is offered only for permanently-failed items — pending ones upload
-          // on their own and shouldn't be casually thrown away.
-          if (it.status === "failed") {
-            const del = document.createElement("button");
-            del.type = "button";
-            del.className = "inr-outbox-row__discard";
-            del.innerHTML = '<i class="fa-solid fa-trash"></i>';
-            del.addEventListener("click", function () {
-              if (window.confirm("Discard this ride? It won't be saved.")) {
-                outboxStore.remove(it.id);
-                outboxUI.refresh();
-                rebuild();
-              }
-            });
-            row.appendChild(del);
-          }
+          const actions = document.createElement("div");
+          actions.className = "inr-outbox-row__actions";
+
+          // Details → view/edit the queued ride (rating, comment, timestamps) before upload.
+          const details = document.createElement("button");
+          details.type = "button";
+          details.className = "inr-outbox-row__btn";
+          details.title = "Details / edit";
+          details.innerHTML = '<i class="fa-solid fa-pen"></i>';
+          details.addEventListener("click", function () {
+            close();               // swap the list for the edit sheet (single dialog at a time)
+            outboxUI.editSheet(it); // returns to the list on dismissal
+          });
+          actions.appendChild(details);
+
+          // Delete → any queued ride (pending or failed), guarded by a confirm.
+          const del = document.createElement("button");
+          del.type = "button";
+          del.className = "inr-outbox-row__btn inr-outbox-row__btn--danger";
+          del.title = "Delete";
+          del.innerHTML = '<i class="fa-solid fa-trash"></i>';
+          del.addEventListener("click", function () {
+            if (window.confirm("Delete this ride? It won't be uploaded.")) {
+              outboxStore.remove(it.id);
+              outboxUI.refresh();
+              rebuild();
+            }
+          });
+          actions.appendChild(del);
+
+          row.appendChild(actions);
           list.appendChild(row);
         });
         sheet.appendChild(list);
@@ -1541,6 +1556,150 @@
 
       scrim.addEventListener("click", close);
       rebuild();
+      document.body.appendChild(scrim);
+      document.body.appendChild(sheet);
+      journeyUI._openDialog = { close };
+    },
+
+    // View/edit a queued ride before it uploads. Editable: rating, wait, comment, and the
+    // pickup/arrival timestamps (finish rides only — a give-up has no timestamps). Edits are
+    // made on a COPY and only committed to the outbox on Save, which also resets a failed
+    // item to pending so the corrected ride retries. Dismissing returns to the list sheet.
+    editSheet(item) {
+      if (journeyUI._openDialog) journeyUI._openDialog.close();
+      const body = Object.assign({}, item.body); // work on a copy; commit on Save
+
+      const scrim = document.createElement("div");
+      scrim.className = "inride-scrim";
+      const sheet = document.createElement("div");
+      sheet.className = "inr-sheet";
+
+      const grab = document.createElement("div");
+      grab.className = "inr-sheet__grab";
+      sheet.appendChild(grab);
+
+      const titleEl = document.createElement("h4");
+      titleEl.textContent = item.kind === "giveup" ? "Gave-up spot" : "Ride details";
+      sheet.appendChild(titleEl);
+
+      // ── Rating (required) ──
+      let rating = Number(body.rate) || 0;
+      const starsEl = document.createElement("div");
+      starsEl.className = "inr-stars";
+      const starEls = [];
+      for (let i = 1; i <= 5; i++) {
+        const star = document.createElement("span");
+        star.className = "inr-star" + (i <= rating ? " inr-star--on" : "");
+        star.textContent = "★";
+        star.addEventListener("click", (function (val) {
+          return function () {
+            rating = val;
+            starEls.forEach(function (s, idx) { s.classList.toggle("inr-star--on", idx < rating); });
+          };
+        }(i)));
+        starsEl.appendChild(star);
+        starEls.push(star);
+      }
+      sheet.appendChild(starsEl);
+
+      // Small helper: labeled field wrapper.
+      function field(labelText, input) {
+        const f = document.createElement("div");
+        f.className = "inr-field";
+        const l = document.createElement("label");
+        l.textContent = labelText;
+        f.appendChild(l);
+        f.appendChild(input);
+        sheet.appendChild(f);
+      }
+
+      // ── Timestamps: finish rides carry datetime_ride (pickup) + arrival_datetime; a
+      //    give-up has neither, so only render the inputs that exist in the body. Values
+      //    are already "YYYY-MM-DDTHH:mm" (isoLocal), which is exactly datetime-local's format.
+      let departureInput = null, arrivalInput = null;
+      if (body.datetime_ride) {
+        departureInput = document.createElement("input");
+        departureInput.type = "datetime-local";
+        departureInput.className = "inr-input";
+        departureInput.value = body.datetime_ride;
+        field("Picked up", departureInput);
+      }
+      if (body.arrival_datetime) {
+        arrivalInput = document.createElement("input");
+        arrivalInput.type = "datetime-local";
+        arrivalInput.className = "inr-input";
+        arrivalInput.value = body.arrival_datetime;
+        field("Arrived", arrivalInput);
+      }
+
+      // ── Wait (minutes) ──
+      const waitInput = document.createElement("input");
+      waitInput.type = "number";
+      waitInput.min = "0";
+      waitInput.className = "inr-input";
+      waitInput.value = body.wait || "0";
+      field("Wait (minutes)", waitInput);
+
+      // ── Comment ──
+      const textarea = document.createElement("textarea");
+      textarea.className = "inr-sheet__textarea";
+      textarea.value = body.comment || "";
+      field("Comment (optional)", textarea);
+
+      // Read-only coordinates for reference.
+      const coords = document.createElement("p");
+      coords.className = "inr-sheet__sub";
+      const hasDest = body.destination_lat !== "" && body.destination_lat != null;
+      coords.textContent = "From " + Number(body.pickup_lat).toFixed(4) + ", " + Number(body.pickup_lon).toFixed(4) +
+        (hasDest ? "  →  " + Number(body.destination_lat).toFixed(4) + ", " + Number(body.destination_lon).toFixed(4) : "");
+      sheet.appendChild(coords);
+
+      const errEl = document.createElement("p");
+      errEl.className = "inr-outbox-row__err";
+      errEl.style.display = "none";
+      sheet.appendChild(errEl);
+
+      // Dismissing (save, cancel, or scrim) returns to the list sheet.
+      function close() {
+        if (scrim.parentNode) scrim.parentNode.removeChild(scrim);
+        if (sheet.parentNode) sheet.parentNode.removeChild(sheet);
+        journeyUI._openDialog = null;
+        outboxUI.openSheet();
+      }
+
+      const saveBtn = document.createElement("button");
+      saveBtn.type = "button";
+      saveBtn.className = "inr-big inr-big--green inr-sheet__save";
+      saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> Save changes';
+      saveBtn.addEventListener("click", function () {
+        if (!rating) { errEl.textContent = "Please choose a rating."; errEl.style.display = ""; return; }
+        // Backend asserts arrival > departure when both present — validate here so an edit
+        // can't push the item into a permanent 400.
+        if (departureInput && arrivalInput && departureInput.value && arrivalInput.value &&
+            arrivalInput.value <= departureInput.value) {
+          errEl.textContent = "Arrival must be after the pickup time."; errEl.style.display = ""; return;
+        }
+        body.rate = String(rating);
+        body.wait = String(Math.max(0, parseInt(waitInput.value, 10) || 0));
+        body.comment = textarea.value.trim();
+        if (departureInput) body.datetime_ride = departureInput.value;
+        if (arrivalInput) body.arrival_datetime = arrivalInput.value;
+        // Committing an edit resets a failed item to pending so the fix gets retried.
+        outboxStore.update(item.id, { body: body, status: "pending", lastError: null });
+        outboxUI.refresh();
+        close();
+        flushOutbox();
+      });
+      sheet.appendChild(saveBtn);
+
+      const cancelBtn = document.createElement("button");
+      cancelBtn.type = "button";
+      cancelBtn.className = "inr-sheet__more";
+      cancelBtn.textContent = "Cancel";
+      cancelBtn.addEventListener("click", close);
+      sheet.appendChild(cancelBtn);
+
+      scrim.addEventListener("click", close);
       document.body.appendChild(scrim);
       document.body.appendChild(sheet);
       journeyUI._openDialog = { close };

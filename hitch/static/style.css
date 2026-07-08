@@ -2116,15 +2116,36 @@ body.showing-insights .heatmap-legend-pane {
 .inr-outbox-row__info { font-size: 13.5px; color: #222; line-height: 1.4; }
 .inr-outbox-row__err { color: #b00020; font-weight: 600; }
 .inr-outbox-row__wait { color: #666; }
-.inr-outbox-row__discard {
+.inr-outbox-row__actions {
   flex-shrink: 0;
+  display: flex;
+  gap: 4px;
+}
+.inr-outbox-row__btn {
   border: none;
   background: transparent;
-  color: #b00020;
-  font-size: 16px;
-  padding: 8px;
+  color: #1a73e8;
+  font-size: 15px;
+  padding: 8px 10px;
+  border-radius: 8px;
   cursor: pointer;
 }
+.inr-outbox-row__btn:hover { background: rgba(0, 0, 0, .06); }
+.inr-outbox-row__btn--danger { color: #b00020; }
+
+/* Text/number/datetime inputs inside the outbox edit sheet */
+.inr-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 11px;
+  border: 1px solid #d0d5da;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #fff;
+  color: #222;
+}
+.inr-input:focus { outline: none; border-color: #1a73e8; }
 
 /* Give-up sheet subtitle */
 .inr-sheet__sub {
