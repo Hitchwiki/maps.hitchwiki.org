@@ -2529,3 +2529,145 @@ body.showing-insights .heatmap-legend-pane {
 .inr-sheet__more:hover {
   text-decoration: underline;
 }
+
+/* ==========================================================================
+   Route planner (routing.js) — Google-Maps-style directions UI.
+   ========================================================================== */
+
+/* Panel replaces the search bar in place (same anchor as .leaflet-control-geocoder). */
+#route-panel {
+  /* !important mirrors the search bar (line ~59): the map controls / leaflet
+     inject competing position rules, and without it the panel loses `fixed` and
+     falls into normal flow at the end of <body> — i.e. the bottom of the page. */
+  position: fixed !important;
+  top: 48px !important;
+  left: 16px !important;
+  right: 68px !important;
+  max-width: 600px !important;
+  z-index: 1002;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  padding: 10px 10px 10px 44px;
+}
+/* Hide the underlying search bar while planning so the panel stands alone. */
+body.routing-active .leaflet-control-container .leaflet-control-geocoder { display: none !important; }
+
+.rp-close {
+  position: absolute;
+  top: 12px;
+  left: 8px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: #444;
+  font-size: 17px;
+  cursor: pointer;
+  border-radius: 50%;
+}
+.rp-close:hover { background: rgba(0, 0, 0, 0.06); }
+
+.rp-fields { display: flex; flex-direction: column; gap: 8px; }
+.rp-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f1f3f4;
+  border-radius: 8px;
+  padding: 0 10px;
+  height: 42px;
+}
+.rp-field:focus-within { background: #fff; box-shadow: 0 0 0 2px #1a73e8 inset; }
+.rp-field input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  outline: none;
+  min-width: 0;
+}
+.rp-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.rp-dot-start { background: #188038; box-shadow: 0 0 0 3px rgba(24, 128, 56, 0.2); }
+.rp-dot-dest { background: #d93025; box-shadow: 0 0 0 3px rgba(217, 48, 37, 0.2); }
+.rp-clear {
+  border: none; background: transparent; color: #999; font-size: 20px;
+  cursor: pointer; line-height: 1; padding: 0 2px;
+}
+.rp-clear:hover { color: #444; }
+
+.rp-suggest {
+  margin-top: 6px;
+  border-top: 1px solid #eee;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.rp-suggest-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 6px; cursor: pointer; font-size: 14px; color: #333;
+  border-radius: 6px;
+}
+.rp-suggest-item i { color: #999; }
+.rp-suggest-item:hover { background: #f1f3f4; }
+
+.rp-status {
+  margin-top: 10px; font-size: 13px; color: #555; padding: 2px 4px 4px;
+}
+
+.rp-options { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.rp-option {
+  display: flex; align-items: stretch; gap: 10px;
+  text-align: left; border: 1px solid #e4e4e4; background: #fff;
+  border-radius: 10px; padding: 8px 10px 8px 0; cursor: pointer;
+  font: inherit; overflow: hidden;
+}
+.rp-option:hover { background: #f8f9fb; }
+.rp-option.active { border-color: var(--rc); box-shadow: 0 0 0 1px var(--rc) inset; }
+.rp-opt-bar { width: 5px; background: var(--rc); border-radius: 3px; flex: none; }
+.rp-opt-main { font-size: 15px; color: #202124; }
+.rp-opt-delta { color: #666; font-size: 13px; }
+.rp-opt-sub { color: #5f6368; font-size: 12.5px; }
+/* First/last-mile note on the option cards (walk to start/end or take transit). */
+.rp-opt-ends { color: #80868b; font-size: 12px; font-style: italic; }
+
+/* Time tag floating on each route. */
+.route-tag-wrap { pointer-events: auto; }
+.route-tag {
+  display: inline-flex; flex-direction: column; align-items: flex-start;
+  background: #fff; color: var(--rc);
+  border: 1.5px solid var(--rc); border-radius: 14px;
+  padding: 2px 9px; font-size: 12px; line-height: 1.25;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25); white-space: nowrap; cursor: pointer;
+  opacity: 0.9;
+}
+.route-tag.active { background: var(--rc); color: #fff; opacity: 1; z-index: 2; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35); }
+.route-tag b { font-size: 13px; }
+.route-tag .rt-sub { font-size: 10.5px; opacity: 0.9; font-weight: 400; }
+.route-tag .rt-ends { font-size: 10px; font-weight: 400; opacity: 0.85; font-style: italic; }
+
+/* Change-car marker along the highlighted route. */
+.route-change-spot > div {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: #fff; border: 2.5px solid var(--rc); color: var(--rc);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Start / destination pins dropped by the planner. */
+.rp-pin i { font-size: 30px; -webkit-text-stroke: 1.5px #fff; }
+.rp-pin-start i { color: #188038; }
+.rp-pin-dest i { color: #d93025; }
+
+@media (max-width: 640px) {
+  #route-panel { right: 16px !important; }
+}
+
+/* Route options rendered inside the .sidebar.routing bottom snap sheet. */
+.sidebar.routing .sheet-body { padding: 6px 16px 20px; overflow-y: auto; }
+.rp-sheet-title { margin: 4px 0 10px; font-size: 15px; font-weight: 700; }
+.sidebar.routing .rp-options { display: flex; flex-direction: column; gap: 8px; }
+
+/* Route pane peek: show only the handle + "Routes" title (matches ROUTING_SHEET_SNAPS
+   peek: 88 in map.js), overriding the generic .snap-peek (80%), so most of the map
+   stays visible. The pane can't be swiped away — only the X closes it. */
+.sidebar.routing.bottom-sheet.snap-peek { transform: translateY(88%); }

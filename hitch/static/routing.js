@@ -1,0 +1,748 @@
+/* Hitchhiking route planner for the main map.
+ *
+ * Self-contained: ports the corridor-aware routing engine (see
+ * hitch/scripts/repeatable_router.py) into the browser, and drives a
+ * Google-Maps-style start/destination UI that transforms the search bar.
+ *
+ * Relies on globals from map.js: `map` (the Leaflet map), `markerCluster`
+ * (the spot cluster), and `setSpotsVisible`.
+ */
+(function () {
+  "use strict";
+
+  // ---- engine constants --------------------------------------------------
+  const WALK_KMH = 5, CAR_KMH = 100, CAR_FACTOR = 1.25, EARTH_KM = 6371;
+  // How far one is willing to walk — applied uniformly to first/last mile
+  // (origin<->spot, spot<->dest) AND to hops between spots. A smaller transfer
+  // cap disconnects sparse intercity corridors (Berlin<->Amsterdam needs ~8 km
+  // hops), so we keep them equal; the graph stays small (~90k walk edges).
+  const DEFAULT_MAX_WALK = 20;
+  const TRANSFER_KM = DEFAULT_MAX_WALK;
+  const ORIGIN = -2, DEST = -1, NO_TREE = -1;
+  const ALT_COLORS = ["#1a73e8", "#e8710a", "#188038"]; // fastest first
+
+  // ---- small helpers -----------------------------------------------------
+  function haversineKm(a, b) {
+    const r = Math.PI / 180;
+    const dlat = (b[0] - a[0]) * r, dlon = (b[1] - a[1]) * r;
+    const s = Math.sin(dlat / 2) ** 2 +
+      Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(dlon / 2) ** 2;
+    return EARTH_KM * 2 * Math.asin(Math.sqrt(s));
+  }
+  class MinHeap {
+    constructor() { this.h = []; }
+    push(x) { const h = this.h; h.push(x); let i = h.length - 1;
+      while (i > 0) { const p = (i - 1) >> 1; if (h[p][0] <= h[i][0]) break; [h[p], h[i]] = [h[i], h[p]]; i = p; } }
+    pop() { const h = this.h, top = h[0], last = h.pop();
+      if (h.length) { h[0] = last; let i = 0; for (;;) { let l = 2 * i + 1, r = 2 * i + 2, m = i;
+        if (l < h.length && h[l][0] < h[m][0]) m = l; if (r < h.length && h[r][0] < h[m][0]) m = r;
+        if (m === i) break; [h[m], h[i]] = [h[i], h[m]]; i = m; } } return top; }
+    get size() { return this.h.length; }
+  }
+
+  // ---- graph construction ------------------------------------------------
+  function buildRouter(rep) {
+    const spots = rep.spots;
+    const treeAdj = [];            // t_id -> Map u -> [[v, km, wait], ...]
+    const board = new Map();       // u -> [[t_id, v, km, wait], ...]
+    const edgeKm = new Map();      // u*1e7+v -> km
+    const carSpots = new Set();
+    const waits = [];
+    rep.trees.forEach((t) => {
+      const tId = treeAdj.length, adj = new Map(), nodes = t.nodes;
+      nodes.forEach((n) => {
+        const from = n[1] === -1 ? t.s : nodes[n[1]][0], to = n[0];
+        const wait = n.length > 3 ? n[3] : null;
+        const km = haversineKm(spots[from], spots[to]) * CAR_FACTOR;
+        if (!adj.has(from)) adj.set(from, []);
+        adj.get(from).push([to, km, wait]);
+        // Boarding is only allowed at a corridor's root (t.s) — the spot where its
+        // rides actually start. Mid-corridor nodes are pass-through points the car
+        // drives past; you can't flag a fresh ride there. Downstream edges are
+        // reached by continuing the ride (treeAdj), not by boarding here.
+        if (from === t.s) {
+          if (!board.has(from)) board.set(from, []);
+          board.get(from).push([tId, to, km, wait]);
+        }
+        edgeKm.set(from * 1e7 + to, km);
+        if (wait != null) waits.push(wait);
+        carSpots.add(from); carSpots.add(to);
+      });
+      treeAdj.push(adj);
+    });
+    const defaultWait = waits.length ? waits.reduce((a, b) => a + b, 0) / waits.length : 0;
+    const R = { spots, treeAdj, board, edgeKm, defaultWait, nTrees: treeAdj.length,
+      carSpots: [...carSpots], walkAdj: new Map(), grid: null, cellDeg: 0, walkReady: false };
+    return R;
+  }
+
+  // Walk adjacency between spots within TRANSFER_KM, plus a grid for lookups.
+  function ensureWalk(R) {
+    if (R.walkReady) return;
+    R.cellDeg = TRANSFER_KM / (EARTH_KM * Math.PI / 180);
+    const key = (cy, cx) => cy * 100000 + cx;
+    const grid = new Map();
+    R.carSpots.forEach((idx) => {
+      const s = R.spots[idx];
+      const k = key(Math.floor(s[0] / R.cellDeg), Math.floor(s[1] / R.cellDeg));
+      if (!grid.has(k)) grid.set(k, []); grid.get(k).push(idx);
+    });
+    R.grid = grid; R.key = key;
+    const walkAdj = new Map();
+    R.carSpots.forEach((idx) => {
+      const s = R.spots[idx], cy = Math.floor(s[0] / R.cellDeg), cx = Math.floor(s[1] / R.cellDeg);
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const arr = grid.get(key(cy + dy, cx + dx)); if (!arr) continue;
+        arr.forEach((j) => { if (j <= idx) return; const km = haversineKm(s, R.spots[j]);
+          if (km <= TRANSFER_KM) {
+            if (!walkAdj.has(idx)) walkAdj.set(idx, []); walkAdj.get(idx).push([j, km]);
+            if (!walkAdj.has(j)) walkAdj.set(j, []); walkAdj.get(j).push([idx, km]); } });
+      }
+    });
+    R.walkAdj = walkAdj; R.walkReady = true;
+  }
+
+  // Car-graph spots within maxKm of a point (first/last mile can be long, so we
+  // scan a wider neighbourhood than the transfer grid cell).
+  function spotsNear(R, pt, maxKm) {
+    const rad = Math.ceil(maxKm / TRANSFER_KM);
+    const cy = Math.floor(pt[0] / R.cellDeg), cx = Math.floor(pt[1] / R.cellDeg), out = [];
+    for (let dy = -rad; dy <= rad; dy++) for (let dx = -rad; dx <= rad; dx++) {
+      const arr = R.grid.get(R.key(cy + dy, cx + dx)); if (!arr) continue;
+      arr.forEach((idx) => { const km = haversineKm(pt, R.spots[idx]); if (km <= maxKm) out.push([idx, km]); });
+    }
+    return out;
+  }
+
+  // ---- query -------------------------------------------------------------
+  function route(R, start, dest, maxWalk, penalty) {
+    const wmin = (km) => km / WALK_KMH * 60, cmin = (km) => km / CAR_KMH * 60;
+    const M = R.nTrees + 2, enc = (spot, cor) => spot * M + (cor + 1);
+    const dist = new Map(), prev = new Map(), pq = new MinHeap();
+    const relax = (nst, t, entry) => {
+      if (t < (dist.get(nst) ?? Infinity)) { dist.set(nst, t); prev.set(nst, entry); pq.push([t, nst]); } };
+    spotsNear(R, start, maxWalk).forEach(([idx, km]) => relax(enc(idx, NO_TREE), wmin(km), [ORIGIN, "walk", km, 0]));
+    const destSpots = new Map(spotsNear(R, dest, maxWalk));
+    let best = Infinity;
+    const directKm = haversineKm(start, dest);
+    if (directKm <= maxWalk) { best = wmin(directKm); prev.set(DEST, [ORIGIN, "walk", directKm, 0]); }
+    while (pq.size) {
+      const [d, st] = pq.pop();
+      if (d > (dist.get(st) ?? Infinity)) continue;
+      if (d >= best) break;
+      const spot = Math.floor(st / M), corridor = st % M - 1;
+      if (corridor !== NO_TREE) {
+        const cont = R.treeAdj[corridor].get(spot);
+        if (cont) cont.forEach(([v, km]) => {
+          const mult = penalty ? (penalty.get(spot * 1e7 + v) || 1) : 1;
+          relax(enc(v, corridor), d + cmin(km) * mult, [st, "car", km, 0]); });
+      }
+      const bd = R.board.get(spot);
+      if (bd) bd.forEach(([tId, v, km, wait]) => {
+        const w = (wait == null) ? R.defaultWait : wait;
+        const mult = penalty ? (penalty.get(spot * 1e7 + v) || 1) : 1;
+        relax(enc(v, tId), d + cmin(km) * mult + w, [st, "board", km, w]); });
+      const wk = R.walkAdj.get(spot);
+      if (wk) wk.forEach(([v, km]) => relax(enc(v, NO_TREE), d + wmin(km), [st, "walk", km, 0]));
+      if (destSpots.has(spot)) { const t = d + wmin(destSpots.get(spot));
+        if (t < best) { best = t; prev.set(DEST, [st, "walk", destSpots.get(spot), 0]); } }
+    }
+    if (best === Infinity) return { found: false };
+    const markOf = (n) => (n === ORIGIN || n === DEST) ? n : Math.floor(n / M);
+    const coord = (m) => m === ORIGIN ? start : m === DEST ? dest : R.spots[m];
+    const raw = []; const carEdges = new Set(); let node = DEST;
+    while (node !== ORIGIN) { const [p, kind, km, wait] = prev.get(node); const a = markOf(p), b = markOf(node);
+      raw.push([kind, a, b, km, wait]); if ((kind === "car" || kind === "board") && a >= 0 && b >= 0) carEdges.add(a * 1e7 + b); node = p; }
+    raw.reverse();
+    const legs = [];
+    raw.forEach(([kind, a, b, km, wait]) => {
+      const mode = kind === "walk" ? "walk" : "car";
+      const last = legs[legs.length - 1];
+      if (last && last.mode === mode && kind !== "board") { last.km += km; last.path.push(coord(b)); last.to = coord(b); }
+      else legs.push({ mode, from: coord(a), to: coord(b), km, path: [coord(a), coord(b)], waitMin: kind === "board" ? wait : 0 });
+    });
+    legs.forEach((l) => { l.minutes = l.km / (l.mode === "walk" ? WALK_KMH : CAR_KMH) * 60; });
+    const walkKm = legs.filter((l) => l.mode === "walk").reduce((s, l) => s + l.km, 0);
+    const carKm = legs.filter((l) => l.mode === "car").reduce((s, l) => s + l.km, 0);
+    const walkMin = legs.filter((l) => l.mode === "walk").reduce((s, l) => s + l.minutes, 0);
+    const waitMin = legs.reduce((s, l) => s + l.waitMin, 0);
+    const totalMin = legs.reduce((s, l) => s + l.minutes, 0) + waitMin;
+    return { found: true, totalMin, waitMin, walkMin, walkKm, carKm, legs, carEdges };
+  }
+
+  // Up to k sufficiently-different routes (penalty method).
+  function alternatives(R, start, dest, maxWalk, k, maxOverlap) {
+    const pen = new Map(), kept = [], keptEdges = [];
+    for (let attempt = 0; attempt < k * 8 && kept.length < k; attempt++) {
+      const res = route(R, start, dest, maxWalk, pen);
+      if (!res.found) break;
+      res.carEdges.forEach((e) => pen.set(e, (pen.get(e) || 1) * 2.5));
+      let similar = false;
+      for (const [edges, km] of keptEdges) {
+        let shared = 0;
+        res.carEdges.forEach((e) => { if (edges.has(e)) shared += R.edgeKm.get(e) || 0; });
+        if (shared / (Math.min(res.carKm, km) || 1) >= maxOverlap) { similar = true; break; }
+      }
+      if (similar) continue;
+      kept.push(res); keptEdges.push([res.carEdges, res.carKm]);
+    }
+    return kept;
+  }
+
+  // ======================================================================
+  // UI
+  // ======================================================================
+  const RJ = {
+    active: false, router: null,
+    start: null, dest: null,        // { latlng:[lat,lon], label }
+    activeField: "start",
+    routes: [], highlight: 0,
+    routeLayer: null, spotLayer: null, tagLayer: null, tagMarker: null,
+    startMarker: null, destMarker: null,
+    streetCache: new Map(),
+  };
+  window.RoutingUI = RJ;
+  // Expose the control methods on the shared object too — map.js (navigateHome,
+  // the map-click guard) calls RoutingUI.close()/.active. RJ itself is only the
+  // state bag; open/close are closures, so they must be attached explicitly
+  // (function declarations are hoisted, so this runs before they're defined).
+  RJ.open = open;
+  RJ.close = close;
+  RJ.showAgain = showAgain;
+
+  fetch("/repeatable_routes.json").then((r) => r.json()).then((rep) => {
+    RJ.router = buildRouter(rep); ensureWalk(RJ.router);
+    // A shared #dir link may have opened the planner before the data arrived
+    // (compute() showed "Loading route data…"); run it now that we can.
+    if (RJ.active && RJ.start && RJ.dest && !RJ.routes.length) compute();
+  }).catch((e) => console.error("routing data failed", e));
+
+  const photon = (typeof L !== "undefined" && L.Control && L.Control.Geocoder)
+    ? L.Control.Geocoder.photon() : null;
+
+  function fmtTime(min) {
+    min = Math.round(min);
+    const h = Math.floor(min / 60), m = min % 60;
+    return h ? `${h}h${String(m).padStart(2, "0")}` : `${m}m`;
+  }
+
+  // The first/last-mile walk (origin -> first spot, last spot -> destination) is
+  // often a city hop you'd do by transit, not on foot, and can dominate the total.
+  // Split it out so the headline shows the core hitch time (first spot -> last
+  // spot, incl. mid-route transfers & waits); the full time is still used for
+  // routing/ranking.
+  function routeEnds(rt) {
+    const legs = rt.legs;
+    const first = legs[0] && legs[0].mode === "walk" ? legs[0] : null;
+    const last = legs.length > 1 && legs[legs.length - 1].mode === "walk" ? legs[legs.length - 1] : null;
+    const endsMin = (first ? first.minutes : 0) + (last ? last.minutes : 0);
+    const endsKm = (first ? first.km : 0) + (last ? last.km : 0);
+    return { endsMin, endsKm, coreMin: rt.totalMin - endsMin, midWalkMin: rt.walkMin - endsMin };
+  }
+  // Non-bold secondary line describing how to reach/leave the hitching spots.
+  function endsLabel(rt) {
+    const e = routeEnds(rt);
+    if (e.endsKm < 0.2) return "";
+    // Too far to reasonably walk in a city -> suggest public transport.
+    return e.endsKm > 3
+      ? "+ transit to start &amp; end"
+      : `+ ${fmtTime(e.endsMin)} walk to start &amp; end`;
+  }
+  function pinIcon(kind) {
+    return L.divIcon({
+      className: `rp-pin rp-pin-${kind}`,
+      html: `<i class="fa-solid fa-location-dot"></i>`,
+      iconSize: [30, 30], iconAnchor: [15, 28],
+    });
+  }
+
+  // ---- panel DOM ---------------------------------------------------------
+  let panel;
+  function buildPanel() {
+    panel = document.createElement("div");
+    panel.id = "route-panel";
+    panel.hidden = true;
+    panel.innerHTML = `
+      <button class="rp-close" title="Close" aria-label="Close route planning">
+        <i class="fa-solid fa-arrow-left"></i>
+      </button>
+      <div class="rp-fields">
+        <div class="rp-field" data-field="start">
+          <span class="rp-dot rp-dot-start"></span>
+          <input type="text" autocomplete="off" placeholder="Choose starting point, or click on the map" />
+          <button class="rp-clear" tabindex="-1" aria-label="Clear">&times;</button>
+        </div>
+        <div class="rp-field" data-field="dest">
+          <span class="rp-dot rp-dot-dest"></span>
+          <input type="text" autocomplete="off" placeholder="Choose destination, or click on the map" />
+          <button class="rp-clear" tabindex="-1" aria-label="Clear">&times;</button>
+        </div>
+      </div>
+      <div class="rp-suggest" hidden></div>
+      <div class="rp-options" hidden></div>
+      <div class="rp-status" hidden></div>`;
+    document.body.appendChild(panel);
+
+    panel.querySelector(".rp-close").addEventListener("click", close);
+    panel.querySelectorAll(".rp-field").forEach((f) => {
+      const field = f.dataset.field;
+      const input = f.querySelector("input");
+      input.addEventListener("focus", () => { RJ.activeField = field; });
+      input.addEventListener("input", () => onType(field, input.value));
+      f.querySelector(".rp-clear").addEventListener("click", () => {
+        input.value = ""; clearPoint(field); hideSuggest();
+      });
+    });
+    L.DomEvent.disableClickPropagation(panel);
+    L.DomEvent.disableScrollPropagation(panel);
+  }
+
+  // ---- geocode suggestions ----------------------------------------------
+  let typeTimer = null;
+  function onType(field, text) {
+    RJ.activeField = field;
+    clearTimeout(typeTimer);
+    if (!text || text.length < 3 || !photon) { hideSuggest(); return; }
+    typeTimer = setTimeout(() => {
+      photon.geocode(text, (results) => renderSuggest(field, results || []));
+    }, 300);
+  }
+  function renderSuggest(field, results) {
+    const box = panel.querySelector(".rp-suggest");
+    if (!results.length) { hideSuggest(); return; }
+    box.innerHTML = "";
+    results.slice(0, 5).forEach((res) => {
+      const item = document.createElement("div");
+      item.className = "rp-suggest-item";
+      item.innerHTML = `<i class="fa-solid fa-location-dot"></i> <span>${res.html || res.name}</span>`;
+      item.addEventListener("click", () => {
+        const c = res.center;
+        setPoint(field, [c.lat, c.lng], (res.name || "").split(",")[0] || "Location");
+        hideSuggest();
+      });
+      box.appendChild(item);
+    });
+    box.hidden = false;
+  }
+  function hideSuggest() { const b = panel.querySelector(".rp-suggest"); if (b) { b.hidden = true; b.innerHTML = ""; } }
+
+  // ---- point setting -----------------------------------------------------
+  function fieldInput(field) { return panel.querySelector(`.rp-field[data-field="${field}"] input`); }
+
+  function setPoint(field, latlng, label) {
+    RJ[field] = { latlng, label: label || `${latlng[0].toFixed(4)}, ${latlng[1].toFixed(4)}` };
+    fieldInput(field).value = RJ[field].label;
+    const marker = field === "start" ? "startMarker" : "destMarker";
+    if (RJ[marker]) RJ[marker].setLatLng(latlng);
+    else RJ[marker] = L.marker(latlng, { icon: pinIcon(field), zIndexOffset: 1000, interactive: false }).addTo(map);
+    // Move focus to the empty field so the next map click fills it.
+    RJ.activeField = RJ.start && !RJ.dest ? "dest" : RJ.dest && !RJ.start ? "start" : field === "start" ? "dest" : "start";
+    if (RJ.start && RJ.dest) compute();
+  }
+  function clearPoint(field) {
+    RJ[field] = null;
+    const marker = field === "start" ? "startMarker" : "destMarker";
+    if (RJ[marker]) { map.removeLayer(RJ[marker]); RJ[marker] = null; }
+    RJ.activeField = field;
+    clearRoutes();
+  }
+
+  // ---- open / close ------------------------------------------------------
+  function open() {
+    if (RJ.active) return;
+    RJ.active = true;
+    document.body.classList.add("routing-active");
+    if (!panel) buildPanel();
+    panel.hidden = false;
+    if (typeof setSpotsVisible === "function") setSpotsVisible(false);
+    map.getContainer().style.cursor = "crosshair";
+    setTimeout(() => fieldInput("start").focus(), 50);
+  }
+  function close() {
+    if (!RJ.active) return;
+    RJ.active = false;
+    document.body.classList.remove("routing-active");
+    if (panel) panel.hidden = true;
+    hideSuggest();
+    clearRoutes();
+    hideResultsSheet();
+    ["start", "dest"].forEach(clearPoint);
+    if (panel) { fieldInput("start").value = ""; fieldInput("dest").value = ""; }
+    if (typeof setSpotsVisible === "function") setSpotsVisible(true);
+    map.getContainer().style.cursor = "";
+    // Drop a shared #dir link so closing returns to a clean URL.
+    if (location.hash.slice(1).startsWith("dir/")) history.replaceState(null, "", location.pathname + location.search);
+  }
+
+  // ---- routing + drawing -------------------------------------------------
+  function clearRoutes() {
+    RJ._token = {}; // stop any in-flight street upgrades from touching old layers
+    [RJ.routeLayer, RJ.spotLayer, RJ.tagLayer].forEach((l) => { if (l) map.removeLayer(l); });
+    RJ.routeLayer = RJ.spotLayer = RJ.tagLayer = RJ.tagMarker = null;
+    RJ.routes = [];
+    const sheet = resultsSheet();
+    const opts = sheet && sheet.querySelector(".rp-options");
+    if (opts) opts.innerHTML = "";
+    setStatus(null);
+  }
+  function setStatus(msg) {
+    const s = panel && panel.querySelector(".rp-status");
+    if (!s) return;
+    if (!msg) { s.hidden = true; s.textContent = ""; } else { s.hidden = false; s.textContent = msg; }
+  }
+
+  function compute() {
+    if (!RJ.router) { setStatus("Loading route data…"); return; }
+    if (!RJ.start || !RJ.dest) return;
+    hideSuggest();
+    clearRoutes();
+    setStatus("Finding routes…");
+    // Defer so "Finding routes…" paints before the (sync) search runs. Cancel any
+    // pending compute so two quick clicks can't both draw and orphan a layer.
+    clearTimeout(RJ._computeTimer);
+    RJ._computeTimer = setTimeout(() => {
+      const res = alternatives(RJ.router, RJ.start.latlng, RJ.dest.latlng, DEFAULT_MAX_WALK, 3, 0.6);
+      clearRoutes(); // drop anything a previous run left before drawing fresh
+      if (!res.length) {
+        setStatus(diagnoseNoRoute(RJ.router, RJ.start.latlng, RJ.dest.latlng, DEFAULT_MAX_WALK));
+        return;
+      }
+      setStatus(null);
+      // Show fastest by core (hitching) time first — that's the headline figure,
+      // so ordering, colours and deltas all stay consistent.
+      res.sort((a, b) => routeEnds(a).coreMin - routeEnds(b).coreMin);
+      RJ.routes = res;
+      const token = {};
+      RJ._token = token;      // invalidates any in-flight street upgrades
+      drawRoutes();
+      renderOptions();
+      highlight(0);
+      upgradeAllToStreets(token);
+      updateShareUrl();       // make this search shareable (#dir/from/to)
+    }, 30);
+  }
+
+  // When no route is found, explain which end is the problem so the user can act
+  // (move a point, or search only the part of the trip that has coverage). An
+  // endpoint is "covered" if any repeatable-route spot sits within walking range;
+  // if both are covered but still unconnected, the middle lacks logged rides.
+  function diagnoseNoRoute(R, start, dest, maxWalk) {
+    const startCovered = spotsNear(R, start, maxWalk).length > 0;
+    const destCovered = spotsNear(R, dest, maxWalk).length > 0;
+    if (!startCovered && !destCovered) {
+      return "No route found: both your start and destination are in areas where too few people have hitchhiked. " +
+        "Try points nearer to major roads or cities.";
+    }
+    if (!startCovered) {
+      return "No route found: your starting point is in an area where too few people have hitchhiked. " +
+        "Move it closer to a major road or city, or search just the later part of your trip.";
+    }
+    if (!destCovered) {
+      return "No route found: your destination is in an area where too few people have hitchhiked. " +
+        "Move it closer to a major road or city, or search just the earlier part of your trip.";
+    }
+    return "No route found: we couldn't connect these two points with repeatable rides. " +
+      "Try searching for part of the route — e.g. between larger cities along the way.";
+  }
+
+  // ---- shareable route URL (#dir/<slat>,<slon>/<dlat>,<dlon>) ------------
+  // Google-Maps-style: the current start+destination live in the URL so the link
+  // reopens the same route. replaceState (not location.hash=) avoids firing a
+  // navigate/hashchange loop; a fresh load / paste is handled in init().
+  function updateShareUrl() {
+    if (!RJ.start || !RJ.dest) return;
+    const f = RJ.start.latlng, t = RJ.dest.latlng;
+    const h = `#dir/${f[0].toFixed(5)},${f[1].toFixed(5)}/${t[0].toFixed(5)},${t[1].toFixed(5)}`;
+    history.replaceState(null, "", location.pathname + location.search + h);
+  }
+  function parseShareUrl(hash) {
+    // "dir/<slat>,<slon>/<dlat>,<dlon>" -> {from:[lat,lon], to:[lat,lon]} or null
+    const parts = hash.replace(/^#/, "").split("/");
+    if (parts[0] !== "dir" || parts.length < 3) return null;
+    const a = parts[1].split(",").map(Number), b = parts[2].split(",").map(Number);
+    if (a.length !== 2 || b.length !== 2 || a.concat(b).some((n) => !isFinite(n))) return null;
+    return { from: a, to: b };
+  }
+  function openFromUrl(hash) {
+    const p = parseShareUrl(hash || location.hash);
+    if (!p) return false;
+    open();
+    // setPoint fills the input and auto-computes once both ends are set.
+    setPoint("start", p.from, coordLabel(p.from));
+    setPoint("dest", p.to, coordLabel(p.to));
+    // Reverse-geocode nicer labels in the background.
+    reverseLabel("start", p.from); reverseLabel("dest", p.to);
+    return true;
+  }
+  function coordLabel(ll) { return ll[0].toFixed(4) + ", " + ll[1].toFixed(4); }
+  function reverseLabel(field, ll) {
+    if (!photon || !photon.reverse) return;
+    photon.reverse(L.latLng(ll[0], ll[1]), map.getZoom(), (results) => {
+      if (results && results[0] && RJ[field]) {
+        RJ[field].label = (results[0].name || "").split(",").slice(0, 2).join(",") || RJ[field].label;
+        if (fieldInput(field)) fieldInput(field).value = RJ[field].label;
+      }
+    });
+  }
+
+  function drawRoutes() {
+    // Defensive: never stack layers if one already exists.
+    [RJ.routeLayer, RJ.spotLayer, RJ.tagLayer].forEach((l) => { if (l) map.removeLayer(l); });
+    RJ.routeLayer = L.layerGroup().addTo(map);
+    RJ.tagLayer = L.layerGroup().addTo(map);
+    RJ.spotLayer = L.layerGroup().addTo(map);
+    // Draw slowest first so the fastest ends up on top.
+    RJ.routes.forEach((rt) => { rt._layers = []; });
+    for (let i = RJ.routes.length - 1; i >= 0; i--) drawOneRoute(i);
+    // Fit to the fastest route.
+    const pts = [].concat(...RJ.routes[0].legs.map((l) => l.path));
+    map.fitBounds(L.latLngBounds(pts), { paddingTopLeft: [30, 140], paddingBottomRight: [30, 40] });
+  }
+
+  function drawOneRoute(i) {
+    const rt = RJ.routes[i], color = ALT_COLORS[i % ALT_COLORS.length];
+    rt._layers = [];
+    rt.legs.forEach((leg) => {
+      const pl = L.polyline(leg.path, {
+        color, opacity: 0.35, weight: leg.mode === "walk" ? 3 : 5,
+        dashArray: leg.mode === "walk" ? "2 8" : null, lineCap: "round", lineJoin: "round",
+      });
+      pl.options._car = leg.mode === "car";
+      // Stop the click here: with preferCanvas a polyline click otherwise also
+      // fires the map click, which would drop a new point and recompute.
+      pl.on("click", (e) => { RJ._pickAt = Date.now(); L.DomEvent.stopPropagation(e); highlight(i); });
+      pl.addTo(RJ.routeLayer); rt._layers.push(pl);
+    });
+  }
+
+  function tagIcon(rt, i) {
+    const color = ALT_COLORS[i % ALT_COLORS.length];
+    const e = routeEnds(rt);
+    const mid = e.midWalkMin > 0.5 ? ` · ${fmtTime(e.midWalkMin)} walk` : "";
+    const ends = endsLabel(rt);
+    return L.divIcon({
+      className: "route-tag-wrap",
+      html: `<div class="route-tag active" style="--rc:${color}">
+        <b>${fmtTime(e.coreMin)}</b><span class="rt-sub">${rt.carKm.toFixed(0)} km${mid}</span>
+        ${ends ? `<span class="rt-ends">${ends}</span>` : ""}</div>`,
+      iconSize: null, iconAnchor: [0, 12],
+    });
+  }
+
+  function highlight(i) {
+    RJ.highlight = i;
+    RJ.routes.forEach((rt, j) => {
+      const on = j === i;
+      // Non-selected routes stay as faint real roads; the selected one is solid.
+      rt._layers.forEach((pl) => pl.setStyle({
+        opacity: on ? 0.95 : 0.22,
+        weight: pl.options._car ? (on ? 6 : 4) : (on ? 4 : 3),
+      }));
+      if (on) rt._layers.forEach((pl) => pl.bringToFront());
+    });
+    // A single time tag, only on the selected route.
+    if (RJ.tagMarker) { RJ.tagLayer.removeLayer(RJ.tagMarker); RJ.tagMarker = null; }
+    const rt = RJ.routes[i];
+    const all = [].concat(...rt.legs.map((l) => l.path));
+    const tp = all[Math.floor(all.length * 0.45)];
+    RJ.tagMarker = L.marker(tp, { icon: tagIcon(rt, i), interactive: true, zIndexOffset: 600 });
+    RJ.tagMarker.on("click", (e) => { RJ._pickAt = Date.now(); L.DomEvent.stopPropagation(e); });
+    RJ.tagMarker.addTo(RJ.tagLayer);
+    // Only the highlighted route's spots are shown.
+    drawRouteSpots(i);
+    const sheet = resultsSheet();
+    if (sheet) sheet.querySelectorAll(".rp-option").forEach((r) => r.classList.toggle("active", Number(r.dataset.i) === i));
+  }
+
+  // Only the highlighted route's spots are shown: every spot along it, with the
+  // change points (where you board a new car) highlighted. Clicking any spot
+  // opens the normal spot bottom sheet (all rides at that spot).
+  function drawRouteSpots(i) {
+    if (RJ.spotLayer) RJ.spotLayer.clearLayers();
+    const rt = RJ.routes[i], color = ALT_COLORS[i % ALT_COLORS.length];
+    const seen = new Set();
+    rt.legs.forEach((leg) => {
+      if (leg.mode !== "car") return;
+      leg.path.forEach((c, idx) => {
+        const key = c[0].toFixed(5) + "_" + c[1].toFixed(5);
+        const change = idx === 0; // boarding spot => car change
+        if (seen.has(key) && !change) return; seen.add(key);
+        let m;
+        if (change) {
+          m = L.marker(c, { icon: L.divIcon({ className: "route-change-spot",
+            html: `<div style="--rc:${color}"><i class="fa-solid fa-right-left"></i></div>`,
+            iconSize: [22, 22], iconAnchor: [11, 11] }), zIndexOffset: 400 })
+            .bindTooltip("Change car here — tap for rides", { direction: "top" });
+        } else {
+          m = L.circleMarker(c, { radius: 4.5, color: "#fff", weight: 1, fillColor: color, fillOpacity: 0.95 });
+        }
+        m.on("click", (e) => { RJ._pickAt = Date.now(); L.DomEvent.stopPropagation(e); openSpotSheet(c, e); });
+        m.addTo(RJ.spotLayer);
+      });
+    });
+  }
+
+  // Open the normal spot bottom sheet for the real map spot nearest a route spot
+  // (that marker already carries the right spotId + rides), reusing map.js.
+  function openSpotSheet(latlng, e) {
+    const markers = window.allMarkers;
+    if (!markers || !markers.length || typeof handleMarkerClick !== "function") return;
+    const target = L.latLng(latlng[0], latlng[1]);
+    let best = null, bestD = Infinity;
+    for (const mk of markers) {
+      const d = mk.getLatLng().distanceTo(target);
+      if (d < bestD) { bestD = d; best = mk; }
+    }
+    if (best && bestD < 150) handleMarkerClick(best, best.getLatLng(), e);
+  }
+
+  // ---- street-following geometry (OSRM) for ALL routes -------------------
+  async function upgradeAllToStreets(token) {
+    // Snap the highlighted route first, then the rest, so the focused route
+    // gets real roads soonest. Sequential to stay gentle on the OSRM demo server.
+    const order = RJ.routes.map((_, i) => i).sort((a, b) => (a === RJ.highlight ? -1 : b === RJ.highlight ? 1 : 0));
+    for (const i of order) {
+      const rt = RJ.routes[i];
+      for (let li = 0; li < rt.legs.length; li++) {
+        const leg = rt.legs[li];
+        if (leg.mode !== "car" || leg.path.length < 2) continue;
+        const pl = rt._layers[li];
+        const geo = await streetGeometry(leg.path);
+        if (token !== RJ._token) return;      // a newer compute superseded us
+        if (geo && map.hasLayer(pl)) pl.setLatLngs(geo);
+      }
+    }
+  }
+  async function streetGeometry(path) {
+    // Downsample waypoints so the OSRM URL stays short; endpoints kept.
+    let pts = path;
+    if (pts.length > 24) {
+      const step = Math.ceil(pts.length / 24), s = [pts[0]];
+      for (let k = step; k < pts.length - 1; k += step) s.push(pts[k]);
+      s.push(pts[pts.length - 1]); pts = s;
+    }
+    const key = pts.map((p) => p[0].toFixed(4) + "," + p[1].toFixed(4)).join(";");
+    if (RJ.streetCache.has(key)) return RJ.streetCache.get(key);
+    const coords = pts.map((p) => `${p[1]},${p[0]}`).join(";");
+    try {
+      const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`);
+      const d = await r.json();
+      if (d.code !== "Ok" || !d.routes || !d.routes[0]) { RJ.streetCache.set(key, null); return null; }
+      const geo = d.routes[0].geometry.coordinates.map((c) => [c[1], c[0]]);
+      RJ.streetCache.set(key, geo);
+      return geo;
+    } catch (e) { RJ.streetCache.set(key, null); return null; }
+  }
+
+  // ---- results: the 3 options live in the bottom snap sheet --------------
+  function resultsSheet() { return document.querySelector(".sidebar.routing"); }
+  function optionsBox() {
+    const sheet = resultsSheet();
+    if (!sheet) return null;
+    let body = sheet.querySelector(".sheet-body");
+    // Replace the placeholder body with our options container once we have routes.
+    if (!body.querySelector(".rp-options")) {
+      body.innerHTML = '<h3 class="rp-sheet-title">Routes</h3><div class="rp-options"></div>';
+    }
+    return body.querySelector(".rp-options");
+  }
+  function showResultsSheet() {
+    const sheet = resultsSheet();
+    if (!sheet) return;
+    // Keep the user's chosen snap height across re-computes and across
+    // re-showing after a spot pane closes; only pick a default on first open.
+    const hasSnap = /\bsnap-/.test(sheet.className);
+    if (typeof bar === "function") bar(".sidebar.routing"); else sheet.classList.add("visible");
+    if (!hasSnap) {
+      const snaps = typeof ROUTING_SHEET_SNAPS !== "undefined" ? ROUTING_SHEET_SNAPS : { half: 55, full: 0 };
+      if (typeof setSheetSnap === "function") setSheetSnap(sheet, "half", snaps);
+    }
+    if (typeof updateBottomPaneVar === "function") updateBottomPaneVar();
+  }
+  // Re-show the route view after a spot pane (opened from a route marker) closes:
+  // the drawn route layers were never removed, so just reopen the options sheet
+  // and restore the shareable #dir URL (the spot click had swapped it for ?lat,lon).
+  function showAgain() {
+    if (!RJ.active || !RJ.routes.length) return;
+    showResultsSheet();
+    updateShareUrl();
+  }
+  function hideResultsSheet() {
+    const sheet = resultsSheet();
+    if (sheet) sheet.classList.remove("visible");
+  }
+  function renderOptions() {
+    const box = optionsBox();
+    if (!box) return;
+    box.innerHTML = "";
+    // Rank by core (hitching) time so the headline figures match the sort.
+    const fastest = routeEnds(RJ.routes[0]).coreMin;
+    RJ.routes.forEach((rt, i) => {
+      const e = routeEnds(rt);
+      const cars = rt.legs.filter((l) => l.mode === "car").length;
+      const delta = i === 0 ? "fastest" : "+" + fmtTime(e.coreMin - fastest);
+      const mid = e.midWalkMin > 0.5 ? ` · ${fmtTime(e.midWalkMin)} walk` : "";
+      const ends = endsLabel(rt);
+      const row = document.createElement("button");
+      row.className = "rp-option"; row.dataset.i = i;
+      row.style.setProperty("--rc", ALT_COLORS[i % ALT_COLORS.length]);
+      row.innerHTML = `
+        <span class="rp-opt-bar"></span>
+        <span class="rp-opt-main">
+          <b>${fmtTime(e.coreMin)}</b> <span class="rp-opt-delta">${delta}</span><br>
+          <span class="rp-opt-sub">${rt.carKm.toFixed(0)} km${mid} · ${cars} ride${cars > 1 ? "s" : ""} · ${Math.round(rt.waitMin)} min wait</span>
+          ${ends ? `<br><span class="rp-opt-ends">${ends}</span>` : ""}
+        </span>`;
+      row.addEventListener("click", () => highlight(i));
+      box.appendChild(row);
+    });
+    showResultsSheet();
+  }
+
+  // ---- map click while planning -----------------------------------------
+  function onMapClick(e) {
+    if (!RJ.active) return;
+    // Backup for canvas hit-testing: ignore a map click that immediately follows
+    // a route/tag click (which set RJ._pickAt) so selecting a route never drops a pin.
+    if (RJ._pickAt && Date.now() - RJ._pickAt < 200) return;
+    const latlng = [e.latlng.lat, e.latlng.lng];
+    const field = RJ.activeField || "start";
+    // Reverse-geocode for a friendly label; fall back to coordinates.
+    setPoint(field, latlng, null);
+    if (photon && photon.reverse) {
+      photon.reverse(e.latlng, map.getZoom(), (results) => {
+        if (results && results[0] && RJ[field]) {
+          RJ[field].label = (results[0].name || "").split(",").slice(0, 2).join(",") || RJ[field].label;
+          fieldInput(field).value = RJ[field].label;
+        }
+      });
+    }
+  }
+
+  // ---- init --------------------------------------------------------------
+  function init() {
+    const btn = document.querySelector(".geocoder-route-btn");
+    if (btn) {
+      btn.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); open(); }, true);
+    }
+    map.on("click", onMapClick);
+    // The route pane's X must fully close the planner. setupRoutingSheet wired it
+    // to navigateHome, which now returns-to-route while active — so override it
+    // here to call close() directly (the real teardown).
+    const rc = document.querySelector("#routing-close");
+    if (rc) rc.onclick = (e) => { e.preventDefault(); close(); };
+    // Esc closes the planner.
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && RJ.active) close(); });
+    // A shared/deep #dir link reopens the same route on load and on back/forward.
+    openFromUrl();
+    window.addEventListener("hashchange", () => { if (parseShareUrl(location.hash)) openFromUrl(); });
+  }
+
+  function waitFor(cond, cb, tries) {
+    tries = tries || 0;
+    if (cond()) { cb(); return; }
+    if (tries > 200) return;
+    setTimeout(() => waitFor(cond, cb, tries + 1), 50);
+  }
+  waitFor(() => window.map && document.querySelector(".geocoder-route-btn") && typeof L !== "undefined", init);
+})();

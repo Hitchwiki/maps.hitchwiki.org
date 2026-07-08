@@ -1260,6 +1260,9 @@ function setupEventListeners() {
 
 // Handle map click events
 function handleMapClick(e) {
+  // While the routing planner is open, map clicks set the start/destination
+  // (handled by routing.js onMapClick) — don't also drop a spot pin here.
+  if (window.RoutingUI && window.RoutingUI.active) return;
   var added = false;
   // Countries mode hides the spot markers (but keeps them in `allMarkers`), so
   // skip the tap-to-nearest-spot shortcut — otherwise tapping a country would
@@ -1647,7 +1650,9 @@ function bar(selector) {
 // Snap percentages mirror the CSS translateY values for .snap-{peek,half,full}
 const SPOT_SHEET_SNAPS = { peek: 80, half: 60, full: 10 };
 const MENU_SHEET_SNAPS = { half: 55, full: 0 };
-const ROUTING_SHEET_SNAPS = { half: 55, full: 0 };
+// peek shows only the handle + "Routes" title (see the routing-specific CSS
+// override), so most of the map stays visible; full/half reveal the options.
+const ROUTING_SHEET_SNAPS = { peek: 88, half: 55, full: 0 };
 const COUNTRY_SHEET_SNAPS = { half: 55, full: 0 };
 const EVENT_SHEET_SNAPS = { half: 55, full: 0 };
 
@@ -1664,11 +1669,16 @@ function setSpotSheetSnap(name) {
   setSheetSnap($$(".sidebar.show-spot"), name, SPOT_SHEET_SNAPS);
 }
 
-function setupBottomSheet({ sheet, handle, snaps, defaultSnap, onClose }) {
+function setupBottomSheet({ sheet, handle, snaps, defaultSnap, onClose, dismissable = true }) {
   if (!sheet || !handle) return;
 
   const orderedSnapNames = Object.keys(snaps).sort((a, b) => snaps[a] - snaps[b]); // top → bottom
   const FLING_THRESHOLD = 0.5; // px/ms
+  // Non-dismissable sheets (e.g. routing results) can't be swiped away — a
+  // down-drag bottoms out at the lowest snap instead of closing; only the X
+  // (its own onclick) closes them.
+  const bottomSnap = orderedSnapNames[orderedSnapNames.length - 1];
+  const dismiss = () => (dismissable ? close() : setSheetSnap(sheet, bottomSnap, snaps));
 
   let dragStartY = 0;
   let dragStartPct = snaps[defaultSnap];
@@ -1745,7 +1755,7 @@ function setupBottomSheet({ sheet, handle, snaps, defaultSnap, onClose }) {
     // from the bottom-most snap (or if the user dragged it most of the way off).
     if (Math.abs(velocity) > FLING_THRESHOLD) {
       if (velocity > 0) {
-        if (currentIdx === lastIdx || currentPct > 75) return close();
+        if (currentIdx === lastIdx || currentPct > 75) return dismiss();
         setSheetSnap(sheet, orderedSnapNames[Math.min(lastIdx, currentIdx + 1)], snaps);
       } else {
         setSheetSnap(sheet, orderedSnapNames[Math.max(0, currentIdx - 1)], snaps);
@@ -1754,7 +1764,7 @@ function setupBottomSheet({ sheet, handle, snaps, defaultSnap, onClose }) {
     }
 
     // Slow release: close if dragged near the bottom, otherwise snap to nearest.
-    if (currentPct > 90) return close();
+    if (currentPct > 90) return dismiss();
     let nearest = orderedSnapNames[0];
     let bestDist = Infinity;
     for (const name of orderedSnapNames) {
@@ -1825,6 +1835,8 @@ function setupRoutingSheet() {
     snaps: ROUTING_SHEET_SNAPS,
     defaultSnap: "half",
     onClose: navigateHome,
+    // Only the X closes the route pane; dragging down bottoms out at "peek".
+    dismissable: false,
   });
 }
 
@@ -1934,6 +1946,12 @@ function renderPoints() {
 
 function navigateHome() {
   clearSpotUrl();
+  // A spot opened from a route (clicking a route marker) shows the spot pane over
+  // the route. Closing that pane should return to the route view — keep the drawn
+  // route and reopen the options pane — instead of exiting the planner entirely.
+  // (The route pane's own X calls RoutingUI.close() directly, so this only fires
+  // for the spot pane while routing is active.)
+  if (window.RoutingUI && window.RoutingUI.active) { window.RoutingUI.showAgain(); return; }
   navigate(); // clears rest
 }
 
@@ -2350,6 +2368,9 @@ async function navigate() {
     }
     // No exact marker match — pan to the coordinates
     map.setView([lat, lon], zoom || 14);
+  } else if (mainArgs[0] == "dir") {
+    // Shareable route link (#dir/from/to) — routing.js (openFromUrl) opens the
+    // planner and computes; don't clear() it out from under it.
   } else {
     clear();
   }
