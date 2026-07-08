@@ -2074,7 +2074,10 @@ body.showing-insights .heatmap-legend-pane {
 #inr-outbox-chip {
   position: fixed;
   left: 10px;
-  bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 10px);
+  /* Sit ABOVE the full-width dock (left:10/right:10) so an active journey's dock never
+     covers it — the outbox can hold a queued ride from a previous leg while a new leg's
+     dock is showing. Clears the dock (~54px) + status chip. */
+  bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 130px);
   z-index: 2002;
   display: flex;
   align-items: center;

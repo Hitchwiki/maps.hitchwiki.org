@@ -935,7 +935,7 @@
       document.getElementById("inr-pin-confirm").addEventListener("click", function () {
         const ll = marker.getLatLng();
         cleanup();
-        // Normalize Leaflet's .lng → .lon so submitRide receives the correct longitude.
+        // Normalize Leaflet's .lng → .lon so buildFinishBody receives the correct longitude.
         cb({ lat: ll.lat, lon: ll.lng });
       });
 
@@ -1279,7 +1279,7 @@
     // Reuses the draggable-pin pattern from manualPin with a "Use my location" shortcut.
     //
     // Coordinate contract:
-    //   - defaultLatLng IN: {lat, lon}  (drop-off from finish, matches submitRide shape)
+    //   - defaultLatLng IN: {lat, lon}  (drop-off from finish, matches buildFinishBody shape)
     //   - GPS fix (getFixWithRetry): {lat, lon} — moved onto the marker via setLatLng
     //   - onConfirm OUT: marker.getLatLng() → Leaflet LatLng (has .lat / .lng)
     //     nextRide reads latlng.lng, so we must pass a Leaflet LatLng — NOT {lat, lon}.
