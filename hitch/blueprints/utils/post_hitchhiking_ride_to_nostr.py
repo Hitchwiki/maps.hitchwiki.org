@@ -33,8 +33,12 @@ def build_ride_d_tag(source: str, tags: list | None, client_d_tag: str | None) -
     (ride events are kind 36820, parameterized replaceable). The `source` prefix stays
     server-authoritative — the client only supplies the bare id. Otherwise mint a uuid.
     """
+    # An edit passes the original tags, but tolerate an empty/malformed list (no `d`
+    # entry) by falling through instead of raising StopIteration and breaking the post.
     if tags is not None:
-        return next(tag[1] for tag in tags if tag[0] == "d")
+        existing_d = next((tag[1] for tag in tags if tag[0] == "d"), None)
+        if existing_d is not None:
+            return existing_d
     if client_d_tag:
         return f"{source}-{client_d_tag}"
     return f"{source}-{uuid.uuid4()}"

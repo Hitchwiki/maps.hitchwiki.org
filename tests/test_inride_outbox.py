@@ -38,6 +38,15 @@ def test_build_ride_d_tag_mints_uuid_when_nothing_supplied():
     assert d.startswith("hitchmap-") and len(d) > len("hitchmap-")
 
 
+def test_build_ride_d_tag_falls_back_when_tags_lack_d_tag():
+    # An empty or malformed tags list (no ["d", ...] entry) must not raise
+    # StopIteration — fall through to client_d_tag / uuid instead.
+    assert build_ride_d_tag("hitchmap", [], "abc-123") == "hitchmap-abc-123"
+    assert build_ride_d_tag("hitchmap", [["published_at", "123"]], "abc-123") == "hitchmap-abc-123"
+    minted = build_ride_d_tag("hitchmap", [], None)
+    assert minted.startswith("hitchmap-") and len(minted) > len("hitchmap-")
+
+
 # ── Endpoint wiring + idempotency ─────────────────────────────────────────────
 class _CapturingPoster:
     """Stub poster that records the d_tag it was called with and echoes the real
