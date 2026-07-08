@@ -925,7 +925,7 @@
       ui.className = "location-selection-ui";
       ui.innerHTML = [
         "<h4>Drop a pin for your destination</h4>",
-        "<p>Long-press or tap the map, or drag the pin, then confirm.</p>",
+        "<p>Tap & drag the pin, then confirm.</p>",
         '<div class="lsel-actions">',
         '<button class="lsel-confirm" id="inr-pin-confirm">Confirm Destination</button>',
         '<button class="lsel-cancel" id="inr-pin-cancel">Cancel</button>',
