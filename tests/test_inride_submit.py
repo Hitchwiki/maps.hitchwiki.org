@@ -4,7 +4,7 @@ import hitch.blueprints.main as main
 class _FakePoster:
     """Stub for HitchhikingDataStandardToNostrPoster — no network calls."""
 
-    def post(self, ride_record, tags=None):
+    def post(self, ride_record, tags=None, d_tag=None):
         return "dtag123"
 
     def close(self):

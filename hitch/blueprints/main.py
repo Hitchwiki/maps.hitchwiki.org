@@ -677,7 +677,10 @@ def ride_form():
             record = create_record_from_custom_object(custom_object=data, source=THIS_NOSTR_SOURCE, license=THIS_DATA_LICENSE)
 
             poster = HitchhikingDataStandardToNostrPoster()
-            d_tag = poster.post(ride_record=record)
+            # Offline outbox retries carry a stable client-supplied d_tag so a resend
+            # replaces the same event instead of creating a duplicate ride.
+            client_d_tag = (data.get("client_d_tag") or "").strip() or None
+            d_tag = poster.post(ride_record=record, d_tag=client_d_tag)
             poster.close()
 
         ### Co-hitchhikers
@@ -717,8 +720,17 @@ def ride_form():
         return redirect("/#success")
 
     except (AssertionError, ValueError, KeyError) as err:
+        # Bad input — permanent. 400 with no `transient` flag; the offline outbox flags it
+        # for manual retry/discard rather than looping on it forever.
         if wants_json:
             return jsonify({"ok": False, "error": str(err)}), 400
+        raise
+    except Exception as err:
+        # Anything else during publish (relay unreachable, timeout, signing hiccup) is
+        # transient — tell the JSON client to keep the item queued and retry later, so a
+        # dead relay never looks like a validation error (which would wrongly flag it).
+        if wants_json:
+            return jsonify({"ok": False, "error": str(err), "transient": True}), 503
         raise
 
 
