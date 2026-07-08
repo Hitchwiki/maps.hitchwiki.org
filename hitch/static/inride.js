@@ -1601,8 +1601,29 @@
     journeyUI.render(j); // waiting | paused | in-ride
   }
 
+  // Periodic flush while items are pending. Self-clearing so an empty outbox costs no
+  // timer. Idempotent — safe to call repeatedly (won't stack intervals). This REASSIGNS
+  // the stub declared near the capture flows (which needed to call it before this point).
+  let outboxTimer = null;
+  startOutboxTimer = function () {
+    if (outboxTimer) return;
+    outboxTimer = setInterval(function () {
+      if (!outboxStore.pending().length) { clearInterval(outboxTimer); outboxTimer = null; return; }
+      flushOutbox();
+    }, 30000);
+  };
+
+  // Reconnect → drain immediately (don't wait for the interval).
+  window.addEventListener("online", function () { flushOutbox(); });
+
+  // On load: restore the chip and, if a previous session left queued rides, flush + tick.
+  function initOutbox() {
+    outboxUI.refresh();
+    if (outboxStore.pending().length) { flushOutbox(); startOutboxTimer(); }
+  }
+
   // Run only after Leaflet's window.map is ready — _renderInRide places a Leaflet marker
   // and needs the map instance to exist first. Poll at 100 ms; interval clears itself.
-  if (window.map) initInride();
-  else { const t = setInterval(function () { if (window.map) { clearInterval(t); initInride(); } }, 100); }
+  if (window.map) { initInride(); initOutbox(); }
+  else { const t = setInterval(function () { if (window.map) { clearInterval(t); initInride(); initOutbox(); } }, 100); }
 })();
