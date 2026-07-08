@@ -26,6 +26,9 @@ var allMarkers = [],
   // Map-mode switcher: "spots" (default), "heatmap", or "countries".
   mapMode = "spots",
   countryLayer = null,
+  // Hitchwiki Category:Event markers (dist/events.json), drawn on their own layer.
+  eventLayer = null,
+  eventsData = null,
   mapModeButtons = {};
 
 // Current-location button state. The marker/circle are created lazily on the
@@ -281,6 +284,9 @@ function populateHeatmapLegend(legendData) {
 
   // Load markers asynchronously
   await loadMarkers(map);
+
+  // Hitchwiki event markers — non-blocking, they're a small overlay.
+  loadEventMarkers(map);
 
   setupEventListeners();
 
@@ -662,8 +668,10 @@ function renderCountryWikitext(raw) {
   t = stripWikiImages(t); // [[File:...]] / [[Image:...]] embeds
   t = t.replace(/^\s*[*#:;].*$/gm, ""); // list/indent lines (keep it prose-only)
 
-  // Escape any remaining raw HTML before we inject our own safe markup.
-  t = escapeHtml(t);
+  // Escape HTML-significant chars before we inject our own safe markup, but keep
+  // apostrophes intact: escapeHtml() turns ' into &#39;, which would stop the
+  // '''bold''' / ''italic'' passes below from ever matching their quote markers.
+  t = t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
   // Internal links: [[target|label]] and [[target]]
   t = t.replace(/\[\[([^\[\]|]+)\|([^\[\]]+)\]\]/g, (m, target, label) =>
@@ -876,6 +884,125 @@ function setSpotsVisible(visible) {
   }
 }
 
+// --- Hitchwiki events ---------------------------------------------------------
+// Load dist/events.json (upcoming/ongoing Category:Event markers) and draw each as
+// a distinct calendar-pin marker on its own layer, so events stand out from spots
+// and can be shown/hidden independently of the spot markers.
+async function loadEventMarkers(map) {
+  try {
+    const resp = await fetch("/events.json");
+    if (!resp.ok) return; // no events file yet (e.g. sync hasn't run) — silently skip
+    eventsData = await resp.json();
+  } catch (error) {
+    console.warn("Could not load events:", error);
+    return;
+  }
+  if (!Array.isArray(eventsData) || eventsData.length === 0) return;
+
+  eventLayer = L.layerGroup();
+  eventsData.forEach((ev) => {
+    if (typeof ev.lat !== "number" || typeof ev.lon !== "number") return;
+    const icon = L.divIcon({
+      className: "event-marker",
+      html: '<div class="event-marker-pin">🎪</div>',
+      iconSize: [30, 30],
+      iconAnchor: [15, 15],
+    });
+    const marker = L.marker([ev.lat, ev.lon], { icon, title: ev.name });
+    marker.on("click", (e) => {
+      L.DomEvent.stopPropagation(e);
+      openEventSheet(ev);
+    });
+    marker.addTo(eventLayer);
+  });
+
+  // Events follow the spot markers: visible in spots/heatmap modes, hidden in Countries.
+  if (mapMode !== "countries") eventLayer.addTo(map);
+  console.log(`Loaded ${eventsData.length} event(s)`);
+}
+
+function setEventsVisible(visible) {
+  if (!eventLayer) return;
+  if (visible) {
+    if (!map.hasLayer(eventLayer)) eventLayer.addTo(map);
+  } else if (map.hasLayer(eventLayer)) {
+    map.removeLayer(eventLayer);
+  }
+}
+
+// Format an event's date range for the sheet, e.g. "1 Jul – 30 Aug 2026".
+function formatEventDates(ev) {
+  const opts = { day: "numeric", month: "short", year: "numeric" };
+  const end = ev.end ? new Date(ev.end) : null;
+  const start = ev.start ? new Date(ev.start) : null;
+  const fmt = (d) => (d && !isNaN(d) ? d.toLocaleDateString(undefined, opts) : null);
+  const s = fmt(start);
+  const e = fmt(end);
+  if (s && e) return `${s} – ${e}`;
+  return e || s || "";
+}
+
+function openEventSheet(ev) {
+  clear();
+  $$("#event-sheet-name").textContent = ev.name || "Event";
+  $$("#event-sheet-dates").textContent = formatEventDates(ev);
+  const wikiUrl = ev.url || COUNTRY_WIKI_BASE + encodeURIComponent((ev.title || ev.name || "").replace(/ /g, "_"));
+  $$("#event-sheet-source").innerHTML = ev.title
+    ? `Text from <a href="${escapeHtml(wikiUrl)}" target="_blank" rel="noopener">Hitchwiki: ${escapeHtml(ev.title)}</a>, ` +
+      `licensed <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA</a>.`
+    : "";
+  $$("#event-sheet-description").innerHTML = `<p class="sheet-status">Loading from Hitchwiki…</p>`;
+  bar(".sidebar.event");
+  updateBottomPaneVar();
+  setSheetSnap($$(".sidebar.event"), "full", EVENT_SHEET_SNAPS);
+  map.panTo([ev.lat, ev.lon]);
+  loadEventSheetText(ev);
+}
+
+// Resolve the page-name magic words MediaWiki would normally expand server-side
+// ({{FULLPAGENAME}}, {{PAGENAME}}, {{BASEPAGENAME}}, {{SUBPAGENAME}}). We render raw
+// wikitext client-side, so these stay literal and — worse — get dropped by the
+// template stripper, leaving gaps like a stray '''''' bold. Substitute them with the
+// actual page title before rendering. The trailing "E" variants are URL-encoded forms.
+function substituteWikiPageName(wikitext, title) {
+  const base = title.includes("/") ? title.slice(0, title.lastIndexOf("/")) : title;
+  const sub = title.includes("/") ? title.slice(title.lastIndexOf("/") + 1) : title;
+  return wikitext
+    .replace(/\{\{\s*(?:FULLPAGENAME|PAGENAME)E?\s*\}\}/gi, title)
+    .replace(/\{\{\s*BASEPAGENAMEE?\s*\}\}/gi, base)
+    .replace(/\{\{\s*SUBPAGENAMEE?\s*\}\}/gi, sub);
+}
+
+// Fetch the event's full Hitchwiki page and render it with the same MediaWiki
+// reader used for country pages (renderCountryWikitext), so the sheet shows the
+// complete page text with working links instead of a truncated server excerpt.
+// Falls back to the server-extracted blurb in events.json if the live fetch fails.
+async function loadEventSheetText(ev) {
+  const body = $$("#event-sheet-description");
+  try {
+    // No section param → the whole page's wikitext.
+    const data = await fetch(countryWikiApi(ev.title, "&prop=wikitext")).then((r) => r.json());
+    let wikitext = data && data.parse && data.parse.wikitext && data.parse.wikitext["*"];
+    if (wikitext) {
+      wikitext = substituteWikiPageName(wikitext, ev.title || ev.name || "");
+      // Category tags aren't prose; renderCountryWikitext would otherwise turn
+      // [[Category:Events]] into a stray link at the end of the article.
+      wikitext = wikitext.replace(/\[\[Category:[^\]]*\]\]/gi, "");
+      const html = renderCountryWikitext(wikitext);
+      if (html) {
+        body.innerHTML = html;
+        return;
+      }
+    }
+  } catch (e) {
+    console.warn("Could not load event page from Hitchwiki:", e);
+  }
+  const desc = (ev.description || "").trim();
+  body.innerHTML = desc
+    ? desc.split(/\n\n+/).map((p) => `<p>${escapeHtml(p).replace(/\n/g, "<br>")}</p>`).join("")
+    : `<p class="sheet-status">No description available.</p>`;
+}
+
 // Single source of truth for which map mode is active.
 async function setMapMode(mode) {
   mapMode = mode;
@@ -884,11 +1011,13 @@ async function setMapMode(mode) {
   if (mode === "countries") {
     await setHeatmapActive(false);
     setSpotsVisible(false);
+    setEventsVisible(false);
     const layer = await loadCountryLayer();
     if (!map.hasLayer(layer)) layer.addTo(map);
   } else {
     if (countryLayer && map.hasLayer(countryLayer)) map.removeLayer(countryLayer);
     setSpotsVisible(true);
+    setEventsVisible(true);
     await setHeatmapActive(mode === "heatmap");
   }
 
@@ -1026,6 +1155,7 @@ function setupEventListeners() {
   setupMenuSheet();
   setupRoutingSheet();
   setupCountrySheet();
+  setupEventSheet();
   const reportDup = $$(".report-dup");
   if (reportDup) reportDup.onclick = () =>
     document.body.classList.add("reporting-duplicate");
@@ -1467,6 +1597,7 @@ const SPOT_SHEET_SNAPS = { peek: 80, half: 60, full: 10 };
 const MENU_SHEET_SNAPS = { half: 55, full: 0 };
 const ROUTING_SHEET_SNAPS = { half: 55, full: 0 };
 const COUNTRY_SHEET_SNAPS = { half: 55, full: 0 };
+const EVENT_SHEET_SNAPS = { half: 55, full: 0 };
 
 function setSheetSnap(sheet, name, snaps) {
   if (!sheet) return;
@@ -1658,6 +1789,18 @@ function setupCountrySheet() {
   // Re-fit the histograms when the viewport width changes while the sheet is open.
   window.addEventListener("resize", () => {
     if ($$(".sidebar.country").classList.contains("visible")) redrawCountryInsightsCharts();
+  });
+}
+
+function setupEventSheet() {
+  const closeBtn = $$("#event-close");
+  if (closeBtn) closeBtn.onclick = navigateHome;
+  setupBottomSheet({
+    sheet: $$(".sidebar.event"),
+    handle: $$("#event-sheet-handle"),
+    snaps: EVENT_SHEET_SNAPS,
+    defaultSnap: "full",
+    onClose: navigateHome,
   });
 }
 

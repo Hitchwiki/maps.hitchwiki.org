@@ -671,6 +671,78 @@ body.inride-active .leaflet-bottom.leaflet-right .leaflet-control-zoom {
   text-decoration: underline;
 }
 
+/* Hitchwiki event markers and their bottom sheet. */
+.event-marker {
+  background: transparent;
+  border: none;
+}
+.event-marker-pin {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+  background: #fff;
+  border: 2px solid #d9534f;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+.sidebar.event .event-header {
+  margin-bottom: 1rem;
+}
+.sidebar.event .event-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #222;
+}
+.sidebar.event .event-dates {
+  margin-top: 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #d9534f;
+}
+.sidebar.event .event-description {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #222;
+}
+.sidebar.event .event-description p {
+  margin: 0 0 1rem;
+}
+.sidebar.event .event-description h4 {
+  margin: 1.2rem 0 0.4rem;
+  font-size: 1.05rem;
+  color: #222;
+}
+.sidebar.event .event-description a {
+  color: #1a73e8;
+  text-decoration: none;
+}
+.sidebar.event .event-description a:hover {
+  text-decoration: underline;
+}
+.sidebar.event .sheet-status {
+  color: #666;
+  font-style: italic;
+}
+.sidebar.event .event-source {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+  font-size: 0.85rem;
+  color: #666;
+}
+.sidebar.event .event-source a {
+  color: #1a73e8;
+  text-decoration: none;
+}
+.sidebar.event .event-source a:hover {
+  text-decoration: underline;
+}
+
 /* Button colours are scoped with the .locate-control parent (specificity 0,2,0)
    to beat Leaflet's `.leaflet-bar a` colour WITHOUT !important. This matters
    because !important author rules outrank CSS animations, so an !important

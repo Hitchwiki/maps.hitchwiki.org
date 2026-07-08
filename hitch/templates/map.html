@@ -454,6 +454,25 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
         <div class="country-source" id="country-sheet-source"></div>
     </div>
 </div>
+<!-- Event info sheet: a Hitchwiki Category:Event marker tapped on the map.
+     Populated client-side by openEventSheet() in map.js from dist/events.json. -->
+<div class="sidebar event bottom-sheet">
+    <div class="sheet-handle" id="event-sheet-handle" aria-hidden="true"></div>
+    <a href="javascript:void(0);" class="sheet-close" id="event-close" title="Close" aria-label="Close">
+        <svg width="14" height="14" version="1.1" xmlns="http://www.w3.org/2000/svg">
+            <line x1="1" y1="13" x2="13" y2="1" stroke="black" stroke-width="2" />
+            <line x1="1" y1="1" x2="13" y2="13" stroke="black" stroke-width="2" />
+        </svg>
+    </a>
+    <div class="sheet-body">
+        <div class="event-header">
+            <h1 id="event-sheet-name"></h1>
+            <div class="event-dates" id="event-sheet-dates"></div>
+        </div>
+        <div class="event-description" id="event-sheet-description"></div>
+        <div class="event-source" id="event-sheet-source"></div>
+    </div>
+</div>
 <a href="javascript:void(0);" id="sb-close">
     <svg width="14" height="14" version="1.1" xmlns="http://www.w3.org/2000/svg">
         <line x1="1" y1="13" x2="13" y2="1" stroke="black" stroke-width="2" />
@@ -482,10 +501,6 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
         <i class="fa-solid fa-calendar-days"></i>
         <span>Activities</span>
     </a>
-    <button class="action-btn" id="heatmap-toggle-btn" title="Toggle heatmap">
-        <i class="fa fa-fire"></i>
-        <span id="heatmap-toggle-text">Heatmap</span>
-    </button>
     <a class="action-btn" href="#insights" id="action-insights" title="Insights">
         <i class="fa-solid fa-chart-column"></i>
         <span>Insights</span>
