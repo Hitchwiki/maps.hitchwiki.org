@@ -254,17 +254,33 @@
     journeyUI.render(j);
   };
 
-  // Gave up waiting: hand off to the normal add-spot form, prefilled with the
-  // pause-aware wait time and the waiting location; the user adds a comment + rating.
+  // Gave up waiting. Capture a rating + comment inline (no redirect — the /ride form
+  // won't load offline), then enqueue a destination-less ride (backend stores NaN dest).
+  // The wait is pause-aware and frozen at give-up time.
   journeyFlow.giveUp = function () {
     const j = journeyStore.get(); if (!j) return;
     const waitMin = Math.round(journeyStore.currentWaitMs(j, Date.now()) / 60000);
-    sessionStorage.setItem("rideFormData", JSON.stringify({
-      pickup_lat: j.pickup.lat, pickup_lon: j.pickup.lon, wait: waitMin,
-    }));
-    journeyStore.clear();
-    journeyUI.teardown();
-    window.location.href = "/ride";
+    journeyUI.giveUpSheet(function (details) {
+      const id = uuid();
+      outboxStore.add({
+        id: id, kind: "giveup", createdAt: Date.now(), attempts: 0, lastError: null, status: "pending",
+        body: {
+          rate: String(details.rating || ""),
+          wait: String(waitMin),
+          comment: details.comment || "",
+          signal: "", vehicle_kind: "",
+          pickup_lat: j.pickup.lat, pickup_lon: j.pickup.lon,
+          destination_lat: "", destination_lon: "",
+          client_d_tag: id,
+        },
+      });
+      journeyStore.clear();
+      journeyUI.teardown();
+      if (window.inride.outboxUI) window.inride.outboxUI.refresh();
+      startOutboxTimer();
+      if (navigator.onLine === false) journeyUI.toast("Saved — will upload when you're back online.");
+      flushOutbox();
+    });
   };
 
   // Boarded: departure time = now, wait is frozen (pause-aware), ride details are
@@ -1107,6 +1123,94 @@
       }
 
       // Scrim tap (outside the sheet) dismisses without saving.
+      scrim.addEventListener("click", close);
+
+      document.body.appendChild(scrim);
+      document.body.appendChild(sheet);
+      journeyUI._openDialog = { close };
+      return { close };
+    },
+
+    // Slim give-up sheet: rating (required) + optional comment only — no vehicle/signal
+    // chips (no ride happened). Replaces the old /ride redirect so a give-up can be captured
+    // and queued offline. onSave({ rating, comment }) fires when the user taps Save.
+    giveUpSheet(onSave) {
+      if (journeyUI._openDialog) journeyUI._openDialog.close();
+
+      const scrim = document.createElement("div");
+      scrim.className = "inride-scrim";
+
+      const sheet = document.createElement("div");
+      sheet.className = "inr-sheet";
+
+      const grab = document.createElement("div");
+      grab.className = "inr-sheet__grab";
+      sheet.appendChild(grab);
+
+      const titleEl = document.createElement("h4");
+      titleEl.textContent = "How was the spot?";
+      sheet.appendChild(titleEl);
+
+      const subEl = document.createElement("p");
+      subEl.className = "inr-sheet__sub";
+      subEl.textContent = "You waited here without a ride — rate the spot so others know.";
+      sheet.appendChild(subEl);
+
+      // ── 5-star rating (required — Save stays disabled until a star is tapped) ──
+      let rating = 0;
+      const starsEl = document.createElement("div");
+      starsEl.className = "inr-stars";
+      const starEls = [];
+      for (let i = 1; i <= 5; i++) {
+        const star = document.createElement("span");
+        star.className = "inr-star";
+        star.setAttribute("data-value", String(i));
+        star.textContent = "★";
+        star.addEventListener("click", (function (val) {
+          return function () { rating = val; updateStars(); updateSaveBtn(); };
+        }(i)));
+        starsEl.appendChild(star);
+        starEls.push(star);
+      }
+      function updateStars() {
+        starEls.forEach(function (s, idx) { s.classList.toggle("inr-star--on", idx < rating); });
+      }
+      sheet.appendChild(starsEl);
+
+      // ── Optional comment ──────────────────────────────────────────────────────
+      const commentField = document.createElement("div");
+      commentField.className = "inr-field";
+      const commentLabel = document.createElement("label");
+      commentLabel.textContent = "Comment (optional)";
+      commentField.appendChild(commentLabel);
+      const textarea = document.createElement("textarea");
+      textarea.className = "inr-sheet__textarea";
+      textarea.placeholder = "e.g. no traffic, bad pull-in spot…";
+      commentField.appendChild(textarea);
+      sheet.appendChild(commentField);
+
+      // ── Save CTA (disabled until a rating is chosen) ──────────────────────────
+      const saveBtn = document.createElement("button");
+      saveBtn.type = "button";
+      saveBtn.className = "inr-big inr-big--green inr-sheet__save inr-disabled";
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> Save';
+      function updateSaveBtn() {
+        saveBtn.disabled = rating === 0;
+        saveBtn.classList.toggle("inr-disabled", rating === 0);
+      }
+      saveBtn.addEventListener("click", function () {
+        if (!rating) return;
+        close();
+        onSave({ rating: rating, comment: textarea.value.trim() });
+      });
+      sheet.appendChild(saveBtn);
+
+      function close() {
+        if (scrim.parentNode) scrim.parentNode.removeChild(scrim);
+        if (sheet.parentNode) sheet.parentNode.removeChild(sheet);
+        journeyUI._openDialog = null;
+      }
       scrim.addEventListener("click", close);
 
       document.body.appendChild(scrim);
