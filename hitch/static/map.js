@@ -1043,7 +1043,7 @@ function updateMapModeButtons() {
 // Vertical Spots/Heatmap/Countries switcher, sitting just above the locate button.
 function setupMapModeControl() {
   const modes = [
-    { mode: "spots", icon: "fa-solid fa-location-dot", title: "Spots" },
+    { mode: "spots", icon: "fa-solid fa-thumbs-up", title: "Spots" },
     { mode: "heatmap", icon: "fa fa-fire", title: "Waiting-time heatmap" },
     { mode: "countries", icon: "fa-solid fa-earth-europe", title: "Country hitchability" },
   ];
@@ -2951,8 +2951,8 @@ function setupLocationSelection(selectionType, initialCoords, opts = {}) {
     locationSelectionMarker = L.marker(markerLatLng, {
         draggable: true,
         icon: L.icon({
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconUrl: '/static/markers/marker-icon-2x-red.png',
+            shadowUrl: '/static/markers/marker-shadow.png',
             iconSize: [25, 41],
             iconAnchor: [12, 41],
             popupAnchor: [1, -34],
