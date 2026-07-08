@@ -254,6 +254,16 @@
     journeyUI.render(j);
   };
 
+  // Cancel the whole journey WITHOUT logging anything — for a journey started by mistake.
+  // Distinct from Give Up (which records a rated spot experience); this just discards, so
+  // it confirms first to avoid throwing away a real wait accidentally.
+  journeyFlow.cancel = function () {
+    if (!journeyStore.get()) return;
+    if (!window.confirm("Cancel this journey? Your wait won't be saved.")) return;
+    journeyStore.clear();
+    journeyUI.teardown();
+  };
+
   // Gave up waiting. Capture a rating + comment inline (no redirect — the /ride form
   // won't load offline), then enqueue a destination-less ride (backend stores NaN dest).
   // The wait is pause-aware and frozen at give-up time.
@@ -399,10 +409,10 @@
       journeyUI.teardown();
       if (!j) return;
 
-      // Keep the stock map controls in their default layout during a journey.
-      // (The cover-flow takeover was removed per UX feedback — the docked bar and
-      // chip below ride above the bottom nav, so the stock controls don't need to
-      // be hidden or replaced.)
+      // Mark the body so CSS lifts the whole bottom-right control stack (locate, mode
+      // switcher, zoom) above the dock + chip — the stock controls keep their normal
+      // layout (no cover-flow takeover), just shifted up so +/- clear the buttons.
+      document.body.classList.add("inride-active");
 
       switch (j.state) {
         case "waiting":
@@ -673,19 +683,21 @@
         label.textContent = "Waiting · " + fmtHMS(journeyStore.currentWaitMs(cur, Date.now()));
       }, 1000);
 
-      // ── Docked action bar ──────────────────────────────────────────────────
+      // ── Docked action bar (button row + a small grey Cancel beneath) ─────────
       const dock = document.createElement("div");
-      dock.className = "inr-dock";
+      dock.className = "inr-dock inr-dock--stack";
 
-      // Give Up (red) — implemented in Task 7; wired defensively.
+      const row = document.createElement("div");
+      row.className = "inr-dock-row";
+
+      // Give Up (red) — logs a rated spot experience for the wait.
       const giveUpBtn = document.createElement("button");
       giveUpBtn.className = "inr-big inr-big--red";
       giveUpBtn.innerHTML = '<i class="fa-solid fa-flag"></i> Give Up';
       giveUpBtn.addEventListener("click", function () {
-        // journeyFlow.giveUp is implemented in Task 7; tapping is a no-op until it lands.
         journeyFlow.giveUp && journeyFlow.giveUp();
       });
-      dock.appendChild(giveUpBtn);
+      row.appendChild(giveUpBtn);
 
       // Got a Ride! (green) — opens the ride-details sheet; sheet's Ride On! calls gotRide.
       const gotRideBtn = document.createElement("button");
@@ -697,7 +709,9 @@
           journeyFlow.gotRide(details);
         });
       });
-      dock.appendChild(gotRideBtn);
+      row.appendChild(gotRideBtn);
+      dock.appendChild(row);
+      dock.appendChild(journeyUI._cancelButton());
 
       document.body.appendChild(dock);
       journeyUI._dockEl = dock;
@@ -705,6 +719,17 @@
       // Show grey pickup pin so the user sees their waiting spot on the map.
       // Also drawn in paused and in-ride so the boarding spot is always visible.
       journeyUI._addPickupPin(j);
+    },
+
+    // Small grey "Cancel" CTA that sits beneath the waiting/paused dock — discards the
+    // journey (confirmed) for a mistaken start, without logging anything.
+    _cancelButton() {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "inr-cancel";
+      btn.textContent = "Cancel";
+      btn.addEventListener("click", function () { journeyFlow.cancel(); });
+      return btn;
     },
 
     // Build the paused dock bar + frozen chip (mirrors waiting but timer is frozen
@@ -737,25 +762,30 @@
       document.body.appendChild(chip);
       journeyUI._chipEl = chip;
 
-      // ── Docked action bar ────────────────────────────────────────────────────
+      // ── Docked action bar (button row + a small grey Cancel beneath) ─────────
       const dock = document.createElement("div");
-      dock.className = "inr-dock";
+      dock.className = "inr-dock inr-dock--stack";
 
-      // Give Up (red) — active even while paused; implemented in Task 7.
+      const row = document.createElement("div");
+      row.className = "inr-dock-row";
+
+      // Give Up (red) — active even while paused.
       const giveUpBtn = document.createElement("button");
       giveUpBtn.className = "inr-big inr-big--red";
       giveUpBtn.innerHTML = '<i class="fa-solid fa-flag"></i> Give Up';
       giveUpBtn.addEventListener("click", function () {
         journeyFlow.giveUp && journeyFlow.giveUp();
       });
-      dock.appendChild(giveUpBtn);
+      row.appendChild(giveUpBtn);
 
       // Got a Ride! — disabled while paused so accidental taps can't cut the wait short.
       const gotRideBtn = document.createElement("button");
       gotRideBtn.className = "inr-big inr-big--green inr-disabled";
       gotRideBtn.disabled = true;
       gotRideBtn.innerHTML = '<i class="fa-solid fa-thumbs-up"></i> Got a Ride!';
-      dock.appendChild(gotRideBtn);
+      row.appendChild(gotRideBtn);
+      dock.appendChild(row);
+      dock.appendChild(journeyUI._cancelButton());
 
       document.body.appendChild(dock);
       journeyUI._dockEl = dock;

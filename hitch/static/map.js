@@ -290,6 +290,18 @@ function populateHeatmapLegend(legendData) {
 
   setupEventListeners();
 
+  // Dismiss the "Log in to track your rides" badge once the user taps the screen, and
+  // remember it so it doesn't nag on later visits. (Badge only exists when logged out.)
+  (function () {
+    var badge = document.querySelector(".login-prompt-badge");
+    if (!badge) return;
+    if (localStorage.getItem("loginBadgeDismissed")) { badge.style.display = "none"; return; }
+    document.addEventListener("pointerdown", function () {
+      badge.style.display = "none";
+      try { localStorage.setItem("loginBadgeDismissed", "1"); } catch (e) {}
+    }, { once: true });
+  })();
+
   // Nudge first-time users toward the view switcher; short delay so the pointer
   // doesn't fight the initial map load/animation.
   setTimeout(showNextModeHint, 1500);

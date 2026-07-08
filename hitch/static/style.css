@@ -544,25 +544,16 @@ body.adding-spot .leaflet-control-attribution {
   margin-right: 10px !important;
 }
 
-/* ── In-ride journey: hide stock controls, push zoom up, show cover-flow ─────
-   body.inride-active is toggled by journeyUI.render / .teardown (inride.js).
-   Stock mode-switcher and locate controls are replaced by the cover-flow stack
-   while a journey is active; hiding them via display:none keeps z-index clean. */
-body.inride-active .mapmode-control,
-body.inride-active .locate-control {
-  display: none;
-}
+/* ── In-ride journey chrome ──────────────────────────────────────────────────
+   body.inride-active is toggled by journeyUI.render / .teardown (inride.js). The
+   docked bar (Give Up / Got a Ride / Finish Ride) + status chip ride ABOVE the main
+   bottom nav (offset by --bottom-pane-h, set by updateBottomPaneVar in map.js).
 
-/* The docked journey bar (Give Up / Got a Ride / Finish Ride) rides ABOVE the main
-   bottom nav rather than replacing it. All journey chrome is offset up by the nav's
-   measured height (--bottom-pane-h, set by updateBottomPaneVar in map.js) so the
-   nav stays usable and nothing overlaps. See .inr-dock / .inr-chip / .inr-cf* and
-   the zoom margin below. */
-
-/* Push the zoom control up so it clears the docked bar (≈84 px) + status chip
-   (≈36 px) + gap, leaving room for the cover-flow stack above it. */
-body.inride-active .leaflet-bottom.leaflet-right .leaflet-control-zoom {
-  margin-bottom: calc(130px + var(--bottom-pane-h, 0px)) !important;
+   While a journey is active, lift the WHOLE bottom-right control stack (locate, mode
+   switcher, zoom) above the dock + chip so the +/- stay visible and tappable over the
+   Give Up / Got a Ride buttons on a phone. */
+body.inride-active .leaflet-bottom.leaflet-right {
+  margin-bottom: calc(150px + var(--bottom-pane-h, 0px));
 }
 
 .mapmode-btn {
@@ -2051,6 +2042,29 @@ body.showing-insights .heatmap-legend-pane {
   z-index: 2002;
 }
 
+/* Waiting/paused dock: button row on top, a small grey Cancel beneath it. */
+.inr-dock--stack {
+  flex-direction: column;
+}
+.inr-dock-row {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+.inr-cancel {
+  align-self: center;
+  border: none;
+  background: transparent;
+  color: #8a9096;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.inr-cancel:hover { background: rgba(0, 0, 0, .06); color: #555; }
+
 /* Big action buttons — bold, rounded, coloured per action */
 .inr-big {
   flex: 1;
@@ -2195,6 +2209,13 @@ body.showing-insights .heatmap-legend-pane {
   align-items: center;
   gap: 7px;
   white-space: nowrap;
+}
+
+/* Waiting/paused docks are taller (button row + Cancel beneath), so lift their chip
+   higher to clear it. In-ride keeps the base 78px offset (single Finish button). */
+.inr-chip--wait,
+.inr-chip--paused {
+  bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 112px);
 }
 
 /* Coloured dot on the left of the chip */
