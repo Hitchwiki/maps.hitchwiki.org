@@ -239,12 +239,21 @@ async function setHeatmapActive(active) {
 // Position the heatmap legend pane below the filter pane
 function positionLegendPane() {
   var legendPane = document.getElementById('heatmap-legend-pane');
-  var filterPane = document.getElementById('filter-pane');
   if (!legendPane || legendPane.style.display === 'none') return;
-  if (filterPane) {
-    var rect = filterPane.getBoundingClientRect();
-    legendPane.style.top = (rect.bottom + 8) + 'px';
-  }
+  // Filters moved out of a persistent top panel into an icon-launched modal, so anchor
+  // the heatmap legend at a fixed top just below the search bar instead of relative to it.
+  legendPane.style.top = '104px';
+}
+
+// Filters modal (opened by the search-bar filter icon). Remove `collapsed` so the body
+// shows, then flag the body so the modal + scrim become visible (see style.css).
+function openFiltersModal() {
+  var pane = document.getElementById('filter-pane');
+  if (pane) pane.classList.remove('collapsed');
+  document.body.classList.add('filters-open');
+}
+function closeFiltersModal() {
+  document.body.classList.remove('filters-open');
 }
 
 // Populate the heatmap legend pane with data
@@ -306,17 +315,15 @@ function populateHeatmapLegend(legendData) {
   // doesn't fight the initial map load/animation.
   setTimeout(showNextModeHint, 1500);
 
-  // Set up filter pane collapse toggle
+  // Filters are now an icon-launched modal (opened from the search bar). The header
+  // button — and a tap on the scrim — close it.
   var filterCollapseBtn = document.getElementById('filter-collapse-btn');
   var filterPaneEl = document.getElementById('filter-pane');
   if (filterCollapseBtn && filterPaneEl) {
-    // Also allow clicking the header text to toggle
-    filterCollapseBtn.closest('.filter-pane-header').addEventListener('click', function() {
-      filterPaneEl.classList.toggle('collapsed');
-      // Reposition legend after collapse animation
-      setTimeout(positionLegendPane, 250);
-    });
+    filterCollapseBtn.closest('.filter-pane-header').addEventListener('click', closeFiltersModal);
   }
+  var filtersScrim = document.getElementById('filters-scrim');
+  if (filtersScrim) filtersScrim.addEventListener('click', closeFiltersModal);
 
   // Set up heatmap legend collapse toggle
   var legendCollapseBtn = document.getElementById('legend-collapse-btn');
@@ -393,6 +400,20 @@ function setupGeocoder() {
   routeBtn.innerHTML = '<i class="fa-solid fa-route"></i>';
   // Keep clicks on the button from reaching the map (pan/zoom on the control).
   L.DomEvent.disableClickPropagation(routeBtn);
+
+  // Filter button, just left of the route button — opens the filters as a modal
+  // (replaces the old persistent top filter panel). Keeps filters out of the way
+  // until wanted, and one tap from the search bar.
+  const filterBtn = L.DomUtil.create("a", "geocoder-filter-btn", geocoderController.getContainer());
+  filterBtn.href = "#";
+  filterBtn.title = "Filters";
+  filterBtn.setAttribute("aria-label", "Filters");
+  filterBtn.innerHTML = '<i class="fa-solid fa-sliders"></i>';
+  L.DomEvent.disableClickPropagation(filterBtn);
+  L.DomEvent.on(filterBtn, "click", function (ev) {
+    L.DomEvent.preventDefault(ev);
+    openFiltersModal();
+  });
 
 
   geocoderController.on("markgeocode", function (e) {

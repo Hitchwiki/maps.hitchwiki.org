@@ -83,8 +83,8 @@ html {
 .leaflet-control-container .leaflet-control-geocoder-form input {
   height: 44px !important;
   font-size: 16px !important;
-  /* Left padding clears the magnifier icon, right padding the route button */
-  padding: 0 52px 0 44px !important;
+  /* Left padding clears the magnifier icon; right padding clears the filter + route buttons */
+  padding: 0 88px 0 44px !important;
   border-radius: 24px !important;
   border: none !important;
   width: 100% !important;
@@ -117,6 +117,31 @@ html {
 }
 
 .geocoder-route-btn:hover {
+  background: rgba(26, 115, 232, 0.1);
+}
+
+/* Filter button — sits just left of the route button at the right end of the search bar.
+   Same !important overrides as the route button (Leaflet's .leaflet-bar a would otherwise
+   pull it back into flow on mobile and add a second row). */
+.geocoder-filter-btn {
+  position: absolute !important;
+  top: 22px !important;
+  right: 44px !important;
+  transform: translateY(-50%) !important;
+  width: 36px !important;
+  height: 36px !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50% !important;
+  color: #1a73e8 !important;
+  font-size: 17px;
+  text-decoration: none;
+  float: none !important;
+  border-bottom: none !important;
+  z-index: 3;
+}
+.geocoder-filter-btn:hover {
   background: rgba(26, 115, 232, 0.1);
 }
 
@@ -224,20 +249,56 @@ html {
 }
 
 /* Filter pane below search bar */
+/* Filters modal — hidden until the search-bar filter icon opens it (body.filters-open),
+   then shown centered over a scrim. Replaces the old persistent top filter panel. */
 .filter-pane {
   position: fixed;
-  top: 100px;
-  left: 16px;
-  right: 68px;
-  max-width: 600px;
-  z-index: 999;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(600px, calc(100vw - 32px));
+  max-height: 80vh;
+  overflow-y: auto;
+  z-index: 2050;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-  padding: 8px 14px;
-  display: block;
+  border-radius: 14px;
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.28);
+  padding: 12px 16px;
+  display: none;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 13px;
+}
+body.filters-open .filter-pane {
+  display: block;
+}
+
+.filters-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 2049;
+  display: none;
+}
+body.filters-open .filters-scrim {
+  display: block;
+}
+
+/* The Insights view reparents the filter pane into its panel to reuse it as an inline
+   filter control — there it must render in-flow, not as the hidden centered modal. */
+#insights-filter-slot .filter-pane {
+  display: block;
+  position: static;
+  transform: none;
+  width: auto;
+  max-width: none;
+  max-height: none;
+  overflow: visible;
+  box-shadow: none;
+  z-index: auto;
+  padding: 0;
+}
+#insights-filter-slot .filter-collapse-btn {
+  display: none;
 }
 
 .filter-pane-header {

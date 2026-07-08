@@ -249,13 +249,14 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
     </p>
     </div>
 </div>
-<!-- Filter pane below search bar -->
+<!-- Filters modal (opened by the search-bar filter icon; scrim dismisses it) -->
+<div class="filters-scrim" id="filters-scrim"></div>
 <div class="filter-pane collapsed" id="filter-pane">
     <div class="filter-pane-header">
         <span>Filters</span>
         <i id="filter-loading-spinner" class="fa-solid fa-circle-notch fa-spin" style="display: none; margin-left: 8px;" aria-label="Loading"></i>
-        <button id="filter-collapse-btn" class="filter-collapse-btn" title="Toggle filters">
-            <i class="fa-solid fa-chevron-up"></i>
+        <button id="filter-collapse-btn" class="filter-collapse-btn" title="Close filters" aria-label="Close filters">
+            <i class="fa-solid fa-xmark"></i>
         </button>
     </div>
     <div class="filter-pane-body" id="filter-pane-body">
