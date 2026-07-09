@@ -2825,6 +2825,10 @@ function placeOrMoveSelectionMarker(latlng) {
             shadowSize: [41, 41]
         })
     }).addTo(map);
+    // A pin now exists (tap / long-press / GPS) — enable the confirm button, which
+    // starts disabled on the pinless destination leg.
+    const confirmBtn = document.querySelector('.location-selection-ui .lsel-confirm');
+    if (confirmBtn) confirmBtn.disabled = false;
 }
 
 function setupLocationSelection(selectionType, initialCoords, opts = {}) {
@@ -2887,7 +2891,7 @@ function setupLocationSelection(selectionType, initialCoords, opts = {}) {
         <h4>${heading}</h4>
         <p>${instruction}</p>
         <div class="lsel-actions">
-            <button class="lsel-confirm" onclick="confirmLocationSelection()">${confirmLabel}</button>
+            <button class="lsel-confirm"${locationSelectionMarker ? "" : " disabled"} onclick="confirmLocationSelection()">${confirmLabel}</button>
             <button class="lsel-cancel" onclick="cancelLocationSelection()">Cancel</button>
         </div>
     `;
@@ -3020,6 +3024,10 @@ function setupAddSpotGesture() {
 // or null. Markers hidden inside a cluster are skipped so we only ever snap to a
 // pin the user can actually see.
 function findNearbySpotMarker(containerPoint, thresholdPx = 22) {
+    // Only snap to spots that are actually shown. Countries mode removes the cluster
+    // from the map (but leaves markerCluster non-null), so guard on layer visibility —
+    // otherwise a tap could snap to an invisible spot.
+    if (!markerCluster || !map.hasLayer(markerCluster)) return null;
     let best = null, bestDist = thresholdPx;
     for (const marker of allMarkers) {
         if (markerCluster && markerCluster.getVisibleParent(marker) !== marker) continue;
