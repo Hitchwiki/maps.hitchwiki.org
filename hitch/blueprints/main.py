@@ -1,3 +1,4 @@
+import json
 import math
 import os
 import re
@@ -12,9 +13,11 @@ from flask import (
     redirect,
     render_template,
     request,
+    url_for,
 )
 from flask_security import current_user
 from sqlalchemy import text
+from werkzeug.utils import safe_join
 
 from hitch.blueprints.publish_ride import ALLOWED_VEHICLE_KINDS, create_record_from_custom_object
 from hitch.blueprints.utils.driver_info_choices import (
@@ -37,7 +40,7 @@ from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDat
 from hitch.blueprints.utils.report_ride import REPORT_REASONS
 from hitch.blueprints.utils.ride_ip_log import get_client_ip, log_ride_ip
 from hitch.extensions import db
-from hitch.helpers import get_db
+from hitch.helpers import get_db, get_dirs
 from hitch.models import CoHitchhiker, Follow, RideEvent, RideReport, User
 
 main_bp = Blueprint("main", __name__)
@@ -91,6 +94,80 @@ def render_map(map_variation):
     return render_template(
         "map.html",
         map_variation=map_variation,
+        hide_add_spot_button=current_app.config.get("HIDE_ADD_SPOT_BUTTON", False),
+        hide_account_button=current_app.config.get("HIDE_ACCOUNT_BUTTON", False),
+        is_logged_in=not current_user.is_anonymous,
+        unread_notifications=unread_count(current_user),
+    )
+
+
+# Spot ids are generate_spot_id()'s "<lat>_<lon>" with 5 decimals (see show.py).
+SPOT_ID_RE = re.compile(r"^-?\d+\.\d{1,7}_-?\d+\.\d{1,7}$")
+
+
+def _spot_preview(spot_id):
+    """Link-preview facts for a spot, or None if we have nothing to say about it.
+
+    Read from dist/rides/by-spot/<spot_id>.json — the same per-spot file the map
+    lazy-loads on marker click — rather than spots.json, which is multi-MB and
+    would be a silly thing to parse on every crawler hit. The file is absent for
+    coordinates with no (informative) rides; the map still pans there, so this is
+    a missing preview, not a 404.
+    """
+    path = safe_join(get_dirs()["dist"], "rides", "by-spot", f"{spot_id}.json")
+    if not path or not os.path.isfile(path):
+        return None
+    try:
+        with open(path) as f:
+            payload = json.load(f)
+    except (OSError, ValueError):
+        return None
+
+    rides = payload.get("rides") or []
+    ratings = [r["rating"] for r in rides if r.get("rating")]
+    if not ratings:
+        return None
+    spot = payload.get("spot") or {}
+    return {
+        "rating": sum(ratings) / len(ratings),
+        "count": len(rides),
+        "wait": spot.get("wait"),
+        "distance": spot.get("distance"),
+    }
+
+
+def _spot_description(preview):
+    """One sentence a messenger/crawler can show under the link."""
+    plural = "ride" if preview["count"] == 1 else "rides"
+    parts = [f"Rated {preview['rating']:.1f}/5 from {preview['count']} {plural}."]
+    if preview["wait"]:
+        parts.append(f"Typical wait {round(preview['wait'])} min.")
+    if preview["distance"]:
+        parts.append(f"Rides average {round(preview['distance'])} km.")
+    parts.append("See the spot on the hitchhiking map.")
+    return " ".join(parts)
+
+
+# OSM-style permalink for a single spot, mirroring /node/<id>#map=z/lat/lon.
+# The spot id lives in the path rather than a #fragment or ?query because
+# messengers strip fragments when auto-linking a pasted URL, and because a path
+# is the stable, indexable address for the spot. map.js reads it back off
+# location.pathname and opens the spot pane; the #map= hash only carries the
+# (disposable) viewport. The route renders the same map template as "/" — it
+# exists so the URL survives a round trip, and so a pasted link can carry
+# per-spot OpenGraph tags instead of the generic homepage ones.
+@main_bp.route("/spot/<spot_id>")
+def render_spot(spot_id):
+    if not SPOT_ID_RE.match(spot_id):
+        abort(404)
+    lat, lon = (float(v) for v in spot_id.split("_"))
+    preview = _spot_preview(spot_id)
+    return render_template(
+        "map.html",
+        map_variation=None,
+        spot_title=f"Hitchhiking spot at {lat:.5f}, {lon:.5f}",
+        spot_description=_spot_description(preview) if preview else None,
+        spot_url=url_for("main.render_spot", spot_id=spot_id, _external=True),
         hide_add_spot_button=current_app.config.get("HIDE_ADD_SPOT_BUTTON", False),
         hide_account_button=current_app.config.get("HIDE_ACCOUNT_BUTTON", False),
         is_logged_in=not current_user.is_anonymous,

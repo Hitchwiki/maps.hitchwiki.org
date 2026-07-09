@@ -356,6 +356,11 @@ function populateHeatmapLegend(legendData) {
 
   // These functions make the navigation work
   handleHashChange();
+  // Keep #map=z/lat/lon in step with the map so the address bar is always a
+  // link to what the user is looking at. Registered after handleHashChange so
+  // the initial view is read from the URL before we start writing to it.
+  map.on("moveend", updateMapHash);
+  updateMapHash();
   window.onhashchange = navigate;
   // Spot selection now lives in ?lat=&lon= query params (changed via
   // pushState), so back/forward fires popstate rather than hashchange — listen
@@ -1339,7 +1344,18 @@ function setupFilterEventListeners() {
 
 // Handle changes in the URL hash; used for initialization of the map
 function handleHashChange() {
-  if (!window.location.hash.includes(",")) {
+  // Initial viewport, most specific statement of intent first: an explicit
+  // #map= from a shared link, else the spot the path names, else the view this
+  // browser last left the map at, else the world.
+  const hashView = parseMapHash(window.location.hash);
+  const spot = spotFromUrl();
+  if (hashView) {
+    map.setView([hashView.lat, hashView.lon], hashView.zoom);
+  } else if (spot) {
+    // A bare /spot/<id> link should frame the spot, not whatever view
+    // localStorage happens to remember from this browser's last visit.
+    map.setView([spot.lat, spot.lon], 16);
+  } else if (!window.location.hash.includes(",")) {
     if (!restoreView.apply(map)) {
       map.fitBounds([
         [-35, -40],
@@ -1375,7 +1391,10 @@ function handleHashChange() {
     if (filterPaneEl) filterPaneEl.remove();
   }
 
-  if (map.getZoom() > 17 && window.location.hash != "#success-duplicate")
+  // Clamp an over-zoomed restored view, but never a zoom the URL asked for
+  // explicitly — silently rewriting a shared #map=18/… link to 17 would mean
+  // the recipient doesn't see what the sender saw.
+  if (!hashView && map.getZoom() > 17 && window.location.hash != "#success-duplicate")
     map.setZoom(17);
 }
 
@@ -1606,10 +1625,12 @@ function markerClick(marker) {
   highlightStars(stars, 0);
 
   // Share button
-  // Put the coordinates in query params, not the #fragment: many messengers
-  // strip the fragment when auto-linking a pasted URL, so a `/#lat,lon` link
-  // arrives without coordinates. `?lat=&lon=` survives and navigate() reads it.
-  const spotUrl = `${location.origin}/?lat=${data.lat}&lon=${data.lon}`;
+  // The spot id goes in the path, not the #fragment: many messengers strip the
+  // fragment when auto-linking a pasted URL, so a `/#lat,lon` link arrived
+  // without coordinates. The #map= viewport is appended for recipients whose
+  // client keeps it, and is safely ignorable when it's stripped.
+  const spotPath = `/spot/${data.lat.toFixed(5)}_${data.lon.toFixed(5)}`;
+  const spotUrl = `${location.origin}${spotPath}#map=17/${data.lat.toFixed(5)}/${data.lon.toFixed(5)}`;
   const shareText = `Hitchhiking spot at ${data.lat.toFixed(4)}, ${data.lon.toFixed(4)}`;
   const shareBtn = $$("#share-spot-btn");
   const shareMenu = $$("#share-spot-menu");
@@ -2096,35 +2117,138 @@ function clearParams() {
   navigate();
 }
 
-// Reflect the selected spot in the address bar as ?lat=&lon= rather than the
-// #lat,lon fragment: the fragment gets stripped by some messengers when the URL
-// is pasted, so a copied address-bar link arrived without coordinates. Other
-// query params (filters) are preserved. Idempotent — navigate() re-runs on
-// every filter change while a spot is open, so we must not push a duplicate
-// history entry when the URL already points at this spot.
-function setSpotUrl(lat, lon) {
-  const url = new URL(window.location.href);
-  const latStr = String(lat);
-  const lonStr = String(lon);
-  if (!url.hash && url.searchParams.get("lat") === latStr && url.searchParams.get("lon") === lonStr) {
-    return;
-  }
-  url.hash = "";
-  url.searchParams.set("lat", latStr);
-  url.searchParams.set("lon", lonStr);
-  window.history.pushState({}, "", url);
+// ---------------------------------------------------------------------------
+// URL scheme (mirrors OpenStreetMap's /node/<id>#map=<zoom>/<lat>/<lon>)
+//
+//   /spot/<lat>_<lon>   which spot is selected — identity, in the path
+//   #map=<zoom>/<lat>/<lon>   where the camera is — viewport, in the fragment
+//
+// Identity lives in the path because messengers strip the #fragment when
+// auto-linking a pasted URL; the viewport is the part that's harmless to lose.
+// Legacy ?lat=&lon= query params and #lat,lon hashes are still accepted as
+// input so old shared links keep resolving to the same spot.
+// ---------------------------------------------------------------------------
+
+const MAP_HASH_RE = /^#?map=(\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)$/;
+const SPOT_PATH_RE = /^\/spot\/(-?\d+\.\d+)_(-?\d+\.\d+)\/?$/;
+
+// The path the map was served under (/, /light, /hitchhiking.html …). Closing a
+// spot must return here, not unconditionally to "/", or the map variations and
+// their template tweaks would be lost on the way back.
+const BASE_PATH = SPOT_PATH_RE.test(window.location.pathname)
+  ? "/"
+  : window.location.pathname;
+
+// Decimals such that one digit of the coordinate is worth about one screen
+// pixel at this zoom — OSM's zoomPrecision. Keeps shared links short at world
+// zoom without throwing away precision when zoomed into a spot.
+function zoomPrecision(zoom) {
+  return Math.max(0, Math.ceil(Math.log(zoom) / Math.LN2));
 }
 
-// Drop the selected-spot URL state (hash + ?lat=&lon=) without navigating.
-// Filters and other query params are kept.
-function clearSpotUrl() {
+function formatMapHash(center, zoom) {
+  const p = zoomPrecision(zoom);
+  return `#map=${zoom}/${center.lat.toFixed(p)}/${center.lng.toFixed(p)}`;
+}
+
+function parseMapHash(hash) {
+  const m = MAP_HASH_RE.exec(hash || "");
+  return m ? { zoom: +m[1], lat: +m[2], lon: +m[3] } : null;
+}
+
+// The spot the current URL names, from the canonical path or a legacy link.
+function spotFromUrl() {
+  const m = SPOT_PATH_RE.exec(window.location.pathname);
+  if (m) return { lat: +m[1], lon: +m[2] };
+  const lat = getQueryParameter("lat"),
+    lon = getQueryParameter("lon");
+  if (lat != null && lon != null && !isNaN(lat) && !isNaN(lon))
+    return { lat: +lat, lon: +lon };
+  return null;
+}
+
+// Keep the address bar pointing at wherever the map currently is, so the URL is
+// always ready to copy. replaceState, not pushState: a pan is not a navigation,
+// and pushing would bury the back button under every mouse drag.
+function updateMapHash() {
+  if (!map._loaded) return;
   const url = new URL(window.location.href);
-  if (!url.hash && !url.searchParams.has("lat") && !url.searchParams.has("lon")) {
-    return;
-  }
-  url.hash = "";
+  // Only own the hash while it describes a viewport (or is empty). #menu,
+  // #routing, #country/… are navigation state that a pan must not clobber.
+  if (url.hash && !parseMapHash(url.hash)) return;
+  const next = formatMapHash(map.getCenter(), map.getZoom());
+  if (url.hash === next) return;
+  url.hash = next;
+  window.history.replaceState(window.history.state, "", url);
+}
+
+// Move the map to the viewport named by #map=. No-op when the hash already
+// describes where the map is — navigate() re-runs on every filter change, and
+// re-issuing setView there would fight the user's pan. Returns whether the hash
+// was a viewport hash at all (vs. #menu, #routing, …).
+function applyMapHash() {
+  const v = parseMapHash(window.location.hash);
+  if (!v) return false;
+  const c = map.getCenter(),
+    p = zoomPrecision(v.zoom);
+  const settled =
+    map.getZoom() === v.zoom &&
+    +c.lat.toFixed(p) === v.lat &&
+    +c.lng.toFixed(p) === v.lon;
+  if (!settled) map.setView([v.lat, v.lon], v.zoom);
+  return true;
+}
+
+// Reflect the selected spot in the address bar as /spot/<lat>_<lon>. The id
+// matches generate_spot_id() in show.py (5 decimals) and so also the
+// rides/by-spot/<id>.json filename. Idempotent — navigate() re-runs on every
+// filter change while a spot is open, so we must not push a duplicate history
+// entry when the URL already points at this spot. Filters and the viewport hash
+// are preserved; legacy ?lat=&lon= is dropped so only the canonical form spreads.
+// Does the URL already name this spot, in any form it may arrive in — canonical
+// path, legacy ?lat=&lon=, legacy #lat,lon? Rewriting such a URL to the
+// canonical path is a canonicalisation, not a navigation, so it must replace
+// rather than push: otherwise the back button lands on the pre-rewrite URL,
+// which resolves to this same spot and reopens it.
+function urlNamesSpot(lat, lon) {
+  const id = `${lat.toFixed(5)}_${lon.toFixed(5)}`;
+  const sameAs = (p) => `${p.lat.toFixed(5)}_${p.lon.toFixed(5)}` === id;
+  const fromPathOrQuery = spotFromUrl();
+  if (fromPathOrQuery) return sameAs(fromPathOrQuery);
+  const h = window.location.hash.slice(1).split("/")[0].split(",");
+  if (h.length < 2 || isNaN(h[0]) || isNaN(h[1])) return false;
+  return sameAs({ lat: +h[0], lon: +h[1] });
+}
+
+function setSpotUrl(lat, lon) {
+  const url = new URL(window.location.href);
+  const path = `/spot/${lat.toFixed(5)}_${lon.toFixed(5)}`;
+  const samePath = url.pathname === path;
+  const canonicalising = urlNamesSpot(lat, lon);
+  const legacyParams = url.searchParams.has("lat") || url.searchParams.has("lon");
+  // Keep a #map= viewport, drop any other hash (#lat,lon, #dir/…): it described
+  // the navigation that opened this spot and must not outlive it — a stale hash
+  // would also stop updateMapHash() from ever tracking the map again.
+  const staleHash = !!url.hash && !parseMapHash(url.hash);
+  if (samePath && !legacyParams && !staleHash) return;
+  url.pathname = path;
   url.searchParams.delete("lat");
   url.searchParams.delete("lon");
+  if (staleHash) url.hash = "";
+  window.history[canonicalising ? "replaceState" : "pushState"]({}, "", url);
+}
+
+// Drop the selected-spot URL state without navigating. Filters, the viewport
+// hash, and the map variation we were served under are all kept.
+function clearSpotUrl() {
+  const url = new URL(window.location.href);
+  if (!SPOT_PATH_RE.test(url.pathname) && !url.searchParams.has("lat") && !url.searchParams.has("lon")) {
+    return;
+  }
+  url.pathname = BASE_PATH;
+  url.searchParams.delete("lat");
+  url.searchParams.delete("lon");
+  if (url.hash && !parseMapHash(url.hash)) url.hash = "";
   window.history.pushState({}, "", url);
 }
 
@@ -2279,20 +2403,20 @@ async function applyParams() {
 async function navigate() {
   await applyParams();
 
-  let args = window.location.hash.slice(1).split("/");
+  // #map=z/lat/lon is viewport state, not navigation state: apply it, then let
+  // the rest of navigate() pick the pane from the path/query as if there were
+  // no hash at all.
+  const isMapHash = applyMapHash();
+
+  let args = isMapHash ? [""] : window.location.hash.slice(1).split("/");
   let mainArgs = args[0].split(",");
 
-  // Shareable spot links carry coordinates as ?lat=&lon= (the #fragment gets
-  // stripped by some messengers). When the hash has no coordinates of its own,
-  // fall back to these params so the link opens the spot like #lat,lon would.
-  const latParam = getQueryParameter("lat");
-  const lonParam = getQueryParameter("lon");
-  if (
-    !mainArgs[0] &&
-    latParam != null && lonParam != null &&
-    !isNaN(latParam) && !isNaN(lonParam)
-  ) {
-    mainArgs = [latParam, lonParam];
+  // The selected spot is named by the path (/spot/<lat>_<lon>), or by legacy
+  // ?lat=&lon= params on older shared links. Either way it wins over the hash,
+  // which now only describes where the camera is.
+  const spot = !mainArgs[0] || isMapHash ? spotFromUrl() : null;
+  if (spot) {
+    mainArgs = [spot.lat, spot.lon];
   }
 
   // #insights swaps the map for the insights view. Filter pane stays visible
