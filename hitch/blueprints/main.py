@@ -286,7 +286,11 @@ def ride_detail(d_tag):
                 age = max(0, datetime.now().year - int(yob))
             except (TypeError, ValueError):
                 age = None
+        would_ride_again = driver_obj.get("would_ride_again")
         driver = {
+            # Tristate: True / False / None (unanswered). Templates must test `is not none`,
+            # since an explicit "no" is falsy but still an answer worth showing.
+            "would_ride_again": would_ride_again if isinstance(would_ride_again, bool) else None,
             "reasons": [REASON_DESCRIPTION_BY_CODE.get(r, r) for r in reasons_raw],
             "origin_country_code": country_code,
             "origin_country_name": COUNTRY_NAME_BY_CODE.get(country_code) if country_code else None,
@@ -295,7 +299,16 @@ def ride_detail(d_tag):
             "languages": [LANGUAGE_NAME_BY_CODE.get(c, c) for c in languages_raw],
         }
         # Only attach the driver section if at least one field has a value.
-        if not any([driver["reasons"], driver["origin_country_name"], driver["age"], driver["gender"], driver["languages"]]):
+        if not any(
+            [
+                driver["would_ride_again"] is not None,
+                driver["reasons"],
+                driver["origin_country_name"],
+                driver["age"],
+                driver["gender"],
+                driver["languages"],
+            ]
+        ):
             driver = None
 
     mot = content.get("mode_of_transportation") or {}
@@ -406,6 +419,9 @@ def ride_form():
                     "d_tag": edit_d_tag,  # Store d_tag for POST handler
                     "rating": ride.rating,
                     "comment": ride.comment,
+                    # Keep the checkbox ticked when re-editing a no-ride record, otherwise
+                    # saving the form again would silently drop the no_ride marker.
+                    "no_ride": content.get("no_ride") is not None,
                     "pickup_lat": "",
                     "pickup_lon": "",
                     "destination_lat": "",
@@ -420,6 +436,7 @@ def ride_form():
                     "vehicle_model": "",
                     "vehicle_license_plate_country": "",
                     "vehicle_license_plate_identifier": "",
+                    "driver_would_ride_again": "",
                     "driver_reason_to_pick_up": [],
                     "driver_origin_country": "",
                     "driver_age": "",
@@ -436,6 +453,9 @@ def ride_form():
                     if isinstance(reasons, str):
                         reasons = [reasons]
                     ride_data["driver_reason_to_pick_up"] = [r for r in reasons if r in ALLOWED_REASONS_TO_PICK_UP]
+                    # Tristate -> the hidden input's 'yes' / 'no' / '' vocabulary.
+                    wra = driver.get("would_ride_again")
+                    ride_data["driver_would_ride_again"] = "" if wra is None else ("yes" if wra else "no")
                     ride_data["driver_origin_country"] = (driver.get("origin_country") or "").upper()
                     yob = driver.get("year_of_birth")
                     if yob:
@@ -539,6 +559,9 @@ def ride_form():
         data["driver_reason_to_pick_up"] = [
             r.strip() for r in (data.get("driver_reason_to_pick_up") or "").split(",") if r.strip()
         ]
+        # "I did not get a ride here" checkbox — an unchecked box submits no key at all.
+        # The in-ride Give Up flow posts no_ride=1 for the same meaning.
+        data["no_ride"] = str(data.get("no_ride", "")).strip() not in ("", "0", "false")
         rating = int(data["rate"])
         data["wait"] = int(data["wait"]) if data["wait"] != "" else None
         wait = data["wait"]
@@ -560,6 +583,12 @@ def ride_form():
         for r in driver_reasons:
             assert r in ALLOWED_REASONS_TO_PICK_UP, f"Invalid reason_to_pick_up: {r}"
         data["driver_reason_to_pick_up"] = driver_reasons
+
+        # would_ride_again: the smiley pair is tristate — 'yes' / 'no' / '' (unanswered).
+        # Keep unanswered as None so it stays distinct from an explicit "no".
+        wra_raw = (data.get("driver_would_ride_again") or "").strip()
+        assert wra_raw in ("", "yes", "no"), f"Invalid would_ride_again: {wra_raw}"
+        data["driver_would_ride_again"] = {"yes": True, "no": False}.get(wra_raw)
 
         # Gender: empty or one of the enum values.
         driver_gender = (data.get("driver_gender") or "").strip()
