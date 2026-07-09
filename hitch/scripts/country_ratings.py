@@ -40,7 +40,7 @@ import reverse_geocoder as rg
 # Resolve the DB path the same way hitch/settings.py does: db/{DATABASE_NAME}.
 # Defaults to the production DB name so a manual run on the server just works.
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-DATABASE_NAME = os.getenv("DATABASE_NAME", "prod-points.sqlite")
+DATABASE_NAME = os.getenv("DATABASE_NAME", "hitchhiking-prod.sqlite")
 DATABASE_URI = os.getenv("DATABASE_URI", os.path.join(BASE_DIR, "db", DATABASE_NAME))
 
 DIST_DIR = os.path.join(BASE_DIR, "dist")

@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Environment Setup
 - **Virtual Environment**: `python3 -m venv .venv && source .venv/bin/activate`
 - **Install Dependencies**: `pip install -r requirements.txt`
-- **Fix DB permissions**: The downloaded database is often owned by root. Run `sudo chown $USER:$USER db/prod-points.sqlite` (and/or `db/points.sqlite`) to make it writable, otherwise Flask will crash with `sqlite3.OperationalError: attempt to write a readonly database` on any write operation (e.g. user registration).
+- **Fix DB permissions**: The downloaded database is often owned by root. Run `sudo chown $USER:$USER db/hitchhiking-prod.sqlite` (and/or `db/hitchhiking.sqlite`) to make it writable, otherwise Flask will crash with `sqlite3.OperationalError: attempt to write a readonly database` on any write operation (e.g. user registration).
 - **Configuration**: `cp example.env .env` (then set missing env variables)
 
 ### Flask Commands
@@ -106,7 +106,7 @@ There is no migration framework (no Alembic). When a new column is added to a mo
 ```bash
 sudo docker exec hitchhiking-map python3 -c "
 import sqlite3
-conn = sqlite3.connect('/app/db/prod-points.sqlite')
+conn = sqlite3.connect('/app/db/hitchhiking-prod.sqlite')
 conn.execute('ALTER TABLE <table_name> ADD COLUMN <col_name> <type>')
 conn.commit(); conn.close()
 "
@@ -183,9 +183,9 @@ The application aggregates hitchhiking data from multiple sources:
 
 ### Database Storage (SQLite)
 
-**Primary Database**: `db/points.sqlite` (configured via `DATABASE_URI` in `hitch/settings.py:57-58`)
+**Primary Database**: `db/hitchhiking.sqlite` (configured via `DATABASE_URI` in `hitch/settings.py:57-58`)
 - **Location**: `db/` directory (relative to project root)
-- **Default name**: `points.sqlite` (dev), `prod-points.sqlite` (production via `DATABASE_NAME` env var)
+- **Default name**: `hitchhiking.sqlite` (dev), `hitchhiking-prod.sqlite` (production via `DATABASE_NAME` env var)
 - **Path resolution**: `{project_root}/db/{DATABASE_NAME}`
 
 #### Database Initialization
@@ -199,7 +199,7 @@ The database must exist before the application can run. Two initialization paths
 
 # TODO: not sure if this is true/necessary
 2. **Production Setup**: Download pre-populated database
-   - `curl https://hitchmap.com/dump.sqlite > db/points.sqlite`
+   - `curl https://hitchmap.com/dump.sqlite > db/hitchhiking.sqlite`
    - Contains historical ride data from legacy hitchmap.com
    - Can be synced with upstream via `sync_upstream.py` (daily at 7 AM)
 

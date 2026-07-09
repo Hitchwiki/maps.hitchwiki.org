@@ -69,7 +69,7 @@ def get_dist_dir():
 
 def get_db_path():
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-    db_name = os.environ.get("DATABASE_NAME", "prod-points.sqlite")
+    db_name = os.environ.get("DATABASE_NAME", "hitchhiking-prod.sqlite")
     return os.path.join(root, "db", db_name)
 
 

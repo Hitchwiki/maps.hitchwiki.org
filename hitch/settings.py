@@ -54,7 +54,7 @@ class BaseConfig:
     REMEMBER_COOKIE_HTTPONLY = True
 
     # Database Config
-    DATABASE_NAME = os.getenv("DATABASE_NAME", "points.sqlite")
+    DATABASE_NAME = os.getenv("DATABASE_NAME", "hitchhiking.sqlite")
     DATABASE_URI = os.getenv("DATABASE_URI", os.path.join(baseDir, "db", DATABASE_NAME))
 
     SQLALCHEMY_DATABASE_URI = sql_prefix + DATABASE_URI
