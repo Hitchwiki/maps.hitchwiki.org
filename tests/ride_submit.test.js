@@ -6,6 +6,7 @@ const J = {
   pickup: { lat: 48.2, lon: 16.37 },
   gotRideMs: new Date(2026, 6, 2, 14, 0).getTime(),
   finalWaitMs: 12 * 60000,
+  wouldRideAgain: true,
   details: {
     rating: 4,
     signal: ["thumb"],
@@ -43,6 +44,17 @@ test("buildFinishBody carries every demographic field", () => {
   assert.strictEqual(body.vehicle_model, "Hiace");
   assert.strictEqual(body.vehicle_license_plate_country, "DE");
   assert.strictEqual(body.vehicle_commercial, "false");
+  assert.strictEqual(body.driver_would_ride_again, "yes");
+});
+
+test("would_ride_again serializes yes/no/'' from the journey flag", () => {
+  const base = { pickup: { lat: 1, lon: 2 }, gotRideMs: Date.now(), finalWaitMs: 0, details: { rating: 3 } };
+  const yes = RideSubmit.buildFinishBody({ ...base, wouldRideAgain: true }, { lat: 3, lon: 4 }, Date.now(), "i");
+  const no = RideSubmit.buildFinishBody({ ...base, wouldRideAgain: false }, { lat: 3, lon: 4 }, Date.now(), "i");
+  const unset = RideSubmit.buildFinishBody(base, { lat: 3, lon: 4 }, Date.now(), "i");
+  assert.strictEqual(yes.driver_would_ride_again, "yes");
+  assert.strictEqual(no.driver_would_ride_again, "no");
+  assert.strictEqual(unset.driver_would_ride_again, "");
 });
 
 test("absent demographic fields serialize to empty strings", () => {

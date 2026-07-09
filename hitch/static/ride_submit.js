@@ -34,6 +34,8 @@
       driver_age: (d.driver_age === 0 || d.driver_age) ? String(d.driver_age) : "",
       driver_origin_country: d.driver_origin_country || "",
       driver_languages: csv(d.driver_languages),
+      // Forced Yes/No captured at Finish (j.wouldRideAgain); "" only if somehow unset.
+      driver_would_ride_again: j.wouldRideAgain === true ? "yes" : (j.wouldRideAgain === false ? "no" : ""),
       vehicle_make: d.vehicle_make || "",
       vehicle_model: d.vehicle_model || "",
       vehicle_license_plate_country: d.vehicle_license_plate_country || "",

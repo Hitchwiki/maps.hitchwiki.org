@@ -303,21 +303,28 @@
     // The backend asserts arrival > departure; stamping here rather than at submit
     // prevents same-minute rides yielding arrival == departure → 400 → stuck retry.
     const finishMs = Date.now();
-    // Lock the button immediately — Nostr publish takes ~5 s.
-    journeyUI.setFinishBusy(true);
-    getFixWithRetry().then(
-      function (dest) { completeFinish(j, dest, finishMs); },
-      // GPS denied/unavailable — clear busy state before opening manual-pin UI;
-      // the user is choosing a destination, not saving yet.
-      function () {
-        journeyUI.setFinishBusy(false);
-        journeyUI.manualPin(function (dest) {
-          // Pin confirmed — re-enter busy state for the actual ~5 s Nostr submit.
-          journeyUI.setFinishBusy(true);
-          completeFinish(j, dest, finishMs);
-        });
-      }
-    );
+    // Forced first step: the ride can't be saved without a would-ride-again answer.
+    // Asking before destination capture (not after) keeps it a single deliberate gate;
+    // finishMs is already stamped above, so the prompt delay never inflates arrival time.
+    journeyUI.wouldRideAgainSheet(function (wouldRideAgain) {
+      j.wouldRideAgain = wouldRideAgain;
+      journeyStore.set(j);
+      // Lock the button immediately — Nostr publish takes ~5 s.
+      journeyUI.setFinishBusy(true);
+      getFixWithRetry().then(
+        function (dest) { completeFinish(j, dest, finishMs); },
+        // GPS denied/unavailable — clear busy state before opening manual-pin UI;
+        // the user is choosing a destination, not saving yet.
+        function () {
+          journeyUI.setFinishBusy(false);
+          journeyUI.manualPin(function (dest) {
+            // Pin confirmed — re-enter busy state for the actual ~5 s Nostr submit.
+            journeyUI.setFinishBusy(true);
+            completeFinish(j, dest, finishMs);
+          });
+        }
+      );
+    });
   };
 
   // After a ride is saved, ask whether to start another leg or call it a day.
@@ -1199,7 +1206,23 @@
       return { close };
     },
 
-    dialog({ title, body, actions, onClose, centered }) {
+    // Forced would-ride-again gate on finish: a required Yes/No with no dismissal.
+    // Deliberately NOT part of the completeness score — a per-ride sentiment we always
+    // capture, independent of the demographic points.
+    wouldRideAgainSheet(onAnswer) {
+      journeyUI.dialog({
+        title: "Would you ride with them again?",
+        body: "One quick question before we save this ride.",
+        centered: true,
+        forced: true,
+        actions: [
+          { label: "Yes", cls: "inr-go",   onClick: function () { onAnswer(true); } },
+          { label: "No",  cls: "inr-grey", onClick: function () { onAnswer(false); } },
+        ],
+      });
+    },
+
+    dialog({ title, body, actions, onClose, centered, forced }) {
       // Close any already-open dialog so rapid re-triggers don't stack overlays.
       if (journeyUI._openDialog) journeyUI._openDialog.close();
 
@@ -1245,8 +1268,10 @@
 
       card.appendChild(actionsEl);
 
-      // Tap the scrim (outside the card) to cancel.
-      scrim.addEventListener("click", close);
+      // Tap the scrim (outside the card) to cancel — unless the dialog is `forced`
+      // (a required answer, e.g. would-ride-again on finish), where there is no way out
+      // but the action buttons.
+      if (!forced) scrim.addEventListener("click", close);
 
       document.body.appendChild(scrim);
       document.body.appendChild(card);
