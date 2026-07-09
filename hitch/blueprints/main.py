@@ -419,6 +419,7 @@ def ride_form():
                     "vehicle_model": "",
                     "vehicle_license_plate_country": "",
                     "vehicle_license_plate_identifier": "",
+                    "vehicle_commercial": "",
                     "driver_reason_to_pick_up": [],
                     "driver_origin_country": "",
                     "driver_age": "",
@@ -450,6 +451,9 @@ def ride_form():
                     ride_data["vehicle_model"] = mot.get("model") or ""
                     ride_data["vehicle_license_plate_country"] = mot.get("license_plate_country") or ""
                     ride_data["vehicle_license_plate_identifier"] = mot.get("license_plate_identifier") or ""
+                    # Round-trip the stored tri-state back to the form's string values.
+                    _c = mot.get("commercial")
+                    ride_data["vehicle_commercial"] = "true" if _c is True else ("false" if _c is False else "")
 
                 # Extract coordinates from stops
                 if stops:
@@ -598,6 +602,12 @@ def ride_form():
             val = (data.get(free_field) or "").strip()
             assert len(val) <= 255, f"{free_field} must be <= 255 characters"
             data[free_field] = val
+
+        # commercial toggle: tri-state from the form. "true"/"false" -> bool; anything
+        # else (unanswered) -> None. Never inferred from kind (see design §2).
+        commercial_raw = (data.get("vehicle_commercial") or "").strip().lower()
+        assert commercial_raw in ("", "true", "false"), f"Invalid commercial value: {commercial_raw}"
+        data["vehicle_commercial"] = True if commercial_raw == "true" else (False if commercial_raw == "false" else None)
 
         # Arrival must be strictly after pickup time when both are provided so the
         # Nostr stops timeline is monotonic.
