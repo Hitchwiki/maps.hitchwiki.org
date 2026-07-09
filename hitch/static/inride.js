@@ -1218,7 +1218,7 @@
     // capture, independent of the demographic points.
     wouldRideAgainSheet(onAnswer) {
       journeyUI.dialog({
-        title: "Would you ride with them again?",
+        title: "Would you accept this ride again?",
         body: "One quick question before we save this ride.",
         centered: true,
         forced: true,

@@ -216,16 +216,16 @@
             <div style="background:#fafafa; border:1px solid #eee; padding:12px; border-radius:4px;">
 
                 <div style="margin-bottom:10px;">
-                    <div style="font-weight:600; margin-bottom:4px;">Would you ride with them again?</div>
+                    <div style="font-weight:600; margin-bottom:4px;">Would you accept this ride again?</div>
                     {# Empty value = no answer. Clicking the selected smiley again clears it. #}
                     {% set wra = ride_data.driver_would_ride_again if ride_data and ride_data.driver_would_ride_again is defined else '' %}
                     <input type="hidden" id="driver_would_ride_again" name="driver_would_ride_again" value="{{ wra }}">
-                    <div class="wra-select" role="group" aria-label="Would you ride with them again?">
-                        <button type="button" class="wra-btn wra-btn--yes" data-value="yes" aria-pressed="false" title="Yes, I would ride with them again">
+                    <div class="wra-select" role="group" aria-label="Would you accept this ride again?">
+                        <button type="button" class="wra-btn wra-btn--yes" data-value="yes" aria-pressed="false" title="Yes, I would accept this ride again">
                             <i class="fa-regular fa-face-smile" aria-hidden="true"></i>
                             <span class="sr-only">Yes</span>
                         </button>
-                        <button type="button" class="wra-btn wra-btn--no" data-value="no" aria-pressed="false" title="No, I would not ride with them again">
+                        <button type="button" class="wra-btn wra-btn--no" data-value="no" aria-pressed="false" title="No, I would not accept this ride again">
                             <i class="fa-regular fa-face-frown" aria-hidden="true"></i>
                             <span class="sr-only">No</span>
                         </button>
@@ -922,7 +922,7 @@
         inputId: 'driver-language-input', tagsId: 'driver-language-tags',
         hiddenId: 'driver_languages', datalistId: 'driver-language-list',
     });
-    // "Would you ride with them again?" smiley pair. The hidden input holds 'yes' | 'no' | ''.
+    // "Would you accept this ride again?" smiley pair. The hidden input holds 'yes' | 'no' | ''.
     // Clicking the already-selected smiley clears the answer, so an accidental tap is undoable
     // and "no answer" stays distinct from "no".
     function initWouldRideAgain() {
