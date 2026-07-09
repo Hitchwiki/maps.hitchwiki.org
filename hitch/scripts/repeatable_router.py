@@ -2,19 +2,21 @@
 
 TL;DR
 -----
-Construct a graph of of ride we think are repeatable (that is a route that was taken by at least two rides starting from the same spot
-- if there is one longer and one shorter route only the overlapping route counts, as one could just have taken the longer ride and
-asked to exit earlier, but the rest of the longer route is not considered because there is not enough evidence that it is repeatable).
-For a route we consider all spots that it passes along as possibilities to switch cars such that we can not only recommend to do the exact ride as in our database but
-also account for asking to exit earlier (e.g. on a rest station on a highway). To calculate times of routes we consider walking to 
-and in between spots that are not reachable by a car ride, naive travel times for the car rides and the average waiting time for a ride at a spot.
+Construct a graph of of ride we think are repeatable (that is a route that was taken by at least two rides
+starting from the same spot - if there is one longer and one shorter route only the overlapping route counts,
+as one could just have taken the longer ride and asked to exit earlier, but the rest of the longer route is
+not considered because there is not enough evidence that it is repeatable).
+For a route we consider all spots that it passes along as possibilities to switch cars such that we can not
+only recommend to do the exact ride as in our database but also account for asking to exit earlier (e.g. on a
+rest station on a highway). To calculate times of routes we consider walking to and in between spots that are
+not reachable by a car ride, naive travel times for the car rides and the average waiting time for a ride at a spot.
 
 Every leg costs minutes: walking at WALK_SPEED_KMH, riding at CAR_SPEED_KMH, plus the measured
 average *waiting time* each time you catch a new ride. `routes()` returns up to k
 genuinely different alternatives.
 
-TODO: Weight how certain one can get a suggested ride: we should prefer a route that was taken 10 times reliabily over one that was just
-taken 2 time.
+TODO: Weight how certain one can get a suggested ride: we should prefer a route that was taken 10 times
+reliabily over one that was just taken 2 time.
 
 Assumed parameters
 ------------------
@@ -294,8 +296,11 @@ class RepeatableRouter:
         searches onto different corridors; it never affects reported real times.
         """
         NO_TREE = -1
-        walk_min = lambda km: km / WALK_SPEED_KMH * 60
-        car_min = lambda km: km / CAR_SPEED_KMH * 60
+        def walk_min(km):
+            return km / WALK_SPEED_KMH * 60
+
+        def car_min(km):
+            return km / CAR_SPEED_KMH * 60
 
         origin_spots = self._spots_near(*start)
         dest_spots = {idx: km for idx, km in self._spots_near(*dest)}
