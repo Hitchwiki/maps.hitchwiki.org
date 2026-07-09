@@ -262,15 +262,7 @@
       const id = uuid();
       outboxStore.add({
         id: id, kind: "giveup", createdAt: Date.now(), attempts: 0, lastError: null, status: "pending",
-        body: {
-          rate: String(details.rating || ""),
-          wait: String(waitMin),
-          comment: details.comment || "",
-          signal: "", vehicle_kind: "",
-          pickup_lat: j.pickup.lat, pickup_lon: j.pickup.lon,
-          destination_lat: "", destination_lon: "",
-          client_d_tag: id,
-        },
+        body: window.RideSubmit.buildGiveUpBody(j, waitMin, details, id),
       });
       journeyStore.clear();
       journeyUI.teardown();

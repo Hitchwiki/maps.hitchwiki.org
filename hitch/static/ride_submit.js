@@ -39,6 +39,7 @@
       vehicle_license_plate_country: d.vehicle_license_plate_country || "",
       // Tri-state -> the form's string values; "" means unanswered.
       vehicle_commercial: d.commercial === true ? "true" : (d.commercial === false ? "false" : ""),
+      co_hitchhiker: (j.coHitchhikers || []).join(","),
       pickup_lat: j.pickup.lat, pickup_lon: j.pickup.lon,
       destination_lat: dest.lat, destination_lon: dest.lon,
       datetime_ride: isoLocal(j.gotRideMs),
@@ -47,5 +48,20 @@
     };
   }
 
-  return { isoLocal, buildFinishBody };
+  // Destination-less give-up body (rated wait, no ride). Pure so it is unit-testable;
+  // co-hitchers who waited together are attached here too.
+  function buildGiveUpBody(j, waitMin, details, id) {
+    return {
+      rate: String(details.rating || ""),
+      wait: String(waitMin),
+      comment: details.comment || "",
+      signal: "", vehicle_kind: "",
+      co_hitchhiker: (j.coHitchhikers || []).join(","),
+      pickup_lat: j.pickup.lat, pickup_lon: j.pickup.lon,
+      destination_lat: "", destination_lon: "",
+      client_d_tag: id,
+    };
+  }
+
+  return { isoLocal, buildFinishBody, buildGiveUpBody };
 });

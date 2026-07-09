@@ -54,3 +54,32 @@ test("absent demographic fields serialize to empty strings", () => {
   assert.strictEqual(body.driver_languages, "");
   assert.strictEqual(body.vehicle_commercial, "");
 });
+
+test("buildFinishBody carries co_hitchhiker as CSV", () => {
+  const j = {
+    pickup: { lat: 1, lon: 2 }, gotRideMs: Date.now(), finalWaitMs: 0,
+    coHitchhikers: ["sam", "jo"], details: { rating: 4 },
+  };
+  const body = RideSubmit.buildFinishBody(j, { lat: 3, lon: 4 }, Date.now(), "id1");
+  assert.strictEqual(body.co_hitchhiker, "sam,jo");
+});
+
+test("buildFinishBody co_hitchhiker is empty string when none", () => {
+  const j = { pickup: { lat: 1, lon: 2 }, gotRideMs: Date.now(), finalWaitMs: 0, details: { rating: 4 } };
+  const body = RideSubmit.buildFinishBody(j, { lat: 3, lon: 4 }, Date.now(), "id1");
+  assert.strictEqual(body.co_hitchhiker, "");
+});
+
+test("buildGiveUpBody builds a destination-less body with co_hitchhiker", () => {
+  const j = { pickup: { lat: 5, lon: 6 }, coHitchhikers: ["sam"] };
+  const body = RideSubmit.buildGiveUpBody(j, 12, { rating: 3, comment: "cold" }, "gid");
+  assert.strictEqual(body.rate, "3");
+  assert.strictEqual(body.wait, "12");
+  assert.strictEqual(body.comment, "cold");
+  assert.strictEqual(body.signal, "");
+  assert.strictEqual(body.vehicle_kind, "");
+  assert.strictEqual(body.co_hitchhiker, "sam");
+  assert.strictEqual(body.pickup_lat, 5);
+  assert.strictEqual(body.destination_lat, "");
+  assert.strictEqual(body.client_d_tag, "gid");
+});
