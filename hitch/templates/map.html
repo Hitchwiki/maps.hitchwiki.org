@@ -43,6 +43,8 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
 <script>window.IS_LOGGED_IN = {{ 'true' if is_logged_in else 'false' }};</script>
 <script src="{{ asset_url('/static/map.js') }}"></script>
 <script src="{{ asset_url('/static/routing.js') }}"></script>
+<script src="{{ asset_url('/static/ride_score.js') }}"></script>
+<script src="{{ asset_url('/static/ride_submit.js') }}"></script>
 <script src="{{ asset_url('/static/inride.js') }}"></script>
 <script>
 // Install-to-homescreen hint logic. Self-contained — no dependency on map.js.

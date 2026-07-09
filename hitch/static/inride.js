@@ -89,35 +89,10 @@
     });
   }
 
-  // The /ride datetime fields are `datetime-local` (local wall-clock, no zone), so
-  // build "YYYY-MM-DDTHH:mm" from LOCAL date components — NOT toISOString() (UTC).
-  // toISOString() would silently offset times by the user's UTC offset.
-  function isoLocal(ms) {
-    const d = new Date(ms);
-    const pad = (n) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  }
-
-  // Build the /ride form body from a journey + destination. client_d_tag pins the Nostr
-  // d_tag so outbox retries replace rather than duplicate. finishMs is captured at the
-  // START of journeyFlow.finish() (not submit time), so GPS-fix / manual-pin delay don't
-  // inflate the arrival time; also prevents arrival == departure on same-minute short
-  // rides (backend asserts arrival > departure).
-  function buildFinishBody(j, dest, finishMs, id) {
-    const d = j.details || {};
-    return {
-      rate: String(d.rating || ""),
-      wait: String(Math.round((j.finalWaitMs || 0) / 60000)),
-      signal: (d.signal || []).join(","),
-      comment: d.comment || "",
-      vehicle_kind: d.vehicle_kind || "",
-      pickup_lat: j.pickup.lat, pickup_lon: j.pickup.lon,
-      destination_lat: dest.lat, destination_lon: dest.lon,
-      datetime_ride: isoLocal(j.gotRideMs),
-      arrival_datetime: isoLocal(finishMs),
-      client_d_tag: id,
-    };
-  }
+  // isoLocal + buildFinishBody live in ride_submit.js (loaded before this file) so they
+  // can be unit-tested outside the DOM. Alias them locally to keep call sites unchanged.
+  const isoLocal = window.RideSubmit.isoLocal;
+  const buildFinishBody = window.RideSubmit.buildFinishBody;
 
   // POST a saved outbox body to /ride. Resolves with {status, json}; a thrown network
   // error resolves as {status:0} (not a rejection) so the flush loop can classify it.
