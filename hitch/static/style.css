@@ -188,26 +188,28 @@ html {
   justify-content: center;
 }
 
-/* Logged-out nudge: a faint red glow pulses around the account icon on load until the
-   user taps the screen (JS removes .login-pulse on first tap). Encourages sign-in. */
-.top-account-btn.login-pulse {
-  animation: login-pulse-glow 1.8s ease-in-out infinite;
-}
-@keyframes login-pulse-glow {
-  0%, 100% { box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), 0 0 0 0 rgba(229, 57, 53, 0); }
-  50%      { box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), 0 0 14px 5px rgba(229, 57, 53, 0.5); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .top-account-btn.login-pulse { animation: none; }
-}
-
-/* Logged-in state: a steady soft blue glow (and blue icon) marks the account as
-   signed in — the calm counterpart to the logged-out red nudge. */
+/* Logged-in: the silhouette sits on a green circle to mark the signed-in state. */
 .top-account-btn.logged-in {
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), 0 0 12px 3px rgba(26, 115, 232, 0.55);
+  background: #1a9850;
 }
 .top-account-btn.logged-in a {
-  color: #1a73e8;
+  color: #fff;
+}
+
+/* Logged-out nudge: a small red notification dot in the corner encourages sign-in. */
+.top-account-btn .account-dot {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+.account-dot--red {
+  background: #e53935;
 }
 
 .top-account-btn a {
@@ -242,32 +244,6 @@ html {
   font-size: 11px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.3);
   pointer-events: none;
-}
-
-.top-account-btn .login-prompt-badge {
-  position: absolute;
-  top: -6px;
-  right: 100%;
-  margin-right: 8px;
-  background: #d9342b;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.2;
-  padding: 4px 8px;
-  border-radius: 6px;
-  white-space: nowrap;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-  pointer-events: none;
-}
-
-.top-account-btn .login-prompt-badge::after {
-  content: "";
-  position: absolute;
-  top: 10px;
-  left: 100%;
-  border: 5px solid transparent;
-  border-left-color: #d9342b;
 }
 
 /* Filter pane below search bar */

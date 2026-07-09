@@ -496,7 +496,7 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
     <a href="/me" title="{{ 'You have unread notifications' if unread_notifications else 'Your account' }}">
         <i class="fa-solid fa-circle-user"></i>
         {% if not is_logged_in %}
-        <span class="login-prompt-badge">Log in to track your rides</span>
+        <span class="account-dot account-dot--red" role="img" aria-label="Log in to track your rides"></span>
         {% elif unread_notifications %}
         <span class="notif-bell" aria-label="{{ unread_notifications }} unread notifications">
             <i class="fa-solid fa-bell"></i>
