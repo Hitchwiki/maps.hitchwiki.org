@@ -190,7 +190,7 @@
   // prompt so they can choose to log in (and preserve the chosen spot across the
   // redirect) or carry on without an account. No hard block — anonymous is fine.
   journeyFlow.startFromChoose = function (latlng) {
-    if (window.IS_LOGGED_IN) return journeyFlow.start(latlng);
+    if (window.IS_LOGGED_IN) return journeyFlow.beginWithCoHitchers(latlng);
     journeyUI.dialog({
       title: "Track your rides?",
       body: "Log in to keep your ride history, or just continue anonymously.",
@@ -205,7 +205,7 @@
             window.location.href = "/login?next=/";
           },
         },
-        { label: "Continue anonymously", cls: "inr-grey", onClick: () => journeyFlow.start(latlng) },
+        { label: "Continue anonymously", cls: "inr-grey", onClick: () => journeyFlow.beginWithCoHitchers(latlng) },
       ],
     });
   };
@@ -228,10 +228,11 @@
   };
 
   // Seed the waiting journey. Pickup = the chosen latlng; wait timer starts now.
-  journeyFlow.start = function (latlng) {
+  journeyFlow.start = function (latlng, coHitchhikers) {
     const j = journeyStore.set({
       state: "waiting",
       pickup: { lat: latlng.lat, lon: latlng.lng },
+      coHitchhikers: coHitchhikers || [],
       waitAccumMs: 0,
       waitSegmentStartMs: Date.now(),
       gotRideMs: null,
@@ -240,6 +241,13 @@
       legIndex: 0,
     });
     journeyUI.render(j);
+  };
+
+  // Show the co-hitcher modal, then seed the journey with whoever was added.
+  journeyFlow.beginWithCoHitchers = function (latlng) {
+    journeyUI.coHitcherSheet(function (coHitchhikers) {
+      journeyFlow.start(latlng, coHitchhikers);
+    });
   };
 
   // Cancel the whole journey WITHOUT logging anything — for a journey started by mistake.
@@ -951,6 +959,147 @@
       return { close };
     },
 
+    // Start-of-journey modal: optional co-hitcher entry (reuses /search_usernames).
+    // onStart(coHitchhikers[]) fires on "Start hitching"; dismissing aborts the start.
+    coHitcherSheet(onStart) {
+      if (journeyUI._openDialog) journeyUI._openDialog.close();
+      const selected = [];
+      const self = (window.USERNAME || "").toLowerCase();
+
+      const scrim = document.createElement("div");
+      scrim.className = "inride-scrim";
+      const sheet = document.createElement("div");
+      sheet.className = "inr-sheet";
+
+      const grab = document.createElement("div");
+      grab.className = "inr-sheet__grab";
+      sheet.appendChild(grab);
+
+      const closeX = document.createElement("button");
+      closeX.type = "button";
+      closeX.className = "inr-sheet__close";
+      closeX.setAttribute("aria-label", "Close");
+      closeX.innerHTML = "&times;";
+      closeX.addEventListener("click", function () { close(); });
+      sheet.appendChild(closeX);
+
+      const titleEl = document.createElement("h4");
+      titleEl.textContent = window.USERNAME ? "Who else is hitching?" : "Who's hitching with you?";
+      sheet.appendChild(titleEl);
+
+      // Logged-in confirmation line ("You're hitching as @name"); omitted when anonymous.
+      if (window.USERNAME) {
+        const who = document.createElement("p");
+        who.className = "inr-sheet__sub";
+        who.textContent = "You're hitching as @" + window.USERNAME;
+        sheet.appendChild(who);
+      }
+
+      const field = document.createElement("div");
+      field.className = "inr-field";
+      const chips = document.createElement("div");
+      chips.className = "inr-cohitch-chips";
+      field.appendChild(chips);
+
+      const inputWrap = document.createElement("div");
+      inputWrap.className = "inr-cohitch-inputwrap";
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "inr-cohitch-input";
+      input.setAttribute("autocomplete", "off");
+      input.setAttribute("maxlength", "32");
+      input.placeholder = "Add co-hitchhiker username…";
+      const suggest = document.createElement("ul");
+      suggest.className = "inr-cohitch-suggest";
+      suggest.style.display = "none";
+      inputWrap.appendChild(input);
+      inputWrap.appendChild(suggest);
+      field.appendChild(inputWrap);
+      sheet.appendChild(field);
+
+      function renderChips() {
+        chips.innerHTML = "";
+        selected.forEach(function (name) {
+          const chip = document.createElement("span");
+          chip.className = "inr-cohitch-chip";
+          chip.textContent = name;
+          const x = document.createElement("button");
+          x.type = "button";
+          x.className = "inr-cohitch-chip__x";
+          x.setAttribute("aria-label", "Remove " + name);
+          x.innerHTML = "&times;";
+          x.addEventListener("click", function () {
+            const i = selected.indexOf(name);
+            if (i !== -1) selected.splice(i, 1);
+            renderChips();
+          });
+          chip.appendChild(x);
+          chips.appendChild(chip);
+        });
+      }
+
+      function addName(name) {
+        name = (name || "").trim();
+        // Skip blanks, the creator's own username, and duplicates (case-insensitive).
+        if (!name || name.toLowerCase() === self) { input.value = ""; return; }
+        if (selected.some(function (n) { return n.toLowerCase() === name.toLowerCase(); })) { input.value = ""; return; }
+        selected.push(name);
+        renderChips();
+        input.value = "";
+        suggest.style.display = "none";
+      }
+
+      let debounce = null;
+      input.addEventListener("input", function () {
+        const q = input.value.trim();
+        if (debounce) clearTimeout(debounce);
+        if (q.length < 1) { suggest.style.display = "none"; return; }
+        debounce = setTimeout(function () {
+          fetch("/search_usernames?q=" + encodeURIComponent(q))
+            .then(function (r) { return r.json(); })
+            .then(function (names) {
+              suggest.innerHTML = "";
+              if (!names || names.length === 0) { suggest.style.display = "none"; return; }
+              names.forEach(function (name) {
+                const li = document.createElement("li");
+                li.textContent = name;
+                // mousedown (not click) so it fires before the input's blur.
+                li.addEventListener("mousedown", function (e) { e.preventDefault(); addName(name); });
+                suggest.appendChild(li);
+              });
+              suggest.style.display = "block";
+            })
+            .catch(function () { suggest.style.display = "none"; });
+        }, 200);
+      });
+
+      const startBtn = document.createElement("button");
+      startBtn.type = "button";
+      startBtn.className = "inr-big inr-big--green inr-sheet__save";
+      startBtn.innerHTML = '<i class="fa-solid fa-thumbs-up"></i> Start hitching';
+      startBtn.addEventListener("click", function () {
+        // Fold a half-typed username into the list so it isn't silently lost.
+        if (input.value.trim()) addName(input.value);
+        const list = selected.slice();
+        close();
+        onStart(list);
+      });
+      sheet.appendChild(startBtn);
+
+      function close() {
+        if (scrim.parentNode) scrim.parentNode.removeChild(scrim);
+        if (sheet.parentNode) sheet.parentNode.removeChild(sheet);
+        journeyUI._openDialog = null;
+      }
+      // Scrim tap dismisses WITHOUT starting (abort) — no journey begins.
+      scrim.addEventListener("click", close);
+
+      document.body.appendChild(scrim);
+      document.body.appendChild(sheet);
+      journeyUI._openDialog = { close };
+      return { close };
+    },
+
     // Slim give-up sheet: rating (required) + optional comment only — no vehicle/signal
     // chips (no ride happened). Replaces the old /ride redirect so a give-up can be captured
     // and queued offline. onSave({ rating, comment }) fires when the user taps Save.
@@ -1571,7 +1720,7 @@
       localStorage.removeItem(PENDING_KEY);
       // return is INSIDE the try so a malformed PENDING_KEY that throws falls through
       // to the store-resume path below instead of short-circuiting the whole init.
-      try { const p = JSON.parse(pend); journeyFlow.start(L.latLng(p.lat, p.lon)); return; } catch (e) {}
+      try { const p = JSON.parse(pend); journeyFlow.beginWithCoHitchers(L.latLng(p.lat, p.lon)); return; } catch (e) {}
     } else if (pend) {
       // Returned still anonymous (login cancelled or failed) — discard the stash.
       localStorage.removeItem(PENDING_KEY);
