@@ -1190,15 +1190,24 @@ function showNextFeatureHint() {
   window.addEventListener("hashchange", position);
   window.addEventListener("popstate", position);
 
-  function dismiss() {
+  function dismiss(ev) {
+    if (ev && !btn.contains(ev.target)) return;
     markHintSeen(hint.key);
     pointer.remove();
     window.removeEventListener("resize", position);
     window.removeEventListener("hashchange", position);
     window.removeEventListener("popstate", position);
+    document.removeEventListener("pointerdown", dismiss, true);
+    document.removeEventListener("click", dismiss, true);
   }
-  // Dismissal is clicking the feature itself — no banner, no close button.
-  btn.addEventListener("click", dismiss, { once: true });
+  // Dismissal is using the feature itself — no banner, no close button. Both hint
+  // buttons live inside Leaflet controls that stop event propagation, and the route
+  // button is an <a href="#routing"> that opens a sheet the moment it is pressed —
+  // so a plain bubble-phase "click" on the button is not reliably delivered. Listen
+  // on the document in the capture phase (nothing can swallow it first) and accept
+  // pointerdown too, so a tap counts even when no click follows it.
+  document.addEventListener("pointerdown", dismiss, true);
+  document.addEventListener("click", dismiss, true);
 }
 
 function setupLocateControl() {
