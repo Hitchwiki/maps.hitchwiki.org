@@ -61,7 +61,7 @@ html {
   /* Lower-left corner, just above the bottom nav (menu) bar. */
   bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 10px);
   left: 16px;
-  z-index: 2003; /* above the in-ride dock (2002) so it stays tappable */
+  z-index: 10000; /* above every dialog/sheet/overlay so test mode is always visible */
   width: 44px;
   height: 44px;
   display: flex;
@@ -78,7 +78,7 @@ html {
 .test-mode-btn:hover { box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4); }
 /* During a journey, lift it above the waiting dock (Give Up / Got a Ride + Cancel). */
 body.inride-active .test-mode-btn {
-  bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 126px);
+  bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 144px);
 }
 
 /* Explanatory callout anchored under the test-mode button. */
@@ -87,7 +87,7 @@ body.inride-active .test-mode-btn {
   /* Sits above the button (which is in the lower-left), arrow pointing down at it. */
   bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 62px);
   left: 16px;
-  z-index: 2100;
+  z-index: 10001; /* just above the test-mode button */
   width: min(300px, calc(100vw - 32px));
   background: #fff;
   border-radius: 14px;
@@ -96,7 +96,7 @@ body.inride-active .test-mode-btn {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 body.inride-active .test-mode-callout {
-  bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 178px);
+  bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 196px);
 }
 .test-mode-callout::before {
   content: "";
@@ -2284,6 +2284,9 @@ body.showing-insights .heatmap-legend-pane {
 /* Waiting/paused dock: button row on top, a small grey Cancel beneath it. */
 .inr-dock--stack {
   flex-direction: column;
+  /* Raised vs the base dock so the round Cancel × at the bottom clears the OSM
+     attribution credits (fixed at bottom:64px). */
+  bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 28px);
 }
 .inr-dock-row {
   display: flex;
@@ -2464,9 +2467,9 @@ body.showing-insights .heatmap-legend-pane {
    higher to clear it. In-ride keeps the base 78px offset (single Finish button). */
 .inr-chip--wait,
 .inr-chip--paused {
-  /* Clears the taller waiting/paused dock (two big buttons + the round Cancel ×
-     beneath them), so the timer pill is never hidden behind the buttons. */
-  bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 126px);
+  /* Clears the taller, raised waiting/paused dock (two big buttons + the round
+     Cancel × beneath them), so the timer pill is never hidden behind the buttons. */
+  bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 144px);
 }
 
 /* Coloured dot on the left of the chip */
