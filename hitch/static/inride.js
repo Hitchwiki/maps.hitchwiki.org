@@ -93,6 +93,19 @@
   // can be unit-tested outside the DOM. Alias it locally to keep call sites unchanged.
   const buildFinishBody = window.RideSubmit.buildFinishBody;
 
+  // Seal an in-ride overlay so taps on it never reach the Leaflet map. The dock/chip
+  // float over the live map with no scrim, and every button tears the overlay down via
+  // render(); on touch that lets Leaflet treat the tap as a map click, firing
+  // handleMapClick's tap-to-nearest-spot and opening the spot *underneath* the button.
+  // disableClickPropagation marks the pointer sequence so the map handler skips it —
+  // the same guard map.js already applies to its other overlays.
+  function sealTaps(el) {
+    if (el && window.L && L.DomEvent) {
+      L.DomEvent.disableClickPropagation(el);
+      L.DomEvent.disableScrollPropagation(el);
+    }
+  }
+
   // POST a saved outbox body to /ride. Resolves with {status, json}; a thrown network
   // error resolves as {status:0} (not a rejection) so the flush loop can classify it.
   function submitBody(body) {
@@ -397,6 +410,11 @@
         default:
           console.log("[inride] render: unknown state", j.state);
       }
+
+      // Every state built its dock/chip above; seal both so taps on their buttons
+      // never fall through to the map and open the spot underneath.
+      sealTaps(journeyUI._dockEl);
+      sealTaps(journeyUI._chipEl);
     },
 
     // Build the waiting dock bar + live-timer chip.
@@ -474,13 +492,14 @@
       journeyUI._addPickupPin(j);
     },
 
-    // Small grey "Cancel" CTA that sits beneath the waiting/paused dock — discards the
-    // journey (confirmed) for a mistaken start, without logging anything.
+    // Round red "cancel" button (white × in a red circle) centered beneath the dock —
+    // discards the journey (confirmed) for a mistaken start, without logging anything.
     _cancelButton() {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "inr-cancel";
-      btn.textContent = "Cancel";
+      btn.setAttribute("aria-label", "Cancel journey");
+      btn.innerHTML = '<i class="fa-solid fa-xmark" aria-hidden="true"></i>';
       btn.addEventListener("click", function () { journeyFlow.cancel(); });
       return btn;
     },

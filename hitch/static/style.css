@@ -2168,19 +2168,29 @@ body.showing-insights .heatmap-legend-pane {
   gap: 10px;
   width: 100%;
 }
+/* Cancel = white × in a red circle, centered beneath the Give Up / Got a Ride row.
+   Big enough to read as a clear, deliberate "discard this journey" affordance. */
 .inr-cancel {
   align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  margin-top: 2px;
+  padding: 0;
   border: none;
-  background: transparent;
-  color: #8a9096;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 6px 20px;
-  border-radius: 10px;
+  border-radius: 50%;
+  background: #d73027;
+  color: #fff;
+  font-size: 24px;
+  line-height: 1;
   cursor: pointer;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .25);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
-.inr-cancel:hover { background: rgba(0, 0, 0, .06); color: #555; }
+.inr-cancel:hover { background: #b71c1c; }
+.inr-cancel:active { transform: scale(0.94); }
 
 /* Big action buttons — bold, rounded, coloured per action */
 .inr-big {
