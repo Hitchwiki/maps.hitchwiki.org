@@ -294,6 +294,12 @@ function populateHeatmapLegend(legendData) {
   // Load markers asynchronously
   await loadMarkers(map);
 
+  // Restore the test-mode indicator if it was left on. Called here (not inside
+  // setupMapModeControl, which runs synchronously before the test-mode module vars
+  // are initialized) to avoid a temporal-dead-zone ReferenceError that would abort
+  // init before loadMarkers.
+  renderTestModeIndicator();
+
   // Hitchwiki event markers — non-blocking, they're a small overlay.
   loadEventMarkers(map);
 
@@ -1218,8 +1224,6 @@ function setupMapModeControl() {
   });
   new ModeControl().addTo(map);
   updateMapModeButtons();
-  // Restore the yellow bar if test mode was left on from a previous session.
-  renderTestModeIndicator();
 }
 
 // ---- One-time feature pointers -------------------------------------------
