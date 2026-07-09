@@ -93,6 +93,27 @@
   // can be unit-tested outside the DOM. Alias it locally to keep call sites unchanged.
   const buildFinishBody = window.RideSubmit.buildFinishBody;
 
+  // Weights + choice lists for the in-ride details sheet, fetched once. Kept module-level
+  // so the sheet can render and score synchronously after load. Both are small and cached
+  // by the browser; failures leave the sheet usable with empty pickers.
+  let _scoreWeights = null;
+  let _choices = null;
+  function loadDemographicData() {
+    const w = _scoreWeights
+      ? Promise.resolve(_scoreWeights)
+      : fetch("/ride_score_weights.json").then(function (r) { return r.json(); }).then(function (j) { _scoreWeights = j; }).catch(function () {});
+    const c = _choices
+      ? Promise.resolve(_choices)
+      : fetch("/driver_info_choices.json").then(function (r) { return r.json(); }).then(function (j) { _choices = j; }).catch(function () {});
+    return Promise.all([w, c]);
+  }
+  function demographicScores(fields) {
+    if (!_scoreWeights || !window.RideScore) {
+      return { driver: { pct: 0 }, vehicle: { pct: 0, bonusEligible: false }, total: 0 };
+    }
+    return window.RideScore.computeScores(fields, _scoreWeights);
+  }
+
   // Seal an in-ride overlay so taps on it never reach the Leaflet map. The dock/chip
   // float over the live map with no scrim, and every button tears the overlay down via
   // render(); on touch that lets Leaflet treat the tap as a map click, firing
@@ -1774,6 +1795,10 @@
       // Returned still anonymous (login cancelled or failed) — discard the stash.
       localStorage.removeItem(PENDING_KEY);
     }
+
+    // Non-blocking load of score weights and driver-info choices so the in-ride sheet
+    // can render and score synchronously once the user reaches the demographics step.
+    loadDemographicData();
 
     const j = journeyStore.get();
     if (!j) return;
