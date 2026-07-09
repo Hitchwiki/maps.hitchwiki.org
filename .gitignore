@@ -482,3 +482,7 @@ junit/
 .claude/
 
 last_deploy.txt
+
+# Runtime logs, incl. ride_ips.csv — contains personal data (IP addresses), never commit
+logs/*
+!logs/.gitkeep

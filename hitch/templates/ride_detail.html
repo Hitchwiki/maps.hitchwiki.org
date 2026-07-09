@@ -340,6 +340,19 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     {% if ride.driver %}
     <div class="detail-section">
         <p class="section-title">Driver</p>
+        {# Tristate — `is not none` so an explicit "no" (falsy) still renders. #}
+        {% if ride.driver.would_ride_again is not none %}
+        <div class="detail-row">
+            <div class="detail-label"><i class="fa-regular fa-face-smile"></i> Would ride again</div>
+            <div class="detail-value">
+                {% if ride.driver.would_ride_again %}
+                <i class="fa-regular fa-face-smile" style="color:#2e7d32;" aria-hidden="true"></i> Yes
+                {% else %}
+                <i class="fa-regular fa-face-frown" style="color:#c62828;" aria-hidden="true"></i> No
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
         {% if ride.driver.reasons %}
         <div class="detail-row">
             <div class="detail-label"><i class="fa fa-hand-holding-heart"></i> Reason to pick up</div>

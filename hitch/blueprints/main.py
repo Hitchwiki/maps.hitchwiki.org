@@ -1,3 +1,4 @@
+import json
 import math
 import os
 import re
@@ -12,9 +13,11 @@ from flask import (
     redirect,
     render_template,
     request,
+    url_for,
 )
 from flask_security import current_user
 from sqlalchemy import text
+from werkzeug.utils import safe_join
 
 from hitch.blueprints.publish_ride import ALLOWED_VEHICLE_KINDS, create_record_from_custom_object
 from hitch.blueprints.utils.driver_info_choices import (
@@ -35,8 +38,9 @@ from hitch.blueprints.utils.license_plate_country_codes import LICENSE_PLATE_COU
 from hitch.blueprints.utils.notifications import notify_co_hitchhiker_invite, unread_count
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.blueprints.utils.report_ride import REPORT_REASONS
+from hitch.blueprints.utils.ride_ip_log import get_client_ip, log_ride_ip
 from hitch.extensions import db
-from hitch.helpers import get_db
+from hitch.helpers import get_db, get_dirs
 from hitch.models import CoHitchhiker, Follow, RideEvent, RideReport, User
 
 main_bp = Blueprint("main", __name__)
@@ -94,6 +98,80 @@ def render_map(map_variation):
         hide_account_button=current_app.config.get("HIDE_ACCOUNT_BUTTON", False),
         is_logged_in=not current_user.is_anonymous,
         username=("" if current_user.is_anonymous else current_user.username),
+        unread_notifications=unread_count(current_user),
+    )
+
+
+# Spot ids are generate_spot_id()'s "<lat>_<lon>" with 5 decimals (see show.py).
+SPOT_ID_RE = re.compile(r"^-?\d+\.\d{1,7}_-?\d+\.\d{1,7}$")
+
+
+def _spot_preview(spot_id):
+    """Link-preview facts for a spot, or None if we have nothing to say about it.
+
+    Read from dist/rides/by-spot/<spot_id>.json — the same per-spot file the map
+    lazy-loads on marker click — rather than spots.json, which is multi-MB and
+    would be a silly thing to parse on every crawler hit. The file is absent for
+    coordinates with no (informative) rides; the map still pans there, so this is
+    a missing preview, not a 404.
+    """
+    path = safe_join(get_dirs()["dist"], "rides", "by-spot", f"{spot_id}.json")
+    if not path or not os.path.isfile(path):
+        return None
+    try:
+        with open(path) as f:
+            payload = json.load(f)
+    except (OSError, ValueError):
+        return None
+
+    rides = payload.get("rides") or []
+    ratings = [r["rating"] for r in rides if r.get("rating")]
+    if not ratings:
+        return None
+    spot = payload.get("spot") or {}
+    return {
+        "rating": sum(ratings) / len(ratings),
+        "count": len(rides),
+        "wait": spot.get("wait"),
+        "distance": spot.get("distance"),
+    }
+
+
+def _spot_description(preview):
+    """One sentence a messenger/crawler can show under the link."""
+    plural = "ride" if preview["count"] == 1 else "rides"
+    parts = [f"Rated {preview['rating']:.1f}/5 from {preview['count']} {plural}."]
+    if preview["wait"]:
+        parts.append(f"Typical wait {round(preview['wait'])} min.")
+    if preview["distance"]:
+        parts.append(f"Rides average {round(preview['distance'])} km.")
+    parts.append("See the spot on the hitchhiking map.")
+    return " ".join(parts)
+
+
+# OSM-style permalink for a single spot, mirroring /node/<id>#map=z/lat/lon.
+# The spot id lives in the path rather than a #fragment or ?query because
+# messengers strip fragments when auto-linking a pasted URL, and because a path
+# is the stable, indexable address for the spot. map.js reads it back off
+# location.pathname and opens the spot pane; the #map= hash only carries the
+# (disposable) viewport. The route renders the same map template as "/" — it
+# exists so the URL survives a round trip, and so a pasted link can carry
+# per-spot OpenGraph tags instead of the generic homepage ones.
+@main_bp.route("/spot/<spot_id>")
+def render_spot(spot_id):
+    if not SPOT_ID_RE.match(spot_id):
+        abort(404)
+    lat, lon = (float(v) for v in spot_id.split("_"))
+    preview = _spot_preview(spot_id)
+    return render_template(
+        "map.html",
+        map_variation=None,
+        spot_title=f"Hitchhiking spot at {lat:.5f}, {lon:.5f}",
+        spot_description=_spot_description(preview) if preview else None,
+        spot_url=url_for("main.render_spot", spot_id=spot_id, _external=True),
+        hide_add_spot_button=current_app.config.get("HIDE_ADD_SPOT_BUTTON", False),
+        hide_account_button=current_app.config.get("HIDE_ACCOUNT_BUTTON", False),
+        is_logged_in=not current_user.is_anonymous,
         unread_notifications=unread_count(current_user),
     )
 
@@ -286,7 +364,11 @@ def ride_detail(d_tag):
                 age = max(0, datetime.now().year - int(yob))
             except (TypeError, ValueError):
                 age = None
+        would_ride_again = driver_obj.get("would_ride_again")
         driver = {
+            # Tristate: True / False / None (unanswered). Templates must test `is not none`,
+            # since an explicit "no" is falsy but still an answer worth showing.
+            "would_ride_again": would_ride_again if isinstance(would_ride_again, bool) else None,
             "reasons": [REASON_DESCRIPTION_BY_CODE.get(r, r) for r in reasons_raw],
             "origin_country_code": country_code,
             "origin_country_name": COUNTRY_NAME_BY_CODE.get(country_code) if country_code else None,
@@ -295,7 +377,16 @@ def ride_detail(d_tag):
             "languages": [LANGUAGE_NAME_BY_CODE.get(c, c) for c in languages_raw],
         }
         # Only attach the driver section if at least one field has a value.
-        if not any([driver["reasons"], driver["origin_country_name"], driver["age"], driver["gender"], driver["languages"]]):
+        if not any(
+            [
+                driver["would_ride_again"] is not None,
+                driver["reasons"],
+                driver["origin_country_name"],
+                driver["age"],
+                driver["gender"],
+                driver["languages"],
+            ]
+        ):
             driver = None
 
     mot = content.get("mode_of_transportation") or {}
@@ -406,6 +497,9 @@ def ride_form():
                     "d_tag": edit_d_tag,  # Store d_tag for POST handler
                     "rating": ride.rating,
                     "comment": ride.comment,
+                    # Keep the checkbox ticked when re-editing a no-ride record, otherwise
+                    # saving the form again would silently drop the no_ride marker.
+                    "no_ride": content.get("no_ride") is not None,
                     "pickup_lat": "",
                     "pickup_lon": "",
                     "destination_lat": "",
@@ -421,6 +515,7 @@ def ride_form():
                     "vehicle_license_plate_country": "",
                     "vehicle_license_plate_identifier": "",
                     "vehicle_commercial": "",
+                    "driver_would_ride_again": "",
                     "driver_reason_to_pick_up": [],
                     "driver_origin_country": "",
                     "driver_age": "",
@@ -437,6 +532,9 @@ def ride_form():
                     if isinstance(reasons, str):
                         reasons = [reasons]
                     ride_data["driver_reason_to_pick_up"] = [r for r in reasons if r in ALLOWED_REASONS_TO_PICK_UP]
+                    # Tristate -> the hidden input's 'yes' / 'no' / '' vocabulary.
+                    wra = driver.get("would_ride_again")
+                    ride_data["driver_would_ride_again"] = "" if wra is None else ("yes" if wra else "no")
                     ride_data["driver_origin_country"] = (driver.get("origin_country") or "").upper()
                     yob = driver.get("year_of_birth")
                     if yob:
@@ -543,6 +641,9 @@ def ride_form():
         data["driver_reason_to_pick_up"] = [
             r.strip() for r in (data.get("driver_reason_to_pick_up") or "").split(",") if r.strip()
         ]
+        # "I did not get a ride here" checkbox — an unchecked box submits no key at all.
+        # The in-ride Give Up flow posts no_ride=1 for the same meaning.
+        data["no_ride"] = str(data.get("no_ride", "")).strip() not in ("", "0", "false")
         rating = int(data["rate"])
         data["wait"] = int(data["wait"]) if data["wait"] != "" else None
         wait = data["wait"]
@@ -564,6 +665,12 @@ def ride_form():
         for r in driver_reasons:
             assert r in ALLOWED_REASONS_TO_PICK_UP, f"Invalid reason_to_pick_up: {r}"
         data["driver_reason_to_pick_up"] = driver_reasons
+
+        # would_ride_again: the smiley pair is tristate — 'yes' / 'no' / '' (unanswered).
+        # Keep unanswered as None so it stays distinct from an explicit "no".
+        wra_raw = (data.get("driver_would_ride_again") or "").strip()
+        assert wra_raw in ("", "yes", "no"), f"Invalid would_ride_again: {wra_raw}"
+        data["driver_would_ride_again"] = {"yes": True, "no": False}.get(wra_raw)
 
         # Gender: empty or one of the enum values.
         driver_gender = (data.get("driver_gender") or "").strip()
@@ -620,9 +727,6 @@ def ride_form():
             )
         data["datetime_ride"] = departure_str
         data["arrival_datetime"] = arrival_str
-
-        # TODO: store IP and nostr event d tag pairs in a db table to prevent abuse
-        # ip = request.headers.getlist("X-Real-IP")[-1] if request.headers.getlist("X-Real-IP") else request.remote_addr
 
         # Get coordinates from individual form fields
         lat = float(data["pickup_lat"]) if data["pickup_lat"] else None
@@ -694,6 +798,11 @@ def ride_form():
             d_tag = poster.post(ride_record=record, d_tag=client_d_tag)
             poster.close()
 
+        # Abuse trail: pair the saved ride's d tag with the submitter's IP so a flood of
+        # fake rides can be traced back to one source. Edits are logged too, since an
+        # abuser can also vandalise a ride they own by editing it.
+        log_ride_ip(d_tag)
+
         ### Co-hitchhikers
         # Requirement: co-hitchhikers already on a ride cannot be removed when editing, only new
         # ones can be added. We achieve this by only inserting co-hitchhikers not already in the DB.
@@ -752,7 +861,7 @@ def report_duplicate():
 
     now = str(datetime.datetime.utcnow())
 
-    ip = request.headers.getlist("X-Real-IP")[-1] if request.headers.getlist("X-Real-IP") else request.remote_addr
+    ip = get_client_ip()
 
     from_lat, from_lon, to_lat, to_lon = map(float, data["report"].split(","))
 

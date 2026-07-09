@@ -15,6 +15,7 @@ from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import (
     KindEnum,
     Location,
     ModeOfTranportation,
+    NoRide,
     Occupant,
     Signal,
     Stop,
@@ -177,7 +178,17 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
     driver_yob = custom_object.get("driver_year_of_birth")
     driver_gender = (custom_object.get("driver_gender") or "").strip() or None
     driver_languages = custom_object.get("driver_languages") or []
-    if driver_reasons or driver_country or driver_yob or driver_gender or driver_languages:
+    # Tristate: True / False / None (unanswered). `is not None` because an explicit
+    # "no" is falsy but still an answer worth publishing.
+    driver_would_ride_again = custom_object.get("driver_would_ride_again")
+    if (
+        driver_reasons
+        or driver_country
+        or driver_yob
+        or driver_gender
+        or driver_languages
+        or driver_would_ride_again is not None
+    ):
         occupants = [
             Occupant(
                 origin_country=driver_country,
@@ -186,10 +197,15 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
                 languages=list(driver_languages) or None,
                 was_driver=True,
                 reasons_to_pick_up=list(driver_reasons) or None,
+                would_ride_again=driver_would_ride_again,
             )
         ]
     else:
         occupants = None
+
+    # The hitchhiker never got picked up here. We don't ask why yet, so the reasons list is
+    # empty — its presence alone is what marks the record as a no-ride.
+    no_ride = NoRide(reasons=[]) if custom_object.get("no_ride") else None
 
     record = HitchhikingRecord(
         version="0.0.0",
@@ -202,6 +218,7 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
         mode_of_transportation=mode_of_transportation,
         ride=None,
         declined_rides=None,
+        no_ride=no_ride,
         source=source,
         license=license,
         submission_time=now.strftime("%Y-%m-%dT%H:%M:%S"),

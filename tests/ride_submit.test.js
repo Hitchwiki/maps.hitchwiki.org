@@ -79,6 +79,7 @@ test("buildGiveUpBody builds a destination-less body with co_hitchhiker", () => 
   assert.strictEqual(body.signal, "");
   assert.strictEqual(body.vehicle_kind, "");
   assert.strictEqual(body.co_hitchhiker, "sam");
+  assert.strictEqual(body.no_ride, "1"); // a give-up is a no-ride by definition
   assert.strictEqual(body.pickup_lat, 5);
   assert.strictEqual(body.destination_lat, "");
   assert.strictEqual(body.client_d_tag, "gid");

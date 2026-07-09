@@ -101,7 +101,7 @@ def test_waiting_charged_once_per_boarding():
     assert res["found"]
     # One contiguous car leg => one wait, and it's the boarding edge's (20), not 99.
     assert res["wait_minutes"] == 20
-    car_leg = next(l for l in res["legs"] if l["mode"] == "car")
+    car_leg = next(leg for leg in res["legs"] if leg["mode"] == "car")
     assert car_leg["wait_minutes"] == 20
 
 

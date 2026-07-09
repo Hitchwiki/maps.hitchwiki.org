@@ -55,6 +55,8 @@
       rate: String(details.rating || ""),
       wait: String(waitMin),
       comment: details.comment || "",
+      // Giving up IS a no-ride by definition — same marker the /ride form checkbox sets.
+      no_ride: "1",
       signal: "", vehicle_kind: "",
       co_hitchhiker: (j.coHitchhikers || []).join(","),
       pickup_lat: j.pickup.lat, pickup_lon: j.pickup.lon,

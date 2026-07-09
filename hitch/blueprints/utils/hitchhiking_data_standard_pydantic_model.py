@@ -72,9 +72,34 @@ class ReasonToPickUpEnum(str, Enum):
     safety_concern = "safety_concern"
     opposed = "opposed"
 
+class PositiveExperienceEnum(str, Enum):
+    friendly = "friendly"
+    good_conversation = "good_conversation"
+    helpful = "helpful"
+    safe_driving = "safe_driving"
+    generous = "generous"
+    interesting = "interesting"
+    felt_safe = "felt_safe"
+    comfortable = "comfortable"
+
+
+class NegativeExperienceEnum(str, Enum):
+    unfriendly = "unfriendly"
+    unsafe_driving = "unsafe_driving"
+    uncomfortable = "uncomfortable"
+    inappropriate_behavior = "inappropriate_behavior"
+    intoxicated = "intoxicated"
+    aggressive = "aggressive"
+    expected_something_in_return = "expected_something_in_return"
+    felt_unsafe = "felt_unsafe"
 
 class Occupant(Person, use_enum_values=True):
+    # Upstream narrowed this to a single enum; we keep a list because our driver-info
+    # form is a multi-select and rides already published to Nostr carry lists here.
     reasons_to_pick_up: Optional[list[ReasonToPickUpEnum]] = None
+    would_ride_again: Optional[bool] = None  # Whether the hitchhiker would take a ride with this occupant again
+    positive_experiences: Optional[list[PositiveExperienceEnum]] = None
+    negative_experiences: Optional[list[NegativeExperienceEnum]] = None
 
 
 class KindEnum(str, Enum):
@@ -151,6 +176,21 @@ class DeclinedRide(BaseModel, use_enum_values=True):
     reasons: Optional[list[DeclinedRideReasonEnum]] = None
 
 
+class NoRideReasonEnum(str, Enum):
+    waited_too_long = "waited_too_long"
+    bad_weather = "bad_weather"
+    darkness = "darkness"
+    unsafe_location = "unsafe_location"
+    poor_spot = "poor_spot"
+    too_much_competition = "too_much_competition"
+    changed_plans = "changed_plans"
+    took_alternative_transport = "took_alternative_transport"
+    gave_up = "gave_up"
+
+class NoRide(BaseModel, use_enum_values=True):
+    reasons: Optional[list[NoRideReasonEnum]] = None
+
+
 class Stop(BaseModel):
     location: Location = Field(...)
     arrival_time: Optional[str] = None  # RFC 9557 format
@@ -169,6 +209,8 @@ class HitchhikingRecord(BaseModel):
     mode_of_transportation: Optional[ModeOfTranportation] = None
     ride: Optional[Ride] = None
     declined_rides: Optional[list[DeclinedRide]] = None
+    no_ride: Optional[NoRide] = None  # Present when the hitchhiker gave up at the spot without getting a ride
+    images: Optional[list[str]] = None  # URLs to images taken during the ride
     source: str = Field(...)
     license: str = Field(...)
     submission_time: Optional[str] = None  # RFC 9557 format

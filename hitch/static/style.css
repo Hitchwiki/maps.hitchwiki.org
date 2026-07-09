@@ -666,21 +666,40 @@ body.inride-active .leaflet-bottom.leaflet-right {
   border-radius: 0 0 6px 6px !important;
 }
 
-/* One-time red pointer nudging first-time users to try a view-switcher button.
-   pointer-events:none so it never blocks the click it's inviting. */
+/* One-time red pointer nudging first-time users toward a feature's button.
+   pointer-events:none so it never blocks the click it's inviting. The arrow
+   nudges away from the button it points at, so each placement modifier sets both
+   the centring transform and the matching keyframes. */
 .mode-hint-pointer {
   position: fixed;
-  transform: translateY(-50%);
   z-index: 1000;
   color: #e53935;
   font-size: 22px;
   pointer-events: none;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
-  animation: mode-hint-nudge 0.8s ease-in-out infinite;
 }
-@keyframes mode-hint-nudge {
+.mode-hint-pointer--left {
+  transform: translateY(-50%);
+  animation: mode-hint-nudge-left 0.8s ease-in-out infinite;
+}
+.mode-hint-pointer--below,
+.mode-hint-pointer--above {
+  transform: translateX(-50%);
+}
+.mode-hint-pointer--below { animation: mode-hint-nudge-below 0.8s ease-in-out infinite; }
+.mode-hint-pointer--above { animation: mode-hint-nudge-above 0.8s ease-in-out infinite; }
+
+@keyframes mode-hint-nudge-left {
   0%, 100% { transform: translateY(-50%) translateX(0); }
   50%      { transform: translateY(-50%) translateX(-6px); }
+}
+@keyframes mode-hint-nudge-below {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%      { transform: translateX(-50%) translateY(6px); }
+}
+@keyframes mode-hint-nudge-above {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%      { transform: translateX(-50%) translateY(-6px); }
 }
 
 /* "Hitch here" CTA in the spot detail sheet — starts a tracked ride from this spot. */
@@ -1910,6 +1929,28 @@ ul.no-style {
   width: 100%;
   height: 100%;
   display: block;
+}
+
+/* Compact distribution strip under an average in the spot pane. Kept short and
+   axis-less so it hints at the shape without pushing the ride list off screen. */
+.spot-hist {
+  margin: 2px 0 8px;
+  max-width: 260px;
+}
+
+.spot-hist-chart {
+  display: block;
+  width: 100%;
+  height: 32px;
+}
+
+.spot-hist-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #999;
+  font-variant-numeric: tabular-nums;
+  margin-top: 1px;
 }
 
 .insights-chart-empty {

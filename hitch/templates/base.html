@@ -18,7 +18,9 @@
       });
     </script>
 
-    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    {# Root-relative: a relative "favicon.ico" resolves against the current path,
+       so it 404s on nested routes like /spot/<lat>_<lon>. #}
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" href="/static/logo_192.png" />
     <link rel="manifest" href="/manifest.json" />
 
@@ -27,6 +29,9 @@
     <meta property="og:title" content="{% block og_title %}Hitchhiking Map – Find & Share Hitchhiking Spots Globally{% endblock %}" />
     <meta property="og:description" content="{% block og_description %}Discover hitchhiking spots worldwide on an interactive map. See community ratings, waiting times, and trip data. Share your own rides.{% endblock %}" />
     <meta property="og:type" content="website" />
+    {# base_url drops the query and fragment, so a link shared with filters or a
+       #map= viewport still previews as the page it actually is. #}
+    <meta property="og:url" content="{% block og_url %}{{ request.base_url }}{% endblock %}" />
 
     {% block head %}{% endblock %}
   </head>

@@ -69,7 +69,7 @@ def get_dist_dir():
 
 def get_db_path():
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-    db_name = os.environ.get("DATABASE_NAME", "prod-points.sqlite")
+    db_name = os.environ.get("DATABASE_NAME", "hitchhiking-prod.sqlite")
     return os.path.join(root, "db", db_name)
 
 
@@ -499,6 +499,19 @@ def build_repeatable_trees(rides, spots):
         n = edge_wait_count.get((u_sid, v_sid))
         return round(edge_wait_sum[(u_sid, v_sid)] / n, 1) if n else None
 
+    def walk(node, parent_idx, nodes):
+        for child in node["children"].values():
+            if child["count"] < MIN_SUPPORT:
+                continue
+            idx = len(nodes)
+            nodes.append([
+                spot_index[child["spot"]],
+                parent_idx,
+                child["count"],
+                edge_wait(node["spot"], child["spot"]),
+            ])
+            walk(child, idx, nodes)
+
     trees = []
     for start_sid, sequences in sequences_by_start.items():
         if len(sequences) < MIN_SUPPORT:
@@ -518,21 +531,7 @@ def build_repeatable_trees(rides, spots):
 
         # Flatten surviving nodes (support >= MIN_SUPPORT) into a parent-linked list.
         nodes = []
-
-        def walk(node, parent_idx):
-            for child in node["children"].values():
-                if child["count"] < MIN_SUPPORT:
-                    continue
-                idx = len(nodes)
-                nodes.append([
-                    spot_index[child["spot"]],
-                    parent_idx,
-                    child["count"],
-                    edge_wait(node["spot"], child["spot"]),
-                ])
-                walk(child, idx)
-
-        walk(root, -1)
+        walk(root, -1, nodes)
         if nodes:
             trees.append({"s": spot_index[start_sid], "nodes": nodes})
     return trees
@@ -646,9 +645,7 @@ def main():
     results = []
     fetched = 0
     failed = 0
-    cache_file = open(cache_path, "a", encoding="utf-8")
-    read_handle = open(cache_path, encoding="utf-8")
-    try:
+    with open(cache_path, "a", encoding="utf-8") as cache_file, open(cache_path, encoding="utf-8") as read_handle:
         for i, ride in enumerate(rides):
             key = _route_key(ride["start"], ride["dest"])
             if key in cache_index:
@@ -703,9 +700,6 @@ def main():
 
             if (i + 1) % 100 == 0:
                 logger.info("Processed %d/%d rides (fetched %d, failed %d)", i + 1, len(rides), fetched, failed)
-    finally:
-        cache_file.close()
-        read_handle.close()
 
     if not args.skip_detailed:
         output = {
@@ -767,7 +761,9 @@ def write_test_file(dist_dir, rides, spots):
     test = {"proximity_m": PROXIMITY_M, "spots": spots_out, "spot_rides": spot_rides, "rides": rides_out}
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(test, f, separators=(",", ":"))
-    logger.info("Wrote %s: %d spots, %d rides (%.1f MB)", out_path, len(spots_out), len(rides_out), os.path.getsize(out_path) / 1e6)
+    logger.info(
+        "Wrote %s: %d spots, %d rides (%.1f MB)", out_path, len(spots_out), len(rides_out), os.path.getsize(out_path) / 1e6
+    )
 
 
 def write_repeatable_file(dist_dir, rides, spots):

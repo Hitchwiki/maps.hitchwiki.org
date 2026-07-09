@@ -1,14 +1,30 @@
 {% extends 'base.html' %}
 
-{% block title %}Hitchhiking Map – Find & Share Hitchhiking Spots Globally{% endblock %}
+{# The same template serves "/" and /spot/<lat>_<lon>. On a spot permalink the
+   title and description describe that spot, so a pasted link previews with its
+   rating instead of the generic homepage blurb; spot_description is unset when
+   the spot has no rides worth summarising, and we fall back to the homepage
+   copy. #}
+{% set homepage_blurb = "Interactive hitchhiking map: find spots, check community ratings and waiting-time heatmaps, plan hitchhiking routes, and share your rides worldwide." %}
+
+{% block title %}{{ spot_title ~ " | Hitchhiking Map" if spot_title else "Hitchhiking Map – Find & Share Hitchhiking Spots Globally" }}{% endblock %}
+{% block og_title %}{{ spot_title if spot_title else "Hitchhiking Map – Find & Share Hitchhiking Spots Globally" }}{% endblock %}
 
 {# Override the generic base.html description so the homepage names its key
    features (heatmap, route planning) — this is what lets "/" rank for those
    queries without dedicated per-feature pages. #}
-{% block meta_description %}Interactive hitchhiking map: find spots, check community ratings and waiting-time heatmaps, plan hitchhiking routes, and share your rides worldwide.{% endblock %}
-{% block og_description %}Interactive hitchhiking map: find spots, check community ratings and waiting-time heatmaps, plan hitchhiking routes, and share your rides worldwide.{% endblock %}
+{% block meta_description %}{{ spot_description or homepage_blurb }}{% endblock %}
+{% block og_description %}{{ spot_description or homepage_blurb }}{% endblock %}
+{% block og_url %}{{ spot_url if spot_url else super() }}{% endblock %}
 
 {% block head %}
+{# Legacy /?lat=&lon= links and the #map= viewport are all views of one spot —
+   point search engines at the single canonical path. #}
+{% if spot_url %}<link rel="canonical" href="{{ spot_url }}" />{% endif %}
+{# Every well-formed coordinate resolves to a 200, so /spot/<lat>_<lon> is an
+   unbounded URL space. Only let crawlers index the ones that describe a real
+   spot; the rest are soft 404s that would dilute the site. #}
+{% if spot_url and not spot_description %}<meta name="robots" content="noindex" />{% endif %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.css" />
