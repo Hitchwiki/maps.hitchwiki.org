@@ -10,7 +10,7 @@ RUN apt-get update && \
 RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
     apt-get install -y nodejs && \
     rm -rf /var/lib/apt/lists/* && \
-    npm install -g npm@11.18.0
+    npm install -g npm@12.0.0
 
 # Set work directory
 WORKDIR /app
