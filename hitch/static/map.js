@@ -315,9 +315,9 @@ function populateHeatmapLegend(legendData) {
     }, { once: true });
   })();
 
-  // Nudge first-time users toward the view switcher; short delay so the pointer
-  // doesn't fight the initial map load/animation.
-  setTimeout(showNextModeHint, 1500);
+  // Nudge first-time users toward the features they'd otherwise miss; short delay
+  // so the pointer doesn't fight the initial map load/animation.
+  setTimeout(showNextFeatureHint, 1500);
 
   // Filters are now an icon-launched modal (opened from the search bar). The header
   // button — and a tap on the scrim — close it.
@@ -1114,17 +1114,28 @@ function setupMapModeControl() {
   updateMapModeButtons();
 }
 
-// ---- One-time feature pointers for the map-mode switcher ------------------
-// Ordered queue: each entry drops a red pointer next to a mode button, shown
+// ---- One-time feature pointers -------------------------------------------
+// Ordered queue: each entry drops a red pointer next to a feature's button, shown
 // ONCE per user (a boolean flag in localStorage — no reappear window). Only the
 // first not-yet-seen pointer is shown at a time, and it is dismissed ONLY by
 // clicking the feature it points at; that click then advances to the next
-// pointer. So the heatmap and country pointers never appear together but strictly
-// in sequence, each waiting for the user to actually try the feature.
-const MODE_HINTS = [
-  { mode: "heatmap", key: "hintSeen.heatmap" },
-  { mode: "countries", key: "hintSeen.countries" },
+// pointer. So pointers never appear together but strictly in sequence, each
+// waiting for the user to actually try the feature.
+//
+// `el` is resolved lazily because the search-bar buttons are created by Leaflet
+// controls after this module is evaluated. `placement` picks which side of the
+// button the arrow sits on: the mode switcher is docked bottom-right (arrow to
+// its left), the search bar sits at the top (arrow below it), and the action
+// pane at the bottom (arrow above it).
+const FEATURE_HINTS = [
+  { key: "hintSeen.heatmap", el: () => mapModeButtons.heatmap, placement: "left" },
+  { key: "hintSeen.countries", el: () => mapModeButtons.countries, placement: "left" },
+  { key: "hintSeen.routes", el: () => $$(".geocoder-route-btn"), placement: "below" },
+  { key: "hintSeen.filters", el: () => $$(".geocoder-filter-btn"), placement: "below" },
+  { key: "hintSeen.activities", el: () => $$("#action-activities"), placement: "above" },
 ];
+
+const HINT_ARROW_ICON = { left: "fa-arrow-right", below: "fa-arrow-up", above: "fa-arrow-down" };
 
 function hintSeen(key) {
   // If storage is blocked, treat as seen so we never nag users we can't remember.
@@ -1134,22 +1145,32 @@ function markHintSeen(key) {
   try { localStorage.setItem(key, "1"); } catch (e) {}
 }
 
-function showNextModeHint() {
-  const hint = MODE_HINTS.find((h) => !hintSeen(h.key));
-  if (!hint) return; // all features already tried
-  const btn = mapModeButtons[hint.mode];
-  if (!btn) return;
+function showNextFeatureHint() {
+  // A button can be absent on pages that hide it (e.g. embeds). Skip past those
+  // without marking the hint seen, so it can still be shown on a full map page.
+  let hint, btn;
+  for (const h of FEATURE_HINTS) {
+    if (hintSeen(h.key)) continue;
+    const el = h.el();
+    if (el && el.offsetParent !== null) { hint = h; btn = el; break; }
+  }
+  if (!hint) return; // all features already tried, or none of their buttons exist here
 
   const pointer = document.createElement("div");
-  pointer.className = "mode-hint-pointer";
-  pointer.innerHTML = '<i class="fa-solid fa-arrow-right" aria-hidden="true"></i>';
+  pointer.className = `mode-hint-pointer mode-hint-pointer--${hint.placement}`;
+  pointer.innerHTML = `<i class="fa-solid ${HINT_ARROW_ICON[hint.placement]}" aria-hidden="true"></i>`;
   document.body.appendChild(pointer);
 
-  // The switcher is docked bottom-right, so sit just to its left pointing in.
   function position() {
     const r = btn.getBoundingClientRect();
-    pointer.style.top = `${r.top + r.height / 2}px`;
-    pointer.style.right = `${window.innerWidth - r.left + 8}px`;
+    if (hint.placement === "left") {
+      pointer.style.top = `${r.top + r.height / 2}px`;
+      pointer.style.right = `${window.innerWidth - r.left + 8}px`;
+    } else {
+      pointer.style.left = `${r.left + r.width / 2}px`;
+      if (hint.placement === "below") pointer.style.top = `${r.bottom + 8}px`;
+      else pointer.style.bottom = `${window.innerHeight - r.top + 8}px`;
+    }
   }
   position();
   window.addEventListener("resize", position);
@@ -1158,7 +1179,7 @@ function showNextModeHint() {
     markHintSeen(hint.key);
     pointer.remove();
     window.removeEventListener("resize", position);
-    showNextModeHint(); // advance to the next unseen feature, if any
+    showNextFeatureHint(); // advance to the next unseen feature, if any
   }
   // Dismissal is clicking the feature itself — no banner, no close button.
   btn.addEventListener("click", dismiss, { once: true });
