@@ -573,6 +573,11 @@ body.selecting-location .bottom-action-pane {
   background: #1a73e8;
   color: #fff;
 }
+/* Disabled until a pin is placed (the destination leg starts pinless). */
+.location-selection-ui .lsel-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .location-selection-ui .lsel-cancel {
   background: #e9ecef;
