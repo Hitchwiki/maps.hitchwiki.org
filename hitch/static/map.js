@@ -202,6 +202,7 @@ async function setHeatmapActive(active) {
   if (!active) {
     if (heatmapLayer) map.removeLayer(heatmapLayer);
     if (legendPane) legendPane.style.display = 'none';
+    setTestBtnBelowLegend(false);
     positionLegendPane();
     if (btn) btn.classList.remove('active');
     if (text) text.textContent = 'Heatmap';
@@ -227,6 +228,7 @@ async function setHeatmapActive(active) {
 
   populateHeatmapLegend(heatmapData.legend);
   if (legendPane) legendPane.style.display = 'block';
+  setTestBtnBelowLegend(true);
   positionLegendPane();
 
   heatmapLayer.addTo(map);
@@ -1093,6 +1095,19 @@ function setTestMode(on) {
   renderTestModeIndicator();
 }
 
+function isLegendVisible() {
+  const lp = document.getElementById("heatmap-legend-pane");
+  return !!(lp && lp.style.display === "block");
+}
+
+// Drop the test-mode button + callout below the heatmap legend bar while it shows.
+function setTestBtnBelowLegend(below) {
+  const btn = document.getElementById("test-mode-btn");
+  const callout = document.getElementById("test-mode-callout");
+  if (btn) btn.classList.toggle("below-legend", below);
+  if (callout) callout.classList.toggle("below-legend", below);
+}
+
 // Round amber warning button (same size as the account avatar), under the search
 // bar. Tapping it opens a callout explaining test mode + an exit action.
 function renderTestModeIndicator() {
@@ -1111,6 +1126,8 @@ function renderTestModeIndicator() {
       });
       document.body.appendChild(btn);
     }
+    // If the heatmap legend ("filter bar") is already showing, drop below it.
+    btn.classList.toggle("below-legend", isLegendVisible());
   } else {
     if (btn) btn.remove();
     closeTestModeCallout();
