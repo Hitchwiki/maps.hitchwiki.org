@@ -176,6 +176,23 @@ def render_spot(spot_id):
     )
 
 
+@main_bp.route("/driver_info_choices.json")
+def driver_info_choices_json():
+    """Choice lists for the in-ride details sheet — same options as the /ride form,
+    delivered as JSON so the client renders them without duplicating the data."""
+    from hitch.blueprints.utils.ride_score import WEIGHTS
+
+    return jsonify({
+        "reasons": REASON_TO_PICK_UP_CHOICES,
+        "genders": GENDER_CHOICES,
+        "languages": LANGUAGE_CHOICES,
+        "countries": COUNTRY_CHOICES,
+        "plate_countries": LICENSE_PLATE_COUNTRY_CHOICES,
+        "vehicle_kinds": VEHICLE_KIND_CHOICES,
+        "passenger_kinds": WEIGHTS["passenger_kinds"],
+    })
+
+
 def _ride_to_card(ride):
     """Build the card dict the activities/recent template renders for a RideEvent."""
     content = ride.content if ride.content else {}
