@@ -1084,28 +1084,69 @@ function setTestMode(on) {
     if (on) localStorage.setItem(TEST_MODE_KEY, "1");
     else localStorage.removeItem(TEST_MODE_KEY);
   } catch (e) {}
-  renderTestModeBar();
+  renderTestModeIndicator();
 }
 
-// Yellow banner just under the top search bar (see .test-mode-bar CSS).
-function renderTestModeBar() {
-  let bar = document.getElementById("test-mode-bar");
+// Round amber warning button (same size as the account avatar), under the search
+// bar. Tapping it opens a callout explaining test mode + an exit action.
+function renderTestModeIndicator() {
+  let btn = document.getElementById("test-mode-btn");
   if (isTestMode()) {
-    if (!bar) {
-      bar = document.createElement("div");
-      bar.id = "test-mode-bar";
-      bar.className = "test-mode-bar";
-      bar.setAttribute("role", "button");
-      bar.textContent = "🧪 TEST MODE — nothing is saved · tap to exit";
-      bar.addEventListener("click", function () {
-        setTestMode(false);
-        showTestToast("Test mode off");
+    if (!btn) {
+      btn = document.createElement("button");
+      btn.id = "test-mode-btn";
+      btn.type = "button";
+      btn.className = "test-mode-btn";
+      btn.setAttribute("aria-label", "Test mode is on — what does this mean?");
+      btn.innerHTML = '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>';
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        toggleTestModeCallout();
       });
-      document.body.appendChild(bar);
+      document.body.appendChild(btn);
     }
-  } else if (bar) {
-    bar.remove();
+  } else {
+    if (btn) btn.remove();
+    closeTestModeCallout();
   }
+}
+
+let _testCalloutOutside = null;
+function closeTestModeCallout() {
+  const c = document.getElementById("test-mode-callout");
+  if (c) c.remove();
+  if (_testCalloutOutside) {
+    document.removeEventListener("click", _testCalloutOutside, true);
+    _testCalloutOutside = null;
+  }
+}
+
+function toggleTestModeCallout() {
+  if (document.getElementById("test-mode-callout")) { closeTestModeCallout(); return; }
+  const c = document.createElement("div");
+  c.id = "test-mode-callout";
+  c.className = "test-mode-callout";
+  c.innerHTML =
+    '<div class="test-mode-callout__title">🧪 Test mode is on</div>' +
+    '<p class="test-mode-callout__body">Rides you finish or give up are <strong>not saved</strong> — ' +
+    "nothing is published to the map, the database, or Nostr. Use it to try the flow without " +
+    "adding real data. Turn it back on any time by tapping the heatmap button 9 times.</p>";
+  const exit = document.createElement("button");
+  exit.type = "button";
+  exit.className = "test-mode-callout__exit";
+  exit.textContent = "Exit test mode";
+  exit.addEventListener("click", function () {
+    setTestMode(false); // removes the button + closes this callout via renderTestModeIndicator
+    showTestToast("Test mode off");
+  });
+  c.appendChild(exit);
+  document.body.appendChild(c);
+  // Dismiss on any outside click (capture phase so it beats other handlers). The
+  // button's own click is stopPropagation'd, so it won't immediately re-close.
+  _testCalloutOutside = function (e) {
+    if (!c.contains(e.target) && !e.target.closest("#test-mode-btn")) closeTestModeCallout();
+  };
+  setTimeout(function () { document.addEventListener("click", _testCalloutOutside, true); }, 0);
 }
 
 let _testToastTimer = null;
@@ -1178,7 +1219,7 @@ function setupMapModeControl() {
   new ModeControl().addTo(map);
   updateMapModeButtons();
   // Restore the yellow bar if test mode was left on from a previous session.
-  renderTestModeBar();
+  renderTestModeIndicator();
 }
 
 // ---- One-time feature pointers -------------------------------------------
