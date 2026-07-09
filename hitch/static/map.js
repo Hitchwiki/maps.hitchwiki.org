@@ -290,7 +290,6 @@ function populateHeatmapLegend(legendData) {
   // Added before the locate control so it stacks directly above the GPS button.
   setupMapModeControl();
   setupLocateControl();
-  guardAccountButtonInTestMode();
 
   // Load markers asynchronously
   await loadMarkers(map);
@@ -1144,21 +1143,6 @@ function registerHeatmapTap() {
     const remaining = TEST_MODE_TAPS - _heatTapCount;
     showTestToast(remaining + (remaining === 1 ? " more tap" : " more taps") + " to test mode…");
   }
-}
-
-// While test mode is active, the account avatar (a full-page link to /me, which
-// redirects logged-out users to /login) would navigate off the map and tear down
-// the whole test session. Intercept it in capture phase so the tester stays put.
-function guardAccountButtonInTestMode() {
-  const acct = document.getElementById("top-account-btn");
-  if (!acct) return;
-  acct.addEventListener("click", function (e) {
-    if (isTestMode()) {
-      e.preventDefault();
-      e.stopPropagation();
-      showTestToast("Account is off in test mode");
-    }
-  }, true);
 }
 
 // Vertical Spots/Heatmap/Countries switcher, sitting just above the locate button.
