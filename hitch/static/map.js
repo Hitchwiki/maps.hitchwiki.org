@@ -1088,10 +1088,10 @@ function setupEventListeners() {
 // Handle map click events
 function handleMapClick(e) {
   // A tap on a Leaflet control (GPS button, zoom, search, mode switcher) is not
-  // a map tap. disableClickPropagation suppresses the map click on desktop, but
-  // a touch-simulated click still reaches this handler — and the tap-to-nearest
-  // -spot shortcut below fires the closest marker by *coordinates*, so a spot
-  // sitting under the control would open. Ignore clicks originating on a control.
+  // a map tap. disableClickPropagation suppresses the map click on desktop, but a
+  // touch-simulated click still reaches this handler — and the tap-to-nearest-spot
+  // shortcut below fires the closest marker by *coordinates*, so a spot sitting
+  // under the control would open. Ignore clicks originating on a control.
   const oe = e.originalEvent;
   if (oe && oe.target && oe.target.closest && oe.target.closest(".leaflet-control")) return;
 
