@@ -89,9 +89,8 @@
     });
   }
 
-  // isoLocal + buildFinishBody live in ride_submit.js (loaded before this file) so they
-  // can be unit-tested outside the DOM. Alias them locally to keep call sites unchanged.
-  const isoLocal = window.RideSubmit.isoLocal;
+  // buildFinishBody lives in ride_submit.js (loaded before this file) so it
+  // can be unit-tested outside the DOM. Alias it locally to keep call sites unchanged.
   const buildFinishBody = window.RideSubmit.buildFinishBody;
 
   // POST a saved outbox body to /ride. Resolves with {status, json}; a thrown network

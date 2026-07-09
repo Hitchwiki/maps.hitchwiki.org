@@ -159,7 +159,7 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
         # commercial is already a bool (or None) by the time it reaches here; the /ride
         # handler parses the raw form string. Pass through unchanged.
         commercial = custom_object.get("vehicle_commercial")
-        commercial = commercial if commercial in (True, False) else None
+        commercial = commercial if (commercial is True or commercial is False) else None
         mode_of_transportation = ModeOfTranportation(
             kind=vehicle_kind,
             make=(custom_object.get("vehicle_make") or "").strip() or None,
