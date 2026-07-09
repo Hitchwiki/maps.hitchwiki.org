@@ -2129,7 +2129,14 @@ function navigateHome() {
   // route and reopen the options pane — instead of exiting the planner entirely.
   // (The route pane's own X calls RoutingUI.close() directly, so this only fires
   // for the spot pane while routing is active.)
-  if (window.RoutingUI && window.RoutingUI.active) { window.RoutingUI.showAgain(); return; }
+  if (window.RoutingUI && window.RoutingUI.active) {
+    // Deselect the spot first: its destination arrows are drawn from `active`
+    // and would otherwise linger over the route after the pane closes.
+    active = [];
+    renderPoints();
+    window.RoutingUI.showAgain();
+    return;
+  }
   navigate(); // clears rest
 }
 
