@@ -349,6 +349,7 @@
       waitAccumMs: 0, waitSegmentStartMs: Date.now(),
       gotRideMs: null, finalWaitMs: null, details: null,
       legIndex: (prev && prev.legIndex || 0) + 1,
+      coHitchhikers: (prev && prev.coHitchhikers) || [],
     });
     journeyUI.render(j);
   };
