@@ -1116,11 +1116,12 @@ function setupMapModeControl() {
 
 // ---- One-time feature pointers -------------------------------------------
 // Ordered queue: each entry drops a red pointer next to a feature's button, shown
-// ONCE per user (a boolean flag in localStorage — no reappear window). Only the
-// first not-yet-seen pointer is shown at a time, and it is dismissed ONLY by
-// clicking the feature it points at; that click then advances to the next
-// pointer. So pointers never appear together but strictly in sequence, each
-// waiting for the user to actually try the feature.
+// ONCE per user (a boolean flag in localStorage — no reappear window). At most ONE
+// pointer is shown per page load: the first not-yet-seen hint whose button is
+// visible. Clicking that button dismisses it for good, and the next hint waits for
+// the next page load rather than appearing immediately — several of these buttons
+// are neighbours (filter sits 38px from route), so chaining them in place reads as
+// an arrow that refused to go away rather than as a new hint.
 //
 // `el` is resolved lazily because the search-bar buttons are created by Leaflet
 // controls after this module is evaluated. `placement` picks which side of the
@@ -1161,7 +1162,16 @@ function showNextFeatureHint() {
   pointer.innerHTML = `<i class="fa-solid ${HINT_ARROW_ICON[hint.placement]}" aria-hidden="true"></i>`;
   document.body.appendChild(pointer);
 
+  // The pointer is a fixed-position child of <body>, so it does not inherit its
+  // target's visibility: opening the routing sheet hides the whole search bar and
+  // would otherwise leave the arrow stranded over nothing. Re-check on every
+  // reposition and hide alongside the button.
   function position() {
+    if (btn.offsetParent === null) {
+      pointer.style.display = "none";
+      return;
+    }
+    pointer.style.display = "";
     const r = btn.getBoundingClientRect();
     if (hint.placement === "left") {
       pointer.style.top = `${r.top + r.height / 2}px`;
@@ -1174,12 +1184,18 @@ function showNextFeatureHint() {
   }
   position();
   window.addEventListener("resize", position);
+  // Sheets that hide the arrow's target are opened by hash navigation (#routing,
+  // #menu, …) and closed by either a hash change or the back button, which fires
+  // popstate instead. Re-run the visibility check on both.
+  window.addEventListener("hashchange", position);
+  window.addEventListener("popstate", position);
 
   function dismiss() {
     markHintSeen(hint.key);
     pointer.remove();
     window.removeEventListener("resize", position);
-    showNextFeatureHint(); // advance to the next unseen feature, if any
+    window.removeEventListener("hashchange", position);
+    window.removeEventListener("popstate", position);
   }
   // Dismissal is clicking the feature itself — no banner, no close button.
   btn.addEventListener("click", dismiss, { once: true });
