@@ -7,17 +7,19 @@ def test_weights_match_the_canonical_scale():
     assert ride_score.WEIGHTS["vehicle_base"]["vehicle_license_plate_country"] == 20
     assert sum(ride_score.WEIGHTS["driver"].values()) == 60
     assert sum(ride_score.WEIGHTS["vehicle_base"].values()) == 40
-    assert ride_score.PASSENGER_KINDS == {"car", "van", "camper", "taxi", "motorbike", "scooter"}
+    assert {"car", "van", "camper", "taxi", "motorbike", "scooter"} == ride_score.PASSENGER_KINDS
 
 
 def test_full_driver_scores_60():
-    s = ride_score.score_fields({
-        "driver_reason_to_pick_up": ["curiosity"],
-        "driver_gender": "female",
-        "driver_age": 34,
-        "driver_origin_country": "DE",
-        "driver_languages": ["deu"],
-    })
+    s = ride_score.score_fields(
+        {
+            "driver_reason_to_pick_up": ["curiosity"],
+            "driver_gender": "female",
+            "driver_age": 34,
+            "driver_origin_country": "DE",
+            "driver_languages": ["deu"],
+        }
+    )
     assert s["driver"]["earned"] == 60
     assert s["driver"]["pct"] == 100
 
