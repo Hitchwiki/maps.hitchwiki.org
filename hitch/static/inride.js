@@ -999,7 +999,7 @@
       sheet.appendChild(closeX);
 
       const titleEl = document.createElement("h4");
-      titleEl.textContent = window.USERNAME ? "Who else is hitching?" : "Who's hitching with you?";
+      titleEl.textContent = "Anybody hitching with you";
       sheet.appendChild(titleEl);
 
       // Logged-in confirmation line ("You're hitching as @name"); omitted when anonymous.
@@ -1032,6 +1032,15 @@
       field.appendChild(inputWrap);
       sheet.appendChild(field);
 
+      // "Add anonymous" — a co-hitcher with no account. Multiple are allowed; the
+      // backend counts "Anonymous" entries in co_hitchhiker into anonymous occupants.
+      const anonBtn = document.createElement("button");
+      anonBtn.type = "button";
+      anonBtn.className = "inr-cohitch-anon";
+      anonBtn.innerHTML = '<i class="fa-solid fa-user-secret" aria-hidden="true"></i> Add anonymous';
+      anonBtn.addEventListener("click", function () { addAnonymous(); });
+      sheet.appendChild(anonBtn);
+
       function renderChips() {
         chips.innerHTML = "";
         selected.forEach(function (name) {
@@ -1062,6 +1071,13 @@
         renderChips();
         input.value = "";
         suggest.style.display = "none";
+      }
+
+      function addAnonymous() {
+        // No account, so no username to dedupe/self-exclude — and multiple anonymous
+        // co-hitchers are allowed (the backend counts each "Anonymous" entry).
+        selected.push("Anonymous");
+        renderChips();
       }
 
       let debounce = null;
