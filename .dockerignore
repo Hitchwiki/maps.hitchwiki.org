@@ -1,0 +1,26 @@
+# Never bake secrets into the image. The Dockerfile's `COPY . .` would otherwise
+# ship .env (API keys, secret key, DB name) inside every built layer. The real .env
+# is bind-mounted at runtime by docker-compose.yml instead.
+.env
+.env.*
+!example.env
+
+# Local databases and their sidecars — the db/ directory is bind-mounted at runtime.
+db/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# Version control and local tooling
+.git
+.gitignore
+.venv
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Generated data — dist/ is bind-mounted at runtime
+dist/
+logs/
+node_modules/
