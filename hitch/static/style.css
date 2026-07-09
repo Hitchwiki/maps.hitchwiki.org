@@ -2629,6 +2629,16 @@ body.showing-insights .heatmap-legend-pane {
   font-weight: 700;
 }
 
+/* ── Details sheet: scrollable variant + field help text + live completeness meters ── */
+.inr-sheet--scroll { max-height: 82vh; overflow-y: auto; }
+.inr-field__help { font-size: 12px; color: #888; margin: -2px 0 6px; }
+.inr-meters { display: flex; gap: 12px; margin: 4px 0 12px; }
+.inr-meter { flex: 1; }
+.inr-meter__label { font-size: 12px; font-weight: 600; color: #555; }
+.inr-meter__track { height: 8px; background: #eee; border-radius: 4px; overflow: hidden; margin: 3px 0; }
+.inr-meter__fill { height: 100%; background: #1a9850; border-radius: 4px; transition: width .2s ease; }
+.inr-meter__pct { font-size: 11px; color: #777; }
+
 /* ── Optional comment textarea ── */
 .inr-sheet__textarea {
   width: 100%;

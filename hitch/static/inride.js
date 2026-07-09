@@ -995,6 +995,167 @@
       return { close };
     },
 
+    // In-ride driver/vehicle detail entry with two live completeness meters. Seeded
+    // from the current details; onSave(fields) fires on Save with the canonical field
+    // names. NOT a submission — the caller merges the result onto the journey.
+    detailsSheet(seed, onSave) {
+      if (journeyUI._openDialog) journeyUI._openDialog.close();
+      const ch = _choices || { reasons: [], genders: [], languages: [], countries: [], vehicle_kinds: [], passenger_kinds: [] };
+      // Working copy of the fields, seeded from `seed`.
+      const f = {
+        driver_reason_to_pick_up: (seed.driver_reason_to_pick_up || []).slice(),
+        driver_gender: seed.driver_gender || "",
+        driver_age: (seed.driver_age === 0 || seed.driver_age) ? seed.driver_age : "",
+        driver_origin_country: seed.driver_origin_country || "",
+        driver_languages: (seed.driver_languages || []).slice(),
+        vehicle_kind: seed.vehicle_kind || "",
+        commercial: seed.commercial === true || seed.commercial === false ? seed.commercial : null,
+        vehicle_license_plate_country: seed.vehicle_license_plate_country || "",
+        vehicle_make: seed.vehicle_make || "",
+        vehicle_model: seed.vehicle_model || "",
+      };
+
+      const scrim = document.createElement("div");
+      scrim.className = "inride-scrim";
+      const sheet = document.createElement("div");
+      sheet.className = "inr-sheet inr-sheet--scroll";
+
+      const grab = document.createElement("div"); grab.className = "inr-sheet__grab"; sheet.appendChild(grab);
+      const closeX = document.createElement("button");
+      closeX.type = "button"; closeX.className = "inr-sheet__close"; closeX.setAttribute("aria-label", "Close");
+      closeX.innerHTML = "&times;"; closeX.addEventListener("click", function () { close(); });
+      sheet.appendChild(closeX);
+
+      const titleEl = document.createElement("h4"); titleEl.textContent = "Driver & vehicle details"; sheet.appendChild(titleEl);
+
+      // ── Two live meters ────────────────────────────────────────────────────
+      const meters = document.createElement("div"); meters.className = "inr-meters";
+      const dMeter = makeMeter("Driver"); const vMeter = makeMeter("Vehicle");
+      meters.appendChild(dMeter.el); meters.appendChild(vMeter.el); sheet.appendChild(meters);
+      function refreshMeters() {
+        const s = demographicScores(f);
+        dMeter.set(s.driver.pct); vMeter.set(s.vehicle.pct);
+        makeModelWrap.style.display = (ch.passenger_kinds.indexOf(f.vehicle_kind) !== -1) ? "" : "none";
+      }
+      function makeMeter(label) {
+        const el = document.createElement("div"); el.className = "inr-meter";
+        const l = document.createElement("span"); l.className = "inr-meter__label"; l.textContent = label;
+        const barWrap = document.createElement("div"); barWrap.className = "inr-meter__track";
+        const bar = document.createElement("div"); bar.className = "inr-meter__fill"; barWrap.appendChild(bar);
+        const pct = document.createElement("span"); pct.className = "inr-meter__pct";
+        el.appendChild(l); el.appendChild(barWrap); el.appendChild(pct);
+        return { el: el, set: function (p) { bar.style.width = p + "%"; pct.textContent = p + "%"; } };
+      }
+
+      // ── Field builders (chips single/multi, stepper, searchable select) ──────
+      function fieldWrap(labelText) {
+        const w = document.createElement("div"); w.className = "inr-field";
+        const l = document.createElement("label"); l.textContent = labelText; w.appendChild(l);
+        return w;
+      }
+      // Single-select chips (gender). choices: [[code,label],…]
+      function chipSingle(w, choices, getVal, setVal) {
+        const row = document.createElement("div"); row.className = "inr-chips";
+        choices.forEach(function (pair) {
+          const b = document.createElement("button"); b.type = "button"; b.className = "inr-optchip";
+          b.textContent = pair[1]; b.setAttribute("data-code", pair[0]);
+          if (getVal() === pair[0]) b.classList.add("inr-optchip--on");
+          b.addEventListener("click", function () {
+            setVal(getVal() === pair[0] ? "" : pair[0]); // tap again clears
+            row.querySelectorAll(".inr-optchip").forEach(function (c) {
+              c.classList.toggle("inr-optchip--on", c.getAttribute("data-code") === getVal());
+            });
+            refreshMeters();
+          });
+          row.appendChild(b);
+        });
+        w.appendChild(row);
+      }
+      // Multi-select chips (reasons, languages). arr is the working array of codes.
+      function chipMulti(w, choices, arr) {
+        const row = document.createElement("div"); row.className = "inr-chips";
+        choices.forEach(function (pair) {
+          const b = document.createElement("button"); b.type = "button"; b.className = "inr-optchip"; b.textContent = pair[1];
+          if (arr.indexOf(pair[0]) !== -1) b.classList.add("inr-optchip--on");
+          b.addEventListener("click", function () {
+            const i = arr.indexOf(pair[0]);
+            if (i === -1) { arr.push(pair[0]); b.classList.add("inr-optchip--on"); }
+            else { arr.splice(i, 1); b.classList.remove("inr-optchip--on"); }
+            refreshMeters();
+          });
+          row.appendChild(b);
+        });
+        w.appendChild(row);
+      }
+      // Searchable select for long lists (country, plate country). choices pairs [code,name].
+      function searchSelect(w, choices, placeholder, getVal, setVal) {
+        const input = document.createElement("input"); input.type = "text"; input.className = "inr-cohitch-input";
+        input.placeholder = placeholder; input.setAttribute("autocomplete", "off");
+        const cur = choices.find(function (p) { return p[0] === getVal(); });
+        if (cur) input.value = cur[1];
+        const list = document.createElement("ul"); list.className = "inr-cohitch-suggest"; list.style.display = "none";
+        const wrap = document.createElement("div"); wrap.className = "inr-cohitch-inputwrap";
+        wrap.appendChild(input); wrap.appendChild(list); w.appendChild(wrap);
+        input.addEventListener("input", function () {
+          const q = input.value.trim().toLowerCase();
+          list.innerHTML = "";
+          if (!q) { list.style.display = "none"; setVal(""); refreshMeters(); return; }
+          choices.filter(function (p) { return p[1].toLowerCase().indexOf(q) !== -1; }).slice(0, 8).forEach(function (p) {
+            const li = document.createElement("li"); li.textContent = p[1];
+            li.addEventListener("mousedown", function (e) { e.preventDefault(); input.value = p[1]; setVal(p[0]); list.style.display = "none"; refreshMeters(); });
+            list.appendChild(li);
+          });
+          list.style.display = list.children.length ? "block" : "none";
+        });
+      }
+
+      // ── Driver block ─────────────────────────────────────────────────────────
+      const reasonF = fieldWrap("Why did they pick you up?"); chipMulti(reasonF, ch.reasons, f.driver_reason_to_pick_up); sheet.appendChild(reasonF);
+      const genderF = fieldWrap("Driver gender"); chipSingle(genderF, ch.genders, function () { return f.driver_gender; }, function (v) { f.driver_gender = v; }); sheet.appendChild(genderF);
+      const ageF = fieldWrap("Approx. driver age");
+      const ageHelp = document.createElement("div"); ageHelp.className = "inr-field__help"; ageHelp.textContent = "A rough guess is fine."; ageF.appendChild(ageHelp);
+      const age = document.createElement("input"); age.type = "number"; age.min = "0"; age.max = "120"; age.className = "inr-cohitch-input"; age.inputMode = "numeric";
+      if (f.driver_age !== "") age.value = f.driver_age;
+      age.addEventListener("input", function () { f.driver_age = age.value === "" ? "" : parseInt(age.value, 10); refreshMeters(); });
+      ageF.appendChild(age); sheet.appendChild(ageF);
+      const originF = fieldWrap("Driver's country"); searchSelect(originF, ch.countries, "Search country…", function () { return f.driver_origin_country; }, function (v) { f.driver_origin_country = v; }); sheet.appendChild(originF);
+      const langF = fieldWrap("Languages spoken"); chipMulti(langF, ch.languages, f.driver_languages); sheet.appendChild(langF);
+
+      // ── Vehicle block ────────────────────────────────────────────────────────
+      const kindF = fieldWrap("Vehicle");
+      chipSingle(kindF, ch.vehicle_kinds.map(function (p) { return [p[0], p[1] + " " + p[0]]; }), function () { return f.vehicle_kind; }, function (v) { f.vehicle_kind = v; });
+      sheet.appendChild(kindF);
+      // Commercial tri-state toggle (Yes / No — unset until answered).
+      const commF = fieldWrap("Commercial driver?");
+      chipSingle(commF, [["yes", "Commercial"], ["no", "Private"]],
+        function () { return f.commercial === true ? "yes" : (f.commercial === false ? "no" : ""); },
+        function (v) { f.commercial = v === "yes" ? true : (v === "no" ? false : null); });
+      sheet.appendChild(commF);
+      const plateF = fieldWrap("Number-plate country"); searchSelect(plateF, ch.countries, "Search country…", function () { return f.vehicle_license_plate_country; }, function (v) { f.vehicle_license_plate_country = v; }); sheet.appendChild(plateF);
+      // make/model — passenger vehicles only (bonus). Hidden for other kinds by refreshMeters().
+      const makeModelWrap = document.createElement("div");
+      const makeF = fieldWrap("Make"); const make = document.createElement("input"); make.type = "text"; make.className = "inr-cohitch-input"; make.value = f.vehicle_make; make.addEventListener("input", function () { f.vehicle_make = make.value; refreshMeters(); }); makeF.appendChild(make); makeModelWrap.appendChild(makeF);
+      const modelF = fieldWrap("Model"); const model = document.createElement("input"); model.type = "text"; model.className = "inr-cohitch-input"; model.value = f.vehicle_model; model.addEventListener("input", function () { f.vehicle_model = model.value; refreshMeters(); }); modelF.appendChild(model); makeModelWrap.appendChild(modelF);
+      sheet.appendChild(makeModelWrap);
+
+      const saveBtn = document.createElement("button");
+      saveBtn.type = "button"; saveBtn.className = "inr-big inr-big--green inr-sheet__save";
+      saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> Save details';
+      saveBtn.addEventListener("click", function () { close(); onSave(f); });
+      sheet.appendChild(saveBtn);
+
+      function close() {
+        if (scrim.parentNode) scrim.parentNode.removeChild(scrim);
+        if (sheet.parentNode) sheet.parentNode.removeChild(sheet);
+        journeyUI._openDialog = null;
+      }
+      scrim.addEventListener("click", close);
+      document.body.appendChild(scrim); document.body.appendChild(sheet);
+      journeyUI._openDialog = { close };
+      refreshMeters();
+      return { close };
+    },
+
     // Start-of-journey modal: optional co-hitcher entry (reuses /search_usernames).
     // onStart(coHitchhikers[]) fires on "Start hitching"; dismissing aborts the start.
     coHitcherSheet(onStart) {
