@@ -35,6 +35,7 @@ from hitch.blueprints.utils.license_plate_country_codes import LICENSE_PLATE_COU
 from hitch.blueprints.utils.notifications import notify_co_hitchhiker_invite, unread_count
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.blueprints.utils.report_ride import REPORT_REASONS
+from hitch.blueprints.utils.ride_ip_log import get_client_ip, log_ride_ip
 from hitch.extensions import db
 from hitch.helpers import get_db
 from hitch.models import CoHitchhiker, Follow, RideEvent, RideReport, User
@@ -610,9 +611,6 @@ def ride_form():
         data["datetime_ride"] = departure_str
         data["arrival_datetime"] = arrival_str
 
-        # TODO: store IP and nostr event d tag pairs in a db table to prevent abuse
-        # ip = request.headers.getlist("X-Real-IP")[-1] if request.headers.getlist("X-Real-IP") else request.remote_addr
-
         # Get coordinates from individual form fields
         lat = float(data["pickup_lat"]) if data["pickup_lat"] else None
         lon = float(data["pickup_lon"]) if data["pickup_lon"] else None
@@ -683,6 +681,11 @@ def ride_form():
             d_tag = poster.post(ride_record=record, d_tag=client_d_tag)
             poster.close()
 
+        # Abuse trail: pair the saved ride's d tag with the submitter's IP so a flood of
+        # fake rides can be traced back to one source. Edits are logged too, since an
+        # abuser can also vandalise a ride they own by editing it.
+        log_ride_ip(d_tag)
+
         ### Co-hitchhikers
         # Requirement: co-hitchhikers already on a ride cannot be removed when editing, only new
         # ones can be added. We achieve this by only inserting co-hitchhikers not already in the DB.
@@ -741,7 +744,7 @@ def report_duplicate():
 
     now = str(datetime.datetime.utcnow())
 
-    ip = request.headers.getlist("X-Real-IP")[-1] if request.headers.getlist("X-Real-IP") else request.remote_addr
+    ip = get_client_ip()
 
     from_lat, from_lon, to_lat, to_lon = map(float, data["report"].split(","))
 
