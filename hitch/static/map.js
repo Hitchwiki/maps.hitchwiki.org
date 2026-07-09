@@ -1066,6 +1066,85 @@ function updateMapModeButtons() {
   if (legacyText) legacyText.textContent = mapMode === "heatmap" ? "Normal" : "Heatmap";
 }
 
+// ── Test-mode easter egg ────────────────────────────────────────────────────
+// Tap the heatmap mode button 9× to toggle a client-side "test mode": in-ride
+// submissions are short-circuited (inride.js submitBody) so nothing reaches the
+// real DB/Nostr while testing on-device. A countdown shows from the 4th tap; a
+// yellow bar under the search bar marks it active — tap the bar to exit.
+const TEST_MODE_KEY = "inride.testMode";
+const TEST_MODE_TAPS = 9;
+const TEST_MODE_COUNTDOWN_FROM = 4; // start showing "N more taps" at this tap
+
+function isTestMode() {
+  try { return localStorage.getItem(TEST_MODE_KEY) === "1"; } catch (e) { return false; }
+}
+
+function setTestMode(on) {
+  try {
+    if (on) localStorage.setItem(TEST_MODE_KEY, "1");
+    else localStorage.removeItem(TEST_MODE_KEY);
+  } catch (e) {}
+  renderTestModeBar();
+}
+
+// Yellow banner just under the top search bar (see .test-mode-bar CSS).
+function renderTestModeBar() {
+  let bar = document.getElementById("test-mode-bar");
+  if (isTestMode()) {
+    if (!bar) {
+      bar = document.createElement("div");
+      bar.id = "test-mode-bar";
+      bar.className = "test-mode-bar";
+      bar.setAttribute("role", "button");
+      bar.textContent = "🧪 TEST MODE — nothing is saved · tap to exit";
+      bar.addEventListener("click", function () {
+        setTestMode(false);
+        showTestToast("Test mode off");
+      });
+      document.body.appendChild(bar);
+    }
+  } else if (bar) {
+    bar.remove();
+  }
+}
+
+let _testToastTimer = null;
+function showTestToast(msg) {
+  let t = document.getElementById("test-mode-toast");
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "test-mode-toast";
+    t.className = "test-mode-toast";
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  if (_testToastTimer) clearTimeout(_testToastTimer);
+  _testToastTimer = setTimeout(function () { if (t && t.parentNode) t.remove(); }, 1500);
+}
+
+let _heatTapCount = 0;
+let _heatTapResetTimer = null;
+// Called on every tap of the heatmap mode button (in addition to its normal toggle).
+function registerHeatmapTap() {
+  if (isTestMode()) return; // already active — taps just toggle the heatmap normally
+  _heatTapCount++;
+  // Reset the streak if taps stop for a moment so stray clicks don't accumulate.
+  if (_heatTapResetTimer) clearTimeout(_heatTapResetTimer);
+  _heatTapResetTimer = setTimeout(function () { _heatTapCount = 0; }, 2000);
+
+  if (_heatTapCount >= TEST_MODE_TAPS) {
+    _heatTapCount = 0;
+    clearTimeout(_heatTapResetTimer);
+    setTestMode(true);
+    showTestToast("🧪 Test mode on — rides won't be saved");
+    return;
+  }
+  if (_heatTapCount >= TEST_MODE_COUNTDOWN_FROM) {
+    const remaining = TEST_MODE_TAPS - _heatTapCount;
+    showTestToast(remaining + (remaining === 1 ? " more tap" : " more taps") + " to test mode…");
+  }
+}
+
 // Vertical Spots/Heatmap/Countries switcher, sitting just above the locate button.
 function setupMapModeControl() {
   const modes = [
@@ -1086,6 +1165,8 @@ function setupMapModeControl() {
         btn.innerHTML = `<i class="${icon}" aria-hidden="true"></i>`;
         L.DomEvent.on(btn, "click", function (e) {
           L.DomEvent.preventDefault(e);
+          // Easter egg: 9 taps on the heatmap button toggles test mode.
+          if (mode === "heatmap") registerHeatmapTap();
           setMapMode(mode);
         });
         mapModeButtons[mode] = btn;
@@ -1096,6 +1177,8 @@ function setupMapModeControl() {
   });
   new ModeControl().addTo(map);
   updateMapModeButtons();
+  // Restore the yellow bar if test mode was left on from a previous session.
+  renderTestModeBar();
 }
 
 // ---- One-time feature pointers -------------------------------------------

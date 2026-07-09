@@ -54,6 +54,47 @@ html {
   display: none !important;
 }
 
+/* Test-mode banner: sits just under the top search bar (top 48px + 44px height +
+   gap), matching its width. Yellow so it's unmistakable; tap to exit test mode. */
+.test-mode-bar {
+  position: fixed;
+  top: 98px;
+  left: 16px;
+  right: 68px;
+  max-width: 600px;
+  z-index: 1000;
+  background: #ffd400;
+  color: #3a2f00;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  text-align: center;
+  padding: 7px 12px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Transient countdown / status toast for the test-mode easter egg. */
+.test-mode-toast {
+  position: fixed;
+  top: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1200;
+  background: rgba(0, 0, 0, 0.82);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 20px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
 /* Top search bar - only the main geocoder in the Leaflet control container */
 .leaflet-control-container .leaflet-control-geocoder {
   position: fixed !important;

@@ -109,6 +109,13 @@
   // POST a saved outbox body to /ride. Resolves with {status, json}; a thrown network
   // error resolves as {status:0} (not a rejection) so the flush loop can classify it.
   function submitBody(body) {
+    // Test-mode dry-run (heatmap-button easter egg): never hit the network, so nothing
+    // reaches the real DB / Nostr. Resolve as a success so the outbox + UI flow behaves
+    // exactly as a real upload (chip clears, "saved", what's-next).
+    if (localStorage.getItem("inride.testMode") === "1") {
+      console.log("[test mode] skipped /ride POST", body);
+      return Promise.resolve({ status: 200, json: { ok: true, d_tag: "test-" + (body.client_d_tag || "") } });
+    }
     return fetch("/ride", {
       method: "POST",
       headers: { "X-Requested-With": "inride", "Content-Type": "application/x-www-form-urlencoded" },
