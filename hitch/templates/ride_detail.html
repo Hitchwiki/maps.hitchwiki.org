@@ -161,10 +161,23 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     border: 1px solid #ddd;
     border-radius: 6px;
     color: #b02a37;
+    font: inherit;
     font-size: 0.85em;
+    cursor: pointer;
     text-decoration: none;
 }
 .report-btn:hover { background: #fdf0f1; border-color: #e3b6ba; color: #b02a37; text-decoration: none; }
+/* The delete button is a form, but must sit inline with the other header actions. */
+.header-actions form { margin: 0; }
+.deleted-notice {
+    background: #fdf0f1;
+    border: 1px solid #e3b6ba;
+    color: #b02a37;
+    border-radius: 6px;
+    padding: 0.6rem 0.9rem;
+    margin-bottom: 1rem;
+    font-size: 0.95em;
+}
 .report-confirm {
     background: #d4edda;
     border: 1px solid #28a745;
@@ -208,7 +221,13 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
                 <span class="share-btn-label">Share</span>
             </button>
             {% if ride.is_owner %}
-                <a href="/ride?edit={{ ride.d_tag }}" class="edit-link"><i class="fa fa-pen"></i> Edit ride</a>
+                {% if not owner_deleted %}
+                    <a href="/ride?edit={{ ride.d_tag }}" class="edit-link"><i class="fa fa-pen"></i> Edit ride</a>
+                    <form method="post" action="/delete-ride/{{ ride.d_tag }}"
+                          onsubmit="return confirm('Delete this ride? It will no longer be shown on the map.');">
+                        <button type="submit" class="report-btn"><i class="fa fa-trash"></i> Delete this ride</button>
+                    </form>
+                {% endif %}
             {% else %}
                 <a href="/report-ride/{{ ride.d_tag }}" class="report-btn">
                     <i class="fa fa-flag"></i>
@@ -220,6 +239,13 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
 
     {% if report_confirmed %}
     <div class="report-confirm"><i class="fa fa-check-circle"></i> Thanks — your report has been recorded.</div>
+    {% endif %}
+
+    {% if owner_deleted %}
+    <div class="deleted-notice">
+        <i class="fa fa-eye-slash"></i> This ride has been deleted and is no longer shown on the map.
+        It may take a few minutes to disappear.
+    </div>
     {% endif %}
 
     <div class="location-grid">

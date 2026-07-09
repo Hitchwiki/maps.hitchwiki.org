@@ -37,7 +37,7 @@ from hitch.blueprints.utils.iso_country_codes import ISO_3166_1_ALPHA_2
 from hitch.blueprints.utils.license_plate_country_codes import LICENSE_PLATE_COUNTRY_CHOICES
 from hitch.blueprints.utils.notifications import notify_co_hitchhiker_invite, unread_count
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
-from hitch.blueprints.utils.report_ride import REPORT_REASONS
+from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON, REPORT_REASONS
 from hitch.blueprints.utils.ride_ip_log import get_client_ip, log_ride_ip
 from hitch.extensions import db
 from hitch.helpers import get_db, get_dirs
@@ -427,12 +427,44 @@ def ride_detail(d_tag):
         not current_user.is_anonymous
         and RideReport.query.filter_by(ride_d_tag=d_tag, user_id=current_user.id).first() is not None
     )
+    # An owner deletion hides the ride from the map, so the owner sees "hidden" state
+    # instead of a delete button (the ride page itself stays reachable via its permalink).
+    owner_deleted = RideReport.query.filter_by(ride_d_tag=d_tag, reason=OWNER_DELETE_REASON).first() is not None
     return render_template(
         "ride_detail.html",
         ride=ride_view,
         already_reported=already_reported,
+        owner_deleted=owner_deleted,
         report_confirmed=request.args.get("reported") == "1",
     )
+
+
+@main_bp.route("/delete-ride/<d_tag>", methods=["POST"])
+def delete_ride(d_tag):
+    """Let a ride's author hide their own ride.
+
+    The event lives on the Nostr relays and cannot be recalled, so "delete" here means a
+    single RideReport row with OWNER_DELETE_REASON, which show.py treats as sufficient to
+    drop the ride from every generated map file (no reporter threshold).
+    """
+    if current_user.is_anonymous:
+        return redirect(f"/login?next=/ride/{d_tag}")
+
+    ride = db.session.query(RideEvent).filter_by(d=d_tag).first()
+    if not ride:
+        abort(404)
+    if not _user_owns_ride(ride, current_user):
+        abort(403)
+
+    # Reports are unique per (ride, user): if the owner had already filed a report, promote
+    # it to the deletion reason rather than inserting a second row.
+    existing = RideReport.query.filter_by(ride_d_tag=d_tag, user_id=current_user.id).first()
+    if existing:
+        existing.reason = OWNER_DELETE_REASON
+    else:
+        db.session.add(RideReport(ride_d_tag=d_tag, user_id=current_user.id, reason=OWNER_DELETE_REASON))
+    db.session.commit()
+    return redirect(f"/ride/{d_tag}")
 
 
 @main_bp.route("/report-ride/<d_tag>", methods=["GET", "POST"])
