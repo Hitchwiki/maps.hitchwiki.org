@@ -1525,23 +1525,133 @@ document.addEventListener("click", (e) => {
   window.location.href = card.dataset.rideHref;
 });
 
-function summaryText(data) {
-  const osmLink = data.osm_id ? `<br>🚏 <a href="https://www.openstreetmap.org/node/${data.osm_id}" target="_blank" rel="noopener noreferrer">Official hitchhiking spot</a>` : '';
+// A spot needs at least this many rides carrying a value before its distribution is
+// worth drawing — below that the bars say nothing the average doesn't already say.
+const SPOT_HIST_MIN_SAMPLES = 10;
+// Histograms currently drawn in the spot pane, kept so a resize can repaint them
+// (a canvas loses its contents whenever its backing store is resized).
+let spotHistograms = { wait: null, distance: null };
+
+// Bin one field of the open spot's rides. Returns null when there are too few
+// values, so callers omit the chart entirely.
+function spotHistogram(rides, field) {
+  if (!rides) return null;
+  const values = rides
+    .map((r) => r[field])
+    .filter((v) => typeof v === "number" && !Number.isNaN(v));
+  if (values.length < SPOT_HIST_MIN_SAMPLES) return null;
+  // Same mean ± 3σ clipping as the insights and country charts: a single 900-minute
+  // wait must not squash every other bar into the first bin.
+  return computeHistogram(clipForHistogram(values).values);
+}
+
+function formatHistBound(v) {
+  return Math.abs(v) < 10 && !Number.isInteger(v) ? v.toFixed(1) : Math.round(v).toString();
+}
+
+// Markup for one compact distribution strip. The canvas is painted afterwards
+// (drawSpotHistograms) because it has no size until it is in the document.
+function spotHistogramMarkup(hist, id, unit) {
+  if (!hist) return "";
+  return `<div class="spot-hist">
+      <canvas id="${id}" class="spot-hist-chart" aria-label="Distribution of ${unit === "min" ? "waiting time" : "ride distance"}"></canvas>
+      <div class="spot-hist-axis"><span>${formatHistBound(hist.lo)}</span><span>${formatHistBound(hist.hi)} ${unit}</span></div>
+    </div>`;
+}
+
+// Deliberately axis-less and short: the spot pane's job is the ride list, so the
+// distribution is a shape hint under the average, not a full chart.
+function renderMiniHistogram(canvas, hist) {
+  if (!canvas || !hist) return;
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = canvas.clientWidth || 260;
+  const cssH = canvas.clientHeight || 34;
+  canvas.width = Math.round(cssW * dpr);
+  canvas.height = Math.round(cssH * dpr);
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, cssW, cssH);
+
+  const counts = hist.counts;
+  const bins = counts.length;
+  const maxCount = Math.max(...counts);
+  if (!maxCount) return;
+
+  const baseline = cssH - 1;
+  const gap = bins > 20 ? 1 : 2;
+  for (let i = 0; i < bins; i++) {
+    if (!counts[i]) continue;
+    const bw = cssW / bins - gap;
+    const bx = (i / bins) * cssW + gap / 2;
+    // Floor the height at 1px so a bin holding a single ride stays visible next to a tall one.
+    const bh = Math.max(1, (counts[i] / maxCount) * (baseline - 1));
+    const by = baseline - bh;
+    const grad = ctx.createLinearGradient(0, by, 0, baseline);
+    grad.addColorStop(0, INSIGHTS_BAR_COLOR_TOP);
+    grad.addColorStop(1, INSIGHTS_BAR_COLOR);
+    ctx.fillStyle = grad;
+    const r = Math.min(2, bw / 2, bh);
+    ctx.beginPath();
+    if (typeof ctx.roundRect === "function") ctx.roundRect(bx, by, bw, bh, [r, r, 0, 0]);
+    else ctx.rect(bx, by, bw, bh);
+    ctx.fill();
+  }
+
+  ctx.strokeStyle = "#e2e6ee";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, baseline + 0.5);
+  ctx.lineTo(cssW, baseline + 0.5);
+  ctx.stroke();
+}
+
+function drawSpotHistograms() {
+  renderMiniHistogram($$("#spot-wait-hist"), spotHistograms.wait);
+  renderMiniHistogram($$("#spot-distance-hist"), spotHistograms.distance);
+}
+
+// Repaint on resize: the canvas is cleared when its backing store is re-sized to
+// match the new CSS width.
+window.addEventListener("resize", () => {
+  const pane = $$(".sidebar.show-spot");
+  if (pane && pane.classList.contains("visible")) drawSpotHistograms();
+});
+
+// Single entry point for the spot pane's summary: writes the markup and paints the
+// canvases, which the summaryText string alone cannot do.
+function renderSpotSummary(data) {
+  spotHistograms = {
+    wait: spotHistogram(data.rides, "wait"),
+    distance: spotHistogram(data.rides, "distance"),
+  };
+  $$("#spot-summary").innerHTML = summaryText(data, spotHistograms);
+  drawSpotHistograms();
+}
+
+// `hists` is omitted by the GPX export, which wants the plain summary lines only.
+function summaryText(data, hists = { wait: null, distance: null }) {
+  const osmLink = data.osm_id ? `<div>🚏 <a href="https://www.openstreetmap.org/node/${data.osm_id}" target="_blank" rel="noopener noreferrer">Official hitchhiking spot</a></div>` : '';
   const carPoolingLink = data.car_pooling
-    ? `<br>🚗 <a href="https://www.openstreetmap.org/${data.car_pooling.osm_type}/${data.car_pooling.id}" target="_blank" rel="noopener noreferrer">Car pooling spot</a>`
+    ? `<div>🚗 <a href="https://www.openstreetmap.org/${data.car_pooling.osm_type}/${data.car_pooling.id}" target="_blank" rel="noopener noreferrer">Car pooling spot</a></div>`
     : '';
   const hitchwikiLink = data.hitchwiki_article
-    ? `<br>📄 <a href="${data.hitchwiki_article}" target="_blank" rel="noopener noreferrer">Mentioned on Hitchwiki</a>`
+    ? `<div>📄 <a href="${data.hitchwiki_article}" target="_blank" rel="noopener noreferrer">Mentioned on Hitchwiki</a></div>`
     : '';
   const hitchwikiMapLink = data.hitchwiki_map
-    ? `<br>🗺️ <a href="${data.hitchwiki_map}" target="_blank" rel="noopener noreferrer">On Hitchwiki</a>`
+    ? `<div>🗺️ <a href="${data.hitchwiki_map}" target="_blank" rel="noopener noreferrer">On Hitchwiki</a></div>`
     : '';
-  
-  return `Rating: ${data.rating && data.rating.toFixed(0)}/5<br>Waiting time: ${
-      !data.wait || Number.isNaN(data.wait) ? "-" : data.wait.toFixed(0) + " min"
-    }<br>Ride distance: ${
-      !data.distance || Number.isNaN(data.distance) ? "-" : data.distance.toFixed(0) + " km"
-    }${osmLink}${carPoolingLink}${hitchwikiLink}${hitchwikiMapLink}`;
+
+  const wait = !data.wait || Number.isNaN(data.wait) ? "-" : data.wait.toFixed(0) + " min";
+  const distance = !data.distance || Number.isNaN(data.distance) ? "-" : data.distance.toFixed(0) + " km";
+
+  // Lines are <div>s rather than <br>-separated text: each histogram is a block
+  // element, and a <br> after one would open an empty line under the chart.
+  return `<div>Rating: ${data.rating && data.rating.toFixed(0)}/5</div>
+    <div>Waiting time: ${wait}</div>
+    ${spotHistogramMarkup(hists.wait, "spot-wait-hist", "min")}
+    <div>Ride distance: ${distance}</div>
+    ${spotHistogramMarkup(hists.distance, "spot-distance-hist", "km")}
+    ${osmLink}${carPoolingLink}${hitchwikiLink}${hitchwikiMapLink}`;
 }
 
 async function handleMarkerClick(marker, point, e) {
@@ -1592,9 +1702,10 @@ async function handleMarkerClick(marker, point, e) {
 
   marker.options._data.rides = spotRides;
 
-  // Re-render the summary now that the fetched spot details are merged in
-  // (the first render in markerClick only had the slim spots.json fields).
-  $$("#spot-summary").innerHTML = summaryText(marker.options._data);
+  // Re-render the summary now that the fetched spot details and rides are merged in
+  // (the first render in markerClick only had the slim spots.json fields, so it could
+  // show the averages but not the distributions).
+  renderSpotSummary(marker.options._data);
 
   // Update rides content now that the fetch is complete
   $$("#spot-text").innerHTML = renderRideCards(spotRides);
@@ -1619,7 +1730,7 @@ function markerClick(marker) {
   $$("#spot-osm-link").href =
     `https://www.openstreetmap.org/?mlat=${data.lat}&mlon=${data.lon}#map=18/${data.lat}/${data.lon}`;
 
-  $$("#spot-summary").innerHTML = summaryText(data);
+  renderSpotSummary(data);
 
   // "Hitch here" — start a tracked ride from THIS spot's canonical coordinates via the
   // in-ride flow (same entry as the long-press "Start Hitching", incl. the soft login
