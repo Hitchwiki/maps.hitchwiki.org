@@ -201,6 +201,15 @@ html {
   .top-account-btn.login-pulse { animation: none; }
 }
 
+/* Logged-in state: a steady soft blue glow (and blue icon) marks the account as
+   signed in — the calm counterpart to the logged-out red nudge. */
+.top-account-btn.logged-in {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), 0 0 12px 3px rgba(26, 115, 232, 0.55);
+}
+.top-account-btn.logged-in a {
+  color: #1a73e8;
+}
+
 .top-account-btn a {
   color: #555;
   font-size: 24px;

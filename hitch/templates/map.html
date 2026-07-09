@@ -491,7 +491,7 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
 </a>
 <!-- Top-right account button -->
 {% if not hide_account_button %}
-<div class="top-account-btn{% if not is_logged_in %} logged-out{% endif %}" id="top-account-btn">
+<div class="top-account-btn{% if is_logged_in %} logged-in{% else %} logged-out{% endif %}" id="top-account-btn">
     <a href="/me" title="{{ 'You have unread notifications' if unread_notifications else 'Your account' }}">
         <i class="fa-solid fa-circle-user"></i>
         {% if not is_logged_in %}
