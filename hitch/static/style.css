@@ -99,7 +99,8 @@ html {
   content: "";
   position: absolute;
   top: -7px;
-  left: 15px; /* points up at the 44px button above (left 16 + ~22 centre) */
+  /* JS sets --arrow-x so the arrow tracks the (draggable) button's centre. */
+  left: var(--arrow-x, 15px);
   border: 7px solid transparent;
   border-top: none;
   border-bottom-color: #fff;

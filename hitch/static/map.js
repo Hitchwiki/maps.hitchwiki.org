@@ -1082,6 +1082,7 @@ function updateMapModeButtons() {
 const TEST_MODE_KEY = "inride.testMode";
 const TEST_MODE_TAPS = 9;
 const TEST_MODE_COUNTDOWN_FROM = 4; // start showing "N more taps" at this tap
+const TEST_BTN_POS_KEY = "inride.testBtnPos"; // remembered drag position of the indicator
 
 function isTestMode() {
   try { return localStorage.getItem(TEST_MODE_KEY) === "1"; } catch (e) { return false; }
@@ -1124,14 +1125,77 @@ function renderTestModeIndicator() {
         e.stopPropagation();
         toggleTestModeCallout();
       });
+      makeTestBtnDraggable(btn);
       document.body.appendChild(btn);
+      restoreTestBtnPos(btn); // after append so offsetWidth/Height are known
     }
-    // If the heatmap legend ("filter bar") is already showing, drop below it.
-    btn.classList.toggle("below-legend", isLegendVisible());
+    // Auto-drop below the heatmap legend only while the user hasn't hand-placed it.
+    if (!hasTestBtnPos()) btn.classList.toggle("below-legend", isLegendVisible());
   } else {
     if (btn) btn.remove();
     closeTestModeCallout();
   }
+}
+
+function hasTestBtnPos() {
+  try { return !!localStorage.getItem(TEST_BTN_POS_KEY); } catch (e) { return false; }
+}
+
+// Apply a previously dragged position (clamped to the current viewport).
+function restoreTestBtnPos(btn) {
+  let pos = null;
+  try { pos = JSON.parse(localStorage.getItem(TEST_BTN_POS_KEY) || "null"); } catch (e) {}
+  if (!pos) return;
+  btn.style.left = Math.max(4, Math.min(window.innerWidth - btn.offsetWidth - 4, pos.left)) + "px";
+  btn.style.top = Math.max(4, Math.min(window.innerHeight - btn.offsetHeight - 4, pos.top)) + "px";
+  btn.style.bottom = "auto";
+  btn.classList.remove("below-legend");
+}
+
+// Make the indicator draggable so it can be moved out of the way. A press-and-
+// release still counts as a tap (opens the callout); movement past a small
+// threshold is a drag, and the resting position is remembered across reloads.
+function makeTestBtnDraggable(btn) {
+  let dragging = false, moved = false, sx = 0, sy = 0, ox = 0, oy = 0, pid = null;
+  const THRESH = 6;
+  btn.style.touchAction = "none";
+  btn.addEventListener("pointerdown", function (e) {
+    pid = e.pointerId;
+    const r = btn.getBoundingClientRect();
+    sx = e.clientX; sy = e.clientY; ox = r.left; oy = r.top;
+    moved = false; dragging = true;
+    try { btn.setPointerCapture(pid); } catch (e2) {}
+  });
+  btn.addEventListener("pointermove", function (e) {
+    if (!dragging) return;
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    if (!moved && Math.hypot(dx, dy) < THRESH) return;
+    moved = true;
+    closeTestModeCallout(); // don't leave a stray callout mid-drag
+    btn.style.left = Math.max(4, Math.min(window.innerWidth - btn.offsetWidth - 4, ox + dx)) + "px";
+    btn.style.top = Math.max(4, Math.min(window.innerHeight - btn.offsetHeight - 4, oy + dy)) + "px";
+    btn.style.bottom = "auto";
+    btn.classList.remove("below-legend"); // hand-placed now — stop auto-positioning
+  });
+  function end() {
+    if (!dragging) return;
+    dragging = false;
+    try { btn.releasePointerCapture(pid); } catch (e2) {}
+    if (moved) {
+      try {
+        localStorage.setItem(TEST_BTN_POS_KEY, JSON.stringify({
+          left: parseInt(btn.style.left, 10),
+          top: parseInt(btn.style.top, 10),
+        }));
+      } catch (e2) {}
+    }
+  }
+  btn.addEventListener("pointerup", end);
+  btn.addEventListener("pointercancel", end);
+  // Swallow the click that follows a drag so it doesn't also toggle the callout.
+  btn.addEventListener("click", function (e) {
+    if (moved) { e.stopImmediatePropagation(); e.preventDefault(); moved = false; }
+  }, true);
 }
 
 let _testCalloutOutside = null;
@@ -1164,6 +1228,17 @@ function toggleTestModeCallout() {
   });
   c.appendChild(exit);
   document.body.appendChild(c);
+  // Anchor the callout just below the button, wherever it currently sits (it's
+  // draggable), and point the arrow at the button's centre.
+  const anchor = document.getElementById("test-mode-btn");
+  if (anchor) {
+    const r = anchor.getBoundingClientRect();
+    const cl = Math.max(8, Math.min(window.innerWidth - c.offsetWidth - 8, r.left));
+    c.style.left = cl + "px";
+    c.style.top = (r.bottom + 8) + "px";
+    c.style.bottom = "auto";
+    c.style.setProperty("--arrow-x", Math.max(10, Math.min(c.offsetWidth - 20, r.left + r.width / 2 - cl - 7)) + "px");
+  }
   // Dismiss on any outside click (capture phase so it beats other handlers). The
   // button's own click is stopPropagation'd, so it won't immediately re-close.
   _testCalloutOutside = function (e) {
