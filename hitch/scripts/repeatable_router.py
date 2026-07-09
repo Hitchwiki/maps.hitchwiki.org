@@ -1,22 +1,94 @@
 """Routing engine over the repeatable hitchhiking routes.
 
-Builds a time-weighted multi-modal graph from dist/repeatable_routes.json and
-answers point-to-point queries with Dijkstra.
+TL;DR
+-----
+Construct a graph of of ride we think are repeatable (that is a route that was taken by at least two rides starting from the same spot
+- if there is one longer and one shorter route only the overlapping route counts, as one could just have taken the longer ride and
+asked to exit earlier, but the rest of the longer route is not considered because there is not enough evidence that it is repeatable).
+For a route we consider all spots that it passes along as possibilities to switch cars such that we can not only recommend to do the exact ride as in our database but
+also account for asking to exit earlier (e.g. on a rest station on a highway). To calculate times of routes we consider walking to 
+and in between spots that are not reachable by a car ride, naive travel times for the car rides and the average waiting time for a ride at a spot.
 
-Model (matches the stated assumptions):
-  * Nodes are hitchhiking spots. Car edges are the repeatable segments — every
-    parent->child edge of the pruned prefix trees — travelled at CAR_SPEED_KMH.
-    They are directed (rides go outward from their start spot).
-  * Because each segment is its own edge and spots are a shared identity, you may
-    board at any spot a corridor passes and alight at any downstream spot, and
-    switch cars wherever two corridors meet — Dijkstra takes whichever is fastest.
-  * Walking (WALK_SPEED_KMH) connects the origin to nearby spots, nearby spots to
-    the destination, and spots to each other (to hop between corridors that pass
-    close but don't share a spot). A direct origin->destination walk is allowed too.
-  * Only spots that take part in a car edge are walkable — a spot no car passes is
-    a dead end, useful to reach only if it were the destination itself.
+Every leg costs minutes: walking at WALK_SPEED_KMH, riding at CAR_SPEED_KMH, plus the measured
+average *waiting time* each time you catch a new ride. `routes()` returns up to k
+genuinely different alternatives.
+
+TODO: Weight how certain one can get a suggested ride: we should prefer a route that was taken 10 times reliabily over one that was just
+taken 2 time.
+
+Assumed parameters
+------------------
+  WALK_SPEED_KMH      = 5     walking pace
+  CAR_SPEED_KMH       = 100   average speed once you're in a car
+  CAR_ROAD_FACTOR     = 1.25  great-circle -> road distance fudge for car edges
+  DEFAULT_MAX_WALK_KM = 20.0  how far you'll walk: origin->spot, spot->dest and
+                              spot<->spot (override via --max-walk-km; the web UI
+                              in static/routing.js uses the same 20 km)
+  waiting time        = the average waiting time of all rides recorded on that
+                        edge; edges with no data fall back to the global average
+                        (self.default_wait), so an unknown edge is never "free".
+
+The data (dist/repeatable_routes.json)
+--------------------------------------
+build_ride_routes.py groups each ride's start into a canonical spot (matching the
+map's spots), routes the ride with OSRM, records which other spots that route
+passes, and merges those sequences into a prefix tree per start spot. Branches
+supported by fewer than 2 rides are pruned. What survives is a set of
+*corridors*: trees rooted at a spot where rides actually begin.
+
+    corridor rooted at A          spots: A B C D E
+                                  "3 rides went A->B->C, 2 of them continued to D,
+      A --> B --> C --> D          2 other rides went A->B->E"
+             \\
+              --> E
+
+Graph model
+-----------
+  * Nodes are spots. A **car edge** is one parent->child step of a corridor tree,
+    directed (rides flow outward from the root), length = great-circle *
+    CAR_ROAD_FACTOR, cost = travel time.
+  * **Boarding is only allowed at a corridor's root** — the spot where its rides
+    actually start. A mid-corridor node is a place the car merely drives past at
+    speed; you cannot flag down a new ride there. You may *alight* anywhere, and
+    you ride onward through a corridor for free (you're already in the car).
+  * **Walk edges** (undirected) connect the origin to nearby spots, spots to the
+    destination, and spot<->spot within max_walk_km — the last kind lets you hop
+    between two corridors that pass close but share no spot. A direct
+    origin->destination walk is allowed too.
+  * Only spots taking part in a car edge are walkable; a spot no car passes is a
+    dead end.
+
+The search: corridor-aware Dijkstra
+-----------------------------------
+A plain shortest-path over spots can't tell "still in the same car" from "got out
+and flagged a new one" — only the latter costs a wait. So a **state is
+(spot, corridor)**, where `corridor` is the tree you're currently riding, or
+NO_TREE (-1) when you're on foot:
+
+    (A, NO_TREE) --board, +wait(A,B)--> (B, corridor_1)   caught a ride at root A
+    (B, corridor_1) --car, free-------> (C, corridor_1)   still in the same car
+    (C, corridor_1) --walk------------> (C', NO_TREE)     got out, walked over
+    (C', NO_TREE) --board, +wait------> (D, corridor_2)   caught a different ride
+
+Continuing a corridor is free; every *board* pays that edge's waiting time. Thus a
+journey pays exactly one wait per distinct ride, whether the change of car happens
+after a walk or by switching corridors at a shared spot. Dijkstra over these
+states then yields the fastest realistic journey, and _itinerary() collapses the
+step-by-step predecessor chain into human-readable legs (each "board" starts a new
+car leg).
+
+    origin ~~walk~~> A ==car==> C ~~walk~~> C' ==car==> E ~~walk~~> destination
+           (first mile)                                        (last mile)
+
+Alternatives (`routes`) use the penalty method: find the fastest route, multiply
+the car edges it used by `penalty`, search again, and keep a candidate only if it
+shares less than `max_overlap` of its car distance with every route already kept.
+Reported times are always the true, unpenalised ones.
 
 Everything is time-based (minutes); the returned itinerary is the fastest journey.
+
+Note: static/routing.js is a JS port of this engine and must stay numerically
+identical — apply engine changes to both.
 """
 
 import argparse
@@ -32,7 +104,7 @@ CAR_SPEED_KMH = 100
 CAR_ROAD_FACTOR = 1.25
 
 # How far one is willing to walk (origin->spot, spot->dest, spot<->spot), km.
-DEFAULT_MAX_WALK_KM = 2.0
+DEFAULT_MAX_WALK_KM = 20.0
 
 EARTH_RADIUS_KM = 6371.0
 
