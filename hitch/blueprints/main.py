@@ -93,6 +93,7 @@ def render_map(map_variation):
         hide_add_spot_button=current_app.config.get("HIDE_ADD_SPOT_BUTTON", False),
         hide_account_button=current_app.config.get("HIDE_ACCOUNT_BUTTON", False),
         is_logged_in=not current_user.is_anonymous,
+        username=("" if current_user.is_anonymous else current_user.username),
         unread_notifications=unread_count(current_user),
     )
 
