@@ -22,10 +22,22 @@ logger = logging.getLogger(__name__)
 UPSTREAM_URL = "https://nomadwiki.org/dumps/maps.hitchwiki.org-dump.sqlite.gz"
 TABLES_TO_SYNC = [
     "points",
-    "duplicates", 
+    "duplicates",
     "service_areas",
     "road_islands"
 ]
+
+
+def get_local_db_path():
+    """Resolve the active DB the same way hitch/settings.py does: db/{DATABASE_NAME}.
+
+    Must not hardcode a filename: this script previously read a fixed name that no
+    longer matched DATABASE_NAME in production, so it backed up and synced a stale
+    file instead of the live database.
+    Defaults to the production DB name so a manual run on the server just works.
+    """
+    db_name = os.getenv("DATABASE_NAME", "hitchhiking-prod.sqlite")
+    return os.path.join(get_dirs()["db"], db_name)
 
 
 def create_backup():
@@ -39,11 +51,11 @@ def create_backup():
     
     # Generate timestamp for backup filename
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    backup_filename = f"points_backup_{timestamp}.sqlite"
+    backup_filename = f"hitchhiking_backup_{timestamp}.sqlite"
     backup_path = os.path.join(backup_dir, backup_filename)
-    
+
     # Copy current database to backup
-    local_db_path = os.path.join(db_path, "points.sqlite")
+    local_db_path = get_local_db_path()
     if os.path.exists(local_db_path):
         shutil.copy2(local_db_path, backup_path)
         logger.info(f"Created backup: {backup_path}")
@@ -174,8 +186,7 @@ def main():
     """Main function to orchestrate the sync process."""
     logger.info("Starting upstream database sync")
     
-    dirs = get_dirs()
-    local_db_path = os.path.join(dirs["db"], "points.sqlite")
+    local_db_path = get_local_db_path()
     temp_upstream_path = None
     
     try:

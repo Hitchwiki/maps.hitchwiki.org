@@ -26,6 +26,9 @@ var allMarkers = [],
   // Map-mode switcher: "spots" (default), "heatmap", or "countries".
   mapMode = "spots",
   countryLayer = null,
+  // Hitchwiki Category:Event markers (dist/events.json), drawn on their own layer.
+  eventLayer = null,
+  eventsData = null,
   mapModeButtons = {};
 
 // Current-location button state. The marker/circle are created lazily on the
@@ -236,12 +239,21 @@ async function setHeatmapActive(active) {
 // Position the heatmap legend pane below the filter pane
 function positionLegendPane() {
   var legendPane = document.getElementById('heatmap-legend-pane');
-  var filterPane = document.getElementById('filter-pane');
   if (!legendPane || legendPane.style.display === 'none') return;
-  if (filterPane) {
-    var rect = filterPane.getBoundingClientRect();
-    legendPane.style.top = (rect.bottom + 8) + 'px';
-  }
+  // Filters moved out of a persistent top panel into an icon-launched modal, so anchor
+  // the heatmap legend at a fixed top just below the search bar instead of relative to it.
+  legendPane.style.top = '104px';
+}
+
+// Filters modal (opened by the search-bar filter icon). Remove `collapsed` so the body
+// shows, then flag the body so the modal + scrim become visible (see style.css).
+function openFiltersModal() {
+  var pane = document.getElementById('filter-pane');
+  if (pane) pane.classList.remove('collapsed');
+  document.body.classList.add('filters-open');
+}
+function closeFiltersModal() {
+  document.body.classList.remove('filters-open');
 }
 
 // Populate the heatmap legend pane with data
@@ -282,23 +294,40 @@ function populateHeatmapLegend(legendData) {
   // Load markers asynchronously
   await loadMarkers(map);
 
+  // Hitchwiki event markers — non-blocking, they're a small overlay.
+  loadEventMarkers(map);
+
   setupEventListeners();
 
-  // Nudge first-time users toward the view switcher; short delay so the pointer
-  // doesn't fight the initial map load/animation.
-  setTimeout(showNextModeHint, 1500);
+  // Logged-out nudge: the account icon pulses a faint red glow and shows the "Log in to
+  // track your rides" badge until the user taps the screen. Dismissed on first tap and
+  // remembered so it doesn't nag on later visits. (Badge only exists when logged out.)
+  (function () {
+    var badge = document.querySelector(".login-prompt-badge");
+    var accountBtn = document.getElementById("top-account-btn");
+    if (!badge || !accountBtn) return;
+    if (localStorage.getItem("loginBadgeDismissed")) { badge.style.display = "none"; return; }
+    accountBtn.classList.add("login-pulse");
+    document.addEventListener("pointerdown", function () {
+      badge.style.display = "none";
+      accountBtn.classList.remove("login-pulse");
+      try { localStorage.setItem("loginBadgeDismissed", "1"); } catch (e) {}
+    }, { once: true });
+  })();
 
-  // Set up filter pane collapse toggle
+  // Nudge first-time users toward the features they'd otherwise miss; short delay
+  // so the pointer doesn't fight the initial map load/animation.
+  setTimeout(showNextFeatureHint, 1500);
+
+  // Filters are now an icon-launched modal (opened from the search bar). The header
+  // button — and a tap on the scrim — close it.
   var filterCollapseBtn = document.getElementById('filter-collapse-btn');
   var filterPaneEl = document.getElementById('filter-pane');
   if (filterCollapseBtn && filterPaneEl) {
-    // Also allow clicking the header text to toggle
-    filterCollapseBtn.closest('.filter-pane-header').addEventListener('click', function() {
-      filterPaneEl.classList.toggle('collapsed');
-      // Reposition legend after collapse animation
-      setTimeout(positionLegendPane, 250);
-    });
+    filterCollapseBtn.closest('.filter-pane-header').addEventListener('click', closeFiltersModal);
   }
+  var filtersScrim = document.getElementById('filters-scrim');
+  if (filtersScrim) filtersScrim.addEventListener('click', closeFiltersModal);
 
   // Set up heatmap legend collapse toggle
   var legendCollapseBtn = document.getElementById('legend-collapse-btn');
@@ -327,6 +356,11 @@ function populateHeatmapLegend(legendData) {
 
   // These functions make the navigation work
   handleHashChange();
+  // Keep #map=z/lat/lon in step with the map so the address bar is always a
+  // link to what the user is looking at. Registered after handleHashChange so
+  // the initial view is read from the URL before we start writing to it.
+  map.on("moveend", updateMapHash);
+  updateMapHash();
   window.onhashchange = navigate;
   // Spot selection now lives in ?lat=&lon= query params (changed via
   // pushState), so back/forward fires popstate rather than hashchange — listen
@@ -375,6 +409,20 @@ function setupGeocoder() {
   routeBtn.innerHTML = '<i class="fa-solid fa-route"></i>';
   // Keep clicks on the button from reaching the map (pan/zoom on the control).
   L.DomEvent.disableClickPropagation(routeBtn);
+
+  // Filter button, just left of the route button — opens the filters as a modal
+  // (replaces the old persistent top filter panel). Keeps filters out of the way
+  // until wanted, and one tap from the search bar.
+  const filterBtn = L.DomUtil.create("a", "geocoder-filter-btn", geocoderController.getContainer());
+  filterBtn.href = "#";
+  filterBtn.title = "Filters";
+  filterBtn.setAttribute("aria-label", "Filters");
+  filterBtn.innerHTML = '<i class="fa-solid fa-sliders"></i>';
+  L.DomEvent.disableClickPropagation(filterBtn);
+  L.DomEvent.on(filterBtn, "click", function (ev) {
+    L.DomEvent.preventDefault(ev);
+    openFiltersModal();
+  });
 
 
   geocoderController.on("markgeocode", function (e) {
@@ -430,6 +478,13 @@ function requestLocation() {
 function showLocation(e) {
   const radius = e.accuracy; // metres
 
+  // While selecting a location (notably the destination leg, which starts with
+  // no pin), a GPS-button tap is the user asking to drop the endpoint on their
+  // current position — so place/move the selection pin there too.
+  if (locationSelectionType) {
+    placeOrMoveSelectionMarker(e.latlng);
+  }
+
   if (locationMarker) {
     locationMarker.setLatLng(e.latlng);
   } else {
@@ -441,9 +496,15 @@ function showLocation(e) {
     });
     locationMarker = L.marker(e.latlng, {
       icon: icon,
-      interactive: false,
+      // The bubble is an entry point to the choose-action dialog; interactive:true
+      // lets the click handler fire without itself setting pickup/destination.
+      interactive: true,
       keyboard: false,
     }).addTo(map);
+    locationMarker.on("click", function () {
+      const p = map.latLngToContainerPoint(locationMarker.getLatLng());
+      if (window.inrideOnEntryGesture) window.inrideOnEntryGesture(locationMarker.getLatLng(), p);
+    });
   }
 
   // Restart the blue->grey freshness fade on every fix. The marker (and its dot
@@ -656,8 +717,10 @@ function renderCountryWikitext(raw) {
   t = stripWikiImages(t); // [[File:...]] / [[Image:...]] embeds
   t = t.replace(/^\s*[*#:;].*$/gm, ""); // list/indent lines (keep it prose-only)
 
-  // Escape any remaining raw HTML before we inject our own safe markup.
-  t = escapeHtml(t);
+  // Escape HTML-significant chars before we inject our own safe markup, but keep
+  // apostrophes intact: escapeHtml() turns ' into &#39;, which would stop the
+  // '''bold''' / ''italic'' passes below from ever matching their quote markers.
+  t = t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
   // Internal links: [[target|label]] and [[target]]
   t = t.replace(/\[\[([^\[\]|]+)\|([^\[\]]+)\]\]/g, (m, target, label) =>
@@ -870,6 +933,125 @@ function setSpotsVisible(visible) {
   }
 }
 
+// --- Hitchwiki events ---------------------------------------------------------
+// Load dist/events.json (upcoming/ongoing Category:Event markers) and draw each as
+// a distinct calendar-pin marker on its own layer, so events stand out from spots
+// and can be shown/hidden independently of the spot markers.
+async function loadEventMarkers(map) {
+  try {
+    const resp = await fetch("/events.json");
+    if (!resp.ok) return; // no events file yet (e.g. sync hasn't run) — silently skip
+    eventsData = await resp.json();
+  } catch (error) {
+    console.warn("Could not load events:", error);
+    return;
+  }
+  if (!Array.isArray(eventsData) || eventsData.length === 0) return;
+
+  eventLayer = L.layerGroup();
+  eventsData.forEach((ev) => {
+    if (typeof ev.lat !== "number" || typeof ev.lon !== "number") return;
+    const icon = L.divIcon({
+      className: "event-marker",
+      html: '<div class="event-marker-pin">🎪</div>',
+      iconSize: [30, 30],
+      iconAnchor: [15, 15],
+    });
+    const marker = L.marker([ev.lat, ev.lon], { icon, title: ev.name });
+    marker.on("click", (e) => {
+      L.DomEvent.stopPropagation(e);
+      openEventSheet(ev);
+    });
+    marker.addTo(eventLayer);
+  });
+
+  // Events follow the spot markers: visible in spots/heatmap modes, hidden in Countries.
+  if (mapMode !== "countries") eventLayer.addTo(map);
+  console.log(`Loaded ${eventsData.length} event(s)`);
+}
+
+function setEventsVisible(visible) {
+  if (!eventLayer) return;
+  if (visible) {
+    if (!map.hasLayer(eventLayer)) eventLayer.addTo(map);
+  } else if (map.hasLayer(eventLayer)) {
+    map.removeLayer(eventLayer);
+  }
+}
+
+// Format an event's date range for the sheet, e.g. "1 Jul – 30 Aug 2026".
+function formatEventDates(ev) {
+  const opts = { day: "numeric", month: "short", year: "numeric" };
+  const end = ev.end ? new Date(ev.end) : null;
+  const start = ev.start ? new Date(ev.start) : null;
+  const fmt = (d) => (d && !isNaN(d) ? d.toLocaleDateString(undefined, opts) : null);
+  const s = fmt(start);
+  const e = fmt(end);
+  if (s && e) return `${s} – ${e}`;
+  return e || s || "";
+}
+
+function openEventSheet(ev) {
+  clear();
+  $$("#event-sheet-name").textContent = ev.name || "Event";
+  $$("#event-sheet-dates").textContent = formatEventDates(ev);
+  const wikiUrl = ev.url || COUNTRY_WIKI_BASE + encodeURIComponent((ev.title || ev.name || "").replace(/ /g, "_"));
+  $$("#event-sheet-source").innerHTML = ev.title
+    ? `Text from <a href="${escapeHtml(wikiUrl)}" target="_blank" rel="noopener">Hitchwiki: ${escapeHtml(ev.title)}</a>, ` +
+      `licensed <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA</a>.`
+    : "";
+  $$("#event-sheet-description").innerHTML = `<p class="sheet-status">Loading from Hitchwiki…</p>`;
+  bar(".sidebar.event");
+  updateBottomPaneVar();
+  setSheetSnap($$(".sidebar.event"), "full", EVENT_SHEET_SNAPS);
+  map.panTo([ev.lat, ev.lon]);
+  loadEventSheetText(ev);
+}
+
+// Resolve the page-name magic words MediaWiki would normally expand server-side
+// ({{FULLPAGENAME}}, {{PAGENAME}}, {{BASEPAGENAME}}, {{SUBPAGENAME}}). We render raw
+// wikitext client-side, so these stay literal and — worse — get dropped by the
+// template stripper, leaving gaps like a stray '''''' bold. Substitute them with the
+// actual page title before rendering. The trailing "E" variants are URL-encoded forms.
+function substituteWikiPageName(wikitext, title) {
+  const base = title.includes("/") ? title.slice(0, title.lastIndexOf("/")) : title;
+  const sub = title.includes("/") ? title.slice(title.lastIndexOf("/") + 1) : title;
+  return wikitext
+    .replace(/\{\{\s*(?:FULLPAGENAME|PAGENAME)E?\s*\}\}/gi, title)
+    .replace(/\{\{\s*BASEPAGENAMEE?\s*\}\}/gi, base)
+    .replace(/\{\{\s*SUBPAGENAMEE?\s*\}\}/gi, sub);
+}
+
+// Fetch the event's full Hitchwiki page and render it with the same MediaWiki
+// reader used for country pages (renderCountryWikitext), so the sheet shows the
+// complete page text with working links instead of a truncated server excerpt.
+// Falls back to the server-extracted blurb in events.json if the live fetch fails.
+async function loadEventSheetText(ev) {
+  const body = $$("#event-sheet-description");
+  try {
+    // No section param → the whole page's wikitext.
+    const data = await fetch(countryWikiApi(ev.title, "&prop=wikitext")).then((r) => r.json());
+    let wikitext = data && data.parse && data.parse.wikitext && data.parse.wikitext["*"];
+    if (wikitext) {
+      wikitext = substituteWikiPageName(wikitext, ev.title || ev.name || "");
+      // Category tags aren't prose; renderCountryWikitext would otherwise turn
+      // [[Category:Events]] into a stray link at the end of the article.
+      wikitext = wikitext.replace(/\[\[Category:[^\]]*\]\]/gi, "");
+      const html = renderCountryWikitext(wikitext);
+      if (html) {
+        body.innerHTML = html;
+        return;
+      }
+    }
+  } catch (e) {
+    console.warn("Could not load event page from Hitchwiki:", e);
+  }
+  const desc = (ev.description || "").trim();
+  body.innerHTML = desc
+    ? desc.split(/\n\n+/).map((p) => `<p>${escapeHtml(p).replace(/\n/g, "<br>")}</p>`).join("")
+    : `<p class="sheet-status">No description available.</p>`;
+}
+
 // Single source of truth for which map mode is active.
 async function setMapMode(mode) {
   mapMode = mode;
@@ -878,11 +1060,13 @@ async function setMapMode(mode) {
   if (mode === "countries") {
     await setHeatmapActive(false);
     setSpotsVisible(false);
+    setEventsVisible(false);
     const layer = await loadCountryLayer();
     if (!map.hasLayer(layer)) layer.addTo(map);
   } else {
     if (countryLayer && map.hasLayer(countryLayer)) map.removeLayer(countryLayer);
     setSpotsVisible(true);
+    setEventsVisible(true);
     await setHeatmapActive(mode === "heatmap");
   }
 
@@ -908,7 +1092,7 @@ function updateMapModeButtons() {
 // Vertical Spots/Heatmap/Countries switcher, sitting just above the locate button.
 function setupMapModeControl() {
   const modes = [
-    { mode: "spots", icon: "fa-solid fa-location-dot", title: "Spots" },
+    { mode: "spots", icon: "fa-solid fa-thumbs-up", title: "Spots" },
     { mode: "heatmap", icon: "fa fa-fire", title: "Waiting-time heatmap" },
     { mode: "countries", icon: "fa-solid fa-earth-europe", title: "Country hitchability" },
   ];
@@ -937,17 +1121,29 @@ function setupMapModeControl() {
   updateMapModeButtons();
 }
 
-// ---- One-time feature pointers for the map-mode switcher ------------------
-// Ordered queue: each entry drops a red pointer next to a mode button, shown
-// ONCE per user (a boolean flag in localStorage — no reappear window). Only the
-// first not-yet-seen pointer is shown at a time, and it is dismissed ONLY by
-// clicking the feature it points at; that click then advances to the next
-// pointer. So the heatmap and country pointers never appear together but strictly
-// in sequence, each waiting for the user to actually try the feature.
-const MODE_HINTS = [
-  { mode: "heatmap", key: "hintSeen.heatmap" },
-  { mode: "countries", key: "hintSeen.countries" },
+// ---- One-time feature pointers -------------------------------------------
+// Ordered queue: each entry drops a red pointer next to a feature's button, shown
+// ONCE per user (a boolean flag in localStorage — no reappear window). At most ONE
+// pointer is shown per page load: the first not-yet-seen hint whose button is
+// visible. Clicking that button dismisses it for good, and the next hint waits for
+// the next page load rather than appearing immediately — several of these buttons
+// are neighbours (filter sits 38px from route), so chaining them in place reads as
+// an arrow that refused to go away rather than as a new hint.
+//
+// `el` is resolved lazily because the search-bar buttons are created by Leaflet
+// controls after this module is evaluated. `placement` picks which side of the
+// button the arrow sits on: the mode switcher is docked bottom-right (arrow to
+// its left), the search bar sits at the top (arrow below it), and the action
+// pane at the bottom (arrow above it).
+const FEATURE_HINTS = [
+  { key: "hintSeen.heatmap", el: () => mapModeButtons.heatmap, placement: "left" },
+  { key: "hintSeen.countries", el: () => mapModeButtons.countries, placement: "left" },
+  { key: "hintSeen.routes", el: () => $$(".geocoder-route-btn"), placement: "below" },
+  { key: "hintSeen.filters", el: () => $$(".geocoder-filter-btn"), placement: "below" },
+  { key: "hintSeen.activities", el: () => $$("#action-activities"), placement: "above" },
 ];
+
+const HINT_ARROW_ICON = { left: "fa-arrow-right", below: "fa-arrow-up", above: "fa-arrow-down" };
 
 function hintSeen(key) {
   // If storage is blocked, treat as seen so we never nag users we can't remember.
@@ -957,34 +1153,68 @@ function markHintSeen(key) {
   try { localStorage.setItem(key, "1"); } catch (e) {}
 }
 
-function showNextModeHint() {
-  const hint = MODE_HINTS.find((h) => !hintSeen(h.key));
-  if (!hint) return; // all features already tried
-  const btn = mapModeButtons[hint.mode];
-  if (!btn) return;
+function showNextFeatureHint() {
+  // A button can be absent on pages that hide it (e.g. embeds). Skip past those
+  // without marking the hint seen, so it can still be shown on a full map page.
+  let hint, btn;
+  for (const h of FEATURE_HINTS) {
+    if (hintSeen(h.key)) continue;
+    const el = h.el();
+    if (el && el.offsetParent !== null) { hint = h; btn = el; break; }
+  }
+  if (!hint) return; // all features already tried, or none of their buttons exist here
 
   const pointer = document.createElement("div");
-  pointer.className = "mode-hint-pointer";
-  pointer.innerHTML = '<i class="fa-solid fa-arrow-right" aria-hidden="true"></i>';
+  pointer.className = `mode-hint-pointer mode-hint-pointer--${hint.placement}`;
+  pointer.innerHTML = `<i class="fa-solid ${HINT_ARROW_ICON[hint.placement]}" aria-hidden="true"></i>`;
   document.body.appendChild(pointer);
 
-  // The switcher is docked bottom-right, so sit just to its left pointing in.
+  // The pointer is a fixed-position child of <body>, so it does not inherit its
+  // target's visibility: opening the routing sheet hides the whole search bar and
+  // would otherwise leave the arrow stranded over nothing. Re-check on every
+  // reposition and hide alongside the button.
   function position() {
+    if (btn.offsetParent === null) {
+      pointer.style.display = "none";
+      return;
+    }
+    pointer.style.display = "";
     const r = btn.getBoundingClientRect();
-    pointer.style.top = `${r.top + r.height / 2}px`;
-    pointer.style.right = `${window.innerWidth - r.left + 8}px`;
+    if (hint.placement === "left") {
+      pointer.style.top = `${r.top + r.height / 2}px`;
+      pointer.style.right = `${window.innerWidth - r.left + 8}px`;
+    } else {
+      pointer.style.left = `${r.left + r.width / 2}px`;
+      if (hint.placement === "below") pointer.style.top = `${r.bottom + 8}px`;
+      else pointer.style.bottom = `${window.innerHeight - r.top + 8}px`;
+    }
   }
   position();
   window.addEventListener("resize", position);
+  // Sheets that hide the arrow's target are opened by hash navigation (#routing,
+  // #menu, …) and closed by either a hash change or the back button, which fires
+  // popstate instead. Re-run the visibility check on both.
+  window.addEventListener("hashchange", position);
+  window.addEventListener("popstate", position);
 
-  function dismiss() {
+  function dismiss(ev) {
+    if (ev && !btn.contains(ev.target)) return;
     markHintSeen(hint.key);
     pointer.remove();
     window.removeEventListener("resize", position);
-    showNextModeHint(); // advance to the next unseen feature, if any
+    window.removeEventListener("hashchange", position);
+    window.removeEventListener("popstate", position);
+    document.removeEventListener("pointerdown", dismiss, true);
+    document.removeEventListener("click", dismiss, true);
   }
-  // Dismissal is clicking the feature itself — no banner, no close button.
-  btn.addEventListener("click", dismiss, { once: true });
+  // Dismissal is using the feature itself — no banner, no close button. Both hint
+  // buttons live inside Leaflet controls that stop event propagation, and the route
+  // button is an <a href="#routing"> that opens a sheet the moment it is pressed —
+  // so a plain bubble-phase "click" on the button is not reliably delivered. Listen
+  // on the document in the capture phase (nothing can swallow it first) and accept
+  // pointerdown too, so a tap counts even when no click follows it.
+  document.addEventListener("pointerdown", dismiss, true);
+  document.addEventListener("click", dismiss, true);
 }
 
 function setupLocateControl() {
@@ -1020,6 +1250,7 @@ function setupEventListeners() {
   setupMenuSheet();
   setupRoutingSheet();
   setupCountrySheet();
+  setupEventSheet();
   const reportDup = $$(".report-dup");
   if (reportDup) reportDup.onclick = () =>
     document.body.classList.add("reporting-duplicate");
@@ -1094,6 +1325,17 @@ function handleMapClick(e) {
   // under the control would open. Ignore clicks originating on a control.
   const oe = e.originalEvent;
   if (oe && oe.target && oe.target.closest && oe.target.closest(".leaflet-control")) return;
+
+  // While selecting a location, every tap is meant to place/move the endpoint
+  // pin (handled by locationSelectionClickHandler). Bail out before the
+  // tap-to-nearest-spot shortcut below, which would otherwise fire a nearby
+  // spot's click — opening its popup or navigating away and tearing down the
+  // selection, which is exactly what forced the user to tap several times.
+  if (locationSelectionType) return;
+
+  // While the routing planner is open, map clicks set the start/destination
+  // (handled by routing.js onMapClick) — don't also drop a spot pin here.
+  if (window.RoutingUI && window.RoutingUI.active) return;
 
   var added = false;
   // Countries mode hides the spot markers (but keeps them in `allMarkers`), so
@@ -1171,7 +1413,18 @@ function setupFilterEventListeners() {
 
 // Handle changes in the URL hash; used for initialization of the map
 function handleHashChange() {
-  if (!window.location.hash.includes(",")) {
+  // Initial viewport, most specific statement of intent first: an explicit
+  // #map= from a shared link, else the spot the path names, else the view this
+  // browser last left the map at, else the world.
+  const hashView = parseMapHash(window.location.hash);
+  const spot = spotFromUrl();
+  if (hashView) {
+    map.setView([hashView.lat, hashView.lon], hashView.zoom);
+  } else if (spot) {
+    // A bare /spot/<id> link should frame the spot, not whatever view
+    // localStorage happens to remember from this browser's last visit.
+    map.setView([spot.lat, spot.lon], 16);
+  } else if (!window.location.hash.includes(",")) {
     if (!restoreView.apply(map)) {
       map.fitBounds([
         [-35, -40],
@@ -1207,7 +1460,10 @@ function handleHashChange() {
     if (filterPaneEl) filterPaneEl.remove();
   }
 
-  if (map.getZoom() > 17 && window.location.hash != "#success-duplicate")
+  // Clamp an over-zoomed restored view, but never a zoom the URL asked for
+  // explicitly — silently rewriting a shared #map=18/… link to 17 would mean
+  // the recipient doesn't see what the sender saw.
+  if (!hashView && map.getZoom() > 17 && window.location.hash != "#success-duplicate")
     map.setZoom(17);
 }
 
@@ -1301,23 +1557,133 @@ document.addEventListener("click", (e) => {
   window.location.href = card.dataset.rideHref;
 });
 
-function summaryText(data) {
-  const osmLink = data.osm_id ? `<br>🚏 <a href="https://www.openstreetmap.org/node/${data.osm_id}" target="_blank" rel="noopener noreferrer">Official hitchhiking spot</a>` : '';
+// A spot needs at least this many rides carrying a value before its distribution is
+// worth drawing — below that the bars say nothing the average doesn't already say.
+const SPOT_HIST_MIN_SAMPLES = 10;
+// Histograms currently drawn in the spot pane, kept so a resize can repaint them
+// (a canvas loses its contents whenever its backing store is resized).
+let spotHistograms = { wait: null, distance: null };
+
+// Bin one field of the open spot's rides. Returns null when there are too few
+// values, so callers omit the chart entirely.
+function spotHistogram(rides, field) {
+  if (!rides) return null;
+  const values = rides
+    .map((r) => r[field])
+    .filter((v) => typeof v === "number" && !Number.isNaN(v));
+  if (values.length < SPOT_HIST_MIN_SAMPLES) return null;
+  // Same mean ± 3σ clipping as the insights and country charts: a single 900-minute
+  // wait must not squash every other bar into the first bin.
+  return computeHistogram(clipForHistogram(values).values);
+}
+
+function formatHistBound(v) {
+  return Math.abs(v) < 10 && !Number.isInteger(v) ? v.toFixed(1) : Math.round(v).toString();
+}
+
+// Markup for one compact distribution strip. The canvas is painted afterwards
+// (drawSpotHistograms) because it has no size until it is in the document.
+function spotHistogramMarkup(hist, id, unit) {
+  if (!hist) return "";
+  return `<div class="spot-hist">
+      <canvas id="${id}" class="spot-hist-chart" aria-label="Distribution of ${unit === "min" ? "waiting time" : "ride distance"}"></canvas>
+      <div class="spot-hist-axis"><span>${formatHistBound(hist.lo)}</span><span>${formatHistBound(hist.hi)} ${unit}</span></div>
+    </div>`;
+}
+
+// Deliberately axis-less and short: the spot pane's job is the ride list, so the
+// distribution is a shape hint under the average, not a full chart.
+function renderMiniHistogram(canvas, hist) {
+  if (!canvas || !hist) return;
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = canvas.clientWidth || 260;
+  const cssH = canvas.clientHeight || 34;
+  canvas.width = Math.round(cssW * dpr);
+  canvas.height = Math.round(cssH * dpr);
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, cssW, cssH);
+
+  const counts = hist.counts;
+  const bins = counts.length;
+  const maxCount = Math.max(...counts);
+  if (!maxCount) return;
+
+  const baseline = cssH - 1;
+  const gap = bins > 20 ? 1 : 2;
+  for (let i = 0; i < bins; i++) {
+    if (!counts[i]) continue;
+    const bw = cssW / bins - gap;
+    const bx = (i / bins) * cssW + gap / 2;
+    // Floor the height at 1px so a bin holding a single ride stays visible next to a tall one.
+    const bh = Math.max(1, (counts[i] / maxCount) * (baseline - 1));
+    const by = baseline - bh;
+    const grad = ctx.createLinearGradient(0, by, 0, baseline);
+    grad.addColorStop(0, INSIGHTS_BAR_COLOR_TOP);
+    grad.addColorStop(1, INSIGHTS_BAR_COLOR);
+    ctx.fillStyle = grad;
+    const r = Math.min(2, bw / 2, bh);
+    ctx.beginPath();
+    if (typeof ctx.roundRect === "function") ctx.roundRect(bx, by, bw, bh, [r, r, 0, 0]);
+    else ctx.rect(bx, by, bw, bh);
+    ctx.fill();
+  }
+
+  ctx.strokeStyle = "#e2e6ee";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, baseline + 0.5);
+  ctx.lineTo(cssW, baseline + 0.5);
+  ctx.stroke();
+}
+
+function drawSpotHistograms() {
+  renderMiniHistogram($$("#spot-wait-hist"), spotHistograms.wait);
+  renderMiniHistogram($$("#spot-distance-hist"), spotHistograms.distance);
+}
+
+// Repaint on resize: the canvas is cleared when its backing store is re-sized to
+// match the new CSS width.
+window.addEventListener("resize", () => {
+  const pane = $$(".sidebar.show-spot");
+  if (pane && pane.classList.contains("visible")) drawSpotHistograms();
+});
+
+// Single entry point for the spot pane's summary: writes the markup and paints the
+// canvases, which the summaryText string alone cannot do.
+function renderSpotSummary(data) {
+  spotHistograms = {
+    wait: spotHistogram(data.rides, "wait"),
+    distance: spotHistogram(data.rides, "distance"),
+  };
+  $$("#spot-summary").innerHTML = summaryText(data, spotHistograms);
+  drawSpotHistograms();
+}
+
+// `hists` is omitted by the GPX export, which wants the plain summary lines only.
+function summaryText(data, hists = { wait: null, distance: null }) {
+  const osmLink = data.osm_id ? `<div>🚏 <a href="https://www.openstreetmap.org/node/${data.osm_id}" target="_blank" rel="noopener noreferrer">Official hitchhiking spot</a></div>` : '';
   const carPoolingLink = data.car_pooling
-    ? `<br>🚗 <a href="https://www.openstreetmap.org/${data.car_pooling.osm_type}/${data.car_pooling.id}" target="_blank" rel="noopener noreferrer">Car pooling spot</a>`
+    ? `<div>🚗 <a href="https://www.openstreetmap.org/${data.car_pooling.osm_type}/${data.car_pooling.id}" target="_blank" rel="noopener noreferrer">Car pooling spot</a></div>`
     : '';
   const hitchwikiLink = data.hitchwiki_article
-    ? `<br>📄 <a href="${data.hitchwiki_article}" target="_blank" rel="noopener noreferrer">Mentioned on Hitchwiki</a>`
+    ? `<div>📄 <a href="${data.hitchwiki_article}" target="_blank" rel="noopener noreferrer">Mentioned on Hitchwiki</a></div>`
     : '';
   const hitchwikiMapLink = data.hitchwiki_map
-    ? `<br>🗺️ <a href="${data.hitchwiki_map}" target="_blank" rel="noopener noreferrer">On Hitchwiki</a>`
+    ? `<div>🗺️ <a href="${data.hitchwiki_map}" target="_blank" rel="noopener noreferrer">On Hitchwiki</a></div>`
     : '';
-  
-  return `Rating: ${data.rating && data.rating.toFixed(0)}/5<br>Waiting time: ${
-      !data.wait || Number.isNaN(data.wait) ? "-" : data.wait.toFixed(0) + " min"
-    }<br>Ride distance: ${
-      !data.distance || Number.isNaN(data.distance) ? "-" : data.distance.toFixed(0) + " km"
-    }${osmLink}${carPoolingLink}${hitchwikiLink}${hitchwikiMapLink}`;
+
+  const wait = !data.wait || Number.isNaN(data.wait) ? "-" : data.wait.toFixed(0) + " min";
+  const distance = !data.distance || Number.isNaN(data.distance) ? "-" : data.distance.toFixed(0) + " km";
+
+  // Lines are <div>s rather than <br>-separated text: each histogram is a block
+  // element, and a <br> after one would open an empty line under the chart.
+  return `<div>Rating: ${data.rating && data.rating.toFixed(0)}/5</div>
+    <div>Waiting time: ${wait}</div>
+    ${spotHistogramMarkup(hists.wait, "spot-wait-hist", "min")}
+    <div>Ride distance: ${distance}</div>
+    ${spotHistogramMarkup(hists.distance, "spot-distance-hist", "km")}
+    ${osmLink}${carPoolingLink}${hitchwikiLink}${hitchwikiMapLink}`;
 }
 
 async function handleMarkerClick(marker, point, e) {
@@ -1368,9 +1734,10 @@ async function handleMarkerClick(marker, point, e) {
 
   marker.options._data.rides = spotRides;
 
-  // Re-render the summary now that the fetched spot details are merged in
-  // (the first render in markerClick only had the slim spots.json fields).
-  $$("#spot-summary").innerHTML = summaryText(marker.options._data);
+  // Re-render the summary now that the fetched spot details and rides are merged in
+  // (the first render in markerClick only had the slim spots.json fields, so it could
+  // show the averages but not the distributions).
+  renderSpotSummary(marker.options._data);
 
   // Update rides content now that the fetch is complete
   $$("#spot-text").innerHTML = renderRideCards(spotRides);
@@ -1395,7 +1762,22 @@ function markerClick(marker) {
   $$("#spot-osm-link").href =
     `https://www.openstreetmap.org/?mlat=${data.lat}&mlon=${data.lon}#map=18/${data.lat}/${data.lon}`;
 
-  $$("#spot-summary").innerHTML = summaryText(data);
+  renderSpotSummary(data);
+
+  // "Hitch here" — start a tracked ride from THIS spot's canonical coordinates via the
+  // in-ride flow (same entry as the long-press "Start Hitching", incl. the soft login
+  // prompt). Seeding from the existing anchor keeps repeat rides on one spot rather than
+  // spawning near-duplicates. Hidden while a journey is already active (one at a time).
+  const hitchBtn = $$("#spot-hitch-here");
+  if (hitchBtn) {
+    const journeyActive = window.inride && window.inride.journeyStore && window.inride.journeyStore.get();
+    hitchBtn.style.display = window.inride && !journeyActive ? "" : "none";
+    hitchBtn.onclick = function () {
+      if (!window.inride || !window.L) return;
+      clear(); // close the spot sheet before the waiting UI takes over
+      window.inride.journeyFlow.startFromChoose(L.latLng(data.lat, data.lon));
+    };
+  }
 
   // Show a loading spinner while rides are fetched asynchronously
   $$("#spot-text").innerHTML = '<div class="spot-loading" role="status" aria-live="polite"><i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i><span class="sr-only">Loading rides</span></div>';
@@ -1423,10 +1805,12 @@ function markerClick(marker) {
   highlightStars(stars, 0);
 
   // Share button
-  // Put the coordinates in query params, not the #fragment: many messengers
-  // strip the fragment when auto-linking a pasted URL, so a `/#lat,lon` link
-  // arrives without coordinates. `?lat=&lon=` survives and navigate() reads it.
-  const spotUrl = `${location.origin}/?lat=${data.lat}&lon=${data.lon}`;
+  // The spot id goes in the path, not the #fragment: many messengers strip the
+  // fragment when auto-linking a pasted URL, so a `/#lat,lon` link arrived
+  // without coordinates. The #map= viewport is appended for recipients whose
+  // client keeps it, and is safely ignorable when it's stripped.
+  const spotPath = `/spot/${data.lat.toFixed(5)}_${data.lon.toFixed(5)}`;
+  const spotUrl = `${location.origin}${spotPath}#map=17/${data.lat.toFixed(5)}/${data.lon.toFixed(5)}`;
   const shareText = `Hitchhiking spot at ${data.lat.toFixed(4)}, ${data.lon.toFixed(4)}`;
   const shareBtn = $$("#share-spot-btn");
   const shareMenu = $$("#share-spot-menu");
@@ -1467,8 +1851,11 @@ function bar(selector) {
 // Snap percentages mirror the CSS translateY values for .snap-{peek,half,full}
 const SPOT_SHEET_SNAPS = { peek: 80, half: 60, full: 10 };
 const MENU_SHEET_SNAPS = { half: 55, full: 0 };
-const ROUTING_SHEET_SNAPS = { half: 55, full: 0 };
+// peek shows only the handle + "Routes" title (see the routing-specific CSS
+// override), so most of the map stays visible; full/half reveal the options.
+const ROUTING_SHEET_SNAPS = { peek: 88, half: 55, full: 0 };
 const COUNTRY_SHEET_SNAPS = { half: 55, full: 0 };
+const EVENT_SHEET_SNAPS = { half: 55, full: 0 };
 
 function setSheetSnap(sheet, name, snaps) {
   if (!sheet) return;
@@ -1483,11 +1870,16 @@ function setSpotSheetSnap(name) {
   setSheetSnap($$(".sidebar.show-spot"), name, SPOT_SHEET_SNAPS);
 }
 
-function setupBottomSheet({ sheet, handle, snaps, defaultSnap, onClose }) {
+function setupBottomSheet({ sheet, handle, snaps, defaultSnap, onClose, dismissable = true }) {
   if (!sheet || !handle) return;
 
   const orderedSnapNames = Object.keys(snaps).sort((a, b) => snaps[a] - snaps[b]); // top → bottom
   const FLING_THRESHOLD = 0.5; // px/ms
+  // Non-dismissable sheets (e.g. routing results) can't be swiped away — a
+  // down-drag bottoms out at the lowest snap instead of closing; only the X
+  // (its own onclick) closes them.
+  const bottomSnap = orderedSnapNames[orderedSnapNames.length - 1];
+  const dismiss = () => (dismissable ? close() : setSheetSnap(sheet, bottomSnap, snaps));
 
   let dragStartY = 0;
   let dragStartPct = snaps[defaultSnap];
@@ -1564,7 +1956,7 @@ function setupBottomSheet({ sheet, handle, snaps, defaultSnap, onClose }) {
     // from the bottom-most snap (or if the user dragged it most of the way off).
     if (Math.abs(velocity) > FLING_THRESHOLD) {
       if (velocity > 0) {
-        if (currentIdx === lastIdx || currentPct > 75) return close();
+        if (currentIdx === lastIdx || currentPct > 75) return dismiss();
         setSheetSnap(sheet, orderedSnapNames[Math.min(lastIdx, currentIdx + 1)], snaps);
       } else {
         setSheetSnap(sheet, orderedSnapNames[Math.max(0, currentIdx - 1)], snaps);
@@ -1573,7 +1965,7 @@ function setupBottomSheet({ sheet, handle, snaps, defaultSnap, onClose }) {
     }
 
     // Slow release: close if dragged near the bottom, otherwise snap to nearest.
-    if (currentPct > 90) return close();
+    if (currentPct > 90) return dismiss();
     let nearest = orderedSnapNames[0];
     let bestDist = Infinity;
     for (const name of orderedSnapNames) {
@@ -1644,6 +2036,8 @@ function setupRoutingSheet() {
     snaps: ROUTING_SHEET_SNAPS,
     defaultSnap: "half",
     onClose: navigateHome,
+    // Only the X closes the route pane; dragging down bottoms out at "peek".
+    dismissable: false,
   });
 }
 
@@ -1660,6 +2054,18 @@ function setupCountrySheet() {
   // Re-fit the histograms when the viewport width changes while the sheet is open.
   window.addEventListener("resize", () => {
     if ($$(".sidebar.country").classList.contains("visible")) redrawCountryInsightsCharts();
+  });
+}
+
+function setupEventSheet() {
+  const closeBtn = $$("#event-close");
+  if (closeBtn) closeBtn.onclick = navigateHome;
+  setupBottomSheet({
+    sheet: $$(".sidebar.event"),
+    handle: $$("#event-sheet-handle"),
+    snaps: EVENT_SHEET_SNAPS,
+    defaultSnap: "full",
+    onClose: navigateHome,
   });
 }
 
@@ -1741,6 +2147,19 @@ function renderPoints() {
 
 function navigateHome() {
   clearSpotUrl();
+  // A spot opened from a route (clicking a route marker) shows the spot pane over
+  // the route. Closing that pane should return to the route view — keep the drawn
+  // route and reopen the options pane — instead of exiting the planner entirely.
+  // (The route pane's own X calls RoutingUI.close() directly, so this only fires
+  // for the spot pane while routing is active.)
+  if (window.RoutingUI && window.RoutingUI.active) {
+    // Deselect the spot first: its destination arrows are drawn from `active`
+    // and would otherwise linger over the route after the pane closes.
+    active = [];
+    renderPoints();
+    window.RoutingUI.showAgain();
+    return;
+  }
   navigate(); // clears rest
 }
 
@@ -1885,35 +2304,138 @@ function clearParams() {
   navigate();
 }
 
-// Reflect the selected spot in the address bar as ?lat=&lon= rather than the
-// #lat,lon fragment: the fragment gets stripped by some messengers when the URL
-// is pasted, so a copied address-bar link arrived without coordinates. Other
-// query params (filters) are preserved. Idempotent — navigate() re-runs on
-// every filter change while a spot is open, so we must not push a duplicate
-// history entry when the URL already points at this spot.
-function setSpotUrl(lat, lon) {
-  const url = new URL(window.location.href);
-  const latStr = String(lat);
-  const lonStr = String(lon);
-  if (!url.hash && url.searchParams.get("lat") === latStr && url.searchParams.get("lon") === lonStr) {
-    return;
-  }
-  url.hash = "";
-  url.searchParams.set("lat", latStr);
-  url.searchParams.set("lon", lonStr);
-  window.history.pushState({}, "", url);
+// ---------------------------------------------------------------------------
+// URL scheme (mirrors OpenStreetMap's /node/<id>#map=<zoom>/<lat>/<lon>)
+//
+//   /spot/<lat>_<lon>   which spot is selected — identity, in the path
+//   #map=<zoom>/<lat>/<lon>   where the camera is — viewport, in the fragment
+//
+// Identity lives in the path because messengers strip the #fragment when
+// auto-linking a pasted URL; the viewport is the part that's harmless to lose.
+// Legacy ?lat=&lon= query params and #lat,lon hashes are still accepted as
+// input so old shared links keep resolving to the same spot.
+// ---------------------------------------------------------------------------
+
+const MAP_HASH_RE = /^#?map=(\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)$/;
+const SPOT_PATH_RE = /^\/spot\/(-?\d+\.\d+)_(-?\d+\.\d+)\/?$/;
+
+// The path the map was served under (/, /light, /hitchhiking.html …). Closing a
+// spot must return here, not unconditionally to "/", or the map variations and
+// their template tweaks would be lost on the way back.
+const BASE_PATH = SPOT_PATH_RE.test(window.location.pathname)
+  ? "/"
+  : window.location.pathname;
+
+// Decimals such that one digit of the coordinate is worth about one screen
+// pixel at this zoom — OSM's zoomPrecision. Keeps shared links short at world
+// zoom without throwing away precision when zoomed into a spot.
+function zoomPrecision(zoom) {
+  return Math.max(0, Math.ceil(Math.log(zoom) / Math.LN2));
 }
 
-// Drop the selected-spot URL state (hash + ?lat=&lon=) without navigating.
-// Filters and other query params are kept.
-function clearSpotUrl() {
+function formatMapHash(center, zoom) {
+  const p = zoomPrecision(zoom);
+  return `#map=${zoom}/${center.lat.toFixed(p)}/${center.lng.toFixed(p)}`;
+}
+
+function parseMapHash(hash) {
+  const m = MAP_HASH_RE.exec(hash || "");
+  return m ? { zoom: +m[1], lat: +m[2], lon: +m[3] } : null;
+}
+
+// The spot the current URL names, from the canonical path or a legacy link.
+function spotFromUrl() {
+  const m = SPOT_PATH_RE.exec(window.location.pathname);
+  if (m) return { lat: +m[1], lon: +m[2] };
+  const lat = getQueryParameter("lat"),
+    lon = getQueryParameter("lon");
+  if (lat != null && lon != null && !isNaN(lat) && !isNaN(lon))
+    return { lat: +lat, lon: +lon };
+  return null;
+}
+
+// Keep the address bar pointing at wherever the map currently is, so the URL is
+// always ready to copy. replaceState, not pushState: a pan is not a navigation,
+// and pushing would bury the back button under every mouse drag.
+function updateMapHash() {
+  if (!map._loaded) return;
   const url = new URL(window.location.href);
-  if (!url.hash && !url.searchParams.has("lat") && !url.searchParams.has("lon")) {
-    return;
-  }
-  url.hash = "";
+  // Only own the hash while it describes a viewport (or is empty). #menu,
+  // #routing, #country/… are navigation state that a pan must not clobber.
+  if (url.hash && !parseMapHash(url.hash)) return;
+  const next = formatMapHash(map.getCenter(), map.getZoom());
+  if (url.hash === next) return;
+  url.hash = next;
+  window.history.replaceState(window.history.state, "", url);
+}
+
+// Move the map to the viewport named by #map=. No-op when the hash already
+// describes where the map is — navigate() re-runs on every filter change, and
+// re-issuing setView there would fight the user's pan. Returns whether the hash
+// was a viewport hash at all (vs. #menu, #routing, …).
+function applyMapHash() {
+  const v = parseMapHash(window.location.hash);
+  if (!v) return false;
+  const c = map.getCenter(),
+    p = zoomPrecision(v.zoom);
+  const settled =
+    map.getZoom() === v.zoom &&
+    +c.lat.toFixed(p) === v.lat &&
+    +c.lng.toFixed(p) === v.lon;
+  if (!settled) map.setView([v.lat, v.lon], v.zoom);
+  return true;
+}
+
+// Reflect the selected spot in the address bar as /spot/<lat>_<lon>. The id
+// matches generate_spot_id() in show.py (5 decimals) and so also the
+// rides/by-spot/<id>.json filename. Idempotent — navigate() re-runs on every
+// filter change while a spot is open, so we must not push a duplicate history
+// entry when the URL already points at this spot. Filters and the viewport hash
+// are preserved; legacy ?lat=&lon= is dropped so only the canonical form spreads.
+// Does the URL already name this spot, in any form it may arrive in — canonical
+// path, legacy ?lat=&lon=, legacy #lat,lon? Rewriting such a URL to the
+// canonical path is a canonicalisation, not a navigation, so it must replace
+// rather than push: otherwise the back button lands on the pre-rewrite URL,
+// which resolves to this same spot and reopens it.
+function urlNamesSpot(lat, lon) {
+  const id = `${lat.toFixed(5)}_${lon.toFixed(5)}`;
+  const sameAs = (p) => `${p.lat.toFixed(5)}_${p.lon.toFixed(5)}` === id;
+  const fromPathOrQuery = spotFromUrl();
+  if (fromPathOrQuery) return sameAs(fromPathOrQuery);
+  const h = window.location.hash.slice(1).split("/")[0].split(",");
+  if (h.length < 2 || isNaN(h[0]) || isNaN(h[1])) return false;
+  return sameAs({ lat: +h[0], lon: +h[1] });
+}
+
+function setSpotUrl(lat, lon) {
+  const url = new URL(window.location.href);
+  const path = `/spot/${lat.toFixed(5)}_${lon.toFixed(5)}`;
+  const samePath = url.pathname === path;
+  const canonicalising = urlNamesSpot(lat, lon);
+  const legacyParams = url.searchParams.has("lat") || url.searchParams.has("lon");
+  // Keep a #map= viewport, drop any other hash (#lat,lon, #dir/…): it described
+  // the navigation that opened this spot and must not outlive it — a stale hash
+  // would also stop updateMapHash() from ever tracking the map again.
+  const staleHash = !!url.hash && !parseMapHash(url.hash);
+  if (samePath && !legacyParams && !staleHash) return;
+  url.pathname = path;
   url.searchParams.delete("lat");
   url.searchParams.delete("lon");
+  if (staleHash) url.hash = "";
+  window.history[canonicalising ? "replaceState" : "pushState"]({}, "", url);
+}
+
+// Drop the selected-spot URL state without navigating. Filters, the viewport
+// hash, and the map variation we were served under are all kept.
+function clearSpotUrl() {
+  const url = new URL(window.location.href);
+  if (!SPOT_PATH_RE.test(url.pathname) && !url.searchParams.has("lat") && !url.searchParams.has("lon")) {
+    return;
+  }
+  url.pathname = BASE_PATH;
+  url.searchParams.delete("lat");
+  url.searchParams.delete("lon");
+  if (url.hash && !parseMapHash(url.hash)) url.hash = "";
   window.history.pushState({}, "", url);
 }
 
@@ -2068,20 +2590,20 @@ async function applyParams() {
 async function navigate() {
   await applyParams();
 
-  let args = window.location.hash.slice(1).split("/");
+  // #map=z/lat/lon is viewport state, not navigation state: apply it, then let
+  // the rest of navigate() pick the pane from the path/query as if there were
+  // no hash at all.
+  const isMapHash = applyMapHash();
+
+  let args = isMapHash ? [""] : window.location.hash.slice(1).split("/");
   let mainArgs = args[0].split(",");
 
-  // Shareable spot links carry coordinates as ?lat=&lon= (the #fragment gets
-  // stripped by some messengers). When the hash has no coordinates of its own,
-  // fall back to these params so the link opens the spot like #lat,lon would.
-  const latParam = getQueryParameter("lat");
-  const lonParam = getQueryParameter("lon");
-  if (
-    !mainArgs[0] &&
-    latParam != null && lonParam != null &&
-    !isNaN(latParam) && !isNaN(lonParam)
-  ) {
-    mainArgs = [latParam, lonParam];
+  // The selected spot is named by the path (/spot/<lat>_<lon>), or by legacy
+  // ?lat=&lon= params on older shared links. Either way it wins over the hash,
+  // which now only describes where the camera is.
+  const spot = !mainArgs[0] || isMapHash ? spotFromUrl() : null;
+  if (spot) {
+    mainArgs = [spot.lat, spot.lon];
   }
 
   // #insights swaps the map for the insights view. Filter pane stays visible
@@ -2157,6 +2679,9 @@ async function navigate() {
     }
     // No exact marker match — pan to the coordinates
     map.setView([lat, lon], zoom || 14);
+  } else if (mainArgs[0] == "dir") {
+    // Shareable route link (#dir/from/to) — routing.js (openFromUrl) opens the
+    // planner and computes; don't clear() it out from under it.
   } else {
     clear();
   }
@@ -2789,6 +3314,42 @@ let locationSelectionIsNewSpot = false;
 // would strip handleMapClick too, breaking the map when we stay on it after cancel).
 let locationSelectionClickHandler = null;
 
+// If a tap/press lands within snapping range of a visible spot marker, treat
+// it as choosing THAT spot (merge the endpoint onto the spot's exact coords)
+// rather than creating a near-duplicate anchor next to it — the user is plausibly
+// aiming for that spot as their drop-off. Falls back to the raw latlng when the
+// press is nowhere near a spot, or when no screen point is available (e.g. GPS).
+function snapSelectionLatLng(latlng, containerPoint) {
+    const snapped = containerPoint ? findNearbySpotMarker(containerPoint) : null;
+    return snapped ? snapped.getLatLng() : latlng;
+}
+
+// Create the draggable selection pin on first placement, or move it if it
+// already exists. Shared by every way of placing the endpoint — single tap
+// (Leaflet click), long-press gesture, and the GPS button — so all three
+// behave identically and never stack a second marker.
+function placeOrMoveSelectionMarker(latlng) {
+    if (locationSelectionMarker) {
+        locationSelectionMarker.setLatLng(latlng);
+        return;
+    }
+    locationSelectionMarker = L.marker(latlng, {
+        draggable: true,
+        icon: L.icon({
+            iconUrl: '/static/markers/marker-icon-2x-red.png',
+            shadowUrl: '/static/markers/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        })
+    }).addTo(map);
+    // A pin now exists (tap / long-press / GPS) — enable the confirm button, which
+    // starts disabled on the pinless destination leg.
+    const confirmBtn = document.querySelector('.location-selection-ui .lsel-confirm');
+    if (confirmBtn) confirmBtn.disabled = false;
+}
+
 function setupLocationSelection(selectionType, initialCoords, opts = {}) {
     locationSelectionType = selectionType;
     locationSelectionIsNewSpot = !!opts.isNewSpot;
@@ -2804,25 +3365,21 @@ function setupLocationSelection(selectionType, initialCoords, opts = {}) {
         }
     }
 
-    // Place the draggable marker at the explicit seed location (gesture-initiated
-    // add) when given, otherwise at the current map center (form-initiated pick).
-    const markerLatLng = opts.initialLatLng || map.getCenter();
-    locationSelectionMarker = L.marker(markerLatLng, {
-        draggable: true,
-        icon: L.icon({
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34],
-            shadowSize: [41, 41]
-        })
-    }).addTo(map);
+    // The destination leg starts with NO pin: the map centers on the pickup for
+    // context, but auto-dropping a marker there would silently set the endpoint
+    // to the origin. The user must place it themselves (single/long tap) or via
+    // the GPS button. Pickup picks and gesture-initiated adds keep a pre-placed
+    // pin (at the seed location, or the current map center).
+    if (selectionType !== 'select-destination') {
+        placeOrMoveSelectionMarker(opts.initialLatLng || map.getCenter());
+    }
 
-    // Update marker position when map is clicked (kept in a named handler so
-    // cleanup can detach only this one — see locationSelectionClickHandler).
+    // A single tap (Leaflet click) places or moves the pin. Long-press is routed
+    // to the same helper via the add-spot gesture path (see startAddSpotFromGesture)
+    // so both a quick tap and a long press set/move the endpoint. Kept in a named
+    // handler so cleanup can detach only this one — see locationSelectionClickHandler.
     locationSelectionClickHandler = function(e) {
-        locationSelectionMarker.setLatLng(e.latlng);
+        placeOrMoveSelectionMarker(snapSelectionLatLng(e.latlng, e.containerPoint));
     };
     map.on('click', locationSelectionClickHandler);
 
@@ -2853,7 +3410,7 @@ function setupLocationSelection(selectionType, initialCoords, opts = {}) {
         <h4>${heading}</h4>
         <p>${instruction}</p>
         <div class="lsel-actions">
-            <button class="lsel-confirm" onclick="confirmLocationSelection()">${confirmLabel}</button>
+            <button class="lsel-confirm"${locationSelectionMarker ? "" : " disabled"} onclick="confirmLocationSelection()">${confirmLabel}</button>
             <button class="lsel-cancel" onclick="cancelLocationSelection()">Cancel</button>
         </div>
     `;
@@ -2937,6 +3494,9 @@ function setupAddSpotGesture() {
         // Those controls only stopPropagation on click, not on contextmenu.
         if (oe && oe.target.closest && oe.target.closest('.leaflet-control')) return;
         if (oe) oe.preventDefault();
+        // The in-ride tracker owns the "what do you want to do here?" decision now.
+        // If it handles the gesture (shows its choose-action dialog), stop here.
+        if (window.inrideOnEntryGesture && window.inrideOnEntryGesture(e.latlng, e.containerPoint)) return;
         startAddSpotFromGesture(e.latlng, e.containerPoint);
     });
 
@@ -2965,7 +3525,11 @@ function setupAddSpotGesture() {
             timer = null;
             const rect = container.getBoundingClientRect();
             const cp = L.point(startX - rect.left, startY - rect.top);
-            startAddSpotFromGesture(map.containerPointToLatLng(cp), cp);
+            const latlng = map.containerPointToLatLng(cp);
+            // The in-ride tracker owns the "what do you want to do here?" decision now.
+            // If it handles the gesture (shows its choose-action dialog), stop here.
+            if (window.inrideOnEntryGesture && window.inrideOnEntryGesture(latlng, cp)) return;
+            startAddSpotFromGesture(latlng, cp);
         }, LONG_PRESS_MS);
     }, { passive: true });
 
@@ -2986,6 +3550,10 @@ function setupAddSpotGesture() {
 // or null. Markers hidden inside a cluster are skipped so we only ever snap to a
 // pin the user can actually see.
 function findNearbySpotMarker(containerPoint, thresholdPx = 22) {
+    // Only snap to spots that are actually shown. Countries mode removes the cluster
+    // from the map (but leaves markerCluster non-null), so guard on layer visibility —
+    // otherwise a tap could snap to an invisible spot.
+    if (!markerCluster || !map.hasLayer(markerCluster)) return null;
     let best = null, bestDist = thresholdPx;
     for (const marker of allMarkers) {
         if (markerCluster && markerCluster.getVisibleParent(marker) !== marker) continue;
@@ -3001,6 +3569,15 @@ function findNearbySpotMarker(containerPoint, thresholdPx = 22) {
 // Begin adding a hitch site from a map gesture: seed a draggable pin (snapping
 // onto an existing spot when the press lands on one) and show the confirm panel.
 function startAddSpotFromGesture(latlng, containerPoint) {
+    // A location selection is already active (e.g. picking a destination): a
+    // long-press means "place/move the endpoint here", not "start a new add".
+    // This is what makes a long tap set the pin — the destination leg has no
+    // marker yet, so we can't rely on the `if (marker) return` guard below.
+    if (locationSelectionType) {
+        placeOrMoveSelectionMarker(snapSelectionLatLng(latlng, containerPoint));
+        return;
+    }
+
     // Ignore if a selection is already in progress.
     if (locationSelectionMarker) return;
 
@@ -3018,3 +3595,15 @@ function startAddSpotFromGesture(latlng, containerPoint) {
         existingSpot: !!snapped,
     });
 }
+
+// Expose the pieces the in-ride tracker composes with (it loads after map.js).
+window.map = map; // intentional: exposes the Leaflet instance for inride.js (marker placement, layer removal)
+window.getLocationMarker = () => locationMarker;
+window.setMapMode = setMapMode;
+window.toggleHeatmap = toggleHeatmap;
+window.startAddSpotFromGesture = startAddSpotFromGesture;
+window.setupLocationSelection = setupLocationSelection;
+window.findNearbySpotMarker = findNearbySpotMarker;
+// Used by the in-ride cover-flow to trigger locate and read the current mode.
+window.requestLocationRaw = requestLocation;
+window.getMapMode = () => mapMode;

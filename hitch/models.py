@@ -131,6 +131,11 @@ class RideEvent(db.Model):
     occupants = db.Column(db.JSON, nullable=True)
     hitchhikers = db.Column(db.JSON, nullable=True)
     declined_rides = db.Column(db.JSON, nullable=True)
+    # The standard models these as a `no_ride` object and a per-occupant flag. We only need
+    # the boolean answer for now: was this a "gave up, never got picked up" entry, and would
+    # the hitchhiker ride with the driver again. The full detail stays in `content`/`occupants`.
+    no_ride = db.Column(db.Boolean, nullable=True)
+    would_ride_again = db.Column(db.Boolean, nullable=True)
     ride = db.Column(db.JSON, nullable=True)
     mode_of_transportation = db.Column(db.JSON, nullable=True)
     comment = db.Column(db.Text, nullable=True)

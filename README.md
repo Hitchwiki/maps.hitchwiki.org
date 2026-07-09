@@ -105,7 +105,7 @@ Put file from `https://simplemaps.com/static/data/world-cities/basic/simplemaps_
 ```bash
 # recommended for local testing
 sudo docker compose up --build
-# or to deploy form production
+# or to deploy for production
 sudo docker compose up --build -d --remove-orphans
 
 # connect to the container
@@ -190,13 +190,8 @@ The software provided in this repository is licensed under AGPL 3.0. The Hitchwi
 [Flask-url]: https://flask.palletsprojects.com/en/stable/
 
 # Development
-TODO: specify
 
-CONTRIBUTING.md
-
-Install pre-commit
-
-install ruff
+How we want to work on Hirchwiki Maps is defined in GOVERNANCE.md and refined in CONTRIBUTING.md.
 
 ## Testing
 

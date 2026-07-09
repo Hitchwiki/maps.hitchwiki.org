@@ -871,6 +871,7 @@ for _, ride in rides_df.iterrows():
         "dest_lon": ride["dest_lon"] if pd.notna(ride["dest_lon"]) else None,
         "rating": int(ride["rating"]) if pd.notna(ride["rating"]) else None,
         "wait": int(ride["wait"]) if pd.notna(ride["wait"]) else None,
+        "distance": round(float(ride["distance"]), 1) if pd.notna(ride.get("distance")) else None,
         "comment": ride["comment"] if pd.notna(ride.get("comment")) else None,
         "hitchhiker_name": ride["hitchhiker_name"] if pd.notna(ride.get("hitchhiker_name")) else "Anonymous",
         "submission_time": submission_time,
@@ -959,6 +960,9 @@ for r in rides_data:
             "id": r["id"],
             "rating": r["rating"],
             "wait": r["wait"],
+            # Per-ride distance (not just the spot average) so the spot pane can plot a
+            # distance histogram without pulling the multi-MB rides index.
+            "distance": r["distance"],
             "comment": r["comment"],
             "hitchhiker_name": r["hitchhiker_name"],
             "submission_time": r["submission_time"],

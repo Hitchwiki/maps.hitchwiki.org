@@ -23,6 +23,17 @@
     background: none; border: none; cursor: pointer;
     padding: 0; font-size: 1.1em; line-height: 1; color: #555;
 }
+.wra-select { display: flex; gap: 10px; }
+.wra-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 48px; height: 48px; font-size: 1.6em; line-height: 1;
+    background: #fff; color: #999; cursor: pointer;
+    border: 1px solid #ccc; border-radius: 50%;
+    transition: color .12s ease, border-color .12s ease, background-color .12s ease;
+}
+.wra-btn:hover { color: #555; border-color: #999; }
+.wra-btn--yes[aria-pressed="true"] { color: #2e7d32; border-color: #2e7d32; background: #eaf5eb; }
+.wra-btn--no[aria-pressed="true"] { color: #c62828; border-color: #c62828; background: #fbeaea; }
 </style>
 {% endblock %}
 
@@ -116,7 +127,14 @@
                 <label for="star1" title="1 star">1 star</label>
             </div>
         </div>
-        
+
+        <div class="form-group">
+            <label style="font-weight:normal;">
+                <input type="checkbox" id="no_ride" name="no_ride" value="1" {% if ride_data and ride_data.no_ride %}checked{% endif %}>
+                I did not get a ride here
+            </label>
+        </div>
+
         <div class="form-group">
             <label for="wait">How long did you wait? Leave blank if you don't remember.</label>
             <div>
@@ -196,6 +214,23 @@
         <div class="form-group">
             <label>About the driver (optional)</label>
             <div style="background:#fafafa; border:1px solid #eee; padding:12px; border-radius:4px;">
+
+                <div style="margin-bottom:10px;">
+                    <div style="font-weight:600; margin-bottom:4px;">Would you ride with them again?</div>
+                    {# Empty value = no answer. Clicking the selected smiley again clears it. #}
+                    {% set wra = ride_data.driver_would_ride_again if ride_data and ride_data.driver_would_ride_again is defined else '' %}
+                    <input type="hidden" id="driver_would_ride_again" name="driver_would_ride_again" value="{{ wra }}">
+                    <div class="wra-select" role="group" aria-label="Would you ride with them again?">
+                        <button type="button" class="wra-btn wra-btn--yes" data-value="yes" aria-pressed="false" title="Yes, I would ride with them again">
+                            <i class="fa-regular fa-face-smile" aria-hidden="true"></i>
+                            <span class="sr-only">Yes</span>
+                        </button>
+                        <button type="button" class="wra-btn wra-btn--no" data-value="no" aria-pressed="false" title="No, I would not ride with them again">
+                            <i class="fa-regular fa-face-frown" aria-hidden="true"></i>
+                            <span class="sr-only">No</span>
+                        </button>
+                    </div>
+                </div>
 
                 <div style="margin-bottom:10px;">
                     <div style="font-weight:600; margin-bottom:4px;">Why did they pick you up? <span style="font-weight:normal; color:#666;">(select all that apply)</span></div>
@@ -336,6 +371,7 @@
             comment: document.querySelector('textarea[name="comment"]')?.value || '',
             co_hitchhiker: document.getElementById('co-hitchhiker-hidden')?.value || '',
             signal: document.getElementById('signal')?.value || '',
+            no_ride: document.getElementById('no_ride')?.checked || false,
             datetime_ride: document.querySelector('input[name="datetime_ride"]')?.value || '',
             arrival_datetime: document.querySelector('input[name="arrival_datetime"]')?.value || '',
             pickup_lat: coords.pickup ? coords.pickup[0] : '',
@@ -349,6 +385,7 @@
             vehicle_model: document.getElementById('vehicle_model')?.value || '',
             vehicle_license_plate_country: document.getElementById('vehicle_license_plate_country')?.value || '',
             vehicle_license_plate_identifier: document.getElementById('vehicle_license_plate_identifier')?.value || '',
+            driver_would_ride_again: document.getElementById('driver_would_ride_again')?.value || '',
             driver_reason_to_pick_up: document.getElementById('driver_reason_to_pick_up')?.value || '',
             driver_origin_country: document.getElementById('driver_origin_country')?.value || '',
             driver_age: document.getElementById('driver_age')?.value || '',
@@ -415,6 +452,7 @@
                 document.getElementById('signal').value = signalStr;
                 if (window._signalRenderTags) window._signalRenderTags();
             }
+            if (data.no_ride !== undefined) document.getElementById('no_ride').checked = !!data.no_ride;
             if (data.datetime_ride) document.querySelector('input[name="datetime_ride"]').value = data.datetime_ride;
             if (data.arrival_datetime) document.querySelector('input[name="arrival_datetime"]').value = data.arrival_datetime;
             if (data.vehicle_kind !== undefined) document.getElementById('vehicle_kind').value = data.vehicle_kind;
@@ -429,6 +467,10 @@
                 }
             }
             if (data.vehicle_license_plate_identifier !== undefined) document.getElementById('vehicle_license_plate_identifier').value = data.vehicle_license_plate_identifier;
+            if (data.driver_would_ride_again !== undefined) {
+                document.getElementById('driver_would_ride_again').value = data.driver_would_ride_again;
+                if (window._wouldRideAgainRender) window._wouldRideAgainRender();
+            }
             if (data.driver_reason_to_pick_up !== undefined) {
                 const reasonStr = Array.isArray(data.driver_reason_to_pick_up) ? data.driver_reason_to_pick_up.join(',') : data.driver_reason_to_pick_up;
                 document.getElementById('driver_reason_to_pick_up').value = reasonStr;
@@ -880,6 +922,29 @@
         inputId: 'driver-language-input', tagsId: 'driver-language-tags',
         hiddenId: 'driver_languages', datalistId: 'driver-language-list',
     });
+    // "Would you ride with them again?" smiley pair. The hidden input holds 'yes' | 'no' | ''.
+    // Clicking the already-selected smiley clears the answer, so an accidental tap is undoable
+    // and "no answer" stays distinct from "no".
+    function initWouldRideAgain() {
+        const hidden = document.getElementById('driver_would_ride_again');
+        const buttons = document.querySelectorAll('.wra-btn');
+        if (!hidden || !buttons.length) return;
+        function render() {
+            buttons.forEach(function (btn) {
+                btn.setAttribute('aria-pressed', String(btn.dataset.value === hidden.value));
+            });
+        }
+        buttons.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                hidden.value = (hidden.value === btn.dataset.value) ? '' : btn.dataset.value;
+                render();
+            });
+        });
+        render();
+        window._wouldRideAgainRender = render;
+    }
+    initWouldRideAgain();
+
     // Expose re-render hooks so sessionStorage restore can refresh the chip rows after editing the hidden inputs.
     if (signalChip) window._signalRenderTags = signalChip.renderTags;
     if (reasonChip) window._reasonRenderTags = reasonChip.renderTags;

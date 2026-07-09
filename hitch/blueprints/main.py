@@ -1,3 +1,4 @@
+import json
 import math
 import os
 import re
@@ -8,12 +9,15 @@ from flask import (
     Blueprint,
     abort,
     current_app,
+    jsonify,
     redirect,
     render_template,
     request,
+    url_for,
 )
 from flask_security import current_user
 from sqlalchemy import text
+from werkzeug.utils import safe_join
 
 from hitch.blueprints.publish_ride import ALLOWED_VEHICLE_KINDS, create_record_from_custom_object
 from hitch.blueprints.utils.driver_info_choices import (
@@ -34,32 +38,34 @@ from hitch.blueprints.utils.license_plate_country_codes import LICENSE_PLATE_COU
 from hitch.blueprints.utils.notifications import notify_co_hitchhiker_invite, unread_count
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.blueprints.utils.report_ride import REPORT_REASONS
+from hitch.blueprints.utils.ride_ip_log import get_client_ip, log_ride_ip
 from hitch.extensions import db
-from hitch.helpers import get_db
+from hitch.helpers import get_db, get_dirs
 from hitch.models import CoHitchhiker, Follow, RideEvent, RideReport, User
 
 main_bp = Blueprint("main", __name__)
 
 THIS_NOSTR_SOURCE = os.getenv("THIS_NOSTR_SOURCE", "yourdomain.com")
-THIS_DATA_LICENSE=os.getenv("THIS_DATA_LICENSE", "odbl")
+THIS_DATA_LICENSE = os.getenv("THIS_DATA_LICENSE", "odbl")
 
 VEHICLE_KIND_EMOJIS = {
-    "car": "\U0001F697",
-    "bus": "\U0001F68C",
-    "van": "\U0001F690",
-    "truck": "\U0001F69A",
-    "motorbike": "\U0001F3CD️",
-    "scooter": "\U0001F6F5",
-    "taxi": "\U0001F695",
-    "horse-cart": "\U0001F40E",
-    "train": "\U0001F686",
-    "camper": "\U0001F3D5️",
-    "tractor": "\U0001F69C",
+    "car": "\U0001f697",
+    "bus": "\U0001f68c",
+    "van": "\U0001f690",
+    "truck": "\U0001f69a",
+    "motorbike": "\U0001f3cd️",
+    "scooter": "\U0001f6f5",
+    "taxi": "\U0001f695",
+    "horse-cart": "\U0001f40e",
+    "train": "\U0001f686",
+    "camper": "\U0001f3d5️",
+    "tractor": "\U0001f69c",
     "plane": "✈️",
     "ferry": "⛴️",
     "boat": "⛵",
 }
 VEHICLE_KIND_CHOICES = [(k, VEHICLE_KIND_EMOJIS[k]) for k in ALLOWED_VEHICLE_KINDS]
+
 
 def _user_owns_ride(ride, user):
     """Check if the current user owns this ride."""
@@ -86,8 +92,82 @@ def _user_owns_ride(ride, user):
 @main_bp.route("/<any(index, light, with_destination):map_variation>.html")
 def render_map(map_variation):
     return render_template(
-        "map.html", 
+        "map.html",
         map_variation=map_variation,
+        hide_add_spot_button=current_app.config.get("HIDE_ADD_SPOT_BUTTON", False),
+        hide_account_button=current_app.config.get("HIDE_ACCOUNT_BUTTON", False),
+        is_logged_in=not current_user.is_anonymous,
+        unread_notifications=unread_count(current_user),
+    )
+
+
+# Spot ids are generate_spot_id()'s "<lat>_<lon>" with 5 decimals (see show.py).
+SPOT_ID_RE = re.compile(r"^-?\d+\.\d{1,7}_-?\d+\.\d{1,7}$")
+
+
+def _spot_preview(spot_id):
+    """Link-preview facts for a spot, or None if we have nothing to say about it.
+
+    Read from dist/rides/by-spot/<spot_id>.json — the same per-spot file the map
+    lazy-loads on marker click — rather than spots.json, which is multi-MB and
+    would be a silly thing to parse on every crawler hit. The file is absent for
+    coordinates with no (informative) rides; the map still pans there, so this is
+    a missing preview, not a 404.
+    """
+    path = safe_join(get_dirs()["dist"], "rides", "by-spot", f"{spot_id}.json")
+    if not path or not os.path.isfile(path):
+        return None
+    try:
+        with open(path) as f:
+            payload = json.load(f)
+    except (OSError, ValueError):
+        return None
+
+    rides = payload.get("rides") or []
+    ratings = [r["rating"] for r in rides if r.get("rating")]
+    if not ratings:
+        return None
+    spot = payload.get("spot") or {}
+    return {
+        "rating": sum(ratings) / len(ratings),
+        "count": len(rides),
+        "wait": spot.get("wait"),
+        "distance": spot.get("distance"),
+    }
+
+
+def _spot_description(preview):
+    """One sentence a messenger/crawler can show under the link."""
+    plural = "ride" if preview["count"] == 1 else "rides"
+    parts = [f"Rated {preview['rating']:.1f}/5 from {preview['count']} {plural}."]
+    if preview["wait"]:
+        parts.append(f"Typical wait {round(preview['wait'])} min.")
+    if preview["distance"]:
+        parts.append(f"Rides average {round(preview['distance'])} km.")
+    parts.append("See the spot on the hitchhiking map.")
+    return " ".join(parts)
+
+
+# OSM-style permalink for a single spot, mirroring /node/<id>#map=z/lat/lon.
+# The spot id lives in the path rather than a #fragment or ?query because
+# messengers strip fragments when auto-linking a pasted URL, and because a path
+# is the stable, indexable address for the spot. map.js reads it back off
+# location.pathname and opens the spot pane; the #map= hash only carries the
+# (disposable) viewport. The route renders the same map template as "/" — it
+# exists so the URL survives a round trip, and so a pasted link can carry
+# per-spot OpenGraph tags instead of the generic homepage ones.
+@main_bp.route("/spot/<spot_id>")
+def render_spot(spot_id):
+    if not SPOT_ID_RE.match(spot_id):
+        abort(404)
+    lat, lon = (float(v) for v in spot_id.split("_"))
+    preview = _spot_preview(spot_id)
+    return render_template(
+        "map.html",
+        map_variation=None,
+        spot_title=f"Hitchhiking spot at {lat:.5f}, {lon:.5f}",
+        spot_description=_spot_description(preview) if preview else None,
+        spot_url=url_for("main.render_spot", spot_id=spot_id, _external=True),
         hide_add_spot_button=current_app.config.get("HIDE_ADD_SPOT_BUTTON", False),
         hide_account_button=current_app.config.get("HIDE_ACCOUNT_BUTTON", False),
         is_logged_in=not current_user.is_anonymous,
@@ -178,9 +258,7 @@ def _suggested_hitchhikers(ride_cards, limit=3):
         counts[name] = counts.get(name, 0) + 1
     if not counts:
         return []
-    registered = {
-        row[0] for row in db.session.query(User.username).filter(User.username.in_(counts.keys())).all()
-    }
+    registered = {row[0] for row in db.session.query(User.username).filter(User.username.in_(counts.keys())).all()}
     ranked = sorted(
         ((name, count) for name, count in counts.items() if name in registered),
         key=lambda kv: kv[1],
@@ -204,9 +282,7 @@ def recent_spots():
     followed_usernames = _followed_usernames()
     followed_rides = _followed_rides(followed_usernames)
     # When the user follows nobody yet, suggest active hitchhikers to follow instead.
-    follow_suggestions = (
-        _suggested_hitchhikers(ride_list) if (not current_user.is_anonymous and not followed_usernames) else []
-    )
+    follow_suggestions = _suggested_hitchhikers(ride_list) if (not current_user.is_anonymous and not followed_usernames) else []
     return render_template(
         "recent.html",
         rides=ride_list,
@@ -242,7 +318,7 @@ def ride_detail(d_tag):
                 waiting_minutes = int(m.group(1))
         if len(stops) > 1:
             last_stop = stops[-1]
-            last_loc = (last_stop.get("location") or {})
+            last_loc = last_stop.get("location") or {}
             dest_lat = last_loc.get("latitude")
             dest_lon = last_loc.get("longitude")
             arrival_time = last_stop.get("arrival_time")
@@ -254,8 +330,7 @@ def ride_detail(d_tag):
                 signal_methods.append(method)
 
     hitchhikers = [
-        {"nickname": h.get("nickname") or "Anonymous", "gender": h.get("gender")}
-        for h in (content.get("hitchhikers") or [])
+        {"nickname": h.get("nickname") or "Anonymous", "gender": h.get("gender")} for h in (content.get("hitchhikers") or [])
     ]
 
     distance_km = None
@@ -288,7 +363,11 @@ def ride_detail(d_tag):
                 age = max(0, datetime.now().year - int(yob))
             except (TypeError, ValueError):
                 age = None
+        would_ride_again = driver_obj.get("would_ride_again")
         driver = {
+            # Tristate: True / False / None (unanswered). Templates must test `is not none`,
+            # since an explicit "no" is falsy but still an answer worth showing.
+            "would_ride_again": would_ride_again if isinstance(would_ride_again, bool) else None,
             "reasons": [REASON_DESCRIPTION_BY_CODE.get(r, r) for r in reasons_raw],
             "origin_country_code": country_code,
             "origin_country_name": COUNTRY_NAME_BY_CODE.get(country_code) if country_code else None,
@@ -297,7 +376,16 @@ def ride_detail(d_tag):
             "languages": [LANGUAGE_NAME_BY_CODE.get(c, c) for c in languages_raw],
         }
         # Only attach the driver section if at least one field has a value.
-        if not any([driver["reasons"], driver["origin_country_name"], driver["age"], driver["gender"], driver["languages"]]):
+        if not any(
+            [
+                driver["would_ride_again"] is not None,
+                driver["reasons"],
+                driver["origin_country_name"],
+                driver["age"],
+                driver["gender"],
+                driver["languages"],
+            ]
+        ):
             driver = None
 
     mot = content.get("mode_of_transportation") or {}
@@ -408,6 +496,9 @@ def ride_form():
                     "d_tag": edit_d_tag,  # Store d_tag for POST handler
                     "rating": ride.rating,
                     "comment": ride.comment,
+                    # Keep the checkbox ticked when re-editing a no-ride record, otherwise
+                    # saving the form again would silently drop the no_ride marker.
+                    "no_ride": content.get("no_ride") is not None,
                     "pickup_lat": "",
                     "pickup_lon": "",
                     "destination_lat": "",
@@ -422,6 +513,7 @@ def ride_form():
                     "vehicle_model": "",
                     "vehicle_license_plate_country": "",
                     "vehicle_license_plate_identifier": "",
+                    "driver_would_ride_again": "",
                     "driver_reason_to_pick_up": [],
                     "driver_origin_country": "",
                     "driver_age": "",
@@ -438,6 +530,9 @@ def ride_form():
                     if isinstance(reasons, str):
                         reasons = [reasons]
                     ride_data["driver_reason_to_pick_up"] = [r for r in reasons if r in ALLOWED_REASONS_TO_PICK_UP]
+                    # Tristate -> the hidden input's 'yes' / 'no' / '' vocabulary.
+                    wra = driver.get("would_ride_again")
+                    ride_data["driver_would_ride_again"] = "" if wra is None else ("yes" if wra else "no")
                     ride_data["driver_origin_country"] = (driver.get("origin_country") or "").upper()
                     yob = driver.get("year_of_birth")
                     if yob:
@@ -499,16 +594,16 @@ def ride_form():
                 current_nickname = current_user.username if not current_user.is_anonymous else None
                 all_hitchhikers = content.get("hitchhikers", [])
                 hitchhikers_on_nostr = {
-                    h.get("nickname") for h in all_hitchhikers
+                    h.get("nickname")
+                    for h in all_hitchhikers
                     if h.get("nickname") and h.get("nickname") != current_nickname and h.get("nickname") != "Anonymous"
                 }
                 # Anonymous hitchhikers are always co-hitchhikers (creator must be
                 # logged in to edit, so they are never "Anonymous" themselves)
                 anon_count = sum(1 for h in all_hitchhikers if h.get("nickname") == "Anonymous")
                 pending_invites = {
-                    c.co_hitchhiker for c in db.session.query(CoHitchhiker).filter_by(
-                        nostr_ride_event_d_tag=edit_d_tag, accepted="open"
-                    ).all()
+                    c.co_hitchhiker
+                    for c in db.session.query(CoHitchhiker).filter_by(nostr_ride_event_d_tag=edit_d_tag, accepted="open").all()
                 }
                 locked_co_hitchhikers = sorted(hitchhikers_on_nostr | pending_invites)
                 all_co = locked_co_hitchhikers + ["Anonymous"] * anon_count
@@ -530,188 +625,222 @@ def ride_form():
     # POST request - process the form submission (same logic as experience route)
     form = request.form
     data = form.to_dict(flat=True)
-    # Signal and reason-to-pick-up arrive as comma-separated codes from the chip widgets.
-    data["signal"] = [s.strip() for s in (data.get("signal") or "").split(",") if s.strip()]
-    data["driver_reason_to_pick_up"] = [
-        r.strip() for r in (data.get("driver_reason_to_pick_up") or "").split(",") if r.strip()
-    ]
-    rating = int(data["rate"])
-    data["wait"] = int(data["wait"]) if data["wait"] != "" else None
-    wait = data["wait"]
-    assert wait is None or wait >= 0, f"Wait time must be non-negative, the wait time is {wait}."
-    assert rating in range(1, 6), f"Rating must be between 1 and 5, the rating is {rating}."
-    comment = None if data["comment"] == "" else data["comment"]
-    assert comment is None or len(comment) < 10000, (
-        f"Comment must be less than 10000 characters, the comment length is {len(comment)}."
-    )
 
-    signals_selected = [s for s in data["signal"] if s and s != "null"]
-    for s in signals_selected:
-        assert s in ["thumb", "sign", "ask"], f"Signal must be one of thumb, sign, ask - got {s}."
-    data["signal"] = signals_selected
+    # In-ride tracker submits via fetch and must stay on the map, so answer JSON
+    # instead of the usual redirect. Detected by the X-Requested-With header.
+    wants_json = request.headers.get("X-Requested-With") == "inride"
 
-    # Driver-info parsing.
-    # reason_to_pick_up: validate against the enum allowlist.
-    driver_reasons = [r for r in data["driver_reason_to_pick_up"] if r]
-    for r in driver_reasons:
-        assert r in ALLOWED_REASONS_TO_PICK_UP, f"Invalid reason_to_pick_up: {r}"
-    data["driver_reason_to_pick_up"] = driver_reasons
-
-    # Gender: empty or one of the enum values.
-    driver_gender = (data.get("driver_gender") or "").strip()
-    assert driver_gender == "" or driver_gender in ALLOWED_GENDERS, f"Invalid driver gender: {driver_gender}"
-    data["driver_gender"] = driver_gender
-
-    # Age -> year_of_birth. We translate here so publish_ride doesn't need the current date.
-    driver_age_raw = (data.get("driver_age") or "").strip()
-    if driver_age_raw:
-        driver_age = int(driver_age_raw)
-        assert 0 <= driver_age <= 120, f"Driver age out of range: {driver_age}"
-        data["driver_year_of_birth"] = datetime.now().year - driver_age
-    else:
-        data["driver_year_of_birth"] = None
-
-    # Origin country: arrives as ISO alpha-2 code (the country picker stores codes).
-    driver_country = (data.get("driver_origin_country") or "").strip().upper()
-    assert driver_country == "" or driver_country in COUNTRY_CODES, f"Invalid driver origin country: {driver_country}"
-    data["driver_origin_country"] = driver_country
-
-    # Languages: comma-separated ISO 639-3 codes from the chip input.
-    driver_lang_raw = (data.get("driver_languages") or "").strip()
-    driver_languages = [code for code in (c.strip() for c in driver_lang_raw.split(",")) if code]
-    for code in driver_languages:
-        assert code in LANGUAGE_CODES, f"Invalid language code: {code}"
-    data["driver_languages"] = driver_languages
-
-    # Validate vehicle fields: kind must be one of the allowed enum values (or empty),
-    # license_plate_country must be a valid ISO 3166-1 alpha-2 code (or empty). Other
-    # vehicle fields are free text and length-capped to avoid abuse.
-    vehicle_kind = (data.get("vehicle_kind") or "").strip()
-    assert vehicle_kind == "" or vehicle_kind in ALLOWED_VEHICLE_KINDS, (
-        f"Invalid vehicle kind: {vehicle_kind}"
-    )
-    vehicle_country = (data.get("vehicle_license_plate_country") or "").strip().upper()
-    assert vehicle_country == "" or vehicle_country in ISO_3166_1_ALPHA_2, (
-        f"Invalid license plate country: {vehicle_country}"
-    )
-    data["vehicle_license_plate_country"] = vehicle_country
-    for free_field in ("vehicle_make", "vehicle_model", "vehicle_license_plate_identifier"):
-        val = (data.get(free_field) or "").strip()
-        assert len(val) <= 255, f"{free_field} must be <= 255 characters"
-        data[free_field] = val
-
-    # Arrival must be strictly after pickup time when both are provided so the
-    # Nostr stops timeline is monotonic.
-    departure_str = (data.get("datetime_ride") or "").strip()
-    arrival_str = (data.get("arrival_datetime") or "").strip()
-    if departure_str and arrival_str:
-        assert datetime.fromisoformat(arrival_str) > datetime.fromisoformat(departure_str), (
-            "Arrival time must be later than the pickup time."
+    try:
+        # Signal and reason-to-pick-up arrive as comma-separated codes from the chip widgets.
+        data["signal"] = [s.strip() for s in (data.get("signal") or "").split(",") if s.strip()]
+        data["driver_reason_to_pick_up"] = [
+            r.strip() for r in (data.get("driver_reason_to_pick_up") or "").split(",") if r.strip()
+        ]
+        # "I did not get a ride here" checkbox — an unchecked box submits no key at all.
+        # The in-ride Give Up flow posts no_ride=1 for the same meaning.
+        data["no_ride"] = str(data.get("no_ride", "")).strip() not in ("", "0", "false")
+        rating = int(data["rate"])
+        data["wait"] = int(data["wait"]) if data["wait"] != "" else None
+        wait = data["wait"]
+        assert wait is None or wait >= 0, f"Wait time must be non-negative, the wait time is {wait}."
+        assert rating in range(1, 6), f"Rating must be between 1 and 5, the rating is {rating}."
+        comment = None if data["comment"] == "" else data["comment"]
+        assert comment is None or len(comment) < 10000, (
+            f"Comment must be less than 10000 characters, the comment length is {len(comment)}."
         )
-    data["datetime_ride"] = departure_str
-    data["arrival_datetime"] = arrival_str
 
+        signals_selected = [s for s in data["signal"] if s and s != "null"]
+        for s in signals_selected:
+            assert s in ["thumb", "sign", "ask"], f"Signal must be one of thumb, sign, ask - got {s}."
+        data["signal"] = signals_selected
 
-    # TODO: store IP and nostr event d tag pairs in a db table to prevent abuse
-    # ip = request.headers.getlist("X-Real-IP")[-1] if request.headers.getlist("X-Real-IP") else request.remote_addr
+        # Driver-info parsing.
+        # reason_to_pick_up: validate against the enum allowlist.
+        driver_reasons = [r for r in data["driver_reason_to_pick_up"] if r]
+        for r in driver_reasons:
+            assert r in ALLOWED_REASONS_TO_PICK_UP, f"Invalid reason_to_pick_up: {r}"
+        data["driver_reason_to_pick_up"] = driver_reasons
 
-    # Get coordinates from individual form fields
-    lat = float(data["pickup_lat"]) if data["pickup_lat"] else None
-    lon = float(data["pickup_lon"]) if data["pickup_lon"] else None
-    dest_lat = float(data["destination_lat"]) if data["destination_lat"] else None
-    dest_lon = float(data["destination_lon"]) if data["destination_lon"] else None
+        # would_ride_again: the smiley pair is tristate — 'yes' / 'no' / '' (unanswered).
+        # Keep unanswered as None so it stays distinct from an explicit "no".
+        wra_raw = (data.get("driver_would_ride_again") or "").strip()
+        assert wra_raw in ("", "yes", "no"), f"Invalid would_ride_again: {wra_raw}"
+        data["driver_would_ride_again"] = {"yes": True, "no": False}.get(wra_raw)
 
-    # Convert empty destination coordinates to NaN for compatibility
-    if dest_lat is None:
-        dest_lat = float("nan")
-    if dest_lon is None:
-        dest_lon = float("nan")
+        # Gender: empty or one of the enum values.
+        driver_gender = (data.get("driver_gender") or "").strip()
+        assert driver_gender == "" or driver_gender in ALLOWED_GENDERS, f"Invalid driver gender: {driver_gender}"
+        data["driver_gender"] = driver_gender
 
-    assert lat is not None and -90 <= lat <= 90, f"Invalid pickup latitude: {lat}"
-    assert lon is not None and -180 <= lon <= 180, f"Invalid pickup longitude: {lon}"
-    assert (-90 <= dest_lat <= 90 and -180 <= dest_lon <= 180) or (math.isnan(dest_lat) and math.isnan(dest_lon)), (
-        f"Invalid destination coordinates: {dest_lat}, {dest_lon}"
-    )
+        # Age -> year_of_birth. We translate here so publish_ride doesn't need the current date.
+        driver_age_raw = (data.get("driver_age") or "").strip()
+        if driver_age_raw:
+            driver_age = int(driver_age_raw)
+            assert 0 <= driver_age <= 120, f"Driver age out of range: {driver_age}"
+            data["driver_year_of_birth"] = datetime.now().year - driver_age
+        else:
+            data["driver_year_of_birth"] = None
 
-    # ride_row = {
-    #     "rating": rating,
-    #     "wait": wait,
-    #     "comment": comment,
-    #     "nickname": None,
-    #     "datetime": now,
-    #     "ip": ip,
-    #     "reviewed": False,
-    #     "banned": False,
-    #     "lat": lat,
-    #     "dest_lat": dest_lat,
-    #     "lon": lon,
-    #     "dest_lon": dest_lon,
-    #     "country": country,
-    #     "signal": signal,
-    #     "ride_datetime": datetime_ride,
-    #     "user_id": current_user.id if not current_user.is_anonymous else None,
-    # }
+        # Origin country: arrives as ISO alpha-2 code (the country picker stores codes).
+        driver_country = (data.get("driver_origin_country") or "").strip().upper()
+        assert driver_country == "" or driver_country in COUNTRY_CODES, f"Invalid driver origin country: {driver_country}"
+        data["driver_origin_country"] = driver_country
 
-    ### Check if this is an edit operation
-    edit_d_tag = data.get("edit_d_tag", "").strip()
-    if edit_d_tag:
-        existing_ride = db.session.query(RideEvent).filter_by(d=edit_d_tag).first()
-        if not existing_ride or not _user_owns_ride(existing_ride, current_user):
-            return redirect("/#error")  # User doesn't own this ride
+        # Languages: comma-separated ISO 639-3 codes from the chip input.
+        driver_lang_raw = (data.get("driver_languages") or "").strip()
+        driver_languages = [code for code in (c.strip() for c in driver_lang_raw.split(",")) if code]
+        for code in driver_languages:
+            assert code in LANGUAGE_CODES, f"Invalid language code: {code}"
+        data["driver_languages"] = driver_languages
 
-        # Create new record with updated form data to get updated fields
-        # TODO: define license properly instead of using "xxx"
-        updated_record = create_record_from_custom_object(custom_object=data, source=THIS_NOSTR_SOURCE, license=THIS_DATA_LICENSE)
+        # Validate vehicle fields: kind must be one of the allowed enum values (or empty),
+        # license_plate_country must be a valid ISO 3166-1 alpha-2 code (or empty). Other
+        # vehicle fields are free text and length-capped to avoid abuse.
+        vehicle_kind = (data.get("vehicle_kind") or "").strip()
+        assert vehicle_kind == "" or vehicle_kind in ALLOWED_VEHICLE_KINDS, f"Invalid vehicle kind: {vehicle_kind}"
+        vehicle_country = (data.get("vehicle_license_plate_country") or "").strip().upper()
+        assert vehicle_country == "" or vehicle_country in ISO_3166_1_ALPHA_2, f"Invalid license plate country: {vehicle_country}"
+        data["vehicle_license_plate_country"] = vehicle_country
+        for free_field in ("vehicle_make", "vehicle_model", "vehicle_license_plate_identifier"):
+            val = (data.get(free_field) or "").strip()
+            assert len(val) <= 255, f"{free_field} must be <= 255 characters"
+            data[free_field] = val
 
-        # post the updated event (maintaining all original tags including d tag)
-        poster = HitchhikingDataStandardToNostrPoster()
-        _ = poster.post(ride_record=updated_record, tags=existing_ride.tags)
-        poster.close()
-        d_tag = edit_d_tag  # Keep the same d_tag
-    else:
-        # This is a new ride - normal flow
-        # TODO: define license properly instead of using "xxx"
-        record = create_record_from_custom_object(custom_object=data, source=THIS_NOSTR_SOURCE, license=THIS_DATA_LICENSE)
-
-        poster = HitchhikingDataStandardToNostrPoster()
-        d_tag = poster.post(ride_record=record)
-        poster.close()
-
-    ### Co-hitchhikers
-    # Requirement: co-hitchhikers already on a ride cannot be removed when editing, only new
-    # ones can be added. We achieve this by only inserting co-hitchhikers not already in the DB.
-    if "co_hitchhiker" in data and data["co_hitchhiker"] != "":
-        current_username = current_user.username if not current_user.is_anonymous else None
-        existing_co = {
-            c.co_hitchhiker for c in db.session.query(CoHitchhiker).filter_by(nostr_ride_event_d_tag=d_tag).all()
-        }
-        invited_user_ids = []
-        for ch in data["co_hitchhiker"].split(","):
-            username = ch.strip()
-            if username == "" or username == "Anonymous":
-                continue  # anonymous hitchhikers are handled in the Nostr event, not in CoHitchhiker
-            if username == current_username:
-                continue  # skip self
-            if username in existing_co:
-                continue  # already present, cannot be removed so no need to re-add
-            invited_user = User.query.filter_by(username=username).first()
-            if not invited_user:
-                continue  # skip non-existent users
-            co_hitchhiker = CoHitchhiker(
-                nostr_ride_event_d_tag=d_tag,
-                co_hitchhiker=username,
-                accepted="open",
+        # Arrival must be strictly after pickup time when both are provided so the
+        # Nostr stops timeline is monotonic.
+        departure_str = (data.get("datetime_ride") or "").strip()
+        arrival_str = (data.get("arrival_datetime") or "").strip()
+        if departure_str and arrival_str:
+            assert datetime.fromisoformat(arrival_str) > datetime.fromisoformat(departure_str), (
+                "Arrival time must be later than the pickup time."
             )
-            db.session.add(co_hitchhiker)
-            invited_user_ids.append(invited_user.id)
-        db.session.commit()
-        # Notify newly invited co-hitchhikers (after commit, so the pending invite exists
-        # by the time they open their profile to accept/reject it).
-        inviter_name = current_username or "Someone"
-        for uid in invited_user_ids:
-            notify_co_hitchhiker_invite(uid, inviter_name)
+        data["datetime_ride"] = departure_str
+        data["arrival_datetime"] = arrival_str
 
-    return redirect("/#success")
+        # Get coordinates from individual form fields
+        lat = float(data["pickup_lat"]) if data["pickup_lat"] else None
+        lon = float(data["pickup_lon"]) if data["pickup_lon"] else None
+        dest_lat = float(data["destination_lat"]) if data["destination_lat"] else None
+        dest_lon = float(data["destination_lon"]) if data["destination_lon"] else None
+
+        # Convert empty destination coordinates to NaN for compatibility
+        if dest_lat is None:
+            dest_lat = float("nan")
+        if dest_lon is None:
+            dest_lon = float("nan")
+
+        assert lat is not None and -90 <= lat <= 90, f"Invalid pickup latitude: {lat}"
+        assert lon is not None and -180 <= lon <= 180, f"Invalid pickup longitude: {lon}"
+        assert (-90 <= dest_lat <= 90 and -180 <= dest_lon <= 180) or (math.isnan(dest_lat) and math.isnan(dest_lon)), (
+            f"Invalid destination coordinates: {dest_lat}, {dest_lon}"
+        )
+
+        # ride_row = {
+        #     "rating": rating,
+        #     "wait": wait,
+        #     "comment": comment,
+        #     "nickname": None,
+        #     "datetime": now,
+        #     "ip": ip,
+        #     "reviewed": False,
+        #     "banned": False,
+        #     "lat": lat,
+        #     "dest_lat": dest_lat,
+        #     "lon": lon,
+        #     "dest_lon": dest_lon,
+        #     "country": country,
+        #     "signal": signal,
+        #     "ride_datetime": datetime_ride,
+        #     "user_id": current_user.id if not current_user.is_anonymous else None,
+        # }
+
+        ### Check if this is an edit operation
+        edit_d_tag = data.get("edit_d_tag", "").strip()
+        if edit_d_tag:
+            existing_ride = db.session.query(RideEvent).filter_by(d=edit_d_tag).first()
+            # Inride requests use fetch (no navigation), so return JSON instead of redirecting.
+            if not existing_ride or not _user_owns_ride(existing_ride, current_user):
+                if wants_json:
+                    return jsonify({"ok": False, "error": "unauthorized"}), 400
+                return redirect("/#error")  # User doesn't own this ride
+
+            # Create new record with updated form data to get updated fields
+            # TODO: define license properly instead of using "xxx"
+            updated_record = create_record_from_custom_object(
+                custom_object=data, source=THIS_NOSTR_SOURCE, license=THIS_DATA_LICENSE
+            )
+
+            # post the updated event (maintaining all original tags including d tag)
+            poster = HitchhikingDataStandardToNostrPoster()
+            _ = poster.post(ride_record=updated_record, tags=existing_ride.tags)
+            poster.close()
+            d_tag = edit_d_tag  # Keep the same d_tag
+        else:
+            # This is a new ride - normal flow
+            # TODO: define license properly instead of using "xxx"
+            record = create_record_from_custom_object(custom_object=data, source=THIS_NOSTR_SOURCE, license=THIS_DATA_LICENSE)
+
+            poster = HitchhikingDataStandardToNostrPoster()
+            # Offline outbox retries carry a stable client-supplied d_tag so a resend
+            # replaces the same event instead of creating a duplicate ride.
+            client_d_tag = (data.get("client_d_tag") or "").strip() or None
+            d_tag = poster.post(ride_record=record, d_tag=client_d_tag)
+            poster.close()
+
+        # Abuse trail: pair the saved ride's d tag with the submitter's IP so a flood of
+        # fake rides can be traced back to one source. Edits are logged too, since an
+        # abuser can also vandalise a ride they own by editing it.
+        log_ride_ip(d_tag)
+
+        ### Co-hitchhikers
+        # Requirement: co-hitchhikers already on a ride cannot be removed when editing, only new
+        # ones can be added. We achieve this by only inserting co-hitchhikers not already in the DB.
+        if "co_hitchhiker" in data and data["co_hitchhiker"] != "":
+            current_username = current_user.username if not current_user.is_anonymous else None
+            existing_co = {c.co_hitchhiker for c in db.session.query(CoHitchhiker).filter_by(nostr_ride_event_d_tag=d_tag).all()}
+            invited_user_ids = []
+            for ch in data["co_hitchhiker"].split(","):
+                username = ch.strip()
+                if username == "" or username == "Anonymous":
+                    continue  # anonymous hitchhikers are handled in the Nostr event, not in CoHitchhiker
+                if username == current_username:
+                    continue  # skip self
+                if username in existing_co:
+                    continue  # already present, cannot be removed so no need to re-add
+                invited_user = User.query.filter_by(username=username).first()
+                if not invited_user:
+                    continue  # skip non-existent users
+                co_hitchhiker = CoHitchhiker(
+                    nostr_ride_event_d_tag=d_tag,
+                    co_hitchhiker=username,
+                    accepted="open",
+                )
+                db.session.add(co_hitchhiker)
+                invited_user_ids.append(invited_user.id)
+            db.session.commit()
+            # Notify newly invited co-hitchhikers (after commit, so the pending invite exists
+            # by the time they open their profile to accept/reject it).
+            inviter_name = current_username or "Someone"
+            for uid in invited_user_ids:
+                notify_co_hitchhiker_invite(uid, inviter_name)
+
+        if wants_json:
+            return jsonify({"ok": True, "d_tag": d_tag}), 200
+        return redirect("/#success")
+
+    except (AssertionError, ValueError, KeyError) as err:
+        # Bad input — permanent. 400 with no `transient` flag; the offline outbox flags it
+        # for manual retry/discard rather than looping on it forever.
+        if wants_json:
+            return jsonify({"ok": False, "error": str(err)}), 400
+        raise
+    except Exception as err:
+        # Anything else during publish (relay unreachable, timeout, signing hiccup) is
+        # transient — tell the JSON client to keep the item queued and retry later, so a
+        # dead relay never looks like a validation error (which would wrongly flag it).
+        if wants_json:
+            return jsonify({"ok": False, "error": str(err), "transient": True}), 503
+        raise
 
 
 # Report duplicates
@@ -721,7 +850,7 @@ def report_duplicate():
 
     now = str(datetime.datetime.utcnow())
 
-    ip = request.headers.getlist("X-Real-IP")[-1] if request.headers.getlist("X-Real-IP") else request.remote_addr
+    ip = get_client_ip()
 
     from_lat, from_lon, to_lat, to_lon = map(float, data["report"].split(","))
 
@@ -743,4 +872,3 @@ def report_duplicate():
     df.to_sql("duplicates", get_db(), index=None, if_exists="append")
 
     return redirect("/#success-duplicate")
-

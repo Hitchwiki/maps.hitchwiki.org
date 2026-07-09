@@ -1,14 +1,30 @@
 {% extends 'base.html' %}
 
-{% block title %}Hitchhiking Map – Find & Share Hitchhiking Spots Globally{% endblock %}
+{# The same template serves "/" and /spot/<lat>_<lon>. On a spot permalink the
+   title and description describe that spot, so a pasted link previews with its
+   rating instead of the generic homepage blurb; spot_description is unset when
+   the spot has no rides worth summarising, and we fall back to the homepage
+   copy. #}
+{% set homepage_blurb = "Interactive hitchhiking map: find spots, check community ratings and waiting-time heatmaps, plan hitchhiking routes, and share your rides worldwide." %}
+
+{% block title %}{{ spot_title ~ " | Hitchhiking Map" if spot_title else "Hitchhiking Map – Find & Share Hitchhiking Spots Globally" }}{% endblock %}
+{% block og_title %}{{ spot_title if spot_title else "Hitchhiking Map – Find & Share Hitchhiking Spots Globally" }}{% endblock %}
 
 {# Override the generic base.html description so the homepage names its key
    features (heatmap, route planning) — this is what lets "/" rank for those
    queries without dedicated per-feature pages. #}
-{% block meta_description %}Interactive hitchhiking map: find spots, check community ratings and waiting-time heatmaps, plan hitchhiking routes, and share your rides worldwide.{% endblock %}
-{% block og_description %}Interactive hitchhiking map: find spots, check community ratings and waiting-time heatmaps, plan hitchhiking routes, and share your rides worldwide.{% endblock %}
+{% block meta_description %}{{ spot_description or homepage_blurb }}{% endblock %}
+{% block og_description %}{{ spot_description or homepage_blurb }}{% endblock %}
+{% block og_url %}{{ spot_url if spot_url else super() }}{% endblock %}
 
 {% block head %}
+{# Legacy /?lat=&lon= links and the #map= viewport are all views of one spot —
+   point search engines at the single canonical path. #}
+{% if spot_url %}<link rel="canonical" href="{{ spot_url }}" />{% endif %}
+{# Every well-formed coordinate resolves to a 200, so /spot/<lat>_<lon> is an
+   unbounded URL space. Only let crawlers index the ones that describe a real
+   spot; the rest are soft 404s that would dilute the site. #}
+{% if spot_url and not spot_description %}<meta name="robots" content="noindex" />{% endif %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.css" />
@@ -39,7 +55,11 @@
 var HIDE_ADD_SPOT_BUTTON = {{ hide_add_spot_button|tojson }};
 var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
 </script>
+<!-- Expose auth state to the in-ride tracker (it decides whether to show the soft login prompt). -->
+<script>window.IS_LOGGED_IN = {{ 'true' if is_logged_in else 'false' }};</script>
 <script src="{{ asset_url('/static/map.js') }}"></script>
+<script src="{{ asset_url('/static/routing.js') }}"></script>
+<script src="{{ asset_url('/static/inride.js') }}"></script>
 <script>
 // Install-to-homescreen hint logic. Self-contained — no dependency on map.js.
 // Storage key holds the dismissal timestamp (ms); reappears after 30 days.
@@ -139,6 +159,12 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
             <a id="share-signal" href="#" target="_blank" rel="noopener">Signal</a>
         </div>
     </div>
+    <!-- Start a tracked ride FROM this exact spot. Seeding the in-ride flow with the
+         canonical spot coordinates (instead of wherever the user long-presses) keeps
+         repeat rides on the same anchor, cutting down near-duplicate clustered spots. -->
+    <button type="button" id="spot-hitch-here">
+        <i class="fa-solid fa-thumbs-up" aria-hidden="true"></i> Hitch here
+    </button>
     <div id='spot-summary'></div>
     <div id="spot-rate-prompt">
         <div class="rate-label">Rate this spot</div>
@@ -240,13 +266,14 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
     </p>
     </div>
 </div>
-<!-- Filter pane below search bar -->
+<!-- Filters modal (opened by the search-bar filter icon; scrim dismisses it) -->
+<div class="filters-scrim" id="filters-scrim"></div>
 <div class="filter-pane collapsed" id="filter-pane">
     <div class="filter-pane-header">
         <span>Filters</span>
         <i id="filter-loading-spinner" class="fa-solid fa-circle-notch fa-spin" style="display: none; margin-left: 8px;" aria-label="Loading"></i>
-        <button id="filter-collapse-btn" class="filter-collapse-btn" title="Toggle filters">
-            <i class="fa-solid fa-chevron-up"></i>
+        <button id="filter-collapse-btn" class="filter-collapse-btn" title="Close filters" aria-label="Close filters">
+            <i class="fa-solid fa-xmark"></i>
         </button>
     </div>
     <div class="filter-pane-body" id="filter-pane-body">
@@ -451,6 +478,25 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
         <div class="country-source" id="country-sheet-source"></div>
     </div>
 </div>
+<!-- Event info sheet: a Hitchwiki Category:Event marker tapped on the map.
+     Populated client-side by openEventSheet() in map.js from dist/events.json. -->
+<div class="sidebar event bottom-sheet">
+    <div class="sheet-handle" id="event-sheet-handle" aria-hidden="true"></div>
+    <a href="javascript:void(0);" class="sheet-close" id="event-close" title="Close" aria-label="Close">
+        <svg width="14" height="14" version="1.1" xmlns="http://www.w3.org/2000/svg">
+            <line x1="1" y1="13" x2="13" y2="1" stroke="black" stroke-width="2" />
+            <line x1="1" y1="1" x2="13" y2="13" stroke="black" stroke-width="2" />
+        </svg>
+    </a>
+    <div class="sheet-body">
+        <div class="event-header">
+            <h1 id="event-sheet-name"></h1>
+            <div class="event-dates" id="event-sheet-dates"></div>
+        </div>
+        <div class="event-description" id="event-sheet-description"></div>
+        <div class="event-source" id="event-sheet-source"></div>
+    </div>
+</div>
 <a href="javascript:void(0);" id="sb-close">
     <svg width="14" height="14" version="1.1" xmlns="http://www.w3.org/2000/svg">
         <line x1="1" y1="13" x2="13" y2="1" stroke="black" stroke-width="2" />
@@ -479,10 +525,6 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
         <i class="fa-solid fa-calendar-days"></i>
         <span>Activities</span>
     </a>
-    <button class="action-btn" id="heatmap-toggle-btn" title="Toggle heatmap">
-        <i class="fa fa-fire"></i>
-        <span id="heatmap-toggle-text">Heatmap</span>
-    </button>
     <a class="action-btn" href="#insights" id="action-insights" title="Insights">
         <i class="fa-solid fa-chart-column"></i>
         <span>Insights</span>

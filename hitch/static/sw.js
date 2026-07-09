@@ -134,12 +134,17 @@ self.addEventListener('fetch', (event) => {
         event.respondWith(handleTileRequest(event.request, match))
     }
     else {
-        // Helper function to strip query parameters from a URL
+        // Cache key for a URL: everything that doesn't change the response body
+        // is normalised away, so all spots share one cached copy of the map.
         function stripQuery(url) {
             const urlObject = new URL(url);
             if (urlObject.hostname !== self.location.hostname)
                 return url
             urlObject.search = ''; // Remove query parameters
+            // /spot/<lat>_<lon> renders the exact same map template as "/" (the
+            // spot is opened client-side), so don't cache one copy per spot.
+            if (/^\/spot\/-?\d+\.\d+_-?\d+\.\d+\/?$/.test(urlObject.pathname))
+                urlObject.pathname = '/';
             return urlObject.toString();
         }
 

@@ -10,6 +10,12 @@ services:
       - ./dist:/app/dist
       - ./hitch/static:/app/hitch/static
       - ./hitch/templates:/app/hitch/templates
+      # The in-container cron jobs run `flask ... generate <script>` with a stripped
+      # environment, so they never see the vars Docker injects from `env_file`. Flask
+      # loads /app/.env via python-dotenv instead. Without this mount that would be the
+      # stale copy baked into the image at build time, so cron and the web app would
+      # resolve DATABASE_NAME differently and write to two different databases.
+      - ./.env:/app/.env:ro
     environment:
       - FLASK_RUN_PORT=4242
     env_file:
