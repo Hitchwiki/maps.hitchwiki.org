@@ -43,6 +43,13 @@ for post in all_posts:
     d = tags_dict.get("d")
     published_at = tags_dict.get("published_at")
 
+    # `no_ride` is an object in the standard, but we only store whether it was present at all.
+    # `would_ride_again` lives on the driver occupant; lift it out so it can be queried directly.
+    driver = next(
+        (o for o in (content_json.get("occupants") or []) if isinstance(o, dict) and o.get("was_driver")),
+        None,
+    )
+
     ride_events.append(
         RideEvent(
             id=post.get("id"),
@@ -57,6 +64,8 @@ for post in all_posts:
             occupants=content_json.get("occupants"),
             hitchhikers=content_json.get("hitchhikers"),
             declined_rides=content_json.get("declined_rides"),
+            no_ride=content_json.get("no_ride") is not None,
+            would_ride_again=driver.get("would_ride_again") if driver else None,
             ride=content_json.get("ride"),
             mode_of_transportation=content_json.get("mode_of_transportation"),
             comment=content_json.get("comment"),

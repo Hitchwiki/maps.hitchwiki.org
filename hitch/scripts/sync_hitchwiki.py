@@ -152,6 +152,15 @@ else:
     import requests as http_requests
 
     api_url = "https://hitchwiki.org/en/api.php"
+    # Hitchwiki sits behind Cloudflare, which serves a 403 "Just a moment..." bot
+    # challenge to requests without a browser-like User-Agent. Send one so the API
+    # calls get through (a descriptive contact is also MediaWiki API etiquette).
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0 Safari/537.36 maps.hitchwiki.org-articles-sync"
+        )
+    }
     # Step 1: List all pages via allpages generator + get their content in one go
     ap_continue = None
     total_pages = 0
@@ -169,7 +178,7 @@ else:
             params["gapcontinue"] = ap_continue
         try:
             for attempt in range(5):
-                resp = http_requests.get(api_url, params=params, timeout=30)
+                resp = http_requests.get(api_url, params=params, headers=headers, timeout=30)
                 if resp.status_code == 429:
                     import time
                     wait = 2 ** attempt

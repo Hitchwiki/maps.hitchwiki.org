@@ -83,8 +83,8 @@ html {
 .leaflet-control-container .leaflet-control-geocoder-form input {
   height: 44px !important;
   font-size: 16px !important;
-  /* Left padding clears the magnifier icon, right padding the route button */
-  padding: 0 52px 0 44px !important;
+  /* Left padding clears the magnifier icon; right padding clears the filter + route buttons */
+  padding: 0 88px 0 44px !important;
   border-radius: 24px !important;
   border: none !important;
   width: 100% !important;
@@ -117,6 +117,31 @@ html {
 }
 
 .geocoder-route-btn:hover {
+  background: rgba(26, 115, 232, 0.1);
+}
+
+/* Filter button — sits just left of the route button at the right end of the search bar.
+   Same !important overrides as the route button (Leaflet's .leaflet-bar a would otherwise
+   pull it back into flow on mobile and add a second row). */
+.geocoder-filter-btn {
+  position: absolute !important;
+  top: 22px !important;
+  right: 44px !important;
+  transform: translateY(-50%) !important;
+  width: 36px !important;
+  height: 36px !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50% !important;
+  color: #1a73e8 !important;
+  font-size: 17px;
+  text-decoration: none;
+  float: none !important;
+  border-bottom: none !important;
+  z-index: 3;
+}
+.geocoder-filter-btn:hover {
   background: rgba(26, 115, 232, 0.1);
 }
 
@@ -161,6 +186,19 @@ html {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Logged-out nudge: a faint red glow pulses around the account icon on load until the
+   user taps the screen (JS removes .login-pulse on first tap). Encourages sign-in. */
+.top-account-btn.login-pulse {
+  animation: login-pulse-glow 1.8s ease-in-out infinite;
+}
+@keyframes login-pulse-glow {
+  0%, 100% { box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), 0 0 0 0 rgba(229, 57, 53, 0); }
+  50%      { box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), 0 0 14px 5px rgba(229, 57, 53, 0.5); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .top-account-btn.login-pulse { animation: none; }
 }
 
 .top-account-btn a {
@@ -224,20 +262,56 @@ html {
 }
 
 /* Filter pane below search bar */
+/* Filters modal — hidden until the search-bar filter icon opens it (body.filters-open),
+   then shown centered over a scrim. Replaces the old persistent top filter panel. */
 .filter-pane {
   position: fixed;
-  top: 100px;
-  left: 16px;
-  right: 68px;
-  max-width: 600px;
-  z-index: 999;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(600px, calc(100vw - 32px));
+  max-height: 80vh;
+  overflow-y: auto;
+  z-index: 2050;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-  padding: 8px 14px;
-  display: block;
+  border-radius: 14px;
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.28);
+  padding: 12px 16px;
+  display: none;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 13px;
+}
+body.filters-open .filter-pane {
+  display: block;
+}
+
+.filters-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 2049;
+  display: none;
+}
+body.filters-open .filters-scrim {
+  display: block;
+}
+
+/* The Insights view reparents the filter pane into its panel to reuse it as an inline
+   filter control — there it must render in-flow, not as the hidden centered modal. */
+#insights-filter-slot .filter-pane {
+  display: block;
+  position: static;
+  transform: none;
+  width: auto;
+  max-width: none;
+  max-height: none;
+  overflow: visible;
+  box-shadow: none;
+  z-index: auto;
+  padding: 0;
+}
+#insights-filter-slot .filter-collapse-btn {
+  display: none;
 }
 
 .filter-pane-header {
@@ -549,6 +623,18 @@ body.adding-spot .leaflet-control-attribution {
   margin-right: 10px !important;
 }
 
+/* ── In-ride journey chrome ──────────────────────────────────────────────────
+   body.inride-active is toggled by journeyUI.render / .teardown (inride.js). The
+   docked bar (Give Up / Got a Ride / Finish Ride) + status chip ride ABOVE the main
+   bottom nav (offset by --bottom-pane-h, set by updateBottomPaneVar in map.js).
+
+   While a journey is active, lift the WHOLE bottom-right control stack (locate, mode
+   switcher, zoom) above the dock + chip so the +/- stay visible and tappable over the
+   Give Up / Got a Ride buttons on a phone. */
+body.inride-active .leaflet-bottom.leaflet-right {
+  margin-bottom: calc(150px + var(--bottom-pane-h, 0px));
+}
+
 .mapmode-btn {
   display: flex !important;
   align-items: center;
@@ -572,22 +658,90 @@ body.adding-spot .leaflet-control-attribution {
   color: #fff;
 }
 
-/* One-time red pointer nudging first-time users to try a view-switcher button.
-   pointer-events:none so it never blocks the click it's inviting. */
+/* ── Connected right control stack (uniform buttons, no gaps) ─────────────────
+   GPS (locate) → mode switcher (hitch / heat / wiki) → zoom (+/−) read as ONE
+   continuous control: same 34px button size, touching with no gaps, rounded only at
+   the very top (GPS) and the very bottom (zoom −). */
+.leaflet-bottom.leaflet-right .locate-control,
+.leaflet-bottom.leaflet-right .mapmode-control {
+  margin-bottom: 0 !important;
+}
+/* Uniform 34px buttons across the whole stack (zoom defaults to ~30px on touch). */
+.leaflet-bottom.leaflet-right .leaflet-control-zoom a {
+  width: 34px !important;
+  height: 34px !important;
+  line-height: 34px !important;
+}
+/* Round only the outer corners of the combined stack; square every internal seam. */
+.leaflet-bottom.leaflet-right .locate-control-btn {
+  border-radius: 6px 6px 0 0 !important;
+}
+.leaflet-bottom.leaflet-right .mapmode-control .mapmode-btn {
+  border-radius: 0 !important;
+}
+.leaflet-bottom.leaflet-right .leaflet-control-zoom .leaflet-control-zoom-in {
+  border-radius: 0 !important;
+}
+.leaflet-bottom.leaflet-right .leaflet-control-zoom .leaflet-control-zoom-out {
+  border-radius: 0 0 6px 6px !important;
+}
+
+/* One-time red pointer nudging first-time users toward a feature's button.
+   pointer-events:none so it never blocks the click it's inviting. The arrow
+   nudges away from the button it points at, so each placement modifier sets both
+   the centring transform and the matching keyframes. */
 .mode-hint-pointer {
   position: fixed;
-  transform: translateY(-50%);
   z-index: 1000;
   color: #e53935;
   font-size: 22px;
   pointer-events: none;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
-  animation: mode-hint-nudge 0.8s ease-in-out infinite;
 }
-@keyframes mode-hint-nudge {
+.mode-hint-pointer--left {
+  transform: translateY(-50%);
+  animation: mode-hint-nudge-left 0.8s ease-in-out infinite;
+}
+.mode-hint-pointer--below,
+.mode-hint-pointer--above {
+  transform: translateX(-50%);
+}
+.mode-hint-pointer--below { animation: mode-hint-nudge-below 0.8s ease-in-out infinite; }
+.mode-hint-pointer--above { animation: mode-hint-nudge-above 0.8s ease-in-out infinite; }
+
+@keyframes mode-hint-nudge-left {
   0%, 100% { transform: translateY(-50%) translateX(0); }
   50%      { transform: translateY(-50%) translateX(-6px); }
 }
+@keyframes mode-hint-nudge-below {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%      { transform: translateX(-50%) translateY(6px); }
+}
+@keyframes mode-hint-nudge-above {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%      { transform: translateX(-50%) translateY(-6px); }
+}
+
+/* "Hitch here" CTA in the spot detail sheet — starts a tracked ride from this spot. */
+#spot-hitch-here {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin: 10px 0 4px;
+  padding: 12px 0;
+  border: none;
+  border-radius: 12px;
+  background: #1a9850;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .18);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+#spot-hitch-here:hover { background: #157a40; }
 
 /* Country info bottom sheet (Hitchwiki lead section for a tapped country). */
 .sidebar.country .country-header {
@@ -652,6 +806,85 @@ body.adding-spot .leaflet-control-attribution {
   text-decoration: none;
 }
 .sidebar.country .country-source a:hover {
+  text-decoration: underline;
+}
+
+/* Hitchwiki event markers and their bottom sheet. */
+.event-marker {
+  background: transparent;
+  border: none;
+}
+/* During an in-ride pin drop (destination / next waiting spot), event markers must
+   not swallow map clicks — a tap on one should reposition the pin, not open its
+   sheet. Toggled by body.inr-picking in inride.js (manualPin / setWaitingSpot).
+   Markers stay visible as a reference; only their click handling is disabled. */
+body.inr-picking .event-marker {
+  pointer-events: none;
+}
+.event-marker-pin {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+  background: #fff;
+  border: 2px solid #d9534f;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+.sidebar.event .event-header {
+  margin-bottom: 1rem;
+}
+.sidebar.event .event-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #222;
+}
+.sidebar.event .event-dates {
+  margin-top: 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #d9534f;
+}
+.sidebar.event .event-description {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #222;
+}
+.sidebar.event .event-description p {
+  margin: 0 0 1rem;
+}
+.sidebar.event .event-description h4 {
+  margin: 1.2rem 0 0.4rem;
+  font-size: 1.05rem;
+  color: #222;
+}
+.sidebar.event .event-description a {
+  color: #1a73e8;
+  text-decoration: none;
+}
+.sidebar.event .event-description a:hover {
+  text-decoration: underline;
+}
+.sidebar.event .sheet-status {
+  color: #666;
+  font-style: italic;
+}
+.sidebar.event .event-source {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+  font-size: 0.85rem;
+  color: #666;
+}
+.sidebar.event .event-source a {
+  color: #1a73e8;
+  text-decoration: none;
+}
+.sidebar.event .event-source a:hover {
   text-decoration: underline;
 }
 
@@ -1718,6 +1951,28 @@ ul.no-style {
   display: block;
 }
 
+/* Compact distribution strip under an average in the spot pane. Kept short and
+   axis-less so it hints at the shape without pushing the ride list off screen. */
+.spot-hist {
+  margin: 2px 0 8px;
+  max-width: 260px;
+}
+
+.spot-hist-chart {
+  display: block;
+  width: 100%;
+  height: 32px;
+}
+
+.spot-hist-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #999;
+  font-variant-numeric: tabular-nums;
+  margin-top: 1px;
+}
+
 .insights-chart-empty {
   position: absolute;
   inset: 0;
@@ -1848,3 +2103,617 @@ body.showing-insights .heatmap-legend-pane {
 .user-location-dot.fading {
   animation: user-location-fade 30s linear forwards;
 }
+
+/* ── In-ride choose-action dialog ───────────────────────────────────────────────
+   Mirrors .location-selection-ui: same scrim, same white rounded card pinned
+   bottom-centre, same z-index stack. Only the button variants differ. */
+.inride-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 2001;
+  background: rgba(0, 0, 0, .28);
+}
+
+.inride-dialog {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 2002;
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+  padding: 14px 16px;
+  text-align: center;
+}
+
+/* Screen-centre variant (e.g. the "Track your rides?" prompt). */
+.inride-dialog--centered {
+  top: 50%;
+  bottom: auto;
+  transform: translate(-50%, -50%);
+}
+
+.inride-dialog h4 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.inride-dialog p {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #666;
+  max-width: 260px;
+}
+
+.inride-dialog .inr-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.inride-dialog .inr-actions button {
+  border-radius: 7px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Primary: green "Start Hitching" */
+.inride-dialog .inr-go {
+  background: #1a9850;
+  color: #fff;
+  border: none;
+}
+
+/* Secondary: white card with blue outline "Log a past ride" */
+.inride-dialog .inr-ghost {
+  background: #fff;
+  color: #1a73e8;
+  border: 1.5px solid #1a73e8;
+}
+
+/* Neutral secondary: grey fill for low-emphasis actions
+   ("Continue anonymously", "End Hitch", "Discard") */
+.inride-dialog .inr-grey {
+  background: #f1f3f4;
+  color: #3c4043;
+  border: none;
+}
+
+/* ── Waiting-state persistent chrome (Task 5) ───────────────────────────────
+   The docked bar and status chip sit above the map but BELOW the map controls;
+   Task 12 will raise the controls above them. z-index 1200 clears the Leaflet
+   tile/vector layers (~600) and the locate button while leaving room above. */
+
+/* Docked action bar: two big buttons pinned to the bottom edge */
+.inr-dock {
+  position: fixed;
+  left: 10px;
+  right: 10px;
+  /* Ride above the bottom nav (its measured height), with a 10px gap. z-index over
+     the nav (2001) as a belt-and-suspenders against rounding in the measurement. */
+  bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 10px);
+  display: flex;
+  gap: 10px;
+  z-index: 2002;
+}
+
+/* Waiting/paused dock: button row on top, a small grey Cancel beneath it. */
+.inr-dock--stack {
+  flex-direction: column;
+}
+.inr-dock-row {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+.inr-cancel {
+  align-self: center;
+  border: none;
+  background: transparent;
+  color: #8a9096;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.inr-cancel:hover { background: rgba(0, 0, 0, .06); color: #555; }
+
+/* Big action buttons — bold, rounded, coloured per action */
+.inr-big {
+  flex: 1;
+  border: none;
+  border-radius: 14px;
+  padding: 15px 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .2);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.inr-big--red   { background: #d73027; }
+.inr-big--green { background: #1a9850; }
+
+/* Non-blocking "saved offline" confirmation toast — sits above the dock stack. */
+.inr-toast {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 160px);
+  z-index: 2003;
+  background: rgba(17, 17, 17, .92);
+  color: #fff;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  max-width: 88vw;
+  text-align: center;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .3);
+}
+
+/* Pending-upload chip: bottom-left pill, clear of the centred dock/chip stack. Shown
+   whenever the outbox is non-empty; turns red when an item permanently failed. */
+#inr-outbox-chip {
+  position: fixed;
+  left: 10px;
+  /* Sit ABOVE the full-width dock (left:10/right:10) so an active journey's dock never
+     covers it — the outbox can hold a queued ride from a previous leg while a new leg's
+     dock is showing. Clears the dock (~54px) + status chip. */
+  bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 130px);
+  z-index: 2002;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: rgba(17, 17, 17, .85);
+  color: #fff;
+  border-radius: 20px;
+  padding: 8px 13px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+#inr-outbox-chip.inr-outbox-chip--failed {
+  background: #b00020;
+}
+
+/* Pending-upload detail sheet rows */
+.inr-outbox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 6px 0 14px;
+}
+.inr-outbox-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #f5f6f7;
+  border-radius: 12px;
+}
+.inr-outbox-row__info { font-size: 13.5px; color: #222; line-height: 1.4; }
+.inr-outbox-row__err { color: #b00020; font-weight: 600; }
+.inr-outbox-row__wait { color: #666; }
+.inr-outbox-row__actions {
+  flex-shrink: 0;
+  display: flex;
+  gap: 4px;
+}
+.inr-outbox-row__btn {
+  border: none;
+  background: transparent;
+  color: #1a73e8;
+  font-size: 15px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.inr-outbox-row__btn:hover { background: rgba(0, 0, 0, .06); }
+.inr-outbox-row__btn--danger { color: #b00020; }
+
+/* Text/number/datetime inputs inside the outbox edit sheet */
+.inr-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 11px;
+  border: 1px solid #d0d5da;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #fff;
+  color: #222;
+}
+.inr-input:focus { outline: none; border-color: #1a73e8; }
+
+/* Give-up sheet subtitle */
+.inr-sheet__sub {
+  margin: -4px 0 10px;
+  font-size: 13.5px;
+  color: #666;
+  text-align: center;
+}
+
+/* Status chip: dark pill, bottom-centre, above the dock */
+.inr-chip {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  /* Sits ~68px above the dock (which is itself above the nav via --bottom-pane-h),
+     so it clears the two big buttons + a gap. */
+  bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 78px);
+  z-index: 2002;
+  background: rgba(17, 17, 17, .85);
+  color: #fff;
+  border-radius: 20px;
+  padding: 7px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+/* Waiting/paused docks are taller (button row + Cancel beneath), so lift their chip
+   higher to clear it. In-ride keeps the base 78px offset (single Finish button). */
+.inr-chip--wait,
+.inr-chip--paused {
+  bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 112px);
+}
+
+/* Coloured dot on the left of the chip */
+.inr-chip__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Waiting state: yellow dot */
+.inr-chip--wait .inr-chip__dot {
+  background: #ffcc33;
+  box-shadow: 0 0 0 4px rgba(255, 204, 51, .3);
+}
+
+/* Disabled big button (e.g. Got a Ride! while paused — must resume first) */
+.inr-big.inr-disabled {
+  background: #c7ccd1;
+  color: #eef2f5;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* Paused state: grey dot */
+.inr-chip--paused .inr-chip__dot {
+  background: #9aa0a6;
+  box-shadow: 0 0 0 4px rgba(154, 160, 166, .3);
+}
+
+/* Pause / Resume pill inside the chip */
+.inr-pausepill {
+  margin-left: 8px;
+  background: rgba(255, 255, 255, .22);
+  border: none;
+  color: #fff;
+  border-radius: 14px;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ── Ride-details bottom sheet (Task 8) ─────────────────────────────────────
+   Slides up from the bottom edge; reuses .inride-scrim for the backdrop.
+   Title: "How was the spot?" · CTA: "Ride On!" (green, disabled until rated). */
+.inr-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #fff;
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -3px 18px rgba(0, 0, 0, .25);
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  text-align: left;
+  z-index: 2002;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Drag-handle visual cue */
+.inr-sheet__grab {
+  width: 38px;
+  height: 4px;
+  border-radius: 2px;
+  background: #d5d5d5;
+  margin: 0 auto 12px;
+}
+
+/* Dismiss "✕" so a detail sheet can be closed without saving (no forced ride/log). */
+.inr-sheet__close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: #888;
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.inr-sheet__close:hover { background: rgba(0, 0, 0, .06); color: #333; }
+
+.inr-sheet h4 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* ── Star rating ── */
+.inr-stars {
+  text-align: center;
+  margin-bottom: 12px;
+  letter-spacing: 3px;
+}
+
+.inr-star {
+  font-size: 26px;
+  color: #dcdcdc;
+  cursor: pointer;
+  transition: color .1s;
+  user-select: none;
+}
+
+/* Active (filled) star */
+.inr-star--on {
+  color: #ffb400;
+}
+
+/* ── Field row (label + chip row / textarea) ── */
+.inr-field {
+  margin-bottom: 10px;
+}
+
+.inr-field label {
+  display: block;
+  font-size: 11px;
+  color: #666;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+/* ── Chip groups ── */
+.inr-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* .inr-optchip: vehicle/signal selection chips inside the ride-details sheet.
+   Named differently from .inr-chip (the fixed status pill) to avoid CSS collision —
+   both would be bare selectors of equal specificity and would merge position:fixed
+   rules onto the sheet chips, floating them over the map. */
+.inr-optchip {
+  border: 1.5px solid #d8d8d8;
+  border-radius: 18px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  background: #fff;
+  color: #444;
+  cursor: pointer;
+  font-family: inherit;
+  line-height: 1;
+}
+
+/* Selected optchip: blue outline + tinted fill */
+.inr-optchip--on {
+  border-color: #1a73e8;
+  background: #eaf2fe;
+  color: #1a73e8;
+  font-weight: 700;
+}
+
+/* ── Optional comment textarea ── */
+.inr-sheet__textarea {
+  width: 100%;
+  border: 1.5px solid #ddd;
+  border-radius: 9px;
+  padding: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  resize: none;
+  height: 44px;
+  box-sizing: border-box;
+}
+
+/* ── "Ride On!" save button (full-width, reuses .inr-big sizing) ── */
+.inr-sheet__save {
+  width: 100%;
+  border-radius: 10px;
+  padding: 13px 0;
+  margin-top: 6px;
+  flex: none;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .2);
+}
+
+/* ── "Add driver / vehicle details" link ── */
+.inr-sheet__more {
+  display: block;
+  text-align: center;
+  margin-top: 9px;
+  font-size: 12.5px;
+  color: #1a73e8;
+  text-decoration: none;
+}
+.inr-sheet__more:hover {
+  text-decoration: underline;
+}
+
+/* ==========================================================================
+   Route planner (routing.js) — Google-Maps-style directions UI.
+   ========================================================================== */
+
+/* Panel replaces the search bar in place (same anchor as .leaflet-control-geocoder). */
+#route-panel {
+  /* !important mirrors the search bar (line ~59): the map controls / leaflet
+     inject competing position rules, and without it the panel loses `fixed` and
+     falls into normal flow at the end of <body> — i.e. the bottom of the page. */
+  position: fixed !important;
+  top: 48px !important;
+  left: 16px !important;
+  right: 68px !important;
+  max-width: 600px !important;
+  z-index: 1002;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  padding: 10px 10px 10px 44px;
+}
+/* Hide the underlying search bar while planning so the panel stands alone. */
+body.routing-active .leaflet-control-container .leaflet-control-geocoder { display: none !important; }
+
+.rp-close {
+  position: absolute;
+  top: 12px;
+  left: 8px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: #444;
+  font-size: 17px;
+  cursor: pointer;
+  border-radius: 50%;
+}
+.rp-close:hover { background: rgba(0, 0, 0, 0.06); }
+
+.rp-fields { display: flex; flex-direction: column; gap: 8px; }
+.rp-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f1f3f4;
+  border-radius: 8px;
+  padding: 0 10px;
+  height: 42px;
+}
+.rp-field:focus-within { background: #fff; box-shadow: 0 0 0 2px #1a73e8 inset; }
+.rp-field input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  outline: none;
+  min-width: 0;
+}
+.rp-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.rp-dot-start { background: #188038; box-shadow: 0 0 0 3px rgba(24, 128, 56, 0.2); }
+.rp-dot-dest { background: #d93025; box-shadow: 0 0 0 3px rgba(217, 48, 37, 0.2); }
+.rp-clear {
+  border: none; background: transparent; color: #999; font-size: 20px;
+  cursor: pointer; line-height: 1; padding: 0 2px;
+}
+.rp-clear:hover { color: #444; }
+
+.rp-suggest {
+  margin-top: 6px;
+  border-top: 1px solid #eee;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.rp-suggest-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 6px; cursor: pointer; font-size: 14px; color: #333;
+  border-radius: 6px;
+}
+.rp-suggest-item i { color: #999; }
+.rp-suggest-item:hover { background: #f1f3f4; }
+
+.rp-status {
+  margin-top: 10px; font-size: 13px; color: #555; padding: 2px 4px 4px;
+}
+
+.rp-options { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.rp-option {
+  display: flex; align-items: stretch; gap: 10px;
+  text-align: left; border: 1px solid #e4e4e4; background: #fff;
+  border-radius: 10px; padding: 8px 10px 8px 0; cursor: pointer;
+  font: inherit; overflow: hidden;
+}
+.rp-option:hover { background: #f8f9fb; }
+.rp-option.active { border-color: var(--rc); box-shadow: 0 0 0 1px var(--rc) inset; }
+.rp-opt-bar { width: 5px; background: var(--rc); border-radius: 3px; flex: none; }
+.rp-opt-main { font-size: 15px; color: #202124; }
+.rp-opt-delta { color: #666; font-size: 13px; }
+.rp-opt-sub { color: #5f6368; font-size: 12.5px; }
+/* First/last-mile note on the option cards (walk to start/end or take transit). */
+.rp-opt-ends { color: #80868b; font-size: 12px; font-style: italic; }
+
+/* Time tag floating on each route. */
+.route-tag-wrap { pointer-events: auto; }
+.route-tag {
+  display: inline-flex; flex-direction: column; align-items: flex-start;
+  background: #fff; color: var(--rc);
+  border: 1.5px solid var(--rc); border-radius: 14px;
+  padding: 2px 9px; font-size: 12px; line-height: 1.25;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25); white-space: nowrap; cursor: pointer;
+  opacity: 0.9;
+}
+.route-tag.active { background: var(--rc); color: #fff; opacity: 1; z-index: 2; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35); }
+.route-tag b { font-size: 13px; }
+.route-tag .rt-sub { font-size: 10.5px; opacity: 0.9; font-weight: 400; }
+.route-tag .rt-ends { font-size: 10px; font-weight: 400; opacity: 0.85; font-style: italic; }
+
+/* Change-car marker along the highlighted route. */
+.route-change-spot > div {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: #fff; border: 2.5px solid var(--rc); color: var(--rc);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Start / destination pins dropped by the planner. */
+.rp-pin i { font-size: 30px; -webkit-text-stroke: 1.5px #fff; }
+.rp-pin-start i { color: #188038; }
+.rp-pin-dest i { color: #d93025; }
+
+@media (max-width: 640px) {
+  #route-panel { right: 16px !important; }
+}
+
+/* Route options rendered inside the .sidebar.routing bottom snap sheet. */
+.sidebar.routing .sheet-body { padding: 6px 16px 20px; overflow-y: auto; }
+.rp-sheet-title { margin: 4px 0 10px; font-size: 15px; font-weight: 700; }
+.sidebar.routing .rp-options { display: flex; flex-direction: column; gap: 8px; }
+
+/* Route pane peek: show only the handle + "Routes" title (matches ROUTING_SHEET_SNAPS
+   peek: 88 in map.js), overriding the generic .snap-peek (80%), so most of the map
+   stays visible. The pane can't be swiped away — only the X closes it. */
+.sidebar.routing.bottom-sheet.snap-peek { transform: translateY(88%); }
