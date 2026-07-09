@@ -2137,6 +2137,15 @@ function navigateHome() {
     window.RoutingUI.showAgain();
     return;
   }
+  // Panes opened via a navigation hash (#country/<name>, #event, #menu, …) leave that
+  // hash in the URL; clearSpotUrl only resets /spot/ paths, so navigate() below would
+  // otherwise re-read the hash and reopen the pane — the close X would appear to
+  // "reload" the wiki sheet rather than close it. Drop it, keeping a #map= viewport.
+  if (window.location.hash && !parseMapHash(window.location.hash)) {
+    const url = new URL(window.location.href);
+    url.hash = "";
+    window.history.pushState({}, "", url);
+  }
   navigate(); // clears rest
 }
 
