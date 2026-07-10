@@ -339,6 +339,29 @@ def _ride_wait_minutes(ride):
         return None
 
 
+def _ride_duration_minutes(ride):
+    """Time spent moving: the last stop's arrival minus the first stop's departure.
+
+    Distinct from the waiting time, which is time spent stopped at the roadside. Either
+    timestamp may be absent (the in-ride tracker records both; the historic form often
+    does not), and a clock skew could make arrival precede departure — in every such case
+    return None so the UI simply omits the figure rather than printing something wrong.
+    """
+    stops = (ride.content or {}).get("stops") or []
+    if len(stops) < 2:
+        return None
+    departure = stops[0].get("departure_time")
+    arrival = stops[-1].get("arrival_time")
+    if not departure or not arrival:
+        return None
+    start = pd.to_datetime(departure, errors="coerce", utc=True)
+    end = pd.to_datetime(arrival, errors="coerce", utc=True)
+    if pd.isna(start) or pd.isna(end):
+        return None
+    minutes = (end - start).total_seconds() / 60
+    return round(minutes) if minutes > 0 else None
+
+
 def _ride_completion_pct(ride):
     """How complete this ride's driver/vehicle detail is, 0-100.
 
@@ -618,6 +641,7 @@ def _extract_ride_info(ride, ride_type):
     # omits the stat rather than printing a misleading zero. _ride_distance_km reads the
     # coords off the info dict, so it has to run once the dict exists.
     info["wait_min"] = _ride_wait_minutes(ride)
+    info["ride_min"] = _ride_duration_minutes(ride)
     distance = _ride_distance_km(info)
     info["distance_km"] = round(distance, 1) if distance is not None else None
     info["completion"] = _ride_completion_pct(ride)

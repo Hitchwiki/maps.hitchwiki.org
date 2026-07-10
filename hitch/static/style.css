@@ -3085,6 +3085,20 @@ body.routing-active .leaflet-control-container .leaflet-control-geocoder { displ
 .acct-ride__route--fallback { color: #666; font-weight: 500; }
 .acct-ride__when { color: #333; font-weight: 600; font-variant-numeric: tabular-nums; }
 .acct-ride__stats { color: #888; font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.acct-ride__sep { color: #ccc; }
+/* Red = stopped at the roadside (waiting). Green = moving (in the car). */
+.acct-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+}
+.acct-dot--stopped { background: #d73027; }
+.acct-dot--going { background: #1a9850; }
 .acct-ride__stars { color: #f5a623; flex-shrink: 0; }
 
 /* Flag on a ride whose destination was never recorded (give-ups are excluded
