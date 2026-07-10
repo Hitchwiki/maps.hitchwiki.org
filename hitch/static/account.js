@@ -491,8 +491,15 @@
     window.addEventListener("message", onMsg);
   }
 
-  // Light an amber dot on the avatar when the user has rides worth completing — the
-  // mirror of the red "log in" dot shown to anonymous visitors. Computed client-side,
+  // Badge text for a count: the number itself, capped at "99+" so a big backlog never
+  // blows out the badge width. Below 1 there is nothing to show.
+  function badgeCount(n) {
+    if (!(n > 0)) return "";
+    return n > 99 ? "99+" : String(n);
+  }
+
+  // Light an amber badge on the avatar carrying the number of rides worth completing —
+  // the mirror of the red "log in" dot shown to anonymous visitors. Computed client-side,
   // and only when logged in, so the map's render path and every anonymous load stay
   // untouched; the count query only runs for the users it can apply to.
   function refreshNudgeDot(link) {
@@ -503,17 +510,19 @@
       .then(function (r) { return r.json(); })
       .then(function (data) {
         const existing = btn.querySelector(".account-dot--amber");
+        const count = data ? data.count : 0;
         // Don't fight the notification bell: unread notifications already own the corner.
-        if (data && data.count > 0 && !btn.querySelector(".notif-bell") && !existing) {
+        if (count > 0 && !btn.querySelector(".notif-bell") && !existing) {
           const dot = document.createElement("span");
           dot.className = "account-dot account-dot--amber";
+          dot.textContent = badgeCount(count);
           dot.setAttribute("role", "img");
           dot.setAttribute(
             "aria-label",
-            data.count === 1 ? "1 ride could use more detail" : data.count + " rides could use more detail"
+            count === 1 ? "1 ride could use more detail" : count + " rides could use more detail"
           );
           link.appendChild(dot);
-        } else if ((!data || data.count === 0) && existing) {
+        } else if (count === 0 && existing) {
           existing.remove();
         }
       })
@@ -545,6 +554,7 @@
     rideLabel: rideLabel,
     rideStats: rideStats,
     completionPct: completionPct,
+    badgeCount: badgeCount,
     rideEditUrl: rideEditUrl,
     awardsSummary: awardsSummary,
     completionTier: completionTier,

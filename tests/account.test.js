@@ -252,3 +252,14 @@ test("rideStats silently omits a ride time the record never carried", () => {
   // A zero-minute ride is data, not absence.
   assert.deepStrictEqual(A.rideStats({ ride_min: 0 }), [{ text: "0 min", dot: "going" }]);
 });
+
+test("badgeCount shows the number and caps at 99+", () => {
+  assert.strictEqual(A.badgeCount(1), "1");
+  assert.strictEqual(A.badgeCount(8), "8");
+  assert.strictEqual(A.badgeCount(99), "99");
+  assert.strictEqual(A.badgeCount(100), "99+");
+  assert.strictEqual(A.badgeCount(1247), "99+");
+  // Nothing to show below 1.
+  assert.strictEqual(A.badgeCount(0), "");
+  assert.strictEqual(A.badgeCount(-3), "");
+});
