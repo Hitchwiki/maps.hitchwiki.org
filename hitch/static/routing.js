@@ -613,6 +613,18 @@
     if (sheet) sheet.querySelectorAll(".rp-option").forEach((r) => r.classList.toggle("active", Number(r.dataset.i) === i));
   }
 
+  // Marker for a spot where you get in or out of a car. The first boarding spot
+  // and the final drop-off get their own symbols (thumb / finish flag) so the
+  // two ends of the hitchhiking part of the route read at a glance; every other
+  // boarding spot is an intermediate car change.
+  function carStopIcon(kind, color) {
+    const glyph = kind === "first" ? "fa-solid fa-thumbs-up"
+      : kind === "last" ? "fa-solid fa-flag-checkered" : "fa-solid fa-right-left";
+    return L.divIcon({ className: "route-change-spot route-stop-" + kind,
+      html: `<div style="--rc:${color}"><i class="${glyph}"></i></div>`,
+      iconSize: [22, 22], iconAnchor: [11, 11] });
+  }
+
   // Only the highlighted route's spots are shown: every spot along it, with the
   // change points (where you board a new car) highlighted. Clicking any spot
   // opens the normal spot bottom sheet (all rides at that spot).
@@ -620,18 +632,25 @@
     if (RJ.spotLayer) RJ.spotLayer.clearLayers();
     const rt = RJ.routes[i], color = ALT_COLORS[i % ALT_COLORS.length];
     const seen = new Set();
+    const carLegs = rt.legs.filter((l) => l.mode === "car");
+    const firstLeg = carLegs[0], lastLeg = carLegs[carLegs.length - 1];
     rt.legs.forEach((leg) => {
       if (leg.mode !== "car") return;
       leg.path.forEach((c, idx) => {
         const key = c[0].toFixed(5) + "_" + c[1].toFixed(5);
-        const change = idx === 0; // boarding spot => car change
+        // First spot of the first car leg = where you board the first car;
+        // last spot of the last car leg = where you get off for good.
+        const kind = leg === firstLeg && idx === 0 ? "first"
+          : leg === lastLeg && idx === leg.path.length - 1 ? "last"
+            : idx === 0 ? "change" : null;
+        const change = kind !== null; // boarding / final drop-off spot
         if (seen.has(key) && !change) return; seen.add(key);
         let m;
         if (change) {
-          m = L.marker(c, { icon: L.divIcon({ className: "route-change-spot",
-            html: `<div style="--rc:${color}"><i class="fa-solid fa-right-left"></i></div>`,
-            iconSize: [22, 22], iconAnchor: [11, 11] }), zIndexOffset: 400 })
-            .bindTooltip("Change car here — tap for rides", { direction: "top" });
+          const tip = kind === "first" ? "Start hitchhiking here — tap for rides"
+            : kind === "last" ? "Get off here — tap for rides" : "Change car here — tap for rides";
+          m = L.marker(c, { icon: carStopIcon(kind, color), zIndexOffset: 400 })
+            .bindTooltip(tip, { direction: "top" });
         } else {
           // Same pane as the route lines — a circleMarker is a Path, so it would
           // otherwise be dimmed with the default overlay pane (see routePane).

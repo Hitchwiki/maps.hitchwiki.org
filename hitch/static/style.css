@@ -2736,6 +2736,15 @@ body.routing-active .leaflet-control-container .leaflet-control-geocoder { displ
   font-size: 11px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
+/* The two ends of the hitchhiking part of the route: filled, slightly larger
+   than an intermediate car change so they stand out among the change symbols. */
+.route-stop-first > div,
+.route-stop-last > div {
+  width: 26px; height: 26px; margin: -2px 0 0 -2px;
+  background: var(--rc); border-color: #fff; color: #fff;
+  font-size: 12px;
+}
+
 /* Start / destination pins dropped by the planner. */
 .rp-pin i { font-size: 30px; -webkit-text-stroke: 1.5px #fff; }
 .rp-pin-start i { color: #188038; }
