@@ -146,3 +146,87 @@ test("rideRoute prefixes each place with its country flag", () => {
   assert.strictEqual(A.rideRoute({ from_place: "Metzeral", to_place: "Mitte" }), "Metzeral → Mitte");
   assert.strictEqual(A.rideRoute({ from_place: "Metzeral", from_cc: "FR" }), "🇫🇷 Metzeral");
 });
+
+test("formatRideDate renders dd - month - yy hh:mm", () => {
+  assert.strictEqual(A.formatRideDate("2026-07-28 12:00"), "28 - July - 26 12:00");
+  assert.strictEqual(A.formatRideDate("2026-01-05T09:30:00Z"), "5 - January - 26 09:30");
+  // Date only, no time component.
+  assert.strictEqual(A.formatRideDate("2026-12-31"), "31 - December - 26");
+  // Garbage in, nothing out — never "NaN - undefined".
+  assert.strictEqual(A.formatRideDate(""), "");
+  assert.strictEqual(A.formatRideDate(null), "");
+  assert.strictEqual(A.formatRideDate("not a date"), "");
+  assert.strictEqual(A.formatRideDate("2026-13-01"), "");
+});
+
+test("formatRideDate does not shift the day across timezones", () => {
+  // new Date("2026-07-28 00:30") would be re-read in the browser's zone and could land on
+  // the 27th. `created` is already local submission time, so it is parsed literally.
+  assert.strictEqual(A.formatRideDate("2026-07-28 00:30"), "28 - July - 26 00:30");
+  assert.strictEqual(A.formatRideDate("2026-07-28 23:45"), "28 - July - 26 23:45");
+});
+
+test("rideTitle falls back to the date when no place names exist yet", () => {
+  assert.strictEqual(
+    A.rideTitle({ from_place: "Metzeral", from_cc: "FR", to_place: "Mitte", to_cc: "DE", created: "2026-07-28 12:00" }),
+    "🇫🇷 Metzeral → 🇩🇪 Mitte"
+  );
+  // Not geocoded yet -> the date identifies the ride.
+  assert.strictEqual(A.rideTitle({ created: "2026-07-28 12:00" }), "28 - July - 26 12:00");
+  // Neither -> a last-resort label, never an empty row.
+  assert.strictEqual(A.rideTitle({}), "Unknown ride");
+});
+
+test("rideStats omits the date when the date is already the title", () => {
+  const ride = { created: "2026-07-28 12:00", wait_min: 45, distance_km: 138.9 };
+  assert.deepStrictEqual(A.rideStats(ride, true), ["2026-07-28", "45 min", "139 km"]);
+  // Date serving as the title -> don't repeat it below.
+  assert.deepStrictEqual(A.rideStats(ride, false), ["45 min", "139 km"]);
+});
+
+test("routeSegments distinguishes a known, missing and never-reached destination", () => {
+  // Known destination.
+  assert.deepStrictEqual(
+    A.routeSegments({ from_place: "Metzeral", from_cc: "FR", to_place: "Mitte", to_cc: "DE" }),
+    { start: "🇫🇷 Metzeral", end: "🇩🇪 Mitte", endKind: "place" }
+  );
+  // Real ride, no destination recorded -> fixable, rendered as an inline warning.
+  assert.deepStrictEqual(
+    A.routeSegments({ from_place: "Metzeral", from_cc: "FR", missing_destination: true }),
+    { start: "🇫🇷 Metzeral", end: "", endKind: "missing" }
+  );
+  // Give-up: never picked up, so no destination is correct. Not an error.
+  assert.deepStrictEqual(
+    A.routeSegments({ from_place: "Soultzeren", from_cc: "FR", gave_up: true }),
+    { start: "🇫🇷 Soultzeren", end: "gave up", endKind: "gaveup" }
+  );
+  // A give-up must never be flagged as missing, even if both flags somehow arrived.
+  assert.strictEqual(
+    A.routeSegments({ from_place: "X", gave_up: true, missing_destination: true }).endKind,
+    "gaveup"
+  );
+});
+
+test("routeSegments falls back to the date when the origin isn't geocoded", () => {
+  // No place names yet: the date carries the row, and the arrow must not dangle.
+  assert.deepStrictEqual(
+    A.routeSegments({ created: "2026-07-28 12:00" }),
+    { start: "28 - July - 26 12:00", end: "", endKind: null }
+  );
+  // Still flags a missing destination even without an origin name.
+  assert.strictEqual(
+    A.routeSegments({ created: "2026-07-28 12:00", missing_destination: true }).endKind,
+    "missing"
+  );
+});
+
+test("rideViewUrl links every ride, editable or not", () => {
+  // The detail page is public, so even rides the user cannot edit are viewable.
+  assert.strictEqual(A.rideViewUrl({ type: "own", d_tag: "abc" }), "/ride/abc");
+  assert.strictEqual(A.rideViewUrl({ type: "own_external", d_tag: "abc" }), "/ride/abc");
+  assert.strictEqual(A.rideViewUrl({ type: "co_hitchhiker", d_tag: "abc" }), "/ride/abc");
+  // d_tags come from Nostr and are not URL-safe by construction.
+  assert.strictEqual(A.rideViewUrl({ type: "own", d_tag: "a b&c" }), "/ride/a%20b%26c");
+  // No d_tag -> nothing to open.
+  assert.strictEqual(A.rideViewUrl({ type: "own" }), null);
+});
