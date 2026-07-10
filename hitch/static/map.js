@@ -2027,15 +2027,24 @@ function setupMenuSheet() {
   });
 }
 
+// The route pane's X must fully exit the planner (drop the routes, the pins and the
+// search panel). It cannot be navigateHome: while routing is active navigateHome
+// *returns to* the route view (that is what closing a spot pane opened from a route
+// should do), so wiring the X to it would reopen the pane it just closed.
+function closeRoutingPane() {
+  if (window.RoutingUI && window.RoutingUI.active) window.RoutingUI.close();
+  else navigateHome();
+}
+
 function setupRoutingSheet() {
   const closeBtn = $$("#routing-close");
-  if (closeBtn) closeBtn.onclick = navigateHome;
+  if (closeBtn) closeBtn.onclick = closeRoutingPane;
   setupBottomSheet({
     sheet: $$(".sidebar.routing"),
     handle: $$("#routing-sheet-handle"),
     snaps: ROUTING_SHEET_SNAPS,
     defaultSnap: "half",
-    onClose: navigateHome,
+    onClose: closeRoutingPane,
     // Only the X closes the route pane; dragging down bottoms out at "peek".
     dismissable: false,
   });

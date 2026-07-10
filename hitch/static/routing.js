@@ -485,6 +485,18 @@
     });
   }
 
+  // Routes must not live in the default overlay pane: style.css dims it to 30%
+  // opacity while zoomed out (body.zoomed-out, set below zoom 9) and hides it
+  // outright while filtering. Both rules exist to keep a spot's destination
+  // arrows from cluttering a wide view — but drawRoutes() fitBounds()es onto a
+  // whole intercity route, which lands below zoom 9 every time, so the routes
+  // would draw at ~0.07-0.28 effective opacity. Own pane, above the overlay
+  // pane (400) and below the markers (600).
+  function routePane() {
+    if (!map.getPane("routes")) map.createPane("routes").style.zIndex = 450;
+    return "routes";
+  }
+
   function drawRoutes() {
     // Defensive: never stack layers if one already exists.
     [RJ.routeLayer, RJ.spotLayer, RJ.tagLayer].forEach((l) => { if (l) map.removeLayer(l); });
@@ -506,6 +518,7 @@
       const pl = L.polyline(leg.path, {
         color, opacity: 0.35, weight: leg.mode === "walk" ? 3 : 5,
         dashArray: leg.mode === "walk" ? "2 8" : null, lineCap: "round", lineJoin: "round",
+        pane: routePane(),
       });
       pl.options._car = leg.mode === "car";
       // Stop the click here: with preferCanvas a polyline click otherwise also
@@ -574,7 +587,10 @@
             iconSize: [22, 22], iconAnchor: [11, 11] }), zIndexOffset: 400 })
             .bindTooltip("Change car here — tap for rides", { direction: "top" });
         } else {
-          m = L.circleMarker(c, { radius: 4.5, color: "#fff", weight: 1, fillColor: color, fillOpacity: 0.95 });
+          // Same pane as the route lines — a circleMarker is a Path, so it would
+          // otherwise be dimmed with the default overlay pane (see routePane).
+          m = L.circleMarker(c, { radius: 4.5, color: "#fff", weight: 1, fillColor: color, fillOpacity: 0.95,
+            pane: routePane() });
         }
         m.on("click", (e) => { RJ._pickAt = Date.now(); L.DomEvent.stopPropagation(e); openSpotSheet(c, e); });
         m.addTo(RJ.spotLayer);
@@ -726,11 +742,10 @@
       btn.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); open(); }, true);
     }
     map.on("click", onMapClick);
-    // The route pane's X must fully close the planner. setupRoutingSheet wired it
-    // to navigateHome, which now returns-to-route while active — so override it
-    // here to call close() directly (the real teardown).
-    const rc = document.querySelector("#routing-close");
-    if (rc) rc.onclick = (e) => { e.preventDefault(); close(); };
+    // The route pane's X is wired in map.js (setupRoutingSheet -> closeRoutingPane),
+    // which calls RoutingUI.close(). Don't rebind it here: init() runs at script-parse
+    // time, while setupRoutingSheet runs after loadMarkers() resolves, so anything we
+    // set now would be overwritten a moment later.
     // Esc closes the planner.
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && RJ.active) close(); });
     // A shared/deep #dir link reopens the same route on load and on back/forward.

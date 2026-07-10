@@ -97,6 +97,14 @@ Modelled on OpenStreetMap's `/node/<id>#map=<zoom>/<lat>/<lon>`. Two independent
 
 ## Debugging & Operations
 
+### Do not install or run a headless browser
+Never install or use Playwright, Puppeteer, Chromium, or any other headless browser on this
+host — not even via `npx`. Frontend behaviour (`map.js`, `routing.js`, …) must be verified by
+reading the code, by running the pure-JS parts under `node`, or by asking the user to check in
+their own browser. Node itself is fine: e.g. the routing engine in `hitch/static/routing.js` can
+be exercised headlessly by stubbing `window`/`document`/`fetch` and `eval`-ing the file, then
+calling `buildRouter`/`ensureWalk`/`alternatives` against `dist/repeatable_routes.json`.
+
 ### Testing sync / generate scripts (run in the container, not the host venv)
 On the prod server the host `.venv` is minimal (only a few packages like `requests`) — the full dependency set lives inside the `hitchhiking-map` Docker image, so `flask ... generate <script>` will `ModuleNotFoundError` on the host. Test scripts inside the running container instead:
 ```bash
