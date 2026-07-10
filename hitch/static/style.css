@@ -54,6 +54,100 @@ html {
   display: none !important;
 }
 
+/* Test-mode indicator: a round amber warning button, same 44px size as the account
+   avatar, just under the search bar. Tapping it opens the explanatory callout. */
+.test-mode-btn {
+  position: fixed;
+  /* Top-left, just below the search bar. When the heatmap legend ("filter bar")
+     is shown, JS adds .below-legend to drop it beneath that bar. */
+  top: 100px;
+  left: 16px;
+  z-index: 10000; /* above every dialog/sheet/overlay so test mode is always visible */
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: #ff8f00; /* bold amber warning */
+  color: #fff;
+  font-size: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+.test-mode-btn:hover { box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5); }
+/* Dropped below the heatmap legend bar while it's visible. */
+.test-mode-btn.below-legend { top: 156px; }
+
+/* Explanatory callout anchored under the test-mode button. */
+.test-mode-callout {
+  position: fixed;
+  /* Sits just below the button (top-left), arrow pointing up at it. */
+  top: 152px;
+  left: 16px;
+  z-index: 10001; /* just above the test-mode button */
+  width: min(300px, calc(100vw - 32px));
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  padding: 14px 16px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.test-mode-callout.below-legend { top: 208px; }
+.test-mode-callout::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  /* JS sets --arrow-x so the arrow tracks the (draggable) button's centre. */
+  left: var(--arrow-x, 15px);
+  border: 7px solid transparent;
+  border-top: none;
+  border-bottom-color: #fff;
+}
+.test-mode-callout__title {
+  font-weight: 700;
+  font-size: 15px;
+  color: #3a2f00;
+  margin-bottom: 6px;
+}
+.test-mode-callout__body {
+  font-size: 13px;
+  line-height: 1.45;
+  color: #444;
+  margin: 0 0 12px;
+}
+.test-mode-callout__exit {
+  border: none;
+  border-radius: 8px;
+  background: #d73027;
+  color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+.test-mode-callout__exit:hover { background: #b71c1c; }
+
+/* Transient countdown / status toast for the test-mode easter egg. */
+.test-mode-toast {
+  position: fixed;
+  top: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1200;
+  background: rgba(0, 0, 0, 0.82);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 20px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
 /* Top search bar - only the main geocoder in the Leaflet control container */
 .leaflet-control-container .leaflet-control-geocoder {
   position: fixed !important;
@@ -188,17 +282,28 @@ html {
   justify-content: center;
 }
 
-/* Logged-out nudge: a faint red glow pulses around the account icon on load until the
-   user taps the screen (JS removes .login-pulse on first tap). Encourages sign-in. */
-.top-account-btn.login-pulse {
-  animation: login-pulse-glow 1.8s ease-in-out infinite;
+/* Logged-in: the silhouette sits on a green circle to mark the signed-in state. */
+.top-account-btn.logged-in {
+  background: #1a9850;
 }
-@keyframes login-pulse-glow {
-  0%, 100% { box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), 0 0 0 0 rgba(229, 57, 53, 0); }
-  50%      { box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), 0 0 14px 5px rgba(229, 57, 53, 0.5); }
+.top-account-btn.logged-in a {
+  color: #fff;
 }
-@media (prefers-reduced-motion: reduce) {
-  .top-account-btn.login-pulse { animation: none; }
+
+/* Logged-out nudge: a small red notification dot in the corner encourages sign-in. */
+.top-account-btn .account-dot {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+.account-dot--red {
+  background: #e53935;
 }
 
 .top-account-btn a {
@@ -233,32 +338,6 @@ html {
   font-size: 11px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.3);
   pointer-events: none;
-}
-
-.top-account-btn .login-prompt-badge {
-  position: absolute;
-  top: -6px;
-  right: 100%;
-  margin-right: 8px;
-  background: #d9342b;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.2;
-  padding: 4px 8px;
-  border-radius: 6px;
-  white-space: nowrap;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-  pointer-events: none;
-}
-
-.top-account-btn .login-prompt-badge::after {
-  content: "";
-  position: absolute;
-  top: 10px;
-  left: 100%;
-  border: 5px solid transparent;
-  border-left-color: #d9342b;
 }
 
 /* Filter pane below search bar */
@@ -2239,31 +2318,94 @@ body.showing-insights .heatmap-legend-pane {
   bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 10px);
   display: flex;
   gap: 10px;
+  /* wrap: lets .inr-demo-row (flex-basis:100%) sit on its own line ABOVE the Finish
+     button (it's inserted before it in the DOM) instead of squeezing into the row. */
+  flex-wrap: wrap;
   z-index: 2002;
 }
+
+/* In-ride "Add details" chip — a compact pill row on its own line ABOVE the Finish
+   button (inserted before it; see .inr-dock's flex-wrap). Below it, the chip wrapped
+   onto the bottom edge and hid behind the nav / OSM credits. */
+.inr-demo-row {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+/* Fill-bar chip: a blue fill on a black bar shows completeness; the whole bar is the
+   tap target that opens the details sheet. Full-width so the fill reads as a progress
+   bar. */
+.inr-demo-add {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  padding: 9px 0;
+  background: #111;
+  cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
+}
+.inr-demo-add__fill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 0;
+  background: #2f80ed;
+  transition: width .25s ease;
+  z-index: 0;
+}
+.inr-demo-add__label {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+.inr-demo-add:active { transform: scale(0.99); }
 
 /* Waiting/paused dock: button row on top, a small grey Cancel beneath it. */
 .inr-dock--stack {
   flex-direction: column;
+  /* Raised vs the base dock so the round Cancel × at the bottom clears the OSM
+     attribution credits (fixed at bottom:64px). */
+  bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 28px);
 }
 .inr-dock-row {
   display: flex;
   gap: 10px;
   width: 100%;
 }
+/* Cancel = white × in a red circle, centered beneath the Give Up / Got a Ride row.
+   Big enough to read as a clear, deliberate "discard this journey" affordance. */
 .inr-cancel {
   align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-top: 2px;
+  padding: 0;
   border: none;
-  background: transparent;
-  color: #8a9096;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 6px 20px;
-  border-radius: 10px;
+  border-radius: 50%;
+  background: #d73027;
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
   cursor: pointer;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .25);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
-.inr-cancel:hover { background: rgba(0, 0, 0, .06); color: #555; }
+.inr-cancel:hover { background: #b71c1c; }
+.inr-cancel:active { transform: scale(0.94); }
 
 /* Big action buttons — bold, rounded, coloured per action */
 .inr-big {
@@ -2412,10 +2554,18 @@ body.showing-insights .heatmap-legend-pane {
 }
 
 /* Waiting/paused docks are taller (button row + Cancel beneath), so lift their chip
-   higher to clear it. In-ride keeps the base 78px offset (single Finish button). */
+   higher to clear it. */
 .inr-chip--wait,
 .inr-chip--paused {
-  bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 112px);
+  /* Clears the taller, raised waiting/paused dock (two big buttons + the round
+     Cancel × beneath them), so the timer pill is never hidden behind the buttons. */
+  bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 144px);
+}
+/* In-ride dock is two rows now — the Finish button plus the "Add details" fill-bar
+   chip above it — so lift the timer chip to clear BOTH; at the base 78px it overlapped
+   the chip and showed through as a dark ghost behind it. */
+.inr-chip--inride {
+  bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 124px);
 }
 
 /* Coloured dot on the left of the chip */
@@ -2577,6 +2727,70 @@ body.showing-insights .heatmap-legend-pane {
   font-weight: 700;
 }
 
+/* ── Details sheet: scrollable variant + field help text + live completeness meters ── */
+.inr-sheet--scroll { max-height: 82vh; overflow-y: auto; }
+.inr-field__help { font-size: 12px; color: #888; margin: -2px 0 6px; }
+.inr-meters { display: flex; gap: 12px; margin: 4px 0 12px; }
+.inr-meter { flex: 1; }
+.inr-meter__label { font-size: 12px; font-weight: 600; color: #555; }
+.inr-meter__track { height: 8px; background: #eee; border-radius: 4px; overflow: hidden; margin: 3px 0; }
+.inr-meter__fill { height: 100%; background: #1a9850; border-radius: 4px; transition: width .2s ease; }
+.inr-meter__pct { font-size: 11px; color: #777; }
+
+/* ── Driver / Vehicle tabs, each a fill-bar of its section's completeness ── */
+.inr-tabbar { display: flex; gap: 8px; margin: 4px 0 14px; }
+.inr-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: #f4f4f4;
+  border: 1.5px solid #e2e2e2;
+  border-radius: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color .15s ease, background .15s ease;
+}
+.inr-tab--on { background: #fff; border-color: #1a9850; }
+.inr-tab__top { display: flex; align-items: baseline; justify-content: space-between; }
+.inr-tab__label { font-size: 13px; font-weight: 700; color: #333; }
+.inr-tab__pct { font-size: 12px; font-weight: 700; color: #1a9850; }
+.inr-tab__track { height: 6px; background: #e6e6e6; border-radius: 3px; overflow: hidden; }
+.inr-tab__fill { display: block; height: 100%; width: 0; background: #1a9850; border-radius: 3px; transition: width .2s ease; }
+.inr-tabpanel { display: flex; flex-direction: column; }
+
+/* ── Language tags (LinkedIn-skill style): selected chips above the search input ── */
+.inr-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.inr-tags:empty { display: none; }
+.inr-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #e8f5ec;
+  color: #1a7a43;
+  border: 1px solid #bfe3cc;
+  border-radius: 999px;
+  padding: 3px 6px 3px 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.inr-tag__x {
+  border: none;
+  background: rgba(0, 0, 0, .12);
+  color: #1a7a43;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.inr-tag__x:hover { background: rgba(0, 0, 0, .22); }
+
 /* ── Optional comment textarea ── */
 .inr-sheet__textarea {
   width: 100%;
@@ -2612,6 +2826,48 @@ body.showing-insights .heatmap-legend-pane {
 .inr-sheet__more:hover {
   text-decoration: underline;
 }
+
+/* Co-hitcher modal: username chips + autocomplete dropdown. */
+.inr-cohitch-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.inr-cohitch-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #e8f0fe; color: #1a73e8; border-radius: 14px;
+  padding: 4px 10px; font-size: 14px; font-weight: 600;
+}
+.inr-cohitch-chip__x {
+  border: none; background: transparent; color: #1a73e8;
+  font-size: 16px; line-height: 1; cursor: pointer; padding: 0;
+}
+.inr-cohitch-inputwrap { position: relative; }
+.inr-cohitch-input {
+  width: 100%; box-sizing: border-box; padding: 10px 12px;
+  border: 1px solid #ccc; border-radius: 8px; font-size: 15px;
+}
+.inr-cohitch-suggest {
+  position: absolute; left: 0; right: 0; top: 100%; z-index: 10;
+  list-style: none; margin: 2px 0 0; padding: 0; background: #fff;
+  border: 1px solid #ccc; border-radius: 8px; max-height: 200px; overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .15);
+}
+.inr-cohitch-suggest li { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee; }
+.inr-cohitch-suggest li:hover { background: #f0f0f0; }
+/* "Add anonymous" secondary action under the username field. */
+.inr-cohitch-anon {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px dashed #bbb;
+  background: #fff;
+  color: #555;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.inr-cohitch-anon:hover { background: #f5f5f5; }
 
 /* ==========================================================================
    Route planner (routing.js) — Google-Maps-style directions UI.

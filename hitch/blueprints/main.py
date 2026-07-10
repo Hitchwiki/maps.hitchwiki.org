@@ -123,6 +123,7 @@ def render_map(map_variation):
         hide_add_spot_button=current_app.config.get("HIDE_ADD_SPOT_BUTTON", False),
         hide_account_button=current_app.config.get("HIDE_ACCOUNT_BUTTON", False),
         is_logged_in=not current_user.is_anonymous,
+        username=("" if current_user.is_anonymous else current_user.username),
         unread_notifications=unread_count(current_user),
     )
 
@@ -335,6 +336,22 @@ def render_directions_preview(start, dest):
     # The image is a pure function of the coordinates, so it never goes stale in
     # a way a crawler would notice; let the CDN and the messenger keep it.
     return send_file(path, mimetype="image/png", max_age=604800)
+
+@main_bp.route("/driver_info_choices.json")
+def driver_info_choices_json():
+    """Choice lists for the in-ride details sheet — same options as the /ride form,
+    delivered as JSON so the client renders them without duplicating the data."""
+    from hitch.blueprints.utils.ride_score import WEIGHTS
+
+    return jsonify({
+        "reasons": REASON_TO_PICK_UP_CHOICES,
+        "genders": GENDER_CHOICES,
+        "languages": LANGUAGE_CHOICES,
+        "countries": COUNTRY_CHOICES,
+        "plate_countries": LICENSE_PLATE_COUNTRY_CHOICES,
+        "vehicle_kinds": VEHICLE_KIND_CHOICES,
+        "passenger_kinds": WEIGHTS["passenger_kinds"],
+    })
 
 
 def _ride_to_card(ride):
