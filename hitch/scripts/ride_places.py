@@ -146,5 +146,8 @@ def main():
     conn.close()
 
 
-if __name__ == "__main__":
-    main()
+# Run on import: `flask generate` executes scripts by importing their module (see the
+# generate command in hitch/__init__.py), matching show.py/cities.py/dashboard.py. A
+# `if __name__ == "__main__"` guard would make `flask generate ride_places` — used by the
+# one-time backfill and the daily 04:45 cron — a silent no-op.
+main()
