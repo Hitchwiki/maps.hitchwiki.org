@@ -2754,3 +2754,82 @@ body.routing-active .leaflet-control-container .leaflet-control-geocoder { displ
    peek: 88 in map.js), overriding the generic .snap-peek (80%), so most of the map
    stays visible. The pane can't be swiped away — only the X closes it. */
 .sidebar.routing.bottom-sheet.snap-peek { transform: translateY(88%); }
+
+/* ── Account modal (issue #106): login + profile summary without leaving the map ──
+   Reuses the in-ride sheet shell (.inr-sheet / .inride-scrim) but is a peer of those
+   sheets, never registered with journeyUI._openDialog. */
+.acct-sheet { z-index: 3000; }
+.acct-scrim { z-index: 2999; }
+.acct-body { display: flex; flex-direction: column; }
+.acct-username { margin: 2px 0 10px; font-size: 20px; }
+.acct-pitch { color: #555; font-size: 14px; margin: 0 0 14px; }
+.acct-loading, .acct-error { color: #888; font-size: 14px; }
+.acct-nudge {
+  display: block;
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #8a6d00;
+  text-decoration: none;
+}
+
+/* Four-up lifetime totals */
+.acct-stats { display: flex; gap: 8px; margin-bottom: 14px; }
+.acct-stat {
+  flex: 1;
+  background: #f6f6f6;
+  border-radius: 10px;
+  padding: 9px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.acct-stat__val { font-size: 15px; font-weight: 800; color: #222; }
+.acct-stat__label { font-size: 11px; color: #777; text-transform: uppercase; letter-spacing: .03em; }
+
+.acct-rides-head { font-size: 12px; font-weight: 700; color: #666; margin-bottom: 6px; }
+.acct-rides { list-style: none; margin: 0 0 10px; padding: 0; }
+.acct-ride {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 13px;
+}
+.acct-ride--hidden { display: none; }
+.acct-ride__when { color: #888; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.acct-ride__stars { color: #f5a623; flex-shrink: 0; }
+.acct-ride__comment {
+  color: #444;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.acct-more {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: #2f80ed;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 0;
+  margin-bottom: 8px;
+}
+.acct-profile-link {
+  display: block;
+  text-align: center;
+  padding: 11px;
+  border-radius: 10px;
+  background: #f2f6fd;
+  color: #2f80ed;
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+}
