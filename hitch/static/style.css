@@ -3145,7 +3145,10 @@ body.routing-active .leaflet-control-container .leaflet-control-geocoder { displ
   color: #e0a800;
   font-size: 15px;
   line-height: 1;
+  text-decoration: none;
 }
+a.acct-ride__warn { cursor: pointer; }
+a.acct-ride__warn:hover { color: #b98900; }
 
 /* Completion pie: a conic-gradient sweep whose angle comes from --pct (0-100), with a
    white centre punched out so it reads as a donut rather than a solid disc. */
@@ -3165,6 +3168,31 @@ body.routing-active .leaflet-control-container .leaflet-control-geocoder { displ
   border-radius: 50%;
   background: #fff;
 }
+/* Below 100% the pie is a link to go fill in the missing details. */
+.acct-pie--cta { cursor: pointer; display: block; }
+.acct-pie--cta:hover { box-shadow: 0 0 0 3px rgba(47, 128, 237, .2); }
+
+/* Awards earned. Locked tiers live on the full /insights page. */
+.acct-awards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.acct-award {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+  border-radius: 999px;
+  padding: 4px 10px 4px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #7a5c00;
+  cursor: default;
+}
+.acct-award__emoji { font-size: 14px; line-height: 1; }
 .acct-more {
   align-self: flex-start;
   background: none;

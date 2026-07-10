@@ -92,17 +92,31 @@ def me_json():
     else:
         rides = _get_rides_for_user(current_user)
         shown = [{k: v for k, v in r.items() if k != "submission_sort_key"} for r in rides[:RIDES_IN_MODAL_CAP]]
+
+        total_rides = current_user.total_rides or 0
+        total_km = current_user.total_distance_km or 0
+        partners = _distinct_partner_count(current_user.username)
+
+        # Same ladders the /insights page renders, but only the tiers actually earned:
+        # the modal celebrates what you have, and the full profile shows what's left.
+        earned = [
+            {"emoji": card["emoji"], "name": card["name"], "blurb": card["blurb"]}
+            for card in _achievements({"rides": total_rides, "distance": total_km, "partners": partners})
+            if card["earned"]
+        ]
+
         resp = jsonify(
             {
                 "logged_in": True,
                 "username": current_user.username,
                 "profile_url": "/me",
                 "insights": {
-                    "rides": current_user.total_rides or 0,
-                    "distance_km": current_user.total_distance_km or 0,
+                    "rides": total_rides,
+                    "distance_km": total_km,
                     "waiting_min": current_user.total_waiting_time_min or 0,
-                    "partners": _distinct_partner_count(current_user.username),
+                    "partners": partners,
                 },
+                "achievements": earned,
                 "rides": shown,
                 # Untruncated, so the UI can say "showing 50 of 231" and link to the profile.
                 "rides_total": len(rides),

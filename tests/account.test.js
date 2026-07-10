@@ -63,3 +63,19 @@ test("completionPct rounds and clamps, defaulting to 0 when absent", () => {
   assert.strictEqual(A.completionPct({ completion: 140 }), 100);
   assert.strictEqual(A.completionPct({ completion: -5 }), 0);
 });
+
+test("rideEditUrl only links rides the user can actually edit", () => {
+  // /ride?edit= only prefills for rides we published — type "own".
+  assert.strictEqual(A.rideEditUrl({ type: "own", d_tag: "abc" }), "/ride?edit=abc");
+  // Imported from another source: the edit form would not prefill, so no dead link.
+  assert.strictEqual(A.rideEditUrl({ type: "own_external", d_tag: "abc" }), null);
+  assert.strictEqual(A.rideEditUrl({ type: "co_hitchhiker", d_tag: "abc" }), null);
+  assert.strictEqual(A.rideEditUrl({ type: "own" }), null);
+  // d_tags come from Nostr and are not URL-safe by construction.
+  assert.strictEqual(A.rideEditUrl({ type: "own", d_tag: "a b&c" }), "/ride?edit=a%20b%26c");
+});
+
+test("awardsSummary pluralises", () => {
+  assert.strictEqual(A.awardsSummary(1), "1 award earned");
+  assert.strictEqual(A.awardsSummary(3), "3 awards earned");
+});
