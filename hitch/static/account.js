@@ -47,12 +47,60 @@
     return { when: when, stars: stars, comment: (ride.comment || "").trim() };
   }
 
-  // The stats beside a ride's completion pie. The date leads, then wait and distance.
+  const MONTHS = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+  ];
+
+  // "2026-07-28 12:00" -> "28 - July - 26 12:00". Parsed by hand rather than with Date():
+  // `created` is already the user's local submission time, and new Date("...") would
+  // re-interpret it against the browser's zone and shift the day.
+  function formatRideDate(created) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/.exec(created || "");
+    if (!match) return "";
+    const month = MONTHS[Number(match[2]) - 1];
+    if (!month) return "";
+    const stamp = match[1].slice(2) + (match[4] ? " " + match[4] + ":" + match[5] : "");
+    return Number(match[3]) + " - " + month + " - " + stamp;
+  }
+
+  // What identifies a ride in the list. Place names when we have them; otherwise the
+  // date, which is the only other thing that distinguishes one ride from another.
+  function rideTitle(ride) {
+    return rideRoute(ride) || formatRideDate(ride.created) || "Unknown ride";
+  }
+
+  // The route split into its two ends, so the row can render the destination as a real
+  // element rather than a string: a missing destination is a clickable warning, and a
+  // give-up is a plain statement of fact, not an error.
+  //
+  //   endKind "place"   -> the destination is known
+  //           "missing" -> a real ride that never recorded where it ended (fixable)
+  //           "gaveup"  -> never picked up; having no destination is correct
+  //           null      -> nothing to say (e.g. destination unknown AND unlabelled origin)
+  function routeSegments(ride) {
+    const from = (ride.from_place || "").trim();
+    const fromFlag = flagEmoji(ride.from_cc);
+    const to = (ride.to_place || "").trim();
+    const toFlag = flagEmoji(ride.to_cc);
+
+    // With no origin name the date carries the row, and the arrow would dangle.
+    const start = from ? (fromFlag ? fromFlag + " " + from : from) : formatRideDate(ride.created) || "Unknown ride";
+
+    if (to) return { start: start, end: toFlag ? toFlag + " " + to : to, endKind: "place" };
+    if (ride.gave_up) return { start: start, end: "gave up", endKind: "gaveup" };
+    if (ride.missing_destination) return { start: start, end: "", endKind: "missing" };
+    return { start: start, end: "", endKind: null };
+  }
+
+  // The stats beside a ride's completion pie. The date leads, then wait and distance —
+  // unless the date is already serving as the ride's title, in which case repeating it
+  // would just be noise.
   // A null wait/distance means the ride never recorded it, so it is omitted rather than
   // shown as a misleading "0 min" / "0 km"; a real zero still renders.
-  function rideStats(ride) {
+  function rideStats(ride, includeDate) {
     const out = [];
-    const when = (ride.created || "").slice(0, 10);
+    const when = includeDate === false ? "" : (ride.created || "").slice(0, 10);
     if (when) out.push(when);
     const wait = ride.wait_min;
     if (wait != null) {
@@ -76,9 +124,9 @@
   }
 
   // A ride is identified by where it went, not when it happened. Place names come from
-  // dist/ride_places.json (offline reverse geocoding); they are absent until that cron
-  // has run, and for a give-up there is no destination — so fall back gracefully rather
-  // than printing "undefined → undefined".
+  // the ride_place table (offline reverse geocoding); they are absent until that cron has
+  // run for the ride, and a give-up has no destination — so return "" rather than
+  // printing "undefined → undefined", and let rideTitle fall back to the date.
   function rideRoute(ride) {
     const from = (ride.from_place || "").trim();
     const to = (ride.to_place || "").trim();
@@ -128,6 +176,14 @@
   function rideEditUrl(ride) {
     if (ride.type !== "own" || !ride.d_tag) return null;
     return "/ride?edit=" + encodeURIComponent(ride.d_tag);
+  }
+
+  // The read-only detail page for a ride. Public (main.ride_detail), so unlike editing
+  // this works for every ride the list can show — imported ones and co-hitchhiker rides
+  // included. A fully-logged ride has no CTA of its own; the row itself is the way in.
+  function rideViewUrl(ride) {
+    if (!ride.d_tag) return null;
+    return "/ride/" + encodeURIComponent(ride.d_tag);
   }
 
   // ── DOM (browser only) ─────────────────────────────────────────────────────
@@ -273,6 +329,26 @@
       const li = el("li", "acct-ride");
       if (idx >= RIDES_SHOWN_COLLAPSED) li.classList.add("acct-ride--hidden");
 
+      // Every ride opens its read-only detail page — including complete ones, which have
+      // no pie CTA of their own. New tab, so the map underneath is never unloaded.
+      const viewUrl = rideViewUrl(ride);
+      if (viewUrl) {
+        li.classList.add("acct-ride--clickable");
+        li.tabIndex = 0;
+        li.setAttribute("role", "link");
+        li.setAttribute("aria-label", "View ride details");
+        const openView = function () { window.open(viewUrl, "_blank", "noopener"); };
+        li.addEventListener("click", function (e) {
+          // The pie and the warning are their own links to the edit form; a click on one
+          // must not also open the detail page behind it.
+          if (e.target.closest("a")) return;
+          openView();
+        });
+        li.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openView(); }
+        });
+      }
+
       // Completion pie: a conic-gradient sweep set from the ride's score. The number is
       // the same one the in-ride sheet's meters showed, from the canonical weights.
       // Below 100% it becomes a CTA to go fill in what's missing.
@@ -314,18 +390,25 @@
       li.appendChild(pie);
 
       const meta = el("div", "acct-ride__meta");
-      // Where it went is the ride's identity; the date is now one of the small details.
-      const route = rideRoute(ride);
-      meta.appendChild(el("span", "acct-ride__route", route || "Unknown route"));
-      if (!route) meta.firstChild.classList.add("acct-ride__route--unknown");
-      const stats = rideStats(ride);
-      if (stats.length) meta.appendChild(el("span", "acct-ride__stats", stats.join(" · ")));
-      li.appendChild(meta);
 
-      // The ride never recorded where it ended — data the user can still fix. Give-ups
-      // are excluded server-side, so this never fires on a ride that legitimately has
-      // no destination. Editable rides get a link straight to the fix.
-      if (ride.missing_destination) {
+      // Where it went is the ride's identity. The destination is a real element, not a
+      // string, so a missing one can be a clickable warning inline in the route: the
+      // arrow already promises a destination, and this is what sits where it should be.
+      const seg = routeSegments(ride);
+      const hasPlaces = Boolean((ride.from_place || "").trim());
+      const routeEl = el("span", "acct-ride__route");
+      if (!hasPlaces) routeEl.classList.add("acct-ride__route--fallback");
+      routeEl.appendChild(el("span", null, seg.start));
+
+      if (seg.endKind === "place") {
+        routeEl.appendChild(el("span", "acct-ride__arrow", " → "));
+        routeEl.appendChild(el("span", null, seg.end));
+      } else if (seg.endKind === "gaveup") {
+        // Not an error: the hitchhiker was never picked up, so there is no destination.
+        routeEl.appendChild(el("span", "acct-ride__arrow", " → "));
+        routeEl.appendChild(el("span", "acct-ride__gaveup", seg.end));
+      } else if (seg.endKind === "missing") {
+        routeEl.appendChild(el("span", "acct-ride__arrow", " → "));
         const warn = el(editUrl ? "a" : "span", "acct-ride__warn");
         warn.innerHTML = '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>';
         if (editUrl) {
@@ -339,8 +422,14 @@
           warn.setAttribute("role", "img");
           warn.setAttribute("aria-label", "No destination recorded for this ride");
         }
-        li.appendChild(warn);
+        routeEl.appendChild(warn);
       }
+      meta.appendChild(routeEl);
+
+      // The date only appears below when it is not already carrying the row above.
+      const stats = rideStats(ride, hasPlaces);
+      if (stats.length) meta.appendChild(el("span", "acct-ride__stats", stats.join(" · ")));
+      li.appendChild(meta);
 
       list.appendChild(li);
     });
@@ -416,5 +505,9 @@
     nudgeText: nudgeText,
     rideRoute: rideRoute,
     flagEmoji: flagEmoji,
+    formatRideDate: formatRideDate,
+    rideTitle: rideTitle,
+    routeSegments: routeSegments,
+    rideViewUrl: rideViewUrl,
   };
 });
