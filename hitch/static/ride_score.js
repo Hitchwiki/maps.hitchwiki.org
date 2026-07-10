@@ -51,10 +51,18 @@
     driver.missing.sort((a, b) => b.pts - a.pts);
     const vPct = vMax ? Math.round((vEarned / vMax) * 100) : 0;
 
+    // Combined completeness: one number over the whole (driver + vehicle) point pool.
+    // The UI shows only this; driver/vehicle stay in the return for backend aggregates.
+    const maxTotal = driver.max + vMax;
+    const total = driver.earned + vEarned;
+    const pct = maxTotal ? Math.round((total / maxTotal) * 100) : 0;
+
     return {
       driver: { earned: driver.earned, max: driver.max, pct: driverPct, missing: driver.missing },
       vehicle: { earned: vEarned, max: vMax, pct: vPct, missing: vMissing, bonusEligible: bonusEligible },
-      total: driver.earned + vEarned,
+      total: total,
+      maxTotal: maxTotal,
+      pct: pct,
     };
   }
 

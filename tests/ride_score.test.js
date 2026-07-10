@@ -60,3 +60,27 @@ test("total sums driver + vehicle earned including bonus", () => {
   }, WEIGHTS);
   assert.strictEqual(s.total, 30);
 });
+
+test("combined pct is total over the whole driver+vehicle pool", () => {
+  // Empty: 0 of 100 (no kind -> base-only vehicle max 40).
+  assert.strictEqual(RideScore.computeScores({}, WEIGHTS).pct, 0);
+  assert.strictEqual(RideScore.computeScores({}, WEIGHTS).maxTotal, 100);
+
+  // Full driver only (60), no kind -> 60 of 100 -> 60%.
+  const driverOnly = RideScore.computeScores({
+    driver_reason_to_pick_up: ["curiosity"], driver_gender: "female", driver_age: 34,
+    driver_origin_country: "DE", driver_languages: ["deu"],
+  }, WEIGHTS);
+  assert.strictEqual(driverOnly.maxTotal, 100);
+  assert.strictEqual(driverOnly.pct, 60);
+
+  // Everything filled on a passenger kind -> 110 of 110 -> 100%.
+  const full = RideScore.computeScores({
+    driver_reason_to_pick_up: ["curiosity"], driver_gender: "female", driver_age: 34,
+    driver_origin_country: "DE", driver_languages: ["deu"],
+    vehicle_kind: "car", commercial: false, vehicle_license_plate_country: "DE",
+    vehicle_make: "Toyota", vehicle_model: "Yaris",
+  }, WEIGHTS);
+  assert.strictEqual(full.maxTotal, 110);
+  assert.strictEqual(full.pct, 100);
+});

@@ -52,8 +52,16 @@ def score_fields(fields: dict) -> dict:
     d_missing.sort(key=lambda m: m["pts"], reverse=True)
     v_pct = round(v_earned / v_max * 100) if v_max else 0
 
+    # Combined completeness over the whole (driver + vehicle) pool — the UI shows only this;
+    # driver/vehicle stay for backend aggregates.
+    max_total = d_max + v_max
+    total = d_earned + v_earned
+    pct = round(total / max_total * 100) if max_total else 0
+
     return {
         "driver": {"earned": d_earned, "max": d_max, "pct": d_pct, "missing": d_missing},
         "vehicle": {"earned": v_earned, "max": v_max, "pct": v_pct, "missing": v_missing, "bonus_eligible": bonus_eligible},
-        "total": d_earned + v_earned,
+        "total": total,
+        "max_total": max_total,
+        "pct": pct,
     }

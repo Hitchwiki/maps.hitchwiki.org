@@ -101,7 +101,7 @@
   function loadDemographicData() {
     const w = _scoreWeights
       ? Promise.resolve(_scoreWeights)
-      : fetch("/ride_score_weights.json").then(function (r) { return r.json(); }).then(function (j) { _scoreWeights = j; }).catch(function () {});
+      : fetch("/static/ride_score_weights.json").then(function (r) { return r.json(); }).then(function (j) { _scoreWeights = j; }).catch(function () {});
     const c = _choices
       ? Promise.resolve(_choices)
       : fetch("/driver_info_choices.json").then(function (r) { return r.json(); }).then(function (j) { _choices = j; }).catch(function () {});
@@ -109,7 +109,7 @@
   }
   function demographicScores(fields) {
     if (!_scoreWeights || !window.RideScore) {
-      return { driver: { pct: 0 }, vehicle: { pct: 0, bonusEligible: false }, total: 0 };
+      return { driver: { pct: 0 }, vehicle: { pct: 0, bonusEligible: false }, total: 0, maxTotal: 0, pct: 0 };
     }
     return window.RideScore.computeScores(fields, _scoreWeights);
   }
@@ -331,28 +331,45 @@
     // The backend asserts arrival > departure; stamping here rather than at submit
     // prevents same-minute rides yielding arrival == departure → 400 → stuck retry.
     const finishMs = Date.now();
-    // Forced first step: the ride can't be saved without a would-ride-again answer.
-    // Asking before destination capture (not after) keeps it a single deliberate gate;
-    // finishMs is already stamped above, so the prompt delay never inflates arrival time.
-    journeyUI.wouldRideAgainSheet(function (wouldRideAgain) {
-      j.wouldRideAgain = wouldRideAgain;
-      journeyStore.set(j);
-      // Lock the button immediately — Nostr publish takes ~5 s.
-      journeyUI.setFinishBusy(true);
-      getFixWithRetry().then(
-        function (dest) { completeFinish(j, dest, finishMs); },
-        // GPS denied/unavailable — clear busy state before opening manual-pin UI;
-        // the user is choosing a destination, not saving yet.
-        function () {
-          journeyUI.setFinishBusy(false);
-          journeyUI.manualPin(function (dest) {
-            // Pin confirmed — re-enter busy state for the actual ~5 s Nostr submit.
-            journeyUI.setFinishBusy(true);
-            completeFinish(j, dest, finishMs);
-          });
-        }
-      );
-    });
+    // Everything from the would-ride-again gate onward. Re-read the journey so any details
+    // just added via the nudge are captured. finishMs was stamped above, so the extra
+    // prompt delay never inflates arrival time.
+    const proceedToGate = function () {
+      const jj = journeyStore.get(); if (!jj) return;
+      // Forced step: the ride can't be saved without a would-ride-again answer.
+      journeyUI.wouldRideAgainSheet(function (wouldRideAgain) {
+        jj.wouldRideAgain = wouldRideAgain;
+        journeyStore.set(jj);
+        // Lock the button immediately — Nostr publish takes ~5 s.
+        journeyUI.setFinishBusy(true);
+        getFixWithRetry().then(
+          function (dest) { completeFinish(jj, dest, finishMs); },
+          // GPS denied/unavailable — clear busy state before opening manual-pin UI;
+          // the user is choosing a destination, not saving yet.
+          function () {
+            journeyUI.setFinishBusy(false);
+            journeyUI.manualPin(function (dest) {
+              // Pin confirmed — re-enter busy state for the actual ~5 s Nostr submit.
+              journeyUI.setFinishBusy(true);
+              completeFinish(jj, dest, finishMs);
+            });
+          }
+        );
+      });
+    };
+    // Nudge to enrich the log before saving — but only when details are incomplete.
+    // "Add details" saves onto j.details then proceeds; "Skip" proceeds as-is.
+    const score = demographicScores(j.details || {});
+    if (score.pct >= 100) { proceedToGate(); return; }
+    journeyUI.finishNudge(
+      score.pct,
+      j.details || {},
+      function (fields) {
+        const cur = journeyStore.get(); if (cur) { cur.details = Object.assign({}, cur.details, fields); journeyStore.set(cur); }
+        proceedToGate();
+      },
+      proceedToGate
+    );
   };
 
   // After a ride is saved, ask whether to start another leg or call it a day.
@@ -657,8 +674,7 @@
       demoRow.className = "inr-demo-row";
       const s = demographicScores(j.details || {});
       demoRow.innerHTML =
-        '<span class="inr-demo-meter">Driver ' + s.driver.pct + '%</span>' +
-        '<span class="inr-demo-meter">Vehicle ' + s.vehicle.pct + '%</span>';
+        '<span class="inr-demo-meter">Details ' + s.pct + '% complete</span>';
       const addBtn = document.createElement("button");
       addBtn.type = "button"; addBtn.className = "inr-demo-add";
       addBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Add details';
@@ -1025,13 +1041,13 @@
 
       const titleEl = document.createElement("h4"); titleEl.textContent = "Driver & vehicle details"; sheet.appendChild(titleEl);
 
-      // ── Two live meters ────────────────────────────────────────────────────
+      // ── One live combined meter ─────────────────────────────────────────────
       const meters = document.createElement("div"); meters.className = "inr-meters";
-      const dMeter = makeMeter("Driver"); const vMeter = makeMeter("Vehicle");
-      meters.appendChild(dMeter.el); meters.appendChild(vMeter.el); sheet.appendChild(meters);
+      const cMeter = makeMeter("Completeness");
+      meters.appendChild(cMeter.el); sheet.appendChild(meters);
       function refreshMeters() {
         const s = demographicScores(f);
-        dMeter.set(s.driver.pct); vMeter.set(s.vehicle.pct);
+        cMeter.set(s.pct);
         makeModelWrap.style.display = (ch.passenger_kinds.indexOf(f.vehicle_kind) !== -1) ? "" : "none";
       }
       function makeMeter(label) {
@@ -1406,6 +1422,31 @@
       document.body.appendChild(sheet);
       journeyUI._openDialog = { close };
       return { close };
+    },
+
+    // Optional nudge on Finish: if driver/vehicle details are incomplete, offer to add
+    // them before saving. "Add details" opens the details sheet then continues; "Skip"
+    // continues straight to the forced would-ride-again gate. Never blocks — details are
+    // optional. seed is the current j.details; onAdd(fields) fires after a save, onSkip()
+    // when the user declines. Callers skip this entirely at 100% (nothing to nudge).
+    finishNudge(pct, seed, onAdd, onSkip) {
+      // `forced` (no scrim dismissal) so the only exits are the two explicit buttons —
+      // both proceed the finish, exactly once. Routing a scrim-dismiss through dialog's
+      // onClose would double-fire on the "Add details" tap (close() runs before onClick).
+      journeyUI.dialog({
+        title: "Add driver & vehicle details?",
+        body: "This ride is " + pct + "% complete. Adding driver and vehicle details makes the log far more useful — it only takes a moment.",
+        centered: true,
+        forced: true,
+        actions: [
+          // "Add details" opens the details sheet (which closes this dialog via the
+          // single-flight guard); its Save fires onAdd, which then continues the finish.
+          { label: "Add details", cls: "inr-go", onClick: function () {
+            journeyUI.detailsSheet(seed, function (fields) { onAdd(fields); });
+          } },
+          { label: "Skip", cls: "inr-grey", onClick: function () { onSkip(); } },
+        ],
+      });
     },
 
     // Forced would-ride-again gate on finish: a required Yes/No with no dismissal.

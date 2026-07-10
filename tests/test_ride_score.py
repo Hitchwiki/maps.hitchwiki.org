@@ -36,3 +36,41 @@ def test_passenger_kind_unlocks_bonus():
     assert s["vehicle"]["bonus_eligible"] is True
     assert s["vehicle"]["max"] == 50
     assert s["vehicle"]["earned"] == 15  # kind 10 + make 5
+
+
+def test_combined_pct_over_whole_pool():
+    # Empty: 0 of 100 (no kind -> base-only vehicle max 40).
+    empty = ride_score.score_fields({})
+    assert empty["max_total"] == 100
+    assert empty["pct"] == 0
+
+    # Full driver only (60), no kind -> 60 of 100 -> 60%.
+    driver_only = ride_score.score_fields(
+        {
+            "driver_reason_to_pick_up": ["curiosity"],
+            "driver_gender": "female",
+            "driver_age": 34,
+            "driver_origin_country": "DE",
+            "driver_languages": ["deu"],
+        }
+    )
+    assert driver_only["max_total"] == 100
+    assert driver_only["pct"] == 60
+
+    # Everything filled on a passenger kind -> 110 of 110 -> 100%.
+    full = ride_score.score_fields(
+        {
+            "driver_reason_to_pick_up": ["curiosity"],
+            "driver_gender": "female",
+            "driver_age": 34,
+            "driver_origin_country": "DE",
+            "driver_languages": ["deu"],
+            "vehicle_kind": "car",
+            "commercial": False,
+            "vehicle_license_plate_country": "DE",
+            "vehicle_make": "Toyota",
+            "vehicle_model": "Yaris",
+        }
+    )
+    assert full["max_total"] == 110
+    assert full["pct"] == 100
