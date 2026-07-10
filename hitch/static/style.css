@@ -2276,21 +2276,22 @@ body.showing-insights .heatmap-legend-pane {
   bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 10px);
   display: flex;
   gap: 10px;
-  /* wrap: lets .inr-demo-row (flex-basis:100%) drop to its own line below the
-     Finish button instead of squeezing into the same row. */
+  /* wrap: lets .inr-demo-row (flex-basis:100%) sit on its own line ABOVE the Finish
+     button (it's inserted before it in the DOM) instead of squeezing into the row. */
   flex-wrap: wrap;
   z-index: 2002;
 }
 
-/* In-ride demographic mini-meters + "Add details" — a compact pill row that drops
-   below the Finish button (see .inr-dock's flex-wrap). */
+/* In-ride "Add details" chip — a compact pill row on its own line ABOVE the Finish
+   button (inserted before it; see .inr-dock's flex-wrap). Below it, the chip wrapped
+   onto the bottom edge and hid behind the nav / OSM credits. */
 .inr-demo-row {
   flex-basis: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin-top: 2px;
+  margin-bottom: 2px;
 }
 .inr-demo-meter {
   background: rgba(0, 0, 0, .55);

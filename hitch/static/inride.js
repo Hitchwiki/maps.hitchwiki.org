@@ -331,31 +331,32 @@
     // The backend asserts arrival > departure; stamping here rather than at submit
     // prevents same-minute rides yielding arrival == departure → 400 → stuck retry.
     const finishMs = Date.now();
-    // Everything from the would-ride-again gate onward. Re-read the journey so any details
-    // just added via the nudge are captured. finishMs was stamped above, so the extra
-    // prompt delay never inflates arrival time.
+    // Confirm the drop-off location FIRST, then ask the would-ride-again question, then
+    // submit. Re-read the journey so any details just added via the nudge are captured.
+    // finishMs was stamped above, so the extra prompt delay never inflates arrival time.
     const proceedToGate = function () {
       const jj = journeyStore.get(); if (!jj) return;
-      // Forced step: the ride can't be saved without a would-ride-again answer.
-      journeyUI.wouldRideAgainSheet(function (wouldRideAgain) {
-        jj.wouldRideAgain = wouldRideAgain;
-        journeyStore.set(jj);
-        // Lock the button immediately — Nostr publish takes ~5 s.
-        journeyUI.setFinishBusy(true);
-        getFixWithRetry().then(
-          function (dest) { completeFinish(jj, dest, finishMs); },
-          // GPS denied/unavailable — clear busy state before opening manual-pin UI;
-          // the user is choosing a destination, not saving yet.
-          function () {
-            journeyUI.setFinishBusy(false);
-            journeyUI.manualPin(function (dest) {
-              // Pin confirmed — re-enter busy state for the actual ~5 s Nostr submit.
-              journeyUI.setFinishBusy(true);
-              completeFinish(jj, dest, finishMs);
-            });
-          }
-        );
-      });
+      // Step 2 (after the location is confirmed): the forced would-ride-again answer,
+      // then the actual ~5 s Nostr submit.
+      const askAndSubmit = function (dest) {
+        journeyUI.wouldRideAgainSheet(function (wouldRideAgain) {
+          jj.wouldRideAgain = wouldRideAgain;
+          journeyStore.set(jj);
+          journeyUI.setFinishBusy(true); // Nostr publish takes ~5 s
+          completeFinish(jj, dest, finishMs);
+        });
+      };
+      // Step 1: confirm the destination — GPS (up to 3 tries), falling back to a manual
+      // pin. Lock the button while GPS resolves; clear it before either prompt so the
+      // user isn't staring at a spinner while answering.
+      journeyUI.setFinishBusy(true);
+      getFixWithRetry().then(
+        function (dest) { journeyUI.setFinishBusy(false); askAndSubmit(dest); },
+        function () {
+          journeyUI.setFinishBusy(false);
+          journeyUI.manualPin(function (dest) { askAndSubmit(dest); });
+        }
+      );
     };
     // Nudge to enrich the log before saving — but only when details are incomplete.
     // "Add details" saves onto j.details then proceeds; "Skip" proceeds as-is.
@@ -688,7 +689,9 @@
         });
       });
       demoRow.appendChild(addBtn);
-      dock.appendChild(demoRow);
+      // Insert ABOVE Finish (both are full-width flex lines; DOM order = top→bottom).
+      // Placed below, it wrapped onto the bottom edge and hid behind the nav / OSM credits.
+      dock.insertBefore(demoRow, finishBtn);
 
       document.body.appendChild(dock);
       journeyUI._dockEl = dock;
