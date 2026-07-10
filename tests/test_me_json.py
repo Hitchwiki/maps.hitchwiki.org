@@ -212,3 +212,28 @@ def test_ride_places_lookup_is_bounded_to_the_rides_asked_for(app, db):
         # No d_tags -> no query at all.
         assert _ride_places([]) == {}
         assert _ride_places([None]) == {}
+
+
+def test_ride_duration_is_time_moving_and_never_wrong():
+    """Ride time = last arrival - first departure. Distinct from wait (time stopped)."""
+    from types import SimpleNamespace
+
+    from hitch.blueprints.user import _ride_duration_minutes
+
+    def ride(stops):
+        return SimpleNamespace(content={"stops": stops})
+
+    dep = {"departure_time": "2026-07-28T12:00:00"}
+    arr = {"arrival_time": "2026-07-28T14:20:00"}
+    assert _ride_duration_minutes(ride([dep, arr])) == 140
+
+    # Any missing/unparseable piece -> None, so the UI omits it rather than guessing.
+    assert _ride_duration_minutes(ride([dep, {}])) is None
+    assert _ride_duration_minutes(ride([{}, arr])) is None
+    assert _ride_duration_minutes(ride([dep])) is None
+    assert _ride_duration_minutes(ride([])) is None
+    assert _ride_duration_minutes(ride([{"departure_time": "nope"}, {"arrival_time": "nah"}])) is None
+
+    # Clock skew: arrival before departure must never render as a negative duration.
+    skewed = [{"departure_time": "2026-07-28T14:20:00"}, {"arrival_time": "2026-07-28T12:00:00"}]
+    assert _ride_duration_minutes(ride(skewed)) is None

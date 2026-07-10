@@ -93,21 +93,26 @@
     return { start: start, end: "", endKind: null };
   }
 
-  // The stats beside a ride's completion pie. The date leads, then wait and distance —
-  // unless the date is already serving as the ride's title, in which case repeating it
+  function durationText(mins) {
+    return mins >= 60 ? Math.floor(mins / 60) + " h " + (mins % 60) + " m" : mins + " min";
+  }
+
+  // The stats beside a ride's completion pie, as {text, dot} entries so the row can draw
+  // real dots: red for time stopped at the roadside, green for time actually moving.
+  // The date leads, unless it is already serving as the ride's title — repeating it there
   // would just be noise.
-  // A null wait/distance means the ride never recorded it, so it is omitted rather than
-  // shown as a misleading "0 min" / "0 km"; a real zero still renders.
+  //
+  // Anything the ride never recorded is silently omitted rather than shown as a
+  // misleading "0 min" / "0 km". A real zero is data, though, and still renders.
   function rideStats(ride, includeDate) {
     const out = [];
     const when = includeDate === false ? "" : (ride.created || "").slice(0, 10);
-    if (when) out.push(when);
-    const wait = ride.wait_min;
-    if (wait != null) {
-      out.push(wait >= 60 ? Math.floor(wait / 60) + " h " + (wait % 60) + " m" : wait + " min");
+    if (when) out.push({ text: when, dot: null });
+    if (ride.wait_min != null) out.push({ text: durationText(ride.wait_min), dot: "stopped" });
+    if (ride.ride_min != null) out.push({ text: durationText(ride.ride_min), dot: "going" });
+    if (ride.distance_km != null) {
+      out.push({ text: Math.round(ride.distance_km).toLocaleString("en-US") + " km", dot: null });
     }
-    const km = ride.distance_km;
-    if (km != null) out.push(Math.round(km).toLocaleString("en-US") + " km");
     return out;
   }
 
@@ -428,7 +433,19 @@
 
       // The date only appears below when it is not already carrying the row above.
       const stats = rideStats(ride, hasPlaces);
-      if (stats.length) meta.appendChild(el("span", "acct-ride__stats", stats.join(" · ")));
+      if (stats.length) {
+        const statsEl = el("span", "acct-ride__stats");
+        stats.forEach(function (stat, i) {
+          if (i) statsEl.appendChild(el("span", "acct-ride__sep", " · "));
+          if (stat.dot) {
+            const dot = el("span", "acct-dot acct-dot--" + stat.dot);
+            dot.title = stat.dot === "stopped" ? "Waiting at the roadside" : "Moving";
+            statsEl.appendChild(dot);
+          }
+          statsEl.appendChild(el("span", null, stat.text));
+        });
+        meta.appendChild(statsEl);
+      }
       li.appendChild(meta);
 
       list.appendChild(li);

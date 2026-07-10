@@ -43,16 +43,18 @@ test("rideLabel tolerates a ride with no rating or comment", () => {
   assert.strictEqual(r.comment, "");
 });
 
+const texts = (entries) => entries.map((e) => e.text);
+
 test("rideStats formats wait and distance, omitting what wasn't recorded", () => {
-  assert.deepStrictEqual(A.rideStats({ wait_min: 45, distance_km: 138.9 }), ["45 min", "139 km"]);
+  assert.deepStrictEqual(texts(A.rideStats({ wait_min: 45, distance_km: 138.9 })), ["45 min", "139 km"]);
   // Over an hour reads as hours + minutes.
-  assert.deepStrictEqual(A.rideStats({ wait_min: 95, distance_km: 5312.4 }), ["1 h 35 m", "5,312 km"]);
+  assert.deepStrictEqual(texts(A.rideStats({ wait_min: 95, distance_km: 5312.4 })), ["1 h 35 m", "5,312 km"]);
   // null means "not recorded" — omit it rather than print a misleading 0.
-  assert.deepStrictEqual(A.rideStats({ wait_min: null, distance_km: 12 }), ["12 km"]);
-  assert.deepStrictEqual(A.rideStats({ wait_min: 20, distance_km: null }), ["20 min"]);
+  assert.deepStrictEqual(texts(A.rideStats({ wait_min: null, distance_km: 12 })), ["12 km"]);
+  assert.deepStrictEqual(texts(A.rideStats({ wait_min: 20, distance_km: null })), ["20 min"]);
   assert.deepStrictEqual(A.rideStats({}), []);
   // A real zero wait is data, not absence, so it must still render.
-  assert.deepStrictEqual(A.rideStats({ wait_min: 0 }), ["0 min"]);
+  assert.deepStrictEqual(texts(A.rideStats({ wait_min: 0 })), ["0 min"]);
 });
 
 test("completionPct rounds and clamps, defaulting to 0 when absent", () => {
@@ -121,10 +123,10 @@ test("rideRoute labels a ride by where it went, degrading gracefully", () => {
 
 test("rideStats leads with the date, then wait and distance", () => {
   assert.deepStrictEqual(
-    A.rideStats({ created: "2026-07-28 12:00", wait_min: 45, distance_km: 138.9 }),
+    texts(A.rideStats({ created: "2026-07-28 12:00", wait_min: 45, distance_km: 138.9 })),
     ["2026-07-28", "45 min", "139 km"]
   );
-  assert.deepStrictEqual(A.rideStats({ created: "2026-07-28 12:00" }), ["2026-07-28"]);
+  assert.deepStrictEqual(texts(A.rideStats({ created: "2026-07-28 12:00" })), ["2026-07-28"]);
 });
 
 test("flagEmoji maps an ISO alpha-2 code to regional indicators", () => {
@@ -179,9 +181,9 @@ test("rideTitle falls back to the date when no place names exist yet", () => {
 
 test("rideStats omits the date when the date is already the title", () => {
   const ride = { created: "2026-07-28 12:00", wait_min: 45, distance_km: 138.9 };
-  assert.deepStrictEqual(A.rideStats(ride, true), ["2026-07-28", "45 min", "139 km"]);
+  assert.deepStrictEqual(texts(A.rideStats(ride, true)), ["2026-07-28", "45 min", "139 km"]);
   // Date serving as the title -> don't repeat it below.
-  assert.deepStrictEqual(A.rideStats(ride, false), ["45 min", "139 km"]);
+  assert.deepStrictEqual(texts(A.rideStats(ride, false)), ["45 min", "139 km"]);
 });
 
 test("routeSegments distinguishes a known, missing and never-reached destination", () => {
@@ -229,4 +231,24 @@ test("rideViewUrl links every ride, editable or not", () => {
   assert.strictEqual(A.rideViewUrl({ type: "own", d_tag: "a b&c" }), "/ride/a%20b%26c");
   // No d_tag -> nothing to open.
   assert.strictEqual(A.rideViewUrl({ type: "own" }), null);
+});
+
+test("rideStats tags wait as stopped (red) and ride time as going (green)", () => {
+  const entries = A.rideStats({ created: "2026-07-28 12:00", wait_min: 45, ride_min: 140, distance_km: 138.9 });
+  assert.deepStrictEqual(entries, [
+    { text: "2026-07-28", dot: null },
+    { text: "45 min", dot: "stopped" },
+    { text: "2 h 20 m", dot: "going" },
+    { text: "139 km", dot: null },
+  ]);
+});
+
+test("rideStats silently omits a ride time the record never carried", () => {
+  // The historic form doesn't record arrival, so most rides have no duration at all.
+  const entries = A.rideStats({ wait_min: 45, ride_min: null, distance_km: 10 });
+  assert.deepStrictEqual(entries.map((e) => e.dot), ["stopped", null]);
+  // Nothing recorded at all -> nothing rendered, no empty dots.
+  assert.deepStrictEqual(A.rideStats({ created: "" }), []);
+  // A zero-minute ride is data, not absence.
+  assert.deepStrictEqual(A.rideStats({ ride_min: 0 }), [{ text: "0 min", dot: "going" }]);
 });
