@@ -243,3 +243,34 @@ class RidePlace(db.Model):
     from_cc = db.Column(db.String(2), nullable=True)  # ISO 3166-1 alpha-2
     to_place = db.Column(db.String(255), nullable=True)
     to_cc = db.Column(db.String(2), nullable=True)
+
+
+class DerivedRideLocation(db.Model):
+    """A destination we inferred for a ride that reached Nostr without one, keyed by `d`.
+
+    Some hitchmap.com / hitchwiki.org rides carry no destination in their `stops` yet the
+    free-text comment names the city the ride actually reached ("got a lift to Kayseri").
+    hitch/scripts/extract_destinations.py mines those comments (arrival-only, any transport
+    mode), geocodes the city against dist/worldcities.csv, and stores the result here so it
+    can be merged back onto the ride as an extra stop via to_stop().
+
+    Kept in its own table — not written to Nostr and not columns on RideEvent — because
+    fetch_nostr rebuilds ride_event wholesale every 30 min, and because this is data only
+    we hold. The location is inferred from prose, never a logged GPS fix, so is_exact is
+    always False: consumers should treat the coordinate as the city centre, not the spot.
+    """
+
+    __tablename__ = "derived_ride_location"
+
+    d = db.Column(db.String(255), primary_key=True)
+    latitude = db.Column(db.Float, nullable=False)
+    longitude = db.Column(db.Float, nullable=False)
+    is_exact = db.Column(db.Boolean, nullable=False, default=False)
+    location_name = db.Column(db.String(255), nullable=True)
+    source_comment = db.Column(db.Text, nullable=True)
+    kind = db.Column(db.String(64), nullable=True)
+    created_at = db.Column(db.Integer, nullable=True)
+
+    def to_stop(self):
+        # Same shape as a Nostr stop's location object so it merges straight onto a note.
+        return {"location": {"latitude": self.latitude, "longitude": self.longitude, "is_exact": bool(self.is_exact)}}
