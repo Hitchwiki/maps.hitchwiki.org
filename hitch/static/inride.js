@@ -675,11 +675,18 @@
       const demoRow = document.createElement("div");
       demoRow.className = "inr-demo-row";
       const s = demographicScores(j.details || {});
+      // Fill-bar chip: a blue fill on a black bar tracks completeness; the whole chip
+      // is the tap target that opens the details sheet.
       const addBtn = document.createElement("button");
       addBtn.type = "button"; addBtn.className = "inr-demo-add";
-      addBtn.innerHTML = s.pct >= 100
+      const addFill = document.createElement("span");
+      addFill.className = "inr-demo-add__fill"; addFill.style.width = s.pct + "%";
+      const addLabel = document.createElement("span");
+      addLabel.className = "inr-demo-add__label";
+      addLabel.innerHTML = s.pct >= 100
         ? '<i class="fa-solid fa-check"></i> Details complete'
         : '<i class="fa-solid fa-plus"></i> Add details · ' + s.pct + '%';
+      addBtn.appendChild(addFill); addBtn.appendChild(addLabel);
       addBtn.addEventListener("click", function () {
         journeyUI.detailsSheet(j.details || {}, function (fields) {
           const cur = journeyStore.get(); if (!cur) return;

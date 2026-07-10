@@ -2293,31 +2293,41 @@ body.showing-insights .heatmap-legend-pane {
   gap: 8px;
   margin-bottom: 2px;
 }
-.inr-demo-meter {
-  background: rgba(0, 0, 0, .55);
-  color: #fff;
-  border-radius: 999px;
-  padding: 5px 10px;
-  font-size: 12px;
-  font-weight: 700;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-}
+/* Fill-bar chip: a blue fill on a black bar shows completeness; the whole bar is the
+   tap target that opens the details sheet. Full-width so the fill reads as a progress
+   bar. */
 .inr-demo-add {
-  display: flex;
-  align-items: center;
-  gap: 5px;
+  position: relative;
+  overflow: hidden;
+  width: 100%;
   border: none;
-  border-radius: 999px;
-  padding: 5px 12px;
-  background: #ff6b35;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 700;
+  border-radius: 12px;
+  padding: 9px 0;
+  background: #111;
   cursor: pointer;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
 }
-.inr-demo-add:hover { background: #e85a2a; }
-.inr-demo-add:active { transform: scale(0.96); }
+.inr-demo-add__fill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 0;
+  background: #2f80ed;
+  transition: width .25s ease;
+  z-index: 0;
+}
+.inr-demo-add__label {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+.inr-demo-add:active { transform: scale(0.99); }
 
 /* Waiting/paused dock: button row on top, a small grey Cancel beneath it. */
 .inr-dock--stack {
@@ -2502,12 +2512,18 @@ body.showing-insights .heatmap-legend-pane {
 }
 
 /* Waiting/paused docks are taller (button row + Cancel beneath), so lift their chip
-   higher to clear it. In-ride keeps the base 78px offset (single Finish button). */
+   higher to clear it. */
 .inr-chip--wait,
 .inr-chip--paused {
   /* Clears the taller, raised waiting/paused dock (two big buttons + the round
      Cancel × beneath them), so the timer pill is never hidden behind the buttons. */
   bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 144px);
+}
+/* In-ride dock is two rows now — the Finish button plus the "Add details" fill-bar
+   chip above it — so lift the timer chip to clear BOTH; at the base 78px it overlapped
+   the chip and showed through as a dark ghost behind it. */
+.inr-chip--inride {
+  bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 124px);
 }
 
 /* Coloured dot on the left of the chip */
