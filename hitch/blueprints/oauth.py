@@ -29,7 +29,14 @@ def _redirect_uri():
     league/oauth2-server rejects it as "Client authentication failed" -- the same
     message it gives for an unknown client. The scheme can't be inferred from the
     request (see HITCHWIKI_OAUTH_REDIRECT_SCHEME in settings.py), so state it.
+
+    HITCHWIKI_OAUTH_REDIRECT_BASE overrides the whole origin. Behind a tunnel, url_for()
+    derives the origin from the request, which yields a hostname the consumer has never
+    heard of; pinning the origin lets a tunnel URL be registered and used verbatim.
     """
+    base = current_app.config.get("HITCHWIKI_OAUTH_REDIRECT_BASE")
+    if base:
+        return base.rstrip("/") + url_for("oauth.login")
     return url_for("oauth.login", _external=True, _scheme=current_app.config["HITCHWIKI_OAUTH_REDIRECT_SCHEME"])
 
 

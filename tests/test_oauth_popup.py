@@ -60,3 +60,37 @@ def test_finish_login_popup_carries_needs_profile(app):
         session["oauth_popup"] = True
         html = _finish_login("/edit-user", needs_profile=True)
         assert "true" in html.split("needsProfile:")[1].split("\n")[0]
+
+
+def test_redirect_uri_defaults_to_request_origin(app):
+    """Unset HITCHWIKI_OAUTH_REDIRECT_BASE -> unchanged behaviour (url_for + scheme)."""
+    from hitch.blueprints.oauth import _redirect_uri
+
+    app.config["HITCHWIKI_OAUTH_REDIRECT_BASE"] = None
+    app.config["HITCHWIKI_OAUTH_REDIRECT_SCHEME"] = "http"
+    with app.test_request_context("/", base_url="http://127.0.0.1:5001"):
+        assert _redirect_uri() == "http://127.0.0.1:5001/login"
+
+
+def test_redirect_uri_can_be_pinned_to_a_tunnel_origin(app):
+    """A tunnel's hostname is never what url_for() would infer, so allow pinning it."""
+    from hitch.blueprints.oauth import _redirect_uri
+
+    app.config["HITCHWIKI_OAUTH_REDIRECT_BASE"] = "https://example.trycloudflare.com"
+    try:
+        # Request arrives on some other origin entirely; the pinned base still wins.
+        with app.test_request_context("/", base_url="http://localhost:5001"):
+            assert _redirect_uri() == "https://example.trycloudflare.com/login"
+    finally:
+        app.config["HITCHWIKI_OAUTH_REDIRECT_BASE"] = None
+
+
+def test_redirect_uri_base_tolerates_a_trailing_slash(app):
+    from hitch.blueprints.oauth import _redirect_uri
+
+    app.config["HITCHWIKI_OAUTH_REDIRECT_BASE"] = "https://example.trycloudflare.com/"
+    try:
+        with app.test_request_context("/", base_url="http://localhost:5001"):
+            assert _redirect_uri() == "https://example.trycloudflare.com/login"
+    finally:
+        app.config["HITCHWIKI_OAUTH_REDIRECT_BASE"] = None

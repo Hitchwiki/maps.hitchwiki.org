@@ -49,7 +49,14 @@ class BaseConfig:
     # any mismatch as "Client authentication failed", the same error it gives an unknown
     # client. The dev consumer is registered with http://127.0.0.1:5001/login, so http
     # is the default and only production overrides it.
-    HITCHWIKI_OAUTH_REDIRECT_SCHEME = "http"
+    HITCHWIKI_OAUTH_REDIRECT_SCHEME = os.getenv("HITCHWIKI_OAUTH_REDIRECT_SCHEME", "http")
+
+    # Full origin to build the OAuth redirect_uri from, e.g.
+    # "https://my-tunnel.trycloudflare.com". Needed when the app is reached through a
+    # tunnel: url_for() would otherwise derive the origin from the request, and the
+    # scheme/host it infers won't byte-match the consumer's registered callback. Leave
+    # unset everywhere except tunnel-based local testing; production derives its own.
+    HITCHWIKI_OAUTH_REDIRECT_BASE = os.getenv("HITCHWIKI_OAUTH_REDIRECT_BASE")
 
     # Lax allows the session cookie to be sent on top-level navigations (needed for OAuth redirects).
     # Strict would block the cookie when returning from hitchwiki.org, breaking the OAuth flow.
