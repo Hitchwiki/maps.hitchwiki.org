@@ -85,3 +85,51 @@ def test_me_json_logged_in_is_still_not_publicly_cacheable(client, logged_in_use
     resp = client.get("/me.json")
     assert "public" not in resp.headers.get("Cache-Control", "")
     assert "no-store" in resp.headers.get("Cache-Control", "")
+
+
+def test_ride_rows_carry_completion_wait_and_distance():
+    """The modal's ride list needs a completion score, wait and distance per ride.
+
+    Completion reuses the canonical ride_score weights, so a fully-detailed ride is 100%
+    and one with only gender (15) + vehicle kind (10) is 25%.
+    """
+    from types import SimpleNamespace
+
+    from hitch.blueprints.user import _extract_ride_info
+
+    stops = [
+        {"location": {"latitude": 48.0, "longitude": 7.0}, "waiting_duration": "PT45M"},
+        {"location": {"latitude": 49.0, "longitude": 7.0}},
+    ]
+
+    def ride(**content):
+        return SimpleNamespace(content=content, d="t", rating=4, comment="", submission_time="2026-07-01T12:00:00Z")
+
+    full = ride(
+        stops=stops,
+        occupants=[
+            {
+                "was_driver": True,
+                "gender": "female",
+                "year_of_birth": 1980,
+                "origin_country": "DE",
+                "languages": ["deu"],
+                "reasons_to_pick_up": ["curiosity"],
+            }
+        ],
+        mode_of_transportation={"kind": "car", "license_plate_country": "DE"},
+    )
+    info = _extract_ride_info(full, "own")
+    assert info["completion"] == 100
+    assert info["wait_min"] == 45
+    # 1 degree of latitude, scaled by show.py's 1.25 road-detour factor.
+    assert info["distance_km"] == 138.9
+
+    partial = ride(stops=stops, occupants=[{"was_driver": True, "gender": "female"}], mode_of_transportation={"kind": "car"})
+    assert _extract_ride_info(partial, "own")["completion"] == 25
+
+    # No destination and no wait recorded -> None, so the UI omits them.
+    bare = _extract_ride_info(ride(stops=[stops[0] | {"waiting_duration": ""}]), "own")
+    assert bare["completion"] == 0
+    assert bare["wait_min"] is None
+    assert bare["distance_km"] is None

@@ -14,6 +14,7 @@ from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import Hitc
 from hitch.blueprints.utils.notifications import notify_new_follower
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON
+from hitch.blueprints.utils.ride_score import score_fields
 from hitch.extensions import db, security
 from hitch.forms import UserEditForm
 from hitch.helpers import get_db, get_dirs, haversine_np
@@ -295,6 +296,33 @@ def _ride_wait_minutes(ride):
         return None
 
 
+def _ride_completion_pct(ride):
+    """How complete this ride's driver/vehicle detail is, 0-100.
+
+    Reuses the canonical weights (ride_score) rather than re-deriving a score, so the
+    number a user sees on their ride list is the same one the in-ride sheet's meters
+    showed while they logged it. The stored Nostr record uses the data-standard's shape
+    (an occupant with was_driver, and mode_of_transportation), so map it back onto the
+    scorer's field names. Age is scored on presence: we store year_of_birth, not an age.
+    """
+    content = ride.content or {}
+    occupants = content.get("occupants") or []
+    driver = next((o for o in occupants if o.get("was_driver")), {})
+    transport = content.get("mode_of_transportation") or {}
+
+    return score_fields(
+        {
+            "driver_reason_to_pick_up": driver.get("reasons_to_pick_up") or [],
+            "driver_gender": driver.get("gender") or "",
+            "driver_age": driver.get("year_of_birth") or "",
+            "driver_origin_country": driver.get("origin_country") or "",
+            "driver_languages": driver.get("languages") or [],
+            "vehicle_kind": transport.get("kind") or "",
+            "vehicle_license_plate_country": transport.get("license_plate_country") or "",
+        }
+    )["pct"]
+
+
 def _ride_distance_km(info):
     """Pickup→destination distance of a ride in km, or None when it has no destination.
 
@@ -531,7 +559,7 @@ def _extract_ride_info(ride, ride_type):
     submission_dt = pd.to_datetime(ride.submission_time, errors="coerce", utc=True) if ride.submission_time else None
     submission_display = submission_dt.strftime("%Y-%m-%d %H:%M") if submission_dt is not None and pd.notna(submission_dt) else ""
     submission_sort_key = submission_dt.value if submission_dt is not None and pd.notna(submission_dt) else None
-    return {
+    info = {
         "type": ride_type,
         "d_tag": ride.d,
         "created": submission_display,
@@ -543,6 +571,14 @@ def _extract_ride_info(ride, ride_type):
         "destination_lat": destination_lat,
         "destination_lon": destination_lon,
     }
+    # Surfaced by the account modal's ride list. None means "not recorded", and the UI
+    # omits the stat rather than printing a misleading zero. _ride_distance_km reads the
+    # coords off the info dict, so it has to run once the dict exists.
+    info["wait_min"] = _ride_wait_minutes(ride)
+    distance = _ride_distance_km(info)
+    info["distance_km"] = round(distance, 1) if distance is not None else None
+    info["completion"] = _ride_completion_pct(ride)
+    return info
 
 
 def _norm_nickname(s):

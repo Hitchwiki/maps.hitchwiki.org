@@ -42,3 +42,24 @@ test("rideLabel tolerates a ride with no rating or comment", () => {
   assert.strictEqual(r.stars, "");
   assert.strictEqual(r.comment, "");
 });
+
+test("rideStats formats wait and distance, omitting what wasn't recorded", () => {
+  assert.deepStrictEqual(A.rideStats({ wait_min: 45, distance_km: 138.9 }), ["45 min", "139 km"]);
+  // Over an hour reads as hours + minutes.
+  assert.deepStrictEqual(A.rideStats({ wait_min: 95, distance_km: 5312.4 }), ["1 h 35 m", "5,312 km"]);
+  // null means "not recorded" — omit it rather than print a misleading 0.
+  assert.deepStrictEqual(A.rideStats({ wait_min: null, distance_km: 12 }), ["12 km"]);
+  assert.deepStrictEqual(A.rideStats({ wait_min: 20, distance_km: null }), ["20 min"]);
+  assert.deepStrictEqual(A.rideStats({}), []);
+  // A real zero wait is data, not absence, so it must still render.
+  assert.deepStrictEqual(A.rideStats({ wait_min: 0 }), ["0 min"]);
+});
+
+test("completionPct rounds and clamps, defaulting to 0 when absent", () => {
+  assert.strictEqual(A.completionPct({ completion: 100 }), 100);
+  assert.strictEqual(A.completionPct({ completion: 24.6 }), 25);
+  assert.strictEqual(A.completionPct({ completion: 0 }), 0);
+  assert.strictEqual(A.completionPct({}), 0);
+  assert.strictEqual(A.completionPct({ completion: 140 }), 100);
+  assert.strictEqual(A.completionPct({ completion: -5 }), 0);
+});
