@@ -1435,7 +1435,7 @@
       // onClose would double-fire on the "Add details" tap (close() runs before onClick).
       journeyUI.dialog({
         title: "Add driver & vehicle details?",
-        body: "This ride is " + pct + "% complete. Adding driver and vehicle details makes the log far more useful — it only takes a moment.",
+        body: "This ride is " + pct + "% complete. Help your fellow hitchers?",
         centered: true,
         forced: true,
         actions: [
