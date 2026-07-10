@@ -8,7 +8,8 @@ import sys
 import time as time_module
 
 import click
-from flask import Flask, render_template, request, send_from_directory
+from flask import Flask, has_request_context, render_template, request, send_from_directory
+from flask.sessions import SecureCookieSessionInterface
 from flask_security import SQLAlchemyUserDatastore
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import safe_join
@@ -28,6 +29,42 @@ if ENVIRONMENT not in ["prod", "dev"]:
     sys.exit(1)
 
 
+# The endpoints set_public_cache_headers marks publicly cacheable. Their responses are
+# identical for every visitor and must never carry per-user state.
+_PUBLIC_CACHE_ENDPOINTS = ("static", "catch_all")
+
+
+class _CacheAwareSessionInterface(SecureCookieSessionInterface):
+    """Keeps session state off responses we advertise as publicly cacheable.
+
+    Flask.process_response runs every @app.after_request hook and only *then* calls
+    session_interface.save_session() (see flask/app.py: it loops over
+    after_request_funcs first, then calls save_session as the final step). So no
+    after_request hook can undo what save_session does -- but save_session runs inside
+    the request context, so request.endpoint is available here.
+
+    save_session does two things we must prevent on a `public, max-age=...` response:
+
+    1. It emits Set-Cookie whenever the session is modified, or on every request for a
+       permanent session (SESSION_REFRESH_EACH_REQUEST defaults to True). A shared cache
+       or CDN honouring `public` could store that response *with* the Set-Cookie and hand
+       one visitor's session to another. This is the reason we skip, not merely reorder.
+    2. It appends Vary: Cookie whenever session.accessed is True -- which
+       flask_security/flask_principal cause on EVERY request, including /static and
+       dist/* ones, since the identity loader checks login state in before_request. That
+       Vary fragments the cache per cookie and defeats the caching entirely.
+
+    Skipping save_session for these endpoints avoids both. It is safe: they serve static
+    files and pre-generated data, never mutate the session, and a session created or
+    cleared elsewhere is persisted by the very next non-cacheable request.
+    """
+
+    def save_session(self, app, session, response):
+        if has_request_context() and request.endpoint in _PUBLIC_CACHE_ENDPOINTS:
+            return
+        super().save_session(app, session, response)
+
+
 def create_app(config_name=None):
     if config_name is None:
         config_name = os.getenv("FLASK_CONFIG", "development")
@@ -37,6 +74,9 @@ def create_app(config_name=None):
     # needed fo r correct OAuth callback URLs and to avoid mixed content issues when behind a reverse proxy
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
     app.config.from_object(config[config_name])
+    # See _CacheAwareSessionInterface for why Vary: Cookie needs stripping here,
+    # not in an after_request hook.
+    app.session_interface = _CacheAwareSessionInterface()
 
     register_extensions(app)
     register_blueprints(app)
@@ -253,3 +293,34 @@ def register_routes(app):
             os.path.join(app.root_path, "static"),
             "sw.js",
         )
+
+    # Cache policy for public, versioned/generated files, in one place so it OVERRIDES
+    # the no-cache + Vary: Cookie that Werkzeug (send_from_directory with no max_age) and
+    # the session layer inject — both defeat caching of files that are safe to cache.
+    # HTML, sw.js, and route endpoints are intentionally left untouched so new ?v= asset
+    # links and service-worker updates keep propagating on the next load.
+    @app.after_request
+    def set_public_cache_headers(response):
+        endpoint = request.endpoint
+        if endpoint == "static":
+            if request.args.get("v"):
+                # ?v=<mtime> busting (asset_url) means a content change changes the URL,
+                # so the body at THIS url can never change -> cache it for a year.
+                response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+            else:
+                # Plenty of /static/ URLs carry no ?v=: only map.html uses asset_url, so
+                # style.css from ride_detail/report_ride/leaderboard/recent, the marker
+                # icons and countries.geojson fetched from JS, sw.js's icon and the
+                # manifest icons all arrive bare. Their bodies DO change across deploys
+                # under a stable URL, so `immutable` would pin them for a year. Cache
+                # briefly, then revalidate (ETag turns the recheck into a 304).
+                response.headers["Cache-Control"] = "public, max-age=300"
+            response.headers["Vary"] = "Accept-Encoding"
+        elif endpoint == "catch_all":
+            # dist/* regenerates every ~10 min and is already ~40 min stale by design, so
+            # a 5-min cache + stale-while-revalidate is invisible and skips the reload
+            # revalidation round-trip; ETag/Last-Modified stay for the >15-min case. These
+            # files vary only by gzip vs plain, never by cookie — drop Vary: Cookie.
+            response.headers["Cache-Control"] = "public, max-age=300, stale-while-revalidate=600"
+            response.headers["Vary"] = "Accept-Encoding"
+        return response
