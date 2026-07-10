@@ -2090,13 +2090,10 @@ function showSuccessOverlay() {
     // Add click handler for the close button
     const closeBtn = $$("#success-close-btn");
     if (closeBtn) {
+      // Dismissing the overlay returns to the map the user submitted from — no
+      // navigation, so the restored viewport stays exactly where they left it.
       closeBtn.onclick = function() {
         overlay.style.display = "none";
-        // Logged-in users continue to their account page (template sets the URL); others stay on the map
-        const continueUrl = closeBtn.dataset.continueUrl;
-        if (continueUrl) {
-          window.location.href = continueUrl;
-        }
       };
     }
     
