@@ -37,6 +37,10 @@
     return total + (total === 1 ? " ride" : " rides");
   }
 
+  function awardsSummary(n) {
+    return n + (n === 1 ? " award earned" : " awards earned");
+  }
+
   function rideLabel(ride) {
     const when = (ride.created || "").slice(0, 10);
     const stars = ride.rating ? "★".repeat(ride.rating) : "";
@@ -59,6 +63,16 @@
   function completionPct(ride) {
     const pct = ride.completion;
     return typeof pct === "number" ? Math.max(0, Math.min(100, Math.round(pct))) : 0;
+  }
+
+  // Where a ride's "fix this" CTAs point, or null when the ride isn't editable.
+  // /ride?edit=<d_tag> only prefills when _user_owns_ride passes, which requires the ride
+  // to have been published by us — that is exactly type "own". A ride imported from
+  // another source ("own_external") or awaiting co-hitchhiker acceptance can't be edited,
+  // so it gets a plain indicator instead of a dead link.
+  function rideEditUrl(ride) {
+    if (ride.type !== "own" || !ride.d_tag) return null;
+    return "/ride?edit=" + encodeURIComponent(ride.d_tag);
   }
 
   // ── DOM (browser only) ─────────────────────────────────────────────────────
@@ -174,6 +188,22 @@
     });
     body.appendChild(stats);
 
+    // Awards earned. Locked tiers stay on the full /insights page — the modal celebrates
+    // what you have rather than nagging about what you don't.
+    const awards = data.achievements || [];
+    if (awards.length) {
+      body.appendChild(el("div", "acct-rides-head", awardsSummary(awards.length)));
+      const wrap = el("div", "acct-awards");
+      awards.forEach(function (award) {
+        const chip = el("span", "acct-award");
+        chip.title = award.blurb || award.name;
+        chip.appendChild(el("span", "acct-award__emoji", award.emoji));
+        chip.appendChild(el("span", "acct-award__name", award.name));
+        wrap.appendChild(chip);
+      });
+      body.appendChild(wrap);
+    }
+
     const rides = data.rides || [];
     body.appendChild(el("div", "acct-rides-head", ridesSummary(rides.length, data.rides_total || rides.length)));
 
@@ -184,12 +214,25 @@
 
       // Completion pie: a conic-gradient sweep set from the ride's score. The number is
       // the same one the in-ride sheet's meters showed, from the canonical weights.
+      // Below 100% it becomes a CTA to go fill in what's missing.
       const pct = completionPct(ride);
-      const pie = el("span", "acct-pie");
+      const editUrl = rideEditUrl(ride);
+      const wantsDetails = editUrl && pct < 100;
+      const pie = el(wantsDetails ? "a" : "span", "acct-pie" + (wantsDetails ? " acct-pie--cta" : ""));
       pie.style.setProperty("--pct", pct);
-      pie.setAttribute("role", "img");
-      pie.setAttribute("aria-label", pct + "% of driver and vehicle details recorded");
-      pie.title = pct + "% complete";
+      if (wantsDetails) {
+        // New tab: this modal exists so the map never unloads. Same reason the bottom-nav
+        // links open out-of-page. rel=noopener because target=_blank hands over window.opener.
+        pie.href = editUrl;
+        pie.target = "_blank";
+        pie.rel = "noopener";
+        pie.title = pct + "% complete — add driver and vehicle details";
+        pie.setAttribute("aria-label", "Ride " + pct + "% complete. Add driver and vehicle details.");
+      } else {
+        pie.setAttribute("role", "img");
+        pie.setAttribute("aria-label", pct + "% of driver and vehicle details recorded");
+        pie.title = pct + "% complete";
+      }
       li.appendChild(pie);
 
       const meta = el("div", "acct-ride__meta");
@@ -200,13 +243,21 @@
 
       // The ride never recorded where it ended — data the user can still fix. Give-ups
       // are excluded server-side, so this never fires on a ride that legitimately has
-      // no destination.
+      // no destination. Editable rides get a link straight to the fix.
       if (ride.missing_destination) {
-        const warn = el("span", "acct-ride__warn");
+        const warn = el(editUrl ? "a" : "span", "acct-ride__warn");
         warn.innerHTML = '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>';
-        warn.title = "No destination recorded for this ride";
-        warn.setAttribute("role", "img");
-        warn.setAttribute("aria-label", "No destination recorded for this ride");
+        if (editUrl) {
+          warn.href = editUrl;
+          warn.target = "_blank";
+          warn.rel = "noopener";
+          warn.title = "No destination recorded — add it";
+          warn.setAttribute("aria-label", "No destination recorded for this ride. Add it.");
+        } else {
+          warn.title = "No destination recorded for this ride";
+          warn.setAttribute("role", "img");
+          warn.setAttribute("aria-label", "No destination recorded for this ride");
+        }
         li.appendChild(warn);
       }
 
@@ -277,5 +328,7 @@
     rideLabel: rideLabel,
     rideStats: rideStats,
     completionPct: completionPct,
+    rideEditUrl: rideEditUrl,
+    awardsSummary: awardsSummary,
   };
 });

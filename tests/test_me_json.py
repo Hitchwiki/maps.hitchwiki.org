@@ -160,3 +160,26 @@ def test_missing_destination_is_flagged_but_give_ups_are_not():
     # Give-up (no_ride present), no destination -> NOT flagged.
     gave_up = ride(stops=[start], no_ride={"reasons": []})
     assert _extract_ride_info(gave_up, "own")["missing_destination"] is False
+
+
+def test_me_json_carries_only_earned_achievements(client, logged_in_user):
+    """The modal celebrates earned tiers; locked ones stay on the /insights page.
+
+    The fixture user has 42 rides and 5312 km, so they clear "Thumb Warmer" (5 rides),
+    "Out of Town" (100 km) and "Continental Drifter" (1000 km), but not the 100-ride or
+    10 000-km tiers.
+    """
+    body = client.get("/me.json").get_json()
+    awards = body["achievements"]
+    names = [a["name"] for a in awards]
+
+    assert "Thumb Warmer" in names
+    assert "Out of Town" in names
+    assert "Continental Drifter" in names
+    # Not yet earned -> must not appear.
+    assert "Roadside Regular" not in names
+    assert "Quarter Way Round the World" not in names
+
+    for award in awards:
+        assert set(award) == {"emoji", "name", "blurb"}
+        assert award["emoji"] and award["name"]
