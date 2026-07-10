@@ -43,6 +43,24 @@
     return { when: when, stars: stars, comment: (ride.comment || "").trim() };
   }
 
+  // The three stats beside a ride's completion pie. A null means the ride never recorded
+  // that value, so it is omitted rather than shown as a misleading "0 min" / "0 km".
+  function rideStats(ride) {
+    const out = [];
+    const wait = ride.wait_min;
+    if (wait != null) {
+      out.push(wait >= 60 ? Math.floor(wait / 60) + " h " + (wait % 60) + " m" : wait + " min");
+    }
+    const km = ride.distance_km;
+    if (km != null) out.push(Math.round(km).toLocaleString("en-US") + " km");
+    return out;
+  }
+
+  function completionPct(ride) {
+    const pct = ride.completion;
+    return typeof pct === "number" ? Math.max(0, Math.min(100, Math.round(pct))) : 0;
+  }
+
   // ── DOM (browser only) ─────────────────────────────────────────────────────
 
   let _open = null; // { close }
@@ -163,10 +181,23 @@
     rides.forEach(function (ride, idx) {
       const li = el("li", "acct-ride");
       if (idx >= RIDES_SHOWN_COLLAPSED) li.classList.add("acct-ride--hidden");
-      const info = rideLabel(ride);
-      li.appendChild(el("span", "acct-ride__when", info.when));
-      if (info.stars) li.appendChild(el("span", "acct-ride__stars", info.stars));
-      if (info.comment) li.appendChild(el("span", "acct-ride__comment", info.comment));
+
+      // Completion pie: a conic-gradient sweep set from the ride's score. The number is
+      // the same one the in-ride sheet's meters showed, from the canonical weights.
+      const pct = completionPct(ride);
+      const pie = el("span", "acct-pie");
+      pie.style.setProperty("--pct", pct);
+      pie.setAttribute("role", "img");
+      pie.setAttribute("aria-label", pct + "% of driver and vehicle details recorded");
+      pie.title = pct + "% complete";
+      li.appendChild(pie);
+
+      const meta = el("div", "acct-ride__meta");
+      meta.appendChild(el("span", "acct-ride__when", rideLabel(ride).when));
+      const stats = rideStats(ride);
+      if (stats.length) meta.appendChild(el("span", "acct-ride__stats", stats.join(" · ")));
+      li.appendChild(meta);
+
       list.appendChild(li);
     });
     body.appendChild(list);
@@ -226,5 +257,13 @@
     else init();
   }
 
-  return { open: open, close: close, formatInsights: formatInsights, ridesSummary: ridesSummary, rideLabel: rideLabel };
+  return {
+    open: open,
+    close: close,
+    formatInsights: formatInsights,
+    ridesSummary: ridesSummary,
+    rideLabel: rideLabel,
+    rideStats: rideStats,
+    completionPct: completionPct,
+  };
 });
