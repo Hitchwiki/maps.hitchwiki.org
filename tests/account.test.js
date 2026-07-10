@@ -79,3 +79,32 @@ test("awardsSummary pluralises", () => {
   assert.strictEqual(A.awardsSummary(1), "1 award earned");
   assert.strictEqual(A.awardsSummary(3), "3 awards earned");
 });
+
+test("completionTier maps a percentage to a colour band", () => {
+  assert.strictEqual(A.completionTier(0), "low");
+  assert.strictEqual(A.completionTier(33), "low");
+  assert.strictEqual(A.completionTier(34), "mid");
+  assert.strictEqual(A.completionTier(66), "mid");
+  assert.strictEqual(A.completionTier(67), "high");
+  assert.strictEqual(A.completionTier(99), "high");
+  // 100 stops being a progress bar and becomes a badge.
+  assert.strictEqual(A.completionTier(100), "done");
+});
+
+test("ridesNeedingDetails counts only rides the user can actually fix", () => {
+  const rides = [
+    { type: "own", d_tag: "a", completion: 100 },                          // done
+    { type: "own", d_tag: "b", completion: 40 },                           // incomplete
+    { type: "own", d_tag: "c", completion: 100, missing_destination: true }, // complete but no dest
+    { type: "own_external", d_tag: "d", completion: 0 },                   // not editable
+    { type: "co_hitchhiker", d_tag: "e", completion: 0 },                  // not editable
+  ];
+  assert.strictEqual(A.ridesNeedingDetails(rides), 2);
+  assert.strictEqual(A.ridesNeedingDetails([]), 0);
+});
+
+test("nudgeText pluralises and rewards a clean sheet", () => {
+  assert.strictEqual(A.nudgeText(0), "Every ride is fully logged. Nice.");
+  assert.strictEqual(A.nudgeText(1), "1 ride could use more detail");
+  assert.strictEqual(A.nudgeText(4), "4 rides could use more detail");
+});

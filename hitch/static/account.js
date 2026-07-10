@@ -65,6 +65,29 @@
     return typeof pct === "number" ? Math.max(0, Math.min(100, Math.round(pct))) : 0;
   }
 
+  // Completeness reads as a colour before it reads as a number: red is "barely logged",
+  // green is done. The tiers are what drive both the pie's colour and its animation, so
+  // they live here rather than being re-derived in CSS.
+  function completionTier(pct) {
+    if (pct >= 100) return "done";
+    if (pct >= 67) return "high";
+    if (pct >= 34) return "mid";
+    return "low";
+  }
+
+  // How many rides are still worth topping up. Drives the nudge line above the list —
+  // a concrete count is a stronger pull than a vague "add more detail".
+  function ridesNeedingDetails(rides) {
+    return (rides || []).filter(function (r) {
+      return rideEditUrl(r) && (completionPct(r) < 100 || r.missing_destination);
+    }).length;
+  }
+
+  function nudgeText(n) {
+    if (n === 0) return "Every ride is fully logged. Nice.";
+    return n === 1 ? "1 ride could use more detail" : n + " rides could use more detail";
+  }
+
   // Where a ride's "fix this" CTAs point, or null when the ride isn't editable.
   // /ride?edit=<d_tag> only prefills when _user_owns_ride passes, which requires the ride
   // to have been published by us — that is exactly type "own". A ride imported from
@@ -207,6 +230,12 @@
     const rides = data.rides || [];
     body.appendChild(el("div", "acct-rides-head", ridesSummary(rides.length, data.rides_total || rides.length)));
 
+    // A concrete count of what's left to fill in, or a small reward when nothing is.
+    const todo = ridesNeedingDetails(rides);
+    const nudge = el("div", "acct-nudge-line" + (todo === 0 ? " acct-nudge-line--done" : ""));
+    nudge.textContent = (todo === 0 ? "\u2728 " : "") + nudgeText(todo);
+    body.appendChild(nudge);
+
     const list = el("ul", "acct-rides");
     rides.forEach(function (ride, idx) {
       const li = el("li", "acct-ride");
@@ -216,22 +245,35 @@
       // the same one the in-ride sheet's meters showed, from the canonical weights.
       // Below 100% it becomes a CTA to go fill in what's missing.
       const pct = completionPct(ride);
+      const tier = completionTier(pct);
       const editUrl = rideEditUrl(ride);
-      const wantsDetails = editUrl && pct < 100;
-      const pie = el(wantsDetails ? "a" : "span", "acct-pie" + (wantsDetails ? " acct-pie--cta" : ""));
-      pie.style.setProperty("--pct", pct);
-      if (wantsDetails) {
-        // New tab: this modal exists so the map never unloads. Same reason the bottom-nav
-        // links open out-of-page. rel=noopener because target=_blank hands over window.opener.
-        pie.href = editUrl;
-        pie.target = "_blank";
-        pie.rel = "noopener";
-        pie.title = pct + "% complete — add driver and vehicle details";
-        pie.setAttribute("aria-label", "Ride " + pct + "% complete. Add driver and vehicle details.");
-      } else {
+
+      let pie;
+      if (tier === "done") {
+        // A finished ride stops being a progress bar and becomes a reward: the pie is
+        // replaced by a badge, so completing the last field visibly changes the thing.
+        pie = el("span", "acct-pie acct-pie--done");
+        pie.innerHTML = '<i class="fa-solid fa-circle-check" aria-hidden="true"></i>';
         pie.setAttribute("role", "img");
-        pie.setAttribute("aria-label", pct + "% of driver and vehicle details recorded");
-        pie.title = pct + "% complete";
+        pie.setAttribute("aria-label", "Ride fully logged");
+        pie.title = "Fully logged — nice one!";
+      } else {
+        const cta = Boolean(editUrl);
+        pie = el(cta ? "a" : "span", "acct-pie acct-pie--" + tier + (cta ? " acct-pie--cta" : ""));
+        pie.style.setProperty("--pct", pct);
+        if (cta) {
+          // New tab: this modal exists so the map never unloads. rel=noopener because
+          // target=_blank otherwise hands the new page a window.opener reference.
+          pie.href = editUrl;
+          pie.target = "_blank";
+          pie.rel = "noopener";
+          pie.title = pct + "% complete — add driver and vehicle details";
+          pie.setAttribute("aria-label", "Ride " + pct + "% complete. Add driver and vehicle details.");
+        } else {
+          pie.setAttribute("role", "img");
+          pie.setAttribute("aria-label", pct + "% of driver and vehicle details recorded");
+          pie.title = pct + "% complete";
+        }
       }
       li.appendChild(pie);
 
@@ -330,5 +372,8 @@
     completionPct: completionPct,
     rideEditUrl: rideEditUrl,
     awardsSummary: awardsSummary,
+    completionTier: completionTier,
+    ridesNeedingDetails: ridesNeedingDetails,
+    nudgeText: nudgeText,
   };
 });

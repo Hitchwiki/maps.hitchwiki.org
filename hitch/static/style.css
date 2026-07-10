@@ -3158,7 +3158,7 @@ a.acct-ride__warn:hover { color: #b98900; }
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: conic-gradient(#2f80ed calc(var(--pct) * 1%), #e6e6e6 0);
+  background: conic-gradient(var(--pie-color, #2f80ed) calc(var(--pct) * 1%), #e6e6e6 0);
   position: relative;
 }
 .acct-pie::after {
@@ -3168,9 +3168,65 @@ a.acct-ride__warn:hover { color: #b98900; }
   border-radius: 50%;
   background: #fff;
 }
-/* Below 100% the pie is a link to go fill in the missing details. */
-.acct-pie--cta { cursor: pointer; display: block; }
-.acct-pie--cta:hover { box-shadow: 0 0 0 3px rgba(47, 128, 237, .2); }
+/* Completeness reads as colour before it reads as a number. --pie-color feeds both the
+   conic sweep and the focus ring, so a tier only has to be stated once. */
+.acct-pie--low  { --pie-color: #e05353; }
+.acct-pie--mid  { --pie-color: #f5a623; }
+.acct-pie--high { --pie-color: #2f80ed; }
+
+/* Below 100% the pie is a link to go fill in the missing details. It breathes gently so
+   the eye lands on it — an invitation, not an alarm. */
+.acct-pie--cta {
+  cursor: pointer;
+  display: block;
+  animation: acct-pie-breathe 2.4s ease-in-out infinite;
+  transition: transform .15s ease;
+}
+.acct-pie--cta:hover {
+  transform: scale(1.12);
+  /* Fallback first: color-mix needs Safari 16.2+, and an unsupported declaration is
+     dropped, leaving this neutral ring rather than no ring at all. */
+  box-shadow: 0 0 0 4px rgba(47, 128, 237, .22);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--pie-color) 25%, transparent);
+  animation: none;
+}
+@keyframes acct-pie-breathe {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--pie-color) 35%, transparent); }
+  50%      { box-shadow: 0 0 0 4px color-mix(in srgb, var(--pie-color) 0%, transparent); }
+}
+/* Respect users who asked the OS for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  .acct-pie--cta { animation: none; }
+  .acct-pie--done { animation: none; }
+}
+
+/* 100%: the progress ring becomes a reward. Filling that last field visibly changes the
+   thing, which is the whole point of the pie being a CTA in the first place. */
+.acct-pie--done {
+  background: none;
+  color: #1a9850;
+  font-size: 26px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: acct-done-pop .45s cubic-bezier(.34, 1.56, .64, 1);
+}
+.acct-pie--done::after { content: none; }
+@keyframes acct-done-pop {
+  0%   { transform: scale(.4) rotate(-25deg); opacity: 0; }
+  70%  { transform: scale(1.15) rotate(4deg); }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+/* The count of rides still worth topping up — the pull toward completion. */
+.acct-nudge-line {
+  font-size: 12px;
+  font-weight: 700;
+  color: #2f80ed;
+  margin: -2px 0 8px;
+}
+.acct-nudge-line--done { color: #1a9850; }
 
 /* Awards earned. Locked tiers live on the full /insights page. */
 .acct-awards {
