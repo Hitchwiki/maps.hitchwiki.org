@@ -157,15 +157,10 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
     mode_of_transportation = None
     if vehicle_kind in ALLOWED_VEHICLE_KINDS:
         country = (custom_object.get("vehicle_license_plate_country") or "").strip().upper() or None
-        # commercial is already a bool (or None) by the time it reaches here; the /ride
-        # handler parses the raw form string. Pass through unchanged.
-        commercial = custom_object.get("vehicle_commercial")
-        commercial = commercial if (commercial is True or commercial is False) else None
         mode_of_transportation = ModeOfTranportation(
             kind=vehicle_kind,
             make=(custom_object.get("vehicle_make") or "").strip() or None,
             model=(custom_object.get("vehicle_model") or "").strip() or None,
-            commercial=commercial,
             license_plate_country=country,
             license_plate_identifier=(custom_object.get("vehicle_license_plate_identifier") or "").strip() or None,
         )

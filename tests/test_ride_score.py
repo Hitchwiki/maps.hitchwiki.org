@@ -6,7 +6,6 @@ def test_weights_match_the_canonical_scale():
     assert ride_score.WEIGHTS["driver"]["driver_reason_to_pick_up"] == 15
     assert ride_score.WEIGHTS["driver"]["driver_age"] == 20
     assert ride_score.WEIGHTS["vehicle_base"]["vehicle_license_plate_country"] == 20
-    assert "commercial" not in ride_score.WEIGHTS["vehicle_base"]
     assert sum(ride_score.WEIGHTS["driver"].values()) == 70
     assert sum(ride_score.WEIGHTS["vehicle_base"].values()) == 30
     # make/model are no longer scored, so 100% is reachable without them.

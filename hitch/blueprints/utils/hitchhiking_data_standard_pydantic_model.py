@@ -123,10 +123,6 @@ class ModeOfTranportation(BaseModel, use_enum_values=True):
     kind: KindEnum = Field(...)
     make: Optional[str] = None
     model: Optional[str] = None
-    # Explicit "the driver was operating commercially" flag. Tri-state: None = unanswered,
-    # because even a truck/bus can be a private conversion (a schoolie) so it is never
-    # inferred from `kind` — only ever the value the user set.
-    commercial: Optional[bool] = None
     license_plate_country: Optional[str] = None  # ISO 3166-1 alpha-2
     license_plate_identifier: Optional[str] = None
 

@@ -14,7 +14,7 @@ test("empty ride scores zero on both sections", () => {
   assert.strictEqual(s.driver.max, 70); // reason 15 + gender 15 + age 20 + origin 10 + languages 10
   assert.strictEqual(s.driver.pct, 0);
   assert.strictEqual(s.vehicle.earned, 0);
-  assert.strictEqual(s.vehicle.max, 30); // plate 20 + kind 10 (no commercial, no make/model)
+  assert.strictEqual(s.vehicle.max, 30); // plate 20 + kind 10 (make/model unscored)
 });
 
 test("full driver detail earns 70 and 100%", () => {
@@ -30,7 +30,7 @@ test("full driver detail earns 70 and 100%", () => {
   assert.deepStrictEqual(s.driver.missing, []);
 });
 
-test("vehicle is base-only: plate + kind, no commercial or make/model", () => {
+test("vehicle is base-only: plate + kind, make/model unscored", () => {
   const s = RideScore.computeScores({ vehicle_kind: "bus" }, WEIGHTS);
   assert.strictEqual(s.vehicle.max, 30);
   assert.strictEqual(s.vehicle.earned, 10); // kind only

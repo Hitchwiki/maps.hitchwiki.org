@@ -12,7 +12,6 @@ const J = {
     signal: ["thumb"],
     comment: "nice",
     vehicle_kind: "van",
-    commercial: false,
     driver_reason_to_pick_up: ["curiosity"],
     driver_gender: "female",
     driver_age: 34,
@@ -43,7 +42,6 @@ test("buildFinishBody carries every demographic field", () => {
   assert.strictEqual(body.vehicle_make, "Toyota");
   assert.strictEqual(body.vehicle_model, "Hiace");
   assert.strictEqual(body.vehicle_license_plate_country, "DE");
-  assert.strictEqual(body.vehicle_commercial, "false");
   assert.strictEqual(body.driver_would_ride_again, "yes");
 });
 
@@ -64,7 +62,6 @@ test("absent demographic fields serialize to empty strings", () => {
   );
   assert.strictEqual(body.driver_gender, "");
   assert.strictEqual(body.driver_languages, "");
-  assert.strictEqual(body.vehicle_commercial, "");
 });
 
 test("buildFinishBody carries co_hitchhiker as CSV", () => {

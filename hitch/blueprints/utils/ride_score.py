@@ -12,9 +12,7 @@ PASSENGER_KINDS = set(WEIGHTS["passenger_kinds"])
 
 
 def _is_filled(field: str, value) -> bool:
-    # Mirrors isFilled() in ride_score.js — commercial is tri-state (True/False both count).
-    if field == "commercial":
-        return value is True or value is False
+    # Mirrors isFilled() in ride_score.js.
     if isinstance(value, (list, tuple)):
         return len(value) > 0
     if field == "driver_age":

@@ -9,5 +9,5 @@ def test_driver_info_choices_shape(client):
     assert ["male", "Male"] in data["genders"]
     assert any(k == "car" for k, _emoji in data["vehicle_kinds"])
     assert "car" in data["passenger_kinds"]
-    # commercial-eligible bonus kinds mirror the scoring weights.
+    # passenger kinds mirror the scoring weights.
     assert set(data["passenger_kinds"]) == {"car", "van", "camper", "taxi", "motorbike", "scooter"}

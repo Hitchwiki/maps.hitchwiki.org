@@ -39,8 +39,6 @@
       vehicle_make: d.vehicle_make || "",
       vehicle_model: d.vehicle_model || "",
       vehicle_license_plate_country: d.vehicle_license_plate_country || "",
-      // Tri-state -> the form's string values; "" means unanswered.
-      vehicle_commercial: d.commercial === true ? "true" : (d.commercial === false ? "false" : ""),
       co_hitchhiker: (j.coHitchhikers || []).join(","),
       pickup_lat: j.pickup.lat, pickup_lon: j.pickup.lon,
       destination_lat: dest.lat, destination_lon: dest.lon,

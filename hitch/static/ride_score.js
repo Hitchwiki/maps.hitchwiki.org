@@ -10,10 +10,8 @@
 
   // A field is "filled" when the user has supplied a real answer. Arrays need a
   // non-empty entry; strings need non-whitespace; age accepts a number or numeric
-  // string; commercial is a tri-state where BOTH true and false count as answered
-  // (only null/undefined is unanswered).
+  // string.
   function isFilled(field, value) {
-    if (field === "commercial") return value === true || value === false;
     if (Array.isArray(value)) return value.length > 0;
     if (field === "driver_age") return value !== null && value !== undefined && String(value).trim() !== "";
     return typeof value === "string" && value.trim() !== "";
