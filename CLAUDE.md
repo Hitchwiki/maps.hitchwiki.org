@@ -82,6 +82,7 @@ Modelled on OpenStreetMap's `/node/<id>#map=<zoom>/<lat>/<lon>`. Two independent
 - **sync_car_pooling.py**: OSM car-pooling spot synchronization (daily)
 - **sync_hitchwiki.py**: Hitchwiki article synchronization (extracts coordinates from wiki articles, daily)
 - **sync_events.py**: Hitchwiki events synchronization. Pulls every page in `Category:Events`, extracts each `{{Event|name|start|end|lat|lon}}` template, keeps events whose end date is today or later, and writes `dist/events.json` directly (self-contained → no DB model, like `country_ratings`). The map draws a calendar-pin marker per event; clicking it opens a bottom sheet with the name, dates, a plain-text blurb from the wiki page, and a Hitchwiki link (daily at 4:15 AM). Note: Hitchwiki is behind Cloudflare, which 403s ("Just a moment…") requests without a browser-like `User-Agent`, so the script sends one.
+- **build_ride_routes.py**: Builds the routing graph from rides (daily at 2 AM). For every ride with a destination it fetches an OSRM driving route and records which *other* known start spots lie within 300 m of the polyline, in travel order; sequences shared by ≥2 rides become the "repeatable" trees in `dist/repeatable_routes.json` (read by `static/routing.js`). Standalone script (plain `python3`, not `flask generate`), reads SQLite directly. OSRM responses are cached in `dist/route_cache.jsonl` (~675 MB, read via a byte-offset index so geometries never all sit in RAM), so a daily run only fetches routes for rides added since the last run. Spot consolidation must stay identical to `show.py`'s (5 m merge → service-area/road-island polygon grouping → snap onto `dist/spots.json`), otherwise routes reference phantom spots with no map marker.
 - **sync_upstream.py**: Legacy hitchmap.com data sync (daily at 7 AM)
 - **sync_hitchhiking_rides_dataset.py**: Push rides to the Hugging Face dataset (weekly)
 - **notify_nearby_hitchhikers.py**: Email notifications for nearby hitchhikers (daily)
@@ -363,6 +364,7 @@ Map UI loads updated JSON → ride visible on map
 ### Cron Schedule (deploy/cron.sh)
 - **Every 30 minutes**: `fetch_nostr` - Fetch new rides from Nostr
 - **Every 10 minutes**: `show` - Regenerate JSON map data
+- **Daily at 2 AM**: `build_ride_routes.py --skip-detailed` - Rebuild the routing graph (`dist/repeatable_routes.json`, `dist/test_routes.json`). Not a `flask generate` script — cron calls the file directly with `python3`
 - **Daily at 3 AM**: `sync_osm` - Sync OSM hitchhiking spots
 - **Daily at 3:30 AM**: `sync_car_pooling` - Sync OSM car-pooling spots
 - **Daily at 4 AM**: `sync_hitchwiki` - Sync Hitchwiki article coordinates
