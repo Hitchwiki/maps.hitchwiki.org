@@ -966,35 +966,16 @@
       }
       rideOnBtn.addEventListener("click", function () {
         if (!rating) return; // guard: button should be disabled, but double-check
-        const details = Object.assign({
+        const details = {
           rating: rating,
           vehicle_kind: vehicleKind,
           signal: Array.from(signals),
           comment: textarea.value.trim(),
-        }, journeyUI._pendingDetails || {});
-        journeyUI._pendingDetails = null; // consumed — don't leak into the next sheet
+        };
         close();
         onSave(details);
       });
       sheet.appendChild(rideOnBtn);
-
-      // ── "Add driver / vehicle details" link ────────────────────────────────────
-      // Opens the in-app details sheet (journeyUI.detailsSheet) instead of redirecting
-      // to the full /ride form — keeps the user inside the in-ride flow. The result is
-      // stashed on journeyUI._pendingDetails and folded into `details` by Ride On!.
-      const moreLink = document.createElement("a");
-      moreLink.className = "inr-sheet__more";
-      moreLink.href = "#";
-      moreLink.textContent = "＋ Add driver / vehicle details";
-      moreLink.addEventListener("click", function (e) {
-        e.preventDefault();
-        // Seed from what's already chosen on this sheet (rating/kind live in outer scope).
-        const seed = Object.assign({ vehicle_kind: vehicleKind }, journeyUI._pendingDetails || {});
-        journeyUI.detailsSheet(seed, function (fields) {
-          journeyUI._pendingDetails = fields; // merged into details on Ride On!
-        });
-      });
-      sheet.appendChild(moreLink);
 
       function close() {
         if (scrim.parentNode) scrim.parentNode.removeChild(scrim);
