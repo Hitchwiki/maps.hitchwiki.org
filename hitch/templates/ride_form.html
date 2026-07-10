@@ -189,7 +189,7 @@
                 </div>
                 <div class="col-sm-6" style="margin-bottom:8px;">
                     {% set selected_plate_code = ride_data.vehicle_license_plate_country if ride_data and ride_data.vehicle_license_plate_country else '' %}
-                    <input list="vehicle-plate-country-list" id="vehicle_license_plate_country_input" class="form-control" placeholder="License plate code (e.g. D, F, GB)…" autocomplete="off"
+                    <input list="vehicle-plate-country-list" id="vehicle_license_plate_country_input" class="form-control" placeholder="License plate code (e.g. D (Germany), F (France))" autocomplete="off"
                            data-selected-code="{{ selected_plate_code }}">
                     <input type="hidden" id="vehicle_license_plate_country" name="vehicle_license_plate_country" value="{{ selected_plate_code }}">
                     {# Searchable by the code that appears on the plate (e.g. "D" for Germany). data-code stores the ISO 3166-1 alpha-2 we persist. #}
@@ -206,7 +206,7 @@
                     <input type="text" id="vehicle_model" name="vehicle_model" class="form-control" maxlength="255" placeholder="Model (e.g. Corolla)" value="{{ ride_data.vehicle_model if ride_data and ride_data.vehicle_model else '' }}">
                 </div>
                 <div class="col-sm-12" style="margin-bottom:8px;">
-                    <input type="text" id="vehicle_license_plate_identifier" name="vehicle_license_plate_identifier" class="form-control" maxlength="255" placeholder="License plate identifier (e.g. B, 93, Georgia)" value="{{ ride_data.vehicle_license_plate_identifier if ride_data and ride_data.vehicle_license_plate_identifier else '' }}">
+                    <input type="text" id="vehicle_license_plate_identifier" name="vehicle_license_plate_identifier" class="form-control" maxlength="255" placeholder="License plate identifier (e.g. B (Berlin), 75 (Paris), California)" value="{{ ride_data.vehicle_license_plate_identifier if ride_data and ride_data.vehicle_license_plate_identifier else '' }}">
                 </div>
             </div>
         </div>

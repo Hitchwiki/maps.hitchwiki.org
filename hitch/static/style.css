@@ -313,6 +313,18 @@ body.filters-open .filters-scrim {
 #insights-filter-slot .filter-collapse-btn {
   display: none;
 }
+/* The pane markup ships collapsed (it is a closed modal by default). Inside the slot the
+   filters are always expanded — there is no toggle here, so the collapsed state must not
+   carry over, otherwise only the "Filters" header renders. */
+#insights-filter-slot .filter-pane.collapsed .filter-pane-body {
+  max-height: none;
+  overflow: visible;
+  opacity: 1;
+  margin-top: 8px;
+}
+#insights-filter-slot .filter-pane-header {
+  cursor: default;
+}
 
 .filter-pane-header {
   display: flex;

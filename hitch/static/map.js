@@ -3129,6 +3129,9 @@ async function showInsightsView() {
 
   pane.style.display = "block";
   document.body.classList.add("showing-insights");
+  // The pane is about to be reparented inline; leaving the modal flag set would strand
+  // the scrim over the insights view.
+  closeFiltersModal();
   moveFilterPaneIntoInsights();
 
   // Hide any open sidebars / sheets so the insights view has the screen.
