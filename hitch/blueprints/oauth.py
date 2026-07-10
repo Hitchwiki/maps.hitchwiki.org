@@ -43,11 +43,29 @@ def login():
     return render_template("security/login_user.html")
 
 
+def _finish_login(target, needs_profile):
+    """End the OAuth flow.
+
+    A popup-initiated login (see login_oauth) must not navigate the popup to /me — the
+    opener is the map, and it stays put. Render a page that hands the result back to the
+    opener and closes itself. A normal full-page login redirects exactly as before.
+    """
+    if session.pop("oauth_popup", False):
+        return render_template("security/oauth_popup_done.html", needs_profile=needs_profile)
+    return redirect(target)
+
+
 @oauth_bp.route("/login/oauth")
 def login_oauth():
     """Start the OAuth2 redirect to Hitchwiki."""
     state = secrets.token_urlsafe(32)
     session["oauth_state"] = state
+    # Hitchwiki redirects back with only `code` and `state`, so nothing of ours survives
+    # the round trip except the session — record here that the flow began in a popup.
+    if request.args.get("popup"):
+        session["oauth_popup"] = True
+    else:
+        session.pop("oauth_popup", None)
 
     authorize_url = f"{_wiki_base()}/rest.php/oauth2/authorize"
     params = {
@@ -146,7 +164,9 @@ def _handle_callback(code):
         maybe_send_welcome_email(user)
         # Seed the default in-app welcome notification (idempotent).
         ensure_welcome_notification(user)
-        return redirect("/edit-user")
+        # Brand-new user: only the callback knows this, so it rides the postMessage /
+        # redirect rather than being re-derived later from the user row.
+        return _finish_login("/edit-user", needs_profile=True)
 
     # Existing user - just log in
     login_user(user, remember=True)
@@ -156,4 +176,4 @@ def _handle_callback(code):
     # Back-fills the welcome notification for users who registered before notifications
     # existed; idempotent, so existing users get it exactly once.
     ensure_welcome_notification(user)
-    return redirect("/me")
+    return _finish_login("/me", needs_profile=False)

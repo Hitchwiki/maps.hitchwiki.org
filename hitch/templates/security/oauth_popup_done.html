@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Signed in</title>
+  <meta name="robots" content="noindex" />
+</head>
+<body>
+  <p>Signed in. You can close this window.</p>
+  <script>
+    (function () {
+      var msg = {
+        type: "hitchwiki-auth",
+        ok: true,
+        needsProfile: {{ needs_profile|tojson }}
+      };
+      // This page is served from our own origin, so address the opener at that exact
+      // origin. A wildcard target would let any window read the message.
+      if (window.opener) {
+        try { window.opener.postMessage(msg, window.location.origin); } catch (e) {}
+      }
+      window.close();
+      // If the browser refuses to close a window it didn't script-open, the user still
+      // needs a way out — and a brand-new account still needs its profile filled in.
+      window.setTimeout(function () {
+        window.location.href = {{ ("/edit-user" if needs_profile else "/me")|tojson }};
+      }, 800);
+    })();
+  </script>
+</body>
+</html>
