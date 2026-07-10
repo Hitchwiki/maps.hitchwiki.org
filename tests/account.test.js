@@ -126,3 +126,23 @@ test("rideStats leads with the date, then wait and distance", () => {
   );
   assert.deepStrictEqual(A.rideStats({ created: "2026-07-28 12:00" }), ["2026-07-28"]);
 });
+
+test("flagEmoji maps an ISO alpha-2 code to regional indicators", () => {
+  assert.strictEqual(A.flagEmoji("FR"), "🇫🇷");
+  assert.strictEqual(A.flagEmoji("de"), "🇩🇪");
+  // Anything that isn't two ASCII letters must not produce stray glyphs.
+  assert.strictEqual(A.flagEmoji(""), "");
+  assert.strictEqual(A.flagEmoji(null), "");
+  assert.strictEqual(A.flagEmoji("USA"), "");
+  assert.strictEqual(A.flagEmoji("1A"), "");
+});
+
+test("rideRoute prefixes each place with its country flag", () => {
+  assert.strictEqual(
+    A.rideRoute({ from_place: "Metzeral", from_cc: "FR", to_place: "Mitte", to_cc: "DE" }),
+    "🇫🇷 Metzeral → 🇩🇪 Mitte"
+  );
+  // No country code (older generated file) -> just the name, no gap.
+  assert.strictEqual(A.rideRoute({ from_place: "Metzeral", to_place: "Mitte" }), "Metzeral → Mitte");
+  assert.strictEqual(A.rideRoute({ from_place: "Metzeral", from_cc: "FR" }), "🇫🇷 Metzeral");
+});

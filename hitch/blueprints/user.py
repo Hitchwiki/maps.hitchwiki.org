@@ -121,6 +121,9 @@ def me_json():
             place = places.get(entry.get("d_tag")) or {}
             entry["from_place"] = place.get("from")
             entry["to_place"] = place.get("to")
+            # ISO alpha-2; the client renders it as a flag emoji.
+            entry["from_cc"] = place.get("from_cc")
+            entry["to_cc"] = place.get("to_cc")
             shown.append(entry)
 
         total_rides = current_user.total_rides or 0

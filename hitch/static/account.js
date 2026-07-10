@@ -63,6 +63,18 @@
     return out;
   }
 
+  // An ISO 3166-1 alpha-2 code as a flag emoji: the two letters map onto the regional
+  // indicator symbols (U+1F1E6 is "A"). Anything that isn't two ASCII letters yields ""
+  // rather than a pair of stray glyphs.
+  function flagEmoji(cc) {
+    const code = (cc || "").trim().toUpperCase();
+    if (!/^[A-Z]{2}$/.test(code)) return "";
+    return String.fromCodePoint(
+      0x1f1e6 + code.charCodeAt(0) - 65,
+      0x1f1e6 + code.charCodeAt(1) - 65
+    );
+  }
+
   // A ride is identified by where it went, not when it happened. Place names come from
   // dist/ride_places.json (offline reverse geocoding); they are absent until that cron
   // has run, and for a give-up there is no destination — so fall back gracefully rather
@@ -70,9 +82,13 @@
   function rideRoute(ride) {
     const from = (ride.from_place || "").trim();
     const to = (ride.to_place || "").trim();
-    if (from && to) return from + " → " + to;
-    if (from) return from;
-    if (to) return "→ " + to;
+    const fromFlag = flagEmoji(ride.from_cc);
+    const toFlag = flagEmoji(ride.to_cc);
+    const start = from && (fromFlag ? fromFlag + " " + from : from);
+    const end = to && (toFlag ? toFlag + " " + to : to);
+    if (start && end) return start + " → " + end;
+    if (start) return start;
+    if (end) return "→ " + end;
     return "";
   }
 
@@ -267,9 +283,13 @@
       let pie;
       if (tier === "done") {
         // A finished ride stops being a progress bar and becomes a reward: the pie is
-        // replaced by a badge, so completing the last field visibly changes the thing.
+        // replaced by an award ribbon, so completing the last field visibly changes the
+        // thing. The rosette is its own element because the ribbon tails are drawn with
+        // the parent's ::before, and the sheen needs a second layer inside the disc.
         pie = el("span", "acct-pie acct-pie--done");
-        pie.innerHTML = '<i class="fa-solid fa-circle-check" aria-hidden="true"></i>';
+        const rosette = el("span", "acct-rosette");
+        rosette.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i>';
+        pie.appendChild(rosette);
         pie.setAttribute("role", "img");
         pie.setAttribute("aria-label", "Ride fully logged");
         pie.title = "Fully logged — nice one!";
@@ -395,5 +415,6 @@
     ridesNeedingDetails: ridesNeedingDetails,
     nudgeText: nudgeText,
     rideRoute: rideRoute,
+    flagEmoji: flagEmoji,
   };
 });

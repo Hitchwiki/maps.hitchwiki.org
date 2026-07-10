@@ -2,7 +2,7 @@
 
 Writes dist/ride_places.json:
 
-    {"<d_tag>": {"from": "Metzeral", "to": "Mitte"}, ...}
+    {"<d_tag>": {"from": "Metzeral", "from_cc": "FR", "to": "Mitte", "to_cc": "DE"}, ...}
 
 Used by the account modal (issue #106) to label a ride "Metzeral → Mitte" instead of
 showing bare coordinates.
@@ -46,6 +46,11 @@ MIN_RIDE_DISTANCE_KM = 1
 def _label(hit):
     """Populated place, else administrative division, else country."""
     return (hit.get("name") or hit.get("admin1") or hit.get("cc") or "").strip() or None
+
+
+def _country(hit):
+    """ISO 3166-1 alpha-2, which the client turns into a flag emoji."""
+    return (hit.get("cc") or "").strip().upper() or None
 
 
 def _coords_from_stops(stops):
@@ -99,12 +104,17 @@ def main():
     for (d_tag, slot), hit in zip(slots, hits):
         label = _label(hit)
         if label:
-            places.setdefault(d_tag, {})[slot] = label
+            entry = places.setdefault(d_tag, {})
+            entry[slot] = label
+            country = _country(hit)
+            if country:
+                entry[slot + "_cc"] = country
 
     # "Berlin → Berlin" says nothing; drop the destination when it repeats the origin.
     for entry in places.values():
         if entry.get("to") and entry.get("to") == entry.get("from"):
             entry.pop("to")
+            entry.pop("to_cc", None)
 
     os.makedirs(DIST_DIR, exist_ok=True)
     with open(OUTPUT_JSON, "w") as f:
