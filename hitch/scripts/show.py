@@ -118,6 +118,51 @@ rides_df["mode_of_transportation"] = rides_df["mode_of_transportation"].apply(
 rides_df["signals"] = rides_df["signals"].apply(lambda x: json.loads(x) if isinstance(x, str) else x)
 
 
+def _has_distinct_destination(stops):
+    """True if the ride already reached a stop distinct from its start."""
+    if not isinstance(stops, list) or len(stops) < 2:
+        return False
+    start = (stops[0] or {}).get("location") or {}
+    for s in stops[1:]:
+        loc = (s or {}).get("location") or {}
+        if loc.get("latitude") is None or loc.get("longitude") is None:
+            continue
+        if abs(loc["latitude"] - start.get("latitude", 0)) > 1e-6 or abs(loc["longitude"] - start.get("longitude", 0)) > 1e-6:
+            return True
+    return False
+
+
+def merge_derived_destinations(df):
+    """Append destinations we mined from comment text (derived_ride_location, keyed by the
+    ride's Nostr `d` tag) as an extra stop on rides that reached Nostr without one. These
+    are inferred from prose, not logged GPS fixes, so they carry is_exact=False. Doing it
+    here means every downstream view (spots dest lines, distance, routing input) treats a
+    derived destination exactly like a real last stop. See hitch/scripts/extract_destinations.py."""
+    try:
+        derived = pd.read_sql("select d, latitude, longitude, is_exact from derived_ride_location", get_db())
+    except pd.errors.DatabaseError:
+        return 0  # table absent on DBs that predate the enrichment
+    by_d = {r.d: (r.latitude, r.longitude, bool(r.is_exact)) for r in derived.itertuples()}
+    if not by_d:
+        return 0
+    merged = 0
+    for i, row in df.iterrows():
+        loc = by_d.get(row["d"])
+        if not loc or _has_distinct_destination(row["stops"]):
+            continue
+        stops = list(row["stops"]) if isinstance(row["stops"], list) else []
+        if not stops:
+            continue  # need a start stop to anchor the ride
+        stops.append({"location": {"latitude": loc[0], "longitude": loc[1], "is_exact": loc[2]}})
+        df.at[i, "stops"] = stops
+        merged += 1
+    return merged
+
+
+_merged = merge_derived_destinations(rides_df)
+logger.info(f"Merged {_merged} derived destination(s) from comment text")
+
+
 def get_vehicle_kind(mot):
     if isinstance(mot, dict):
         return mot.get("kind") or None
