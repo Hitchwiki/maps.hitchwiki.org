@@ -72,20 +72,41 @@ VEHICLE_KIND_EMOJIS = {
 VEHICLE_KIND_CHOICES = [(k, VEHICLE_KIND_EMOJIS[k]) for k in ALLOWED_VEHICLE_KINDS]
 
 
-def _user_owns_ride(ride, user):
-    """Check if the current user owns this ride."""
+def _user_is_hitchhiker(ride, user):
+    """Check if the current user is listed among this ride's hitchhikers, whatever its source."""
     if user.is_anonymous:
         return False
 
-    # Check if source matches our source
     content = ride.content or {}
-    if content.get("source") != "maps.hitchwiki.org":
-        return False
-
-    # Check if current user is one of the hitchhikers
     hitchhikers = content.get("hitchhikers", [])
     user_nicknames = [hitchhiker.get("nickname") for hitchhiker in hitchhikers]
     return user.username in user_nicknames
+
+
+def _user_owns_ride(ride, user):
+    """Check if the current user may *edit* this ride.
+
+    Editing republishes the event under this app's Nostr key with the same `d` tag, which
+    only replaces the original when we published it in the first place (kind 36820 is
+    replaceable per (pubkey, kind, d)). A foreign-source ride is signed by another key, so
+    re-publishing would fork it into a second event rather than update it — hence editing
+    stays restricted to rides we authored. Deletion has no such constraint, see
+    `_user_can_delete_ride`.
+    """
+    if (ride.content or {}).get("source") != "maps.hitchwiki.org":
+        return False
+    return _user_is_hitchhiker(ride, user)
+
+
+def _user_can_delete_ride(ride, user):
+    """Check if the current user may hide this ride from the map.
+
+    Deleting only writes a local RideReport row (it never touches the relays), so it works
+    for rides imported from other sources too — a hitchhiker who finds their own ride
+    logged on hitchwiki.org / hitchmap.com must be able to take it off the map, exactly as
+    those rides already show up as theirs on their profile page.
+    """
+    return _user_is_hitchhiker(ride, user)
 
 
 # TODO: renamed function from map() to render_map() to avoid conflict with map() builtin
@@ -116,8 +137,8 @@ def _external_https(endpoint, **values):
     Plain url_for(_external=True) yields http:// in production (see deploy/run.sh:
     waitress strips the X-Forwarded-Proto that ProxyFix would need). Unfurlers and
     search engines discard an insecure og:image or canonical on an https page, so
-    state the scheme rather than inferring it. Only meta tags use this — the OAuth
-    redirect_uri deliberately keeps whatever url_for infers.
+    state the scheme rather than inferring it. The OAuth redirect_uri has the same
+    problem and solves it separately, in oauth._redirect_uri().
     """
     return url_for(endpoint, _external=True, _scheme="https", **values)
 
@@ -559,6 +580,7 @@ def ride_detail(d_tag):
         "source": content.get("source") or ride.source,
         "distance_km": distance_km,
         "is_owner": _user_owns_ride(ride, current_user),
+        "can_delete": _user_can_delete_ride(ride, current_user),
         "vehicle": vehicle,
         "driver": driver,
     }
@@ -582,7 +604,7 @@ def ride_detail(d_tag):
 
 @main_bp.route("/delete-ride/<d_tag>", methods=["POST"])
 def delete_ride(d_tag):
-    """Let a ride's author hide their own ride.
+    """Let any of a ride's hitchhikers hide it, including rides imported from other sources.
 
     The event lives on the Nostr relays and cannot be recalled, so "delete" here means a
     single RideReport row with OWNER_DELETE_REASON, which show.py treats as sufficient to
@@ -594,7 +616,7 @@ def delete_ride(d_tag):
     ride = db.session.query(RideEvent).filter_by(d=d_tag).first()
     if not ride:
         abort(404)
-    if not _user_owns_ride(ride, current_user):
+    if not _user_can_delete_ride(ride, current_user):
         abort(403)
 
     # Reports are unique per (ride, user): if the owner had already filed a report, promote

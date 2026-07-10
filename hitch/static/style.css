@@ -381,6 +381,31 @@ body.filters-open .filters-scrim {
   margin-top: 8px;
 }
 
+/* Highlighted block for the two spot-quality filters, kept visually ahead of the
+   secondary ride filters below it. */
+.filter-pane-primary {
+  background: #eef4fd;
+  border: 1px solid #cfe0fa;
+  border-radius: 10px;
+  padding: 8px 10px 10px;
+  margin-bottom: 10px;
+}
+
+.filter-primary-title {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: #1a73e8;
+}
+
+.filter-pane-primary .filter-field > span {
+  color: #3c5a80;
+  font-weight: 600;
+}
+
 .filter-pane-row input[type="text"],
 .filter-pane-row input[type="search"],
 .filter-pane-row input[type="number"],

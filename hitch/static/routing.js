@@ -669,27 +669,76 @@
         const leg = rt.legs[li];
         if (leg.mode !== "car" || leg.path.length < 2) continue;
         const pl = rt._layers[li];
-        const geo = await streetGeometry(leg.path);
+        const geo = await streetGeometry(leg.path, leg.km);
         if (token !== RJ._token) return;      // a newer compute superseded us
         if (geo && map.hasLayer(pl)) pl.setLatLngs(geo);
       }
     }
   }
-  async function streetGeometry(path) {
-    // Downsample waypoints so the OSRM URL stays short; endpoints kept.
-    let pts = path;
-    if (pts.length > 24) {
-      const step = Math.ceil(pts.length / 24), s = [pts[0]];
-      for (let k = step; k < pts.length - 1; k += step) s.push(pts[k]);
-      s.push(pts[pts.length - 1]); pts = s;
+
+  // A leg's waypoints are spot anchors, and a corridor often carries several of
+  // them within a few hundred metres of one interchange, sometimes ordered
+  // slightly against the direction of travel. OSRM may not U-turn at a via
+  // point, so to reach an anchor 200 m "behind" the previous one on a motorway
+  // it drives to the next exit and comes back — tens of km of phantom road.
+  // Keeping only anchors that are properly spaced removes those pairs.
+  const VIA_MIN_GAP_KM = 2, MAX_VIA = 24;
+  // Even well-spaced anchors can snap to the wrong carriageway of a dual
+  // carriageway. Telling OSRM the bearing we are travelling in makes it snap to
+  // the side that actually heads that way.
+  const BEARING_RANGE_DEG = 90;
+  // Last resort for anchors the two rules above cannot save. Compared against
+  // leg.km, which is already crow-flight * CAR_FACTOR, so this admits streets
+  // up to ~2x crow-flight; beyond that OSRM has clearly snapped somewhere it
+  // could not leave, and the straight line is the better lie.
+  const MAX_DETOUR_RATIO = 1.6;
+
+  function bearingDeg(a, b) {
+    const r = Math.PI / 180;
+    const y = Math.sin((b[1] - a[1]) * r) * Math.cos(b[0] * r);
+    const x = Math.cos(a[0] * r) * Math.sin(b[0] * r) -
+      Math.sin(a[0] * r) * Math.cos(b[0] * r) * Math.cos((b[1] - a[1]) * r);
+    return (Math.atan2(y, x) / r + 360) % 360;
+  }
+  function thinWaypoints(path) {
+    const last = path[path.length - 1];
+    const out = [path[0]];
+    for (let i = 1; i < path.length - 1; i++) {
+      if (haversineKm(out[out.length - 1], path[i]) >= VIA_MIN_GAP_KM) out.push(path[i]);
     }
+    // The destination anchor is not optional, so make room for it by dropping
+    // the vias that crowd it rather than by skipping it.
+    while (out.length > 1 && haversineKm(out[out.length - 1], last) < VIA_MIN_GAP_KM) out.pop();
+    out.push(last);
+    if (out.length <= MAX_VIA) return out;
+    const step = Math.ceil(out.length / MAX_VIA), s = [out[0]];
+    for (let k = step; k < out.length - 1; k += step) s.push(out[k]);
+    s.push(last);
+    return s;
+  }
+  function bearingsParam(pts) {
+    return pts.map((p, i) => {
+      const a = i === 0 ? p : pts[i - 1];
+      const b = i === pts.length - 1 ? p : pts[i + 1];
+      // Coincident neighbours give no direction; let OSRM snap freely there.
+      if (haversineKm(a, b) < 0.01) return "0,180";
+      return `${Math.round(bearingDeg(a, b))},${BEARING_RANGE_DEG}`;
+    }).join(";");
+  }
+
+  async function streetGeometry(path, legKm) {
+    const pts = thinWaypoints(path);
     const key = pts.map((p) => p[0].toFixed(4) + "," + p[1].toFixed(4)).join(";");
     if (RJ.streetCache.has(key)) return RJ.streetCache.get(key);
     const coords = pts.map((p) => `${p[1]},${p[0]}`).join(";");
+    const params = `overview=full&geometries=geojson&bearings=${bearingsParam(pts)}`;
     try {
-      const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`);
+      const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?${params}`);
       const d = await r.json();
       if (d.code !== "Ok" || !d.routes || !d.routes[0]) { RJ.streetCache.set(key, null); return null; }
+      if (legKm > 0 && d.routes[0].distance / 1000 > legKm * MAX_DETOUR_RATIO) {
+        RJ.streetCache.set(key, null); return null;
+      }
       const geo = d.routes[0].geometry.coordinates.map((c) => [c[1], c[0]]);
       RJ.streetCache.set(key, geo);
       return geo;

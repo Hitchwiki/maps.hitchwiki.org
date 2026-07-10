@@ -5,6 +5,7 @@ On first login, a local User record is auto-created using the Hitchwiki username
 """
 
 import secrets
+from urllib.parse import urlencode
 
 import requests as http_requests
 from flask import Blueprint, current_app, redirect, render_template, request, session, url_for
@@ -19,6 +20,17 @@ oauth_bp = Blueprint("oauth", __name__)
 
 def _wiki_base():
     return current_app.config["HITCHWIKI_WIKI_BASE"]
+
+
+def _redirect_uri():
+    """The OAuth callback URL, identical at /authorize and at the token exchange.
+
+    Both steps must send the exact string registered on the consumer, or
+    league/oauth2-server rejects it as "Client authentication failed" -- the same
+    message it gives for an unknown client. The scheme can't be inferred from the
+    request (see HITCHWIKI_OAUTH_REDIRECT_SCHEME in settings.py), so state it.
+    """
+    return url_for("oauth.login", _external=True, _scheme=current_app.config["HITCHWIKI_OAUTH_REDIRECT_SCHEME"])
 
 
 @oauth_bp.route("/login")
@@ -41,11 +53,10 @@ def login_oauth():
     params = {
         "response_type": "code",
         "client_id": current_app.config["HITCHWIKI_OAUTH_CLIENT_ID"],
-        "redirect_uri": url_for("oauth.login", _external=True),
+        "redirect_uri": _redirect_uri(),
         "state": state,
     }
-    query = "&".join(f"{k}={v}" for k, v in params.items())
-    return redirect(f"{authorize_url}?{query}")
+    return redirect(f"{authorize_url}?{urlencode(params)}")
 
 
 @oauth_bp.route("/register")
@@ -69,7 +80,7 @@ def _handle_callback(code):
 
     wiki_base = _wiki_base()
     token_url = f"{wiki_base}/rest.php/oauth2/access_token"
-    redirect_uri = url_for("oauth.login", _external=True)
+    redirect_uri = _redirect_uri()
 
     token_response = http_requests.post(
         token_url,

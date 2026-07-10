@@ -13,10 +13,11 @@ from hitch.blueprints.publish_ride import construct_hitchhiker_from_current_user
 from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import HitchhikingRecord
 from hitch.blueprints.utils.notifications import notify_new_follower
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
+from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON
 from hitch.extensions import db, security
 from hitch.forms import UserEditForm
 from hitch.helpers import get_db, get_dirs, haversine_np
-from hitch.models import CoHitchhiker, Follow, Notification, RideEvent, Trip, TripRide, User
+from hitch.models import CoHitchhiker, Follow, Notification, RideEvent, RideReport, Trip, TripRide, User
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
 
@@ -509,8 +510,22 @@ def _norm_nickname(s):
     return (s[:1].upper() + s[1:]) if s else s
 
 
+def _owner_deleted_dtags():
+    """D-tags of rides their author deleted.
+
+    Deleting a ride cannot remove the event from the Nostr relays, so the RideEvent row
+    survives every fetch_nostr rebuild and "deleted" only means "stop showing it" (see
+    OWNER_DELETE_REASON). show.py drops these from the map data; every profile-side view
+    has to drop them too, or the owner keeps seeing a ride they deleted.
+    """
+    rows = db.session.query(RideReport.ride_d_tag).filter_by(reason=OWNER_DELETE_REASON).all()
+    return {d_tag for (d_tag,) in rows}
+
+
 def _rides_by_hitchhiker(username):
-    """RideEvent rows listing `username` among their hitchhikers, newest first."""
+    """RideEvent rows listing `username` among their hitchhikers, newest first.
+
+    Rides deleted by their author are excluded."""
     # Pre-filter in SQL using JSON1 so we don't load and JSON-parse every RideEvent in Python.
     # This is a permissive case-insensitive match; the Python filter below still applies the
     # exact MediaWiki-style _norm_nickname comparison for correctness.
@@ -527,10 +542,12 @@ def _rides_by_hitchhiker(username):
         .all()
     )
     normalized_username = _norm_nickname(username)
+    deleted = _owner_deleted_dtags()
     return [
         ride
         for ride in candidates
-        if normalized_username in [_norm_nickname(h.get("nickname")) for h in ((ride.content or {}).get("hitchhikers") or [])]
+        if ride.d not in deleted
+        and normalized_username in [_norm_nickname(h.get("nickname")) for h in ((ride.content or {}).get("hitchhikers") or [])]
     ]
 
 
@@ -550,7 +567,10 @@ def _get_rides_for_user(user, include_pending_co=True, display_only=False):
     co_rides = []
     if include_pending_co:
         pending = CoHitchhiker.query.filter_by(co_hitchhiker=username, accepted="open").all()
+        deleted = _owner_deleted_dtags()
         for ch in pending:
+            if ch.nostr_ride_event_d_tag in deleted:
+                continue
             ride = db.session.query(RideEvent).filter_by(d=ch.nostr_ride_event_d_tag).first()
             if ride:
                 co_rides.append(_extract_ride_info(ride, "co_hitchhiker"))
@@ -570,15 +590,17 @@ def _get_rides_for_user(user, include_pending_co=True, display_only=False):
 def _rides_for_trip(trip_id):
     """Resolve a trip's member d-tags into ride-info dicts, newest first.
 
-    Rides whose d-tag no longer resolves to a RideEvent (e.g. deleted on Nostr) are
-    omitted. The internal `submission_sort_key` is kept here (unlike _get_rides_for_user)
-    because the trip route/date-span helpers need it to order rides chronologically.
+    Rides whose d-tag no longer resolves to a RideEvent (e.g. deleted on Nostr) and rides
+    their author deleted are omitted. The internal `submission_sort_key` is kept here
+    (unlike _get_rides_for_user) because the trip route/date-span helpers need it to order
+    rides chronologically.
     """
     members = TripRide.query.filter_by(trip_id=trip_id).all()
+    deleted = _owner_deleted_dtags()
     rides = [
         _extract_ride_info(ride, "trip")
         for member in members
-        if (ride := db.session.query(RideEvent).filter_by(d=member.ride_d_tag).first())
+        if member.ride_d_tag not in deleted and (ride := db.session.query(RideEvent).filter_by(d=member.ride_d_tag).first())
     ]
     rides.sort(
         key=lambda r: (r["submission_sort_key"] is not None, r["submission_sort_key"] or 0),
@@ -1047,13 +1069,17 @@ def leaderboard():
     # Count rides per nickname directly in SQL via json_each — avoids loading every
     # RideEvent into Python and JSON-parsing each one. Group case-insensitively, which
     # is at least as permissive as the previous MediaWiki-style first-letter rule.
+    # Rides deleted by their author still exist on Nostr (and so in ride_event), but must
+    # not count towards anyone's total.
     rows = db.session.execute(
         text(
             "SELECT lower(json_extract(value, '$.nickname')) AS nick, COUNT(*) AS n "
             "FROM ride_event, json_each(ride_event.hitchhikers) "
             "WHERE json_extract(value, '$.nickname') IS NOT NULL "
+            "AND ride_event.d NOT IN (SELECT ride_d_tag FROM ride_report WHERE reason = :deleted) "
             "GROUP BY nick"
-        )
+        ),
+        {"deleted": OWNER_DELETE_REASON},
     ).all()
     counts_by_lower = {nick: n for nick, n in rows if nick}
 
