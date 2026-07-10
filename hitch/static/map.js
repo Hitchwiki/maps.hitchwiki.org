@@ -1401,6 +1401,9 @@ function setupFilterEventListeners() {
   minRidesFilter.addEventListener("input", () =>
     setQueryParameter("minrides", minRidesFilter.value)
   );
+  minRatingFilter.addEventListener("input", () =>
+    setQueryParameter("minrating", minRatingFilter.value)
+  );
   vehicleFilter.addEventListener("change", () =>
     setQueryParameter("vehicle", vehicleFilter.value)
   );
@@ -2290,6 +2293,7 @@ const textFilter = document.getElementById("text-filter");
 const userFilter = document.getElementById("user-filter");
 const distanceFilter = document.getElementById("distance-filter");
 const minRidesFilter = document.getElementById("min-rides-filter");
+const minRatingFilter = document.getElementById("min-rating-filter");
 const vehicleFilter = document.getElementById("vehicle-filter");
 const methodFilter = document.getElementById("method-filter");
 const minDateFilter = document.getElementById("min-date-filter");
@@ -2478,6 +2482,7 @@ async function applyParams() {
   userFilter.value = getQueryParameter("user");
   distanceFilter.value = getQueryParameter("mindistance");
   minRidesFilter.value = getQueryParameter("minrides");
+  minRatingFilter.value = getQueryParameter("minrating");
   vehicleFilter.value = getQueryParameter("vehicle") || "";
   methodFilter.value = getQueryParameter("method") || "";
   minDateFilter.value = getQueryParameter("mindate") || "";
@@ -2492,6 +2497,7 @@ async function applyParams() {
     userFilter.value ||
     distanceFilter.value ||
     minRidesFilter.value ||
+    minRatingFilter.value ||
     vehicleFilter.value ||
     methodFilter.value ||
     minDateFilter.value ||
@@ -2573,6 +2579,13 @@ async function applyParams() {
       const minRides = parseInt(minRidesFilter.value, 10);
       filterMarkers = filterMarkers.filter(
         (x) => (x.options._data.review_count || 0) >= minRides
+      );
+    }
+    if (minRatingFilter.value) {
+      // spots.json carries the spot's mean rating, so this needs no ride index.
+      const minRating = parseFloat(minRatingFilter.value);
+      filterMarkers = filterMarkers.filter(
+        (x) => x.options._data.rating != null && x.options._data.rating >= minRating
       );
     }
     if (recentToggle.checked) {
@@ -2740,6 +2753,7 @@ function applyRideFilters(rides) {
   const commentNeedle = textFilter.value ? textFilter.value.toLowerCase() : null;
   const minDistanceKm = distanceFilter.value ? parseFloat(distanceFilter.value) : null;
   const minRides = minRidesFilter.value ? parseInt(minRidesFilter.value, 10) : null;
+  const minRating = minRatingFilter.value ? parseFloat(minRatingFilter.value) : null;
   const recentCutoffMs = recentToggle.checked
     ? Date.now() - 24 * 60 * 60 * 1000
     : null;
@@ -2781,6 +2795,24 @@ function applyRideFilters(rides) {
     filtered = filtered.filter((r) => (ridesPerSpot.get(r.sid) || 0) >= minRides);
   }
 
+  if (minRating != null) {
+    // Like the min-rides filter above, the spot average is taken over the rides that
+    // survived the ride-level filters, so the two spot filters describe the same set.
+    // Rides without a rating don't contribute to the mean.
+    const ratingSums = new Map();
+    for (const r of filtered) {
+      if (r.r == null) continue;
+      const acc = ratingSums.get(r.sid) || { sum: 0, n: 0 };
+      acc.sum += r.r;
+      acc.n += 1;
+      ratingSums.set(r.sid, acc);
+    }
+    filtered = filtered.filter((r) => {
+      const acc = ratingSums.get(r.sid);
+      return acc && acc.sum / acc.n >= minRating;
+    });
+  }
+
   return filtered;
 }
 
@@ -2790,6 +2822,7 @@ function anyFilterActive() {
       textFilter.value ||
       distanceFilter.value ||
       minRidesFilter.value ||
+      minRatingFilter.value ||
       vehicleFilter.value ||
       methodFilter.value ||
       minDateFilter.value ||

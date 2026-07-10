@@ -286,11 +286,25 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
         </button>
     </div>
     <div class="filter-pane-body" id="filter-pane-body">
+        <!-- Spot-quality filters are the ones people reach for most, so they sit at the
+             top in their own highlighted block, ahead of the secondary ride filters. -->
+        <div class="filter-pane-primary">
+            <span class="filter-primary-title">Spot quality</span>
+            <div class="filter-pane-row">
+                <label class="filter-field">
+                    <span>Min rides per spot</span>
+                    <input id="min-rides-filter" type="number" min="1" step="1" value="" placeholder="Any" />
+                </label>
+                <label class="filter-field">
+                    <span>Min average rating (0&ndash;5)</span>
+                    <input id="min-rating-filter" type="number" min="0" max="5" step="0.1" value="" placeholder="Any" />
+                </label>
+            </div>
+        </div>
         <div class="filter-pane-row">
             <input id="user-filter" type="text" value="" placeholder="Filter by user" />
             <input id="text-filter" type="search" value="" placeholder="Search comments" />
             <input id="distance-filter" type="number" value="" placeholder="Min ride distance (km)" />
-            <input id="min-rides-filter" type="number" min="1" value="" placeholder="Min rides per spot" />
         </div>
         <div class="filter-pane-row">
             <label class="filter-field">
