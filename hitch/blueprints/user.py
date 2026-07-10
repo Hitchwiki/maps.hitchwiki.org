@@ -578,6 +578,11 @@ def _extract_ride_info(ride, ride_type):
     distance = _ride_distance_km(info)
     info["distance_km"] = round(distance, 1) if distance is not None else None
     info["completion"] = _ride_completion_pct(ride)
+    # A ride that never recorded where it ended is incomplete data the user can still fix,
+    # so the modal flags it. A `no_ride` record is a give-up: the hitchhiker was never
+    # picked up, so having no destination is correct there and must not be flagged.
+    gave_up = content.get("no_ride") is not None
+    info["missing_destination"] = destination_lat is None and not gave_up
     return info
 
 

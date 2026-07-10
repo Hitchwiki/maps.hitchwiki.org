@@ -198,6 +198,18 @@
       if (stats.length) meta.appendChild(el("span", "acct-ride__stats", stats.join(" · ")));
       li.appendChild(meta);
 
+      // The ride never recorded where it ended — data the user can still fix. Give-ups
+      // are excluded server-side, so this never fires on a ride that legitimately has
+      // no destination.
+      if (ride.missing_destination) {
+        const warn = el("span", "acct-ride__warn");
+        warn.innerHTML = '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>';
+        warn.title = "No destination recorded for this ride";
+        warn.setAttribute("role", "img");
+        warn.setAttribute("aria-label", "No destination recorded for this ride");
+        li.appendChild(warn);
+      }
+
       list.appendChild(li);
     });
     body.appendChild(list);
