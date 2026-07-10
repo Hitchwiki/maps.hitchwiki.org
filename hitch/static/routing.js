@@ -225,6 +225,51 @@
     const h = Math.floor(min / 60), m = min % 60;
     return h ? `${h}h${String(m).padStart(2, "0")}` : `${m}m`;
   }
+  function fmtClock(d) { return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); }
+  function fmtDay(d) { return d.toLocaleDateString([], { weekday: "short" }); }
+  // Sub-10 km legs are usually walks, where 0.4 vs 0 km is the whole message.
+  function fmtKm(km) { return km < 10 ? km.toFixed(1) : String(Math.round(km)); }
+
+  const WALK_ICON = "fa-solid fa-person-walking";
+  const RIDE_ICON = "fa-solid fa-thumbs-up";
+
+  // Transit-app style mode strip: one glyph per leg, in travel order, so the shape
+  // of a route (walk, two rides, walk) reads before any of the numbers do. A long
+  // intercity route can have a dozen legs, which would wrap into a wall of chips —
+  // truncate and count the rest, as a transit app does with its line badges.
+  const MAX_CHIPS = 7;
+  function chipStrip(rt) {
+    const chip = (l) => `<span class="rp-chip rp-chip-${l.mode}"><i class="${
+      l.mode === "walk" ? WALK_ICON : RIDE_ICON}"></i><span>${fmtKm(l.km)} km</span></span>`;
+    const shown = rt.legs.slice(0, MAX_CHIPS).map(chip);
+    const rest = rt.legs.length - MAX_CHIPS;
+    if (rest > 0) shown.push(`<span class="rp-chip rp-chip-more">+${rest}</span>`);
+    return shown.join('<i class="fa-solid fa-chevron-right rp-chip-sep"></i>');
+  }
+
+  // Permalink to a spot's own page, same id as generate_spot_id() in show.py.
+  function spotHref(c) { return `/spot/${c[0].toFixed(5)}_${c[1].toFixed(5)}`; }
+
+  // Reverse-geocoded names for the spots on a route, filled in asynchronously:
+  // the itinerary renders with coordinates and swaps in a place name when Photon
+  // answers. Cached per coordinate so re-expanding a route costs no requests.
+  const labelCache = new Map();
+  function fillSpotLabel(el, c) {
+    const key = c[0].toFixed(5) + "_" + c[1].toFixed(5);
+    if (labelCache.has(key)) { el.textContent = labelCache.get(key); return; }
+    if (!photon || !photon.reverse) return;
+    photon.reverse(L.latLng(c[0], c[1]), 4096, (results) => {
+      const r = results && results[0];
+      if (!r) return;
+      const p = r.properties || {};
+      // Photon's `name` is the nearest street or POI; `city` is what a person
+      // would say. Prefer city, matching route_preview.py's endpoint labels.
+      const name = p.city || p.name || p.county || (r.name || "").split(",")[0];
+      if (!name) return;
+      labelCache.set(key, name);
+      el.textContent = name;
+    });
+  }
 
   // The first/last-mile walk (origin -> first spot, last spot -> destination) is
   // often a city hop you'd do by transit, not on foot, and can dominate the total.
@@ -667,14 +712,28 @@
   // (that marker already carries the right spotId + rides), reusing map.js.
   function openSpotSheet(latlng, e) {
     const markers = window.allMarkers;
-    if (!markers || !markers.length || typeof handleMarkerClick !== "function") return;
+    if (!markers || !markers.length || typeof handleMarkerClick !== "function") return false;
     const target = L.latLng(latlng[0], latlng[1]);
     let best = null, bestD = Infinity;
     for (const mk of markers) {
       const d = mk.getLatLng().distanceTo(target);
       if (d < bestD) { bestD = d; best = mk; }
     }
-    if (best && bestD < 150) handleMarkerClick(best, best.getLatLng(), e);
+    if (!best || bestD >= 150) return false;
+    handleMarkerClick(best, best.getLatLng(), e);
+    return true;
+  }
+
+  // Itinerary spot links: open the spot sheet in place when the marker is on the
+  // map, otherwise let the browser follow the permalink (markers are filtered out
+  // by the active filters, or not loaded yet).
+  function spotLink(c) {
+    const a = document.createElement("a");
+    a.href = spotHref(c);
+    a.className = "rp-spot-link";
+    a.textContent = coordLabel(c);
+    a.addEventListener("click", (e) => { if (openSpotSheet(c, e)) e.preventDefault(); });
+    return a;
   }
 
   // ---- street-following geometry (OSRM) for ALL routes -------------------
@@ -798,6 +857,113 @@
     const sheet = resultsSheet();
     if (sheet) sheet.classList.remove("visible");
   }
+  // "Details" expands the route into a step-by-step itinerary. Selecting the route
+  // as well, so the map always shows what the open itinerary describes.
+  function toggleDetails(row, rt, i) {
+    const steps = row.querySelector(".rp-steps");
+    const btn = row.querySelector(".rp-details-btn");
+    const open = steps.hidden;
+    if (open && !steps.childElementCount) steps.appendChild(buildItinerary(rt));
+    steps.hidden = !open;
+    btn.setAttribute("aria-expanded", String(open));
+    btn.textContent = open ? "Hide details" : "Details";
+    if (open) highlight(i);
+  }
+
+  // A node on the itinerary rail: an endpoint, or a spot where you get in or out
+  // of a car. Spots link to their own page and open the spot sheet in place.
+  function nodeRow(minutes, base, kind, label, c) {
+    const li = document.createElement("li");
+    li.className = "rp-step rp-node rp-node-" + kind;
+    li.innerHTML = `
+      <span class="rp-time">${fmtClock(new Date(base + minutes * 60000))}</span>
+      <span class="rp-rail"><span class="rp-dotm"></span></span>
+      <span class="rp-place"></span>`;
+    const place = li.querySelector(".rp-place");
+    if (kind === "start" || kind === "dest") {
+      place.textContent = label || coordLabel(c);
+    } else {
+      const a = spotLink(c);
+      place.appendChild(a);
+      fillSpotLabel(a, c);
+    }
+    return li;
+  }
+
+  // An edge on the rail: the walk or the ride between two nodes.
+  function edgeRow(leg) {
+    const li = document.createElement("li");
+    li.className = "rp-step rp-edge rp-edge-" + leg.mode;
+    const via = leg.mode === "car" ? leg.path.slice(1, -1) : [];
+    li.innerHTML = `
+      <span class="rp-time"></span>
+      <span class="rp-rail"><span class="rp-line"></span></span>
+      <span class="rp-edge-body">
+        <span class="rp-edge-head"><i class="${leg.mode === "walk" ? WALK_ICON : RIDE_ICON}"></i>
+          <b>${leg.mode === "walk" ? "Walk" : "Ride"}</b></span>
+        <span class="rp-edge-sub">${fmtKm(leg.km)} km · ${fmtTime(leg.minutes)}</span>
+      </span>`;
+    // Corridor spots the driver merely passes: worth listing (you can be dropped
+    // at one), but noise by default — collapsed behind a count, as transit apps
+    // collapse intermediate stops.
+    if (via.length) {
+      const body = li.querySelector(".rp-edge-body");
+      const toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.className = "rp-via-toggle";
+      toggle.textContent = `${via.length} spot${via.length > 1 ? "s" : ""} on the way`;
+      const list = document.createElement("ul");
+      list.className = "rp-via"; list.hidden = true;
+      via.forEach((c) => {
+        const item = document.createElement("li");
+        item.appendChild(spotLink(c));
+        list.appendChild(item);
+      });
+      toggle.addEventListener("click", () => {
+        list.hidden = !list.hidden;
+        toggle.classList.toggle("open", !list.hidden);
+        // Only pay for geocoding the corridor once the user asks to see it.
+        if (!list.hidden) list.querySelectorAll("a").forEach((a, k) => fillSpotLabel(a, via[k]));
+      });
+      body.appendChild(toggle);
+      body.appendChild(list);
+    }
+    return li;
+  }
+
+  // Waiting happens at the spot you just reached, before the car that boards
+  // there. Its own row, so the clock times on the nodes stay consistent.
+  function waitRow(min) {
+    const li = document.createElement("li");
+    li.className = "rp-step rp-edge rp-wait";
+    li.innerHTML = `
+      <span class="rp-time"></span>
+      <span class="rp-rail"><span class="rp-line rp-line-wait"></span></span>
+      <span class="rp-edge-body"><span class="rp-edge-head"><i class="fa-regular fa-clock"></i>
+        <b>Wait</b></span> <span class="rp-edge-sub">about ${fmtTime(min)}</span></span>`;
+    return li;
+  }
+
+  // Clock times assume you leave now; each leg and each wait advances the clock,
+  // exactly as the ranking does (rt.totalMin is the same sum).
+  function buildItinerary(rt) {
+    const ol = document.createElement("ol");
+    ol.className = "rp-itin";
+    const base = Date.now();
+    let t = 0;
+    const legs = rt.legs;
+    ol.appendChild(nodeRow(t, base, "start", RJ.start && RJ.start.label, legs[0].from));
+    legs.forEach((leg, li) => {
+      if (leg.waitMin > 0.5) { ol.appendChild(waitRow(leg.waitMin)); t += leg.waitMin; }
+      ol.appendChild(edgeRow(leg));
+      t += leg.minutes;
+      const last = li === legs.length - 1;
+      ol.appendChild(nodeRow(t, base, last ? "dest" : "spot",
+        last ? (RJ.dest && RJ.dest.label) : null, leg.to));
+    });
+    return ol;
+  }
+
   function renderOptions() {
     const box = optionsBox();
     if (!box) return;
@@ -810,17 +976,31 @@
       const delta = i === 0 ? "fastest" : "+" + fmtTime(e.coreMin - fastest);
       const mid = e.midWalkMin > 0.5 ? ` · ${fmtTime(e.midWalkMin)} walk` : "";
       const ends = endsLabel(rt);
-      const row = document.createElement("button");
+      // Depart-now clock line, as a transit app shows it. rt.totalMin includes the
+      // first/last-mile walks and every wait, so it is the honest door-to-door span.
+      const depart = new Date();
+      const arrive = new Date(depart.getTime() + rt.totalMin * 60000);
+      const dayTag = arrive.toDateString() === depart.toDateString() ? "" : ` (${fmtDay(arrive)})`;
+      // A <button> can't contain the buttons and links the itinerary needs, so the
+      // card is a div and only its summary row is the route-selecting control.
+      const row = document.createElement("div");
       row.className = "rp-option"; row.dataset.i = i;
       row.style.setProperty("--rc", ALT_COLORS[i % ALT_COLORS.length]);
       row.innerHTML = `
         <span class="rp-opt-bar"></span>
-        <span class="rp-opt-main">
-          <b>${fmtTime(e.coreMin)}</b> <span class="rp-opt-delta">${delta}</span><br>
-          <span class="rp-opt-sub">${rt.carKm.toFixed(0)} km${mid} · ${cars} ride${cars > 1 ? "s" : ""} · ${Math.round(rt.waitMin)} min wait</span>
-          ${ends ? `<br><span class="rp-opt-ends">${ends}</span>` : ""}
-        </span>`;
-      row.addEventListener("click", () => highlight(i));
+        <div class="rp-opt-body">
+          <button class="rp-opt-summary" type="button">
+            <span class="rp-opt-clock">${fmtClock(depart)}—${fmtClock(arrive)}${dayTag}</span>
+            <span class="rp-opt-chips">${chipStrip(rt)}</span>
+            <span class="rp-opt-head"><b>${fmtTime(e.coreMin)}</b> <span class="rp-opt-delta">${delta}</span></span>
+            <span class="rp-opt-sub">${rt.carKm.toFixed(0)} km${mid} · ${cars} ride${cars > 1 ? "s" : ""} · ${Math.round(rt.waitMin)} min wait</span>
+            ${ends ? `<span class="rp-opt-ends">${ends}</span>` : ""}
+          </button>
+          <button class="rp-details-btn" type="button" aria-expanded="false">Details</button>
+          <div class="rp-steps" hidden></div>
+        </div>`;
+      row.querySelector(".rp-opt-summary").addEventListener("click", () => highlight(i));
+      row.querySelector(".rp-details-btn").addEventListener("click", () => toggleDetails(row, rt, i));
       box.appendChild(row);
     });
     showResultsSheet();

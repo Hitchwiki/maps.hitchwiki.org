@@ -2957,17 +2957,80 @@ body.routing-active .leaflet-control-container .leaflet-control-geocoder { displ
 .rp-option {
   display: flex; align-items: stretch; gap: 10px;
   text-align: left; border: 1px solid #e4e4e4; background: #fff;
-  border-radius: 10px; padding: 8px 10px 8px 0; cursor: pointer;
+  border-radius: 10px; padding: 8px 10px 8px 0;
   font: inherit; overflow: hidden;
 }
 .rp-option:hover { background: #f8f9fb; }
 .rp-option.active { border-color: var(--rc); box-shadow: 0 0 0 1px var(--rc) inset; }
 .rp-opt-bar { width: 5px; background: var(--rc); border-radius: 3px; flex: none; }
-.rp-opt-main { font-size: 15px; color: #202124; }
+.rp-opt-body { flex: 1; min-width: 0; }
+.rp-opt-summary {
+  display: flex; flex-direction: column; gap: 2px; width: 100%;
+  background: none; border: 0; padding: 0; font: inherit; text-align: left; cursor: pointer;
+}
+.rp-opt-clock { font-size: 13px; color: #5f6368; }
+.rp-opt-head { font-size: 15px; color: #202124; }
 .rp-opt-delta { color: #666; font-size: 13px; }
 .rp-opt-sub { color: #5f6368; font-size: 12.5px; }
 /* First/last-mile note on the option cards (walk to start/end or take transit). */
 .rp-opt-ends { color: #80868b; font-size: 12px; font-style: italic; }
+
+/* Mode strip: one glyph per leg, in travel order. Wraps on long routes rather
+   than pushing the card wider than the sheet. */
+.rp-opt-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 2px 0 1px; }
+.rp-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: #f1f3f4; border-radius: 10px; padding: 1px 7px;
+  font-size: 11.5px; color: #3c4043; white-space: nowrap;
+}
+.rp-chip-car { background: color-mix(in srgb, var(--rc) 14%, #fff); color: var(--rc); }
+.rp-chip i { font-size: 10.5px; }
+.rp-chip-more { color: #5f6368; font-weight: 600; }
+.rp-chip-sep { font-size: 8px; color: #bdc1c6; }
+
+.rp-details-btn {
+  margin-top: 6px; background: none; border: 0; padding: 2px 0;
+  font: inherit; font-size: 13px; font-weight: 600; color: var(--rc); cursor: pointer;
+}
+.rp-details-btn:hover { text-decoration: underline; }
+
+/* Step-by-step itinerary: a time column, a rail of dots and connecting lines,
+   and the step content — the shape a transit app uses for a trip. */
+.rp-itin { list-style: none; margin: 8px 0 2px; padding: 0; }
+.rp-step { display: grid; grid-template-columns: 46px 18px 1fr; align-items: stretch; }
+.rp-time { font-size: 12px; color: #5f6368; padding-top: 1px; }
+.rp-rail { position: relative; display: flex; justify-content: center; }
+.rp-dotm {
+  width: 9px; height: 9px; border-radius: 50%; margin-top: 4px;
+  background: #fff; border: 2px solid var(--rc); flex: none;
+}
+.rp-node-start .rp-dotm { background: #188038; border-color: #188038; }
+.rp-node-dest .rp-dotm { background: #d93025; border-color: #d93025; }
+.rp-node .rp-place { font-size: 13.5px; color: #202124; padding-bottom: 2px; }
+.rp-spot-link { color: #202124; text-decoration: none; border-bottom: 1px dotted #9aa0a6; }
+.rp-spot-link:hover { color: var(--rc); border-bottom-color: var(--rc); }
+
+/* Edge rows carry the vertical line between two dots. A ride is a solid line in
+   the route colour; a walk and a wait are dotted, as on a transit map. */
+.rp-edge { min-height: 34px; }
+.rp-line { width: 3px; flex: none; margin: 1px 0; border-radius: 2px; background: var(--rc); }
+.rp-edge-walk .rp-line { width: 0; border-left: 3px dotted #9aa0a6; background: none; }
+.rp-line-wait { width: 0; border-left: 3px dotted color-mix(in srgb, var(--rc) 55%, #fff); background: none; }
+.rp-edge-body { padding: 0 0 8px 8px; font-size: 12.5px; color: #5f6368; }
+.rp-edge-head { color: #3c4043; }
+.rp-edge-head i { width: 14px; color: #80868b; }
+.rp-edge-car .rp-edge-head i { color: var(--rc); }
+.rp-edge-sub { color: #5f6368; }
+
+/* Corridor spots a driver passes: collapsed behind a count by default. */
+.rp-via-toggle {
+  display: block; background: none; border: 0; padding: 2px 0 0;
+  font: inherit; font-size: 12px; color: var(--rc); cursor: pointer;
+}
+.rp-via-toggle::before { content: "\25b8"; display: inline-block; margin-right: 4px; transition: transform 0.15s; }
+.rp-via-toggle.open::before { transform: rotate(90deg); }
+.rp-via { list-style: none; margin: 2px 0 0; padding: 0 0 0 12px; }
+.rp-via li { font-size: 12px; padding: 1px 0; }
 
 /* Time tag floating on each route. */
 .route-tag-wrap { pointer-events: auto; }
