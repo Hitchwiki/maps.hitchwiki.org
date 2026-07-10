@@ -108,3 +108,21 @@ test("nudgeText pluralises and rewards a clean sheet", () => {
   assert.strictEqual(A.nudgeText(1), "1 ride could use more detail");
   assert.strictEqual(A.nudgeText(4), "4 rides could use more detail");
 });
+
+test("rideRoute labels a ride by where it went, degrading gracefully", () => {
+  assert.strictEqual(A.rideRoute({ from_place: "Metzeral", to_place: "Mitte" }), "Metzeral → Mitte");
+  // A give-up has no destination.
+  assert.strictEqual(A.rideRoute({ from_place: "Metzeral" }), "Metzeral");
+  assert.strictEqual(A.rideRoute({ to_place: "Mitte" }), "→ Mitte");
+  // Not geocoded yet (cron hasn't run) -> empty, so the UI shows its fallback.
+  assert.strictEqual(A.rideRoute({}), "");
+  assert.strictEqual(A.rideRoute({ from_place: "  ", to_place: null }), "");
+});
+
+test("rideStats leads with the date, then wait and distance", () => {
+  assert.deepStrictEqual(
+    A.rideStats({ created: "2026-07-28 12:00", wait_min: 45, distance_km: 138.9 }),
+    ["2026-07-28", "45 min", "139 km"]
+  );
+  assert.deepStrictEqual(A.rideStats({ created: "2026-07-28 12:00" }), ["2026-07-28"]);
+});

@@ -47,10 +47,13 @@
     return { when: when, stars: stars, comment: (ride.comment || "").trim() };
   }
 
-  // The three stats beside a ride's completion pie. A null means the ride never recorded
-  // that value, so it is omitted rather than shown as a misleading "0 min" / "0 km".
+  // The stats beside a ride's completion pie. The date leads, then wait and distance.
+  // A null wait/distance means the ride never recorded it, so it is omitted rather than
+  // shown as a misleading "0 min" / "0 km"; a real zero still renders.
   function rideStats(ride) {
     const out = [];
+    const when = (ride.created || "").slice(0, 10);
+    if (when) out.push(when);
     const wait = ride.wait_min;
     if (wait != null) {
       out.push(wait >= 60 ? Math.floor(wait / 60) + " h " + (wait % 60) + " m" : wait + " min");
@@ -58,6 +61,19 @@
     const km = ride.distance_km;
     if (km != null) out.push(Math.round(km).toLocaleString("en-US") + " km");
     return out;
+  }
+
+  // A ride is identified by where it went, not when it happened. Place names come from
+  // dist/ride_places.json (offline reverse geocoding); they are absent until that cron
+  // has run, and for a give-up there is no destination — so fall back gracefully rather
+  // than printing "undefined → undefined".
+  function rideRoute(ride) {
+    const from = (ride.from_place || "").trim();
+    const to = (ride.to_place || "").trim();
+    if (from && to) return from + " → " + to;
+    if (from) return from;
+    if (to) return "→ " + to;
+    return "";
   }
 
   function completionPct(ride) {
@@ -278,7 +294,10 @@
       li.appendChild(pie);
 
       const meta = el("div", "acct-ride__meta");
-      meta.appendChild(el("span", "acct-ride__when", rideLabel(ride).when));
+      // Where it went is the ride's identity; the date is now one of the small details.
+      const route = rideRoute(ride);
+      meta.appendChild(el("span", "acct-ride__route", route || "Unknown route"));
+      if (!route) meta.firstChild.classList.add("acct-ride__route--unknown");
       const stats = rideStats(ride);
       if (stats.length) meta.appendChild(el("span", "acct-ride__stats", stats.join(" · ")));
       li.appendChild(meta);
@@ -375,5 +394,6 @@
     completionTier: completionTier,
     ridesNeedingDetails: ridesNeedingDetails,
     nudgeText: nudgeText,
+    rideRoute: rideRoute,
   };
 });

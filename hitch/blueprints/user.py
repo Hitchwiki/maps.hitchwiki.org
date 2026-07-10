@@ -78,6 +78,29 @@ def get_user():
 # user to the full profile rather than shipping an unbounded ride list to every opener.
 RIDES_IN_MODAL_CAP = 50
 
+# dist/ride_places.json, keyed by d_tag -> {"from": ..., "to": ...}. Written offline by
+# hitch/scripts/ride_places.py: reverse_geocoder costs ~150 MB resident, which we refuse
+# to carry in every web worker on this host just to print a city name.
+_ride_places_cache = {"mtime": None, "data": {}}
+
+
+def _ride_places():
+    """Place names for every ride, reloaded only when the generated file changes."""
+    path = os.path.join(get_dirs()["dist"], "ride_places.json")
+    try:
+        mtime = os.path.getmtime(path)
+    except OSError:
+        # Not generated yet (fresh deploy, or cron hasn't run). Rides simply go unlabelled.
+        return {}
+    if _ride_places_cache["mtime"] != mtime:
+        try:
+            with open(path) as f:
+                _ride_places_cache["data"] = json.load(f)
+            _ride_places_cache["mtime"] = mtime
+        except (OSError, ValueError):
+            return _ride_places_cache["data"]
+    return _ride_places_cache["data"]
+
 
 @user_bp.route("/me.json", methods=["GET"])
 def me_json():
@@ -91,7 +114,14 @@ def me_json():
         resp = jsonify({"logged_in": False})
     else:
         rides = _get_rides_for_user(current_user)
-        shown = [{k: v for k, v in r.items() if k != "submission_sort_key"} for r in rides[:RIDES_IN_MODAL_CAP]]
+        places = _ride_places()
+        shown = []
+        for ride in rides[:RIDES_IN_MODAL_CAP]:
+            entry = {k: v for k, v in ride.items() if k != "submission_sort_key"}
+            place = places.get(entry.get("d_tag")) or {}
+            entry["from_place"] = place.get("from")
+            entry["to_place"] = place.get("to")
+            shown.append(entry)
 
         total_rides = current_user.total_rides or 0
         total_km = current_user.total_distance_km or 0
