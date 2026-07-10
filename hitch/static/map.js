@@ -1766,6 +1766,10 @@ function markerClick(marker) {
   $$("#spot-google-link").href = window.ontouchstart
     ? `geo:${data.lat},${data.lon}`
     : `https://www.google.com/maps/place/${data.lat},${data.lon}`;
+  // Street View helps judge a spot before going there (shoulder, sight lines, place to pull over).
+  // map_action=pano snaps to the nearest panorama, so it still works when the spot itself is off-road.
+  $$("#spot-streetview-link").href =
+    `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${data.lat},${data.lon}`;
   $$("#spot-osm-link").href =
     `https://www.openstreetmap.org/?mlat=${data.lat}&mlon=${data.lon}#map=18/${data.lat}/${data.lon}`;
 
