@@ -66,8 +66,11 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
 </script>
 <!-- Expose auth state to the in-ride tracker (it decides whether to show the soft login prompt). -->
 <script>window.IS_LOGGED_IN = {{ 'true' if is_logged_in else 'false' }};</script>
+<script>window.USERNAME = {{ (username or '')|tojson }};</script>
 <script src="{{ asset_url('/static/map.js') }}"></script>
 <script src="{{ asset_url('/static/routing.js') }}"></script>
+<script src="{{ asset_url('/static/ride_score.js') }}"></script>
+<script src="{{ asset_url('/static/ride_submit.js') }}"></script>
 <script src="{{ asset_url('/static/inride.js') }}"></script>
 <script src="{{ asset_url('/static/account.js') }}"></script>
 <script>
@@ -238,7 +241,7 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
             <li><a href="https://huggingface.co/datasets/Hitchwiki/hitchhiking-rides-dataset">Full dataset</a></li>
             <li><a href="javascript:exportAsGPX()">As GPX (to import into offline maps)</a></li>
         </ul>
-        <li><i class="fa fa-chart-simple"></i><a href="/dashboard.html">Charts & graphs</a></li>
+        <li><i class="fa fa-chart-simple"></i><a href="/dashboard.html" target="_blank" rel="noopener">Charts & graphs</a></li>
     </ul>
     <h4>Contact</h4>
     <p>
@@ -259,9 +262,9 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
     <p>
         Data by
         <a href="https://hitchwiki.org">Hitchwiki</a> (<a href="CC BY-SA 4.0">CC BY-SA 4.0</a>),
-        <a href="/copyright">Hitchwiki Maps</a> (<a href="https://opendatacommons.org/licenses/odbl/">ODbL</a>),
+        <a href="/copyright" target="_blank" rel="noopener">Hitchwiki Maps</a> (<a href="https://opendatacommons.org/licenses/odbl/">ODbL</a>),
         <a href="https://hitchmap.com/copyright.html">Hitchmap</a> (<a href="https://opendatacommons.org/licenses/odbl/">ODbL</a>) and
-        <a href="/users">many hitchhikers</a>.
+        <a href="/users" target="_blank" rel="noopener">many hitchhikers</a>.
     </p>
     <h4>Attribution</h4>
     <p>
@@ -530,11 +533,11 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
 </a>
 <!-- Top-right account button -->
 {% if not hide_account_button %}
-<div class="top-account-btn{% if not is_logged_in %} logged-out{% endif %}" id="top-account-btn">
+<div class="top-account-btn{% if is_logged_in %} logged-in{% else %} logged-out{% endif %}" id="top-account-btn">
     <a href="/me" title="{{ 'You have unread notifications' if unread_notifications else 'Your account' }}">
         <i class="fa-solid fa-circle-user"></i>
         {% if not is_logged_in %}
-        <span class="login-prompt-badge">Log in to track your rides</span>
+        <span class="account-dot account-dot--red" role="img" aria-label="Log in to track your rides"></span>
         {% elif unread_notifications %}
         <span class="notif-bell" aria-label="{{ unread_notifications }} unread notifications">
             <i class="fa-solid fa-bell"></i>
@@ -546,7 +549,7 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
 
 <!-- Bottom action pane -->
 <div class="bottom-action-pane" id="bottom-action-pane">
-    <a class="action-btn" href="/recent" id="action-activities" title="Activities">
+    <a class="action-btn" href="/recent" id="action-activities" title="Activities" target="_blank" rel="noopener">
         <i class="fa-solid fa-calendar-days"></i>
         <span>Activities</span>
     </a>
@@ -560,7 +563,7 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
         <span>Add your ride</span>
     </button>
     {% endif %}
-    <a class="action-btn" href="/leaderboard" title="Leaderboard">
+    <a class="action-btn" href="/leaderboard" title="Leaderboard" target="_blank" rel="noopener">
         <i class="fa-solid fa-trophy"></i>
         <span>Leaderboard</span>
     </a>

@@ -202,6 +202,7 @@ async function setHeatmapActive(active) {
   if (!active) {
     if (heatmapLayer) map.removeLayer(heatmapLayer);
     if (legendPane) legendPane.style.display = 'none';
+    setTestBtnBelowLegend(false);
     positionLegendPane();
     if (btn) btn.classList.remove('active');
     if (text) text.textContent = 'Heatmap';
@@ -227,6 +228,7 @@ async function setHeatmapActive(active) {
 
   populateHeatmapLegend(heatmapData.legend);
   if (legendPane) legendPane.style.display = 'block';
+  setTestBtnBelowLegend(true);
   positionLegendPane();
 
   heatmapLayer.addTo(map);
@@ -294,26 +296,16 @@ function populateHeatmapLegend(legendData) {
   // Load markers asynchronously
   await loadMarkers(map);
 
+  // Restore the test-mode indicator if it was left on. Called here (not inside
+  // setupMapModeControl, which runs synchronously before the test-mode module vars
+  // are initialized) to avoid a temporal-dead-zone ReferenceError that would abort
+  // init before loadMarkers.
+  renderTestModeIndicator();
+
   // Hitchwiki event markers — non-blocking, they're a small overlay.
   loadEventMarkers(map);
 
   setupEventListeners();
-
-  // Logged-out nudge: the account icon pulses a faint red glow and shows the "Log in to
-  // track your rides" badge until the user taps the screen. Dismissed on first tap and
-  // remembered so it doesn't nag on later visits. (Badge only exists when logged out.)
-  (function () {
-    var badge = document.querySelector(".login-prompt-badge");
-    var accountBtn = document.getElementById("top-account-btn");
-    if (!badge || !accountBtn) return;
-    if (localStorage.getItem("loginBadgeDismissed")) { badge.style.display = "none"; return; }
-    accountBtn.classList.add("login-pulse");
-    document.addEventListener("pointerdown", function () {
-      badge.style.display = "none";
-      accountBtn.classList.remove("login-pulse");
-      try { localStorage.setItem("loginBadgeDismissed", "1"); } catch (e) {}
-    }, { once: true });
-  })();
 
   // Nudge first-time users toward the features they'd otherwise miss; short delay
   // so the pointer doesn't fight the initial map load/animation.
@@ -1093,6 +1085,216 @@ function updateMapModeButtons() {
   if (legacyText) legacyText.textContent = mapMode === "heatmap" ? "Normal" : "Heatmap";
 }
 
+// ── Test-mode easter egg ────────────────────────────────────────────────────
+// Tap the heatmap mode button 9× to toggle a client-side "test mode": in-ride
+// submissions are short-circuited (inride.js submitBody) so nothing reaches the
+// real DB/Nostr while testing on-device. A countdown shows from the 4th tap; a
+// yellow bar under the search bar marks it active — tap the bar to exit.
+const TEST_MODE_KEY = "inride.testMode";
+const TEST_MODE_TAPS = 9;
+const TEST_MODE_COUNTDOWN_FROM = 4; // start showing "N more taps" at this tap
+const TEST_BTN_POS_KEY = "inride.testBtnPos"; // remembered drag position of the indicator
+
+function isTestMode() {
+  try { return localStorage.getItem(TEST_MODE_KEY) === "1"; } catch (e) { return false; }
+}
+
+function setTestMode(on) {
+  try {
+    if (on) localStorage.setItem(TEST_MODE_KEY, "1");
+    else localStorage.removeItem(TEST_MODE_KEY);
+  } catch (e) {}
+  renderTestModeIndicator();
+}
+
+function isLegendVisible() {
+  const lp = document.getElementById("heatmap-legend-pane");
+  return !!(lp && lp.style.display === "block");
+}
+
+// Drop the test-mode button + callout below the heatmap legend bar while it shows.
+function setTestBtnBelowLegend(below) {
+  const btn = document.getElementById("test-mode-btn");
+  const callout = document.getElementById("test-mode-callout");
+  if (btn) btn.classList.toggle("below-legend", below);
+  if (callout) callout.classList.toggle("below-legend", below);
+}
+
+// Round amber warning button (same size as the account avatar), under the search
+// bar. Tapping it opens a callout explaining test mode + an exit action.
+function renderTestModeIndicator() {
+  let btn = document.getElementById("test-mode-btn");
+  if (isTestMode()) {
+    if (!btn) {
+      btn = document.createElement("button");
+      btn.id = "test-mode-btn";
+      btn.type = "button";
+      btn.className = "test-mode-btn";
+      btn.setAttribute("aria-label", "Test mode is on — what does this mean?");
+      btn.innerHTML = '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>';
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        toggleTestModeCallout();
+      });
+      makeTestBtnDraggable(btn);
+      document.body.appendChild(btn);
+      restoreTestBtnPos(btn); // after append so offsetWidth/Height are known
+    }
+    // Auto-drop below the heatmap legend only while the user hasn't hand-placed it.
+    if (!hasTestBtnPos()) btn.classList.toggle("below-legend", isLegendVisible());
+  } else {
+    if (btn) btn.remove();
+    closeTestModeCallout();
+  }
+}
+
+function hasTestBtnPos() {
+  try { return !!localStorage.getItem(TEST_BTN_POS_KEY); } catch (e) { return false; }
+}
+
+// Apply a previously dragged position (clamped to the current viewport).
+function restoreTestBtnPos(btn) {
+  let pos = null;
+  try { pos = JSON.parse(localStorage.getItem(TEST_BTN_POS_KEY) || "null"); } catch (e) {}
+  if (!pos) return;
+  btn.style.left = Math.max(4, Math.min(window.innerWidth - btn.offsetWidth - 4, pos.left)) + "px";
+  btn.style.top = Math.max(4, Math.min(window.innerHeight - btn.offsetHeight - 4, pos.top)) + "px";
+  btn.style.bottom = "auto";
+  btn.classList.remove("below-legend");
+}
+
+// Make the indicator draggable so it can be moved out of the way. A press-and-
+// release still counts as a tap (opens the callout); movement past a small
+// threshold is a drag, and the resting position is remembered across reloads.
+function makeTestBtnDraggable(btn) {
+  let dragging = false, moved = false, sx = 0, sy = 0, ox = 0, oy = 0, pid = null;
+  const THRESH = 6;
+  btn.style.touchAction = "none";
+  btn.addEventListener("pointerdown", function (e) {
+    pid = e.pointerId;
+    const r = btn.getBoundingClientRect();
+    sx = e.clientX; sy = e.clientY; ox = r.left; oy = r.top;
+    moved = false; dragging = true;
+    try { btn.setPointerCapture(pid); } catch (e2) {}
+  });
+  btn.addEventListener("pointermove", function (e) {
+    if (!dragging) return;
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    if (!moved && Math.hypot(dx, dy) < THRESH) return;
+    moved = true;
+    closeTestModeCallout(); // don't leave a stray callout mid-drag
+    btn.style.left = Math.max(4, Math.min(window.innerWidth - btn.offsetWidth - 4, ox + dx)) + "px";
+    btn.style.top = Math.max(4, Math.min(window.innerHeight - btn.offsetHeight - 4, oy + dy)) + "px";
+    btn.style.bottom = "auto";
+    btn.classList.remove("below-legend"); // hand-placed now — stop auto-positioning
+  });
+  function end() {
+    if (!dragging) return;
+    dragging = false;
+    try { btn.releasePointerCapture(pid); } catch (e2) {}
+    if (moved) {
+      try {
+        localStorage.setItem(TEST_BTN_POS_KEY, JSON.stringify({
+          left: parseInt(btn.style.left, 10),
+          top: parseInt(btn.style.top, 10),
+        }));
+      } catch (e2) {}
+    }
+  }
+  btn.addEventListener("pointerup", end);
+  btn.addEventListener("pointercancel", end);
+  // Swallow the click that follows a drag so it doesn't also toggle the callout.
+  btn.addEventListener("click", function (e) {
+    if (moved) { e.stopImmediatePropagation(); e.preventDefault(); moved = false; }
+  }, true);
+}
+
+let _testCalloutOutside = null;
+function closeTestModeCallout() {
+  const c = document.getElementById("test-mode-callout");
+  if (c) c.remove();
+  if (_testCalloutOutside) {
+    document.removeEventListener("click", _testCalloutOutside, true);
+    _testCalloutOutside = null;
+  }
+}
+
+function toggleTestModeCallout() {
+  if (document.getElementById("test-mode-callout")) { closeTestModeCallout(); return; }
+  const c = document.createElement("div");
+  c.id = "test-mode-callout";
+  c.className = "test-mode-callout";
+  c.innerHTML =
+    '<div class="test-mode-callout__title">🧪 Test mode is on</div>' +
+    '<p class="test-mode-callout__body">Rides you finish or give up are <strong>not saved</strong> — ' +
+    "nothing is published to the map, the database, or Nostr. Use it to try the flow without " +
+    "adding real data. Turn it back on any time by tapping the heatmap button 9 times.</p>";
+  const exit = document.createElement("button");
+  exit.type = "button";
+  exit.className = "test-mode-callout__exit";
+  exit.textContent = "Exit test mode";
+  exit.addEventListener("click", function () {
+    setTestMode(false); // removes the button + closes this callout via renderTestModeIndicator
+    showTestToast("Test mode off");
+  });
+  c.appendChild(exit);
+  document.body.appendChild(c);
+  // Anchor the callout just below the button, wherever it currently sits (it's
+  // draggable), and point the arrow at the button's centre.
+  const anchor = document.getElementById("test-mode-btn");
+  if (anchor) {
+    const r = anchor.getBoundingClientRect();
+    const cl = Math.max(8, Math.min(window.innerWidth - c.offsetWidth - 8, r.left));
+    c.style.left = cl + "px";
+    c.style.top = (r.bottom + 8) + "px";
+    c.style.bottom = "auto";
+    c.style.setProperty("--arrow-x", Math.max(10, Math.min(c.offsetWidth - 20, r.left + r.width / 2 - cl - 7)) + "px");
+  }
+  // Dismiss on any outside click (capture phase so it beats other handlers). The
+  // button's own click is stopPropagation'd, so it won't immediately re-close.
+  _testCalloutOutside = function (e) {
+    if (!c.contains(e.target) && !e.target.closest("#test-mode-btn")) closeTestModeCallout();
+  };
+  setTimeout(function () { document.addEventListener("click", _testCalloutOutside, true); }, 0);
+}
+
+let _testToastTimer = null;
+function showTestToast(msg) {
+  let t = document.getElementById("test-mode-toast");
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "test-mode-toast";
+    t.className = "test-mode-toast";
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  if (_testToastTimer) clearTimeout(_testToastTimer);
+  _testToastTimer = setTimeout(function () { if (t && t.parentNode) t.remove(); }, 1500);
+}
+
+let _heatTapCount = 0;
+let _heatTapResetTimer = null;
+// Called on every tap of the heatmap mode button (in addition to its normal toggle).
+function registerHeatmapTap() {
+  if (isTestMode()) return; // already active — taps just toggle the heatmap normally
+  _heatTapCount++;
+  // Reset the streak if taps stop for a moment so stray clicks don't accumulate.
+  if (_heatTapResetTimer) clearTimeout(_heatTapResetTimer);
+  _heatTapResetTimer = setTimeout(function () { _heatTapCount = 0; }, 2000);
+
+  if (_heatTapCount >= TEST_MODE_TAPS) {
+    _heatTapCount = 0;
+    clearTimeout(_heatTapResetTimer);
+    setTestMode(true);
+    showTestToast("🧪 Test mode on — rides won't be saved");
+    return;
+  }
+  if (_heatTapCount >= TEST_MODE_COUNTDOWN_FROM) {
+    const remaining = TEST_MODE_TAPS - _heatTapCount;
+    showTestToast(remaining + (remaining === 1 ? " more tap" : " more taps") + " to test mode…");
+  }
+}
+
 // Vertical Spots/Heatmap/Countries switcher, sitting just above the locate button.
 function setupMapModeControl() {
   const modes = [
@@ -1113,6 +1315,8 @@ function setupMapModeControl() {
         btn.innerHTML = `<i class="${icon}" aria-hidden="true"></i>`;
         L.DomEvent.on(btn, "click", function (e) {
           L.DomEvent.preventDefault(e);
+          // Easter egg: 9 taps on the heatmap button toggles test mode.
+          if (mode === "heatmap") registerHeatmapTap();
           setMapMode(mode);
         });
         mapModeButtons[mode] = btn;
@@ -1200,6 +1404,13 @@ function showNextFeatureHint() {
   // popstate instead. Re-run the visibility check on both.
   window.addEventListener("hashchange", position);
   window.addEventListener("popstate", position);
+  // Some chrome shifts come from a body-class toggle, not a resize/hash/popstate —
+  // notably `body.inride-active`, which lifts the whole bottom-right control stack
+  // ~150px so it clears the ride dock. That moves a "left" hint's target (heatmap /
+  // countries) without any of the events above, stranding the arrow over empty space.
+  // Observe body's class so position() re-runs on every such toggle.
+  const bodyClassObserver = new MutationObserver(position);
+  bodyClassObserver.observe(document.body, { attributes: true, attributeFilter: ["class"] });
 
   function dismiss(ev) {
     if (ev && !btn.contains(ev.target)) return;
@@ -1208,6 +1419,7 @@ function showNextFeatureHint() {
     window.removeEventListener("resize", position);
     window.removeEventListener("hashchange", position);
     window.removeEventListener("popstate", position);
+    bodyClassObserver.disconnect();
     document.removeEventListener("pointerdown", dismiss, true);
     document.removeEventListener("click", dismiss, true);
   }

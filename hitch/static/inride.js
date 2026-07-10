@@ -89,39 +89,54 @@
     });
   }
 
-  // The /ride datetime fields are `datetime-local` (local wall-clock, no zone), so
-  // build "YYYY-MM-DDTHH:mm" from LOCAL date components — NOT toISOString() (UTC).
-  // toISOString() would silently offset times by the user's UTC offset.
-  function isoLocal(ms) {
-    const d = new Date(ms);
-    const pad = (n) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  // buildFinishBody lives in ride_submit.js (loaded before this file) so it
+  // can be unit-tested outside the DOM. Alias it locally to keep call sites unchanged.
+  const buildFinishBody = window.RideSubmit.buildFinishBody;
+
+  // Weights + choice lists for the in-ride details sheet, fetched once. Kept module-level
+  // so the sheet can render and score synchronously after load. Both are small and cached
+  // by the browser; failures leave the sheet usable with empty pickers.
+  let _scoreWeights = null;
+  let _choices = null;
+  function loadDemographicData() {
+    const w = _scoreWeights
+      ? Promise.resolve(_scoreWeights)
+      : fetch("/static/ride_score_weights.json").then(function (r) { return r.json(); }).then(function (j) { _scoreWeights = j; }).catch(function () {});
+    const c = _choices
+      ? Promise.resolve(_choices)
+      : fetch("/driver_info_choices.json").then(function (r) { return r.json(); }).then(function (j) { _choices = j; }).catch(function () {});
+    return Promise.all([w, c]);
+  }
+  function demographicScores(fields) {
+    if (!_scoreWeights || !window.RideScore) {
+      return { driver: { pct: 0 }, vehicle: { pct: 0, bonusEligible: false }, total: 0, maxTotal: 0, pct: 0 };
+    }
+    return window.RideScore.computeScores(fields, _scoreWeights);
   }
 
-  // Build the /ride form body from a journey + destination. client_d_tag pins the Nostr
-  // d_tag so outbox retries replace rather than duplicate. finishMs is captured at the
-  // START of journeyFlow.finish() (not submit time), so GPS-fix / manual-pin delay don't
-  // inflate the arrival time; also prevents arrival == departure on same-minute short
-  // rides (backend asserts arrival > departure).
-  function buildFinishBody(j, dest, finishMs, id) {
-    const d = j.details || {};
-    return {
-      rate: String(d.rating || ""),
-      wait: String(Math.round((j.finalWaitMs || 0) / 60000)),
-      signal: (d.signal || []).join(","),
-      comment: d.comment || "",
-      vehicle_kind: d.vehicle_kind || "",
-      pickup_lat: j.pickup.lat, pickup_lon: j.pickup.lon,
-      destination_lat: dest.lat, destination_lon: dest.lon,
-      datetime_ride: isoLocal(j.gotRideMs),
-      arrival_datetime: isoLocal(finishMs),
-      client_d_tag: id,
-    };
+  // Seal an in-ride overlay so taps on it never reach the Leaflet map. The dock/chip
+  // float over the live map with no scrim, and every button tears the overlay down via
+  // render(); on touch that lets Leaflet treat the tap as a map click, firing
+  // handleMapClick's tap-to-nearest-spot and opening the spot *underneath* the button.
+  // disableClickPropagation marks the pointer sequence so the map handler skips it —
+  // the same guard map.js already applies to its other overlays.
+  function sealTaps(el) {
+    if (el && window.L && L.DomEvent) {
+      L.DomEvent.disableClickPropagation(el);
+      L.DomEvent.disableScrollPropagation(el);
+    }
   }
 
   // POST a saved outbox body to /ride. Resolves with {status, json}; a thrown network
   // error resolves as {status:0} (not a rejection) so the flush loop can classify it.
   function submitBody(body) {
+    // Test-mode dry-run (heatmap-button easter egg): never hit the network, so nothing
+    // reaches the real DB / Nostr. Resolve as a success so the outbox + UI flow behaves
+    // exactly as a real upload (chip clears, "saved", what's-next).
+    if (localStorage.getItem("inride.testMode") === "1") {
+      console.log("[test mode] skipped /ride POST", body);
+      return Promise.resolve({ status: 200, json: { ok: true, d_tag: "test-" + (body.client_d_tag || "") } });
+    }
     return fetch("/ride", {
       method: "POST",
       headers: { "X-Requested-With": "inride", "Content-Type": "application/x-www-form-urlencoded" },
@@ -203,7 +218,7 @@
   // prompt so they can choose to log in (and preserve the chosen spot across the
   // redirect) or carry on without an account. No hard block — anonymous is fine.
   journeyFlow.startFromChoose = function (latlng) {
-    if (window.IS_LOGGED_IN) return journeyFlow.start(latlng);
+    if (window.IS_LOGGED_IN) return journeyFlow.beginWithCoHitchers(latlng);
     journeyUI.dialog({
       title: "Track your rides?",
       body: "Log in to keep your ride history, or just continue anonymously.",
@@ -218,7 +233,7 @@
             window.location.href = "/login?next=/";
           },
         },
-        { label: "Continue anonymously", cls: "inr-grey", onClick: () => journeyFlow.start(latlng) },
+        { label: "Continue anonymously", cls: "inr-grey", onClick: () => journeyFlow.beginWithCoHitchers(latlng) },
       ],
     });
   };
@@ -241,10 +256,11 @@
   };
 
   // Seed the waiting journey. Pickup = the chosen latlng; wait timer starts now.
-  journeyFlow.start = function (latlng) {
+  journeyFlow.start = function (latlng, coHitchhikers) {
     const j = journeyStore.set({
       state: "waiting",
       pickup: { lat: latlng.lat, lon: latlng.lng },
+      coHitchhikers: coHitchhikers || [],
       waitAccumMs: 0,
       waitSegmentStartMs: Date.now(),
       gotRideMs: null,
@@ -253,6 +269,13 @@
       legIndex: 0,
     });
     journeyUI.render(j);
+  };
+
+  // Show the co-hitcher modal, then seed the journey with whoever was added.
+  journeyFlow.beginWithCoHitchers = function (latlng) {
+    journeyUI.coHitcherSheet(function (coHitchhikers) {
+      journeyFlow.start(latlng, coHitchhikers);
+    });
   };
 
   // Cancel the whole journey WITHOUT logging anything — for a journey started by mistake.
@@ -275,17 +298,7 @@
       const id = uuid();
       outboxStore.add({
         id: id, kind: "giveup", createdAt: Date.now(), attempts: 0, lastError: null, status: "pending",
-        body: {
-          rate: String(details.rating || ""),
-          wait: String(waitMin),
-          comment: details.comment || "",
-          // Giving up IS a no-ride by definition — same marker the /ride form checkbox sets.
-          no_ride: "1",
-          signal: "", vehicle_kind: "",
-          pickup_lat: j.pickup.lat, pickup_lon: j.pickup.lon,
-          destination_lat: "", destination_lon: "",
-          client_d_tag: id,
-        },
+        body: window.RideSubmit.buildGiveUpBody(j, waitMin, details, id),
       });
       journeyStore.clear();
       journeyUI.teardown();
@@ -318,20 +331,45 @@
     // The backend asserts arrival > departure; stamping here rather than at submit
     // prevents same-minute rides yielding arrival == departure → 400 → stuck retry.
     const finishMs = Date.now();
-    // Lock the button immediately — Nostr publish takes ~5 s.
-    journeyUI.setFinishBusy(true);
-    getFixWithRetry().then(
-      function (dest) { completeFinish(j, dest, finishMs); },
-      // GPS denied/unavailable — clear busy state before opening manual-pin UI;
-      // the user is choosing a destination, not saving yet.
-      function () {
-        journeyUI.setFinishBusy(false);
-        journeyUI.manualPin(function (dest) {
-          // Pin confirmed — re-enter busy state for the actual ~5 s Nostr submit.
-          journeyUI.setFinishBusy(true);
-          completeFinish(j, dest, finishMs);
+    // Confirm the drop-off location FIRST, then ask the would-ride-again question, then
+    // submit. Re-read the journey so any details just added via the nudge are captured.
+    // finishMs was stamped above, so the extra prompt delay never inflates arrival time.
+    const proceedToGate = function () {
+      const jj = journeyStore.get(); if (!jj) return;
+      // Step 2 (after the location is confirmed): the forced would-ride-again answer,
+      // then the actual ~5 s Nostr submit.
+      const askAndSubmit = function (dest) {
+        journeyUI.wouldRideAgainSheet(function (wouldRideAgain) {
+          jj.wouldRideAgain = wouldRideAgain;
+          journeyStore.set(jj);
+          journeyUI.setFinishBusy(true); // Nostr publish takes ~5 s
+          completeFinish(jj, dest, finishMs);
         });
-      }
+      };
+      // Step 1: confirm the destination — GPS (up to 3 tries), falling back to a manual
+      // pin. Lock the button while GPS resolves; clear it before either prompt so the
+      // user isn't staring at a spinner while answering.
+      journeyUI.setFinishBusy(true);
+      getFixWithRetry().then(
+        function (dest) { journeyUI.setFinishBusy(false); askAndSubmit(dest); },
+        function () {
+          journeyUI.setFinishBusy(false);
+          journeyUI.manualPin(function (dest) { askAndSubmit(dest); });
+        }
+      );
+    };
+    // Nudge to enrich the log before saving — but only when details are incomplete.
+    // "Add details" saves onto j.details then proceeds; "Skip" proceeds as-is.
+    const score = demographicScores(j.details || {});
+    if (score.pct >= 100) { proceedToGate(); return; }
+    journeyUI.finishNudge(
+      score.pct,
+      j.details || {},
+      function (fields) {
+        const cur = journeyStore.get(); if (cur) { cur.details = Object.assign({}, cur.details, fields); journeyStore.set(cur); }
+        proceedToGate();
+      },
+      proceedToGate
     );
   };
 
@@ -364,6 +402,7 @@
       waitAccumMs: 0, waitSegmentStartMs: Date.now(),
       gotRideMs: null, finalWaitMs: null, details: null,
       legIndex: (prev && prev.legIndex || 0) + 1,
+      coHitchhikers: (prev && prev.coHitchhikers) || [],
     });
     journeyUI.render(j);
   };
@@ -425,6 +464,11 @@
         default:
           console.log("[inride] render: unknown state", j.state);
       }
+
+      // Every state built its dock/chip above; seal both so taps on their buttons
+      // never fall through to the map and open the spot underneath.
+      sealTaps(journeyUI._dockEl);
+      sealTaps(journeyUI._chipEl);
     },
 
     // Build the waiting dock bar + live-timer chip.
@@ -502,13 +546,14 @@
       journeyUI._addPickupPin(j);
     },
 
-    // Small grey "Cancel" CTA that sits beneath the waiting/paused dock — discards the
-    // journey (confirmed) for a mistaken start, without logging anything.
+    // Round red "cancel" button (white × in a red circle) centered beneath the dock —
+    // discards the journey (confirmed) for a mistaken start, without logging anything.
     _cancelButton() {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "inr-cancel";
-      btn.textContent = "Cancel";
+      btn.setAttribute("aria-label", "Cancel journey");
+      btn.innerHTML = '<i class="fa-solid fa-xmark" aria-hidden="true"></i>';
       btn.addEventListener("click", function () { journeyFlow.cancel(); });
       return btn;
     },
@@ -623,6 +668,37 @@
       });
       dock.appendChild(finishBtn);
       journeyUI._finishBtn = finishBtn;
+
+      // Demographic entry during the ride: ONE chip that both shows the combined
+      // completeness and opens the details sheet. Save merges onto j.details (submitted
+      // at Finish). Drops onto its own row below Finish (see .inr-dock flex-wrap).
+      const demoRow = document.createElement("div");
+      demoRow.className = "inr-demo-row";
+      const s = demographicScores(j.details || {});
+      // Fill-bar chip: a blue fill on a black bar tracks completeness; the whole chip
+      // is the tap target that opens the details sheet.
+      const addBtn = document.createElement("button");
+      addBtn.type = "button"; addBtn.className = "inr-demo-add";
+      const addFill = document.createElement("span");
+      addFill.className = "inr-demo-add__fill"; addFill.style.width = s.pct + "%";
+      const addLabel = document.createElement("span");
+      addLabel.className = "inr-demo-add__label";
+      addLabel.innerHTML = s.pct >= 100
+        ? '<i class="fa-solid fa-check"></i> Details complete'
+        : '<i class="fa-solid fa-plus"></i> Add details · ' + s.pct + '%';
+      addBtn.appendChild(addFill); addBtn.appendChild(addLabel);
+      addBtn.addEventListener("click", function () {
+        journeyUI.detailsSheet(j.details || {}, function (fields) {
+          const cur = journeyStore.get(); if (!cur) return;
+          cur.details = Object.assign({}, cur.details, fields);
+          journeyStore.set(cur);
+          journeyUI.render(cur); // re-render so the chip updates
+        });
+      });
+      demoRow.appendChild(addBtn);
+      // Insert ABOVE Finish (both are full-width flex lines; DOM order = top→bottom).
+      // Placed below, it wrapped onto the bottom edge and hid behind the nav / OSM credits.
+      dock.insertBefore(demoRow, finishBtn);
 
       document.body.appendChild(dock);
       journeyUI._dockEl = dock;
@@ -928,31 +1004,6 @@
       });
       sheet.appendChild(rideOnBtn);
 
-      // ── "Add driver / vehicle details" link ────────────────────────────────────
-      // Prefills rideFormData in sessionStorage so the full /ride form picks it up,
-      // carrying the sheet's selections plus the journey's pickup location and wait time.
-      const moreLink = document.createElement("a");
-      moreLink.className = "inr-sheet__more";
-      moreLink.href = "#";
-      moreLink.textContent = "＋ Add driver / vehicle details";
-      moreLink.addEventListener("click", function (e) {
-        e.preventDefault();
-        const j = journeyStore.get();
-        const waitMin = j ? Math.round(journeyStore.currentWaitMs(j, Date.now()) / 60000) : null;
-        sessionStorage.setItem("rideFormData", JSON.stringify({
-          pickup_lat: j ? j.pickup.lat : null,
-          pickup_lon: j ? j.pickup.lon : null,
-          wait: waitMin,
-          rating: rating,
-          vehicle_kind: vehicleKind,
-          signal: Array.from(signals),
-          comment: textarea.value.trim(),
-        }));
-        close();
-        window.location.href = "/ride";
-      });
-      sheet.appendChild(moreLink);
-
       function close() {
         if (scrim.parentNode) scrim.parentNode.removeChild(scrim);
         if (sheet.parentNode) sheet.parentNode.removeChild(sheet);
@@ -960,6 +1011,397 @@
       }
 
       // Scrim tap (outside the sheet) dismisses without saving.
+      scrim.addEventListener("click", close);
+
+      document.body.appendChild(scrim);
+      document.body.appendChild(sheet);
+      journeyUI._openDialog = { close };
+      return { close };
+    },
+
+    // In-ride driver/vehicle detail entry with two live completeness meters. Seeded
+    // from the current details; onSave(fields) fires on Save with the canonical field
+    // names. NOT a submission — the caller merges the result onto the journey.
+    detailsSheet(seed, onSave) {
+      if (journeyUI._openDialog) journeyUI._openDialog.close();
+      const ch = _choices || { reasons: [], genders: [], languages: [], countries: [], plate_countries: [], vehicle_kinds: [], passenger_kinds: [] };
+      // Working copy of the fields, seeded from `seed`.
+      const f = {
+        driver_reason_to_pick_up: (seed.driver_reason_to_pick_up || []).slice(),
+        driver_gender: seed.driver_gender || "",
+        driver_age: (seed.driver_age === 0 || seed.driver_age) ? seed.driver_age : "",
+        driver_origin_country: seed.driver_origin_country || "",
+        driver_languages: (seed.driver_languages || []).slice(),
+        vehicle_kind: seed.vehicle_kind || "",
+        vehicle_license_plate_country: seed.vehicle_license_plate_country || "",
+        vehicle_make: seed.vehicle_make || "",
+        vehicle_model: seed.vehicle_model || "",
+      };
+
+      const scrim = document.createElement("div");
+      scrim.className = "inride-scrim";
+      const sheet = document.createElement("div");
+      sheet.className = "inr-sheet inr-sheet--scroll";
+
+      const grab = document.createElement("div"); grab.className = "inr-sheet__grab"; sheet.appendChild(grab);
+      const closeX = document.createElement("button");
+      closeX.type = "button"; closeX.className = "inr-sheet__close"; closeX.setAttribute("aria-label", "Close");
+      closeX.innerHTML = "&times;"; closeX.addEventListener("click", function () { close(); });
+      sheet.appendChild(closeX);
+
+      const titleEl = document.createElement("h4"); titleEl.textContent = "Driver & vehicle details"; sheet.appendChild(titleEl);
+
+      // ── Two tabs (Driver / Vehicle), each a fill-bar of its own section's
+      //    completeness. Only the active panel shows; the fill bars update live. ──
+      const tabbar = document.createElement("div"); tabbar.className = "inr-tabbar";
+      const driverPanel = document.createElement("div"); driverPanel.className = "inr-tabpanel";
+      const vehiclePanel = document.createElement("div"); vehiclePanel.className = "inr-tabpanel";
+      const driverTab = makeTab("Driver"); const vehicleTab = makeTab("Vehicle");
+      tabbar.appendChild(driverTab.el); tabbar.appendChild(vehicleTab.el);
+      sheet.appendChild(tabbar); sheet.appendChild(driverPanel); sheet.appendChild(vehiclePanel);
+
+      function showTab(which) {
+        const onDriver = which === "driver";
+        driverPanel.style.display = onDriver ? "" : "none";
+        vehiclePanel.style.display = onDriver ? "none" : "";
+        driverTab.el.classList.toggle("inr-tab--on", onDriver);
+        vehicleTab.el.classList.toggle("inr-tab--on", !onDriver);
+      }
+      driverTab.el.addEventListener("click", function () { showTab("driver"); });
+      vehicleTab.el.addEventListener("click", function () { showTab("vehicle"); });
+
+      function refreshMeters() {
+        const s = demographicScores(f);
+        driverTab.set(s.driver.pct); vehicleTab.set(s.vehicle.pct);
+        makeModelWrap.style.display = (ch.passenger_kinds.indexOf(f.vehicle_kind) !== -1) ? "" : "none";
+      }
+      // A tab is a button: label + its section's % on top, a thin fill bar beneath.
+      function makeTab(label) {
+        const el = document.createElement("button"); el.type = "button"; el.className = "inr-tab";
+        const top = document.createElement("span"); top.className = "inr-tab__top";
+        const l = document.createElement("span"); l.className = "inr-tab__label"; l.textContent = label;
+        const pct = document.createElement("span"); pct.className = "inr-tab__pct";
+        top.appendChild(l); top.appendChild(pct);
+        const track = document.createElement("span"); track.className = "inr-tab__track";
+        const fill = document.createElement("span"); fill.className = "inr-tab__fill"; track.appendChild(fill);
+        el.appendChild(top); el.appendChild(track);
+        return { el: el, set: function (p) { fill.style.width = p + "%"; pct.textContent = p + "%"; } };
+      }
+
+      // ── Field builders (chips single/multi, stepper, searchable select) ──────
+      function fieldWrap(labelText) {
+        const w = document.createElement("div"); w.className = "inr-field";
+        const l = document.createElement("label"); l.textContent = labelText; w.appendChild(l);
+        return w;
+      }
+      // Single-select chips (gender). choices: [[code,label],…]
+      function chipSingle(w, choices, getVal, setVal) {
+        const row = document.createElement("div"); row.className = "inr-chips";
+        choices.forEach(function (pair) {
+          const b = document.createElement("button"); b.type = "button"; b.className = "inr-optchip";
+          b.textContent = pair[1]; b.setAttribute("data-code", pair[0]);
+          if (getVal() === pair[0]) b.classList.add("inr-optchip--on");
+          b.addEventListener("click", function () {
+            setVal(getVal() === pair[0] ? "" : pair[0]); // tap again clears
+            row.querySelectorAll(".inr-optchip").forEach(function (c) {
+              c.classList.toggle("inr-optchip--on", c.getAttribute("data-code") === getVal());
+            });
+            refreshMeters();
+          });
+          row.appendChild(b);
+        });
+        w.appendChild(row);
+      }
+      // Multi-select chips (reasons, languages). arr is the working array of codes.
+      function chipMulti(w, choices, arr) {
+        const row = document.createElement("div"); row.className = "inr-chips";
+        choices.forEach(function (pair) {
+          const b = document.createElement("button"); b.type = "button"; b.className = "inr-optchip"; b.textContent = pair[1];
+          if (arr.indexOf(pair[0]) !== -1) b.classList.add("inr-optchip--on");
+          b.addEventListener("click", function () {
+            const i = arr.indexOf(pair[0]);
+            if (i === -1) { arr.push(pair[0]); b.classList.add("inr-optchip--on"); }
+            else { arr.splice(i, 1); b.classList.remove("inr-optchip--on"); }
+            refreshMeters();
+          });
+          row.appendChild(b);
+        });
+        w.appendChild(row);
+      }
+      // Searchable select for long lists (country, plate country). choices pairs [code,name].
+      function searchSelect(w, choices, placeholder, getVal, setVal) {
+        const input = document.createElement("input"); input.type = "text"; input.className = "inr-cohitch-input";
+        input.placeholder = placeholder; input.setAttribute("autocomplete", "off");
+        const cur = choices.find(function (p) { return p[0] === getVal(); });
+        if (cur) input.value = cur[1];
+        const list = document.createElement("ul"); list.className = "inr-cohitch-suggest"; list.style.display = "none";
+        const wrap = document.createElement("div"); wrap.className = "inr-cohitch-inputwrap";
+        wrap.appendChild(input); wrap.appendChild(list); w.appendChild(wrap);
+        input.addEventListener("input", function () {
+          const q = input.value.trim().toLowerCase();
+          list.innerHTML = "";
+          if (!q) { list.style.display = "none"; setVal(""); refreshMeters(); return; }
+          choices.filter(function (p) { return p[1].toLowerCase().indexOf(q) !== -1; }).slice(0, 8).forEach(function (p) {
+            const li = document.createElement("li"); li.textContent = p[1];
+            li.addEventListener("mousedown", function (e) { e.preventDefault(); input.value = p[1]; setVal(p[0]); list.style.display = "none"; refreshMeters(); });
+            list.appendChild(li);
+          });
+          list.style.display = list.children.length ? "block" : "none";
+        });
+      }
+
+      // Number-plate country: search by the code shown on the plate (e.g. "D", "F",
+      // "GB") OR the country name, matching the historic "log a past ride" form.
+      // triples are [iso_alpha2, plate_code, name]; we store the ISO alpha-2.
+      function plateSelect(w, triples, getVal, setVal) {
+        const input = document.createElement("input"); input.type = "text"; input.className = "inr-cohitch-input";
+        input.placeholder = "License plate code (e.g. D, F, GB)…"; input.setAttribute("autocomplete", "off");
+        const cur = triples.find(function (t) { return t[0] === getVal(); });
+        if (cur) input.value = cur[1];
+        const list = document.createElement("ul"); list.className = "inr-cohitch-suggest"; list.style.display = "none";
+        const wrap = document.createElement("div"); wrap.className = "inr-cohitch-inputwrap";
+        wrap.appendChild(input); wrap.appendChild(list); w.appendChild(wrap);
+        input.addEventListener("input", function () {
+          const q = input.value.trim().toLowerCase();
+          list.innerHTML = "";
+          if (!q) { list.style.display = "none"; setVal(""); refreshMeters(); return; }
+          triples.filter(function (t) { return t[1].toLowerCase().indexOf(q) !== -1 || t[2].toLowerCase().indexOf(q) !== -1; }).slice(0, 8).forEach(function (t) {
+            const li = document.createElement("li"); li.textContent = t[1] + " — " + t[2];
+            li.addEventListener("mousedown", function (e) { e.preventDefault(); input.value = t[1]; setVal(t[0]); list.style.display = "none"; refreshMeters(); });
+            list.appendChild(li);
+          });
+          list.style.display = list.children.length ? "block" : "none";
+        });
+      }
+      // Tag autocomplete (LinkedIn-skill style): type to search, tap a suggestion to add
+      // it as a removable tag. arr is the working array of codes; already-added codes are
+      // excluded from suggestions. choices are [code, name] pairs.
+      function tagAutocomplete(w, choices, arr) {
+        const wrap = document.createElement("div"); wrap.className = "inr-cohitch-inputwrap";
+        const tags = document.createElement("div"); tags.className = "inr-tags";
+        const input = document.createElement("input"); input.type = "text"; input.className = "inr-cohitch-input";
+        input.placeholder = "Type a language…"; input.setAttribute("autocomplete", "off");
+        const list = document.createElement("ul"); list.className = "inr-cohitch-suggest"; list.style.display = "none";
+        wrap.appendChild(tags); wrap.appendChild(input); wrap.appendChild(list); w.appendChild(wrap);
+        function nameFor(code) { const p = choices.find(function (c) { return c[0] === code; }); return p ? p[1] : code; }
+        function renderTags() {
+          tags.innerHTML = "";
+          arr.forEach(function (code) {
+            const t = document.createElement("span"); t.className = "inr-tag"; t.textContent = nameFor(code);
+            const x = document.createElement("button"); x.type = "button"; x.className = "inr-tag__x"; x.setAttribute("aria-label", "Remove"); x.innerHTML = "&times;";
+            x.addEventListener("click", function () { const i = arr.indexOf(code); if (i !== -1) arr.splice(i, 1); renderTags(); refreshMeters(); });
+            t.appendChild(x); tags.appendChild(t);
+          });
+        }
+        input.addEventListener("input", function () {
+          const q = input.value.trim().toLowerCase();
+          list.innerHTML = "";
+          if (!q) { list.style.display = "none"; return; }
+          choices.filter(function (p) { return arr.indexOf(p[0]) === -1 && p[1].toLowerCase().indexOf(q) !== -1; }).slice(0, 8).forEach(function (p) {
+            const li = document.createElement("li"); li.textContent = p[1];
+            li.addEventListener("mousedown", function (e) {
+              e.preventDefault();
+              if (arr.indexOf(p[0]) === -1) arr.push(p[0]);
+              input.value = ""; list.style.display = "none"; renderTags(); refreshMeters();
+            });
+            list.appendChild(li);
+          });
+          list.style.display = list.children.length ? "block" : "none";
+        });
+        renderTags();
+      }
+
+      // ── Driver tab ───────────────────────────────────────────────────────────
+      const reasonF = fieldWrap("Why did they pick you up?"); chipMulti(reasonF, ch.reasons, f.driver_reason_to_pick_up); driverPanel.appendChild(reasonF);
+      const genderF = fieldWrap("Driver gender"); chipSingle(genderF, ch.genders, function () { return f.driver_gender; }, function (v) { f.driver_gender = v; }); driverPanel.appendChild(genderF);
+      const ageF = fieldWrap("Approx. driver age");
+      const ageHelp = document.createElement("div"); ageHelp.className = "inr-field__help"; ageHelp.textContent = "A rough guess is fine."; ageF.appendChild(ageHelp);
+      const age = document.createElement("input"); age.type = "number"; age.min = "0"; age.max = "120"; age.className = "inr-cohitch-input"; age.inputMode = "numeric";
+      if (f.driver_age !== "") age.value = f.driver_age;
+      age.addEventListener("input", function () { f.driver_age = age.value === "" ? "" : parseInt(age.value, 10); refreshMeters(); });
+      ageF.appendChild(age); driverPanel.appendChild(ageF);
+      const originF = fieldWrap("Driver's country"); searchSelect(originF, ch.countries, "Search country…", function () { return f.driver_origin_country; }, function (v) { f.driver_origin_country = v; }); driverPanel.appendChild(originF);
+      const langF = fieldWrap("Languages spoken"); tagAutocomplete(langF, ch.languages, f.driver_languages); driverPanel.appendChild(langF);
+
+      // ── Vehicle tab ──────────────────────────────────────────────────────────
+      const kindF = fieldWrap("Vehicle");
+      chipSingle(kindF, ch.vehicle_kinds.map(function (p) { return [p[0], p[1] + " " + p[0]]; }), function () { return f.vehicle_kind; }, function (v) { f.vehicle_kind = v; });
+      vehiclePanel.appendChild(kindF);
+      const plateF = fieldWrap("Number-plate country"); plateSelect(plateF, ch.plate_countries, function () { return f.vehicle_license_plate_country; }, function (v) { f.vehicle_license_plate_country = v; }); vehiclePanel.appendChild(plateF);
+      // make/model — passenger vehicles only, optional (not scored). Hidden for other kinds by refreshMeters().
+      const makeModelWrap = document.createElement("div");
+      const makeF = fieldWrap("Make (optional)"); const make = document.createElement("input"); make.type = "text"; make.className = "inr-cohitch-input"; make.value = f.vehicle_make; make.addEventListener("input", function () { f.vehicle_make = make.value; refreshMeters(); }); makeF.appendChild(make); makeModelWrap.appendChild(makeF);
+      const modelF = fieldWrap("Model (optional)"); const model = document.createElement("input"); model.type = "text"; model.className = "inr-cohitch-input"; model.value = f.vehicle_model; model.addEventListener("input", function () { f.vehicle_model = model.value; refreshMeters(); }); modelF.appendChild(model); makeModelWrap.appendChild(modelF);
+      vehiclePanel.appendChild(makeModelWrap);
+
+      const saveBtn = document.createElement("button");
+      saveBtn.type = "button"; saveBtn.className = "inr-big inr-big--green inr-sheet__save";
+      saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> Save details';
+      saveBtn.addEventListener("click", function () { close(); onSave(f); });
+      sheet.appendChild(saveBtn);
+
+      function close() {
+        if (scrim.parentNode) scrim.parentNode.removeChild(scrim);
+        if (sheet.parentNode) sheet.parentNode.removeChild(sheet);
+        journeyUI._openDialog = null;
+      }
+      scrim.addEventListener("click", close);
+      document.body.appendChild(scrim); document.body.appendChild(sheet);
+      journeyUI._openDialog = { close };
+      showTab("driver");
+      refreshMeters();
+      return { close };
+    },
+
+    // Start-of-journey modal: optional co-hitcher entry (reuses /search_usernames).
+    // onStart(coHitchhikers[]) fires on "Start hitching"; dismissing aborts the start.
+    coHitcherSheet(onStart) {
+      if (journeyUI._openDialog) journeyUI._openDialog.close();
+      const selected = [];
+      const self = (window.USERNAME || "").toLowerCase();
+
+      const scrim = document.createElement("div");
+      scrim.className = "inride-scrim";
+      const sheet = document.createElement("div");
+      sheet.className = "inr-sheet";
+
+      const grab = document.createElement("div");
+      grab.className = "inr-sheet__grab";
+      sheet.appendChild(grab);
+
+      const closeX = document.createElement("button");
+      closeX.type = "button";
+      closeX.className = "inr-sheet__close";
+      closeX.setAttribute("aria-label", "Close");
+      closeX.innerHTML = "&times;";
+      closeX.addEventListener("click", function () { close(); });
+      sheet.appendChild(closeX);
+
+      const titleEl = document.createElement("h4");
+      titleEl.textContent = "Anybody hitching with you";
+      sheet.appendChild(titleEl);
+
+      // Logged-in confirmation line ("You're hitching as @name"); omitted when anonymous.
+      if (window.USERNAME) {
+        const who = document.createElement("p");
+        who.className = "inr-sheet__sub";
+        who.textContent = "You're hitching as @" + window.USERNAME;
+        sheet.appendChild(who);
+      }
+
+      const field = document.createElement("div");
+      field.className = "inr-field";
+      const chips = document.createElement("div");
+      chips.className = "inr-cohitch-chips";
+      field.appendChild(chips);
+
+      const inputWrap = document.createElement("div");
+      inputWrap.className = "inr-cohitch-inputwrap";
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "inr-cohitch-input";
+      input.setAttribute("autocomplete", "off");
+      input.setAttribute("maxlength", "32");
+      input.placeholder = "Add co-hitchhiker username…";
+      const suggest = document.createElement("ul");
+      suggest.className = "inr-cohitch-suggest";
+      suggest.style.display = "none";
+      inputWrap.appendChild(input);
+      inputWrap.appendChild(suggest);
+      field.appendChild(inputWrap);
+      sheet.appendChild(field);
+
+      // "Add anonymous" — a co-hitcher with no account. Multiple are allowed; the
+      // backend counts "Anonymous" entries in co_hitchhiker into anonymous occupants.
+      const anonBtn = document.createElement("button");
+      anonBtn.type = "button";
+      anonBtn.className = "inr-cohitch-anon";
+      anonBtn.innerHTML = '<i class="fa-solid fa-user-secret" aria-hidden="true"></i> Add anonymous';
+      anonBtn.addEventListener("click", function () { addAnonymous(); });
+      sheet.appendChild(anonBtn);
+
+      function renderChips() {
+        chips.innerHTML = "";
+        selected.forEach(function (name) {
+          const chip = document.createElement("span");
+          chip.className = "inr-cohitch-chip";
+          chip.textContent = name;
+          const x = document.createElement("button");
+          x.type = "button";
+          x.className = "inr-cohitch-chip__x";
+          x.setAttribute("aria-label", "Remove " + name);
+          x.innerHTML = "&times;";
+          x.addEventListener("click", function () {
+            const i = selected.indexOf(name);
+            if (i !== -1) selected.splice(i, 1);
+            renderChips();
+          });
+          chip.appendChild(x);
+          chips.appendChild(chip);
+        });
+      }
+
+      function addName(name) {
+        name = (name || "").trim();
+        // Skip blanks, the creator's own username, and duplicates (case-insensitive).
+        if (!name || name.toLowerCase() === self) { input.value = ""; return; }
+        if (selected.some(function (n) { return n.toLowerCase() === name.toLowerCase(); })) { input.value = ""; return; }
+        selected.push(name);
+        renderChips();
+        input.value = "";
+        suggest.style.display = "none";
+      }
+
+      function addAnonymous() {
+        // No account, so no username to dedupe/self-exclude — and multiple anonymous
+        // co-hitchers are allowed (the backend counts each "Anonymous" entry).
+        selected.push("Anonymous");
+        renderChips();
+      }
+
+      let debounce = null;
+      input.addEventListener("input", function () {
+        const q = input.value.trim();
+        if (debounce) clearTimeout(debounce);
+        if (q.length < 1) { suggest.style.display = "none"; return; }
+        debounce = setTimeout(function () {
+          fetch("/search_usernames?q=" + encodeURIComponent(q))
+            .then(function (r) { return r.json(); })
+            .then(function (names) {
+              suggest.innerHTML = "";
+              if (!names || names.length === 0) { suggest.style.display = "none"; return; }
+              names.forEach(function (name) {
+                const li = document.createElement("li");
+                li.textContent = name;
+                // mousedown (not click) so it fires before the input's blur.
+                li.addEventListener("mousedown", function (e) { e.preventDefault(); addName(name); });
+                suggest.appendChild(li);
+              });
+              suggest.style.display = "block";
+            })
+            .catch(function () { suggest.style.display = "none"; });
+        }, 200);
+      });
+
+      const startBtn = document.createElement("button");
+      startBtn.type = "button";
+      startBtn.className = "inr-big inr-big--green inr-sheet__save";
+      startBtn.innerHTML = '<i class="fa-solid fa-thumbs-up"></i> Start hitching';
+      startBtn.addEventListener("click", function () {
+        // Fold a half-typed username into the list so it isn't silently lost.
+        if (input.value.trim()) addName(input.value);
+        const list = selected.slice();
+        close();
+        onStart(list);
+      });
+      sheet.appendChild(startBtn);
+
+      function close() {
+        if (scrim.parentNode) scrim.parentNode.removeChild(scrim);
+        if (sheet.parentNode) sheet.parentNode.removeChild(sheet);
+        journeyUI._openDialog = null;
+      }
+      // Scrim tap dismisses WITHOUT starting (abort) — no journey begins.
       scrim.addEventListener("click", close);
 
       document.body.appendChild(scrim);
@@ -1066,7 +1508,48 @@
       return { close };
     },
 
-    dialog({ title, body, actions, onClose, centered }) {
+    // Optional nudge on Finish: if driver/vehicle details are incomplete, offer to add
+    // them before saving. "Add details" opens the details sheet then continues; "Skip"
+    // continues straight to the forced would-ride-again gate. Never blocks — details are
+    // optional. seed is the current j.details; onAdd(fields) fires after a save, onSkip()
+    // when the user declines. Callers skip this entirely at 100% (nothing to nudge).
+    finishNudge(pct, seed, onAdd, onSkip) {
+      // `forced` (no scrim dismissal) so the only exits are the two explicit buttons —
+      // both proceed the finish, exactly once. Routing a scrim-dismiss through dialog's
+      // onClose would double-fire on the "Add details" tap (close() runs before onClick).
+      journeyUI.dialog({
+        title: "Add driver & vehicle details?",
+        body: "This ride is " + pct + "% complete. Help your fellow hitchers?",
+        centered: true,
+        forced: true,
+        actions: [
+          // "Add details" opens the details sheet (which closes this dialog via the
+          // single-flight guard); its Save fires onAdd, which then continues the finish.
+          { label: "Add details", cls: "inr-go", onClick: function () {
+            journeyUI.detailsSheet(seed, function (fields) { onAdd(fields); });
+          } },
+          { label: "Skip", cls: "inr-grey", onClick: function () { onSkip(); } },
+        ],
+      });
+    },
+
+    // Forced would-ride-again gate on finish: a required Yes/No with no dismissal.
+    // Deliberately NOT part of the completeness score — a per-ride sentiment we always
+    // capture, independent of the demographic points.
+    wouldRideAgainSheet(onAnswer) {
+      journeyUI.dialog({
+        title: "Would you accept this ride again?",
+        body: "One quick question before we save this ride.",
+        centered: true,
+        forced: true,
+        actions: [
+          { label: "Yes", cls: "inr-go",   onClick: function () { onAnswer(true); } },
+          { label: "No",  cls: "inr-grey", onClick: function () { onAnswer(false); } },
+        ],
+      });
+    },
+
+    dialog({ title, body, actions, onClose, centered, forced }) {
       // Close any already-open dialog so rapid re-triggers don't stack overlays.
       if (journeyUI._openDialog) journeyUI._openDialog.close();
 
@@ -1112,8 +1595,10 @@
 
       card.appendChild(actionsEl);
 
-      // Tap the scrim (outside the card) to cancel.
-      scrim.addEventListener("click", close);
+      // Tap the scrim (outside the card) to cancel — unless the dialog is `forced`
+      // (a required answer, e.g. would-ride-again on finish), where there is no way out
+      // but the action buttons.
+      if (!forced) scrim.addEventListener("click", close);
 
       document.body.appendChild(scrim);
       document.body.appendChild(card);
@@ -1588,11 +2073,15 @@
       localStorage.removeItem(PENDING_KEY);
       // return is INSIDE the try so a malformed PENDING_KEY that throws falls through
       // to the store-resume path below instead of short-circuiting the whole init.
-      try { const p = JSON.parse(pend); journeyFlow.start(L.latLng(p.lat, p.lon)); return; } catch (e) {}
+      try { const p = JSON.parse(pend); journeyFlow.beginWithCoHitchers(L.latLng(p.lat, p.lon)); return; } catch (e) {}
     } else if (pend) {
       // Returned still anonymous (login cancelled or failed) — discard the stash.
       localStorage.removeItem(PENDING_KEY);
     }
+
+    // Non-blocking load of score weights and driver-info choices so the in-ride sheet
+    // can render and score synchronously once the user reaches the demographics step.
+    loadDemographicData();
 
     const j = journeyStore.get();
     if (!j) return;

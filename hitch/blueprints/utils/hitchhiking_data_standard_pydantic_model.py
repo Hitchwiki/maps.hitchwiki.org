@@ -18,6 +18,7 @@ class MethodEnum(str, Enum):
     invited = "invited"
     prearranged = "prearranged"
 
+
 class Signal(BaseModel, use_enum_values=True):
     methods: list[MethodEnum]
     sign_content: Optional[str] = None
@@ -34,6 +35,7 @@ class ReasonEnum(str, Enum):
     business = "business"
     recreational = "recreational"
 
+
 class Ride(BaseModel, use_enum_values=True):
     vehicle_destination: Optional[Location] = None
     reasons: Optional[list[ReasonEnum]] = None
@@ -44,6 +46,7 @@ class GenderEnum(str, Enum):
     female = "female"
     non_binary = "non_binary"
     prefer_not_to_say = "prefer_not_to_say"
+
 
 class Person(BaseModel, use_enum_values=True):
     origin_location: Optional[str] = None
@@ -78,6 +81,7 @@ class PositiveExperienceEnum(str, Enum):
     interesting = "interesting"
     felt_safe = "felt_safe"
     comfortable = "comfortable"
+
 
 class NegativeExperienceEnum(str, Enum):
     unfriendly = "unfriendly"
@@ -114,6 +118,7 @@ class KindEnum(str, Enum):
     ferry = "ferry"
     boat = "boat"
 
+
 class ModeOfTranportation(BaseModel, use_enum_values=True):
     kind: KindEnum = Field(...)
     make: Optional[str] = None
@@ -133,20 +138,24 @@ class ReasonToHitchhikeEnum(str, Enum):
     environmental = "environmental"
     fundraising = "fundraising"
 
+
 class Hitchhiker(Person, use_enum_values=True):
     nickname: Optional[str] = None  # Nickname of the hitchhiker. Assumed unique within the data source.
     hitchhiking_since: Optional[int] = None  # The year the person hitchhiked for the first time.
     reasons_to_hitchhike: Optional[list[ReasonToHitchhikeEnum]] = None  # Reasons for a specific hitchhiking ride.
+
 
 class GiftKindEnum(str, Enum):
     money = "money"
     food = "food"
     goods = "goods"
 
+
 class Gift(BaseModel, use_enum_values=True):
     kind: GiftKindEnum = Field(...)
     description: Optional[str] = None
     price: Optional[tuple[float, str]] = None  # [amount, currency]
+
 
 class DeclinedRideReasonEnum(str, Enum):
     wrong_direction = "wrong_direction"
@@ -156,6 +165,7 @@ class DeclinedRideReasonEnum(str, Enum):
     safety_concern = "safety_concern"
     space_missing = "space_missing"
     too_slow = "too_slow"
+
 
 class DeclinedRide(BaseModel, use_enum_values=True):
     destination: Optional[Location] = None
