@@ -18,7 +18,7 @@ from hitch.blueprints.utils.ride_score import score_fields
 from hitch.extensions import db, security
 from hitch.forms import UserEditForm
 from hitch.helpers import get_db, get_dirs, haversine_np
-from hitch.models import CoHitchhiker, Follow, Notification, RideEvent, RideReport, Trip, TripRide, User
+from hitch.models import CoHitchhiker, Follow, Notification, RideEvent, RidePlace, RideReport, Trip, TripRide, User
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
 
@@ -78,28 +78,22 @@ def get_user():
 # user to the full profile rather than shipping an unbounded ride list to every opener.
 RIDES_IN_MODAL_CAP = 50
 
-# dist/ride_places.json, keyed by d_tag -> {"from": ..., "to": ...}. Written offline by
-# hitch/scripts/ride_places.py: reverse_geocoder costs ~150 MB resident, which we refuse
-# to carry in every web worker on this host just to print a city name.
-_ride_places_cache = {"mtime": None, "data": {}}
 
+def _ride_places(d_tags):
+    """Place names for the given rides, as {d_tag: RidePlace}.
 
-def _ride_places():
-    """Place names for every ride, reloaded only when the generated file changes."""
-    path = os.path.join(get_dirs()["dist"], "ride_places.json")
-    try:
-        mtime = os.path.getmtime(path)
-    except OSError:
-        # Not generated yet (fresh deploy, or cron hasn't run). Rides simply go unlabelled.
+    Looks up only the d_tags actually being rendered. An earlier version cached the whole
+    corpus as a JSON blob; at ~70 000 rides that is ~7 MB on disk and ~33 MB of parsed
+    dict resident in every waitress worker, to answer a question about 50 rides.
+
+    Rows are absent until hitch/scripts/ride_places.py has run for a ride, so callers must
+    treat a miss as "not geocoded yet" rather than an error.
+    """
+    tags = [t for t in d_tags if t]
+    if not tags:
         return {}
-    if _ride_places_cache["mtime"] != mtime:
-        try:
-            with open(path) as f:
-                _ride_places_cache["data"] = json.load(f)
-            _ride_places_cache["mtime"] = mtime
-        except (OSError, ValueError):
-            return _ride_places_cache["data"]
-    return _ride_places_cache["data"]
+    rows = RidePlace.query.filter(RidePlace.d_tag.in_(tags)).all()
+    return {row.d_tag: row for row in rows}
 
 
 @user_bp.route("/me.json", methods=["GET"])
@@ -114,16 +108,18 @@ def me_json():
         resp = jsonify({"logged_in": False})
     else:
         rides = _get_rides_for_user(current_user)
-        places = _ride_places()
+        visible = rides[:RIDES_IN_MODAL_CAP]
+        # One bounded lookup for exactly the rides we are about to render.
+        places = _ride_places([r.get("d_tag") for r in visible])
         shown = []
-        for ride in rides[:RIDES_IN_MODAL_CAP]:
+        for ride in visible:
             entry = {k: v for k, v in ride.items() if k != "submission_sort_key"}
-            place = places.get(entry.get("d_tag")) or {}
-            entry["from_place"] = place.get("from")
-            entry["to_place"] = place.get("to")
+            place = places.get(entry.get("d_tag"))
+            entry["from_place"] = place.from_place if place else None
+            entry["to_place"] = place.to_place if place else None
             # ISO alpha-2; the client renders it as a flag emoji.
-            entry["from_cc"] = place.get("from_cc")
-            entry["to_cc"] = place.get("to_cc")
+            entry["from_cc"] = place.from_cc if place else None
+            entry["to_cc"] = place.to_cc if place else None
             shown.append(entry)
 
         total_rides = current_user.total_rides or 0

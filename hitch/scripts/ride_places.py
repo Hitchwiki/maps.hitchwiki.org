@@ -1,24 +1,33 @@
-"""Reverse-geocode every ride's endpoints into place names, offline.
+"""Reverse-geocode ride endpoints into place names, offline and incrementally.
 
-Writes dist/ride_places.json:
+Fills the `ride_place` table: one row per ride `d` tag, holding the origin and
+destination place names plus their ISO country codes.
 
-    {"<d_tag>": {"from": "Metzeral", "from_cc": "FR", "to": "Mitte", "to_cc": "DE"}, ...}
+    d_tag | from_place | from_cc | to_place     | to_cc
+    ------+------------+---------+--------------+------
+    abc   | Metzeral   | FR      | Schweighofen | DE
 
-Used by the account modal (issue #106) to label a ride "Metzeral → Mitte" instead of
-showing bare coordinates.
+Consumed by the account modal (#106) and, via show.py, by every ride the map renders.
 
-Why a cron script rather than doing this in the request:
-`reverse_geocoder` costs ~150 MB resident once its index is built. Loading that into
-every waitress worker on a host the OOM killer has already visited (see CLAUDE.md) is
-not worth a place name. Here the cost is one transient process, and the app only ever
-reads a small JSON file — the same shape as show.py / country_ratings.py.
+Three decisions worth knowing:
 
+**Why a cron script, not a request.** `reverse_geocoder` costs ~150 MB resident once its
+index builds (measured). Loading that into every waitress worker on a host the OOM killer
+has already visited (CLAUDE.md) is not worth a city name. Here it is one transient
+process; queries are ~0.1 ms once warm, so the whole corpus resolves in a single batch.
+
+**Why its own table, not columns on ride_event.** fetch_nostr deletes and rebuilds
+ride_event wholesale every 30 minutes. Place names stored there would be destroyed twice
+an hour and re-geocoded from nothing.
+
+**Why not a JSON blob in dist/.** At ~70 000 rides that file is ~7 MB, and any process
+reading it holds ~33 MB of parsed dict. A table lets a request look up the handful of
+d_tags it actually needs.
+
+Only rides missing from the table are geocoded, so steady-state runs are nearly free.
 Names prefer the populated place (`name`), falling back to the administrative division
 (`admin1`, e.g. "Berlin", "Lombardy") and finally the country code, so a ride in the
 middle of nowhere still gets a meaningful label.
-
-Rides are geocoded in ONE batched rg.search call: the index build dominates, and a
-single query for 20 000 points costs about the same as a query for one.
 """
 
 import json
@@ -35,12 +44,16 @@ logger = logging.getLogger(__name__)
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 DATABASE_NAME = os.getenv("DATABASE_NAME", "hitchhiking-prod.sqlite")
 DATABASE_URI = os.getenv("DATABASE_URI", os.path.join(BASE_DIR, "db", DATABASE_NAME))
-DIST_DIR = os.path.join(BASE_DIR, "dist")
-OUTPUT_JSON = os.path.join(DIST_DIR, "ride_places.json")
 
-# Matches show.py / country_ratings.py: a "destination" closer than this is treated as
-# no destination at all, so we don't label a ride "Berlin → Berlin".
-MIN_RIDE_DISTANCE_KM = 1
+CREATE_TABLE = """
+CREATE TABLE IF NOT EXISTS ride_place (
+    d_tag      VARCHAR(255) PRIMARY KEY,
+    from_place VARCHAR(255),
+    from_cc    VARCHAR(2),
+    to_place   VARCHAR(255),
+    to_cc      VARCHAR(2)
+)
+"""
 
 
 def _label(hit):
@@ -71,13 +84,20 @@ def _coords_from_stops(stops):
 def main():
     conn = sqlite3.connect(DATABASE_URI)
     conn.row_factory = sqlite3.Row
+    conn.execute(CREATE_TABLE)
+    conn.commit()
+
+    known = {row[0] for row in conn.execute("SELECT d_tag FROM ride_place")}
     rows = conn.execute("SELECT d, content FROM ride_event WHERE d IS NOT NULL").fetchall()
-    conn.close()
 
     # Collect every point once, remembering which ride slot it belongs to, so the whole
-    # corpus resolves in a single query.
+    # backlog resolves in a single query. Rides already geocoded are skipped: a ride's
+    # coordinates never change (an edit republishes under the same d tag, and the map
+    # only ever gains rides), so a row once written stays correct.
     points, slots = [], []
     for row in rows:
+        if row["d"] in known:
+            continue
         try:
             content = json.loads(row["content"]) if isinstance(row["content"], str) else (row["content"] or {})
         except (TypeError, ValueError):
@@ -91,13 +111,11 @@ def main():
             slots.append((row["d"], "to"))
 
     if not points:
-        logger.info("No ride coordinates to geocode.")
-        os.makedirs(DIST_DIR, exist_ok=True)
-        with open(OUTPUT_JSON, "w") as f:
-            json.dump({}, f)
+        logger.info("Nothing new to geocode (%d rides already resolved).", len(known))
+        conn.close()
         return
 
-    logger.info("Reverse-geocoding %d points across %d rides", len(points), len(rows))
+    logger.info("Reverse-geocoding %d points for %d new rides", len(points), len({d for d, _ in slots}))
     hits = rg.search(points, mode=1, verbose=False)
 
     places = {}
@@ -116,10 +134,16 @@ def main():
             entry.pop("to")
             entry.pop("to_cc", None)
 
-    os.makedirs(DIST_DIR, exist_ok=True)
-    with open(OUTPUT_JSON, "w") as f:
-        json.dump(places, f)
-    logger.info("Wrote %s (%d rides)", OUTPUT_JSON, len(places))
+    conn.executemany(
+        "INSERT OR REPLACE INTO ride_place (d_tag, from_place, from_cc, to_place, to_cc) VALUES (?, ?, ?, ?, ?)",
+        [
+            (d_tag, e.get("from"), e.get("from_cc"), e.get("to"), e.get("to_cc"))
+            for d_tag, e in places.items()
+        ],
+    )
+    conn.commit()
+    logger.info("Wrote %d ride_place rows (%d total)", len(places), len(known) + len(places))
+    conn.close()
 
 
 if __name__ == "__main__":

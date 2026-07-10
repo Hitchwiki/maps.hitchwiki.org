@@ -183,3 +183,32 @@ def test_me_json_carries_only_earned_achievements(client, logged_in_user):
     for award in awards:
         assert set(award) == {"emoji", "name", "blurb"}
         assert award["emoji"] and award["name"]
+
+
+def test_ride_places_lookup_is_bounded_to_the_rides_asked_for(app, db):
+    """Place names come from a table, looked up by the d_tags being rendered.
+
+    The first implementation cached the whole corpus as a JSON blob; at ~70 000 rides that
+    is ~7 MB on disk and ~33 MB of parsed dict resident in *every* waitress worker, to
+    answer a question about 50 rides. This pins the bounded behaviour.
+    """
+    from hitch.blueprints.user import _ride_places
+    from hitch.models import RidePlace
+
+    with app.app_context():
+        db.session.add(RidePlace(d_tag="a", from_place="Metzeral", from_cc="FR", to_place="Mitte", to_cc="DE"))
+        db.session.add(RidePlace(d_tag="b", from_place="Milano", from_cc="IT"))
+        db.session.commit()
+
+        found = _ride_places(["a", "missing"])
+        # Only what was asked for, and a miss is simply absent rather than an error.
+        assert set(found) == {"a"}
+        assert found["a"].from_place == "Metzeral"
+        assert found["a"].to_cc == "DE"
+
+        # A ride with no destination stores only its origin.
+        assert _ride_places(["b"])["b"].to_place is None
+
+        # No d_tags -> no query at all.
+        assert _ride_places([]) == {}
+        assert _ride_places([None]) == {}
