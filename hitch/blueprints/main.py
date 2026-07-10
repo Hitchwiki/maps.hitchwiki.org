@@ -1,7 +1,11 @@
+import contextlib
 import json
 import math
 import os
 import re
+import subprocess
+import sys
+import time
 from datetime import datetime
 
 import pandas as pd
@@ -13,6 +17,7 @@ from flask import (
     redirect,
     render_template,
     request,
+    send_file,
     url_for,
 )
 from flask_security import current_user
@@ -105,6 +110,18 @@ def render_map(map_variation):
 SPOT_ID_RE = re.compile(r"^-?\d+\.\d{1,7}_-?\d+\.\d{1,7}$")
 
 
+def _external_https(endpoint, **values):
+    """Absolute https URL, for a meta tag that must not carry an http:// URL.
+
+    Plain url_for(_external=True) yields http:// in production (see deploy/run.sh:
+    waitress strips the X-Forwarded-Proto that ProxyFix would need). Unfurlers and
+    search engines discard an insecure og:image or canonical on an https page, so
+    state the scheme rather than inferring it. Only meta tags use this — the OAuth
+    redirect_uri deliberately keeps whatever url_for infers.
+    """
+    return url_for(endpoint, _external=True, _scheme="https", **values)
+
+
 def _spot_preview(spot_id):
     """Link-preview facts for a spot, or None if we have nothing to say about it.
 
@@ -167,12 +184,136 @@ def render_spot(spot_id):
         map_variation=None,
         spot_title=f"Hitchhiking spot at {lat:.5f}, {lon:.5f}",
         spot_description=_spot_description(preview) if preview else None,
-        spot_url=url_for("main.render_spot", spot_id=spot_id, _external=True),
+        spot_url=_external_https("main.render_spot", spot_id=spot_id),
         hide_add_spot_button=current_app.config.get("HIDE_ADD_SPOT_BUTTON", False),
         hide_account_button=current_app.config.get("HIDE_ACCOUNT_BUTTON", False),
         is_logged_in=not current_user.is_anonymous,
         unread_notifications=unread_count(current_user),
     )
+
+
+# A route endpoint in a shared link: "<lat>,<lon>" at the 5 decimals routing.js writes.
+DIR_POINT_RE = re.compile(r"^-?\d+\.\d{1,7},-?\d+\.\d{1,7}$")
+
+# How long a request will wait for a cold preview to be built. The routing graph
+# takes ~3 s to build, so the first visitor to a route pays for it; messengers
+# give an unfurl roughly ten seconds before they give up.
+PREVIEW_TIMEOUT_S = 25
+
+
+def _parse_dir_point(point):
+    if not DIR_POINT_RE.match(point):
+        abort(404)
+    lat, lon = (float(v) for v in point.split(","))
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        abort(404)
+    return lat, lon
+
+
+def _route_preview(start, dest, build=True):
+    """Cached preview facts for a route, building them on a miss.
+
+    Generation runs in a subprocess (hitch.scripts.route_preview): the routing
+    graph costs ~190 MB, which we don't want resident in every waitress worker
+    on a host that has been OOM-killed before. A lock file makes it single-
+    flight, so a burst of crawler hits on one link can't fork a dozen of them —
+    losers of the race fall back to the generic preview rather than queueing.
+    """
+    key = f"{start[0]:.5f}_{start[1]:.5f}__{dest[0]:.5f}_{dest[1]:.5f}"
+    cached = safe_join(get_dirs()["dist"], "dir", f"{key}.json")
+    if not cached:
+        return key, None
+    if os.path.isfile(cached):
+        try:
+            with open(cached) as f:
+                return key, json.load(f)
+        except (OSError, ValueError):
+            pass
+    if not build:
+        return key, None
+
+    # The lock lives beside the cache entry, so the directory has to exist before
+    # we can take it — on a fresh deploy nothing has written dist/dir/ yet.
+    lock = f"{cached}.lock"
+    try:
+        os.makedirs(os.path.dirname(cached), exist_ok=True)
+        fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError:
+        # A builder that was killed (this host has been OOM-killed before) leaves
+        # its lock behind; without this the route could never be built again.
+        try:
+            stale = time.time() - os.path.getmtime(lock) > 2 * PREVIEW_TIMEOUT_S
+        except OSError:
+            stale = False
+        if not stale:
+            return key, None  # someone else is already building it
+        with contextlib.suppress(OSError):
+            os.unlink(lock)
+        return _route_preview(start, dest, build=True)
+    except OSError:
+        return key, None
+    os.close(fd)
+    try:
+        subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "hitch.scripts.route_preview",
+                "--from",
+                f"{start[0]},{start[1]}",
+                "--to",
+                f"{dest[0]},{dest[1]}",
+            ],
+            cwd=get_dirs()["root"],
+            capture_output=True,
+            timeout=PREVIEW_TIMEOUT_S,
+            check=True,
+        )
+    except (subprocess.SubprocessError, OSError) as e:
+        current_app.logger.warning("route preview failed for %s: %s", key, e)
+        return key, None
+    finally:
+        with contextlib.suppress(OSError):
+            os.unlink(lock)
+    return _route_preview(start, dest, build=False)
+
+
+# Shareable route permalink, mirroring /spot/<id>: the endpoints live in the path
+# rather than the old #dir/<from>/<to> fragment because a fragment never reaches
+# the server, so a pasted route link could never carry its own preview. routing.js
+# reads the path back and reopens the planner; the legacy hash is still accepted
+# and rewritten to this path.
+@main_bp.route("/dir/<start>/<dest>")
+def render_directions(start, dest):
+    s, d = _parse_dir_point(start), _parse_dir_point(dest)
+    _, preview = _route_preview(s, d)
+    return render_template(
+        "map.html",
+        map_variation=None,
+        spot_title=preview["title"] if preview else "Hitchhiking route",
+        spot_description=preview["description"] if preview else None,
+        spot_url=_external_https("main.render_directions", start=start, dest=dest),
+        og_image=_external_https("main.render_directions_preview", start=start, dest=dest) if preview else None,
+        noindex=True,
+        hide_add_spot_button=current_app.config.get("HIDE_ADD_SPOT_BUTTON", False),
+        hide_account_button=current_app.config.get("HIDE_ACCOUNT_BUTTON", False),
+        is_logged_in=not current_user.is_anonymous,
+        unread_notifications=unread_count(current_user),
+    )
+
+
+@main_bp.route("/dir/<start>/<dest>/preview.png")
+def render_directions_preview(start, dest):
+    s, d = _parse_dir_point(start), _parse_dir_point(dest)
+    key, preview = _route_preview(s, d)
+    if not preview:
+        abort(404)
+    path = safe_join(get_dirs()["dist"], "dir", f"{key}.png")
+    if not path or not os.path.isfile(path):
+        abort(404)
+    # The image is a pure function of the coordinates, so it never goes stale in
+    # a way a crawler would notice; let the CDN and the messenger keep it.
+    return send_file(path, mimetype="image/png", max_age=604800)
 
 
 def _ride_to_card(ride):

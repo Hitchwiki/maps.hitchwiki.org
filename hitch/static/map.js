@@ -2337,13 +2337,18 @@ function clearParams() {
 
 const MAP_HASH_RE = /^#?map=(\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)$/;
 const SPOT_PATH_RE = /^\/spot\/(-?\d+\.\d+)_(-?\d+\.\d+)\/?$/;
+// Shared route permalink, written by routing.js (updateShareUrl) and served by
+// Flask's render_directions so the link can carry its own OpenGraph preview.
+const DIR_PATH_RE = /^\/dir\/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)\/?$/;
 
 // The path the map was served under (/, /light, /hitchhiking.html …). Closing a
 // spot must return here, not unconditionally to "/", or the map variations and
-// their template tweaks would be lost on the way back.
-const BASE_PATH = SPOT_PATH_RE.test(window.location.pathname)
-  ? "/"
-  : window.location.pathname;
+// their template tweaks would be lost on the way back. A /spot/ or /dir/ path is
+// selection state, not a variation — both close back to "/".
+const BASE_PATH =
+  SPOT_PATH_RE.test(window.location.pathname) || DIR_PATH_RE.test(window.location.pathname)
+    ? "/"
+    : window.location.pathname;
 
 // Decimals such that one digit of the coordinate is worth about one screen
 // pixel at this zoom — OSM's zoomPrecision. Keeps shared links short at world
@@ -2698,9 +2703,9 @@ async function navigate() {
     }
     // No exact marker match — pan to the coordinates
     map.setView([lat, lon], zoom || 14);
-  } else if (mainArgs[0] == "dir") {
-    // Shareable route link (#dir/from/to) — routing.js (openFromUrl) opens the
-    // planner and computes; don't clear() it out from under it.
+  } else if (mainArgs[0] == "dir" || DIR_PATH_RE.test(window.location.pathname)) {
+    // Shareable route link (/dir/from/to, or the legacy #dir/from/to) — routing.js
+    // (openFromUrl) opens the planner and computes; don't clear() it out from under it.
   } else {
     clear();
   }

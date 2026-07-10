@@ -373,8 +373,18 @@
     const inCountriesMode = typeof getMapMode === "function" && getMapMode() === "countries";
     if (typeof setSpotsVisible === "function" && !inCountriesMode) setSpotsVisible(true);
     map.getContainer().style.cursor = "";
-    // Drop a shared #dir link so closing returns to a clean URL.
-    if (location.hash.slice(1).startsWith("dir/")) history.replaceState(null, "", location.pathname + location.search);
+    // Drop a shared route link so closing returns to a clean URL. The path form
+    // must fall back to BASE_PATH (map.js): leaving "/dir/…" in the address bar
+    // would make the next navigate() reopen the planner we just closed.
+    const dirHash = location.hash.slice(1).startsWith("dir/");
+    if (DIR_PATH_RE.test(location.pathname)) {
+      // BASE_PATH is a top-level const in map.js: a global lexical binding, so it
+      // resolves here but never as a window property.
+      const home = typeof BASE_PATH === "string" ? BASE_PATH : "/";
+      history.replaceState(null, "", home + location.search + (dirHash ? "" : location.hash));
+    } else if (dirHash) {
+      history.replaceState(null, "", location.pathname + location.search);
+    }
   }
 
   // ---- routing + drawing -------------------------------------------------
@@ -449,26 +459,43 @@
       "Try searching for part of the route — e.g. between larger cities along the way.";
   }
 
-  // ---- shareable route URL (#dir/<slat>,<slon>/<dlat>,<dlon>) ------------
+  // ---- shareable route URL (/dir/<slat>,<slon>/<dlat>,<dlon>) ------------
   // Google-Maps-style: the current start+destination live in the URL so the link
-  // reopens the same route. replaceState (not location.hash=) avoids firing a
-  // navigate/hashchange loop; a fresh load / paste is handled in init().
+  // reopens the same route. The endpoints sit in the path, not a #dir/ fragment,
+  // for the same reason spot ids do (see map.js): messengers strip the fragment
+  // when auto-linking a pasted URL — and a fragment never reaches the server, so
+  // a hash link could never carry the OpenGraph preview Flask renders for /dir/.
+  // replaceState (not assignment) avoids firing a navigate/popstate loop; a fresh
+  // load / paste is handled in init().
+  const DIR_PATH_RE = /^\/dir\/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)\/?$/;
+
   function updateShareUrl() {
     if (!RJ.start || !RJ.dest) return;
     const f = RJ.start.latlng, t = RJ.dest.latlng;
-    const h = `#dir/${f[0].toFixed(5)},${f[1].toFixed(5)}/${t[0].toFixed(5)},${t[1].toFixed(5)}`;
-    history.replaceState(null, "", location.pathname + location.search + h);
+    const path = `/dir/${f[0].toFixed(5)},${f[1].toFixed(5)}/${t[0].toFixed(5)},${t[1].toFixed(5)}`;
+    // A legacy #dir hash described this very route; drop it rather than carry a
+    // second, staler copy of the state. A #map= viewport is kept.
+    const hash = location.hash.slice(1).startsWith("dir/") ? "" : location.hash;
+    history.replaceState(null, "", path + location.search + hash);
+  }
+  function parseDirPath(pathname) {
+    const m = DIR_PATH_RE.exec(pathname || "");
+    if (!m) return null;
+    return { from: [+m[1], +m[2]], to: [+m[3], +m[4]] };
   }
   function parseShareUrl(hash) {
-    // "dir/<slat>,<slon>/<dlat>,<dlon>" -> {from:[lat,lon], to:[lat,lon]} or null
+    // Legacy "#dir/<slat>,<slon>/<dlat>,<dlon>" -> {from:[lat,lon], to:[lat,lon]} or null
     const parts = hash.replace(/^#/, "").split("/");
     if (parts[0] !== "dir" || parts.length < 3) return null;
     const a = parts[1].split(",").map(Number), b = parts[2].split(",").map(Number);
     if (a.length !== 2 || b.length !== 2 || a.concat(b).some((n) => !isFinite(n))) return null;
     return { from: a, to: b };
   }
-  function openFromUrl(hash) {
-    const p = parseShareUrl(hash || location.hash);
+  function routeFromUrl() {
+    return parseDirPath(location.pathname) || parseShareUrl(location.hash);
+  }
+  function openFromUrl() {
+    const p = routeFromUrl();
     if (!p) return false;
     open();
     // setPoint fills the input and auto-computes once both ends are set.
@@ -767,9 +794,20 @@
     // set now would be overwritten a moment later.
     // Esc closes the planner.
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && RJ.active) close(); });
-    // A shared/deep #dir link reopens the same route on load and on back/forward.
+    // A shared/deep route link reopens the same route on load and on back/forward.
+    // The canonical form lives in the path, so back/forward onto it is a popstate,
+    // not a hashchange; only reopen when the planner isn't already showing it.
     openFromUrl();
-    window.addEventListener("hashchange", () => { if (parseShareUrl(location.hash)) openFromUrl(); });
+    const reopen = () => {
+      const p = routeFromUrl();
+      if (!p) return;
+      if (RJ.active && RJ.start && RJ.dest &&
+          RJ.start.latlng[0] === p.from[0] && RJ.start.latlng[1] === p.from[1] &&
+          RJ.dest.latlng[0] === p.to[0] && RJ.dest.latlng[1] === p.to[1]) return;
+      openFromUrl();
+    };
+    window.addEventListener("hashchange", reopen);
+    window.addEventListener("popstate", reopen);
   }
 
   function waitFor(cond, cb, tries) {

@@ -143,7 +143,10 @@ self.addEventListener('fetch', (event) => {
             urlObject.search = ''; // Remove query parameters
             // /spot/<lat>_<lon> renders the exact same map template as "/" (the
             // spot is opened client-side), so don't cache one copy per spot.
-            if (/^\/spot\/-?\d+\.\d+_-?\d+\.\d+\/?$/.test(urlObject.pathname))
+            // Same for /dir/<from>/<to>: only its OpenGraph tags differ, and those
+            // are read by crawlers, which don't run the service worker.
+            if (/^\/spot\/-?\d+\.\d+_-?\d+\.\d+\/?$/.test(urlObject.pathname) ||
+                /^\/dir\/-?\d+(\.\d+)?,-?\d+(\.\d+)?\/-?\d+(\.\d+)?,-?\d+(\.\d+)?\/?$/.test(urlObject.pathname))
                 urlObject.pathname = '/';
             return urlObject.toString();
         }

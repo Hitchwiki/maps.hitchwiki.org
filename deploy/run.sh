@@ -16,4 +16,12 @@ service cron start
 # through catch_all(), and a worker is held for the whole file read. The work is file
 # I/O (releases the GIL), so threads parallelise past the 4 cores; slow clients cost
 # nothing here, as waitress writes responses from its single select loop, not a worker.
+#
+# NOTE: url_for(_external=True) emits http:// here. The ProxyFix in create_app()
+# can't fix it: waitress drops X-Forwarded-* from untrusted proxies by default
+# (clear_untrusted_proxy_headers) and Caddy's container IP isn't stable enough to
+# whitelist. Don't "fix" this with --url-scheme=https without first checking that
+# Hitchwiki's OAuth consumer accepts an https redirect_uri — oauth.py builds it
+# with url_for(_external=True), and today's working flow sends http://. Pages that
+# need an absolute https URL (og:image, canonical) pass _scheme="https" explicitly.
 waitress-serve --host=0.0.0.0 --port=4242 --threads=16 --call hitch:create_app

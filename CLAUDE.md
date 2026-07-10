@@ -46,15 +46,19 @@ Modelled on OpenStreetMap's `/node/<id>#map=<zoom>/<lat>/<lon>`. Two independent
 | Part | Carries | Example |
 |---|---|---|
 | Path | Which spot is selected (identity) | `/spot/51.08170_13.73629` |
+| Path | Which route is planned (identity) | `/dir/47.55811,7.58783/52.51739,13.39513` |
 | Hash | Where the camera is (viewport) | `#map=18/51.08170/13.73629` |
 
 - **Identity in the path, not the fragment.** Several messengers strip the `#fragment` when auto-linking a pasted URL, which is why spot coordinates previously lived in `?lat=&lon=`. A path survives; the viewport hash is the part that's harmless to lose.
 - **The spot id is `generate_spot_id()`** (`show.py`): `lat.toFixed(5)_lon.toFixed(5)`. Same id as the `dist/rides/by-spot/<spot_id>.json` filename, so a permalink and its detail file always agree. 5 decimals (~1.1 m) is finer than the 5 m merge radius, so distinct spots never collide.
 - **`/spot/<spot_id>`** (`main.py`, `render_spot`) renders the same `map.html` as `/` — the spot pane still opens client-side. The route exists so the URL survives a round trip, and so the page can emit per-spot OpenGraph tags (title/description/canonical) built from the per-spot JSON file. Any well-formed coordinate returns 200, so pages with no ride data get `<meta name="robots" content="noindex">` to avoid an unbounded space of indexable soft-404s.
+- **`/dir/<slat>,<slon>/<dlat>,<dlon>`** (`main.py`, `render_directions`) is the shareable route link, written by `routing.js` (`updateShareUrl`) and reopened by `openFromUrl`. It replaced the old `#dir/…` fragment for the reason above *and* because a fragment never reaches the server, so it could never carry a link preview. The legacy hash is still accepted and rewritten to this path. Always `noindex`: the space of coordinate pairs is the square of the spot space.
+  - Preview assets are built by `hitch/scripts/route_preview.py` into `dist/dir/<key>.{json,png}` (OG title/description + a 600x315 OSM basemap with the route drawn on it), and served by `render_directions_preview`. Generation runs in a **subprocess**, single-flighted by a `<key>.json.lock` file: the routing graph costs ~190 MB and ~3 s to build, which must not live in the waitress workers on this OOM-prone host. Stale locks (killed builder) are reclaimed after `2 * PREVIEW_TIMEOUT_S`. Cold hit ≈ 4-7 s; afterwards it's a file read. OSM tiles are cached forever under `dist/tiles/<z>/<x>/<y>.png`, so each tile is fetched at most once.
+  - The route facts come from `hitch/scripts/repeatable_router.py` (the Python twin of `static/routing.js` — keep them numerically identical), and the endpoint labels from Photon reverse geocoding, preferring its `city` field over `name` (which is otherwise the nearest street or POI). `reverse_geocoder` is the offline fallback.
 - **The viewport hash is rewritten on `moveend` via `replaceState`**, never `pushState` — a pan is not a navigation. `updateMapHash()` refuses to touch the hash when it holds navigation state (`#menu`, `#routing`, `#country/<name>`, `#insights`, `#dir/…`).
 - **Legacy `?lat=&lon=` and `#lat,lon` links still resolve** and are rewritten in place to the canonical path (`setSpotUrl` → `replaceState`, since canonicalising is not a navigation and `pushState` would make the back button bounce onto a URL that reopens the same spot).
 - Coordinate precision in the hash follows OSM's `zoomPrecision` (`ceil(log(zoom)/LN2)`), so shared links stay short at low zoom. This only affects the map centre, never spot identity.
-- `sw.js` normalises `/spot/<id>` to `/` in its cache key: every spot renders a byte-identical template, so they share one cached copy (and `/spot/…` works offline).
+- `sw.js` normalises `/spot/<id>` and `/dir/<from>/<to>` to `/` in its cache key: both render the same template (only the OG tags differ, and crawlers don't run the service worker), so they share one cached copy and work offline.
 
 ### Key Models
 `hitch/models.py` defines ~15 models; the most relevant:
