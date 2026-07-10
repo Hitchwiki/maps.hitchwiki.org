@@ -2678,6 +2678,60 @@ body.showing-insights .heatmap-legend-pane {
 .inr-meter__fill { height: 100%; background: #1a9850; border-radius: 4px; transition: width .2s ease; }
 .inr-meter__pct { font-size: 11px; color: #777; }
 
+/* ── Driver / Vehicle tabs, each a fill-bar of its section's completeness ── */
+.inr-tabbar { display: flex; gap: 8px; margin: 4px 0 14px; }
+.inr-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: #f4f4f4;
+  border: 1.5px solid #e2e2e2;
+  border-radius: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color .15s ease, background .15s ease;
+}
+.inr-tab--on { background: #fff; border-color: #1a9850; }
+.inr-tab__top { display: flex; align-items: baseline; justify-content: space-between; }
+.inr-tab__label { font-size: 13px; font-weight: 700; color: #333; }
+.inr-tab__pct { font-size: 12px; font-weight: 700; color: #1a9850; }
+.inr-tab__track { height: 6px; background: #e6e6e6; border-radius: 3px; overflow: hidden; }
+.inr-tab__fill { display: block; height: 100%; width: 0; background: #1a9850; border-radius: 3px; transition: width .2s ease; }
+.inr-tabpanel { display: flex; flex-direction: column; }
+
+/* ── Language tags (LinkedIn-skill style): selected chips above the search input ── */
+.inr-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.inr-tags:empty { display: none; }
+.inr-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #e8f5ec;
+  color: #1a7a43;
+  border: 1px solid #bfe3cc;
+  border-radius: 999px;
+  padding: 3px 6px 3px 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.inr-tag__x {
+  border: none;
+  background: rgba(0, 0, 0, .12);
+  color: #1a7a43;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.inr-tag__x:hover { background: rgba(0, 0, 0, .22); }
+
 /* ── Optional comment textarea ── */
 .inr-sheet__textarea {
   width: 100%;

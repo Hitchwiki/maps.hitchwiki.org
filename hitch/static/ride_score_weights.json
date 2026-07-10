@@ -2,18 +2,14 @@
   "driver": {
     "driver_reason_to_pick_up": 15,
     "driver_gender": 15,
-    "driver_age": 10,
+    "driver_age": 20,
     "driver_origin_country": 10,
     "driver_languages": 10
   },
   "vehicle_base": {
     "vehicle_license_plate_country": 20,
-    "vehicle_kind": 10,
-    "commercial": 10
+    "vehicle_kind": 10
   },
-  "vehicle_bonus": {
-    "vehicle_make": 5,
-    "vehicle_model": 5
-  },
+  "vehicle_bonus": {},
   "passenger_kinds": ["car", "van", "camper", "taxi", "motorbike", "scooter"]
 }

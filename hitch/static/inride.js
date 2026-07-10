@@ -668,22 +668,23 @@
       dock.appendChild(finishBtn);
       journeyUI._finishBtn = finishBtn;
 
-      // Demographic entry during the ride: mini-meters + an "Add details" button that
-      // opens the details sheet. Save merges onto j.details (submitted at Finish).
+      // Demographic entry during the ride: ONE chip that both shows the combined
+      // completeness and opens the details sheet. Save merges onto j.details (submitted
+      // at Finish). Drops onto its own row below Finish (see .inr-dock flex-wrap).
       const demoRow = document.createElement("div");
       demoRow.className = "inr-demo-row";
       const s = demographicScores(j.details || {});
-      demoRow.innerHTML =
-        '<span class="inr-demo-meter">Details ' + s.pct + '% complete</span>';
       const addBtn = document.createElement("button");
       addBtn.type = "button"; addBtn.className = "inr-demo-add";
-      addBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Add details';
+      addBtn.innerHTML = s.pct >= 100
+        ? '<i class="fa-solid fa-check"></i> Details complete'
+        : '<i class="fa-solid fa-plus"></i> Add details · ' + s.pct + '%';
       addBtn.addEventListener("click", function () {
         journeyUI.detailsSheet(j.details || {}, function (fields) {
           const cur = journeyStore.get(); if (!cur) return;
           cur.details = Object.assign({}, cur.details, fields);
           journeyStore.set(cur);
-          journeyUI.render(cur); // re-render so the mini-meters update
+          journeyUI.render(cur); // re-render so the chip updates
         });
       });
       demoRow.appendChild(addBtn);
@@ -1013,7 +1014,7 @@
     // names. NOT a submission — the caller merges the result onto the journey.
     detailsSheet(seed, onSave) {
       if (journeyUI._openDialog) journeyUI._openDialog.close();
-      const ch = _choices || { reasons: [], genders: [], languages: [], countries: [], vehicle_kinds: [], passenger_kinds: [] };
+      const ch = _choices || { reasons: [], genders: [], languages: [], countries: [], plate_countries: [], vehicle_kinds: [], passenger_kinds: [] };
       // Working copy of the fields, seeded from `seed`.
       const f = {
         driver_reason_to_pick_up: (seed.driver_reason_to_pick_up || []).slice(),
@@ -1022,7 +1023,6 @@
         driver_origin_country: seed.driver_origin_country || "",
         driver_languages: (seed.driver_languages || []).slice(),
         vehicle_kind: seed.vehicle_kind || "",
-        commercial: seed.commercial === true || seed.commercial === false ? seed.commercial : null,
         vehicle_license_plate_country: seed.vehicle_license_plate_country || "",
         vehicle_make: seed.vehicle_make || "",
         vehicle_model: seed.vehicle_model || "",
@@ -1041,23 +1041,41 @@
 
       const titleEl = document.createElement("h4"); titleEl.textContent = "Driver & vehicle details"; sheet.appendChild(titleEl);
 
-      // ── One live combined meter ─────────────────────────────────────────────
-      const meters = document.createElement("div"); meters.className = "inr-meters";
-      const cMeter = makeMeter("Completeness");
-      meters.appendChild(cMeter.el); sheet.appendChild(meters);
+      // ── Two tabs (Driver / Vehicle), each a fill-bar of its own section's
+      //    completeness. Only the active panel shows; the fill bars update live. ──
+      const tabbar = document.createElement("div"); tabbar.className = "inr-tabbar";
+      const driverPanel = document.createElement("div"); driverPanel.className = "inr-tabpanel";
+      const vehiclePanel = document.createElement("div"); vehiclePanel.className = "inr-tabpanel";
+      const driverTab = makeTab("Driver"); const vehicleTab = makeTab("Vehicle");
+      tabbar.appendChild(driverTab.el); tabbar.appendChild(vehicleTab.el);
+      sheet.appendChild(tabbar); sheet.appendChild(driverPanel); sheet.appendChild(vehiclePanel);
+
+      function showTab(which) {
+        const onDriver = which === "driver";
+        driverPanel.style.display = onDriver ? "" : "none";
+        vehiclePanel.style.display = onDriver ? "none" : "";
+        driverTab.el.classList.toggle("inr-tab--on", onDriver);
+        vehicleTab.el.classList.toggle("inr-tab--on", !onDriver);
+      }
+      driverTab.el.addEventListener("click", function () { showTab("driver"); });
+      vehicleTab.el.addEventListener("click", function () { showTab("vehicle"); });
+
       function refreshMeters() {
         const s = demographicScores(f);
-        cMeter.set(s.pct);
+        driverTab.set(s.driver.pct); vehicleTab.set(s.vehicle.pct);
         makeModelWrap.style.display = (ch.passenger_kinds.indexOf(f.vehicle_kind) !== -1) ? "" : "none";
       }
-      function makeMeter(label) {
-        const el = document.createElement("div"); el.className = "inr-meter";
-        const l = document.createElement("span"); l.className = "inr-meter__label"; l.textContent = label;
-        const barWrap = document.createElement("div"); barWrap.className = "inr-meter__track";
-        const bar = document.createElement("div"); bar.className = "inr-meter__fill"; barWrap.appendChild(bar);
-        const pct = document.createElement("span"); pct.className = "inr-meter__pct";
-        el.appendChild(l); el.appendChild(barWrap); el.appendChild(pct);
-        return { el: el, set: function (p) { bar.style.width = p + "%"; pct.textContent = p + "%"; } };
+      // A tab is a button: label + its section's % on top, a thin fill bar beneath.
+      function makeTab(label) {
+        const el = document.createElement("button"); el.type = "button"; el.className = "inr-tab";
+        const top = document.createElement("span"); top.className = "inr-tab__top";
+        const l = document.createElement("span"); l.className = "inr-tab__label"; l.textContent = label;
+        const pct = document.createElement("span"); pct.className = "inr-tab__pct";
+        top.appendChild(l); top.appendChild(pct);
+        const track = document.createElement("span"); track.className = "inr-tab__track";
+        const fill = document.createElement("span"); fill.className = "inr-tab__fill"; track.appendChild(fill);
+        el.appendChild(top); el.appendChild(track);
+        return { el: el, set: function (p) { fill.style.width = p + "%"; pct.textContent = p + "%"; } };
       }
 
       // ── Field builders (chips single/multi, stepper, searchable select) ──────
@@ -1122,34 +1140,89 @@
         });
       }
 
-      // ── Driver block ─────────────────────────────────────────────────────────
-      const reasonF = fieldWrap("Why did they pick you up?"); chipMulti(reasonF, ch.reasons, f.driver_reason_to_pick_up); sheet.appendChild(reasonF);
-      const genderF = fieldWrap("Driver gender"); chipSingle(genderF, ch.genders, function () { return f.driver_gender; }, function (v) { f.driver_gender = v; }); sheet.appendChild(genderF);
+      // Number-plate country: search by the code shown on the plate (e.g. "D", "F",
+      // "GB") OR the country name, matching the historic "log a past ride" form.
+      // triples are [iso_alpha2, plate_code, name]; we store the ISO alpha-2.
+      function plateSelect(w, triples, getVal, setVal) {
+        const input = document.createElement("input"); input.type = "text"; input.className = "inr-cohitch-input";
+        input.placeholder = "License plate code (e.g. D, F, GB)…"; input.setAttribute("autocomplete", "off");
+        const cur = triples.find(function (t) { return t[0] === getVal(); });
+        if (cur) input.value = cur[1];
+        const list = document.createElement("ul"); list.className = "inr-cohitch-suggest"; list.style.display = "none";
+        const wrap = document.createElement("div"); wrap.className = "inr-cohitch-inputwrap";
+        wrap.appendChild(input); wrap.appendChild(list); w.appendChild(wrap);
+        input.addEventListener("input", function () {
+          const q = input.value.trim().toLowerCase();
+          list.innerHTML = "";
+          if (!q) { list.style.display = "none"; setVal(""); refreshMeters(); return; }
+          triples.filter(function (t) { return t[1].toLowerCase().indexOf(q) !== -1 || t[2].toLowerCase().indexOf(q) !== -1; }).slice(0, 8).forEach(function (t) {
+            const li = document.createElement("li"); li.textContent = t[1] + " — " + t[2];
+            li.addEventListener("mousedown", function (e) { e.preventDefault(); input.value = t[1]; setVal(t[0]); list.style.display = "none"; refreshMeters(); });
+            list.appendChild(li);
+          });
+          list.style.display = list.children.length ? "block" : "none";
+        });
+      }
+      // Tag autocomplete (LinkedIn-skill style): type to search, tap a suggestion to add
+      // it as a removable tag. arr is the working array of codes; already-added codes are
+      // excluded from suggestions. choices are [code, name] pairs.
+      function tagAutocomplete(w, choices, arr) {
+        const wrap = document.createElement("div"); wrap.className = "inr-cohitch-inputwrap";
+        const tags = document.createElement("div"); tags.className = "inr-tags";
+        const input = document.createElement("input"); input.type = "text"; input.className = "inr-cohitch-input";
+        input.placeholder = "Type a language…"; input.setAttribute("autocomplete", "off");
+        const list = document.createElement("ul"); list.className = "inr-cohitch-suggest"; list.style.display = "none";
+        wrap.appendChild(tags); wrap.appendChild(input); wrap.appendChild(list); w.appendChild(wrap);
+        function nameFor(code) { const p = choices.find(function (c) { return c[0] === code; }); return p ? p[1] : code; }
+        function renderTags() {
+          tags.innerHTML = "";
+          arr.forEach(function (code) {
+            const t = document.createElement("span"); t.className = "inr-tag"; t.textContent = nameFor(code);
+            const x = document.createElement("button"); x.type = "button"; x.className = "inr-tag__x"; x.setAttribute("aria-label", "Remove"); x.innerHTML = "&times;";
+            x.addEventListener("click", function () { const i = arr.indexOf(code); if (i !== -1) arr.splice(i, 1); renderTags(); refreshMeters(); });
+            t.appendChild(x); tags.appendChild(t);
+          });
+        }
+        input.addEventListener("input", function () {
+          const q = input.value.trim().toLowerCase();
+          list.innerHTML = "";
+          if (!q) { list.style.display = "none"; return; }
+          choices.filter(function (p) { return arr.indexOf(p[0]) === -1 && p[1].toLowerCase().indexOf(q) !== -1; }).slice(0, 8).forEach(function (p) {
+            const li = document.createElement("li"); li.textContent = p[1];
+            li.addEventListener("mousedown", function (e) {
+              e.preventDefault();
+              if (arr.indexOf(p[0]) === -1) arr.push(p[0]);
+              input.value = ""; list.style.display = "none"; renderTags(); refreshMeters();
+            });
+            list.appendChild(li);
+          });
+          list.style.display = list.children.length ? "block" : "none";
+        });
+        renderTags();
+      }
+
+      // ── Driver tab ───────────────────────────────────────────────────────────
+      const reasonF = fieldWrap("Why did they pick you up?"); chipMulti(reasonF, ch.reasons, f.driver_reason_to_pick_up); driverPanel.appendChild(reasonF);
+      const genderF = fieldWrap("Driver gender"); chipSingle(genderF, ch.genders, function () { return f.driver_gender; }, function (v) { f.driver_gender = v; }); driverPanel.appendChild(genderF);
       const ageF = fieldWrap("Approx. driver age");
       const ageHelp = document.createElement("div"); ageHelp.className = "inr-field__help"; ageHelp.textContent = "A rough guess is fine."; ageF.appendChild(ageHelp);
       const age = document.createElement("input"); age.type = "number"; age.min = "0"; age.max = "120"; age.className = "inr-cohitch-input"; age.inputMode = "numeric";
       if (f.driver_age !== "") age.value = f.driver_age;
       age.addEventListener("input", function () { f.driver_age = age.value === "" ? "" : parseInt(age.value, 10); refreshMeters(); });
-      ageF.appendChild(age); sheet.appendChild(ageF);
-      const originF = fieldWrap("Driver's country"); searchSelect(originF, ch.countries, "Search country…", function () { return f.driver_origin_country; }, function (v) { f.driver_origin_country = v; }); sheet.appendChild(originF);
-      const langF = fieldWrap("Languages spoken"); chipMulti(langF, ch.languages, f.driver_languages); sheet.appendChild(langF);
+      ageF.appendChild(age); driverPanel.appendChild(ageF);
+      const originF = fieldWrap("Driver's country"); searchSelect(originF, ch.countries, "Search country…", function () { return f.driver_origin_country; }, function (v) { f.driver_origin_country = v; }); driverPanel.appendChild(originF);
+      const langF = fieldWrap("Languages spoken"); tagAutocomplete(langF, ch.languages, f.driver_languages); driverPanel.appendChild(langF);
 
-      // ── Vehicle block ────────────────────────────────────────────────────────
+      // ── Vehicle tab ──────────────────────────────────────────────────────────
       const kindF = fieldWrap("Vehicle");
       chipSingle(kindF, ch.vehicle_kinds.map(function (p) { return [p[0], p[1] + " " + p[0]]; }), function () { return f.vehicle_kind; }, function (v) { f.vehicle_kind = v; });
-      sheet.appendChild(kindF);
-      // Commercial tri-state toggle (Yes / No — unset until answered).
-      const commF = fieldWrap("Commercial driver?");
-      chipSingle(commF, [["yes", "Commercial"], ["no", "Private"]],
-        function () { return f.commercial === true ? "yes" : (f.commercial === false ? "no" : ""); },
-        function (v) { f.commercial = v === "yes" ? true : (v === "no" ? false : null); });
-      sheet.appendChild(commF);
-      const plateF = fieldWrap("Number-plate country"); searchSelect(plateF, ch.countries, "Search country…", function () { return f.vehicle_license_plate_country; }, function (v) { f.vehicle_license_plate_country = v; }); sheet.appendChild(plateF);
-      // make/model — passenger vehicles only (bonus). Hidden for other kinds by refreshMeters().
+      vehiclePanel.appendChild(kindF);
+      const plateF = fieldWrap("Number-plate country"); plateSelect(plateF, ch.plate_countries, function () { return f.vehicle_license_plate_country; }, function (v) { f.vehicle_license_plate_country = v; }); vehiclePanel.appendChild(plateF);
+      // make/model — passenger vehicles only, optional (not scored). Hidden for other kinds by refreshMeters().
       const makeModelWrap = document.createElement("div");
-      const makeF = fieldWrap("Make"); const make = document.createElement("input"); make.type = "text"; make.className = "inr-cohitch-input"; make.value = f.vehicle_make; make.addEventListener("input", function () { f.vehicle_make = make.value; refreshMeters(); }); makeF.appendChild(make); makeModelWrap.appendChild(makeF);
-      const modelF = fieldWrap("Model"); const model = document.createElement("input"); model.type = "text"; model.className = "inr-cohitch-input"; model.value = f.vehicle_model; model.addEventListener("input", function () { f.vehicle_model = model.value; refreshMeters(); }); modelF.appendChild(model); makeModelWrap.appendChild(modelF);
-      sheet.appendChild(makeModelWrap);
+      const makeF = fieldWrap("Make (optional)"); const make = document.createElement("input"); make.type = "text"; make.className = "inr-cohitch-input"; make.value = f.vehicle_make; make.addEventListener("input", function () { f.vehicle_make = make.value; refreshMeters(); }); makeF.appendChild(make); makeModelWrap.appendChild(makeF);
+      const modelF = fieldWrap("Model (optional)"); const model = document.createElement("input"); model.type = "text"; model.className = "inr-cohitch-input"; model.value = f.vehicle_model; model.addEventListener("input", function () { f.vehicle_model = model.value; refreshMeters(); }); modelF.appendChild(model); makeModelWrap.appendChild(modelF);
+      vehiclePanel.appendChild(makeModelWrap);
 
       const saveBtn = document.createElement("button");
       saveBtn.type = "button"; saveBtn.className = "inr-big inr-big--green inr-sheet__save";
@@ -1165,6 +1238,7 @@
       scrim.addEventListener("click", close);
       document.body.appendChild(scrim); document.body.appendChild(sheet);
       journeyUI._openDialog = { close };
+      showTab("driver");
       refreshMeters();
       return { close };
     },
