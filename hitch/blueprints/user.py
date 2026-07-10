@@ -15,7 +15,7 @@ from hitch.blueprints.utils.notifications import notify_new_follower
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.extensions import db, security
 from hitch.forms import UserEditForm
-from hitch.helpers import get_db, get_dirs
+from hitch.helpers import get_db, get_dirs, haversine_np
 from hitch.models import CoHitchhiker, Follow, Notification, RideEvent, Trip, TripRide, User
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
@@ -175,9 +175,7 @@ def show_account(username, is_me: bool = False):
     can_follow = user_known and not is_me and not current_user.is_anonymous
     is_following = False
     if can_follow:
-        is_following = (
-            Follow.query.filter_by(follower_id=current_user.id, followed_id=user.id).first() is not None
-        )
+        is_following = Follow.query.filter_by(follower_id=current_user.id, followed_id=user.id).first() is not None
 
     return render_template(
         "security/account.html",
@@ -190,6 +188,155 @@ def show_account(username, is_me: bool = False):
         age=age,
         can_follow=can_follow,
         is_following=is_following,
+    )
+
+
+# Achievement ladders: (threshold, emoji, name, blurb). Each metric has several tiers;
+# the user's progress bar always points at the lowest tier they haven't reached yet,
+# and every tier below it renders as earned.
+ACHIEVEMENT_LADDERS = [
+    {
+        "metric": "rides",
+        "unit": "rides",
+        "tiers": [
+            (5, "👍", "Thumb Warmer", "Logged 5 rides — the thumb is officially calibrated."),
+            (100, "🛣️", "Roadside Regular", "100 rides. Drivers start to recognise you."),
+            (1000, "🏆", "Legend of the Hard Shoulder", "1000 rides. Songs will be written."),
+        ],
+    },
+    {
+        "metric": "distance",
+        "unit": "km",
+        "tiers": [
+            (100, "🚗", "Out of Town", "100 km hitched — further than the bus goes."),
+            (1000, "🌍", "Continental Drifter", "1000 km hitched, entirely on other people's fuel."),
+            (10000, "🚀", "Quarter Way Round the World", "10 000 km — a quarter of the equator, thumb first."),
+        ],
+    },
+    {
+        "metric": "partners",
+        "unit": "partners",
+        "tiers": [
+            (3, "🧍🧍", "Three's Company", "Hitchhiked with 3 different partners."),
+            (10, "🎪", "Thumb Collective", "Hitchhiked with 10 different partners."),
+        ],
+    },
+]
+
+
+def _distinct_partner_count(username):
+    """Number of distinct other hitchhikers this user has shared a logged ride with.
+
+    A ride's `hitchhikers` list holds everyone who was on it, so partners are simply the
+    other nicknames on rides where `username` appears. Unnamed co-riders are skipped: they
+    are either missing a nickname or carry the "Anonymous" sentinel (same as show.py), and
+    two anonymous co-riders can't be told apart, so counting them would be meaningless.
+    """
+    partners = set()
+    for ride in _rides_by_hitchhiker(username):
+        for h in (ride.content or {}).get("hitchhikers") or []:
+            nickname = (h or {}).get("nickname") or ""
+            if nickname.lower() not in ("", "anonymous", username.lower()):
+                partners.add(nickname.lower())
+    return len(partners)
+
+
+def _ride_wait_minutes(ride):
+    """Waiting time of a ride in minutes, or None. Same source as show.py: the first
+    stop's ISO-8601 `waiting_duration` (e.g. "PT45M")."""
+    stops = (ride.content or {}).get("stops") or []
+    if not stops:
+        return None
+    duration = (stops[0].get("waiting_duration") or "").replace("PT", "").replace("M", "")
+    try:
+        return int(duration)
+    except ValueError:
+        return None
+
+
+def _ride_distance_km(info):
+    """Pickup→destination distance of a ride in km, or None when it has no destination.
+
+    Mirrors show.py: great-circle distance scaled by the road-detour factor, with rides
+    under 1 km discarded as unrealistically short (they are treated as having no
+    destination there, so a record must not be built out of one).
+    """
+    coords = (info["pickup_lat"], info["pickup_lon"], info["destination_lat"], info["destination_lon"])
+    if any(c is None for c in coords):
+        return None
+    distance = float(haversine_np(*coords))
+    return distance if distance >= 1 else None
+
+
+def _ride_records(username):
+    """The user's personal bests: their single longest ride and their single longest wait.
+
+    Returns a dict of {"distance": record, "wait": record}, either of which is None when no
+    ride carries that figure. Each record names the ride so the page can link to it.
+    """
+    records = {"distance": None, "wait": None}
+    for ride in _rides_by_hitchhiker(username):
+        info = _extract_ride_info(ride, "own")
+        for key, value in (("distance", _ride_distance_km(info)), ("wait", _ride_wait_minutes(ride))):
+            if value is None:
+                continue
+            best = records[key]
+            if best is None or value > best["value"]:
+                records[key] = {"value": value, "d_tag": info["d_tag"], "created": info["created"]}
+    return records
+
+
+def _achievements(values):
+    """Turn raw per-metric totals into a flat list of achievement cards.
+
+    `values` maps a ladder's metric name to the user's current total. Every tier gets a
+    card so locked ones stay visible as a goal; `progress` is the share of the tier's
+    threshold reached, clamped to 1 so an earned tier shows a full bar.
+    """
+    cards = []
+    for ladder in ACHIEVEMENT_LADDERS:
+        current = values.get(ladder["metric"], 0) or 0
+        for threshold, emoji, name, blurb in ladder["tiers"]:
+            cards.append(
+                {
+                    "emoji": emoji,
+                    "name": name,
+                    "blurb": blurb,
+                    "current": min(current, threshold),
+                    "target": threshold,
+                    "unit": ladder["unit"],
+                    "earned": current >= threshold,
+                    "progress": min(current / threshold, 1.0),
+                }
+            )
+    return cards
+
+
+@user_bp.route("/insights/<username>", methods=["GET"])
+def show_insights(username):
+    """Full insights page for a user: lifetime totals plus the achievement ladders.
+
+    Only registered users have the precomputed lifetime totals (show.py writes them onto
+    the `user` row), so an unknown hitchhiker nickname has nothing to show here.
+    """
+    user = security.datastore.find_user(username=username)
+    if user is None:
+        return redirect(url_for("user.show_account", username=username))
+
+    total_rides = user.total_rides or 0
+    total_km = user.total_distance_km or 0
+    partners = _distinct_partner_count(user.username)
+
+    return render_template(
+        "insights.html",
+        user=user,
+        is_me=not current_user.is_anonymous and current_user.id == user.id,
+        total_rides=total_rides,
+        total_km=total_km,
+        total_waiting_min=user.total_waiting_time_min or 0,
+        partners=partners,
+        records=_ride_records(user.username),
+        achievements=_achievements({"rides": total_rides, "distance": total_km, "partners": partners}),
     )
 
 
@@ -357,17 +504,17 @@ def _extract_ride_info(ride, ride_type):
     }
 
 
-def _get_rides_for_user(user, include_pending_co=True, display_only=False):
-    """Return merged list of own rides and pending co-hitchhiker rides, newest first.
+def _norm_nickname(s):
+    """MediaWiki-style: first letter is case-insensitive so "John" matches "john" and vice versa."""
+    return (s[:1].upper() + s[1:]) if s else s
 
-    `user` may be a real User object or any object with a `.username` attribute
-    (e.g. a stub for an unregistered hitchhiker name found only in ride events).
-    """
-    username = user.username
+
+def _rides_by_hitchhiker(username):
+    """RideEvent rows listing `username` among their hitchhikers, newest first."""
     # Pre-filter in SQL using JSON1 so we don't load and JSON-parse every RideEvent in Python.
-    # This is a permissive case-insensitive match; the Python loop below still applies the
-    # exact MediaWiki-style _norm comparison for correctness.
-    candidate_query = (
+    # This is a permissive case-insensitive match; the Python filter below still applies the
+    # exact MediaWiki-style _norm_nickname comparison for correctness.
+    candidates = (
         db.session.query(RideEvent)
         .filter(
             text(
@@ -377,21 +524,28 @@ def _get_rides_for_user(user, include_pending_co=True, display_only=False):
         )
         .params(uname=username)
         .order_by(RideEvent.created_at.desc())
+        .all()
     )
-    all_rides = candidate_query.all()
+    normalized_username = _norm_nickname(username)
+    return [
+        ride
+        for ride in candidates
+        if normalized_username in [_norm_nickname(h.get("nickname")) for h in ((ride.content or {}).get("hitchhikers") or [])]
+    ]
 
-    # MediaWiki-style: first letter is case-insensitive so "John" matches "john" and vice versa
-    def _norm(s):
-        return (s[:1].upper() + s[1:]) if s else s
 
-    normalized_username = _norm(username)
+def _get_rides_for_user(user, include_pending_co=True, display_only=False):
+    """Return merged list of own rides and pending co-hitchhiker rides, newest first.
+
+    `user` may be a real User object or any object with a `.username` attribute
+    (e.g. a stub for an unregistered hitchhiker name found only in ride events).
+    """
+    username = user.username
     own_rides = []
-    for ride in all_rides:
+    for ride in _rides_by_hitchhiker(username):
         content = ride.content if ride.content else {}
-        nicknames = [_norm(h.get("nickname")) for h in (content.get("hitchhikers") or [])]
-        if normalized_username in nicknames:
-            ride_type = "own_external" if display_only or content.get("source") != THIS_NOSTR_SOURCE else "own"
-            own_rides.append(_extract_ride_info(ride, ride_type))
+        ride_type = "own_external" if display_only or content.get("source") != THIS_NOSTR_SOURCE else "own"
+        own_rides.append(_extract_ride_info(ride, ride_type))
 
     co_rides = []
     if include_pending_co:
@@ -455,9 +609,7 @@ def _trip_route_points(rides):
 
     Each ride contributes its pickup then destination (when present); consecutive
     duplicate coordinates are collapsed so a shared spot isn't drawn twice."""
-    ordered = sorted(
-        rides, key=lambda r: (r.get("submission_sort_key") is not None, r.get("submission_sort_key") or 0)
-    )
+    ordered = sorted(rides, key=lambda r: (r.get("submission_sort_key") is not None, r.get("submission_sort_key") or 0))
     pts = []
     for r in ordered:
         for lat, lon in ((r["pickup_lat"], r["pickup_lon"]), (r["destination_lat"], r["destination_lon"])):
@@ -514,9 +666,7 @@ def create_trip():
     """Render the trip builder for a brand-new trip."""
     if current_user.is_anonymous:
         return redirect("/login")
-    return render_template(
-        "security/edit_trip.html", trip=None, rides=_selectable_rides_for_current_user(), selected_dtags=[]
-    )
+    return render_template("security/edit_trip.html", trip=None, rides=_selectable_rides_for_current_user(), selected_dtags=[])
 
 
 @user_bp.route("/edit-trip/<int:trip_id>", methods=["GET"])
@@ -659,9 +809,7 @@ def _render_trip_preview_png(title, description, points):
 
         # Route geometry following actual roads (OSRM), or the waypoints as a fallback.
         geometry = _osrm_route_geometry(points) or [(p["lon"], p["lat"]) for p in points]
-        route_px = [
-            _world_to_px(_lonlat_to_world(lon, lat, zoom), origin_x, origin_y) for lon, lat in geometry
-        ]
+        route_px = [_world_to_px(_lonlat_to_world(lon, lat, zoom), origin_x, origin_y) for lon, lat in geometry]
         if len(route_px) > 1:
             draw.line(route_px, fill=(255, 255, 255, 235), width=11, joint="curve")
             draw.line(route_px, fill=(45, 125, 210, 255), width=6, joint="curve")
@@ -701,9 +849,7 @@ def _draw_preview_footer(img, title, description):
     draw = ImageDraw.Draw(img)
     draw.text((72, PREVIEW_H - 78), _truncate_text(title, 60), fill=(34, 34, 34), font=title_font)
     draw.text((72, PREVIEW_H - 36), _truncate_text(description, 95), fill=(85, 85, 85), font=desc_font)
-    draw.text(
-        (PREVIEW_W - 72, PREVIEW_H - 36), "maps.hitchwiki.org", fill=(102, 102, 102), font=small_font, anchor="rm"
-    )
+    draw.text((PREVIEW_W - 72, PREVIEW_H - 36), "maps.hitchwiki.org", fill=(102, 102, 102), font=small_font, anchor="rm")
 
 
 def _preview_fonts():
@@ -868,9 +1014,9 @@ def reject_co_hitchhiker(ride_d_tag: str):
     if current_user.is_anonymous:
         return redirect("/login")
 
-    CoHitchhiker.query.filter_by(
-        nostr_ride_event_d_tag=ride_d_tag, co_hitchhiker=current_user.username
-    ).update({"accepted": "no"})
+    CoHitchhiker.query.filter_by(nostr_ride_event_d_tag=ride_d_tag, co_hitchhiker=current_user.username).update(
+        {"accepted": "no"}
+    )
     db.session.commit()
 
     return redirect("/me")

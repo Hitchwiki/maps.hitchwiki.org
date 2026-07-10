@@ -176,13 +176,13 @@ Name: {{ user.username }}<br>
 
 {% if user_known %}
 <div class="profile-stats" id="insights">
-  <h2>Insights</h2>
+  <h2><a href="{{ url_for('user.show_insights', username=user.username) }}">Insights</a></h2>
   <div class="stats-grid">
     <div class="stat"><span class="stat-value">{{ user.total_rides or 0 }}</span><span class="stat-label">rides</span></div>
     <div class="stat"><span class="stat-value">{{ (user.total_distance_km or 0) | round | int }}</span><span class="stat-label">km travelled</span></div>
     <div class="stat"><span class="stat-value">{{ (user.total_waiting_time_min or 0) | round | int }}</span><span class="stat-label">min waiting</span></div>
   </div>
-  <a href="/?user={{ user.username }}#insights">{{ "See my full insights on the map" if is_me else "See their full insights on the map" }} →</a>
+  <a href="{{ url_for('user.show_insights', username=user.username) }}">See all insights and achievements →</a>
 </div>
 {% endif %}
 
