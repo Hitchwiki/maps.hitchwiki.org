@@ -44,6 +44,13 @@ class BaseConfig:
     HITCHWIKI_OAUTH_CLIENT_SECRET = os.getenv("HITCHWIKI_OAUTH_CLIENT_SECRET")
     HITCHWIKI_WIKI_BASE = os.getenv("HITCHWIKI_WIKI_BASE", "https://hitchwiki.org/en")
 
+    # Scheme of the OAuth redirect_uri. It must byte-match the consumer's registered
+    # callback: league/oauth2-server (which MediaWiki's OAuth2 extension uses) rejects
+    # any mismatch as "Client authentication failed", the same error it gives an unknown
+    # client. The dev consumer is registered with http://127.0.0.1:5001/login, so http
+    # is the default and only production overrides it.
+    HITCHWIKI_OAUTH_REDIRECT_SCHEME = "http"
+
     # Lax allows the session cookie to be sent on top-level navigations (needed for OAuth redirects).
     # Strict would block the cookie when returning from hitchwiki.org, breaking the OAuth flow.
     SESSION_COOKIE_SAMESITE = "Lax"
@@ -87,6 +94,11 @@ class DevelopmentConfig(BaseConfig):
 class ProductionConfig(BaseConfig):
     REMEMBER_COOKIE_SECURE = True
     SESSION_COOKIE_SECURE = True
+
+    # The prod consumer's callback is https://maps.hitchwiki.org/login, but
+    # url_for(_external=True) infers http here: waitress drops X-Forwarded-Proto from
+    # untrusted proxies, so the ProxyFix in create_app() never sees it (see deploy/run.sh).
+    HITCHWIKI_OAUTH_REDIRECT_SCHEME = "https"
 
 
 class TestingConfig(BaseConfig):

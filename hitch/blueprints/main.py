@@ -116,8 +116,8 @@ def _external_https(endpoint, **values):
     Plain url_for(_external=True) yields http:// in production (see deploy/run.sh:
     waitress strips the X-Forwarded-Proto that ProxyFix would need). Unfurlers and
     search engines discard an insecure og:image or canonical on an https page, so
-    state the scheme rather than inferring it. Only meta tags use this — the OAuth
-    redirect_uri deliberately keeps whatever url_for infers.
+    state the scheme rather than inferring it. The OAuth redirect_uri has the same
+    problem and solves it separately, in oauth._redirect_uri().
     """
     return url_for(endpoint, _external=True, _scheme="https", **values)
 
