@@ -651,6 +651,28 @@
       dock.appendChild(finishBtn);
       journeyUI._finishBtn = finishBtn;
 
+      // Demographic entry during the ride: mini-meters + an "Add details" button that
+      // opens the details sheet. Save merges onto j.details (submitted at Finish).
+      const demoRow = document.createElement("div");
+      demoRow.className = "inr-demo-row";
+      const s = demographicScores(j.details || {});
+      demoRow.innerHTML =
+        '<span class="inr-demo-meter">Driver ' + s.driver.pct + '%</span>' +
+        '<span class="inr-demo-meter">Vehicle ' + s.vehicle.pct + '%</span>';
+      const addBtn = document.createElement("button");
+      addBtn.type = "button"; addBtn.className = "inr-demo-add";
+      addBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Add details';
+      addBtn.addEventListener("click", function () {
+        journeyUI.detailsSheet(j.details || {}, function (fields) {
+          const cur = journeyStore.get(); if (!cur) return;
+          cur.details = Object.assign({}, cur.details, fields);
+          journeyStore.set(cur);
+          journeyUI.render(cur); // re-render so the mini-meters update
+        });
+      });
+      demoRow.appendChild(addBtn);
+      dock.appendChild(demoRow);
+
       document.body.appendChild(dock);
       journeyUI._dockEl = dock;
     },
@@ -944,39 +966,33 @@
       }
       rideOnBtn.addEventListener("click", function () {
         if (!rating) return; // guard: button should be disabled, but double-check
-        const details = {
+        const details = Object.assign({
           rating: rating,
           vehicle_kind: vehicleKind,
           signal: Array.from(signals),
           comment: textarea.value.trim(),
-        };
+        }, journeyUI._pendingDetails || {});
+        journeyUI._pendingDetails = null; // consumed — don't leak into the next sheet
         close();
         onSave(details);
       });
       sheet.appendChild(rideOnBtn);
 
       // ── "Add driver / vehicle details" link ────────────────────────────────────
-      // Prefills rideFormData in sessionStorage so the full /ride form picks it up,
-      // carrying the sheet's selections plus the journey's pickup location and wait time.
+      // Opens the in-app details sheet (journeyUI.detailsSheet) instead of redirecting
+      // to the full /ride form — keeps the user inside the in-ride flow. The result is
+      // stashed on journeyUI._pendingDetails and folded into `details` by Ride On!.
       const moreLink = document.createElement("a");
       moreLink.className = "inr-sheet__more";
       moreLink.href = "#";
       moreLink.textContent = "＋ Add driver / vehicle details";
       moreLink.addEventListener("click", function (e) {
         e.preventDefault();
-        const j = journeyStore.get();
-        const waitMin = j ? Math.round(journeyStore.currentWaitMs(j, Date.now()) / 60000) : null;
-        sessionStorage.setItem("rideFormData", JSON.stringify({
-          pickup_lat: j ? j.pickup.lat : null,
-          pickup_lon: j ? j.pickup.lon : null,
-          wait: waitMin,
-          rating: rating,
-          vehicle_kind: vehicleKind,
-          signal: Array.from(signals),
-          comment: textarea.value.trim(),
-        }));
-        close();
-        window.location.href = "/ride";
+        // Seed from what's already chosen on this sheet (rating/kind live in outer scope).
+        const seed = Object.assign({ vehicle_kind: vehicleKind }, journeyUI._pendingDetails || {});
+        journeyUI.detailsSheet(seed, function (fields) {
+          journeyUI._pendingDetails = fields; // merged into details on Ride On!
+        });
       });
       sheet.appendChild(moreLink);
 
