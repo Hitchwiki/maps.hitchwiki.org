@@ -73,6 +73,46 @@ def get_user():
         return jsonify({"logged_in": False, "username": ""})
 
 
+# The modal shows 10 rides and expands to the rest of this slice; beyond it we send the
+# user to the full profile rather than shipping an unbounded ride list to every opener.
+RIDES_IN_MODAL_CAP = 50
+
+
+@user_bp.route("/me.json", methods=["GET"])
+def me_json():
+    """Account data for the on-map account modal (issue #106).
+
+    Anonymous callers get 200 {"logged_in": false} rather than the 302 to /login that
+    /me serves: the modal renders its logged-out state from this response, and fetch()
+    would silently follow the redirect and hand us a login page instead of JSON.
+    """
+    if current_user.is_anonymous:
+        resp = jsonify({"logged_in": False})
+    else:
+        rides = _get_rides_for_user(current_user)
+        shown = [{k: v for k, v in r.items() if k != "submission_sort_key"} for r in rides[:RIDES_IN_MODAL_CAP]]
+        resp = jsonify(
+            {
+                "logged_in": True,
+                "username": current_user.username,
+                "profile_url": "/me",
+                "insights": {
+                    "rides": current_user.total_rides or 0,
+                    "distance_km": current_user.total_distance_km or 0,
+                    "waiting_min": current_user.total_waiting_time_min or 0,
+                    "partners": _distinct_partner_count(current_user.username),
+                },
+                "rides": shown,
+                # Untruncated, so the UI can say "showing 50 of 231" and link to the profile.
+                "rides_total": len(rides),
+            }
+        )
+    # Per-user data. A shared cache storing this could serve one user's profile to
+    # another — the exact failure mode the cache-control work had to fix once already.
+    resp.headers["Cache-Control"] = "private, no-store"
+    return resp
+
+
 # TODO: properly delete the user after their confirmation
 @user_bp.route("/delete-user", methods=["GET"])
 def delete_user():
