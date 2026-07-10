@@ -12,4 +12,16 @@ service cron start
 
 # Waitress, not `flask run`: Werkzeug's dev server has no bounded thread pool and no
 # protection against slow or malformed clients. Apache terminates TLS and proxies here.
-waitress-serve --host=0.0.0.0 --port=4242 --threads=4 --call hitch:create_app
+# 16 threads, not waitress's default 4: every map load pulls several MB of dist/ JSON
+# through catch_all(), and a worker is held for the whole file read. The work is file
+# I/O (releases the GIL), so threads parallelise past the 4 cores; slow clients cost
+# nothing here, as waitress writes responses from its single select loop, not a worker.
+#
+# NOTE: url_for(_external=True) emits http:// here. The ProxyFix in create_app()
+# can't fix it: waitress drops X-Forwarded-* from untrusted proxies by default
+# (clear_untrusted_proxy_headers) and Caddy's container IP isn't stable enough to
+# whitelist. Everything that needs an absolute https URL passes _scheme="https"
+# explicitly: og:image and canonical via _external_https() in main.py, and the OAuth
+# redirect_uri via _redirect_uri() in oauth.py (the consumer is registered with an
+# https callback; sending http made Hitchwiki reject the authorize step).
+waitress-serve --host=0.0.0.0 --port=4242 --threads=16 --call hitch:create_app

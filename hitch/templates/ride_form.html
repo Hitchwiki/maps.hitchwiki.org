@@ -162,17 +162,18 @@
         </div>
             
         <div class="form-group">
-            <label>How did you signal to drivers? <span style="font-weight:normal; color:#666;">(select all that apply)</span></label>
+            <label>How did you signal? <span style="font-weight:normal; color:#666;">(select all that apply)</span></label>
             {% set selected_signals = ride_data.signal if ride_data and ride_data.signal else [] %}
             {% if selected_signals is string %}{% set selected_signals = [selected_signals] %}{% endif %}
             <input type="hidden" id="signal" name="signal" value="{{ selected_signals|join(',') }}">
-            <div id="signal-tags" class="chip-select-tags" onclick="document.getElementById('signal-input').focus()"></div>
-            <input id="signal-input" list="signal-list" class="form-control" autocomplete="off" placeholder="Type a signal method and pick from the list…" style="margin-top:6px;">
-            <datalist id="signal-list">
-                <option data-code="sign" value="Sign"></option>
-                <option data-code="thumb" value="Thumb"></option>
-                <option data-code="ask" value="Asked around"></option>
-            </datalist>
+            {# Same multi-select chips as the in-ride "How was the spot?" sheet (inride.js),
+               reusing its .inr-chips / .inr-optchip styles so both entry points look alike.
+               Codes must stay thumb / sign / ask — they're what /ride stores. #}
+            <div id="signal-chips" class="inr-chips">
+                <button type="button" class="inr-optchip" data-code="thumb">👍 Thumb</button>
+                <button type="button" class="inr-optchip" data-code="sign">📝 Sign</button>
+                <button type="button" class="inr-optchip" data-code="ask">🗣 Asking</button>
+            </div>
         </div>
         
         <div class="form-group">
@@ -189,7 +190,7 @@
                 </div>
                 <div class="col-sm-6" style="margin-bottom:8px;">
                     {% set selected_plate_code = ride_data.vehicle_license_plate_country if ride_data and ride_data.vehicle_license_plate_country else '' %}
-                    <input list="vehicle-plate-country-list" id="vehicle_license_plate_country_input" class="form-control" placeholder="License plate code (e.g. D, F, GB)…" autocomplete="off"
+                    <input list="vehicle-plate-country-list" id="vehicle_license_plate_country_input" class="form-control" placeholder="License plate code (e.g. D (Germany), F (France))" autocomplete="off"
                            data-selected-code="{{ selected_plate_code }}">
                     <input type="hidden" id="vehicle_license_plate_country" name="vehicle_license_plate_country" value="{{ selected_plate_code }}">
                     {# Searchable by the code that appears on the plate (e.g. "D" for Germany). data-code stores the ISO 3166-1 alpha-2 we persist. #}
@@ -206,7 +207,7 @@
                     <input type="text" id="vehicle_model" name="vehicle_model" class="form-control" maxlength="255" placeholder="Model (e.g. Corolla)" value="{{ ride_data.vehicle_model if ride_data and ride_data.vehicle_model else '' }}">
                 </div>
                 <div class="col-sm-12" style="margin-bottom:8px;">
-                    <input type="text" id="vehicle_license_plate_identifier" name="vehicle_license_plate_identifier" class="form-control" maxlength="255" placeholder="License plate identifier (e.g. B, 93, Georgia)" value="{{ ride_data.vehicle_license_plate_identifier if ride_data and ride_data.vehicle_license_plate_identifier else '' }}">
+                    <input type="text" id="vehicle_license_plate_identifier" name="vehicle_license_plate_identifier" class="form-control" maxlength="255" placeholder="License plate identifier (e.g. B (Berlin), 75 (Paris), California)" value="{{ ride_data.vehicle_license_plate_identifier if ride_data and ride_data.vehicle_license_plate_identifier else '' }}">
                 </div>
             </div>
         </div>
@@ -910,10 +911,36 @@
         datalistId: 'vehicle-plate-country-list',
     });
 
-    const signalChip = initChipSelect({
-        inputId: 'signal-input', tagsId: 'signal-tags',
-        hiddenId: 'signal', datalistId: 'signal-list',
-    });
+    // Signal methods are toggle chips rather than a datalist: there are only three of them,
+    // so tapping beats typing — and it matches the in-ride sheet the user may have come from.
+    // The hidden #signal input stays the source of truth (comma-separated codes).
+    function initSignalChips() {
+        const hidden = document.getElementById('signal');
+        const chips = document.querySelectorAll('#signal-chips .inr-optchip');
+        if (!hidden || !chips.length) return null;
+        function getCodes() {
+            return hidden.value ? hidden.value.split(',').map(s => s.trim()).filter(Boolean) : [];
+        }
+        function renderTags() {
+            const codes = getCodes();
+            chips.forEach(function (chip) {
+                chip.classList.toggle('inr-optchip--on', codes.includes(chip.dataset.code));
+            });
+        }
+        chips.forEach(function (chip) {
+            chip.addEventListener('click', function () {
+                const codes = getCodes();
+                const idx = codes.indexOf(chip.dataset.code);
+                if (idx === -1) codes.push(chip.dataset.code);
+                else codes.splice(idx, 1);
+                hidden.value = codes.join(',');
+                renderTags();
+            });
+        });
+        renderTags();
+        return { renderTags };
+    }
+    const signalChip = initSignalChips();
     const reasonChip = initChipSelect({
         inputId: 'driver-reason-input', tagsId: 'driver-reason-tags',
         hiddenId: 'driver_reason_to_pick_up', datalistId: 'driver-reason-list',

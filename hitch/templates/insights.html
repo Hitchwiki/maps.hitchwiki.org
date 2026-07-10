@@ -1,0 +1,121 @@
+{% extends "security/base.html" %}
+
+{% set title = user.username ~ " – Insights" %}
+
+{% block content %}
+<style>
+.stats-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 8px 0 10px;
+}
+.stat {
+    flex: 1 1 90px;
+    background: #f7f7f7;
+    border: 1px solid #e2e2e2;
+    border-radius: 8px;
+    padding: 10px 12px;
+    text-align: center;
+}
+.stat-value { display: block; font-size: 1.4em; font-weight: 600; line-height: 1.1; }
+.stat-label { display: block; font-size: 0.8em; color: #666; margin-top: 2px; }
+.record-grid { display: flex; flex-wrap: wrap; gap: 12px; margin: 8px 0 18px; }
+.record {
+    flex: 1 1 160px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 12px;
+    background: #fff8e6;
+    border: 1px solid #f0dfb0;
+    border-radius: 8px;
+    color: inherit;
+    text-decoration: none;
+}
+a.record:hover { border-color: #dcc688; }
+.record-emoji { font-size: 1.6em; line-height: 1; }
+.record-label { display: block; font-size: 0.8em; color: #666; }
+.record-value { display: block; font-size: 1.3em; font-weight: 600; line-height: 1.15; }
+.record-date { display: block; font-size: 0.76em; color: #888; }
+.achievement-list { display: flex; flex-direction: column; gap: 10px; margin: 12px 0; }
+.achievement {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 12px;
+    background: #f7f7f7;
+    border: 1px solid #e2e2e2;
+    border-radius: 8px;
+}
+.achievement.earned { background: #eef8f0; border-color: #cfe8d6; }
+.achievement-emoji { font-size: 1.6em; line-height: 1; filter: grayscale(1); opacity: 0.45; }
+.achievement.earned .achievement-emoji { filter: none; opacity: 1; }
+.achievement-body { flex: 1; min-width: 0; }
+.achievement-name { font-weight: 600; font-size: 0.95em; }
+.achievement-blurb { color: #666; font-size: 0.8em; margin-top: 1px; }
+.achievement-bar {
+    height: 6px;
+    background: #e2e2e2;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 6px;
+}
+.achievement-fill { height: 100%; background: #2d7dd2; border-radius: 3px; }
+.achievement.earned .achievement-fill { background: #38a169; }
+.achievement-progress { font-size: 0.76em; color: #888; margin-top: 3px; }
+</style>
+
+<h1>Insights</h1>
+<p style="color:#666; font-size:0.9em; margin-top:-8px;">{{ user.username }}</p>
+
+{% if records.distance or records.wait %}
+<div class="record-grid">
+  {# A record links to its ride only when the ride has a d-tag; legacy/imported rides have none. #}
+  {% for key, emoji, label, value in [
+       ("distance", "🛣️", "Longest ride", records.distance.value | round | int ~ " km" if records.distance else None),
+       ("wait", "⏳", "Longest wait", records.wait.value ~ " min" if records.wait else None),
+     ] %}
+  {% set record = records[key] %}
+  {% if record %}
+  <{{ "a" if record.d_tag else "div" }} class="record"{% if record.d_tag %} href="/ride/{{ record.d_tag }}"{% endif %}>
+    <span class="record-emoji">{{ emoji }}</span>
+    <span>
+      <span class="record-label">{{ label }}</span>
+      <span class="record-value">{{ value }}</span>
+      {% if record.created %}<span class="record-date">{{ record.created }}</span>{% endif %}
+    </span>
+  </{{ "a" if record.d_tag else "div" }}>
+  {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="stats-grid">
+  <div class="stat"><span class="stat-value">{{ total_rides }}</span><span class="stat-label">rides</span></div>
+  <div class="stat"><span class="stat-value">{{ total_km | round | int }}</span><span class="stat-label">km travelled</span></div>
+  <div class="stat"><span class="stat-value">{{ total_waiting_min | round | int }}</span><span class="stat-label">min waiting</span></div>
+  <div class="stat"><span class="stat-value">{{ partners }}</span><span class="stat-label">partners</span></div>
+</div>
+
+<a href="/?user={{ user.username }}#insights">{{ "See my full insights on the map" if is_me else "See their full insights on the map" }} →</a>
+
+<h2>Achievements</h2>
+<div class="achievement-list">
+  {% for a in achievements %}
+  <div class="achievement{% if a.earned %} earned{% endif %}">
+    <span class="achievement-emoji">{{ a.emoji }}</span>
+    <div class="achievement-body">
+      <div class="achievement-name">{{ a.name }}{% if a.earned %} ✓{% endif %}</div>
+      <div class="achievement-blurb">{{ a.blurb }}</div>
+      <div class="achievement-bar">
+        <div class="achievement-fill" style="width: {{ (a.progress * 100) | round(1) }}%;"></div>
+      </div>
+      <div class="achievement-progress">{{ a.current | round | int }} / {{ a.target }} {{ a.unit }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<p><a href="{{ url_for('user.show_account', username=user.username) }}">← Back to profile</a></p>
+{% endblock %}

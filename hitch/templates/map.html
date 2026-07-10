@@ -16,6 +16,13 @@
 {% block meta_description %}{{ spot_description or homepage_blurb }}{% endblock %}
 {% block og_description %}{{ spot_description or homepage_blurb }}{% endblock %}
 {% block og_url %}{{ spot_url if spot_url else super() }}{% endblock %}
+{# A shared route (/dir/<from>/<to>) previews as a basemap with the route drawn on
+   it; the 600x315 size is what makes messengers use the large card layout. #}
+{% block og_image %}{% if og_image %}<meta property="og:image" content="{{ og_image }}" />
+    <meta property="og:image:width" content="600" />
+    <meta property="og:image:height" content="315" />
+    <meta property="og:image:alt" content="{{ spot_title }}" />
+    <meta name="twitter:card" content="summary_large_image" />{% endif %}{% endblock %}
 
 {% block head %}
 {# Legacy /?lat=&lon= links and the #map= viewport are all views of one spot —
@@ -23,8 +30,10 @@
 {% if spot_url %}<link rel="canonical" href="{{ spot_url }}" />{% endif %}
 {# Every well-formed coordinate resolves to a 200, so /spot/<lat>_<lon> is an
    unbounded URL space. Only let crawlers index the ones that describe a real
-   spot; the rest are soft 404s that would dilute the site. #}
-{% if spot_url and not spot_description %}<meta name="robots" content="noindex" />{% endif %}
+   spot; the rest are soft 404s that would dilute the site. A /dir/ route is a
+   shared link rather than a page anyone should find in search, and its space is
+   the square of the spot space, so it is never indexed. #}
+{% if noindex or (spot_url and not spot_description) %}<meta name="robots" content="noindex" />{% endif %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.css" />
@@ -153,6 +162,7 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
     <div id="spot-header-row">
         <div id="spot-coords-line">Coordinates: <span id="spot-header"></span></div>
         <a id="spot-google-link" class="spot-action-link" target="_blank" rel="noopener">Go to on Google Maps</a>
+        <a id="spot-streetview-link" class="spot-action-link" target="_blank" rel="noopener">See on Google Street View</a>
         <a id="spot-osm-link" class="spot-action-link" target="_blank" rel="noopener">Go to on OpenStreetMap</a>
         <a id="share-spot-btn" class="spot-action-link" href="javascript:void(0);">Share this spot</a>
         <div id="share-spot-menu" hidden>
@@ -239,7 +249,7 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
     </p>
     <h4>License</h4>
     <p>
-        Hitchwiki Map software is licensed under <a href="https://github.com/Hitchwiki/maps.hitchwiki.org/blob/main/LICENSE" target="_blank" rel="noopener">AGPL 3.0</a>. The Hitchwiki Map database is licensed under the ODBL, the license used
+        Hitchwiki Map software is licensed under <a href="https://github.com/Hitchwiki/maps.hitchwiki.org/blob/main/LICENSE" target="_blank" rel="noopener">AGPL 3.0</a>. The Hitchwiki Maps database is licensed under the ODBL, the license used
         by OpenStreetMap.
     </p>
     <h4>Credits</h4>
@@ -280,11 +290,25 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
         </button>
     </div>
     <div class="filter-pane-body" id="filter-pane-body">
+        <!-- Spot-quality filters are the ones people reach for most, so they sit at the
+             top in their own highlighted block, ahead of the secondary ride filters. -->
+        <div class="filter-pane-primary">
+            <span class="filter-primary-title">Spot quality</span>
+            <div class="filter-pane-row">
+                <label class="filter-field">
+                    <span>Min rides per spot</span>
+                    <input id="min-rides-filter" type="number" min="1" step="1" value="" placeholder="Any" />
+                </label>
+                <label class="filter-field">
+                    <span>Min average rating (0&ndash;5)</span>
+                    <input id="min-rating-filter" type="number" min="0" max="5" step="0.1" value="" placeholder="Any" />
+                </label>
+            </div>
+        </div>
         <div class="filter-pane-row">
             <input id="user-filter" type="text" value="" placeholder="Filter by user" />
             <input id="text-filter" type="search" value="" placeholder="Search comments" />
             <input id="distance-filter" type="number" value="" placeholder="Min ride distance (km)" />
-            <input id="min-rides-filter" type="number" min="1" value="" placeholder="Min rides per spot" />
         </div>
         <div class="filter-pane-row">
             <label class="filter-field">
@@ -562,7 +586,7 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
         <p>Thank you for your contribution!</p>
         <p>We'd love to hear your thoughts! <a href="https://docs.google.com/forms/d/e/1FAIpQLSdGLlPKhjRXIjG2VB-BlkxbsagNeXce5eI3sKFHe-_scJMFnw/viewform?usp=header" target="_blank" rel="noopener">Share feedback</a> to help us improve Hitchhiking Map.</p>
         <p>Your ride will appear on the map within 10 minutes. Refreshing may be needed.</p>
-        <button id="success-close-btn" class="success-close-btn"{% if is_logged_in %} data-continue-url="/me"{% endif %}>Continue</button>
+        <button id="success-close-btn" class="success-close-btn">Continue</button>
     </div>
 </div>
 

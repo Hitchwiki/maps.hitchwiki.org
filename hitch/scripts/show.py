@@ -17,7 +17,7 @@ from shapely.wkt import loads as wkt_loads
 from sklearn.cluster import DBSCAN
 from sklearn.exceptions import InconsistentVersionWarning
 
-from hitch.blueprints.utils.report_ride import REPORTS_TO_HIDE
+from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON, REPORTS_TO_HIDE
 from hitch.helpers import e, get_bearing, get_db, get_dirs, haversine_np, write_json_file
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
@@ -83,13 +83,15 @@ def get_reported_dtags():
 
     A ride is hidden once at least REPORTS_TO_HIDE distinct users have reported it for
     the same reason. Reports are unique per (ride, user), so each row is a distinct
-    person, making the per-reason count a count of distinct reporters. Returns an empty
-    set if the ride_report table doesn't exist yet (e.g. a DB that predates the feature).
+    person, making the per-reason count a count of distinct reporters. An owner-deletion
+    row bypasses the threshold: one is enough, since only the ride's author can write it.
+    Returns an empty set if the ride_report table doesn't exist yet (e.g. a DB that
+    predates the feature).
     """
     try:
         reported = pd.read_sql(
             "select ride_d_tag from ride_report group by ride_d_tag, reason "
-            f"having count(*) >= {REPORTS_TO_HIDE}",
+            f"having count(*) >= {REPORTS_TO_HIDE} or reason = '{OWNER_DELETE_REASON}'",
             get_db(),
         )
     except pd.errors.DatabaseError:

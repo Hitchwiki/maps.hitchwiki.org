@@ -470,6 +470,13 @@ function requestLocation() {
 function showLocation(e) {
   const radius = e.accuracy; // metres
 
+  // While selecting a location (notably the destination leg, which starts with
+  // no pin), a GPS-button tap is the user asking to drop the endpoint on their
+  // current position — so place/move the selection pin there too.
+  if (locationSelectionType) {
+    placeOrMoveSelectionMarker(e.latlng);
+  }
+
   if (locationMarker) {
     locationMarker.setLatLng(e.latlng);
   } else {
@@ -616,6 +623,10 @@ async function loadCountryLayer() {
       // Stop propagation so the map's own click handler (handleMapClick) doesn't
       // also fire and open a nearby spot on top of the country sheet.
       layer.on("click", (e) => {
+        // While the routing planner is open every tap places a start/destination
+        // point. Let the click bubble to the map (routing.js onMapClick) instead
+        // of opening the country sheet on top of the planner.
+        if (window.RoutingUI && window.RoutingUI.active) return;
         L.DomEvent.stopPropagation(e);
         location.hash = "country/" + encodeURIComponent(name);
       });
@@ -1523,9 +1534,25 @@ function setupEventListeners() {
 
 // Handle map click events
 function handleMapClick(e) {
+  // A tap on a Leaflet control (GPS button, zoom, search, mode switcher) is not
+  // a map tap. disableClickPropagation suppresses the map click on desktop, but a
+  // touch-simulated click still reaches this handler — and the tap-to-nearest-spot
+  // shortcut below fires the closest marker by *coordinates*, so a spot sitting
+  // under the control would open. Ignore clicks originating on a control.
+  const oe = e.originalEvent;
+  if (oe && oe.target && oe.target.closest && oe.target.closest(".leaflet-control")) return;
+
+  // While selecting a location, every tap is meant to place/move the endpoint
+  // pin (handled by locationSelectionClickHandler). Bail out before the
+  // tap-to-nearest-spot shortcut below, which would otherwise fire a nearby
+  // spot's click — opening its popup or navigating away and tearing down the
+  // selection, which is exactly what forced the user to tap several times.
+  if (locationSelectionType) return;
+
   // While the routing planner is open, map clicks set the start/destination
   // (handled by routing.js onMapClick) — don't also drop a spot pin here.
   if (window.RoutingUI && window.RoutingUI.active) return;
+
   var added = false;
   // Countries mode hides the spot markers (but keeps them in `allMarkers`), so
   // skip the tap-to-nearest-spot shortcut — otherwise tapping a country would
@@ -1585,6 +1612,9 @@ function setupFilterEventListeners() {
   );
   minRidesFilter.addEventListener("input", () =>
     setQueryParameter("minrides", minRidesFilter.value)
+  );
+  minRatingFilter.addEventListener("input", () =>
+    setQueryParameter("minrating", minRatingFilter.value)
   );
   vehicleFilter.addEventListener("change", () =>
     setQueryParameter("vehicle", vehicleFilter.value)
@@ -1948,6 +1978,10 @@ function markerClick(marker) {
   $$("#spot-google-link").href = window.ontouchstart
     ? `geo:${data.lat},${data.lon}`
     : `https://www.google.com/maps/place/${data.lat},${data.lon}`;
+  // Street View helps judge a spot before going there (shoulder, sight lines, place to pull over).
+  // map_action=pano snaps to the nearest panorama, so it still works when the spot itself is off-road.
+  $$("#spot-streetview-link").href =
+    `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${data.lat},${data.lon}`;
   $$("#spot-osm-link").href =
     `https://www.openstreetmap.org/?mlat=${data.lat}&mlon=${data.lon}#map=18/${data.lat}/${data.lon}`;
 
@@ -2216,15 +2250,24 @@ function setupMenuSheet() {
   });
 }
 
+// The route pane's X must fully exit the planner (drop the routes, the pins and the
+// search panel). It cannot be navigateHome: while routing is active navigateHome
+// *returns to* the route view (that is what closing a spot pane opened from a route
+// should do), so wiring the X to it would reopen the pane it just closed.
+function closeRoutingPane() {
+  if (window.RoutingUI && window.RoutingUI.active) window.RoutingUI.close();
+  else navigateHome();
+}
+
 function setupRoutingSheet() {
   const closeBtn = $$("#routing-close");
-  if (closeBtn) closeBtn.onclick = navigateHome;
+  if (closeBtn) closeBtn.onclick = closeRoutingPane;
   setupBottomSheet({
     sheet: $$(".sidebar.routing"),
     handle: $$("#routing-sheet-handle"),
     snaps: ROUTING_SHEET_SNAPS,
     defaultSnap: "half",
-    onClose: navigateHome,
+    onClose: closeRoutingPane,
     // Only the X closes the route pane; dragging down bottoms out at "peek".
     dismissable: false,
   });
@@ -2266,13 +2309,10 @@ function showSuccessOverlay() {
     // Add click handler for the close button
     const closeBtn = $$("#success-close-btn");
     if (closeBtn) {
+      // Dismissing the overlay returns to the map the user submitted from — no
+      // navigation, so the restored viewport stays exactly where they left it.
       closeBtn.onclick = function() {
         overlay.style.display = "none";
-        // Logged-in users continue to their account page (template sets the URL); others stay on the map
-        const continueUrl = closeBtn.dataset.continueUrl;
-        if (continueUrl) {
-          window.location.href = continueUrl;
-        }
       };
     }
     
@@ -2469,6 +2509,7 @@ const textFilter = document.getElementById("text-filter");
 const userFilter = document.getElementById("user-filter");
 const distanceFilter = document.getElementById("distance-filter");
 const minRidesFilter = document.getElementById("min-rides-filter");
+const minRatingFilter = document.getElementById("min-rating-filter");
 const vehicleFilter = document.getElementById("vehicle-filter");
 const methodFilter = document.getElementById("method-filter");
 const minDateFilter = document.getElementById("min-date-filter");
@@ -2516,13 +2557,18 @@ function clearParams() {
 
 const MAP_HASH_RE = /^#?map=(\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)$/;
 const SPOT_PATH_RE = /^\/spot\/(-?\d+\.\d+)_(-?\d+\.\d+)\/?$/;
+// Shared route permalink, written by routing.js (updateShareUrl) and served by
+// Flask's render_directions so the link can carry its own OpenGraph preview.
+const DIR_PATH_RE = /^\/dir\/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)\/?$/;
 
 // The path the map was served under (/, /light, /hitchhiking.html …). Closing a
 // spot must return here, not unconditionally to "/", or the map variations and
-// their template tweaks would be lost on the way back.
-const BASE_PATH = SPOT_PATH_RE.test(window.location.pathname)
-  ? "/"
-  : window.location.pathname;
+// their template tweaks would be lost on the way back. A /spot/ or /dir/ path is
+// selection state, not a variation — both close back to "/".
+const BASE_PATH =
+  SPOT_PATH_RE.test(window.location.pathname) || DIR_PATH_RE.test(window.location.pathname)
+    ? "/"
+    : window.location.pathname;
 
 // Decimals such that one digit of the coordinate is worth about one screen
 // pixel at this zoom — OSM's zoomPrecision. Keeps shared links short at world
@@ -2652,6 +2698,7 @@ async function applyParams() {
   userFilter.value = getQueryParameter("user");
   distanceFilter.value = getQueryParameter("mindistance");
   minRidesFilter.value = getQueryParameter("minrides");
+  minRatingFilter.value = getQueryParameter("minrating");
   vehicleFilter.value = getQueryParameter("vehicle") || "";
   methodFilter.value = getQueryParameter("method") || "";
   minDateFilter.value = getQueryParameter("mindate") || "";
@@ -2666,6 +2713,7 @@ async function applyParams() {
     userFilter.value ||
     distanceFilter.value ||
     minRidesFilter.value ||
+    minRatingFilter.value ||
     vehicleFilter.value ||
     methodFilter.value ||
     minDateFilter.value ||
@@ -2747,6 +2795,13 @@ async function applyParams() {
       const minRides = parseInt(minRidesFilter.value, 10);
       filterMarkers = filterMarkers.filter(
         (x) => (x.options._data.review_count || 0) >= minRides
+      );
+    }
+    if (minRatingFilter.value) {
+      // spots.json carries the spot's mean rating, so this needs no ride index.
+      const minRating = parseFloat(minRatingFilter.value);
+      filterMarkers = filterMarkers.filter(
+        (x) => x.options._data.rating != null && x.options._data.rating >= minRating
       );
     }
     if (recentToggle.checked) {
@@ -2877,9 +2932,9 @@ async function navigate() {
     }
     // No exact marker match — pan to the coordinates
     map.setView([lat, lon], zoom || 14);
-  } else if (mainArgs[0] == "dir") {
-    // Shareable route link (#dir/from/to) — routing.js (openFromUrl) opens the
-    // planner and computes; don't clear() it out from under it.
+  } else if (mainArgs[0] == "dir" || DIR_PATH_RE.test(window.location.pathname)) {
+    // Shareable route link (/dir/from/to, or the legacy #dir/from/to) — routing.js
+    // (openFromUrl) opens the planner and computes; don't clear() it out from under it.
   } else {
     clear();
   }
@@ -2914,6 +2969,7 @@ function applyRideFilters(rides) {
   const commentNeedle = textFilter.value ? textFilter.value.toLowerCase() : null;
   const minDistanceKm = distanceFilter.value ? parseFloat(distanceFilter.value) : null;
   const minRides = minRidesFilter.value ? parseInt(minRidesFilter.value, 10) : null;
+  const minRating = minRatingFilter.value ? parseFloat(minRatingFilter.value) : null;
   const recentCutoffMs = recentToggle.checked
     ? Date.now() - 24 * 60 * 60 * 1000
     : null;
@@ -2955,6 +3011,24 @@ function applyRideFilters(rides) {
     filtered = filtered.filter((r) => (ridesPerSpot.get(r.sid) || 0) >= minRides);
   }
 
+  if (minRating != null) {
+    // Like the min-rides filter above, the spot average is taken over the rides that
+    // survived the ride-level filters, so the two spot filters describe the same set.
+    // Rides without a rating don't contribute to the mean.
+    const ratingSums = new Map();
+    for (const r of filtered) {
+      if (r.r == null) continue;
+      const acc = ratingSums.get(r.sid) || { sum: 0, n: 0 };
+      acc.sum += r.r;
+      acc.n += 1;
+      ratingSums.set(r.sid, acc);
+    }
+    filtered = filtered.filter((r) => {
+      const acc = ratingSums.get(r.sid);
+      return acc && acc.sum / acc.n >= minRating;
+    });
+  }
+
   return filtered;
 }
 
@@ -2964,6 +3038,7 @@ function anyFilterActive() {
       textFilter.value ||
       distanceFilter.value ||
       minRidesFilter.value ||
+      minRatingFilter.value ||
       vehicleFilter.value ||
       methodFilter.value ||
       minDateFilter.value ||
@@ -3305,6 +3380,9 @@ async function showInsightsView() {
 
   pane.style.display = "block";
   document.body.classList.add("showing-insights");
+  // The pane is about to be reparented inline; leaving the modal flag set would strand
+  // the scrim over the insights view.
+  closeFiltersModal();
   moveFilterPaneIntoInsights();
 
   // Hide any open sidebars / sheets so the insights view has the screen.
@@ -3512,6 +3590,42 @@ let locationSelectionIsNewSpot = false;
 // would strip handleMapClick too, breaking the map when we stay on it after cancel).
 let locationSelectionClickHandler = null;
 
+// If a tap/press lands within snapping range of a visible spot marker, treat
+// it as choosing THAT spot (merge the endpoint onto the spot's exact coords)
+// rather than creating a near-duplicate anchor next to it — the user is plausibly
+// aiming for that spot as their drop-off. Falls back to the raw latlng when the
+// press is nowhere near a spot, or when no screen point is available (e.g. GPS).
+function snapSelectionLatLng(latlng, containerPoint) {
+    const snapped = containerPoint ? findNearbySpotMarker(containerPoint) : null;
+    return snapped ? snapped.getLatLng() : latlng;
+}
+
+// Create the draggable selection pin on first placement, or move it if it
+// already exists. Shared by every way of placing the endpoint — single tap
+// (Leaflet click), long-press gesture, and the GPS button — so all three
+// behave identically and never stack a second marker.
+function placeOrMoveSelectionMarker(latlng) {
+    if (locationSelectionMarker) {
+        locationSelectionMarker.setLatLng(latlng);
+        return;
+    }
+    locationSelectionMarker = L.marker(latlng, {
+        draggable: true,
+        icon: L.icon({
+            iconUrl: '/static/markers/marker-icon-2x-red.png',
+            shadowUrl: '/static/markers/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        })
+    }).addTo(map);
+    // A pin now exists (tap / long-press / GPS) — enable the confirm button, which
+    // starts disabled on the pinless destination leg.
+    const confirmBtn = document.querySelector('.location-selection-ui .lsel-confirm');
+    if (confirmBtn) confirmBtn.disabled = false;
+}
+
 function setupLocationSelection(selectionType, initialCoords, opts = {}) {
     locationSelectionType = selectionType;
     locationSelectionIsNewSpot = !!opts.isNewSpot;
@@ -3527,25 +3641,21 @@ function setupLocationSelection(selectionType, initialCoords, opts = {}) {
         }
     }
 
-    // Place the draggable marker at the explicit seed location (gesture-initiated
-    // add) when given, otherwise at the current map center (form-initiated pick).
-    const markerLatLng = opts.initialLatLng || map.getCenter();
-    locationSelectionMarker = L.marker(markerLatLng, {
-        draggable: true,
-        icon: L.icon({
-            iconUrl: '/static/markers/marker-icon-2x-red.png',
-            shadowUrl: '/static/markers/marker-shadow.png',
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34],
-            shadowSize: [41, 41]
-        })
-    }).addTo(map);
+    // The destination leg starts with NO pin: the map centers on the pickup for
+    // context, but auto-dropping a marker there would silently set the endpoint
+    // to the origin. The user must place it themselves (single/long tap) or via
+    // the GPS button. Pickup picks and gesture-initiated adds keep a pre-placed
+    // pin (at the seed location, or the current map center).
+    if (selectionType !== 'select-destination') {
+        placeOrMoveSelectionMarker(opts.initialLatLng || map.getCenter());
+    }
 
-    // Update marker position when map is clicked (kept in a named handler so
-    // cleanup can detach only this one — see locationSelectionClickHandler).
+    // A single tap (Leaflet click) places or moves the pin. Long-press is routed
+    // to the same helper via the add-spot gesture path (see startAddSpotFromGesture)
+    // so both a quick tap and a long press set/move the endpoint. Kept in a named
+    // handler so cleanup can detach only this one — see locationSelectionClickHandler.
     locationSelectionClickHandler = function(e) {
-        locationSelectionMarker.setLatLng(e.latlng);
+        placeOrMoveSelectionMarker(snapSelectionLatLng(e.latlng, e.containerPoint));
     };
     map.on('click', locationSelectionClickHandler);
 
@@ -3576,7 +3686,7 @@ function setupLocationSelection(selectionType, initialCoords, opts = {}) {
         <h4>${heading}</h4>
         <p>${instruction}</p>
         <div class="lsel-actions">
-            <button class="lsel-confirm" onclick="confirmLocationSelection()">${confirmLabel}</button>
+            <button class="lsel-confirm"${locationSelectionMarker ? "" : " disabled"} onclick="confirmLocationSelection()">${confirmLabel}</button>
             <button class="lsel-cancel" onclick="cancelLocationSelection()">Cancel</button>
         </div>
     `;
@@ -3716,6 +3826,10 @@ function setupAddSpotGesture() {
 // or null. Markers hidden inside a cluster are skipped so we only ever snap to a
 // pin the user can actually see.
 function findNearbySpotMarker(containerPoint, thresholdPx = 22) {
+    // Only snap to spots that are actually shown. Countries mode removes the cluster
+    // from the map (but leaves markerCluster non-null), so guard on layer visibility —
+    // otherwise a tap could snap to an invisible spot.
+    if (!markerCluster || !map.hasLayer(markerCluster)) return null;
     let best = null, bestDist = thresholdPx;
     for (const marker of allMarkers) {
         if (markerCluster && markerCluster.getVisibleParent(marker) !== marker) continue;
@@ -3731,6 +3845,15 @@ function findNearbySpotMarker(containerPoint, thresholdPx = 22) {
 // Begin adding a hitch site from a map gesture: seed a draggable pin (snapping
 // onto an existing spot when the press lands on one) and show the confirm panel.
 function startAddSpotFromGesture(latlng, containerPoint) {
+    // A location selection is already active (e.g. picking a destination): a
+    // long-press means "place/move the endpoint here", not "start a new add".
+    // This is what makes a long tap set the pin — the destination leg has no
+    // marker yet, so we can't rely on the `if (marker) return` guard below.
+    if (locationSelectionType) {
+        placeOrMoveSelectionMarker(snapSelectionLatLng(latlng, containerPoint));
+        return;
+    }
+
     // Ignore if a selection is already in progress.
     if (locationSelectionMarker) return;
 

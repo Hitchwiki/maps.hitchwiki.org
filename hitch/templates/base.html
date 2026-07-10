@@ -32,6 +32,10 @@
     {# base_url drops the query and fragment, so a link shared with filters or a
        #map= viewport still previews as the page it actually is. #}
     <meta property="og:url" content="{% block og_url %}{{ request.base_url }}{% endblock %}" />
+    {# Only pages that can render a picture of themselves (currently a shared route)
+       set og_image. Without an image a messenger shows a text-only card, which is
+       the honest result for pages that have no single representative view. #}
+    {% block og_image %}{% endblock %}
 
     {% block head %}{% endblock %}
   </head>

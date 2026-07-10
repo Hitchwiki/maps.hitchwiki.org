@@ -14,3 +14,9 @@ REPORT_REASONS = {
 # A ride is auto-hidden once at least this many distinct users report it for the same
 # reason. Because reports are unique per (ride, user), this is a count of distinct people.
 REPORTS_TO_HIDE = 2
+
+# Reason recorded when a ride's own author deletes it. Deleting a ride cannot remove it
+# from the Nostr relays, so "delete" means "stop showing it": a single row with this
+# reason hides the ride, no threshold. Deliberately absent from REPORT_REASONS so it can
+# never be selected on the report form by someone who doesn't own the ride.
+OWNER_DELETE_REASON = "owner_deleted"

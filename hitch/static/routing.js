@@ -5,7 +5,7 @@
  * Google-Maps-style start/destination UI that transforms the search bar.
  *
  * Relies on globals from map.js: `map` (the Leaflet map), `markerCluster`
- * (the spot cluster), and `setSpotsVisible`.
+ * (the spot cluster), `setSpotsVisible`, and `getMapMode`.
  */
 (function () {
   "use strict";
@@ -368,10 +368,23 @@
     hideResultsSheet();
     ["start", "dest"].forEach(clearPoint);
     if (panel) { fieldInput("start").value = ""; fieldInput("dest").value = ""; }
-    if (typeof setSpotsVisible === "function") setSpotsVisible(true);
+    // Countries mode hides the spots itself; restoring them here would make them
+    // reappear on top of the choropleth, where they were never shown.
+    const inCountriesMode = typeof getMapMode === "function" && getMapMode() === "countries";
+    if (typeof setSpotsVisible === "function" && !inCountriesMode) setSpotsVisible(true);
     map.getContainer().style.cursor = "";
-    // Drop a shared #dir link so closing returns to a clean URL.
-    if (location.hash.slice(1).startsWith("dir/")) history.replaceState(null, "", location.pathname + location.search);
+    // Drop a shared route link so closing returns to a clean URL. The path form
+    // must fall back to BASE_PATH (map.js): leaving "/dir/…" in the address bar
+    // would make the next navigate() reopen the planner we just closed.
+    const dirHash = location.hash.slice(1).startsWith("dir/");
+    if (DIR_PATH_RE.test(location.pathname)) {
+      // BASE_PATH is a top-level const in map.js: a global lexical binding, so it
+      // resolves here but never as a window property.
+      const home = typeof BASE_PATH === "string" ? BASE_PATH : "/";
+      history.replaceState(null, "", home + location.search + (dirHash ? "" : location.hash));
+    } else if (dirHash) {
+      history.replaceState(null, "", location.pathname + location.search);
+    }
   }
 
   // ---- routing + drawing -------------------------------------------------
@@ -380,6 +393,7 @@
     [RJ.routeLayer, RJ.spotLayer, RJ.tagLayer].forEach((l) => { if (l) map.removeLayer(l); });
     RJ.routeLayer = RJ.spotLayer = RJ.tagLayer = RJ.tagMarker = null;
     RJ.routes = [];
+    disableRoutePanePointerEvents();
     const sheet = resultsSheet();
     const opts = sheet && sheet.querySelector(".rp-options");
     if (opts) opts.innerHTML = "";
@@ -445,26 +459,43 @@
       "Try searching for part of the route — e.g. between larger cities along the way.";
   }
 
-  // ---- shareable route URL (#dir/<slat>,<slon>/<dlat>,<dlon>) ------------
+  // ---- shareable route URL (/dir/<slat>,<slon>/<dlat>,<dlon>) ------------
   // Google-Maps-style: the current start+destination live in the URL so the link
-  // reopens the same route. replaceState (not location.hash=) avoids firing a
-  // navigate/hashchange loop; a fresh load / paste is handled in init().
+  // reopens the same route. The endpoints sit in the path, not a #dir/ fragment,
+  // for the same reason spot ids do (see map.js): messengers strip the fragment
+  // when auto-linking a pasted URL — and a fragment never reaches the server, so
+  // a hash link could never carry the OpenGraph preview Flask renders for /dir/.
+  // replaceState (not assignment) avoids firing a navigate/popstate loop; a fresh
+  // load / paste is handled in init().
+  const DIR_PATH_RE = /^\/dir\/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)\/?$/;
+
   function updateShareUrl() {
     if (!RJ.start || !RJ.dest) return;
     const f = RJ.start.latlng, t = RJ.dest.latlng;
-    const h = `#dir/${f[0].toFixed(5)},${f[1].toFixed(5)}/${t[0].toFixed(5)},${t[1].toFixed(5)}`;
-    history.replaceState(null, "", location.pathname + location.search + h);
+    const path = `/dir/${f[0].toFixed(5)},${f[1].toFixed(5)}/${t[0].toFixed(5)},${t[1].toFixed(5)}`;
+    // A legacy #dir hash described this very route; drop it rather than carry a
+    // second, staler copy of the state. A #map= viewport is kept.
+    const hash = location.hash.slice(1).startsWith("dir/") ? "" : location.hash;
+    history.replaceState(null, "", path + location.search + hash);
+  }
+  function parseDirPath(pathname) {
+    const m = DIR_PATH_RE.exec(pathname || "");
+    if (!m) return null;
+    return { from: [+m[1], +m[2]], to: [+m[3], +m[4]] };
   }
   function parseShareUrl(hash) {
-    // "dir/<slat>,<slon>/<dlat>,<dlon>" -> {from:[lat,lon], to:[lat,lon]} or null
+    // Legacy "#dir/<slat>,<slon>/<dlat>,<dlon>" -> {from:[lat,lon], to:[lat,lon]} or null
     const parts = hash.replace(/^#/, "").split("/");
     if (parts[0] !== "dir" || parts.length < 3) return null;
     const a = parts[1].split(",").map(Number), b = parts[2].split(",").map(Number);
     if (a.length !== 2 || b.length !== 2 || a.concat(b).some((n) => !isFinite(n))) return null;
     return { from: a, to: b };
   }
-  function openFromUrl(hash) {
-    const p = parseShareUrl(hash || location.hash);
+  function routeFromUrl() {
+    return parseDirPath(location.pathname) || parseShareUrl(location.hash);
+  }
+  function openFromUrl() {
+    const p = routeFromUrl();
     if (!p) return false;
     open();
     // setPoint fills the input and auto-computes once both ends are set.
@@ -483,6 +514,33 @@
         if (fieldInput(field)) fieldInput(field).value = RJ[field].label;
       }
     });
+  }
+
+  // Routes must not live in the default overlay pane: style.css dims it to 30%
+  // opacity while zoomed out (body.zoomed-out, set below zoom 9) and hides it
+  // outright while filtering. Both rules exist to keep a spot's destination
+  // arrows from cluttering a wide view — but drawRoutes() fitBounds()es onto a
+  // whole intercity route, which lands below zoom 9 every time, so the routes
+  // would draw at ~0.07-0.28 effective opacity. Own pane, above the overlay pane
+  // (400) and the country choropleth (450), below the markers (600).
+  function routePane() {
+    if (!map.getPane("routes")) {
+      const p = map.createPane("routes");
+      p.style.zIndex = 460;
+    }
+    // With preferCanvas, Leaflet keeps this pane's renderer canvas — sized to the
+    // whole map — in the DOM after clearRoutes() removes the polylines. An empty
+    // canvas above the choropleth would swallow every country click, so the pane
+    // only accepts pointer events while routes are actually drawn.
+    map.getPane("routes").style.pointerEvents = "";
+    return "routes";
+  }
+
+  // Let clicks fall through to the layers underneath (choropleth, spot markers)
+  // once no route is drawn. See routePane().
+  function disableRoutePanePointerEvents() {
+    const p = map.getPane("routes");
+    if (p) p.style.pointerEvents = "none";
   }
 
   function drawRoutes() {
@@ -506,6 +564,7 @@
       const pl = L.polyline(leg.path, {
         color, opacity: 0.35, weight: leg.mode === "walk" ? 3 : 5,
         dashArray: leg.mode === "walk" ? "2 8" : null, lineCap: "round", lineJoin: "round",
+        pane: routePane(),
       });
       pl.options._car = leg.mode === "car";
       // Stop the click here: with preferCanvas a polyline click otherwise also
@@ -574,7 +633,10 @@
             iconSize: [22, 22], iconAnchor: [11, 11] }), zIndexOffset: 400 })
             .bindTooltip("Change car here — tap for rides", { direction: "top" });
         } else {
-          m = L.circleMarker(c, { radius: 4.5, color: "#fff", weight: 1, fillColor: color, fillOpacity: 0.95 });
+          // Same pane as the route lines — a circleMarker is a Path, so it would
+          // otherwise be dimmed with the default overlay pane (see routePane).
+          m = L.circleMarker(c, { radius: 4.5, color: "#fff", weight: 1, fillColor: color, fillOpacity: 0.95,
+            pane: routePane() });
         }
         m.on("click", (e) => { RJ._pickAt = Date.now(); L.DomEvent.stopPropagation(e); openSpotSheet(c, e); });
         m.addTo(RJ.spotLayer);
@@ -726,16 +788,26 @@
       btn.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); open(); }, true);
     }
     map.on("click", onMapClick);
-    // The route pane's X must fully close the planner. setupRoutingSheet wired it
-    // to navigateHome, which now returns-to-route while active — so override it
-    // here to call close() directly (the real teardown).
-    const rc = document.querySelector("#routing-close");
-    if (rc) rc.onclick = (e) => { e.preventDefault(); close(); };
+    // The route pane's X is wired in map.js (setupRoutingSheet -> closeRoutingPane),
+    // which calls RoutingUI.close(). Don't rebind it here: init() runs at script-parse
+    // time, while setupRoutingSheet runs after loadMarkers() resolves, so anything we
+    // set now would be overwritten a moment later.
     // Esc closes the planner.
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && RJ.active) close(); });
-    // A shared/deep #dir link reopens the same route on load and on back/forward.
+    // A shared/deep route link reopens the same route on load and on back/forward.
+    // The canonical form lives in the path, so back/forward onto it is a popstate,
+    // not a hashchange; only reopen when the planner isn't already showing it.
     openFromUrl();
-    window.addEventListener("hashchange", () => { if (parseShareUrl(location.hash)) openFromUrl(); });
+    const reopen = () => {
+      const p = routeFromUrl();
+      if (!p) return;
+      if (RJ.active && RJ.start && RJ.dest &&
+          RJ.start.latlng[0] === p.from[0] && RJ.start.latlng[1] === p.from[1] &&
+          RJ.dest.latlng[0] === p.to[0] && RJ.dest.latlng[1] === p.to[1]) return;
+      openFromUrl();
+    };
+    window.addEventListener("hashchange", reopen);
+    window.addEventListener("popstate", reopen);
   }
 
   function waitFor(cond, cb, tries) {

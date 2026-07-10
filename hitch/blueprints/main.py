@@ -1,7 +1,11 @@
+import contextlib
 import json
 import math
 import os
 import re
+import subprocess
+import sys
+import time
 from datetime import datetime
 
 import pandas as pd
@@ -13,6 +17,7 @@ from flask import (
     redirect,
     render_template,
     request,
+    send_file,
     url_for,
 )
 from flask_security import current_user
@@ -37,7 +42,7 @@ from hitch.blueprints.utils.iso_country_codes import ISO_3166_1_ALPHA_2
 from hitch.blueprints.utils.license_plate_country_codes import LICENSE_PLATE_COUNTRY_CHOICES
 from hitch.blueprints.utils.notifications import notify_co_hitchhiker_invite, unread_count
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
-from hitch.blueprints.utils.report_ride import REPORT_REASONS
+from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON, REPORT_REASONS
 from hitch.blueprints.utils.ride_ip_log import get_client_ip, log_ride_ip
 from hitch.extensions import db
 from hitch.helpers import get_db, get_dirs
@@ -67,20 +72,41 @@ VEHICLE_KIND_EMOJIS = {
 VEHICLE_KIND_CHOICES = [(k, VEHICLE_KIND_EMOJIS[k]) for k in ALLOWED_VEHICLE_KINDS]
 
 
-def _user_owns_ride(ride, user):
-    """Check if the current user owns this ride."""
+def _user_is_hitchhiker(ride, user):
+    """Check if the current user is listed among this ride's hitchhikers, whatever its source."""
     if user.is_anonymous:
         return False
 
-    # Check if source matches our source
     content = ride.content or {}
-    if content.get("source") != "maps.hitchwiki.org":
-        return False
-
-    # Check if current user is one of the hitchhikers
     hitchhikers = content.get("hitchhikers", [])
     user_nicknames = [hitchhiker.get("nickname") for hitchhiker in hitchhikers]
     return user.username in user_nicknames
+
+
+def _user_owns_ride(ride, user):
+    """Check if the current user may *edit* this ride.
+
+    Editing republishes the event under this app's Nostr key with the same `d` tag, which
+    only replaces the original when we published it in the first place (kind 36820 is
+    replaceable per (pubkey, kind, d)). A foreign-source ride is signed by another key, so
+    re-publishing would fork it into a second event rather than update it — hence editing
+    stays restricted to rides we authored. Deletion has no such constraint, see
+    `_user_can_delete_ride`.
+    """
+    if (ride.content or {}).get("source") != "maps.hitchwiki.org":
+        return False
+    return _user_is_hitchhiker(ride, user)
+
+
+def _user_can_delete_ride(ride, user):
+    """Check if the current user may hide this ride from the map.
+
+    Deleting only writes a local RideReport row (it never touches the relays), so it works
+    for rides imported from other sources too — a hitchhiker who finds their own ride
+    logged on hitchwiki.org / hitchmap.com must be able to take it off the map, exactly as
+    those rides already show up as theirs on their profile page.
+    """
+    return _user_is_hitchhiker(ride, user)
 
 
 # TODO: renamed function from map() to render_map() to avoid conflict with map() builtin
@@ -104,6 +130,18 @@ def render_map(map_variation):
 
 # Spot ids are generate_spot_id()'s "<lat>_<lon>" with 5 decimals (see show.py).
 SPOT_ID_RE = re.compile(r"^-?\d+\.\d{1,7}_-?\d+\.\d{1,7}$")
+
+
+def _external_https(endpoint, **values):
+    """Absolute https URL, for a meta tag that must not carry an http:// URL.
+
+    Plain url_for(_external=True) yields http:// in production (see deploy/run.sh:
+    waitress strips the X-Forwarded-Proto that ProxyFix would need). Unfurlers and
+    search engines discard an insecure og:image or canonical on an https page, so
+    state the scheme rather than inferring it. The OAuth redirect_uri has the same
+    problem and solves it separately, in oauth._redirect_uri().
+    """
+    return url_for(endpoint, _external=True, _scheme="https", **values)
 
 
 def _spot_preview(spot_id):
@@ -168,13 +206,136 @@ def render_spot(spot_id):
         map_variation=None,
         spot_title=f"Hitchhiking spot at {lat:.5f}, {lon:.5f}",
         spot_description=_spot_description(preview) if preview else None,
-        spot_url=url_for("main.render_spot", spot_id=spot_id, _external=True),
+        spot_url=_external_https("main.render_spot", spot_id=spot_id),
         hide_add_spot_button=current_app.config.get("HIDE_ADD_SPOT_BUTTON", False),
         hide_account_button=current_app.config.get("HIDE_ACCOUNT_BUTTON", False),
         is_logged_in=not current_user.is_anonymous,
         unread_notifications=unread_count(current_user),
     )
 
+
+# A route endpoint in a shared link: "<lat>,<lon>" at the 5 decimals routing.js writes.
+DIR_POINT_RE = re.compile(r"^-?\d+\.\d{1,7},-?\d+\.\d{1,7}$")
+
+# How long a request will wait for a cold preview to be built. The routing graph
+# takes ~3 s to build, so the first visitor to a route pays for it; messengers
+# give an unfurl roughly ten seconds before they give up.
+PREVIEW_TIMEOUT_S = 25
+
+
+def _parse_dir_point(point):
+    if not DIR_POINT_RE.match(point):
+        abort(404)
+    lat, lon = (float(v) for v in point.split(","))
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        abort(404)
+    return lat, lon
+
+
+def _route_preview(start, dest, build=True):
+    """Cached preview facts for a route, building them on a miss.
+
+    Generation runs in a subprocess (hitch.scripts.route_preview): the routing
+    graph costs ~190 MB, which we don't want resident in every waitress worker
+    on a host that has been OOM-killed before. A lock file makes it single-
+    flight, so a burst of crawler hits on one link can't fork a dozen of them —
+    losers of the race fall back to the generic preview rather than queueing.
+    """
+    key = f"{start[0]:.5f}_{start[1]:.5f}__{dest[0]:.5f}_{dest[1]:.5f}"
+    cached = safe_join(get_dirs()["dist"], "dir", f"{key}.json")
+    if not cached:
+        return key, None
+    if os.path.isfile(cached):
+        try:
+            with open(cached) as f:
+                return key, json.load(f)
+        except (OSError, ValueError):
+            pass
+    if not build:
+        return key, None
+
+    # The lock lives beside the cache entry, so the directory has to exist before
+    # we can take it — on a fresh deploy nothing has written dist/dir/ yet.
+    lock = f"{cached}.lock"
+    try:
+        os.makedirs(os.path.dirname(cached), exist_ok=True)
+        fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError:
+        # A builder that was killed (this host has been OOM-killed before) leaves
+        # its lock behind; without this the route could never be built again.
+        try:
+            stale = time.time() - os.path.getmtime(lock) > 2 * PREVIEW_TIMEOUT_S
+        except OSError:
+            stale = False
+        if not stale:
+            return key, None  # someone else is already building it
+        with contextlib.suppress(OSError):
+            os.unlink(lock)
+        return _route_preview(start, dest, build=True)
+    except OSError:
+        return key, None
+    os.close(fd)
+    try:
+        subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "hitch.scripts.route_preview",
+                "--from",
+                f"{start[0]},{start[1]}",
+                "--to",
+                f"{dest[0]},{dest[1]}",
+            ],
+            cwd=get_dirs()["root"],
+            capture_output=True,
+            timeout=PREVIEW_TIMEOUT_S,
+            check=True,
+        )
+    except (subprocess.SubprocessError, OSError) as e:
+        current_app.logger.warning("route preview failed for %s: %s", key, e)
+        return key, None
+    finally:
+        with contextlib.suppress(OSError):
+            os.unlink(lock)
+    return _route_preview(start, dest, build=False)
+
+
+# Shareable route permalink, mirroring /spot/<id>: the endpoints live in the path
+# rather than the old #dir/<from>/<to> fragment because a fragment never reaches
+# the server, so a pasted route link could never carry its own preview. routing.js
+# reads the path back and reopens the planner; the legacy hash is still accepted
+# and rewritten to this path.
+@main_bp.route("/dir/<start>/<dest>")
+def render_directions(start, dest):
+    s, d = _parse_dir_point(start), _parse_dir_point(dest)
+    _, preview = _route_preview(s, d)
+    return render_template(
+        "map.html",
+        map_variation=None,
+        spot_title=preview["title"] if preview else "Hitchhiking route",
+        spot_description=preview["description"] if preview else None,
+        spot_url=_external_https("main.render_directions", start=start, dest=dest),
+        og_image=_external_https("main.render_directions_preview", start=start, dest=dest) if preview else None,
+        noindex=True,
+        hide_add_spot_button=current_app.config.get("HIDE_ADD_SPOT_BUTTON", False),
+        hide_account_button=current_app.config.get("HIDE_ACCOUNT_BUTTON", False),
+        is_logged_in=not current_user.is_anonymous,
+        unread_notifications=unread_count(current_user),
+    )
+
+
+@main_bp.route("/dir/<start>/<dest>/preview.png")
+def render_directions_preview(start, dest):
+    s, d = _parse_dir_point(start), _parse_dir_point(dest)
+    key, preview = _route_preview(s, d)
+    if not preview:
+        abort(404)
+    path = safe_join(get_dirs()["dist"], "dir", f"{key}.png")
+    if not path or not os.path.isfile(path):
+        abort(404)
+    # The image is a pure function of the coordinates, so it never goes stale in
+    # a way a crawler would notice; let the CDN and the messenger keep it.
+    return send_file(path, mimetype="image/png", max_age=604800)
 
 @main_bp.route("/driver_info_choices.json")
 def driver_info_choices_json():
@@ -436,6 +597,7 @@ def ride_detail(d_tag):
         "source": content.get("source") or ride.source,
         "distance_km": distance_km,
         "is_owner": _user_owns_ride(ride, current_user),
+        "can_delete": _user_can_delete_ride(ride, current_user),
         "vehicle": vehicle,
         "driver": driver,
     }
@@ -445,12 +607,44 @@ def ride_detail(d_tag):
         not current_user.is_anonymous
         and RideReport.query.filter_by(ride_d_tag=d_tag, user_id=current_user.id).first() is not None
     )
+    # An owner deletion hides the ride from the map, so the owner sees "hidden" state
+    # instead of a delete button (the ride page itself stays reachable via its permalink).
+    owner_deleted = RideReport.query.filter_by(ride_d_tag=d_tag, reason=OWNER_DELETE_REASON).first() is not None
     return render_template(
         "ride_detail.html",
         ride=ride_view,
         already_reported=already_reported,
+        owner_deleted=owner_deleted,
         report_confirmed=request.args.get("reported") == "1",
     )
+
+
+@main_bp.route("/delete-ride/<d_tag>", methods=["POST"])
+def delete_ride(d_tag):
+    """Let any of a ride's hitchhikers hide it, including rides imported from other sources.
+
+    The event lives on the Nostr relays and cannot be recalled, so "delete" here means a
+    single RideReport row with OWNER_DELETE_REASON, which show.py treats as sufficient to
+    drop the ride from every generated map file (no reporter threshold).
+    """
+    if current_user.is_anonymous:
+        return redirect(f"/login?next=/ride/{d_tag}")
+
+    ride = db.session.query(RideEvent).filter_by(d=d_tag).first()
+    if not ride:
+        abort(404)
+    if not _user_can_delete_ride(ride, current_user):
+        abort(403)
+
+    # Reports are unique per (ride, user): if the owner had already filed a report, promote
+    # it to the deletion reason rather than inserting a second row.
+    existing = RideReport.query.filter_by(ride_d_tag=d_tag, user_id=current_user.id).first()
+    if existing:
+        existing.reason = OWNER_DELETE_REASON
+    else:
+        db.session.add(RideReport(ride_d_tag=d_tag, user_id=current_user.id, reason=OWNER_DELETE_REASON))
+    db.session.commit()
+    return redirect(f"/ride/{d_tag}")
 
 
 @main_bp.route("/report-ride/<d_tag>", methods=["GET", "POST"])
