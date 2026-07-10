@@ -9,6 +9,7 @@ import time as time_module
 
 import click
 from flask import Flask, render_template, request, send_from_directory
+from flask.sessions import SecureCookieSessionInterface
 from flask_security import SQLAlchemyUserDatastore
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import safe_join
@@ -28,6 +29,30 @@ if ENVIRONMENT not in ["prod", "dev"]:
     sys.exit(1)
 
 
+class _CacheAwareSessionInterface(SecureCookieSessionInterface):
+    """Flask.process_response runs every @app.after_request hook and only *then*
+    calls session_interface.save_session() unconditionally (see flask/app.py:
+    process_response loops over after_request_funcs first, then calls
+    save_session as the final step) -- and save_session() does
+    response.vary.add("Cookie") whenever session.accessed is True, which
+    flask_security/flask_principal cause on every request (even /static and
+    dist/* ones, since the identity loader checks login state before_request).
+    No after_request hook can out-run that append. But save_session() runs
+    inside the request context, so request.endpoint IS available here --
+    this is the one place that runs after the re-add and can undo it, scoped
+    to exactly the two endpoints set_public_cache_headers marked cacheable.
+    """
+
+    def save_session(self, app, session, response):
+        super().save_session(app, session, response)
+        if request.endpoint in ("static", "catch_all"):
+            # Must be lowercase: werkzeug's HeaderSet.remove() compares the
+            # lowercased stored token against the *unlowered* argument, so
+            # discard("Cookie") silently no-ops -- discard("cookie") is the
+            # only case that actually matches and removes it.
+            response.vary.discard("cookie")
+
+
 def create_app(config_name=None):
     if config_name is None:
         config_name = os.getenv("FLASK_CONFIG", "development")
@@ -37,6 +62,9 @@ def create_app(config_name=None):
     # needed fo r correct OAuth callback URLs and to avoid mixed content issues when behind a reverse proxy
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
     app.config.from_object(config[config_name])
+    # See _CacheAwareSessionInterface for why Vary: Cookie needs stripping here,
+    # not in an after_request hook.
+    app.session_interface = _CacheAwareSessionInterface()
 
     register_extensions(app)
     register_blueprints(app)
@@ -253,3 +281,24 @@ def register_routes(app):
             os.path.join(app.root_path, "static"),
             "sw.js",
         )
+
+    # Cache policy for public, versioned/generated files, in one place so it OVERRIDES
+    # the no-cache + Vary: Cookie that Werkzeug (send_from_directory with no max_age) and
+    # the session layer inject — both defeat caching of files that are safe to cache.
+    # HTML, sw.js, and route endpoints are intentionally left untouched so new ?v= asset
+    # links and service-worker updates keep propagating on the next load.
+    @app.after_request
+    def set_public_cache_headers(response):
+        endpoint = request.endpoint
+        if endpoint == "static":
+            # ?v=<mtime> busting (asset_url) makes each URL's body immutable.
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+            response.headers["Vary"] = "Accept-Encoding"
+        elif endpoint == "catch_all":
+            # dist/* regenerates every ~10 min and is already ~40 min stale by design, so
+            # a 5-min cache + stale-while-revalidate is invisible and skips the reload
+            # revalidation round-trip; ETag/Last-Modified stay for the >15-min case. These
+            # files vary only by gzip vs plain, never by cookie — drop Vary: Cookie.
+            response.headers["Cache-Control"] = "public, max-age=300, stale-while-revalidate=600"
+            response.headers["Vary"] = "Accept-Encoding"
+        return response
