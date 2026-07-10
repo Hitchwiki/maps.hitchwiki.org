@@ -19,6 +19,9 @@
   const DEFAULT_MAX_WALK = 20;
   const TRANSFER_KM = DEFAULT_MAX_WALK;
   const ORIGIN = -2, DEST = -1, NO_TREE = -1;
+  // Mirrors MIN_SUPPORT in build_ride_routes.py: an edge below this was taken by
+  // one hitchhiker once, and only exists in the lazily loaded fallback graph.
+  const MIN_SUPPORT = 2;
   const ALT_COLORS = ["#1a73e8", "#e8710a", "#188038"]; // fastest first
 
   // ---- small helpers -----------------------------------------------------
@@ -46,12 +49,14 @@
     const treeAdj = [];            // t_id -> Map u -> [[v, km, wait], ...]
     const board = new Map();       // u -> [[t_id, v, km, wait], ...]
     const edgeKm = new Map();      // u*1e7+v -> km
+    const edgeSupport = new Map(); // u*1e7+v -> rides that took this edge
     const carSpots = new Set();
     const waits = [];
     rep.trees.forEach((t) => {
       const tId = treeAdj.length, adj = new Map(), nodes = t.nodes;
       nodes.forEach((n) => {
         const from = n[1] === -1 ? t.s : nodes[n[1]][0], to = n[0];
+        const support = n[2];
         const wait = n.length > 3 ? n[3] : null;
         const km = haversineKm(spots[from], spots[to]) * CAR_FACTOR;
         if (!adj.has(from)) adj.set(from, []);
@@ -65,13 +70,17 @@
           board.get(from).push([tId, to, km, wait]);
         }
         edgeKm.set(from * 1e7 + to, km);
+        // The same (from, to) pair can appear in several corridors; the strongest
+        // evidence for that road segment is what we report to the user.
+        const key = from * 1e7 + to;
+        edgeSupport.set(key, Math.max(edgeSupport.get(key) || 0, support));
         if (wait != null) waits.push(wait);
         carSpots.add(from); carSpots.add(to);
       });
       treeAdj.push(adj);
     });
     const defaultWait = waits.length ? waits.reduce((a, b) => a + b, 0) / waits.length : 0;
-    const R = { spots, treeAdj, board, edgeKm, defaultWait, nTrees: treeAdj.length,
+    const R = { spots, treeAdj, board, edgeKm, edgeSupport, defaultWait, nTrees: treeAdj.length,
       carSpots: [...carSpots], walkAdj: new Map(), grid: null, cellDeg: 0, walkReady: false };
     return R;
   }
@@ -157,9 +166,15 @@
     const legs = [];
     raw.forEach(([kind, a, b, km, wait]) => {
       const mode = kind === "walk" ? "walk" : "car";
+      // A ride is only as well-evidenced as its weakest edge, so a leg carries the
+      // minimum support of the edges it absorbs (undefined on walk legs).
+      const sup = mode === "car" ? (R.edgeSupport.get(a * 1e7 + b) || 1) : Infinity;
       const last = legs[legs.length - 1];
-      if (last && last.mode === mode && kind !== "board") { last.km += km; last.path.push(coord(b)); last.to = coord(b); }
-      else legs.push({ mode, from: coord(a), to: coord(b), km, path: [coord(a), coord(b)], waitMin: kind === "board" ? wait : 0 });
+      if (last && last.mode === mode && kind !== "board") {
+        last.km += km; last.path.push(coord(b)); last.to = coord(b);
+        last.support = Math.min(last.support, sup);
+      } else legs.push({ mode, from: coord(a), to: coord(b), km, path: [coord(a), coord(b)],
+        waitMin: kind === "board" ? wait : 0, support: sup });
     });
     legs.forEach((l) => { l.minutes = l.km / (l.mode === "walk" ? WALK_KMH : CAR_KMH) * 60; });
     const walkKm = legs.filter((l) => l.mode === "walk").reduce((s, l) => s + l.km, 0);
@@ -167,7 +182,10 @@
     const walkMin = legs.filter((l) => l.mode === "walk").reduce((s, l) => s + l.minutes, 0);
     const waitMin = legs.reduce((s, l) => s + l.waitMin, 0);
     const totalMin = legs.reduce((s, l) => s + l.minutes, 0) + waitMin;
-    return { found: true, totalMin, waitMin, walkMin, walkKm, carKm, legs, carEdges };
+    // Weakest link over the whole route: < MIN_SUPPORT means at least one ride
+    // here was logged by a single hitchhiker, which the UI has to disclose.
+    const minSupport = legs.reduce((s, l) => Math.min(s, l.support), Infinity);
+    return { found: true, totalMin, waitMin, walkMin, walkKm, carKm, legs, carEdges, minSupport };
   }
 
   // Up to k sufficiently-different routes (penalty method).
@@ -194,6 +212,9 @@
   // ======================================================================
   const RJ = {
     active: false, router: null,
+    spots: null,                    // shared spot array, indexed by both graphs
+    fallback: { promise: null, router: null },
+    searchToken: null,              // invalidates an in-flight fallback search
     start: null, dest: null,        // { latlng:[lat,lon], label }
     activeField: "start",
     routes: [], highlight: 0,
@@ -211,11 +232,35 @@
   RJ.showAgain = showAgain;
 
   fetch("/repeatable_routes.json").then((r) => r.json()).then((rep) => {
+    RJ.spots = rep.spots;
     RJ.router = buildRouter(rep); ensureWalk(RJ.router);
     // A shared #dir link may have opened the planner before the data arrived
     // (compute() showed "Loading route data…"); run it now that we can.
     if (RJ.active && RJ.start && RJ.dest && !RJ.routes.length) compute();
   }).catch((e) => console.error("routing data failed", e));
+
+  // Pass 2's graph: every corridor, including the ones a single ride established.
+  // ~4 MB against repeatable_routes.json's 1.3 MB, and most searches never need
+  // it — so it is fetched the first time a search comes back empty, not on load.
+  // Resolves to null (once, cached) if it can't be used, so we degrade to the
+  // old "no route found" message instead of retrying the download per search.
+  function loadFallbackRouter() {
+    if (RJ.fallback.promise) return RJ.fallback.promise;
+    RJ.fallback.promise = fetch("/oneoff_routes.json")
+      .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then((weak) => {
+        // Its node indices address repeatable_routes.json's spot array. If only
+        // one of the pair was regenerated they no longer agree, and every route
+        // we drew from it would run through the wrong spots — refuse instead.
+        if (weak.spot_count !== RJ.spots.length) throw new Error("spot index mismatch");
+        const R = buildRouter({ spots: RJ.spots, trees: weak.trees });
+        ensureWalk(R);
+        RJ.fallback.router = R;
+        return R;
+      })
+      .catch((e) => { console.error("one-off routing data failed", e); return null; });
+    return RJ.fallback.promise;
+  }
 
   const photon = (typeof L !== "undefined" && L.Control && L.Control.Geocoder)
     ? L.Control.Geocoder.photon() : null;
@@ -438,6 +483,9 @@
     [RJ.routeLayer, RJ.spotLayer, RJ.tagLayer].forEach((l) => { if (l) map.removeLayer(l); });
     RJ.routeLayer = RJ.spotLayer = RJ.tagLayer = RJ.tagMarker = null;
     RJ.routes = [];
+    // Any fallback search still downloading its graph must not draw onto a map
+    // the user has since cleared or navigated away from.
+    RJ.searchToken = null;
     disableRoutePanePointerEvents();
     const sheet = resultsSheet();
     const opts = sheet && sheet.querySelector(".rp-options");
@@ -459,33 +507,48 @@
     // Defer so "Finding routes…" paints before the (sync) search runs. Cancel any
     // pending compute so two quick clicks can't both draw and orphan a layer.
     clearTimeout(RJ._computeTimer);
+    const search = RJ.searchToken = {};   // a later compute() invalidates this one
     RJ._computeTimer = setTimeout(() => {
-      const res = alternatives(RJ.router, RJ.start.latlng, RJ.dest.latlng, DEFAULT_MAX_WALK, 3, 0.6);
+      const from = RJ.start.latlng, to = RJ.dest.latlng;
+      const res = alternatives(RJ.router, from, to, DEFAULT_MAX_WALK, 3, 0.6);
       clearRoutes(); // drop anything a previous run left before drawing fresh
-      if (!res.length) {
-        setStatus(diagnoseNoRoute(RJ.router, RJ.start.latlng, RJ.dest.latlng, DEFAULT_MAX_WALK));
-        return;
-      }
-      setStatus(null);
-      // Show fastest by core (hitching) time first — that's the headline figure,
-      // so ordering, colours and deltas all stay consistent.
-      res.sort((a, b) => routeEnds(a).coreMin - routeEnds(b).coreMin);
-      RJ.routes = res;
-      const token = {};
-      RJ._token = token;      // invalidates any in-flight street upgrades
-      drawRoutes();
-      renderOptions();
-      highlight(0);
-      upgradeAllToStreets(token);
-      updateShareUrl();       // make this search shareable (#dir/from/to)
+      if (res.length) { showRoutes(res); return; }
+
+      // Nothing repeats between these points. Retry on the one-off graph before
+      // giving up — a corridor one hitchhiker logged once still beats nothing.
+      // (clearRoutes above cancelled the token; this search is still the live one.)
+      RJ.searchToken = search;
+      setStatus("No repeatable route — checking one-off rides…");
+      loadFallbackRouter().then((FB) => {
+        if (search !== RJ.searchToken) return;   // superseded while downloading
+        const alt = FB ? alternatives(FB, from, to, DEFAULT_MAX_WALK, 3, 0.6) : [];
+        clearRoutes();
+        if (!alt.length) { setStatus(diagnoseNoRoute(FB || RJ.router, from, to, DEFAULT_MAX_WALK, !!FB)); return; }
+        showRoutes(alt);
+      });
     }, 30);
+  }
+
+  function showRoutes(res) {
+    setStatus(null);
+    // Show fastest by core (hitching) time first — that's the headline figure,
+    // so ordering, colours and deltas all stay consistent.
+    res.sort((a, b) => routeEnds(a).coreMin - routeEnds(b).coreMin);
+    RJ.routes = res;
+    const token = {};
+    RJ._token = token;      // invalidates any in-flight street upgrades
+    drawRoutes();
+    renderOptions();
+    highlight(0);
+    upgradeAllToStreets(token);
+    updateShareUrl();       // make this search shareable (#dir/from/to)
   }
 
   // When no route is found, explain which end is the problem so the user can act
   // (move a point, or search only the part of the trip that has coverage). An
   // endpoint is "covered" if any repeatable-route spot sits within walking range;
   // if both are covered but still unconnected, the middle lacks logged rides.
-  function diagnoseNoRoute(R, start, dest, maxWalk) {
+  function diagnoseNoRoute(R, start, dest, maxWalk, triedOneOff) {
     const startCovered = spotsNear(R, start, maxWalk).length > 0;
     const destCovered = spotsNear(R, dest, maxWalk).length > 0;
     if (!startCovered && !destCovered) {
@@ -500,8 +563,11 @@
       return "No route found: your destination is in an area where too few people have hitchhiked. " +
         "Move it closer to a major road or city, or search just the earlier part of your trip.";
     }
-    return "No route found: we couldn't connect these two points with repeatable rides. " +
-      "Try searching for part of the route — e.g. between larger cities along the way.";
+    // The middle is the gap. Say so — and, when the one-off graph was searched
+    // too, that no single logged ride bridges it either.
+    return "No route found: we couldn't connect these two points" +
+      (triedOneOff ? ", even using rides only one person has logged" : " with repeatable rides") +
+      ". Try searching for part of the route — e.g. between larger cities along the way.";
   }
 
   // ---- shareable route URL (/dir/<slat>,<slon>/<dlat>,<dlon>) ------------
@@ -895,14 +961,19 @@
     const li = document.createElement("li");
     li.className = "rp-step rp-edge rp-edge-" + leg.mode;
     const via = leg.mode === "car" ? leg.path.slice(1, -1) : [];
+    // How many hitchhikers this ride is inferred from. Only worth saying when it
+    // is the one that makes the route a guess rather than a pattern.
+    const weak = leg.mode === "car" && leg.support < MIN_SUPPORT;
     li.innerHTML = `
       <span class="rp-time"></span>
       <span class="rp-rail"><span class="rp-line"></span></span>
       <span class="rp-edge-body">
         <span class="rp-edge-head"><i class="${leg.mode === "walk" ? WALK_ICON : RIDE_ICON}"></i>
           <b>${leg.mode === "walk" ? "Walk" : "Ride"}</b></span>
-        <span class="rp-edge-sub">${fmtKm(leg.km)} km · ${fmtTime(leg.minutes)}</span>
+        <span class="rp-edge-sub">${fmtKm(leg.km)} km · ${fmtTime(leg.minutes)}${
+          weak ? ' · <span class="rp-weak">1 logged ride</span>' : ""}</span>
       </span>`;
+    if (weak) li.classList.add("rp-edge-weak");
     // Corridor spots the driver merely passes: worth listing (you can be dropped
     // at one), but noise by default — collapsed behind a count, as transit apps
     // collapse intermediate stops.
@@ -973,6 +1044,7 @@
     RJ.routes.forEach((rt, i) => {
       const e = routeEnds(rt);
       const cars = rt.legs.filter((l) => l.mode === "car").length;
+      const oneOff = rt.minSupport < MIN_SUPPORT;
       const delta = i === 0 ? "fastest" : "+" + fmtTime(e.coreMin - fastest);
       const mid = e.midWalkMin > 0.5 ? ` · ${fmtTime(e.midWalkMin)} walk` : "";
       const ends = endsLabel(rt);
@@ -995,6 +1067,8 @@
             <span class="rp-opt-head"><b>${fmtTime(e.coreMin)}</b> <span class="rp-opt-delta">${delta}</span></span>
             <span class="rp-opt-sub">${rt.carKm.toFixed(0)} km${mid} · ${cars} ride${cars > 1 ? "s" : ""} · ${Math.round(rt.waitMin)} min wait</span>
             ${ends ? `<span class="rp-opt-ends">${ends}</span>` : ""}
+            ${oneOff ? '<span class="rp-opt-weak"><i class="fa-solid fa-circle-info"></i>' +
+              "Includes a leg only one hitchhiker has logged</span>" : ""}
           </button>
           <button class="rp-details-btn" type="button" aria-expanded="false">Details</button>
           <div class="rp-steps" hidden></div>

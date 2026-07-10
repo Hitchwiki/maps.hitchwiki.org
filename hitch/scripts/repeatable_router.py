@@ -38,6 +38,12 @@ passes, and merges those sequences into a prefix tree per start spot. Branches
 supported by fewer than 2 rides are pruned. What survives is a set of
 *corridors*: trees rooted at a spot where rides actually begin.
 
+The same run also writes dist/oneoff_routes.json: the identical trees with the
+support threshold dropped to 1, indexing the *same* spot array. Search that only
+when the repeatable graph connects nothing (`load_oneoff_router`), matching the
+second pass routing.js makes — a corridor one hitchhiker logged once is weak
+evidence, but the alternative is telling the user there is no route at all.
+
     corridor rooted at A          spots: A B C D E
                                   "3 rides went A->B->C, 2 of them continued to D,
       A --> B --> C --> D          2 other rides went A->B->E"
@@ -94,6 +100,7 @@ identical — apply engine changes to both.
 """
 
 import argparse
+import functools
 import heapq
 import json
 import math
@@ -150,6 +157,7 @@ class RepeatableRouter:
         """
         self.edge_km = {}
         self.edge_wait = {}
+        self.edge_support = {}  # (u, v) -> rides that took this edge
         self.tree_adj = []   # tree_id -> {u: [(v, km, wait)]}
         self.board = {}      # u -> [(tree_id, v, km, wait)]  (boardable edges at u)
         car_spots = set()
@@ -160,7 +168,7 @@ class RepeatableRouter:
             nodes = tree["nodes"]
             adj = {}
             for node in nodes:
-                spot, parent = node[0], node[1]
+                spot, parent, support = node[0], node[1], node[2]
                 wait = node[3] if len(node) > 3 else None
                 frm = root if parent == -1 else nodes[parent][0]
                 a, b = self.spots[frm], self.spots[spot]
@@ -173,6 +181,9 @@ class RepeatableRouter:
                     self.board.setdefault(frm, []).append((t_id, spot, km, wait))
                 self.edge_km[(frm, spot)] = km
                 self.edge_wait[(frm, spot)] = wait
+                # One (u, v) pair can occur in several corridors; report the
+                # strongest evidence we have for that segment.
+                self.edge_support[(frm, spot)] = max(self.edge_support.get((frm, spot), 0), support)
                 if wait is not None:
                     waits.append(wait)
                 car_spots.add(frm)
@@ -390,6 +401,8 @@ class RepeatableRouter:
         legs = []
         for kind, a, b, km, wait in raw:
             mode = "walk" if kind == "walk" else "car"
+            # A ride is only as well-evidenced as its weakest edge (walk legs: None).
+            support = self.edge_support.get((a, b), 1) if mode == "car" else None
             extend = legs and legs[-1]["mode"] == mode and kind != "board"
             if extend:
                 leg = legs[-1]
@@ -397,6 +410,8 @@ class RepeatableRouter:
                 if b not in (ORIGIN, DEST):
                     leg["via"].append(self.spots[b])
                 leg["to"] = coord(b)
+                if support is not None:
+                    leg["support"] = min(leg["support"], support)
             else:
                 legs.append({
                     "mode": mode,
@@ -405,6 +420,7 @@ class RepeatableRouter:
                     "km": km,
                     "via": [] if b in (ORIGIN, DEST) else [self.spots[b]],
                     "wait_minutes": round(wait, 1) if kind == "board" else 0.0,
+                    "support": support,
                 })
         for leg in legs:
             speed = WALK_SPEED_KMH if leg["mode"] == "walk" else CAR_SPEED_KMH
@@ -417,8 +433,10 @@ class RepeatableRouter:
         wait_min = sum(leg["wait_minutes"] for leg in legs)
         # True total time = travel + waiting (penalised search must not inflate it).
         total_min = sum(leg["minutes"] for leg in legs) + wait_min
+        car_support = [leg["support"] for leg in legs if leg["mode"] == "car"]
         itin = {
             "found": True,
+            "min_support": min(car_support) if car_support else None,
             "total_minutes": round(total_min, 1),
             "wait_minutes": round(wait_min, 1),
             "walk_km": round(walk_km, 2),
@@ -438,6 +456,40 @@ def load_router(path=None, max_walk_km=DEFAULT_MAX_WALK_KM):
     return RepeatableRouter(data, max_walk_km=max_walk_km)
 
 
+def load_oneoff_router(base, path=None):
+    """Build the pass-2 router (no support threshold) over `base`'s spot array.
+
+    Only build this when `base` found nothing: it holds ~6x the edges and is the
+    memory-hungry half of an already 190 MB graph, on a host that OOMs.
+
+    Returns None when dist/oneoff_routes.json is missing, or when its spot_count
+    disagrees with the spot array it indexes into — which means the two files
+    came from different builds and every route from it would be drawn through
+    the wrong spots.
+    """
+    if path is None:
+        root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        path = os.path.join(root, "dist", "oneoff_routes.json")
+    if not os.path.exists(path):
+        return None
+    with open(path, encoding="utf-8") as f:
+        weak = json.load(f)
+    if weak.get("spot_count") != len(base.spots):
+        return None
+    return RepeatableRouter({"spots": base.spots, "trees": weak["trees"]}, max_walk_km=base.max_walk_km)
+
+
+def routes_with_fallback(router, start, dest, k=3, **kwargs):
+    """The planner's two passes: repeatable corridors first, one-off rides only if
+    that returns nothing. Mirrors compute() in static/routing.js.
+    """
+    alts = router.routes(start, dest, k=k, **kwargs)
+    if alts:
+        return alts
+    weak = load_oneoff_router(router)
+    return weak.routes(start, dest, k=k, **kwargs) if weak else []
+
+
 def _parse_latlon(s):
     lat, lon = s.split(",")
     return (float(lat), float(lon))
@@ -451,12 +503,14 @@ def main():
     ap.add_argument("--k", type=int, default=3, help="number of diverse alternatives to show")
     ap.add_argument("--max-overlap", type=float, default=0.6, help="max shared car distance between alternatives (0-1)")
     ap.add_argument("--data", default=None, help="path to repeatable_routes.json")
+    ap.add_argument("--no-fallback", action="store_true", help="don't retry on the one-off graph")
     args = ap.parse_args()
 
     router = load_router(args.data, max_walk_km=args.max_walk_km)
     print(f"Graph: {len(router.car_spots)} car-graph spots, {len(router.edge_km)} car edges, "
           f"{len(router.tree_adj)} corridors")
-    alts = router.routes(args.start, args.dest, k=args.k, max_overlap=args.max_overlap)
+    search = router.routes if args.no_fallback else functools.partial(routes_with_fallback, router)
+    alts = search(args.start, args.dest, k=args.k, max_overlap=args.max_overlap)
     if not alts:
         print("No route within walking distance of origin and destination.")
         return
@@ -474,8 +528,9 @@ def main():
             icon = "🚶" if leg["mode"] == "walk" else "🚗"
             via = f" via {len(leg['via'])} spots" if leg["via"] else ""
             wait = f" +{leg['wait_minutes']:.0f}m wait" if leg["mode"] == "car" else ""
+            weak = "  [1 logged ride]" if leg["mode"] == "car" and leg["support"] < 2 else ""
             print(f"  {icon} {leg['mode']:4} {leg['km']:7.2f} km  {leg['minutes']:6.1f} min{wait}  "
-                  f"{leg['from'][0]:.5f},{leg['from'][1]:.5f} -> {leg['to'][0]:.5f},{leg['to'][1]:.5f}{via}")
+                  f"{leg['from'][0]:.5f},{leg['from'][1]:.5f} -> {leg['to'][0]:.5f},{leg['to'][1]:.5f}{via}{weak}")
 
 
 if __name__ == "__main__":

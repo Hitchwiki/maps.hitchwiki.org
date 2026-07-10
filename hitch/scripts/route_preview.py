@@ -25,7 +25,7 @@ import requests
 from PIL import Image, ImageDraw
 
 from hitch.helpers import get_dirs
-from hitch.scripts.repeatable_router import load_router
+from hitch.scripts.repeatable_router import load_router, routes_with_fallback
 
 # OpenGraph's smallest widely-honoured size that still renders as a large card.
 # Bigger costs proportionally more tiles per preview for no visible gain.
@@ -221,7 +221,9 @@ def fmt_time(minutes):
 def route_facts(start, dest):
     """The fastest itinerary's headline numbers, or None when nothing connects."""
     router = load_router()
-    alts = router.routes(start, dest, k=1)
+    # Same two passes as the planner, or a shared /dir/ link would preview "no
+    # route" for a route the page itself goes on to draw.
+    alts = routes_with_fallback(router, start, dest, k=1)
     if not alts:
         return None
     itin = alts[0]

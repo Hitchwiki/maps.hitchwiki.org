@@ -53,6 +53,11 @@ MERGE_RADIUS_M = 5
 # repeatable route (excludes long one-off rides we have no evidence repeat).
 MIN_SUPPORT = 2
 
+# The routers fall back to a graph built without that threshold when the
+# repeatable one connects nothing: one person's single logged ride is weak
+# evidence, but it beats telling the user "no route found".
+FALLBACK_MIN_SUPPORT = 1
+
 # Grid cell size for the spatial index, in degrees. ~0.003 deg latitude ~= 330 m,
 # so a 1-ring (3x3) neighbourhood always covers the PROXIMITY_M search radius.
 CELL_DEG = 0.003
@@ -454,14 +459,16 @@ def snap_to_map_spots(spots, dist_dir):
     return snapped, remap
 
 
-def build_repeatable_trees(rides, spots):
+def build_repeatable_trees(rides, spots, min_support=MIN_SUPPORT):
     """For each start spot, build a prefix tree of its rides' downstream spot
-    sequences and prune every path shared by fewer than MIN_SUPPORT rides.
+    sequences and prune every path shared by fewer than `min_support` rides.
 
     A node's support = the number of rides whose sequence shares the whole path
     from the start up to that node. Support only decreases along a path, so
     dropping sub-threshold nodes truncates a long one-off ride to the prefix it
     shares with others — exactly the "only keep the overlapping part" rule.
+    At min_support=1 nothing is pruned and every ride contributes its full
+    sequence: the superset graph the routers fall back to.
 
     Each node is [spot_idx, parent_idx, support, wait_min] for each start spot
     that has at least one surviving edge. parent_idx indexes into the same nodes
@@ -501,7 +508,7 @@ def build_repeatable_trees(rides, spots):
 
     def walk(node, parent_idx, nodes):
         for child in node["children"].values():
-            if child["count"] < MIN_SUPPORT:
+            if child["count"] < min_support:
                 continue
             idx = len(nodes)
             nodes.append([
@@ -514,8 +521,8 @@ def build_repeatable_trees(rides, spots):
 
     trees = []
     for start_sid, sequences in sequences_by_start.items():
-        if len(sequences) < MIN_SUPPORT:
-            continue  # can't have a shared path with fewer than MIN_SUPPORT rides
+        if len(sequences) < min_support:
+            continue  # can't have a shared path with fewer than min_support rides
 
         # Trie node: {"spot": sid, "count": int, "children": {sid: node}}.
         root = {"spot": start_sid, "count": len(sequences), "children": {}}
@@ -529,7 +536,7 @@ def build_repeatable_trees(rides, spots):
                 child["count"] += 1
                 cur = child
 
-        # Flatten surviving nodes (support >= MIN_SUPPORT) into a parent-linked list.
+        # Flatten surviving nodes (support >= min_support) into a parent-linked list.
         nodes = []
         walk(root, -1, nodes)
         if nodes:
@@ -719,6 +726,7 @@ def main():
 
     write_test_file(dist_dir, rides, spots)
     write_repeatable_file(dist_dir, rides, spots)
+    write_oneoff_file(dist_dir, rides, spots)
 
 
 def write_test_file(dist_dir, rides, spots):
@@ -786,6 +794,42 @@ def write_repeatable_file(dist_dir, rides, spots):
         json.dump(data, f, separators=(",", ":"))
     logger.info(
         "Wrote %s: %d start spots with repeatable routes, %d edges (%.1f MB)",
+        out_path,
+        len(trees),
+        edge_count,
+        os.path.getsize(out_path) / 1e6,
+    )
+
+
+def write_oneoff_file(dist_dir, rides, spots):
+    """Emit dist/oneoff_routes.json: the same corridor trees built with no support
+    threshold, so a sequence only one ride ever took still forms edges.
+
+    This is the routers' second pass, searched only when the repeatable graph
+    connects nothing (see routing.js `loadFallbackRouter`, repeatable_router.py
+    `load_oneoff_router`). It's a superset of repeatable_routes.json's trees and
+    ~6x its size, which is why it lives in its own lazily fetched file.
+
+    Spot coordinates are deliberately omitted: the indices address the `spots`
+    array of repeatable_routes.json, which the same run writes from the same
+    dict. `spot_count` lets a reader detect the half-regenerated case (one file
+    stale) and refuse the data rather than draw a route through wrong spots.
+    """
+    out_path = os.path.join(dist_dir, "oneoff_routes.json")
+
+    trees = build_repeatable_trees(rides, spots, min_support=FALLBACK_MIN_SUPPORT)
+    edge_count = sum(len(t["nodes"]) for t in trees)
+
+    data = {
+        "proximity_m": PROXIMITY_M,
+        "min_support": FALLBACK_MIN_SUPPORT,
+        "spot_count": len(spots),
+        "trees": trees,
+    }
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, separators=(",", ":"))
+    logger.info(
+        "Wrote %s: %d start spots with one-off routes, %d edges (%.1f MB)",
         out_path,
         len(trees),
         edge_count,

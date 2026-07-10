@@ -2975,6 +2975,15 @@ body.routing-active .leaflet-control-container .leaflet-control-geocoder { displ
 /* First/last-mile note on the option cards (walk to start/end or take transit). */
 .rp-opt-ends { color: #80868b; font-size: 12px; font-style: italic; }
 
+/* Confidence note: this route only exists because of a ride a single hitchhiker
+   logged once. Amber, not red — it's a caveat on the evidence, not an error. */
+.rp-opt-weak {
+  display: flex; align-items: center; gap: 5px; margin-top: 3px;
+  color: #8a5a00; font-size: 12px;
+}
+.rp-opt-weak i { font-size: 11px; }
+.rp-weak { color: #8a5a00; }
+
 /* Mode strip: one glyph per leg, in travel order. Wraps on long routes rather
    than pushing the card wider than the sheet. */
 .rp-opt-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 2px 0 1px; }
@@ -3015,6 +3024,8 @@ body.routing-active .leaflet-control-container .leaflet-control-geocoder { displ
 .rp-edge { min-height: 34px; }
 .rp-line { width: 3px; flex: none; margin: 1px 0; border-radius: 2px; background: var(--rc); }
 .rp-edge-walk .rp-line { width: 0; border-left: 3px dotted #9aa0a6; background: none; }
+/* A ride inferred from one logged trip: same colour, dashed — a weaker claim. */
+.rp-edge-weak .rp-line { width: 0; border-left: 3px dashed var(--rc); background: none; }
 .rp-line-wait { width: 0; border-left: 3px dotted color-mix(in srgb, var(--rc) 55%, #fff); background: none; }
 .rp-edge-body { padding: 0 0 8px 8px; font-size: 12.5px; color: #5f6368; }
 .rp-edge-head { color: #3c4043; }
