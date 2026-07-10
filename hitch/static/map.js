@@ -631,6 +631,10 @@ async function loadCountryLayer() {
       // Stop propagation so the map's own click handler (handleMapClick) doesn't
       // also fire and open a nearby spot on top of the country sheet.
       layer.on("click", (e) => {
+        // While the routing planner is open every tap places a start/destination
+        // point. Let the click bubble to the map (routing.js onMapClick) instead
+        // of opening the country sheet on top of the planner.
+        if (window.RoutingUI && window.RoutingUI.active) return;
         L.DomEvent.stopPropagation(e);
         location.hash = "country/" + encodeURIComponent(name);
       });

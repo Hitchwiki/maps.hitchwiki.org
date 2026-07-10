@@ -5,7 +5,7 @@
  * Google-Maps-style start/destination UI that transforms the search bar.
  *
  * Relies on globals from map.js: `map` (the Leaflet map), `markerCluster`
- * (the spot cluster), and `setSpotsVisible`.
+ * (the spot cluster), `setSpotsVisible`, and `getMapMode`.
  */
 (function () {
   "use strict";
@@ -368,7 +368,10 @@
     hideResultsSheet();
     ["start", "dest"].forEach(clearPoint);
     if (panel) { fieldInput("start").value = ""; fieldInput("dest").value = ""; }
-    if (typeof setSpotsVisible === "function") setSpotsVisible(true);
+    // Countries mode hides the spots itself; restoring them here would make them
+    // reappear on top of the choropleth, where they were never shown.
+    const inCountriesMode = typeof getMapMode === "function" && getMapMode() === "countries";
+    if (typeof setSpotsVisible === "function" && !inCountriesMode) setSpotsVisible(true);
     map.getContainer().style.cursor = "";
     // Drop a shared #dir link so closing returns to a clean URL.
     if (location.hash.slice(1).startsWith("dir/")) history.replaceState(null, "", location.pathname + location.search);
@@ -380,6 +383,7 @@
     [RJ.routeLayer, RJ.spotLayer, RJ.tagLayer].forEach((l) => { if (l) map.removeLayer(l); });
     RJ.routeLayer = RJ.spotLayer = RJ.tagLayer = RJ.tagMarker = null;
     RJ.routes = [];
+    disableRoutePanePointerEvents();
     const sheet = resultsSheet();
     const opts = sheet && sheet.querySelector(".rp-options");
     if (opts) opts.innerHTML = "";
@@ -490,11 +494,26 @@
   // outright while filtering. Both rules exist to keep a spot's destination
   // arrows from cluttering a wide view — but drawRoutes() fitBounds()es onto a
   // whole intercity route, which lands below zoom 9 every time, so the routes
-  // would draw at ~0.07-0.28 effective opacity. Own pane, above the overlay
-  // pane (400) and below the markers (600).
+  // would draw at ~0.07-0.28 effective opacity. Own pane, above the overlay pane
+  // (400) and the country choropleth (450), below the markers (600).
   function routePane() {
-    if (!map.getPane("routes")) map.createPane("routes").style.zIndex = 450;
+    if (!map.getPane("routes")) {
+      const p = map.createPane("routes");
+      p.style.zIndex = 460;
+    }
+    // With preferCanvas, Leaflet keeps this pane's renderer canvas — sized to the
+    // whole map — in the DOM after clearRoutes() removes the polylines. An empty
+    // canvas above the choropleth would swallow every country click, so the pane
+    // only accepts pointer events while routes are actually drawn.
+    map.getPane("routes").style.pointerEvents = "";
     return "routes";
+  }
+
+  // Let clicks fall through to the layers underneath (choropleth, spot markers)
+  // once no route is drawn. See routePane().
+  function disableRoutePanePointerEvents() {
+    const p = map.getPane("routes");
+    if (p) p.style.pointerEvents = "none";
   }
 
   function drawRoutes() {
