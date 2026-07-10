@@ -3146,23 +3146,71 @@ a.acct-ride__warn:hover { color: #b98900; }
   .acct-pie--done { animation: none; }
 }
 
-/* 100%: the progress ring becomes a reward. Filling that last field visibly changes the
-   thing, which is the whole point of the pie being a CTA in the first place. */
+/* 100%: the progress ring becomes a reward — an award ribbon rather than a flat tick.
+   A green rosette holds the check; two ribbon tails fall from beneath it, drawn with
+   clipped pseudo-elements so it costs no image. Filling that last field visibly changes
+   the thing, which is the whole point of the pie being a CTA in the first place. */
 .acct-pie--done {
   background: none;
-  color: #1a9850;
-  font-size: 26px;
-  line-height: 1;
+  overflow: visible;
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: acct-done-pop .45s cubic-bezier(.34, 1.56, .64, 1);
+  animation: acct-done-pop .5s cubic-bezier(.34, 1.56, .64, 1);
 }
 .acct-pie--done::after { content: none; }
+
+/* Ribbon tails, tucked behind the rosette and notched with a clip-path chevron. */
+.acct-pie--done::before {
+  content: "";
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  width: 18px;
+  height: 15px;
+  transform: translateX(-50%);
+  background: linear-gradient(#1e8b4d, #14663a);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%);
+  border-radius: 1px;
+  z-index: 0;
+}
+/* The rosette itself: a gold-rimmed green disc holding the tick. */
+.acct-pie--done .acct-rosette {
+  position: relative;
+  z-index: 1;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #46c07a, #1a9850 70%);
+  box-shadow: 0 0 0 2px #ffd15c, 0 1px 3px rgba(0, 0, 0, .3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
+}
+/* A brief sheen sweeps the rosette once, the way a medal catches the light. */
+.acct-pie--done .acct-rosette::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, .75) 50%, transparent 60%);
+  animation: acct-sheen 1.6s ease-out .25s 1;
+}
 @keyframes acct-done-pop {
-  0%   { transform: scale(.4) rotate(-25deg); opacity: 0; }
-  70%  { transform: scale(1.15) rotate(4deg); }
+  0%   { transform: scale(.3) rotate(-30deg); opacity: 0; }
+  60%  { transform: scale(1.2) rotate(6deg); }
+  80%  { transform: scale(.96) rotate(-2deg); }
   100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+@keyframes acct-sheen {
+  0%   { transform: translateX(-120%); opacity: 0; }
+  35%  { opacity: 1; }
+  100% { transform: translateX(120%); opacity: 0; }
 }
 
 /* The count of rides still worth topping up — the pull toward completion. */
