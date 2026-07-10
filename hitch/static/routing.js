@@ -695,20 +695,26 @@
     }
   }
 
-  // A leg's waypoints are spot anchors, and a corridor often carries several of
-  // them within a few hundred metres of one interchange, sometimes ordered
-  // slightly against the direction of travel. OSRM may not U-turn at a via
-  // point, so to reach an anchor 200 m "behind" the previous one on a motorway
-  // it drives to the next exit and comes back — tens of km of phantom road.
-  // Keeping only anchors that are properly spaced removes those pairs.
-  const VIA_MIN_GAP_KM = 2, MAX_VIA = 24;
-  // Even well-spaced anchors can snap to the wrong carriageway of a dual
-  // carriageway. Telling OSRM the bearing we are travelling in makes it snap to
-  // the side that actually heads that way.
+  // A car leg is a single ride: you board at leg.path[0] and get out at the last
+  // anchor. Everything between is a corridor spot the driver merely passed, and
+  // those sit at petrol stations, rest areas and on-ramps rather than on the
+  // carriageway. Passed to OSRM as via points they become hard constraints, so
+  // the line left the motorway and looped back at every one of them — two
+  // anchors 2.6 km apart on the AP-7 cost 13 km of phantom driving. The rider
+  // only has to be at the two ends, so only those are sent; the corridor
+  // anchors keep their own markers (drawRouteSpots) and no longer bend the line.
   const BEARING_RANGE_DEG = 90;
-  // Last resort for anchors the two rules above cannot save. Compared against
-  // leg.km, which is already crow-flight * CAR_FACTOR, so this admits streets
-  // up to ~2x crow-flight; beyond that OSRM has clearly snapped somewhere it
+  // The one snap that still matters is at the two ends, where a frontage road
+  // running alongside the motorway heads the same way and is an equally valid
+  // match. Hinting the direction of travel picks the carriageway that goes there.
+  // The hint must be read from an anchor a corridor-length away, not the nearest
+  // one: an interchange packs several anchors into ~100 m in near-random order
+  // (the AP-7 leg starts with three inside 130 m, bearing 181/187/315 on a route
+  // heading 33), so a close anchor hints the opposite carriageway.
+  const BEARING_HINT_MIN_KM = 1;
+  const COINCIDENT_KM = 0.01;
+  // Compared against leg.km, which is already crow-flight * CAR_FACTOR. With no
+  // vias left to inflate it, anything past this is OSRM snapping to a road it
   // could not leave, and the straight line is the better lie.
   const MAX_DETOUR_RATIO = 1.6;
 
@@ -719,38 +725,29 @@
       Math.sin(a[0] * r) * Math.cos(b[0] * r) * Math.cos((b[1] - a[1]) * r);
     return (Math.atan2(y, x) / r + 360) % 360;
   }
-  function thinWaypoints(path) {
-    const last = path[path.length - 1];
-    const out = [path[0]];
-    for (let i = 1; i < path.length - 1; i++) {
-      if (haversineKm(out[out.length - 1], path[i]) >= VIA_MIN_GAP_KM) out.push(path[i]);
-    }
-    // The destination anchor is not optional, so make room for it by dropping
-    // the vias that crowd it rather than by skipping it.
-    while (out.length > 1 && haversineKm(out[out.length - 1], last) < VIA_MIN_GAP_KM) out.pop();
-    out.push(last);
-    if (out.length <= MAX_VIA) return out;
-    const step = Math.ceil(out.length / MAX_VIA), s = [out[0]];
-    for (let k = step; k < out.length - 1; k += step) s.push(out[k]);
-    s.push(last);
-    return s;
-  }
-  function bearingsParam(pts) {
-    return pts.map((p, i) => {
-      const a = i === 0 ? p : pts[i - 1];
-      const b = i === pts.length - 1 ? p : pts[i + 1];
-      // Coincident neighbours give no direction; let OSRM snap freely there.
-      if (haversineKm(a, b) < 0.01) return "0,180";
-      return `${Math.round(bearingDeg(a, b))},${BEARING_RANGE_DEG}`;
-    }).join(";");
+  // Direction of travel at each end of the leg, read off the first corridor
+  // anchor far enough out to carry the corridor's direction rather than the
+  // local scatter. A leg shorter than the hint distance falls back to its own
+  // end-to-end bearing.
+  function bearingsParam(path) {
+    const end = path.length - 1;
+    let i = 1;
+    while (i < end && haversineKm(path[0], path[i]) < BEARING_HINT_MIN_KM) i++;
+    let j = end - 1;
+    while (j > 0 && haversineKm(path[j], path[end]) < BEARING_HINT_MIN_KM) j--;
+    const hint = (a, b) => (haversineKm(a, b) < COINCIDENT_KM
+      // Coincident anchors give no direction; let OSRM snap freely there.
+      ? "0,180"
+      : `${Math.round(bearingDeg(a, b))},${BEARING_RANGE_DEG}`);
+    return `${hint(path[0], path[i])};${hint(path[j], path[end])}`;
   }
 
   async function streetGeometry(path, legKm) {
-    const pts = thinWaypoints(path);
+    const pts = [path[0], path[path.length - 1]];
     const key = pts.map((p) => p[0].toFixed(4) + "," + p[1].toFixed(4)).join(";");
     if (RJ.streetCache.has(key)) return RJ.streetCache.get(key);
     const coords = pts.map((p) => `${p[1]},${p[0]}`).join(";");
-    const params = `overview=full&geometries=geojson&bearings=${bearingsParam(pts)}`;
+    const params = `overview=full&geometries=geojson&bearings=${bearingsParam(path)}`;
     try {
       const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?${params}`);
       const d = await r.json();
