@@ -162,17 +162,18 @@
         </div>
             
         <div class="form-group">
-            <label>How did you signal to drivers? <span style="font-weight:normal; color:#666;">(select all that apply)</span></label>
+            <label>How did you signal? <span style="font-weight:normal; color:#666;">(select all that apply)</span></label>
             {% set selected_signals = ride_data.signal if ride_data and ride_data.signal else [] %}
             {% if selected_signals is string %}{% set selected_signals = [selected_signals] %}{% endif %}
             <input type="hidden" id="signal" name="signal" value="{{ selected_signals|join(',') }}">
-            <div id="signal-tags" class="chip-select-tags" onclick="document.getElementById('signal-input').focus()"></div>
-            <input id="signal-input" list="signal-list" class="form-control" autocomplete="off" placeholder="Type a signal method and pick from the list…" style="margin-top:6px;">
-            <datalist id="signal-list">
-                <option data-code="sign" value="Sign"></option>
-                <option data-code="thumb" value="Thumb"></option>
-                <option data-code="ask" value="Asked around"></option>
-            </datalist>
+            {# Same multi-select chips as the in-ride "How was the spot?" sheet (inride.js),
+               reusing its .inr-chips / .inr-optchip styles so both entry points look alike.
+               Codes must stay thumb / sign / ask — they're what /ride stores. #}
+            <div id="signal-chips" class="inr-chips">
+                <button type="button" class="inr-optchip" data-code="thumb">👍 Thumb</button>
+                <button type="button" class="inr-optchip" data-code="sign">📝 Sign</button>
+                <button type="button" class="inr-optchip" data-code="ask">🗣 Asking</button>
+            </div>
         </div>
         
         <div class="form-group">
@@ -910,10 +911,36 @@
         datalistId: 'vehicle-plate-country-list',
     });
 
-    const signalChip = initChipSelect({
-        inputId: 'signal-input', tagsId: 'signal-tags',
-        hiddenId: 'signal', datalistId: 'signal-list',
-    });
+    // Signal methods are toggle chips rather than a datalist: there are only three of them,
+    // so tapping beats typing — and it matches the in-ride sheet the user may have come from.
+    // The hidden #signal input stays the source of truth (comma-separated codes).
+    function initSignalChips() {
+        const hidden = document.getElementById('signal');
+        const chips = document.querySelectorAll('#signal-chips .inr-optchip');
+        if (!hidden || !chips.length) return null;
+        function getCodes() {
+            return hidden.value ? hidden.value.split(',').map(s => s.trim()).filter(Boolean) : [];
+        }
+        function renderTags() {
+            const codes = getCodes();
+            chips.forEach(function (chip) {
+                chip.classList.toggle('inr-optchip--on', codes.includes(chip.dataset.code));
+            });
+        }
+        chips.forEach(function (chip) {
+            chip.addEventListener('click', function () {
+                const codes = getCodes();
+                const idx = codes.indexOf(chip.dataset.code);
+                if (idx === -1) codes.push(chip.dataset.code);
+                else codes.splice(idx, 1);
+                hidden.value = codes.join(',');
+                renderTags();
+            });
+        });
+        renderTags();
+        return { renderTags };
+    }
+    const signalChip = initSignalChips();
     const reasonChip = initChipSelect({
         inputId: 'driver-reason-input', tagsId: 'driver-reason-tags',
         hiddenId: 'driver_reason_to_pick_up', datalistId: 'driver-reason-list',
