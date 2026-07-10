@@ -92,16 +92,33 @@ def haversine_m(lat1, lon1, lat2, lon2):
     return EARTH_RADIUS_M * 2 * np.arcsin(np.sqrt(a))
 
 
+def load_derived_destinations(conn):
+    """Destinations we mined from comment text, keyed by the ride's Nostr `d` tag.
+
+    Same source show.py merges: hitch/scripts/extract_destinations.py geocodes the city a
+    ride's comment says it reached and stores it in derived_ride_location. Returns {} on a
+    DB that predates the table so the router still works without the enrichment.
+    """
+    try:
+        rows = conn.execute("SELECT d, latitude, longitude FROM derived_ride_location").fetchall()
+    except sqlite3.OperationalError:
+        return {}
+    return {r["d"]: (float(r["latitude"]), float(r["longitude"])) for r in rows if r["latitude"] is not None}
+
+
 def load_rides(db_path):
     """Return every ride that has a valid start location.
 
-    `dest` is the last stop when it's a distinct valid location, else None. The
-    start-spot universe (and its consolidation) is built from ALL such rides so
-    it matches show.py's map spots; only rides with a `dest` are actually routed.
+    `dest` is the last stop when it's a distinct valid location; when a ride has none we
+    fall back to a comment-derived destination (keyed by its Nostr `d` tag) so a corridor a
+    destination-less ride establishes is still routed, exactly as show.py merges them onto
+    the map. The start-spot universe (and its consolidation) is built from ALL rides with a
+    valid start so it matches show.py's map spots; only rides with a `dest` are routed.
     """
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
-    rows = conn.execute("SELECT id, stops FROM ride_event").fetchall()
+    rows = conn.execute("SELECT id, d, stops FROM ride_event").fetchall()
+    derived = load_derived_destinations(conn)
     conn.close()
 
     rides = []
@@ -131,6 +148,12 @@ def load_rides(db_path):
                     dest = (float(dlat), float(dlon))
             except (KeyError, TypeError, IndexError):
                 pass
+        # Only fall back to the derived destination when the ride logged none itself, and
+        # only if it is distinct from the start (a same-cell match yields no route).
+        if dest is None and r["d"] in derived:
+            dlat, dlon = derived[r["d"]]
+            if not (abs(slat - dlat) < 1e-6 and abs(slon - dlon) < 1e-6):
+                dest = (dlat, dlon)
         rides.append(
             {
                 "id": r["id"],
@@ -511,12 +534,14 @@ def build_repeatable_trees(rides, spots, min_support=MIN_SUPPORT):
             if child["count"] < min_support:
                 continue
             idx = len(nodes)
-            nodes.append([
-                spot_index[child["spot"]],
-                parent_idx,
-                child["count"],
-                edge_wait(node["spot"], child["spot"]),
-            ])
+            nodes.append(
+                [
+                    spot_index[child["spot"]],
+                    parent_idx,
+                    child["count"],
+                    edge_wait(node["spot"], child["spot"]),
+                ]
+            )
             walk(child, idx, nodes)
 
     trees = []
