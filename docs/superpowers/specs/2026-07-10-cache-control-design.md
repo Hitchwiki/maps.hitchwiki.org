@@ -50,19 +50,29 @@ rendered HTML, or caching authenticated / route-driven JSON endpoints.
 
 ### 1. Static assets — `/static/*`
 
-Served by Flask's built-in static route; URLs already include `?v=<mtime>`
-(changes on every file edit), so the body at a given URL is immutable.
+Served by Flask's built-in static route. **Only URLs carrying the `?v=<mtime>`
+cache-buster get the immutable treatment**, because only `map.html` uses
+`asset_url()`. Bare `/static/…` URLs are common — `style.css` from
+`ride_detail.html` / `report_ride.html` / `leaderboard.html` / `recent.html`,
+the marker icons and `countries.geojson` fetched from JS, `sw.js`'s icon, and
+the `manifest.json` icons. Their bodies *do* change across deploys under a
+stable URL, so pinning them for a year would strand clients on old assets.
 
 ```
+# with ?v=<mtime>
 Cache-Control: public, max-age=31536000, immutable
+Vary: Accept-Encoding
+
+# without ?v=
+Cache-Control: public, max-age=300
 Vary: Accept-Encoding
 ```
 
-- 1 year + `immutable` — returning visitors never re-request `map.js`,
-  `style.css`, or marker images until their URL changes.
-- Safe because a content change changes the `?v=` query, which is a new cache
-  key. The rendered HTML that references these URLs is **not** long-cached (see
-  §3), so new `?v=` links propagate on the next page load.
+- Busted URLs: 1 year + `immutable` — returning visitors never re-request them
+  until the URL changes. Safe because a content change changes the `?v=` query,
+  which is a new cache key, and the rendered HTML that references these URLs is
+  **not** long-cached (see §3), so new `?v=` links propagate on the next load.
+- Bare URLs: cache briefly, then revalidate (`ETag` makes the recheck a 304).
 
 ### 2. Generated data — `dist/*` via `catch_all`
 
@@ -119,15 +129,37 @@ Rationale for `after_request` over per-call `max_age=`: it is one central place,
 it can *remove* the `no-cache`/`Vary: Cookie` that other layers inject, and it
 keeps `catch_all`'s existing gz logic untouched.
 
-### Risk to verify empirically
+### Risk to verify empirically — CONFIRMED, and worse than expected
 
-`no-cache` + `Vary: Cookie` may be injected during response finalization (the
-session/login layer), potentially *after* `after_request` runs. These public
-paths never touch the session, so the values should stick — but this must be
-**confirmed with live `curl`** against the running server after the change
-(assert the final `Cache-Control`/`Vary` on `/static/<asset>` and a `dist/`
-file). If a later layer re-adds `Vary: Cookie`, the hook must force-set the
-header last (or ensure these responses are session-neutral).
+The anticipated risk materialized, and investigating it surfaced a security
+issue. `Flask.process_response` runs every `@app.after_request` hook and *then*
+calls `session_interface.save_session()` as a hard-coded final step. No
+`after_request` hook can out-run it. And `save_session()`:
+
+1. appends `Vary: Cookie` whenever `session.accessed` is true — which
+   flask_security/flask_principal cause on **every** request (their identity
+   loader checks login state in `before_request`), including `/static/*` and
+   `dist/*`; and
+2. **emits `Set-Cookie`** whenever the session is modified, and on *every*
+   request for a permanent session (`SESSION_REFRESH_EACH_REQUEST` defaults to
+   `True`).
+
+(2) is the dangerous one: a `Set-Cookie` riding on a response we advertise as
+`public, max-age=…` means a shared cache or CDN could store one visitor's
+session cookie and serve it to another. Verified empirically — with a permanent
+session, `/static/map.js` returned `Cache-Control: public, max-age=31536000`
+*and* a live `session=…` `Set-Cookie`.
+
+**Resolution:** a `SecureCookieSessionInterface` subclass
+(`_CacheAwareSessionInterface`) overrides `save_session` to **skip it entirely**
+for the `static` and `catch_all` endpoints. `save_session` runs inside the
+request context, so `request.endpoint` is available there. Skipping prevents
+both the `Set-Cookie` and the `Vary: Cookie`, and is safe: those endpoints serve
+static files and pre-generated data, never mutate the session, and any session
+change is persisted by the next non-cacheable request.
+
+This is guarded by `test_no_set_cookie_on_publicly_cacheable_responses`, which
+was confirmed to fail against the pre-fix code.
 
 ## Testing
 
