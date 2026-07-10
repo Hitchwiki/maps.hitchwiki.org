@@ -1393,6 +1393,13 @@ function showNextFeatureHint() {
   // popstate instead. Re-run the visibility check on both.
   window.addEventListener("hashchange", position);
   window.addEventListener("popstate", position);
+  // Some chrome shifts come from a body-class toggle, not a resize/hash/popstate —
+  // notably `body.inride-active`, which lifts the whole bottom-right control stack
+  // ~150px so it clears the ride dock. That moves a "left" hint's target (heatmap /
+  // countries) without any of the events above, stranding the arrow over empty space.
+  // Observe body's class so position() re-runs on every such toggle.
+  const bodyClassObserver = new MutationObserver(position);
+  bodyClassObserver.observe(document.body, { attributes: true, attributeFilter: ["class"] });
 
   function dismiss(ev) {
     if (ev && !btn.contains(ev.target)) return;
@@ -1401,6 +1408,7 @@ function showNextFeatureHint() {
     window.removeEventListener("resize", position);
     window.removeEventListener("hashchange", position);
     window.removeEventListener("popstate", position);
+    bodyClassObserver.disconnect();
     document.removeEventListener("pointerdown", dismiss, true);
     document.removeEventListener("click", dismiss, true);
   }
