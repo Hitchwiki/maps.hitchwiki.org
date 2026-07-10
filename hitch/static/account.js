@@ -491,6 +491,35 @@
     window.addEventListener("message", onMsg);
   }
 
+  // Light an amber dot on the avatar when the user has rides worth completing — the
+  // mirror of the red "log in" dot shown to anonymous visitors. Computed client-side,
+  // and only when logged in, so the map's render path and every anonymous load stay
+  // untouched; the count query only runs for the users it can apply to.
+  function refreshNudgeDot(link) {
+    if (typeof window === "undefined" || !window.IS_LOGGED_IN) return;
+    const btn = document.getElementById("top-account-btn");
+    if (!btn) return;
+    fetch("/me/incomplete_rides.json", { credentials: "same-origin" })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        const existing = btn.querySelector(".account-dot--amber");
+        // Don't fight the notification bell: unread notifications already own the corner.
+        if (data && data.count > 0 && !btn.querySelector(".notif-bell") && !existing) {
+          const dot = document.createElement("span");
+          dot.className = "account-dot account-dot--amber";
+          dot.setAttribute("role", "img");
+          dot.setAttribute(
+            "aria-label",
+            data.count === 1 ? "1 ride could use more detail" : data.count + " rides could use more detail"
+          );
+          link.appendChild(dot);
+        } else if ((!data || data.count === 0) && existing) {
+          existing.remove();
+        }
+      })
+      .catch(function () {}); // a nudge dot is not worth surfacing an error over
+  }
+
   function init() {
     const link = document.querySelector("#top-account-btn a");
     if (!link) return;
@@ -500,6 +529,7 @@
       e.preventDefault();
       open();
     });
+    refreshNudgeDot(link);
   }
 
   if (typeof document !== "undefined") {

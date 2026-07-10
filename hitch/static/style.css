@@ -305,6 +305,20 @@ html {
 .account-dot--red {
   background: #e53935;
 }
+/* Logged in, but some rides want more detail. Amber, not red: an invitation to enrich,
+   not an error. Pulses once on arrival to draw the eye, then settles. */
+.account-dot--amber {
+  background: #f5a623;
+  animation: account-dot-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes account-dot-pop {
+  0% { transform: scale(0); }
+  70% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .account-dot--amber { animation: none; }
+}
 
 .top-account-btn a {
   color: #555;

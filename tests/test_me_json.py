@@ -237,3 +237,26 @@ def test_ride_duration_is_time_moving_and_never_wrong():
     # Clock skew: arrival before departure must never render as a negative duration.
     skewed = [{"departure_time": "2026-07-28T14:20:00"}, {"arrival_time": "2026-07-28T12:00:00"}]
     assert _ride_duration_minutes(ride(skewed)) is None
+
+
+def test_incomplete_rides_count_matches_the_modal_rule():
+    """The avatar nudge dot and the modal must agree on what "needs detail" means."""
+    from hitch.blueprints.user import _ride_needs_detail
+
+    # Editable + incomplete -> counts.
+    assert _ride_needs_detail({"type": "own", "completion": 40, "missing_destination": False}) is True
+    # Editable + complete but no destination -> counts (the ⚠ case).
+    assert _ride_needs_detail({"type": "own", "completion": 100, "missing_destination": True}) is True
+    # Editable + fully complete -> does not count.
+    assert _ride_needs_detail({"type": "own", "completion": 100, "missing_destination": False}) is False
+    # Not editable -> never counts, however incomplete (no way to fix it).
+    assert _ride_needs_detail({"type": "own_external", "completion": 0, "missing_destination": True}) is False
+    assert _ride_needs_detail({"type": "co_hitchhiker", "completion": 0, "missing_destination": False}) is False
+
+
+def test_incomplete_rides_endpoint_anonymous_is_zero_not_a_redirect(client):
+    resp = client.get("/me/incomplete_rides.json")
+    assert resp.status_code == 200  # never 302 to /login
+    assert resp.get_json() == {"count": 0}
+    assert "public" not in resp.headers.get("Cache-Control", "")
+    assert "no-store" in resp.headers.get("Cache-Control", "")

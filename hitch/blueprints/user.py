@@ -96,6 +96,36 @@ def _ride_places(d_tags):
     return {row.d_tag: row for row in rows}
 
 
+def _ride_needs_detail(ride_info):
+    """Whether this ride is worth topping up: editable AND either incomplete or missing
+    its destination. Mirrors ridesNeedingDetails() in account.js so the avatar dot and the
+    modal's "N rides could use more detail" line never disagree.
+
+    Editable means type "own" — /ride?edit= only prefills rides we published, so an
+    imported or co-hitchhiker ride has no way to be improved and must not be counted.
+    """
+    if ride_info.get("type") != "own":
+        return False
+    return ride_info.get("completion", 0) < 100 or ride_info.get("missing_destination")
+
+
+@user_bp.route("/me/incomplete_rides.json", methods=["GET"])
+def incomplete_rides_json():
+    """How many of the user's rides still want more detail — for the avatar nudge dot.
+
+    Its own endpoint, not part of /me.json, because account.js calls it on every page
+    load (only when logged in) just to decide whether to light the dot, whereas /me.json
+    is fetched only when the modal opens. Anonymous callers get 0 rather than a redirect.
+    """
+    # Anonymous users have no rides to nudge about; skip the query entirely.
+    rides = [] if current_user.is_anonymous else _get_rides_for_user(current_user)
+    count = sum(1 for ride in rides if _ride_needs_detail(ride))
+    resp = jsonify({"count": count})
+    # Per-user, like /me.json — never let a shared cache serve one user's count to another.
+    resp.headers["Cache-Control"] = "private, no-store"
+    return resp
+
+
 @user_bp.route("/me.json", methods=["GET"])
 def me_json():
     """Account data for the on-map account modal (issue #106).
