@@ -3,6 +3,11 @@
 */30 * * * * cd /app && /usr/bin/flock -n /tmp/fetch_nostr.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate fetch_nostr' > logs/fetch_nostr.log 2>&1
 # every 10 minutes
 */10 * * * * cd /app && /usr/bin/flock -n /tmp/show.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate show' > logs/show.log 2>&1
+
+# daily at 4:45 AM — reverse-geocode new rides' endpoints into the ride_place table.
+# Incremental: steady-state runs geocode nothing, so reverse_geocoder never builds its
+# ~150 MB index. Offline by design — that cost must never live in the web workers.
+45 4 * * * cd /app && /usr/bin/flock -n /tmp/ride_places.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate ride_places' > logs/ride_places.log 2>&1
 # every day at 2 AM
 0 7 * * * cd /app && /usr/bin/flock -n /tmp/sync_upstream.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate sync_upstream' > logs/sync_upstream.log 2>&1
 # each day at midnight

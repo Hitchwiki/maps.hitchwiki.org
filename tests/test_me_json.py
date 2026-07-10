@@ -85,3 +85,178 @@ def test_me_json_logged_in_is_still_not_publicly_cacheable(client, logged_in_use
     resp = client.get("/me.json")
     assert "public" not in resp.headers.get("Cache-Control", "")
     assert "no-store" in resp.headers.get("Cache-Control", "")
+
+
+def test_ride_rows_carry_completion_wait_and_distance():
+    """The modal's ride list needs a completion score, wait and distance per ride.
+
+    Completion reuses the canonical ride_score weights, so a fully-detailed ride is 100%
+    and one with only gender (15) + vehicle kind (10) is 25%.
+    """
+    from types import SimpleNamespace
+
+    from hitch.blueprints.user import _extract_ride_info
+
+    stops = [
+        {"location": {"latitude": 48.0, "longitude": 7.0}, "waiting_duration": "PT45M"},
+        {"location": {"latitude": 49.0, "longitude": 7.0}},
+    ]
+
+    def ride(**content):
+        return SimpleNamespace(content=content, d="t", rating=4, comment="", submission_time="2026-07-01T12:00:00Z")
+
+    full = ride(
+        stops=stops,
+        occupants=[
+            {
+                "was_driver": True,
+                "gender": "female",
+                "year_of_birth": 1980,
+                "origin_country": "DE",
+                "languages": ["deu"],
+                "reasons_to_pick_up": ["curiosity"],
+            }
+        ],
+        mode_of_transportation={"kind": "car", "license_plate_country": "DE"},
+    )
+    info = _extract_ride_info(full, "own")
+    assert info["completion"] == 100
+    assert info["wait_min"] == 45
+    # 1 degree of latitude, scaled by show.py's 1.25 road-detour factor.
+    assert info["distance_km"] == 138.9
+
+    partial = ride(stops=stops, occupants=[{"was_driver": True, "gender": "female"}], mode_of_transportation={"kind": "car"})
+    assert _extract_ride_info(partial, "own")["completion"] == 25
+
+    # No destination and no wait recorded -> None, so the UI omits them.
+    bare = _extract_ride_info(ride(stops=[stops[0] | {"waiting_duration": ""}]), "own")
+    assert bare["completion"] == 0
+    assert bare["wait_min"] is None
+    assert bare["distance_km"] is None
+
+
+def test_missing_destination_is_flagged_but_give_ups_are_not():
+    """A ride with no destination is fixable data -> flag it.
+
+    A `no_ride` record is a give-up: the hitchhiker was never picked up, so having no
+    destination is correct and must not raise a false alarm.
+    """
+    from types import SimpleNamespace
+
+    from hitch.blueprints.user import _extract_ride_info
+
+    start = {"location": {"latitude": 48.0, "longitude": 7.0}}
+    end = {"location": {"latitude": 49.0, "longitude": 7.0}}
+
+    def ride(**content):
+        return SimpleNamespace(content=content, d="t", rating=0, comment="", submission_time="2026-07-01T12:00:00Z")
+
+    # Real ride, destination recorded -> no flag.
+    assert _extract_ride_info(ride(stops=[start, end]), "own")["missing_destination"] is False
+
+    # Real ride, no destination -> flag.
+    assert _extract_ride_info(ride(stops=[start]), "own")["missing_destination"] is True
+
+    # Give-up (no_ride present), no destination -> NOT flagged.
+    gave_up = ride(stops=[start], no_ride={"reasons": []})
+    assert _extract_ride_info(gave_up, "own")["missing_destination"] is False
+
+
+def test_me_json_carries_only_earned_achievements(client, logged_in_user):
+    """The modal celebrates earned tiers; locked ones stay on the /insights page.
+
+    The fixture user has 42 rides and 5312 km, so they clear "Thumb Warmer" (5 rides),
+    "Out of Town" (100 km) and "Continental Drifter" (1000 km), but not the 100-ride or
+    10 000-km tiers.
+    """
+    body = client.get("/me.json").get_json()
+    awards = body["achievements"]
+    names = [a["name"] for a in awards]
+
+    assert "Thumb Warmer" in names
+    assert "Out of Town" in names
+    assert "Continental Drifter" in names
+    # Not yet earned -> must not appear.
+    assert "Roadside Regular" not in names
+    assert "Quarter Way Round the World" not in names
+
+    for award in awards:
+        assert set(award) == {"emoji", "name", "blurb"}
+        assert award["emoji"] and award["name"]
+
+
+def test_ride_places_lookup_is_bounded_to_the_rides_asked_for(app, db):
+    """Place names come from a table, looked up by the d_tags being rendered.
+
+    The first implementation cached the whole corpus as a JSON blob; at ~70 000 rides that
+    is ~7 MB on disk and ~33 MB of parsed dict resident in *every* waitress worker, to
+    answer a question about 50 rides. This pins the bounded behaviour.
+    """
+    from hitch.blueprints.user import _ride_places
+    from hitch.models import RidePlace
+
+    with app.app_context():
+        db.session.add(RidePlace(d_tag="a", from_place="Metzeral", from_cc="FR", to_place="Mitte", to_cc="DE"))
+        db.session.add(RidePlace(d_tag="b", from_place="Milano", from_cc="IT"))
+        db.session.commit()
+
+        found = _ride_places(["a", "missing"])
+        # Only what was asked for, and a miss is simply absent rather than an error.
+        assert set(found) == {"a"}
+        assert found["a"].from_place == "Metzeral"
+        assert found["a"].to_cc == "DE"
+
+        # A ride with no destination stores only its origin.
+        assert _ride_places(["b"])["b"].to_place is None
+
+        # No d_tags -> no query at all.
+        assert _ride_places([]) == {}
+        assert _ride_places([None]) == {}
+
+
+def test_ride_duration_is_time_moving_and_never_wrong():
+    """Ride time = last arrival - first departure. Distinct from wait (time stopped)."""
+    from types import SimpleNamespace
+
+    from hitch.blueprints.user import _ride_duration_minutes
+
+    def ride(stops):
+        return SimpleNamespace(content={"stops": stops})
+
+    dep = {"departure_time": "2026-07-28T12:00:00"}
+    arr = {"arrival_time": "2026-07-28T14:20:00"}
+    assert _ride_duration_minutes(ride([dep, arr])) == 140
+
+    # Any missing/unparseable piece -> None, so the UI omits it rather than guessing.
+    assert _ride_duration_minutes(ride([dep, {}])) is None
+    assert _ride_duration_minutes(ride([{}, arr])) is None
+    assert _ride_duration_minutes(ride([dep])) is None
+    assert _ride_duration_minutes(ride([])) is None
+    assert _ride_duration_minutes(ride([{"departure_time": "nope"}, {"arrival_time": "nah"}])) is None
+
+    # Clock skew: arrival before departure must never render as a negative duration.
+    skewed = [{"departure_time": "2026-07-28T14:20:00"}, {"arrival_time": "2026-07-28T12:00:00"}]
+    assert _ride_duration_minutes(ride(skewed)) is None
+
+
+def test_incomplete_rides_count_matches_the_modal_rule():
+    """The avatar nudge dot and the modal must agree on what "needs detail" means."""
+    from hitch.blueprints.user import _ride_needs_detail
+
+    # Editable + incomplete -> counts.
+    assert _ride_needs_detail({"type": "own", "completion": 40, "missing_destination": False}) is True
+    # Editable + complete but no destination -> counts (the ⚠ case).
+    assert _ride_needs_detail({"type": "own", "completion": 100, "missing_destination": True}) is True
+    # Editable + fully complete -> does not count.
+    assert _ride_needs_detail({"type": "own", "completion": 100, "missing_destination": False}) is False
+    # Not editable -> never counts, however incomplete (no way to fix it).
+    assert _ride_needs_detail({"type": "own_external", "completion": 0, "missing_destination": True}) is False
+    assert _ride_needs_detail({"type": "co_hitchhiker", "completion": 0, "missing_destination": False}) is False
+
+
+def test_incomplete_rides_endpoint_anonymous_is_zero_not_a_redirect(client):
+    resp = client.get("/me/incomplete_rides.json")
+    assert resp.status_code == 200  # never 302 to /login
+    assert resp.get_json() == {"count": 0}
+    assert "public" not in resp.headers.get("Cache-Control", "")
+    assert "no-store" in resp.headers.get("Cache-Control", "")

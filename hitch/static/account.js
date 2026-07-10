@@ -37,10 +37,158 @@
     return total + (total === 1 ? " ride" : " rides");
   }
 
+  function awardsSummary(n) {
+    return n + (n === 1 ? " award earned" : " awards earned");
+  }
+
   function rideLabel(ride) {
     const when = (ride.created || "").slice(0, 10);
     const stars = ride.rating ? "★".repeat(ride.rating) : "";
     return { when: when, stars: stars, comment: (ride.comment || "").trim() };
+  }
+
+  const MONTHS = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+  ];
+
+  // "2026-07-28 12:00" -> "28 - July - 26 12:00". Parsed by hand rather than with Date():
+  // `created` is already the user's local submission time, and new Date("...") would
+  // re-interpret it against the browser's zone and shift the day.
+  function formatRideDate(created) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/.exec(created || "");
+    if (!match) return "";
+    const month = MONTHS[Number(match[2]) - 1];
+    if (!month) return "";
+    const stamp = match[1].slice(2) + (match[4] ? " " + match[4] + ":" + match[5] : "");
+    return Number(match[3]) + " - " + month + " - " + stamp;
+  }
+
+  // What identifies a ride in the list. Place names when we have them; otherwise the
+  // date, which is the only other thing that distinguishes one ride from another.
+  function rideTitle(ride) {
+    return rideRoute(ride) || formatRideDate(ride.created) || "Unknown ride";
+  }
+
+  // The route split into its two ends, so the row can render the destination as a real
+  // element rather than a string: a missing destination is a clickable warning, and a
+  // give-up is a plain statement of fact, not an error.
+  //
+  //   endKind "place"   -> the destination is known
+  //           "missing" -> a real ride that never recorded where it ended (fixable)
+  //           "gaveup"  -> never picked up; having no destination is correct
+  //           null      -> nothing to say (e.g. destination unknown AND unlabelled origin)
+  function routeSegments(ride) {
+    const from = (ride.from_place || "").trim();
+    const fromFlag = flagEmoji(ride.from_cc);
+    const to = (ride.to_place || "").trim();
+    const toFlag = flagEmoji(ride.to_cc);
+
+    // With no origin name the date carries the row, and the arrow would dangle.
+    const start = from ? (fromFlag ? fromFlag + " " + from : from) : formatRideDate(ride.created) || "Unknown ride";
+
+    if (to) return { start: start, end: toFlag ? toFlag + " " + to : to, endKind: "place" };
+    if (ride.gave_up) return { start: start, end: "gave up", endKind: "gaveup" };
+    if (ride.missing_destination) return { start: start, end: "", endKind: "missing" };
+    return { start: start, end: "", endKind: null };
+  }
+
+  function durationText(mins) {
+    return mins >= 60 ? Math.floor(mins / 60) + " h " + (mins % 60) + " m" : mins + " min";
+  }
+
+  // The stats beside a ride's completion pie, as {text, dot} entries so the row can draw
+  // real dots: red for time stopped at the roadside, green for time actually moving.
+  // The date leads, unless it is already serving as the ride's title — repeating it there
+  // would just be noise.
+  //
+  // Anything the ride never recorded is silently omitted rather than shown as a
+  // misleading "0 min" / "0 km". A real zero is data, though, and still renders.
+  function rideStats(ride, includeDate) {
+    const out = [];
+    const when = includeDate === false ? "" : (ride.created || "").slice(0, 10);
+    if (when) out.push({ text: when, dot: null });
+    if (ride.wait_min != null) out.push({ text: durationText(ride.wait_min), dot: "stopped" });
+    if (ride.ride_min != null) out.push({ text: durationText(ride.ride_min), dot: "going" });
+    if (ride.distance_km != null) {
+      out.push({ text: Math.round(ride.distance_km).toLocaleString("en-US") + " km", dot: null });
+    }
+    return out;
+  }
+
+  // An ISO 3166-1 alpha-2 code as a flag emoji: the two letters map onto the regional
+  // indicator symbols (U+1F1E6 is "A"). Anything that isn't two ASCII letters yields ""
+  // rather than a pair of stray glyphs.
+  function flagEmoji(cc) {
+    const code = (cc || "").trim().toUpperCase();
+    if (!/^[A-Z]{2}$/.test(code)) return "";
+    return String.fromCodePoint(
+      0x1f1e6 + code.charCodeAt(0) - 65,
+      0x1f1e6 + code.charCodeAt(1) - 65
+    );
+  }
+
+  // A ride is identified by where it went, not when it happened. Place names come from
+  // the ride_place table (offline reverse geocoding); they are absent until that cron has
+  // run for the ride, and a give-up has no destination — so return "" rather than
+  // printing "undefined → undefined", and let rideTitle fall back to the date.
+  function rideRoute(ride) {
+    const from = (ride.from_place || "").trim();
+    const to = (ride.to_place || "").trim();
+    const fromFlag = flagEmoji(ride.from_cc);
+    const toFlag = flagEmoji(ride.to_cc);
+    const start = from && (fromFlag ? fromFlag + " " + from : from);
+    const end = to && (toFlag ? toFlag + " " + to : to);
+    if (start && end) return start + " → " + end;
+    if (start) return start;
+    if (end) return "→ " + end;
+    return "";
+  }
+
+  function completionPct(ride) {
+    const pct = ride.completion;
+    return typeof pct === "number" ? Math.max(0, Math.min(100, Math.round(pct))) : 0;
+  }
+
+  // Completeness reads as a colour before it reads as a number: red is "barely logged",
+  // green is done. The tiers are what drive both the pie's colour and its animation, so
+  // they live here rather than being re-derived in CSS.
+  function completionTier(pct) {
+    if (pct >= 100) return "done";
+    if (pct >= 67) return "high";
+    if (pct >= 34) return "mid";
+    return "low";
+  }
+
+  // How many rides are still worth topping up. Drives the nudge line above the list —
+  // a concrete count is a stronger pull than a vague "add more detail".
+  function ridesNeedingDetails(rides) {
+    return (rides || []).filter(function (r) {
+      return rideEditUrl(r) && (completionPct(r) < 100 || r.missing_destination);
+    }).length;
+  }
+
+  function nudgeText(n) {
+    if (n === 0) return "Every ride is fully logged. Nice.";
+    return n === 1 ? "1 ride could use more detail" : n + " rides could use more detail";
+  }
+
+  // Where a ride's "fix this" CTAs point, or null when the ride isn't editable.
+  // /ride?edit=<d_tag> only prefills when _user_owns_ride passes, which requires the ride
+  // to have been published by us — that is exactly type "own". A ride imported from
+  // another source ("own_external") or awaiting co-hitchhiker acceptance can't be edited,
+  // so it gets a plain indicator instead of a dead link.
+  function rideEditUrl(ride) {
+    if (ride.type !== "own" || !ride.d_tag) return null;
+    return "/ride?edit=" + encodeURIComponent(ride.d_tag);
+  }
+
+  // The read-only detail page for a ride. Public (main.ride_detail), so unlike editing
+  // this works for every ride the list can show — imported ones and co-hitchhiker rides
+  // included. A fully-logged ride has no CTA of its own; the row itself is the way in.
+  function rideViewUrl(ride) {
+    if (!ride.d_tag) return null;
+    return "/ride/" + encodeURIComponent(ride.d_tag);
   }
 
   // ── DOM (browser only) ─────────────────────────────────────────────────────
@@ -156,17 +304,150 @@
     });
     body.appendChild(stats);
 
+    // Awards earned. Locked tiers stay on the full /insights page — the modal celebrates
+    // what you have rather than nagging about what you don't.
+    const awards = data.achievements || [];
+    if (awards.length) {
+      body.appendChild(el("div", "acct-rides-head", awardsSummary(awards.length)));
+      const wrap = el("div", "acct-awards");
+      awards.forEach(function (award) {
+        const chip = el("span", "acct-award");
+        chip.title = award.blurb || award.name;
+        chip.appendChild(el("span", "acct-award__emoji", award.emoji));
+        chip.appendChild(el("span", "acct-award__name", award.name));
+        wrap.appendChild(chip);
+      });
+      body.appendChild(wrap);
+    }
+
     const rides = data.rides || [];
     body.appendChild(el("div", "acct-rides-head", ridesSummary(rides.length, data.rides_total || rides.length)));
+
+    // A concrete count of what's left to fill in, or a small reward when nothing is.
+    const todo = ridesNeedingDetails(rides);
+    const nudge = el("div", "acct-nudge-line" + (todo === 0 ? " acct-nudge-line--done" : ""));
+    nudge.textContent = (todo === 0 ? "\u2728 " : "") + nudgeText(todo);
+    body.appendChild(nudge);
 
     const list = el("ul", "acct-rides");
     rides.forEach(function (ride, idx) {
       const li = el("li", "acct-ride");
       if (idx >= RIDES_SHOWN_COLLAPSED) li.classList.add("acct-ride--hidden");
-      const info = rideLabel(ride);
-      li.appendChild(el("span", "acct-ride__when", info.when));
-      if (info.stars) li.appendChild(el("span", "acct-ride__stars", info.stars));
-      if (info.comment) li.appendChild(el("span", "acct-ride__comment", info.comment));
+
+      // Every ride opens its read-only detail page — including complete ones, which have
+      // no pie CTA of their own. New tab, so the map underneath is never unloaded.
+      const viewUrl = rideViewUrl(ride);
+      if (viewUrl) {
+        li.classList.add("acct-ride--clickable");
+        li.tabIndex = 0;
+        li.setAttribute("role", "link");
+        li.setAttribute("aria-label", "View ride details");
+        const openView = function () { window.open(viewUrl, "_blank", "noopener"); };
+        li.addEventListener("click", function (e) {
+          // The pie and the warning are their own links to the edit form; a click on one
+          // must not also open the detail page behind it.
+          if (e.target.closest("a")) return;
+          openView();
+        });
+        li.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openView(); }
+        });
+      }
+
+      // Completion pie: a conic-gradient sweep set from the ride's score. The number is
+      // the same one the in-ride sheet's meters showed, from the canonical weights.
+      // Below 100% it becomes a CTA to go fill in what's missing.
+      const pct = completionPct(ride);
+      const tier = completionTier(pct);
+      const editUrl = rideEditUrl(ride);
+
+      let pie;
+      if (tier === "done") {
+        // A finished ride stops being a progress bar and becomes a reward: the pie is
+        // replaced by an award ribbon, so completing the last field visibly changes the
+        // thing. The rosette is its own element because the ribbon tails are drawn with
+        // the parent's ::before, and the sheen needs a second layer inside the disc.
+        pie = el("span", "acct-pie acct-pie--done");
+        const rosette = el("span", "acct-rosette");
+        rosette.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i>';
+        pie.appendChild(rosette);
+        pie.setAttribute("role", "img");
+        pie.setAttribute("aria-label", "Ride fully logged");
+        pie.title = "Fully logged — nice one!";
+      } else {
+        const cta = Boolean(editUrl);
+        pie = el(cta ? "a" : "span", "acct-pie acct-pie--" + tier + (cta ? " acct-pie--cta" : ""));
+        pie.style.setProperty("--pct", pct);
+        if (cta) {
+          // New tab: this modal exists so the map never unloads. rel=noopener because
+          // target=_blank otherwise hands the new page a window.opener reference.
+          pie.href = editUrl;
+          pie.target = "_blank";
+          pie.rel = "noopener";
+          pie.title = pct + "% complete — add driver and vehicle details";
+          pie.setAttribute("aria-label", "Ride " + pct + "% complete. Add driver and vehicle details.");
+        } else {
+          pie.setAttribute("role", "img");
+          pie.setAttribute("aria-label", pct + "% of driver and vehicle details recorded");
+          pie.title = pct + "% complete";
+        }
+      }
+      li.appendChild(pie);
+
+      const meta = el("div", "acct-ride__meta");
+
+      // Where it went is the ride's identity. The destination is a real element, not a
+      // string, so a missing one can be a clickable warning inline in the route: the
+      // arrow already promises a destination, and this is what sits where it should be.
+      const seg = routeSegments(ride);
+      const hasPlaces = Boolean((ride.from_place || "").trim());
+      const routeEl = el("span", "acct-ride__route");
+      if (!hasPlaces) routeEl.classList.add("acct-ride__route--fallback");
+      routeEl.appendChild(el("span", null, seg.start));
+
+      if (seg.endKind === "place") {
+        routeEl.appendChild(el("span", "acct-ride__arrow", " → "));
+        routeEl.appendChild(el("span", null, seg.end));
+      } else if (seg.endKind === "gaveup") {
+        // Not an error: the hitchhiker was never picked up, so there is no destination.
+        routeEl.appendChild(el("span", "acct-ride__arrow", " → "));
+        routeEl.appendChild(el("span", "acct-ride__gaveup", seg.end));
+      } else if (seg.endKind === "missing") {
+        routeEl.appendChild(el("span", "acct-ride__arrow", " → "));
+        const warn = el(editUrl ? "a" : "span", "acct-ride__warn");
+        warn.innerHTML = '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>';
+        if (editUrl) {
+          warn.href = editUrl;
+          warn.target = "_blank";
+          warn.rel = "noopener";
+          warn.title = "No destination recorded — add it";
+          warn.setAttribute("aria-label", "No destination recorded for this ride. Add it.");
+        } else {
+          warn.title = "No destination recorded for this ride";
+          warn.setAttribute("role", "img");
+          warn.setAttribute("aria-label", "No destination recorded for this ride");
+        }
+        routeEl.appendChild(warn);
+      }
+      meta.appendChild(routeEl);
+
+      // The date only appears below when it is not already carrying the row above.
+      const stats = rideStats(ride, hasPlaces);
+      if (stats.length) {
+        const statsEl = el("span", "acct-ride__stats");
+        stats.forEach(function (stat, i) {
+          if (i) statsEl.appendChild(el("span", "acct-ride__sep", " · "));
+          if (stat.dot) {
+            const dot = el("span", "acct-dot acct-dot--" + stat.dot);
+            dot.title = stat.dot === "stopped" ? "Waiting at the roadside" : "Moving";
+            statsEl.appendChild(dot);
+          }
+          statsEl.appendChild(el("span", null, stat.text));
+        });
+        meta.appendChild(statsEl);
+      }
+      li.appendChild(meta);
+
       list.appendChild(li);
     });
     body.appendChild(list);
@@ -210,6 +491,44 @@
     window.addEventListener("message", onMsg);
   }
 
+  // Badge text for a count: the number itself, capped at "99+" so a big backlog never
+  // blows out the badge width. Below 1 there is nothing to show.
+  function badgeCount(n) {
+    if (!(n > 0)) return "";
+    return n > 99 ? "99+" : String(n);
+  }
+
+  // Light an amber badge on the avatar carrying the number of rides worth completing —
+  // the mirror of the red "log in" dot shown to anonymous visitors. Computed client-side,
+  // and only when logged in, so the map's render path and every anonymous load stay
+  // untouched; the count query only runs for the users it can apply to.
+  function refreshNudgeDot(link) {
+    if (typeof window === "undefined" || !window.IS_LOGGED_IN) return;
+    const btn = document.getElementById("top-account-btn");
+    if (!btn) return;
+    fetch("/me/incomplete_rides.json", { credentials: "same-origin" })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        const existing = btn.querySelector(".account-dot--amber");
+        const count = data ? data.count : 0;
+        // Don't fight the notification bell: unread notifications already own the corner.
+        if (count > 0 && !btn.querySelector(".notif-bell") && !existing) {
+          const dot = document.createElement("span");
+          dot.className = "account-dot account-dot--amber";
+          dot.textContent = badgeCount(count);
+          dot.setAttribute("role", "img");
+          dot.setAttribute(
+            "aria-label",
+            count === 1 ? "1 ride could use more detail" : count + " rides could use more detail"
+          );
+          link.appendChild(dot);
+        } else if (count === 0 && existing) {
+          existing.remove();
+        }
+      })
+      .catch(function () {}); // a nudge dot is not worth surfacing an error over
+  }
+
   function init() {
     const link = document.querySelector("#top-account-btn a");
     if (!link) return;
@@ -219,6 +538,7 @@
       e.preventDefault();
       open();
     });
+    refreshNudgeDot(link);
   }
 
   if (typeof document !== "undefined") {
@@ -226,5 +546,25 @@
     else init();
   }
 
-  return { open: open, close: close, formatInsights: formatInsights, ridesSummary: ridesSummary, rideLabel: rideLabel };
+  return {
+    open: open,
+    close: close,
+    formatInsights: formatInsights,
+    ridesSummary: ridesSummary,
+    rideLabel: rideLabel,
+    rideStats: rideStats,
+    completionPct: completionPct,
+    badgeCount: badgeCount,
+    rideEditUrl: rideEditUrl,
+    awardsSummary: awardsSummary,
+    completionTier: completionTier,
+    ridesNeedingDetails: ridesNeedingDetails,
+    nudgeText: nudgeText,
+    rideRoute: rideRoute,
+    flagEmoji: flagEmoji,
+    formatRideDate: formatRideDate,
+    rideTitle: rideTitle,
+    routeSegments: routeSegments,
+    rideViewUrl: rideViewUrl,
+  };
 });

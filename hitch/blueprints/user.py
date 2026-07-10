@@ -14,10 +14,11 @@ from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import Hitc
 from hitch.blueprints.utils.notifications import notify_new_follower
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON
+from hitch.blueprints.utils.ride_score import score_fields
 from hitch.extensions import db, security
 from hitch.forms import UserEditForm
 from hitch.helpers import get_db, get_dirs, haversine_np
-from hitch.models import CoHitchhiker, Follow, Notification, RideEvent, RideReport, Trip, TripRide, User
+from hitch.models import CoHitchhiker, Follow, Notification, RideEvent, RidePlace, RideReport, Trip, TripRide, User
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
 
@@ -78,6 +79,53 @@ def get_user():
 RIDES_IN_MODAL_CAP = 50
 
 
+def _ride_places(d_tags):
+    """Place names for the given rides, as {d_tag: RidePlace}.
+
+    Looks up only the d_tags actually being rendered. An earlier version cached the whole
+    corpus as a JSON blob; at ~70 000 rides that is ~7 MB on disk and ~33 MB of parsed
+    dict resident in every waitress worker, to answer a question about 50 rides.
+
+    Rows are absent until hitch/scripts/ride_places.py has run for a ride, so callers must
+    treat a miss as "not geocoded yet" rather than an error.
+    """
+    tags = [t for t in d_tags if t]
+    if not tags:
+        return {}
+    rows = RidePlace.query.filter(RidePlace.d_tag.in_(tags)).all()
+    return {row.d_tag: row for row in rows}
+
+
+def _ride_needs_detail(ride_info):
+    """Whether this ride is worth topping up: editable AND either incomplete or missing
+    its destination. Mirrors ridesNeedingDetails() in account.js so the avatar dot and the
+    modal's "N rides could use more detail" line never disagree.
+
+    Editable means type "own" — /ride?edit= only prefills rides we published, so an
+    imported or co-hitchhiker ride has no way to be improved and must not be counted.
+    """
+    if ride_info.get("type") != "own":
+        return False
+    return ride_info.get("completion", 0) < 100 or ride_info.get("missing_destination")
+
+
+@user_bp.route("/me/incomplete_rides.json", methods=["GET"])
+def incomplete_rides_json():
+    """How many of the user's rides still want more detail — for the avatar nudge dot.
+
+    Its own endpoint, not part of /me.json, because account.js calls it on every page
+    load (only when logged in) just to decide whether to light the dot, whereas /me.json
+    is fetched only when the modal opens. Anonymous callers get 0 rather than a redirect.
+    """
+    # Anonymous users have no rides to nudge about; skip the query entirely.
+    rides = [] if current_user.is_anonymous else _get_rides_for_user(current_user)
+    count = sum(1 for ride in rides if _ride_needs_detail(ride))
+    resp = jsonify({"count": count})
+    # Per-user, like /me.json — never let a shared cache serve one user's count to another.
+    resp.headers["Cache-Control"] = "private, no-store"
+    return resp
+
+
 @user_bp.route("/me.json", methods=["GET"])
 def me_json():
     """Account data for the on-map account modal (issue #106).
@@ -90,18 +138,44 @@ def me_json():
         resp = jsonify({"logged_in": False})
     else:
         rides = _get_rides_for_user(current_user)
-        shown = [{k: v for k, v in r.items() if k != "submission_sort_key"} for r in rides[:RIDES_IN_MODAL_CAP]]
+        visible = rides[:RIDES_IN_MODAL_CAP]
+        # One bounded lookup for exactly the rides we are about to render.
+        places = _ride_places([r.get("d_tag") for r in visible])
+        shown = []
+        for ride in visible:
+            entry = {k: v for k, v in ride.items() if k != "submission_sort_key"}
+            place = places.get(entry.get("d_tag"))
+            entry["from_place"] = place.from_place if place else None
+            entry["to_place"] = place.to_place if place else None
+            # ISO alpha-2; the client renders it as a flag emoji.
+            entry["from_cc"] = place.from_cc if place else None
+            entry["to_cc"] = place.to_cc if place else None
+            shown.append(entry)
+
+        total_rides = current_user.total_rides or 0
+        total_km = current_user.total_distance_km or 0
+        partners = _distinct_partner_count(current_user.username)
+
+        # Same ladders the /insights page renders, but only the tiers actually earned:
+        # the modal celebrates what you have, and the full profile shows what's left.
+        earned = [
+            {"emoji": card["emoji"], "name": card["name"], "blurb": card["blurb"]}
+            for card in _achievements({"rides": total_rides, "distance": total_km, "partners": partners})
+            if card["earned"]
+        ]
+
         resp = jsonify(
             {
                 "logged_in": True,
                 "username": current_user.username,
                 "profile_url": "/me",
                 "insights": {
-                    "rides": current_user.total_rides or 0,
-                    "distance_km": current_user.total_distance_km or 0,
+                    "rides": total_rides,
+                    "distance_km": total_km,
                     "waiting_min": current_user.total_waiting_time_min or 0,
-                    "partners": _distinct_partner_count(current_user.username),
+                    "partners": partners,
                 },
+                "achievements": earned,
                 "rides": shown,
                 # Untruncated, so the UI can say "showing 50 of 231" and link to the profile.
                 "rides_total": len(rides),
@@ -293,6 +367,56 @@ def _ride_wait_minutes(ride):
         return int(duration)
     except ValueError:
         return None
+
+
+def _ride_duration_minutes(ride):
+    """Time spent moving: the last stop's arrival minus the first stop's departure.
+
+    Distinct from the waiting time, which is time spent stopped at the roadside. Either
+    timestamp may be absent (the in-ride tracker records both; the historic form often
+    does not), and a clock skew could make arrival precede departure — in every such case
+    return None so the UI simply omits the figure rather than printing something wrong.
+    """
+    stops = (ride.content or {}).get("stops") or []
+    if len(stops) < 2:
+        return None
+    departure = stops[0].get("departure_time")
+    arrival = stops[-1].get("arrival_time")
+    if not departure or not arrival:
+        return None
+    start = pd.to_datetime(departure, errors="coerce", utc=True)
+    end = pd.to_datetime(arrival, errors="coerce", utc=True)
+    if pd.isna(start) or pd.isna(end):
+        return None
+    minutes = (end - start).total_seconds() / 60
+    return round(minutes) if minutes > 0 else None
+
+
+def _ride_completion_pct(ride):
+    """How complete this ride's driver/vehicle detail is, 0-100.
+
+    Reuses the canonical weights (ride_score) rather than re-deriving a score, so the
+    number a user sees on their ride list is the same one the in-ride sheet's meters
+    showed while they logged it. The stored Nostr record uses the data-standard's shape
+    (an occupant with was_driver, and mode_of_transportation), so map it back onto the
+    scorer's field names. Age is scored on presence: we store year_of_birth, not an age.
+    """
+    content = ride.content or {}
+    occupants = content.get("occupants") or []
+    driver = next((o for o in occupants if o.get("was_driver")), {})
+    transport = content.get("mode_of_transportation") or {}
+
+    return score_fields(
+        {
+            "driver_reason_to_pick_up": driver.get("reasons_to_pick_up") or [],
+            "driver_gender": driver.get("gender") or "",
+            "driver_age": driver.get("year_of_birth") or "",
+            "driver_origin_country": driver.get("origin_country") or "",
+            "driver_languages": driver.get("languages") or [],
+            "vehicle_kind": transport.get("kind") or "",
+            "vehicle_license_plate_country": transport.get("license_plate_country") or "",
+        }
+    )["pct"]
 
 
 def _ride_distance_km(info):
@@ -531,7 +655,7 @@ def _extract_ride_info(ride, ride_type):
     submission_dt = pd.to_datetime(ride.submission_time, errors="coerce", utc=True) if ride.submission_time else None
     submission_display = submission_dt.strftime("%Y-%m-%d %H:%M") if submission_dt is not None and pd.notna(submission_dt) else ""
     submission_sort_key = submission_dt.value if submission_dt is not None and pd.notna(submission_dt) else None
-    return {
+    info = {
         "type": ride_type,
         "d_tag": ride.d,
         "created": submission_display,
@@ -543,6 +667,22 @@ def _extract_ride_info(ride, ride_type):
         "destination_lat": destination_lat,
         "destination_lon": destination_lon,
     }
+    # Surfaced by the account modal's ride list. None means "not recorded", and the UI
+    # omits the stat rather than printing a misleading zero. _ride_distance_km reads the
+    # coords off the info dict, so it has to run once the dict exists.
+    info["wait_min"] = _ride_wait_minutes(ride)
+    info["ride_min"] = _ride_duration_minutes(ride)
+    distance = _ride_distance_km(info)
+    info["distance_km"] = round(distance, 1) if distance is not None else None
+    info["completion"] = _ride_completion_pct(ride)
+    # A ride that never recorded where it ended is incomplete data the user can still fix,
+    # so the modal flags it. A `no_ride` record is a give-up: the hitchhiker was never
+    # picked up, so having no destination is correct there and must not be flagged. The
+    # UI still labels it, just as a fact rather than a problem — hence both flags.
+    gave_up = content.get("no_ride") is not None
+    info["gave_up"] = gave_up
+    info["missing_destination"] = destination_lat is None and not gave_up
+    return info
 
 
 def _norm_nickname(s):
