@@ -223,3 +223,23 @@ class HitchwikiArticleMap(db.Model):
     longitude = db.Column(db.Float, nullable=False)
     zoom = db.Column(db.Integer, nullable=False)
     hitchwiki_url = db.Column(db.String(255), nullable=False)
+
+
+class RidePlace(db.Model):
+    """Reverse-geocoded endpoint names for a ride, keyed by its Nostr `d` tag.
+
+    A separate table rather than columns on RideEvent because fetch_nostr deletes and
+    rebuilds ride_event wholesale every 30 minutes; place names must outlive that so the
+    geocoder only ever has to resolve rides it has not seen before.
+
+    Written offline by hitch/scripts/ride_places.py: reverse_geocoder costs ~150 MB
+    resident once its index builds, which must not live in the web workers on this host.
+    """
+
+    __tablename__ = "ride_place"
+
+    d_tag = db.Column(db.String(255), primary_key=True)
+    from_place = db.Column(db.String(255), nullable=True)
+    from_cc = db.Column(db.String(2), nullable=True)  # ISO 3166-1 alpha-2
+    to_place = db.Column(db.String(255), nullable=True)
+    to_cc = db.Column(db.String(2), nullable=True)
