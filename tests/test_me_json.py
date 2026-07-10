@@ -133,3 +133,30 @@ def test_ride_rows_carry_completion_wait_and_distance():
     assert bare["completion"] == 0
     assert bare["wait_min"] is None
     assert bare["distance_km"] is None
+
+
+def test_missing_destination_is_flagged_but_give_ups_are_not():
+    """A ride with no destination is fixable data -> flag it.
+
+    A `no_ride` record is a give-up: the hitchhiker was never picked up, so having no
+    destination is correct and must not raise a false alarm.
+    """
+    from types import SimpleNamespace
+
+    from hitch.blueprints.user import _extract_ride_info
+
+    start = {"location": {"latitude": 48.0, "longitude": 7.0}}
+    end = {"location": {"latitude": 49.0, "longitude": 7.0}}
+
+    def ride(**content):
+        return SimpleNamespace(content=content, d="t", rating=0, comment="", submission_time="2026-07-01T12:00:00Z")
+
+    # Real ride, destination recorded -> no flag.
+    assert _extract_ride_info(ride(stops=[start, end]), "own")["missing_destination"] is False
+
+    # Real ride, no destination -> flag.
+    assert _extract_ride_info(ride(stops=[start]), "own")["missing_destination"] is True
+
+    # Give-up (no_ride present), no destination -> NOT flagged.
+    gave_up = ride(stops=[start], no_ride={"reasons": []})
+    assert _extract_ride_info(gave_up, "own")["missing_destination"] is False

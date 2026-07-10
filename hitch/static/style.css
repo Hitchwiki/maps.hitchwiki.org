@@ -3136,6 +3136,17 @@ body.routing-active .leaflet-control-container .leaflet-control-geocoder { displ
 .acct-ride__stats { color: #888; font-size: 12px; font-variant-numeric: tabular-nums; }
 .acct-ride__stars { color: #f5a623; flex-shrink: 0; }
 
+/* Flag on a ride whose destination was never recorded (give-ups are excluded
+   server-side, so this only ever marks fixable missing data). margin-left:auto pushes
+   it to the trailing edge of the row. */
+.acct-ride__warn {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: #e0a800;
+  font-size: 15px;
+  line-height: 1;
+}
+
 /* Completion pie: a conic-gradient sweep whose angle comes from --pct (0-100), with a
    white centre punched out so it reads as a donut rather than a solid disc. */
 .acct-pie {
