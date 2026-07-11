@@ -6,6 +6,7 @@ import subprocess
 from hitch.extensions import db
 from hitch.helpers import get_dirs
 from hitch.models import RideEvent
+from hitch.scripts.nostr_time import normalize_rfc9557_for_storage
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger(__name__)
@@ -70,7 +71,10 @@ for post in all_posts:
             mode_of_transportation=content_json.get("mode_of_transportation"),
             comment=content_json.get("comment"),
             rating=content_json.get("rating"),
-            submission_time=content_json.get("submission_time"),
+            # Keep SQLite's text column uniform. RFC 9557 permits offsets (including Z)
+            # and optional zone annotations; convert those instants to UTC, then store
+            # the same timezone-free representation used by our existing records.
+            submission_time=normalize_rfc9557_for_storage(content_json.get("submission_time")),
             license=content_json.get("license"),
             source=content_json.get("source"),
             expiration=expiration,
