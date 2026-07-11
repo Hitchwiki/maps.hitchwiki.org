@@ -29,9 +29,6 @@ var allMarkers = [],
   // Hitchwiki Category:Event markers (dist/events.json), drawn on their own layer.
   eventLayer = null,
   eventsData = null,
-  // User-proposed spots (blue markers, /proposed_spots.json), on their own layer so
-  // they can be shown/hidden with the same rules as the event markers.
-  proposedSpotLayer = null,
   mapModeButtons = {};
 
 // Current-location button state. The marker/circle are created lazily on the
@@ -981,24 +978,21 @@ function setEventsVisible(visible) {
   }
 }
 
-// A blue teardrop divIcon for user-proposed spots — visually distinct from the
-// red/orange/green rating markers so a proposal reads as "not yet a real spot".
-// Shared by both the placement pin (while proposing) and the persistent markers.
-function proposedSpotIcon() {
-  return L.divIcon({
-    className: "proposed-spot-marker",
-    html: '<div class="proposed-spot-pin"></div>',
-    iconSize: [22, 22],
-    iconAnchor: [11, 22],
-    popupAnchor: [0, -20],
-  });
-}
-
-// Render one proposed spot as a blue marker with a popup showing its comment,
-// proposer, and age. Added to proposedSpotLayer. Returns the marker.
+// Render one proposed spot as a blue circle marker — same shape/size as the normal
+// rating markers (so it reads as a spot), only blue to mark it as "proposed, no rides
+// yet". Added to the SAME markerCluster as real spots so the two cluster together.
+// Kept OUT of allMarkers: it has no ride data, so the ride filters and pin-snapping
+// (which read _data ride fields / spotId) must not iterate over it. Returns the marker.
 function addProposedSpotMarker(sp) {
-  if (typeof sp.lat !== "number" || typeof sp.lon !== "number") return null;
-  const marker = L.marker([sp.lat, sp.lon], { icon: proposedSpotIcon() });
+  if (!markerCluster || typeof sp.lat !== "number" || typeof sp.lon !== "number") return null;
+  const marker = L.circleMarker(new L.latLng(sp.lat, sp.lon), {
+    radius: 5,
+    weight: 1,
+    fillOpacity: 0.85,
+    color: "black",
+    fillColor: "#1a73e8",
+    _proposed: true,
+  });
   const who = sp.user ? escapeHtml(sp.user) : "someone";
   const when = sp.created_at ? relativeAge(sp.created_at) : "";
   const comment = sp.comment ? `<p class="proposed-spot-comment">${escapeHtml(sp.comment)}</p>` : "";
@@ -1009,7 +1003,7 @@ function addProposedSpotMarker(sp) {
       `<p class="proposed-spot-meta">Proposed by ${who}${when ? " · " + when : ""}. No rides logged here yet.</p>` +
       `</div>`
   );
-  marker.addTo(proposedSpotLayer);
+  marker.addTo(markerCluster);
   return marker;
 }
 
@@ -1024,10 +1018,10 @@ function relativeAge(iso) {
   return Math.floor(s / 86400) + "d ago";
 }
 
-// Load /proposed_spots.json (served live from the DB) and draw each as a blue
-// marker on its own layer. Non-blocking overlay, like loadEventMarkers.
+// Load /proposed_spots.json (served live from the DB) and add each as a blue circle
+// marker into the shared spot cluster. Non-blocking overlay, like loadEventMarkers.
+// Must run after loadMarkers (which creates markerCluster).
 async function loadProposedSpotMarkers(map) {
-  proposedSpotLayer = L.layerGroup();
   let data;
   try {
     const resp = await fetch("/proposed_spots.json");
@@ -1039,17 +1033,7 @@ async function loadProposedSpotMarkers(map) {
   }
   if (!Array.isArray(data)) return;
   data.forEach(addProposedSpotMarker);
-  if (mapMode !== "countries") proposedSpotLayer.addTo(map);
   console.log(`Loaded ${data.length} proposed spot(s)`);
-}
-
-function setProposedSpotsVisible(visible) {
-  if (!proposedSpotLayer) return;
-  if (visible) {
-    if (!map.hasLayer(proposedSpotLayer)) proposedSpotLayer.addTo(map);
-  } else if (map.hasLayer(proposedSpotLayer)) {
-    map.removeLayer(proposedSpotLayer);
-  }
 }
 
 // Begin proposing a spot from a map gesture (long-press → "Propose a spot"): drop a
@@ -1116,7 +1100,6 @@ function startProposeSpotFromGesture(latlng, containerPoint) {
       const json = await resp.json().catch(() => ({}));
       if (!resp.ok || !json.ok) throw new Error(json.error || "request failed");
       // Show the new proposed spot right away — don't wait for a reload.
-      if (!proposedSpotLayer) proposedSpotLayer = L.layerGroup().addTo(map);
       const m = addProposedSpotMarker({
         id: json.id,
         lat: round5(ll.lat),
@@ -1224,14 +1207,12 @@ async function setMapMode(mode) {
     await setHeatmapActive(false);
     setSpotsVisible(false);
     setEventsVisible(false);
-    setProposedSpotsVisible(false);
     const layer = await loadCountryLayer();
     if (!map.hasLayer(layer)) layer.addTo(map);
   } else {
     if (countryLayer && map.hasLayer(countryLayer)) map.removeLayer(countryLayer);
     setSpotsVisible(true);
     setEventsVisible(true);
-    setProposedSpotsVisible(true);
     await setHeatmapActive(mode === "heatmap");
   }
 

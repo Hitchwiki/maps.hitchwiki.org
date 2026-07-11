@@ -1043,25 +1043,7 @@ body.inr-picking .event-marker {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
   cursor: pointer;
 }
-/* User-proposed spots: a blue teardrop, distinct from the round rating markers. */
-.proposed-spot-marker {
-  background: transparent;
-  border: none;
-}
-body.inr-picking .proposed-spot-marker {
-  pointer-events: none;
-}
-.proposed-spot-pin {
-  width: 16px;
-  height: 16px;
-  margin: 3px;
-  background: #1a73e8;
-  border: 2px solid #fff;
-  border-radius: 50% 50% 50% 0;
-  transform: rotate(-45deg);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
-  cursor: pointer;
-}
+/* User-proposed spots reuse the normal blue circle-marker look; only the popup is styled. */
 .proposed-spot-popup strong {
   color: #1a73e8;
 }
