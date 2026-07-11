@@ -29,6 +29,9 @@ var allMarkers = [],
   // Hitchwiki Category:Event markers (dist/events.json), drawn on their own layer.
   eventLayer = null,
   eventsData = null,
+  // User-proposed spots (blue markers, /proposed_spots.json), on their own layer so
+  // they can be shown/hidden with the same rules as the event markers.
+  proposedSpotLayer = null,
   mapModeButtons = {};
 
 // Current-location button state. The marker/circle are created lazily on the
@@ -304,6 +307,9 @@ function populateHeatmapLegend(legendData) {
 
   // Hitchwiki event markers — non-blocking, they're a small overlay.
   loadEventMarkers(map);
+
+  // User-proposed spots (blue markers) — non-blocking overlay, like events.
+  loadProposedSpotMarkers(map);
 
   setupEventListeners();
 
@@ -975,6 +981,167 @@ function setEventsVisible(visible) {
   }
 }
 
+// A blue teardrop divIcon for user-proposed spots — visually distinct from the
+// red/orange/green rating markers so a proposal reads as "not yet a real spot".
+// Shared by both the placement pin (while proposing) and the persistent markers.
+function proposedSpotIcon() {
+  return L.divIcon({
+    className: "proposed-spot-marker",
+    html: '<div class="proposed-spot-pin"></div>',
+    iconSize: [22, 22],
+    iconAnchor: [11, 22],
+    popupAnchor: [0, -20],
+  });
+}
+
+// Render one proposed spot as a blue marker with a popup showing its comment,
+// proposer, and age. Added to proposedSpotLayer. Returns the marker.
+function addProposedSpotMarker(sp) {
+  if (typeof sp.lat !== "number" || typeof sp.lon !== "number") return null;
+  const marker = L.marker([sp.lat, sp.lon], { icon: proposedSpotIcon() });
+  const who = sp.user ? escapeHtml(sp.user) : "someone";
+  const when = sp.created_at ? relativeAge(sp.created_at) : "";
+  const comment = sp.comment ? `<p class="proposed-spot-comment">${escapeHtml(sp.comment)}</p>` : "";
+  marker.bindPopup(
+    `<div class="proposed-spot-popup">` +
+      `<strong>Proposed spot</strong>` +
+      comment +
+      `<p class="proposed-spot-meta">Proposed by ${who}${when ? " · " + when : ""}. No rides logged here yet.</p>` +
+      `</div>`
+  );
+  marker.addTo(proposedSpotLayer);
+  return marker;
+}
+
+// Human-readable "3d ago" / "2h ago" from an ISO timestamp; "" if unparseable.
+function relativeAge(iso) {
+  const t = new Date(iso);
+  if (isNaN(t)) return "";
+  const s = Math.floor((Date.now() - t.getTime()) / 1000);
+  if (s < 60) return "just now";
+  if (s < 3600) return Math.floor(s / 60) + "m ago";
+  if (s < 86400) return Math.floor(s / 3600) + "h ago";
+  return Math.floor(s / 86400) + "d ago";
+}
+
+// Load /proposed_spots.json (served live from the DB) and draw each as a blue
+// marker on its own layer. Non-blocking overlay, like loadEventMarkers.
+async function loadProposedSpotMarkers(map) {
+  proposedSpotLayer = L.layerGroup();
+  let data;
+  try {
+    const resp = await fetch("/proposed_spots.json");
+    if (!resp.ok) return; // endpoint missing / errored — silently skip
+    data = await resp.json();
+  } catch (error) {
+    console.warn("Could not load proposed spots:", error);
+    return;
+  }
+  if (!Array.isArray(data)) return;
+  data.forEach(addProposedSpotMarker);
+  if (mapMode !== "countries") proposedSpotLayer.addTo(map);
+  console.log(`Loaded ${data.length} proposed spot(s)`);
+}
+
+function setProposedSpotsVisible(visible) {
+  if (!proposedSpotLayer) return;
+  if (visible) {
+    if (!map.hasLayer(proposedSpotLayer)) proposedSpotLayer.addTo(map);
+  } else if (map.hasLayer(proposedSpotLayer)) {
+    map.removeLayer(proposedSpotLayer);
+  }
+}
+
+// Begin proposing a spot from a map gesture (long-press → "Propose a spot"): drop a
+// draggable blue pin and show a card with a short-comment box. On submit, POST to
+// /propose-spot and drop the persistent blue marker immediately (no reload needed).
+function startProposeSpotFromGesture(latlng, containerPoint) {
+  // One picker at a time — bail if a location selection or another propose card is up.
+  if (locationSelectionType || locationSelectionMarker) return;
+  if (document.querySelector(".propose-spot-ui")) return;
+
+  const pin = L.marker(latlng, {
+    draggable: true,
+    icon: L.icon({
+      iconUrl: "/static/markers/marker-icon-2x-grey.png",
+      shadowUrl: "/static/markers/marker-shadow.png",
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41],
+    }),
+  }).addTo(map);
+
+  // Tapping the map repositions the pin (mirrors the add-spot / waiting-spot UX).
+  const onMapClick = (e) => pin.setLatLng(e.latlng);
+  map.on("click", onMapClick);
+
+  const ui = L.DomUtil.create("div", "propose-spot-ui location-selection-ui");
+  ui.innerHTML =
+    "<h4>Propose a hitch spot</h4>" +
+    "<p>Drag the pin to fine-tune, add a short note (optional), then propose.</p>" +
+    '<textarea class="propose-spot-comment" maxlength="500" rows="2" ' +
+    'placeholder="Why is this a good spot? (optional)"></textarea>' +
+    '<div class="lsel-actions">' +
+    '<button class="lsel-confirm">Propose spot</button>' +
+    '<button class="lsel-cancel">Cancel</button>' +
+    "</div>";
+  document.body.appendChild(ui);
+  document.body.classList.add("selecting-location");
+
+  function cleanup() {
+    map.off("click", onMapClick);
+    if (pin) map.removeLayer(pin);
+    if (ui.parentNode) ui.remove();
+    document.body.classList.remove("selecting-location");
+  }
+
+  ui.querySelector(".lsel-cancel").addEventListener("click", () => {
+    cleanup();
+    history.replaceState(null, null, " ");
+  });
+
+  const confirmBtn = ui.querySelector(".lsel-confirm");
+  confirmBtn.addEventListener("click", async () => {
+    confirmBtn.disabled = true;
+    const ll = pin.getLatLng();
+    const comment = ui.querySelector(".propose-spot-comment").value.trim();
+    const body = new URLSearchParams({ lat: ll.lat, lon: ll.lng, comment });
+    try {
+      const resp = await fetch("/propose-spot", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: body.toString(),
+      });
+      const json = await resp.json().catch(() => ({}));
+      if (!resp.ok || !json.ok) throw new Error(json.error || "request failed");
+      // Show the new proposed spot right away — don't wait for a reload.
+      if (!proposedSpotLayer) proposedSpotLayer = L.layerGroup().addTo(map);
+      const m = addProposedSpotMarker({
+        id: json.id,
+        lat: round5(ll.lat),
+        lon: round5(ll.lng),
+        comment,
+        user: (typeof USERNAME !== "undefined" && USERNAME) || "",
+        created_at: new Date().toISOString(),
+      });
+      cleanup();
+      history.replaceState(null, null, " ");
+      if (m) m.openPopup();
+    } catch (err) {
+      console.error("Could not propose spot:", err);
+      confirmBtn.disabled = false;
+      alert("Sorry, could not save your proposed spot. Please try again.");
+    }
+  });
+}
+
+// Round to the 5 decimals the server stores/serves for proposed spots, so the
+// optimistically-added marker sits exactly where a reload would place it.
+function round5(n) {
+  return Math.round(n * 1e5) / 1e5;
+}
+
 // Format an event's date range for the sheet, e.g. "1 Jul – 30 Aug 2026".
 function formatEventDates(ev) {
   const opts = { day: "numeric", month: "short", year: "numeric" };
@@ -1057,12 +1224,14 @@ async function setMapMode(mode) {
     await setHeatmapActive(false);
     setSpotsVisible(false);
     setEventsVisible(false);
+    setProposedSpotsVisible(false);
     const layer = await loadCountryLayer();
     if (!map.hasLayer(layer)) layer.addTo(map);
   } else {
     if (countryLayer && map.hasLayer(countryLayer)) map.removeLayer(countryLayer);
     setSpotsVisible(true);
     setEventsVisible(true);
+    setProposedSpotsVisible(true);
     await setHeatmapActive(mode === "heatmap");
   }
 
@@ -3905,6 +4074,7 @@ window.getLocationMarker = () => locationMarker;
 window.setMapMode = setMapMode;
 window.toggleHeatmap = toggleHeatmap;
 window.startAddSpotFromGesture = startAddSpotFromGesture;
+window.startProposeSpotFromGesture = startProposeSpotFromGesture;
 window.setupLocationSelection = setupLocationSelection;
 window.findNearbySpotMarker = findNearbySpotMarker;
 // Used by the in-ride cover-flow to trigger locate and read the current mode.

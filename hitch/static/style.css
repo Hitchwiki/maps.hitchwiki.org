@@ -777,6 +777,21 @@ body.selecting-location .bottom-action-pane {
   color: #333;
 }
 
+/* Short-comment box in the propose-a-spot card (reuses .location-selection-ui). */
+.propose-spot-ui .propose-spot-comment {
+  display: block;
+  width: 260px;
+  max-width: calc(100vw - 52px);
+  margin: 0 0 10px;
+  padding: 7px 9px;
+  font: inherit;
+  font-size: 13px;
+  border: 1px solid #ccc;
+  border-radius: 7px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
 body.adding-spot .leaflet-control-attribution {
   display: none;
 }
@@ -1028,6 +1043,38 @@ body.inr-picking .event-marker {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
   cursor: pointer;
 }
+/* User-proposed spots: a blue teardrop, distinct from the round rating markers. */
+.proposed-spot-marker {
+  background: transparent;
+  border: none;
+}
+body.inr-picking .proposed-spot-marker {
+  pointer-events: none;
+}
+.proposed-spot-pin {
+  width: 16px;
+  height: 16px;
+  margin: 3px;
+  background: #1a73e8;
+  border: 2px solid #fff;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+.proposed-spot-popup strong {
+  color: #1a73e8;
+}
+.proposed-spot-comment {
+  margin: 6px 0 4px;
+  font-size: 13px;
+}
+.proposed-spot-meta {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #666;
+}
+
 .sidebar.event .event-header {
   margin-bottom: 1rem;
 }

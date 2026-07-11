@@ -295,3 +295,28 @@ class DerivedRideLocation(db.Model):
     def to_stop(self):
         # Same shape as a Nostr stop's location object so it merges straight onto a note.
         return {"location": {"latitude": self.latitude, "longitude": self.longitude, "is_exact": bool(self.is_exact)}}
+
+
+class ProposedSpot(db.Model):
+    """A hitchhiking spot a user proposed by long-pressing the map.
+
+    Unlike rides, proposed spots are NOT published to Nostr — they live only in this
+    table and are drawn on the map as blue markers, so someone can flag a promising
+    spot before any ride has been logged there. `comment` is a short free-text note
+    from the proposer (why the spot is worth trying). Kept in its own persistent table,
+    like co_hitchhiker, so the 30-minute fetch_nostr ride_event rebuild never touches it.
+    Served live to the map via /proposed_spots.json (no cron / generated file), so a new
+    proposal shows up immediately rather than waiting on show.py.
+    """
+
+    id = db.Column(db.Integer, primary_key=True)
+    latitude = db.Column(db.Float, nullable=False)
+    longitude = db.Column(db.Float, nullable=False)
+    comment = db.Column(db.Text, nullable=True)
+    # Nullable: proposing does not require an account. When logged in we snapshot the
+    # username (denormalised) so a later username change / account deletion still shows
+    # who proposed it, matching how co_hitchhiker records store the raw name.
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
+    username = db.Column(db.String(255), nullable=True)
+    ip = db.Column(db.String(64), nullable=True)
+    created_at = db.Column(db.DateTime, default=db.func.now())
