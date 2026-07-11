@@ -486,3 +486,9 @@ last_deploy.txt
 # Runtime logs, incl. ride_ips.csv — contains personal data (IP addresses), never commit
 logs/*
 !logs/.gitkeep
+
+# Local-only Playwright scaffolding for frontend visual testing (see CLAUDE.md,
+# "Using Playwright on a local dev machine"). Devs `npm install -D playwright`
+# themselves; these aren't part of the app, so keep them out of the repo.
+package.json
+package-lock.json
