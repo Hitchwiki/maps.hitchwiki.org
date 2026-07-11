@@ -712,6 +712,19 @@
 
       document.body.appendChild(dock);
       journeyUI._dockEl = dock;
+
+      // Lift the timer chip clear of the WHOLE dock. The chip is a separately
+      // positioned fixed pill; the in-ride dock's height is not constant (the
+      // "Add details" label wraps on narrow screens, button metrics differ), so a
+      // fixed CSS offset (the old +124px) kept landing the chip on top of the
+      // Add-details bar and the Finish button. Derive the chip's bottom from the
+      // dock's actual rendered box after layout so it always clears it. rAF: the
+      // dock must be laid out before getBoundingClientRect returns its height.
+      requestAnimationFrame(function () {
+        if (!journeyUI._chipEl || !journeyUI._dockEl) return; // torn down meanwhile
+        const dockBottom = parseFloat(getComputedStyle(dock).bottom) || 0;
+        chip.style.bottom = dockBottom + dock.getBoundingClientRect().height + 10 + "px";
+      });
     },
 
     // Place (or replace) the grey pickup pin on the map.

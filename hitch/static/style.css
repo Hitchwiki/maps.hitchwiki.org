@@ -2601,9 +2601,10 @@ body.showing-insights .heatmap-legend-pane {
      Cancel × beneath them), so the timer pill is never hidden behind the buttons. */
   bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 144px);
 }
-/* In-ride dock is two rows now — the Finish button plus the "Add details" fill-bar
-   chip above it — so lift the timer chip to clear BOTH; at the base 78px it overlapped
-   the chip and showed through as a dark ghost behind it. */
+/* In-ride dock is multi-row (Add-details bar + Finish button + Cancel). Its height
+   isn't constant (the Add-details label wraps), so a fixed offset can't reliably
+   clear it — _renderInRide() overwrites this inline from the dock's measured height
+   after layout (see inride.js). This value is only the pre-rAF fallback for one frame. */
 .inr-chip--inride {
   bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 124px);
 }
