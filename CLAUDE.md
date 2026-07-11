@@ -80,6 +80,7 @@ Modelled on OpenStreetMap's `/node/<id>#map=<zoom>/<lat>/<lon>`. Two independent
 - **dump.py**: Database export functionality
 - **sync_osm.py**: OSM hitchhiking-spot synchronization (fetches highway=hitchhiking spots, daily)
 - **sync_car_pooling.py**: OSM car-pooling spot synchronization (daily)
+- **sync_fuel.py**: OSM fuel / gas station synchronization (`amenity=fuel`, daily at 3:45 AM). A *global* fuel query is far too large for the public Overpass servers (hundreds of thousands of elements → reliable 504), and fuel is only used to flag hitchhiking spots that sit *at* a gas station (`show.py`, 100 m match, the `fuel` flag in `spots.json` / `fuel` field in per-spot files). So the script reads spot coordinates from the already-generated `dist/spots.json`, reduces them to 1° tiles, and queries Overpass for fuel only inside those tiles — batched ~60 bboxes per union request with 429/504 retry-and-backoff. **Depends on `spots.json` existing, so it must run after `show`.** `show.py` uses a spatial grid (0.01° cells) for the nearby-fuel lookup because the fuel set dwarfs the car-pooling/official-spot sets.
 - **sync_hitchwiki.py**: Hitchwiki article synchronization (extracts coordinates from wiki articles, daily)
 - **sync_events.py**: Hitchwiki events synchronization. Pulls every page in `Category:Events`, extracts each `{{Event|name|start|end|lat|lon}}` template, keeps events whose end date is today or later, and writes `dist/events.json` directly (self-contained → no DB model, like `country_ratings`). The map draws a calendar-pin marker per event; clicking it opens a bottom sheet with the name, dates, a plain-text blurb from the wiki page, and a Hitchwiki link (daily at 4:15 AM). Note: Hitchwiki is behind Cloudflare, which 403s ("Just a moment…") requests without a browser-like `User-Agent`, so the script sends one.
 - **build_ride_routes.py**: Builds the routing graph from rides (daily at 2 AM). For every ride with a destination it fetches an OSRM driving route and records which *other* known start spots lie within 300 m of the polyline, in travel order; sequences shared by ≥2 rides become the "repeatable" trees in `dist/repeatable_routes.json` (read by `static/routing.js`). The same run also writes `dist/oneoff_routes.json` — the identical trees with the ≥2 threshold dropped to 1 (so a corridor a single ride established still forms edges), indexing the *same* `spots` array and carrying a `spot_count` guard. The routers fetch/build it lazily and search it **only when the repeatable graph connects nothing** (`routing.js` `loadFallbackRouter` / `repeatable_router.py` `load_oneoff_router`); it's a ~6× larger superset (~3.4 MB), so it must not load on every map view. Routes that use a support-1 leg are flagged in the UI ("1 logged ride"). Standalone script (plain `python3`, not `flask generate`), reads SQLite directly. OSRM responses are cached in `dist/route_cache.jsonl` (~675 MB, read via a byte-offset index so geometries never all sit in RAM), so a daily run only fetches routes for rides added since the last run. Spot consolidation must stay identical to `show.py`'s (5 m merge → service-area/road-island polygon grouping → snap onto `dist/spots.json`), otherwise routes reference phantom spots with no map marker.
@@ -201,9 +202,9 @@ If the `hitchhiking-map` container is down with exit code 137 (`Exited (137)`), 
 
 ## Temporary workarounds (revert when relay is fixed)
 
-While the nomadwiki nostr relay setup is being debugged, the following temporary changes are in place. Revert all of them once the relay reliably accepts and serves events again:
+While the maps.hitchwiki.org nostr relay setup is being debugged, the following temporary changes are in place. Revert all of them once the relay reliably accepts and serves events again:
 
-1. **`docker-compose.yml`** — joins the external `nomadwiki-relay` Docker network so the app can reach the relay container directly via `ws://nomadwiki-relay:8080` instead of `wss://relay.nomadwiki.org` (works around hairpin NAT on the host). When the public URL works again, drop the `networks:` blocks and revert `RELAYS` in `.env` to the public wss URL.
+1. **`docker-compose.yml`** — joins the external `relay.maps.hitchwiki.org` Docker network so the app can reach the relay container directly via `ws://relay.maps.hitchwiki.org:8080` instead of `wss://relay.maps.hitchwiki.org` (works around hairpin NAT on the host). When the public URL works again, drop the `networks:` blocks and revert `RELAYS` in `.env` to the public wss URL.
 2. **`hitch/blueprints/utils/post_hitchhiking_ride_to_nostr.py`** — every signed event is also appended to `dist/temporary.json` as a local fallback record, independent of relay acceptance / `fetch_nostr` cron. Remove `_append_event_to_temporary_json` and its call site, plus the `json` / `pathlib.Path` imports, once we trust the relay round-trip again.
 3. **`hitch/blueprints/utils/post_hitchhiking_ride_to_nostr.py`** — the event's `pubkey` field was changed from `self.npub` (bech32) to `self.pubkey_hex` (64-char hex) because relays were silently rejecting bech32-pubkey events. This one is actually a bug fix and should stay; do **not** revert it with the rest.
 
@@ -213,7 +214,7 @@ While the nomadwiki nostr relay setup is being debugged, the following temporary
 The application aggregates hitchhiking data from multiple sources:
 
 1. **Nostr Protocol Network** (Primary ride data source)
-   - **Source**: Decentralized Nostr relays (relay.nomadwiki.org)
+   - **Source**: Decentralized Nostr relays (relay.maps.hitchwiki.org)
    - **Data Type**: Hitchhiking ride events (Nostr event kind 36820)
    - **Fetching**: Every 30 minutes via `fetch_nostr.py`
    - **Process Flow**:
@@ -406,6 +407,7 @@ Map UI loads updated JSON → ride visible on map
 - **Daily at 2 AM**: `build_ride_routes.py --skip-detailed` - Rebuild the routing graph (`dist/repeatable_routes.json`, `dist/oneoff_routes.json`, `dist/test_routes.json`). Not a `flask generate` script — cron calls the file directly with `python3`
 - **Daily at 3 AM**: `sync_osm` - Sync OSM hitchhiking spots
 - **Daily at 3:30 AM**: `sync_car_pooling` - Sync OSM car-pooling spots
+- **Daily at 3:45 AM**: `sync_fuel` - Sync OSM fuel / gas stations near spots
 - **Daily at 4 AM**: `sync_hitchwiki` - Sync Hitchwiki article coordinates
 - **Daily at 4:15 AM**: `sync_events` - Sync Hitchwiki `Category:Events` into `dist/events.json`
 - **Daily at 5 AM**: `dashboard` - Regenerate analytics dashboard

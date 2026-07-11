@@ -516,6 +516,52 @@ body.filters-open .filters-scrim {
   font-weight: 600;
 }
 
+.quality-icon-row {
+  align-items: center;
+}
+
+/* Click-to-toggle gas-station filter: an icon chip that highlights when active
+   (aria-pressed / .active), rather than a checkbox. */
+.quality-icon-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid #cfe0fa;
+  border-radius: 8px;
+  background: white;
+  color: #3c5a80;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.quality-icon-toggle .quality-icon {
+  font-size: 16px;
+  line-height: 1;
+  /* Grey the emoji out while inactive so the highlighted (on) state reads clearly. */
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+
+.quality-icon-toggle:hover {
+  border-color: #1a73e8;
+}
+
+.quality-icon-toggle.active {
+  background: #1a73e8;
+  border-color: #1a73e8;
+  color: white;
+}
+
+.quality-icon-toggle.active .quality-icon {
+  filter: none;
+  opacity: 1;
+}
+
 .filter-pane-row input[type="text"],
 .filter-pane-row input[type="search"],
 .filter-pane-row input[type="number"],
@@ -729,6 +775,21 @@ body.selecting-location .bottom-action-pane {
 .location-selection-ui .lsel-cancel {
   background: #e9ecef;
   color: #333;
+}
+
+/* Short-comment box in the propose-a-spot card (reuses .location-selection-ui). */
+.propose-spot-ui .propose-spot-comment {
+  display: block;
+  width: 260px;
+  max-width: calc(100vw - 52px);
+  margin: 0 0 10px;
+  padding: 7px 9px;
+  font: inherit;
+  font-size: 13px;
+  border: 1px solid #ccc;
+  border-radius: 7px;
+  resize: vertical;
+  box-sizing: border-box;
 }
 
 body.adding-spot .leaflet-control-attribution {
@@ -982,6 +1043,20 @@ body.inr-picking .event-marker {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
   cursor: pointer;
 }
+/* User-proposed spots reuse the normal blue circle-marker look; only the popup is styled. */
+.proposed-spot-popup strong {
+  color: #1a73e8;
+}
+.proposed-spot-comment {
+  margin: 6px 0 4px;
+  font-size: 13px;
+}
+.proposed-spot-meta {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #666;
+}
+
 .sidebar.event .event-header {
   margin-bottom: 1rem;
 }

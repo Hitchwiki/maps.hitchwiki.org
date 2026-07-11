@@ -46,7 +46,7 @@ from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON, REPORT_REASO
 from hitch.blueprints.utils.ride_ip_log import get_client_ip, log_ride_ip
 from hitch.extensions import db
 from hitch.helpers import get_db, get_dirs
-from hitch.models import CoHitchhiker, Follow, RideEvent, RideReport, User
+from hitch.models import CoHitchhiker, Follow, ProposedSpot, RideEvent, RideReport, User
 
 main_bp = Blueprint("main", __name__)
 
@@ -1084,3 +1084,67 @@ def report_duplicate():
     df.to_sql("duplicates", get_db(), index=None, if_exists="append")
 
     return redirect("/#success-duplicate")
+
+
+# Max length of a proposed-spot comment. Kept short: the note is a one-line hint
+# ("good sign spot on the on-ramp"), not a ride report. Enforced server-side so a
+# crafted request can't store an unbounded blob; the textarea also caps it client-side.
+PROPOSED_SPOT_COMMENT_MAX = 500
+
+
+@main_bp.route("/propose-spot", methods=["POST"])
+def propose_spot():
+    """Store a user-proposed hitchhiking spot (blue marker), NOT published to Nostr.
+
+    Reached from the map's long-press "Propose a spot" action. Anonymous proposals are
+    allowed; when logged in we record the user id + username so the marker can credit them.
+    """
+    data = request.form
+
+    # Reject anything that isn't a real coordinate rather than storing a NaN/None row
+    # that would later break the map's marker rendering.
+    try:
+        lat = float(data.get("lat", ""))
+        lon = float(data.get("lon", ""))
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "error": "invalid coordinates"}), 400
+    if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
+        return jsonify({"ok": False, "error": "coordinates out of range"}), 400
+
+    comment = (data.get("comment") or "").strip()[:PROPOSED_SPOT_COMMENT_MAX]
+
+    spot = ProposedSpot(
+        latitude=lat,
+        longitude=lon,
+        comment=comment or None,
+        user_id=None if current_user.is_anonymous else current_user.id,
+        username=None if current_user.is_anonymous else current_user.username,
+        ip=get_client_ip(),
+    )
+    db.session.add(spot)
+    db.session.commit()
+
+    return jsonify({"ok": True, "id": spot.id})
+
+
+@main_bp.route("/proposed_spots.json")
+def proposed_spots_json():
+    """Live list of user-proposed spots for the map's blue markers.
+
+    Served straight from the DB (not a generated dist/ file) so a spot proposed seconds
+    ago is already visible on the next map load, without waiting on a show.py cron pass.
+    """
+    spots = ProposedSpot.query.order_by(ProposedSpot.id.desc()).all()
+    return jsonify(
+        [
+            {
+                "id": s.id,
+                "lat": round(s.latitude, 5),
+                "lon": round(s.longitude, 5),
+                "comment": s.comment or "",
+                "user": s.username or "",
+                "created_at": s.created_at.isoformat() if s.created_at else None,
+            }
+            for s in spots
+        ]
+    )

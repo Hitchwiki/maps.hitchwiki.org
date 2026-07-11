@@ -21,9 +21,10 @@
       }
       window.close();
       // If the browser refuses to close a window it didn't script-open, the user still
-      // needs a way out — and a brand-new account still needs its profile filled in.
+      // needs a way out. A brand-new account goes to the map with the first-run intro
+      // flag (welcome.js runs the intro, then the profile-setup form).
       window.setTimeout(function () {
-        window.location.href = {{ ("/edit-user" if needs_profile else "/me")|tojson }};
+        window.location.href = {{ ("/?welcome=1" if needs_profile else "/me")|tojson }};
       }, 800);
     })();
   </script>

@@ -45,6 +45,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css">
 <link rel="stylesheet" href="{{ asset_url('/static/ride_card.css') }}" />
 <link rel="stylesheet" href="{{ asset_url('/static/style.css') }}" />
+<link rel="stylesheet" href="{{ asset_url('/static/welcome.css') }}" />
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -73,6 +74,7 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
 <script src="{{ asset_url('/static/ride_submit.js') }}"></script>
 <script src="{{ asset_url('/static/inride.js') }}"></script>
 <script src="{{ asset_url('/static/account.js') }}"></script>
+<script src="{{ asset_url('/static/welcome.js') }}"></script>
 <script>
 // Install-to-homescreen hint logic. Self-contained — no dependency on map.js.
 // Storage key holds the dismissal timestamp (ms); reappears after 30 days.
@@ -304,6 +306,16 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
                     <span>Min average rating (0&ndash;5)</span>
                     <input id="min-rating-filter" type="number" min="0" max="5" step="0.1" value="" placeholder="Any" />
                 </label>
+            </div>
+            <!-- Gas-station filter is a click-to-toggle icon (highlights when on),
+                 not a checkbox. A hidden checkbox holds the state so the shared
+                 filter logic (applyParams / filterMarkers / rides index) stays uniform. -->
+            <div class="filter-pane-row quality-icon-row">
+                <button type="button" id="fuel-icon-toggle" class="quality-icon-toggle" aria-pressed="false" title="Show only spots at a gas station">
+                    <span class="quality-icon">⛽</span>
+                    <span>Gas stations</span>
+                </button>
+                <input id="fuel-toggle" type="checkbox" hidden />
             </div>
         </div>
         <div class="filter-pane-row">

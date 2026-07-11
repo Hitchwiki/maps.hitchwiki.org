@@ -486,6 +486,13 @@
       if (e.source !== popup) return;
       if (!e.data || e.data.type !== "hitchwiki-auth") return;
       window.removeEventListener("message", onMsg);
+      // Brand-new account: close the account sheet and run the first-run intro, which
+      // ends on the profile-setup form. Existing users just get the refreshed sheet.
+      if (e.data.needsProfile && window.HitchwikiWelcome) {
+        close();
+        window.HitchwikiWelcome.open();
+        return;
+      }
       refresh(e.data.needsProfile);
     }
     window.addEventListener("message", onMsg);

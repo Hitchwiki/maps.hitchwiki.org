@@ -1759,6 +1759,13 @@
           // Reuses the existing add-spot flow unchanged; only the label differs.
           onClick: () => window.startAddSpotFromGesture(latlng, containerPoint),
         },
+        {
+          label: "Propose a spot",
+          cls: "inr-ghost",
+          // Flags a promising spot (blue marker) without logging a ride — never
+          // published to Nostr, just stored server-side with a short comment.
+          onClick: () => window.startProposeSpotFromGesture(latlng, containerPoint),
+        },
       ],
     });
     return true;

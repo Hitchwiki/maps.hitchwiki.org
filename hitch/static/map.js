@@ -305,6 +305,9 @@ function populateHeatmapLegend(legendData) {
   // Hitchwiki event markers — non-blocking, they're a small overlay.
   loadEventMarkers(map);
 
+  // User-proposed spots (blue markers) — non-blocking overlay, like events.
+  loadProposedSpotMarkers(map);
+
   setupEventListeners();
 
   // Nudge first-time users toward the features they'd otherwise miss; short delay
@@ -975,6 +978,153 @@ function setEventsVisible(visible) {
   }
 }
 
+// Render one proposed spot as a blue circle marker — same shape/size as the normal
+// rating markers (so it reads as a spot), only blue to mark it as "proposed, no rides
+// yet". Added to the SAME markerCluster as real spots so the two cluster together.
+// Kept OUT of allMarkers: it has no ride data, so the ride filters and pin-snapping
+// (which read _data ride fields / spotId) must not iterate over it. Returns the marker.
+function addProposedSpotMarker(sp) {
+  if (!markerCluster || typeof sp.lat !== "number" || typeof sp.lon !== "number") return null;
+  const marker = L.circleMarker(new L.latLng(sp.lat, sp.lon), {
+    radius: 5,
+    weight: 1,
+    fillOpacity: 0.85,
+    color: "black",
+    fillColor: "#1a73e8",
+    _proposed: true,
+  });
+  const who = sp.user ? escapeHtml(sp.user) : "someone";
+  const when = sp.created_at ? relativeAge(sp.created_at) : "";
+  const comment = sp.comment ? `<p class="proposed-spot-comment">${escapeHtml(sp.comment)}</p>` : "";
+  marker.bindPopup(
+    `<div class="proposed-spot-popup">` +
+      `<strong>Proposed spot</strong>` +
+      comment +
+      `<p class="proposed-spot-meta">Proposed by ${who}${when ? " · " + when : ""}. No rides logged here yet.</p>` +
+      `</div>`
+  );
+  marker.addTo(markerCluster);
+  return marker;
+}
+
+// Human-readable "3d ago" / "2h ago" from an ISO timestamp; "" if unparseable.
+function relativeAge(iso) {
+  const t = new Date(iso);
+  if (isNaN(t)) return "";
+  const s = Math.floor((Date.now() - t.getTime()) / 1000);
+  if (s < 60) return "just now";
+  if (s < 3600) return Math.floor(s / 60) + "m ago";
+  if (s < 86400) return Math.floor(s / 3600) + "h ago";
+  return Math.floor(s / 86400) + "d ago";
+}
+
+// Load /proposed_spots.json (served live from the DB) and add each as a blue circle
+// marker into the shared spot cluster. Non-blocking overlay, like loadEventMarkers.
+// Must run after loadMarkers (which creates markerCluster).
+async function loadProposedSpotMarkers(map) {
+  let data;
+  try {
+    const resp = await fetch("/proposed_spots.json");
+    if (!resp.ok) return; // endpoint missing / errored — silently skip
+    data = await resp.json();
+  } catch (error) {
+    console.warn("Could not load proposed spots:", error);
+    return;
+  }
+  if (!Array.isArray(data)) return;
+  data.forEach(addProposedSpotMarker);
+  console.log(`Loaded ${data.length} proposed spot(s)`);
+}
+
+// Begin proposing a spot from a map gesture (long-press → "Propose a spot"): drop a
+// draggable blue pin and show a card with a short-comment box. On submit, POST to
+// /propose-spot and drop the persistent blue marker immediately (no reload needed).
+function startProposeSpotFromGesture(latlng, containerPoint) {
+  // One picker at a time — bail if a location selection or another propose card is up.
+  if (locationSelectionType || locationSelectionMarker) return;
+  if (document.querySelector(".propose-spot-ui")) return;
+
+  const pin = L.marker(latlng, {
+    draggable: true,
+    icon: L.icon({
+      iconUrl: "/static/markers/marker-icon-2x-grey.png",
+      shadowUrl: "/static/markers/marker-shadow.png",
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41],
+    }),
+  }).addTo(map);
+
+  // Tapping the map repositions the pin (mirrors the add-spot / waiting-spot UX).
+  const onMapClick = (e) => pin.setLatLng(e.latlng);
+  map.on("click", onMapClick);
+
+  const ui = L.DomUtil.create("div", "propose-spot-ui location-selection-ui");
+  ui.innerHTML =
+    "<h4>Propose a hitch spot</h4>" +
+    "<p>Drag the pin to fine-tune, add a short note (optional), then propose.</p>" +
+    '<textarea class="propose-spot-comment" maxlength="500" rows="2" ' +
+    'placeholder="Why is this a good spot? (optional)"></textarea>' +
+    '<div class="lsel-actions">' +
+    '<button class="lsel-confirm">Propose spot</button>' +
+    '<button class="lsel-cancel">Cancel</button>' +
+    "</div>";
+  document.body.appendChild(ui);
+  document.body.classList.add("selecting-location");
+
+  function cleanup() {
+    map.off("click", onMapClick);
+    if (pin) map.removeLayer(pin);
+    if (ui.parentNode) ui.remove();
+    document.body.classList.remove("selecting-location");
+  }
+
+  ui.querySelector(".lsel-cancel").addEventListener("click", () => {
+    cleanup();
+    history.replaceState(null, null, " ");
+  });
+
+  const confirmBtn = ui.querySelector(".lsel-confirm");
+  confirmBtn.addEventListener("click", async () => {
+    confirmBtn.disabled = true;
+    const ll = pin.getLatLng();
+    const comment = ui.querySelector(".propose-spot-comment").value.trim();
+    const body = new URLSearchParams({ lat: ll.lat, lon: ll.lng, comment });
+    try {
+      const resp = await fetch("/propose-spot", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: body.toString(),
+      });
+      const json = await resp.json().catch(() => ({}));
+      if (!resp.ok || !json.ok) throw new Error(json.error || "request failed");
+      // Show the new proposed spot right away — don't wait for a reload.
+      const m = addProposedSpotMarker({
+        id: json.id,
+        lat: round5(ll.lat),
+        lon: round5(ll.lng),
+        comment,
+        user: (typeof USERNAME !== "undefined" && USERNAME) || "",
+        created_at: new Date().toISOString(),
+      });
+      cleanup();
+      history.replaceState(null, null, " ");
+      if (m) m.openPopup();
+    } catch (err) {
+      console.error("Could not propose spot:", err);
+      confirmBtn.disabled = false;
+      alert("Sorry, could not save your proposed spot. Please try again.");
+    }
+  });
+}
+
+// Round to the 5 decimals the server stores/serves for proposed spots, so the
+// optimistically-added marker sits exactly where a reload would place it.
+function round5(n) {
+  return Math.round(n * 1e5) / 1e5;
+}
+
 // Format an event's date range for the sheet, e.g. "1 Jul – 30 Aug 2026".
 function formatEventDates(ev) {
   const opts = { day: "numeric", month: "short", year: "numeric" };
@@ -1598,6 +1748,10 @@ function setupFilterEventListeners() {
   carPoolingToggle.addEventListener("input", () =>
     setQueryParameter("carpoolingonly", carPoolingToggle.checked)
   );
+  fuelToggle.addEventListener("input", () =>
+    setQueryParameter("fuelonly", fuelToggle.checked)
+  );
+  fuelIconToggle.addEventListener("click", () => fuelToggle.click());
   hitchwikiToggle.addEventListener("input", () =>
     setQueryParameter("hitchwikionly", hitchwikiToggle.checked)
   );
@@ -1885,6 +2039,9 @@ function summaryText(data, hists = { wait: null, distance: null }) {
   const carPoolingLink = data.car_pooling
     ? `<div>🚗 <a href="https://www.openstreetmap.org/${data.car_pooling.osm_type}/${data.car_pooling.id}" target="_blank" rel="noopener noreferrer">Car pooling spot</a></div>`
     : '';
+  const fuelLink = data.fuel
+    ? `<div>⛽ <a href="https://www.openstreetmap.org/${data.fuel.osm_type}/${data.fuel.id}" target="_blank" rel="noopener noreferrer">Gas station</a></div>`
+    : '';
   const hitchwikiLink = data.hitchwiki_article
     ? `<div>📄 <a href="${data.hitchwiki_article}" target="_blank" rel="noopener noreferrer">Mentioned on Hitchwiki</a></div>`
     : '';
@@ -1902,7 +2059,7 @@ function summaryText(data, hists = { wait: null, distance: null }) {
     ${spotHistogramMarkup(hists.wait, "spot-wait-hist", "min")}
     <div>Ride distance: ${distance}</div>
     ${spotHistogramMarkup(hists.distance, "spot-distance-hist", "km")}
-    ${osmLink}${carPoolingLink}${hitchwikiLink}${hitchwikiMapLink}`;
+    ${osmLink}${carPoolingLink}${fuelLink}${hitchwikiLink}${hitchwikiMapLink}`;
 }
 
 async function handleMarkerClick(marker, point, e) {
@@ -2504,7 +2661,18 @@ function exportAsGPX() {
 const recentToggle = document.getElementById("recent-toggle");
 const osmToggle = document.getElementById("osm-toggle");
 const carPoolingToggle = document.getElementById("car-pooling-toggle");
+const fuelToggle = document.getElementById("fuel-toggle");
+const fuelIconToggle = document.getElementById("fuel-icon-toggle");
 const hitchwikiToggle = document.getElementById("hitchwiki-toggle");
+
+// The gas-station filter is a click-to-toggle icon, not a checkbox. Clicking it
+// flips the hidden #fuel-toggle checkbox (firing its "input" listener, which updates
+// the URL param and re-filters), keeping all the shared filter logic uniform.
+function syncFuelIcon() {
+  const on = fuelToggle.checked;
+  fuelIconToggle.classList.toggle("active", on);
+  fuelIconToggle.setAttribute("aria-pressed", on ? "true" : "false");
+}
 const textFilter = document.getElementById("text-filter");
 const userFilter = document.getElementById("user-filter");
 const distanceFilter = document.getElementById("distance-filter");
@@ -2693,6 +2861,8 @@ async function applyParams() {
   recentToggle.checked = getQueryParameter("recent") == "true";
   osmToggle.checked = getQueryParameter("osmonly") == "true";
   carPoolingToggle.checked = getQueryParameter("carpoolingonly") == "true";
+  fuelToggle.checked = getQueryParameter("fuelonly") == "true";
+  syncFuelIcon();
   hitchwikiToggle.checked = getQueryParameter("hitchwikionly") == "true";
   textFilter.value = getQueryParameter("text");
   userFilter.value = getQueryParameter("user");
@@ -2708,6 +2878,7 @@ async function applyParams() {
     recentToggle.checked ||
     osmToggle.checked ||
     carPoolingToggle.checked ||
+    fuelToggle.checked ||
     hitchwikiToggle.checked ||
     textFilter.value ||
     userFilter.value ||
@@ -2817,6 +2988,9 @@ async function applyParams() {
     }
     if (carPoolingToggle.checked) {
       filterMarkers = filterMarkers.filter((x) => !!x.options._data.cp);
+    }
+    if (fuelToggle.checked) {
+      filterMarkers = filterMarkers.filter((x) => !!x.options._data.fuel);
     }
     if (hitchwikiToggle.checked) {
       filterMarkers = filterMarkers.filter((x) => !!x.options._data.wiki);
@@ -2976,6 +3150,7 @@ function applyRideFilters(rides) {
   const osmOnly = osmToggle.checked;
   const wikiOnly = hitchwikiToggle.checked;
   const cpOnly = carPoolingToggle.checked;
+  const fuelOnly = fuelToggle.checked;
 
   let filtered = rides.filter((ride) => {
     if (username && !(ride.u && normalizeFirstLetter(ride.u).includes(username)))
@@ -3000,6 +3175,7 @@ function applyRideFilters(rides) {
     if (osmOnly && !ride.osm) return false;
     if (wikiOnly && !ride.wiki) return false;
     if (cpOnly && !ride.cp) return false;
+    if (fuelOnly && !ride.fuel) return false;
     return true;
   });
 
@@ -3046,6 +3222,7 @@ function anyFilterActive() {
       recentToggle.checked ||
       osmToggle.checked ||
       carPoolingToggle.checked ||
+      fuelToggle.checked ||
       hitchwikiToggle.checked
   );
 }
@@ -3878,6 +4055,7 @@ window.getLocationMarker = () => locationMarker;
 window.setMapMode = setMapMode;
 window.toggleHeatmap = toggleHeatmap;
 window.startAddSpotFromGesture = startAddSpotFromGesture;
+window.startProposeSpotFromGesture = startProposeSpotFromGesture;
 window.setupLocationSelection = setupLocationSelection;
 window.findNearbySpotMarker = findNearbySpotMarker;
 // Used by the in-ride cover-flow to trigger locate and read the current mode.

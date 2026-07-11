@@ -37,6 +37,13 @@ class User(db.Model, fsqla.FsUserMixin):
     # per user so they aren't notified repeatedly about the same encounter.
     nearby_hitchhikers_email_last_sent = db.Column(db.Integer, default=None)
 
+    # Which "you signed up but haven't logged a ride yet" reminder has last been sent
+    # (see remind_inactive_users.py). Stores the milestone in days: 0 = none sent,
+    # 7 = the 7-day nudge sent, 30 = the final 30-day nudge sent. Advancing through the
+    # stages means each user gets at most the 7-day and 30-day reminder, never a repeat;
+    # once they log a ride (total_rides > 0) they're excluded and the stage stops moving.
+    inactive_reminder_stage = db.Column(db.Integer, default=0, nullable=False, server_default="0")
+
     # Lifetime hitchhiking stats, recomputed from all ride events on every show.py
     # run (not maintained on ride submission). Shown in the profile "Insights"
     # section so the page doesn't have to aggregate every ride on each load.
@@ -177,6 +184,20 @@ class OsmCarPoolingSpot(db.Model):
     uid = db.Column(db.BigInteger, nullable=True)
 
 
+class OsmFuelStationSpot(db.Model):
+    # OSM (id, type) is only globally unique together — fuel stations are frequently
+    # mapped as ways/relations (the forecourt area), not just nodes, so the same
+    # numeric id can collide across element types. Mirrors OsmCarPoolingSpot.
+    id = db.Column(db.BigInteger, primary_key=True)
+    osm_type = db.Column(db.String(16), primary_key=True)  # 'node', 'way', or 'relation'
+    latitude = db.Column(db.Float, nullable=False)
+    longitude = db.Column(db.Float, nullable=False)
+    tags = db.Column(db.JSON, nullable=True)
+    timestamp = db.Column(db.String(64), nullable=True)
+    user = db.Column(db.String(255), nullable=True)
+    uid = db.Column(db.BigInteger, nullable=True)
+
+
 class ServiceArea(db.Model):
     # A motorway service area / gas station polygon from OSM (amenity=fuel,
     # highway=services|rest_area|service_area|parking). Built by sync_service_areas.py
@@ -274,3 +295,28 @@ class DerivedRideLocation(db.Model):
     def to_stop(self):
         # Same shape as a Nostr stop's location object so it merges straight onto a note.
         return {"location": {"latitude": self.latitude, "longitude": self.longitude, "is_exact": bool(self.is_exact)}}
+
+
+class ProposedSpot(db.Model):
+    """A hitchhiking spot a user proposed by long-pressing the map.
+
+    Unlike rides, proposed spots are NOT published to Nostr — they live only in this
+    table and are drawn on the map as blue markers, so someone can flag a promising
+    spot before any ride has been logged there. `comment` is a short free-text note
+    from the proposer (why the spot is worth trying). Kept in its own persistent table,
+    like co_hitchhiker, so the 30-minute fetch_nostr ride_event rebuild never touches it.
+    Served live to the map via /proposed_spots.json (no cron / generated file), so a new
+    proposal shows up immediately rather than waiting on show.py.
+    """
+
+    id = db.Column(db.Integer, primary_key=True)
+    latitude = db.Column(db.Float, nullable=False)
+    longitude = db.Column(db.Float, nullable=False)
+    comment = db.Column(db.Text, nullable=True)
+    # Nullable: proposing does not require an account. When logged in we snapshot the
+    # username (denormalised) so a later username change / account deletion still shows
+    # who proposed it, matching how co_hitchhiker records store the raw name.
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
+    username = db.Column(db.String(255), nullable=True)
+    ip = db.Column(db.String(64), nullable=True)
+    created_at = db.Column(db.DateTime, default=db.func.now())

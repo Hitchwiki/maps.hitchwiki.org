@@ -172,8 +172,10 @@ def _handle_callback(code):
         # Seed the default in-app welcome notification (idempotent).
         ensure_welcome_notification(user)
         # Brand-new user: only the callback knows this, so it rides the postMessage /
-        # redirect rather than being re-derived later from the user row.
-        return _finish_login("/edit-user", needs_profile=True)
+        # redirect rather than being re-derived later from the user row. The full-page
+        # path lands on the map with ?welcome=1 so the first-run intro (welcome.js) runs
+        # before the profile-setup form; the popup path opens the intro via postMessage.
+        return _finish_login("/?welcome=1", needs_profile=True)
 
     # Existing user - just log in
     login_user(user, remember=True)
