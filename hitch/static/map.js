@@ -1601,6 +1601,7 @@ function setupFilterEventListeners() {
   fuelToggle.addEventListener("input", () =>
     setQueryParameter("fuelonly", fuelToggle.checked)
   );
+  fuelIconToggle.addEventListener("click", () => fuelToggle.click());
   hitchwikiToggle.addEventListener("input", () =>
     setQueryParameter("hitchwikionly", hitchwikiToggle.checked)
   );
@@ -2511,7 +2512,17 @@ const recentToggle = document.getElementById("recent-toggle");
 const osmToggle = document.getElementById("osm-toggle");
 const carPoolingToggle = document.getElementById("car-pooling-toggle");
 const fuelToggle = document.getElementById("fuel-toggle");
+const fuelIconToggle = document.getElementById("fuel-icon-toggle");
 const hitchwikiToggle = document.getElementById("hitchwiki-toggle");
+
+// The gas-station filter is a click-to-toggle icon, not a checkbox. Clicking it
+// flips the hidden #fuel-toggle checkbox (firing its "input" listener, which updates
+// the URL param and re-filters), keeping all the shared filter logic uniform.
+function syncFuelIcon() {
+  const on = fuelToggle.checked;
+  fuelIconToggle.classList.toggle("active", on);
+  fuelIconToggle.setAttribute("aria-pressed", on ? "true" : "false");
+}
 const textFilter = document.getElementById("text-filter");
 const userFilter = document.getElementById("user-filter");
 const distanceFilter = document.getElementById("distance-filter");
@@ -2701,6 +2712,7 @@ async function applyParams() {
   osmToggle.checked = getQueryParameter("osmonly") == "true";
   carPoolingToggle.checked = getQueryParameter("carpoolingonly") == "true";
   fuelToggle.checked = getQueryParameter("fuelonly") == "true";
+  syncFuelIcon();
   hitchwikiToggle.checked = getQueryParameter("hitchwikionly") == "true";
   textFilter.value = getQueryParameter("text");
   userFilter.value = getQueryParameter("user");

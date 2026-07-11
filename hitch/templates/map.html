@@ -305,6 +305,16 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
                     <input id="min-rating-filter" type="number" min="0" max="5" step="0.1" value="" placeholder="Any" />
                 </label>
             </div>
+            <!-- Gas-station filter is a click-to-toggle icon (highlights when on),
+                 not a checkbox. A hidden checkbox holds the state so the shared
+                 filter logic (applyParams / filterMarkers / rides index) stays uniform. -->
+            <div class="filter-pane-row quality-icon-row">
+                <button type="button" id="fuel-icon-toggle" class="quality-icon-toggle" aria-pressed="false" title="Show only spots at a gas station">
+                    <span class="quality-icon">⛽</span>
+                    <span>Gas stations</span>
+                </button>
+                <input id="fuel-toggle" type="checkbox" hidden />
+            </div>
         </div>
         <div class="filter-pane-row">
             <input id="user-filter" type="text" value="" placeholder="Filter by user" />
@@ -357,7 +367,6 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
             <label><input id="recent-toggle" type="checkbox" value="" /> Last 24h</label>
             <label><input id="osm-toggle" type="checkbox" value="" /> Official spots</label>
             <label><input id="car-pooling-toggle" type="checkbox" value="" /> Car pooling</label>
-            <label><input id="fuel-toggle" type="checkbox" value="" /> ⛽ Gas stations</label>
             <label><input id="hitchwiki-toggle" type="checkbox" value="" /> Hitchwiki articles</label>
             <button id="clear-filters">Clear</button>
         </div>

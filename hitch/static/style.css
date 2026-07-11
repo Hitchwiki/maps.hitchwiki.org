@@ -516,6 +516,52 @@ body.filters-open .filters-scrim {
   font-weight: 600;
 }
 
+.quality-icon-row {
+  align-items: center;
+}
+
+/* Click-to-toggle gas-station filter: an icon chip that highlights when active
+   (aria-pressed / .active), rather than a checkbox. */
+.quality-icon-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid #cfe0fa;
+  border-radius: 8px;
+  background: white;
+  color: #3c5a80;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.quality-icon-toggle .quality-icon {
+  font-size: 16px;
+  line-height: 1;
+  /* Grey the emoji out while inactive so the highlighted (on) state reads clearly. */
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+
+.quality-icon-toggle:hover {
+  border-color: #1a73e8;
+}
+
+.quality-icon-toggle.active {
+  background: #1a73e8;
+  border-color: #1a73e8;
+  color: white;
+}
+
+.quality-icon-toggle.active .quality-icon {
+  filter: none;
+  opacity: 1;
+}
+
 .filter-pane-row input[type="text"],
 .filter-pane-row input[type="search"],
 .filter-pane-row input[type="number"],
