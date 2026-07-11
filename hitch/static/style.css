@@ -2414,6 +2414,15 @@ body.showing-insights .heatmap-legend-pane {
   gap: 10px;
   width: 100%;
 }
+/* In the stacked (column) dock the main axis is vertical, so a child's
+   flex-basis:100% (e.g. .inr-demo-row, sized for the row layout) would ask for
+   100% of the dock HEIGHT and overlap its neighbours. Pin every stacked child to
+   its content height and full width; the dock's own gap:10px spaces them. */
+.inr-dock--stack > .inr-demo-row,
+.inr-dock--stack > .inr-dock-row {
+  flex: 0 0 auto;
+  width: 100%;
+}
 /* Cancel = white × in a red circle, centered beneath the Give Up / Got a Ride row.
    Big enough to read as a clear, deliberate "discard this journey" affordance. */
 .inr-cancel {
