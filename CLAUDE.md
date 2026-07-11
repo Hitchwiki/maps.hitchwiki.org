@@ -166,9 +166,9 @@ If the `hitchhiking-map` container is down with exit code 137 (`Exited (137)`), 
 
 ## Temporary workarounds (revert when relay is fixed)
 
-While the nomadwiki nostr relay setup is being debugged, the following temporary changes are in place. Revert all of them once the relay reliably accepts and serves events again:
+While the maps.hitchwiki.org nostr relay setup is being debugged, the following temporary changes are in place. Revert all of them once the relay reliably accepts and serves events again:
 
-1. **`docker-compose.yml`** — joins the external `relay.maps.hitchwiki.org` Docker network so the app can reach the relay container directly via `ws://relay.maps.hitchwiki.org:8080` instead of `wss://relay.nomadwiki.org` (works around hairpin NAT on the host). When the public URL works again, drop the `networks:` blocks and revert `RELAYS` in `.env` to the public wss URL.
+1. **`docker-compose.yml`** — joins the external `relay.maps.hitchwiki.org` Docker network so the app can reach the relay container directly via `ws://relay.maps.hitchwiki.org:8080` instead of `wss://relay.maps.hitchwiki.org` (works around hairpin NAT on the host). When the public URL works again, drop the `networks:` blocks and revert `RELAYS` in `.env` to the public wss URL.
 2. **`hitch/blueprints/utils/post_hitchhiking_ride_to_nostr.py`** — every signed event is also appended to `dist/temporary.json` as a local fallback record, independent of relay acceptance / `fetch_nostr` cron. Remove `_append_event_to_temporary_json` and its call site, plus the `json` / `pathlib.Path` imports, once we trust the relay round-trip again.
 3. **`hitch/blueprints/utils/post_hitchhiking_ride_to_nostr.py`** — the event's `pubkey` field was changed from `self.npub` (bech32) to `self.pubkey_hex` (64-char hex) because relays were silently rejecting bech32-pubkey events. This one is actually a bug fix and should stay; do **not** revert it with the rest.
 
@@ -178,7 +178,7 @@ While the nomadwiki nostr relay setup is being debugged, the following temporary
 The application aggregates hitchhiking data from multiple sources:
 
 1. **Nostr Protocol Network** (Primary ride data source)
-   - **Source**: Decentralized Nostr relays (relay.nomadwiki.org)
+   - **Source**: Decentralized Nostr relays (relay.maps.hitchwiki.org)
    - **Data Type**: Hitchhiking ride events (Nostr event kind 36820)
    - **Fetching**: Every 30 minutes via `fetch_nostr.py`
    - **Process Flow**:

@@ -12,7 +12,7 @@ import websocket
 def test_nostr_relays_have_at_least_one_ride_event():
     """At least one hitchhiking ride event (kind 36820) exists on the Nostr relays."""
     relays = [
-        "wss://relay.nomadwiki.org",
+        "wss://relay.maps.hitchwiki.org",
         "wss://relay.trustroots.org",
         "wss://nos.lol",
     ]
