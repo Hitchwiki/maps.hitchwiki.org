@@ -1598,6 +1598,9 @@ function setupFilterEventListeners() {
   carPoolingToggle.addEventListener("input", () =>
     setQueryParameter("carpoolingonly", carPoolingToggle.checked)
   );
+  fuelToggle.addEventListener("input", () =>
+    setQueryParameter("fuelonly", fuelToggle.checked)
+  );
   hitchwikiToggle.addEventListener("input", () =>
     setQueryParameter("hitchwikionly", hitchwikiToggle.checked)
   );
@@ -1885,6 +1888,9 @@ function summaryText(data, hists = { wait: null, distance: null }) {
   const carPoolingLink = data.car_pooling
     ? `<div>🚗 <a href="https://www.openstreetmap.org/${data.car_pooling.osm_type}/${data.car_pooling.id}" target="_blank" rel="noopener noreferrer">Car pooling spot</a></div>`
     : '';
+  const fuelLink = data.fuel
+    ? `<div>⛽ <a href="https://www.openstreetmap.org/${data.fuel.osm_type}/${data.fuel.id}" target="_blank" rel="noopener noreferrer">Gas station</a></div>`
+    : '';
   const hitchwikiLink = data.hitchwiki_article
     ? `<div>📄 <a href="${data.hitchwiki_article}" target="_blank" rel="noopener noreferrer">Mentioned on Hitchwiki</a></div>`
     : '';
@@ -1902,7 +1908,7 @@ function summaryText(data, hists = { wait: null, distance: null }) {
     ${spotHistogramMarkup(hists.wait, "spot-wait-hist", "min")}
     <div>Ride distance: ${distance}</div>
     ${spotHistogramMarkup(hists.distance, "spot-distance-hist", "km")}
-    ${osmLink}${carPoolingLink}${hitchwikiLink}${hitchwikiMapLink}`;
+    ${osmLink}${carPoolingLink}${fuelLink}${hitchwikiLink}${hitchwikiMapLink}`;
 }
 
 async function handleMarkerClick(marker, point, e) {
@@ -2504,6 +2510,7 @@ function exportAsGPX() {
 const recentToggle = document.getElementById("recent-toggle");
 const osmToggle = document.getElementById("osm-toggle");
 const carPoolingToggle = document.getElementById("car-pooling-toggle");
+const fuelToggle = document.getElementById("fuel-toggle");
 const hitchwikiToggle = document.getElementById("hitchwiki-toggle");
 const textFilter = document.getElementById("text-filter");
 const userFilter = document.getElementById("user-filter");
@@ -2693,6 +2700,7 @@ async function applyParams() {
   recentToggle.checked = getQueryParameter("recent") == "true";
   osmToggle.checked = getQueryParameter("osmonly") == "true";
   carPoolingToggle.checked = getQueryParameter("carpoolingonly") == "true";
+  fuelToggle.checked = getQueryParameter("fuelonly") == "true";
   hitchwikiToggle.checked = getQueryParameter("hitchwikionly") == "true";
   textFilter.value = getQueryParameter("text");
   userFilter.value = getQueryParameter("user");
@@ -2708,6 +2716,7 @@ async function applyParams() {
     recentToggle.checked ||
     osmToggle.checked ||
     carPoolingToggle.checked ||
+    fuelToggle.checked ||
     hitchwikiToggle.checked ||
     textFilter.value ||
     userFilter.value ||
@@ -2817,6 +2826,9 @@ async function applyParams() {
     }
     if (carPoolingToggle.checked) {
       filterMarkers = filterMarkers.filter((x) => !!x.options._data.cp);
+    }
+    if (fuelToggle.checked) {
+      filterMarkers = filterMarkers.filter((x) => !!x.options._data.fuel);
     }
     if (hitchwikiToggle.checked) {
       filterMarkers = filterMarkers.filter((x) => !!x.options._data.wiki);
@@ -2976,6 +2988,7 @@ function applyRideFilters(rides) {
   const osmOnly = osmToggle.checked;
   const wikiOnly = hitchwikiToggle.checked;
   const cpOnly = carPoolingToggle.checked;
+  const fuelOnly = fuelToggle.checked;
 
   let filtered = rides.filter((ride) => {
     if (username && !(ride.u && normalizeFirstLetter(ride.u).includes(username)))
@@ -3000,6 +3013,7 @@ function applyRideFilters(rides) {
     if (osmOnly && !ride.osm) return false;
     if (wikiOnly && !ride.wiki) return false;
     if (cpOnly && !ride.cp) return false;
+    if (fuelOnly && !ride.fuel) return false;
     return true;
   });
 
@@ -3046,6 +3060,7 @@ function anyFilterActive() {
       recentToggle.checked ||
       osmToggle.checked ||
       carPoolingToggle.checked ||
+      fuelToggle.checked ||
       hitchwikiToggle.checked
   );
 }

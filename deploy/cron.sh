@@ -32,6 +32,8 @@
 15 4 * * * cd /app && /usr/bin/flock -n /tmp/sync_events.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate sync_events' > logs/sync_events.log 2>&1
 # every day at 3:30 AM
 30 3 * * * cd /app && /usr/bin/flock -n /tmp/sync_car_pooling.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate sync_car_pooling' > logs/sync_car_pooling.log 2>&1
+# every day at 3:45 AM
+45 3 * * * cd /app && /usr/bin/flock -n /tmp/sync_fuel.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate sync_fuel' > logs/sync_fuel.log 2>&1
 # every day at 5 AM
 0 5 * * * cd /app && /usr/bin/flock -n /tmp/dashboard.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate dashboard' > logs/dashboard.log 2>&1
 # every day at 6 AM

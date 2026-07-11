@@ -657,6 +657,55 @@ osm_spots_df = pd.read_sql("select id, latitude, longitude from osm_hitchhiking_
 logger.info("Fetching OSM car pooling spots")
 car_pooling_df = pd.read_sql("select id, osm_type, latitude, longitude from osm_car_pooling_spot", get_db())
 
+logger.info("Fetching OSM fuel stations")
+fuel_df = pd.read_sql("select id, osm_type, latitude, longitude from osm_fuel_station_spot", get_db())
+
+
+def build_fuel_grid(df):
+    """Bucket fuel stations into a ~1.1 km grid (0.01°-rounded lat/lon cells).
+
+    Fuel stations are a far larger set than car-pooling / official spots (hundreds
+    of thousands globally). A full haversine scan per place (~45k places) would be
+    tens of billions of ops, so instead a 100 m lookup only checks the 3x3
+    neighbouring cells (each cell is ~1.1 km, well over the 100 m radius)."""
+    grid = {}
+    if df.empty:
+        return grid
+    for row in df.itertuples(index=False):
+        key = (round(row.latitude, 2), round(row.longitude, 2))
+        grid.setdefault(key, []).append((int(row.id), row.osm_type, row.latitude, row.longitude))
+    return grid
+
+
+fuel_grid = build_fuel_grid(fuel_df)
+logger.info(f"Built fuel-station grid: {len(fuel_df)} stations in {len(fuel_grid)} cells")
+
+
+def find_nearby_fuel_station(lat, lon, grid, max_distance_km=0.1) -> dict | None:
+    """Find the nearest OSM fuel station within max_distance_km (default 100m).
+
+    Returns {"id": int, "osm_type": str} or None — both are needed to build a stable
+    OSM URL, since fuel is often mapped on ways/relations rather than nodes. Uses the
+    spatial grid from build_fuel_grid so only nearby cells are scanned."""
+    if not grid:
+        return None
+    clat, clon = round(lat, 2), round(lon, 2)
+    best = None
+    best_dist = None
+    for dlat in (-0.01, 0.0, 0.01):
+        for dlon in (-0.01, 0.0, 0.01):
+            cell = grid.get((round(clat + dlat, 2), round(clon + dlon, 2)))
+            if not cell:
+                continue
+            for fid, ftype, flat, flon in cell:
+                # Same haversine (with the 1.25 road factor) used by the other
+                # nearby-spot checks, kept scalar since each cell holds few stations.
+                dist = float(haversine_np(lat, lon, flat, flon))
+                if dist <= max_distance_km and (best_dist is None or dist < best_dist):
+                    best_dist = dist
+                    best = {"id": fid, "osm_type": ftype}
+    return best
+
 
 def find_nearby_osm_spot(lat, lon, osm_spots, max_distance_km=0.1) -> int | None:
     """Find the nearest OSM hitchhiking spot within max_distance_km (default 100m)."""
@@ -807,6 +856,12 @@ places["nearby_car_pooling"] = places.apply(
 )
 logger.info(f"Found {places['nearby_car_pooling'].notnull().sum()} places with nearby car pooling spots")
 
+logger.info("Finding nearby OSM fuel stations")
+places["nearby_fuel"] = places.apply(
+    lambda row: find_nearby_fuel_station(row["lat"], row["lon"], fuel_grid), axis=1
+)
+logger.info(f"Found {places['nearby_fuel'].notnull().sum()} places at a fuel station")
+
 logger.info("Finding nearby Hitchwiki articles")
 places["nearby_hitchwiki_link"] = places.apply(
     lambda row: find_nearby_hitchwiki_article(row["lat"], row["lon"], hitchwiki_df), axis=1
@@ -856,6 +911,8 @@ for _, place in places.iterrows():
         spot_data["osm"] = True
     if place["nearby_car_pooling"] is not None:
         spot_data["cp"] = True
+    if place["nearby_fuel"] is not None:
+        spot_data["fuel"] = True
     if place["nearby_hitchwiki_link"] is not None:
         spot_data["wiki"] = True
     if place["hitchwiki_map_link"] is not None:
@@ -875,6 +932,8 @@ for _, place in places.iterrows():
         detail["osm_id"] = int(place["nearby_osm_id"])
     if place["nearby_car_pooling"] is not None:
         detail["car_pooling"] = place["nearby_car_pooling"]
+    if place["nearby_fuel"] is not None:
+        detail["fuel"] = place["nearby_fuel"]
     if place["nearby_hitchwiki_link"] is not None:
         detail["hitchwiki_article"] = place["nearby_hitchwiki_link"]
     if place["hitchwiki_map_link"] is not None:
@@ -939,6 +998,7 @@ spot_flags = {
         p["nearby_osm_id"] is not None and pd.notna(p["nearby_osm_id"]),
         p["nearby_hitchwiki_link"] is not None and pd.notna(p["nearby_hitchwiki_link"]),
         p["nearby_car_pooling"] is not None,
+        p["nearby_fuel"] is not None,
     )
     for _, p in places.iterrows()
 }
@@ -959,7 +1019,7 @@ ride_dt_by_d = {d: (int(ms) if ms > 0 else None) for d, ms in zip(rides_df["d"],
 rides_index = []
 for r in rides_data:
     sid = r["spot_id"]
-    has_osm, has_wiki, has_cp = spot_flags.get(sid, (False, False, False))
+    has_osm, has_wiki, has_cp, has_fuel = spot_flags.get(sid, (False, False, False, False))
     comment = r["comment"]
 
     rides_index.append(
@@ -978,6 +1038,7 @@ for r in rides_data:
             "osm": bool(has_osm),
             "wiki": bool(has_wiki),
             "cp": bool(has_cp),
+            "fuel": bool(has_fuel),
             "v": r.get("vehicle_kind"),
             # Unique list of signal methods used on this ride (e.g. ["thumb", "sign"]).
             # Empty/missing → None so the JSON stays small.

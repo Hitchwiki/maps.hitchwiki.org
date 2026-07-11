@@ -177,6 +177,20 @@ class OsmCarPoolingSpot(db.Model):
     uid = db.Column(db.BigInteger, nullable=True)
 
 
+class OsmFuelStationSpot(db.Model):
+    # OSM (id, type) is only globally unique together — fuel stations are frequently
+    # mapped as ways/relations (the forecourt area), not just nodes, so the same
+    # numeric id can collide across element types. Mirrors OsmCarPoolingSpot.
+    id = db.Column(db.BigInteger, primary_key=True)
+    osm_type = db.Column(db.String(16), primary_key=True)  # 'node', 'way', or 'relation'
+    latitude = db.Column(db.Float, nullable=False)
+    longitude = db.Column(db.Float, nullable=False)
+    tags = db.Column(db.JSON, nullable=True)
+    timestamp = db.Column(db.String(64), nullable=True)
+    user = db.Column(db.String(255), nullable=True)
+    uid = db.Column(db.BigInteger, nullable=True)
+
+
 class ServiceArea(db.Model):
     # A motorway service area / gas station polygon from OSM (amenity=fuel,
     # highway=services|rest_area|service_area|parking). Built by sync_service_areas.py
