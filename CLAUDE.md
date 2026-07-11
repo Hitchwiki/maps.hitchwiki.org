@@ -105,13 +105,49 @@ Modelled on OpenStreetMap's `/node/<id>#map=<zoom>/<lat>/<lon>`. Two independent
 
 ## Debugging & Operations
 
-### Do not install or run a headless browser
-Never install or use Playwright, Puppeteer, Chromium, or any other headless browser on this
-host — not even via `npx`. Frontend behaviour (`map.js`, `routing.js`, …) must be verified by
-reading the code, by running the pure-JS parts under `node`, or by asking the user to check in
-their own browser. Node itself is fine: e.g. the routing engine in `hitch/static/routing.js` can
-be exercised headlessly by stubbing `window`/`document`/`fetch` and `eval`-ing the file, then
-calling `buildRouter`/`ensureWalk`/`alternatives` against `dist/repeatable_routes.json`.
+### Do not install or run a headless browser on the prod server
+Never install or use Playwright, Puppeteer, Chromium, or any other headless browser on the
+**prod server** — not even via `npx`. It's an OOM-prone host (see the OOM section below), so a
+browser download + Chromium process can tip it over. On a local dev machine this is fine —
+install and use Playwright freely there to verify frontend behaviour.
+
+When you can't run a browser (i.e. on prod), frontend behaviour (`map.js`, `routing.js`, …) must
+be verified by reading the code, by running the pure-JS parts under `node`, or by asking the user
+to check in their own browser. Node itself is fine: e.g. the routing engine in
+`hitch/static/routing.js` can be exercised headlessly by stubbing `window`/`document`/`fetch` and
+`eval`-ing the file, then calling `buildRouter`/`ensureWalk`/`alternatives` against
+`dist/repeatable_routes.json`.
+
+### Using Playwright on a local dev machine (visual/layout bugs)
+For layout/overlap bugs you must actually render the page — reading CSS isn't enough (e.g. the
+in-ride "Add details / In a ride / Finish Ride" overlap was a fixed-position status chip colliding
+with the dock, invisible until measured). Workflow that works here:
+
+1. **Install once:** `npm install -D playwright && npx playwright install chromium`. This creates
+   `package.json` + `node_modules/` in the project root.
+2. **Run driver scripts from `node`**, but they live in the scratchpad while Playwright is in the
+   project's `node_modules`, so set `NODE_PATH`:
+   `NODE_PATH=<project>/node_modules node myscript.js`.
+3. **Serve the *edited* tree yourself — don't trust whatever is already on a port.** VS Code often
+   runs its own Flask on **4243**, and the Docker container publishes **4242**; both may serve a
+   *stale copy* of `hitch/static/*` (the container's baked image also 500s the map page on
+   `asset_url is undefined`). Boot a fresh server from the project root on a free port and confirm
+   it serves your change before testing:
+   ```bash
+   source .venv/bin/activate && FLASK_APP=hitch flask run --port 4245 --no-reload   # loads .env
+   curl -s http://localhost:4245/static/inride.js | grep -c "<a string from your edit>"  # must be 1
+   ```
+   (`hitch` imports fine on the host here — the host venv is NOT minimal like prod's; `flask run`
+   auto-loads `.env`, which a bare `python3 -c "import hitch"` does not, so it won't `RELAYS`-crash.)
+4. **Drive UI state via the app's own JS, not by clicking through flows.** The in-ride journey is
+   exposed as `window.inride = { journeyStore, journeyUI, journeyFlow, … }`; render the Finish dock
+   directly with
+   `journeyStore.set({state:'in-ride', gotRideMs:Date.now()-9e4, pickup:{lat,lon}, details:{}}); journeyUI.render(journeyStore.get())`.
+5. **Measure, don't eyeball.** Use `getBoundingClientRect()` on each element and compute
+   `max(0, min(a.bottom,b.bottom) - max(a.top,b.top))` for overlap; loop several mobile + laptop
+   viewports (320→1440). Screenshot too, but the numbers are what confirm a fix.
+6. **Clean up:** `pkill -f "flask run --port 4245"` when done. Leave `package.json`/`node_modules`
+   only if the user wants Playwright kept around.
 
 ### Testing sync / generate scripts (run in the container, not the host venv)
 On the prod server the host `.venv` is minimal (only a few packages like `requests`) — the full dependency set lives inside the `hitchhiking-map` Docker image, so `flask ... generate <script>` will `ModuleNotFoundError` on the host. Test scripts inside the running container instead:
