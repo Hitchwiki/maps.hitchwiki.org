@@ -45,6 +45,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css">
 <link rel="stylesheet" href="{{ asset_url('/static/ride_card.css') }}" />
 <link rel="stylesheet" href="{{ asset_url('/static/style.css') }}" />
+<link rel="stylesheet" href="{{ asset_url('/static/welcome.css') }}" />
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -73,6 +74,7 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
 <script src="{{ asset_url('/static/ride_submit.js') }}"></script>
 <script src="{{ asset_url('/static/inride.js') }}"></script>
 <script src="{{ asset_url('/static/account.js') }}"></script>
+<script src="{{ asset_url('/static/welcome.js') }}"></script>
 <script>
 // Install-to-homescreen hint logic. Self-contained — no dependency on map.js.
 // Storage key holds the dismissal timestamp (ms); reappears after 30 days.

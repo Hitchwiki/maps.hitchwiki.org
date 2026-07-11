@@ -1,0 +1,195 @@
+/* First-run intro carousel (welcome.js). Matches the app's white-sheet + brand-green
+   language; the dashed route across the top is the one signature flourish. */
+
+.welcome-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: rgba(12, 20, 16, 0.55);
+  backdrop-filter: blur(2px);
+  animation: welcome-fade 0.2s ease;
+}
+
+.welcome-card {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3001;
+  width: min(420px, calc(100vw - 32px));
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: welcome-rise 0.28s cubic-bezier(0.2, 0.8, 0.3, 1);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* On phones the card fills the screen edge to edge, app-onboarding style. */
+@media (max-width: 480px) {
+  .welcome-card {
+    width: 100vw;
+    height: 100dvh;
+    max-height: none;
+    top: 0;
+    left: 0;
+    transform: none;
+    border-radius: 0;
+    justify-content: center;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    animation: welcome-fade 0.2s ease;
+  }
+}
+
+.welcome-skip {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  z-index: 2;
+  border: none;
+  background: transparent;
+  color: #6b7770;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 6px 8px;
+  cursor: pointer;
+  border-radius: 8px;
+}
+.welcome-skip:hover { color: #1a9850; background: rgba(26, 152, 80, 0.08); }
+
+.welcome-track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.welcome-track::-webkit-scrollbar { display: none; }
+
+.welcome-slide {
+  flex: 0 0 100%;
+  scroll-snap-align: center;
+  padding: 44px 30px 8px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.welcome-art {
+  position: relative;
+  height: 96px;
+  margin: 4px auto 22px;
+  color: #bfe4cd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.welcome-route {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 240px;
+  max-width: 100%;
+  height: 64px;
+}
+.welcome-emoji {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: linear-gradient(150deg, #eafaf0, #d6f2e0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  box-shadow: 0 6px 16px rgba(26, 152, 80, 0.22);
+}
+
+.welcome-title {
+  margin: 0 0 10px;
+  font-size: 21px;
+  font-weight: 800;
+  color: #12241b;
+  letter-spacing: -0.01em;
+}
+.welcome-body {
+  margin: 0 auto;
+  max-width: 320px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #4b574f;
+}
+
+.welcome-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 22px 24px calc(24px + env(safe-area-inset-bottom, 0px));
+  margin-top: auto;
+}
+
+.welcome-dots {
+  display: flex;
+  gap: 8px;
+}
+.welcome-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #d3ddd6;
+  cursor: pointer;
+  transition: width 0.2s ease, background 0.2s ease;
+}
+.welcome-dot.is-active {
+  width: 22px;
+  border-radius: 4px;
+  background: #1a9850;
+}
+
+.welcome-next {
+  flex: 0 0 auto;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 22px;
+  font-size: 15px;
+  font-weight: 800;
+  color: #1a9850;
+  background: rgba(26, 152, 80, 0.1);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.welcome-next:hover { background: rgba(26, 152, 80, 0.18); }
+.welcome-next--cta {
+  color: #fff;
+  background: #1a9850;
+  box-shadow: 0 4px 12px rgba(26, 152, 80, 0.3);
+}
+.welcome-next--cta:hover { background: #167f42; }
+
+.welcome-skip:focus-visible,
+.welcome-next:focus-visible,
+.welcome-dot:focus-visible {
+  outline: 2px solid #1a9850;
+  outline-offset: 2px;
+}
+
+@keyframes welcome-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes welcome-rise {
+  from { opacity: 0; transform: translate(-50%, -46%) scale(0.97); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome-scrim, .welcome-card { animation: none; }
+  .welcome-dot { transition: none; }
+  .welcome-track { scroll-behavior: auto; }
+}
