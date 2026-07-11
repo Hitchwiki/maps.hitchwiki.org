@@ -221,3 +221,48 @@ flask --app hitch generate sync_road_islands    # build/refresh road_island (run
 Both are slow but **resumable**: they snapshot their work to `db/.<script>.snapshot.json` / `.progress.json`, commit incrementally, and a re-run picks up where an interrupted one left off. On successful completion those checkpoint files are deleted (their absence is how you know a run finished). Re-running never deletes existing rows, so it's safe to re-run anytime.
 
 They query the standard public Overpass endpoint (`https://overpass-api.de/api/interpreter`) with polite throttling and HTTP 429 back-off; override `OVERPASS_BULK_URL` to point at a different/bulk instance if needed. After a sync, the next `show.py` run automatically uses the updated polygons.
+
+## Routing
+
+The map's route planner is powered by a graph built from real rides. For every ride with a destination, `build_ride_routes.py` fetches an OSRM driving route and records which other known start spots lie along it; corridors shared by multiple rides become the "repeatable" trees the frontend searches. It runs **daily at 2 AM via cron**, but you can rebuild it manually — **inside the container** (the host venv lacks `shapely`, so spot grouping would be skipped and routes would reference phantom spots):
+
+```bash
+# inside the container — full rebuild (never use --limit, it writes partial data)
+sudo docker exec hitchhiking-map python3 /app/hitch/scripts/build_ride_routes.py --skip-detailed
+```
+
+This writes `dist/repeatable_routes.json` (+ `oneoff_routes.json`, `test_routes.json`). OSRM responses are cached in `dist/route_cache.jsonl`, so a rerun only fetches routes for rides added since last time.
+
+### Enriching rides that have no destination
+
+Many hitchwiki.org / hitchmap.com rides reach us with only a start point — no destination — which leaves them out of the routing graph. Two **occasional, manual batch jobs** (not cron) infer destinations for these and store them in the `derived_ride_location` table (keyed by the Nostr `d` tag, distinguished by a `kind` column). `show.py` and `build_ride_routes.py` then merge a derived destination onto any ride whose `stops` lack one. Both are standalone `python3` scripts; the prod DB is root-owned, so pass `--db` and run under `sudo`.
+
+**1. Mine the destination from the ride's comment (LLM).** Some comments name the city the ride actually reached ("got a lift to Kayseri"). `extract_destinations.py` runs in three stages — a cheap regex prefilter, an LLM pass that decides which city (if any) each ride reached, and a geocode+store step (`kind=derived-comment-city`, `is_exact=0` — the coordinate is a city centre inferred from prose). The OpenAI key is read from `OPENAI_API_KEY` only, never written to disk:
+
+```bash
+# stage 1 — find no-destination rides whose comment mentions arriving somewhere
+python3 hitch/scripts/extract_destinations.py prefilter
+
+# stage 2 — LLM extracts the reached city per comment (needs the key)
+OPENAI_API_KEY=sk-... python3 hitch/scripts/extract_destinations.py extract
+
+# stage 3 — geocode the cities against dist/worldcities.csv and upsert
+sudo python3 hitch/scripts/extract_destinations.py geocode-store --db db/hitchhiking-prod.sqlite
+```
+
+**2. Reconstruct chains of consecutively-logged rides.** When a named user logged a whole trip in one sitting — a run of their no-destination rides entered minutes apart whose starts march in one direction — the start of each ride is, in practice, the destination of the one before it. `derive_consecutive_destinations.py` finds those chains and stores each ride's destination as the next ride's logged start (`kind=derived-consecutive-ride`, `is_exact=1` — it's a real logged spot). It never overwrites a comment-derived row.
+
+```bash
+# preview the chains it would write (change nothing)
+python3 hitch/scripts/derive_consecutive_destinations.py --db db/hitchhiking-prod.sqlite --dry-run
+
+# write them
+sudo python3 hitch/scripts/derive_consecutive_destinations.py --db db/hitchhiking-prod.sqlite
+```
+
+**After running either enrichment job, regenerate the map data and routing graph** so the new destinations take effect (both in the container):
+
+```bash
+sudo docker exec hitchhiking-map /usr/local/bin/flask --app hitch generate show --force
+sudo docker exec hitchhiking-map python3 /app/hitch/scripts/build_ride_routes.py --skip-detailed
+```
