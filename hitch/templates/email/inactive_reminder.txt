@@ -1,0 +1,27 @@
+Hi {{ name }},
+
+{% if stage == 30 -%}
+It's been a few weeks since you joined the Hitchwiki Map
+(https://maps.hitchwiki.org), and we noticed you haven't logged a ride yet.
+It's never too late — even one spot from a past trip helps the next traveller.
+{%- else -%}
+Welcome aboard the Hitchwiki Map (https://maps.hitchwiki.org)! You signed up a
+little while ago but haven't logged a ride yet — here's how to get started.
+{%- endif %}
+
+Whether you're on the road right now or looking back at past trips, you can:
+
+  * Explore the map: browse hitchhiking spots, ratings and tips shared by other hitchhikers.
+  * Log a ride you're on: mark where you got picked up and how long you waited.
+  * Add your past rides: drop in the good spots from trips you've already done, so others can find them.
+
+Log a ride: https://maps.hitchwiki.org
+
+Safe travels and happy hitchhiking!
+The Hitchwiki team
+
+--
+You receive this because you signed up at maps.hitchwiki.org. You can turn off
+emails any time on your profile settings page: https://maps.hitchwiki.org/edit-user
+
+Hitchwiki — the hitchhiker's guide to hitchhiking — https://hitchwiki.org

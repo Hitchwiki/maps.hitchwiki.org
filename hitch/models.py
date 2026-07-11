@@ -37,6 +37,13 @@ class User(db.Model, fsqla.FsUserMixin):
     # per user so they aren't notified repeatedly about the same encounter.
     nearby_hitchhikers_email_last_sent = db.Column(db.Integer, default=None)
 
+    # Which "you signed up but haven't logged a ride yet" reminder has last been sent
+    # (see remind_inactive_users.py). Stores the milestone in days: 0 = none sent,
+    # 7 = the 7-day nudge sent, 30 = the final 30-day nudge sent. Advancing through the
+    # stages means each user gets at most the 7-day and 30-day reminder, never a repeat;
+    # once they log a ride (total_rides > 0) they're excluded and the stage stops moving.
+    inactive_reminder_stage = db.Column(db.Integer, default=0, nullable=False, server_default="0")
+
     # Lifetime hitchhiking stats, recomputed from all ride events on every show.py
     # run (not maintained on ride submission). Shown in the profile "Insights"
     # section so the page doesn't have to aggregate every ride on each load.
