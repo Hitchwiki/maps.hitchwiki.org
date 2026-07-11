@@ -653,9 +653,15 @@
       // is always visible regardless of which live state the journey is in.
       journeyUI._addPickupPin(j);
 
-      // ── Docked action bar: single Finish Ride button ───────────────────────
+      // ── Docked action bar: Finish Ride button + round red Cancel beneath ────
+      // Stacked layout (like waiting/paused) so the round red Cancel × can sit
+      // centered beneath the action row — the escape hatch stays available all the
+      // way through Finish, so a journey can always be discarded without logging.
       const dock = document.createElement("div");
-      dock.className = "inr-dock";
+      dock.className = "inr-dock inr-dock--stack";
+
+      const row = document.createElement("div");
+      row.className = "inr-dock-row";
 
       // Orange (#ff6b35) signals a transitional/completion action — distinct from
       // the permanent red "Give Up" or confirming green "Got a Ride!".
@@ -666,12 +672,12 @@
       finishBtn.addEventListener("click", function () {
         journeyFlow.finish && journeyFlow.finish();
       });
-      dock.appendChild(finishBtn);
+      row.appendChild(finishBtn);
       journeyUI._finishBtn = finishBtn;
 
       // Demographic entry during the ride: ONE chip that both shows the combined
       // completeness and opens the details sheet. Save merges onto j.details (submitted
-      // at Finish). Drops onto its own row below Finish (see .inr-dock flex-wrap).
+      // at Finish). Sits on its own line above Finish in the stacked dock.
       const demoRow = document.createElement("div");
       demoRow.className = "inr-demo-row";
       const s = demographicScores(j.details || {});
@@ -696,9 +702,13 @@
         });
       });
       demoRow.appendChild(addBtn);
-      // Insert ABOVE Finish (both are full-width flex lines; DOM order = top→bottom).
+      // Insert ABOVE the Finish row (DOM order = top→bottom in the stacked dock).
       // Placed below, it wrapped onto the bottom edge and hid behind the nav / OSM credits.
-      dock.insertBefore(demoRow, finishBtn);
+      dock.appendChild(demoRow);
+      dock.appendChild(row);
+      // Round red Cancel × beneath the Finish button — same escape hatch as
+      // waiting/paused, so the journey can be discarded at any point.
+      dock.appendChild(journeyUI._cancelButton());
 
       document.body.appendChild(dock);
       journeyUI._dockEl = dock;
