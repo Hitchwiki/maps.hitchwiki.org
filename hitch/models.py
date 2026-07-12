@@ -44,11 +44,12 @@ class User(db.Model, fsqla.FsUserMixin):
     # once they log a ride (total_rides > 0) they're excluded and the stage stops moving.
     inactive_reminder_stage = db.Column(db.Integer, default=0, nullable=False, server_default="0")
 
-    # Opt-in: whether other registered users may open a 1:1 chat with this user and send
-    # them messages. Off by default — receiving unsolicited messages is privacy-sensitive,
-    # so the user must explicitly enable it in their profile before the Chat button appears
-    # on their page and before anyone (including a reply) may write to them.
-    allow_messages = db.Column(db.Boolean, default=False, nullable=False, server_default="0")
+    # Whether other registered users may open a 1:1 chat with this user and send them
+    # messages. On by default so the Chat button is available across the community out of
+    # the box; a user who doesn't want unsolicited messages can turn it off in their
+    # profile, which also hides the Chat button and blocks anyone (incl. a reply) from
+    # writing to them.
+    allow_messages = db.Column(db.Boolean, default=True, nullable=False, server_default="1")
 
     # Whether to email this user when they receive a new chat message. Defaults to on so an
     # opted-in user doesn't miss messages, but they can turn it off independently of the
