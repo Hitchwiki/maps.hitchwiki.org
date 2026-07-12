@@ -282,6 +282,12 @@ def show_account(username, is_me: bool = False):
     # hitchhiker stubs have no id, so skip the query for them.
     trips_data = _get_trips_for_user(user) if user_known else []
 
+    single_source = _single_external_source(user.username)
+    source_label = _EXTERNAL_SOURCE_LABELS.get(single_source)
+    # Unregistered stubs normally hide the Hitchwiki profile link, but for names whose rides
+    # all came from Hitchwiki-derived sources the nickname *is* a Hitchwiki username, so keep it.
+    show_hitchwiki_link = single_source in _HITCHWIKI_SOURCES
+
     age = (datetime.utcnow().year - user.year_of_birth) if user.year_of_birth else None
 
     # The follow button only makes sense on another registered user's page while logged
@@ -300,6 +306,8 @@ def show_account(username, is_me: bool = False):
         trips=trips_data,
         notifications=notifications,
         user_known=user_known,
+        source_label=source_label,
+        show_hitchwiki_link=show_hitchwiki_link,
         age=age,
         can_follow=can_follow,
         is_following=is_following,
@@ -729,6 +737,27 @@ def _rides_by_hitchhiker(username):
         if ride.d not in deleted
         and normalized_username in [_norm_nickname(h.get("nickname")) for h in ((ride.content or {}).get("hitchhikers") or [])]
     ]
+
+
+# Nostr `source` values of rides imported from other hitchhiking platforms, mapped to the
+# short badge shown after a hitchhiker's name. Only applied when every ride under that name
+# came from a single one of these sources, so visitors know the name is an external stub
+# (e.g. a legacy hitchmap.com contributor) rather than a Hitchwiki Maps account.
+_EXTERNAL_SOURCE_LABELS = {"hitchmap.com": "Hitchmap", "triphopping.com": "Triphopping"}
+
+# Sources whose ride nicknames are Hitchwiki usernames. A stub page for such a name is
+# really that person's Hitchwiki account, so we still link to their Hitchwiki profile even
+# though they never registered a Hitchwiki Maps account.
+_HITCHWIKI_SOURCES = {"hitchwiki.org", "liftershalte.info"}
+
+
+def _single_external_source(username):
+    """The one source of a name whose rides all come from a single source, else None."""
+    rides = _rides_by_hitchhiker(username)
+    if not rides:
+        return None
+    sources = {ride.source for ride in rides}
+    return next(iter(sources)) if len(sources) == 1 else None
 
 
 def _get_rides_for_user(user, include_pending_co=True, display_only=False):

@@ -114,6 +114,7 @@
 a.notif-item:hover { border-color: #c7ced3; }
 .notif-msg { display: block; font-size: 0.92em; }
 .notif-time { display: block; color: #888; font-size: 0.76em; margin-top: 4px; }
+.source-badge { color: #888; font-size: 0.9em; }
 </style>
 {% if not is_me and user_known %}
 <p><a href="https://hitchwiki.org/en/index.php?title=User_talk:{{ escaped_hitchwiki_username }}&action=edit&section=new">Reach out - write a message</a></p>
@@ -156,7 +157,7 @@ a.notif-item:hover { border-color: #c7ced3; }
 </div>
 {% endif %}
 
-Name: {{ user.username }}<br>
+Name: {{ user.username }}{% if source_label %} <span class="source-badge">({{ source_label }})</span>{% endif %}<br>
 
 {% if user_known %}
 {% if is_me %}
@@ -170,6 +171,8 @@ Name: {{ user.username }}<br>
 {% if origin %}From {{ origin }}<br>{% endif %}
 {% if escaped_hitchwiki_username %}On Hitchwiki: <a href="https://hitchwiki.org/en/User:{{ escaped_hitchwiki_username }}">{{ escaped_hitchwiki_username }}</a><br>{% endif %}
 {% if escaped_trustroots_username %}On Trustroots: <a href="https://www.trustroots.org/profile/{{ escaped_trustroots_username }}">{{ escaped_trustroots_username }}</a><br>{% endif %}
+{% elif show_hitchwiki_link and escaped_hitchwiki_username %}
+On Hitchwiki: <a href="https://hitchwiki.org/en/User:{{ escaped_hitchwiki_username }}">{{ escaped_hitchwiki_username }}</a><br>
 {% endif %}
 <br>
 <a href="/?user={{ user.username }}#filters">{{ "See my spots on the map" if is_me else "See their spots on the map"}}</a><br>
