@@ -34,6 +34,8 @@ The hitchhiking experiences you submit are **published publicly alongside person
 
 By submitting a ride you consent to this public, world-readable publication and to its re-use by third parties (including in structured form that makes copying and aggregation easy).
 
+**Licensing of what you submit:** The overall database is made available under the [Open Data Commons Open Database License (ODbL) v1.0](https://opendatacommons.org/licenses/odbl/1-0/). The individual review you write — your free-text **comment** and the **username** you publish under — is your own contribution, and by submitting it you agree to license it under the [Creative Commons Attribution-ShareAlike 4.0 (CC BY-SA 4.0)](https://creativecommons.org/licenses/by-sa/4.0/) license. This means anyone may re-use your comment and username as long as they credit you and share alike. Please do not submit text you are not willing to publish under this license.
+
 **Why we publish this data:** We make ride data openly available so that it can benefit the **whole hitchhiking community** — for example, by helping other hitchhikers find good spots, by enabling other hitchhiking projects and apps to build on the same shared dataset, and by supporting **academic and independent research** into hitchhiking and mobility more broadly. Public, structured publication is what makes this re-use possible.
 
 **Risks you should be aware of before submitting:**

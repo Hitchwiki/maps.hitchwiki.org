@@ -1001,6 +1001,15 @@
       textarea.className = "inr-sheet__textarea";
       textarea.placeholder = "Anything worth noting about this spot…";
       commentField.appendChild(textarea);
+      // Licensing notice: comment + username are published under CC BY-SA 4.0 (the
+      // database as a whole is ODbL). Keep users aware of what they agree to on submit.
+      const licenseNote = document.createElement("p");
+      licenseNote.className = "inr-sheet__license";
+      licenseNote.style.cssText = "font-size:11px;color:#999;margin:4px 0 0;line-height:1.4;";
+      licenseNote.innerHTML = 'Published publicly. Your comment and username are licensed ' +
+        '<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>; ' +
+        'the database is <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>.';
+      commentField.appendChild(licenseNote);
       sheet.appendChild(commentField);
 
       // ── Ride On! CTA (green, disabled until rating chosen) ────────────────────
@@ -1499,6 +1508,15 @@
       textarea.className = "inr-sheet__textarea";
       textarea.placeholder = "e.g. no traffic, bad pull-in spot…";
       commentField.appendChild(textarea);
+      // Licensing notice: comment + username are published under CC BY-SA 4.0 (the
+      // database as a whole is ODbL). Keep users aware of what they agree to on submit.
+      const licenseNote = document.createElement("p");
+      licenseNote.className = "inr-sheet__license";
+      licenseNote.style.cssText = "font-size:11px;color:#999;margin:4px 0 0;line-height:1.4;";
+      licenseNote.innerHTML = 'Published publicly. Your comment and username are licensed ' +
+        '<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>; ' +
+        'the database is <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>.';
+      commentField.appendChild(licenseNote);
       sheet.appendChild(commentField);
 
       // ── Save CTA (disabled until a rating is chosen) ──────────────────────────

@@ -422,6 +422,18 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
         <div class="ride-comment-box">{{ ride.comment }}</div>
     </div>
     {% endif %}
+
+    {# Downstream license notice: the review (comment + username) is an individual content
+       licensed CC BY-SA 4.0; the database as a whole is ODbL (see /copyright, ODbL §2.4). #}
+    <div class="detail-section">
+        <p style="font-size: 0.8rem; color: #888; line-height: 1.5;">
+            This review (comment and username) is licensed under
+            <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>.
+            The map database as a whole is licensed under the
+            <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>.
+            See <a href="/copyright" target="_blank" rel="noopener">Copyright and License</a>.
+        </p>
+    </div>
 </div>
 {% endblock %}
 

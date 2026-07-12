@@ -172,7 +172,9 @@ We are aware of the following applications making downstream usage of data colle
 
 ## License
 
-The software provided in this repository is licensed under AGPL 3.0. The Hitchwiki Maps database is licensed under the ODBL, the license used by OpenStreetMap.
+The software provided in this repository is licensed under AGPL 3.0. The Hitchwiki Maps database is licensed under the [ODbL](https://opendatacommons.org/licenses/odbl/1-0/), the license used by OpenStreetMap.
+
+The ODbL covers the database (the collection of spots and rides), but not the individual contents inside it (see [ODbL §2.4](https://opendatacommons.org/licenses/odbl/1-0/)). The individual reviews users contribute — their free-text comments and the username they publish under — are separately licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Re-use the database as a whole under the ODbL; re-use individual reviews under CC BY-SA 4.0 with attribution.
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
