@@ -1,0 +1,162 @@
+{% extends "security/base.html" %}
+
+{% set title = "Chat with " ~ other.username %}
+
+{% block head %}
+{{ super() }}
+<style>
+  /* The narrow security-overlay card is fine for the profile, but a chat wants height and
+     a pinned composer, so widen it slightly and lay it out as a column. */
+  .overlay { max-width: 460px; width: 92vw; display: flex; flex-direction: column; padding: 16px 20px; }
+  .chat-header { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 4px 0 10px; }
+  .chat-header h1 { font-size: 1.15em; margin: 0; }
+  .chat-header a { font-size: 0.8em; }
+  .msg-list {
+    flex: 1 1 auto; overflow-y: auto; max-height: 60vh; min-height: 120px;
+    display: flex; flex-direction: column; gap: 8px; padding: 4px 2px;
+  }
+  .msg { max-width: 78%; padding: 8px 12px; border-radius: 14px; font-size: 0.92em; line-height: 1.4; word-wrap: break-word; }
+  .msg .body { white-space: pre-wrap; }
+  .msg .time { display: block; font-size: 0.68em; color: #888; margin-top: 3px; }
+  .msg.theirs { align-self: flex-start; background: #f1f0ee; border-bottom-left-radius: 4px; }
+  .msg.mine { align-self: flex-end; background: #d8ebff; border-bottom-right-radius: 4px; }
+  .msg.mine .time { text-align: right; }
+  .empty-note { color: #666; font-size: 0.9em; text-align: center; margin: 20px 0; }
+  .composer { display: flex; gap: 8px; margin-top: 12px; align-items: flex-end; }
+  .composer textarea {
+    flex: 1 1 auto; resize: none; font: inherit; font-size: 0.92em; padding: 8px 10px;
+    border: 1px solid #ccc; border-radius: 10px; min-height: 40px; max-height: 120px;
+  }
+  .composer button {
+    flex: 0 0 auto; background: #2f80d6; color: #fff; border: none; border-radius: 10px;
+    padding: 9px 16px; font: inherit; font-size: 0.9em; cursor: pointer;
+  }
+  .composer button:disabled { opacity: 0.5; cursor: default; }
+  .disabled-note {
+    margin-top: 12px; padding: 10px 12px; background: #f7f7f7; border: 1px solid #e2e2e2;
+    border-radius: 8px; color: #666; font-size: 0.85em; text-align: center;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="chat-header">
+  <h1>Chat with <a href="/account/{{ other.username }}">{{ other.username }}</a></h1>
+  <a href="/messages">All chats</a>
+</div>
+
+<div class="msg-list" id="msg-list" data-username="{{ other.username }}" data-last-id="{{ last_id }}">
+  {% if not messages %}
+  <p class="empty-note" id="empty-note">No messages yet. Say hi 👋</p>
+  {% endif %}
+  {% for m in messages %}
+  <div class="msg {{ 'mine' if m.mine else 'theirs' }}">
+    <span class="body"></span>
+    <span class="time">{{ m.created_at }}</span>
+  </div>
+  {% endfor %}
+</div>
+
+{% if can_send %}
+<form class="composer" id="composer">
+  <textarea id="msg-input" placeholder="Write a message…" maxlength="4000" rows="1"></textarea>
+  <button type="submit" id="send-btn">Send</button>
+</form>
+{% else %}
+<div class="disabled-note">{{ other.username }} isn't accepting messages right now.</div>
+{% endif %}
+
+<script>
+  // Set message bodies via textContent (never innerHTML) so a message can't inject markup.
+  (function fillBodies() {
+    const bodies = {{ messages | map(attribute='body') | list | tojson }};
+    document.querySelectorAll('#msg-list .msg .body').forEach((el, i) => { el.textContent = bodies[i] || ''; });
+  })();
+
+  const list = document.getElementById('msg-list');
+  const username = list.dataset.username;
+  let lastId = parseInt(list.dataset.lastId, 10) || 0;
+
+  function scrollToBottom() { list.scrollTop = list.scrollHeight; }
+  scrollToBottom();
+
+  // Append one message row from a serialized message object.
+  function appendMessage(m) {
+    const emptyNote = document.getElementById('empty-note');
+    if (emptyNote) emptyNote.remove();
+    const div = document.createElement('div');
+    div.className = 'msg ' + (m.mine ? 'mine' : 'theirs');
+    const body = document.createElement('span');
+    body.className = 'body';
+    body.textContent = m.body;
+    const time = document.createElement('span');
+    time.className = 'time';
+    time.textContent = m.created_at;
+    div.appendChild(body);
+    div.appendChild(time);
+    list.appendChild(div);
+    if (m.id > lastId) lastId = m.id;
+  }
+
+  const form = document.getElementById('composer');
+  if (form) {
+    const input = document.getElementById('msg-input');
+    const btn = document.getElementById('send-btn');
+
+    // Grow the textarea with its content, up to the CSS max-height.
+    input.addEventListener('input', () => {
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+    });
+
+    async function submit() {
+      const body = input.value.trim();
+      if (!body) return;
+      btn.disabled = true;
+      try {
+        const res = await fetch(`/messages/${encodeURIComponent(username)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'body=' + encodeURIComponent(body),
+        });
+        if (!res.ok) throw new Error('send failed');
+        const m = await res.json();
+        appendMessage(m);
+        input.value = '';
+        input.style.height = 'auto';
+        scrollToBottom();
+      } catch (e) {
+        alert('Could not send your message. Please try again.');
+      } finally {
+        btn.disabled = false;
+        input.focus();
+      }
+    }
+
+    form.addEventListener('submit', (e) => { e.preventDefault(); submit(); });
+    // Enter sends, Shift+Enter inserts a newline.
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); }
+    });
+  }
+
+  // Poll for new messages from the other side while the thread is open.
+  async function poll() {
+    try {
+      const res = await fetch(`/messages/${encodeURIComponent(username)}/poll.json?after=${lastId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.messages && data.messages.length) {
+          const atBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 40;
+          // poll only returns id > lastId; our own just-sent messages are already appended
+          // (their id <= lastId), so this never double-renders them. Anything new here is
+          // either the other side's reply or one of ours sent from another tab/device.
+          data.messages.forEach(appendMessage);
+          if (atBottom) scrollToBottom();
+        }
+      }
+    } catch (e) { /* transient network error; try again next tick */ }
+  }
+  setInterval(poll, 5000);
+</script>
+{% endblock %}

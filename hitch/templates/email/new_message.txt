@@ -1,0 +1,18 @@
+Hi {{ name }},
+
+{{ sender }} sent you a message on Hitchwiki Maps:
+
+  "{{ preview }}"
+
+Read it and reply here:
+https://maps.hitchwiki.org/messages/{{ sender }}
+
+Safe travels and happy hitchhiking!
+The Hitchwiki team
+
+--
+You receive this because you turned on "Email me when I receive a new message"
+in your profile settings. You can turn it off any time:
+https://maps.hitchwiki.org/edit-user
+
+Hitchwiki — the hitchhiker's guide to hitchhiking — https://hitchwiki.org

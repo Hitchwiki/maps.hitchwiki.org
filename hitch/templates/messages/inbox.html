@@ -1,0 +1,45 @@
+{% extends "security/base.html" %}
+
+{% set title = "Messages" %}
+
+{% block head %}
+{{ super() }}
+<style>
+  .overlay { max-width: 460px; width: 92vw; }
+  .conv-list { list-style: none; padding: 0; margin: 12px 0 0; }
+  .conv-item {
+    display: block; padding: 10px 12px; margin-bottom: 8px; color: inherit; text-decoration: none;
+    background: #f7f7f7; border: 1px solid #e2e2e2; border-radius: 8px;
+  }
+  .conv-item.unread { background: #eef5fc; border-color: #cfe2f6; }
+  a.conv-item:hover { border-color: #c7ced3; }
+  .conv-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .conv-name { font-weight: 600; }
+  .conv-badge {
+    background: #2f80d6; color: #fff; border-radius: 10px; font-size: 0.72em;
+    padding: 1px 7px; margin-left: 6px; vertical-align: middle;
+  }
+  .conv-time { color: #888; font-size: 0.76em; flex: 0 0 auto; }
+  .conv-preview { display: block; color: #555; font-size: 0.86em; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .empty-note { color: #666; font-size: 0.9em; margin-top: 16px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>Messages</h1>
+{% if conversations %}
+<ul class="conv-list">
+  {% for c in conversations %}
+  <a class="conv-item{% if c.unread %} unread{% endif %}" href="/messages/{{ c.username }}">
+    <span class="conv-top">
+      <span class="conv-name">{{ c.username }}{% if c.unread %}<span class="conv-badge">{{ c.unread }}</span>{% endif %}</span>
+      <span class="conv-time">{{ c.created_at }}</span>
+    </span>
+    <span class="conv-preview">{% if c.mine %}You: {% endif %}{{ c.preview }}</span>
+  </a>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="empty-note">No conversations yet. Open a hitchhiker's profile and tap <strong>Chat</strong> to start one.</p>
+{% endif %}
+{% endblock %}

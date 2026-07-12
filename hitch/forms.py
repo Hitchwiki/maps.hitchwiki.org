@@ -40,4 +40,6 @@ class UserEditForm(FlaskForm):
     trustroots_username = StringField("Trustroots Username", validators=[Optional()], default=None)
     email_notifications = BooleanField("Receive notifications and updates via email", default=True)
     nearby_hitchhikers_email = BooleanField("Email me about other hitchhikers who were close by", default=False)
+    allow_messages = BooleanField("Let other hitchhikers message me (adds a Chat button to my profile)", default=False)
+    message_email_notifications = BooleanField("Email me when I receive a new message", default=True)
     submit = SubmitField("Submit")

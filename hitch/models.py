@@ -44,6 +44,17 @@ class User(db.Model, fsqla.FsUserMixin):
     # once they log a ride (total_rides > 0) they're excluded and the stage stops moving.
     inactive_reminder_stage = db.Column(db.Integer, default=0, nullable=False, server_default="0")
 
+    # Opt-in: whether other registered users may open a 1:1 chat with this user and send
+    # them messages. Off by default — receiving unsolicited messages is privacy-sensitive,
+    # so the user must explicitly enable it in their profile before the Chat button appears
+    # on their page and before anyone (including a reply) may write to them.
+    allow_messages = db.Column(db.Boolean, default=False, nullable=False, server_default="0")
+
+    # Whether to email this user when they receive a new chat message. Defaults to on so an
+    # opted-in user doesn't miss messages, but they can turn it off independently of the
+    # chat itself. Only consulted when allow_messages is on (no messages arrive otherwise).
+    message_email_notifications = db.Column(db.Boolean, default=True, nullable=False, server_default="1")
+
     # Lifetime hitchhiking stats, recomputed from all ride events on every show.py
     # run (not maintained on ride submission). Shown in the profile "Insights"
     # section so the page doesn't have to aggregate every ride on each load.
@@ -75,6 +86,20 @@ class Notification(db.Model):
     message = db.Column(db.Text, nullable=False)
     # Optional in-app link the notification points to (e.g. "/create-trip"); NULL = no link.
     link = db.Column(db.String(255), nullable=True)
+    is_read = db.Column(db.Boolean, nullable=False, default=False, server_default="0")
+    created_at = db.Column(db.DateTime, nullable=False, default=db.func.now())
+
+
+class Message(db.Model):
+    # One message in a 1:1 chat between two registered users. There is no separate
+    # "conversation" row: a conversation is simply every Message where {sender, recipient}
+    # equals a given unordered pair, ordered by created_at. is_read tracks whether the
+    # recipient has opened the thread since it arrived (drives the unread badge and the
+    # once-per-burst email throttle in the messages blueprint).
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    recipient_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    body = db.Column(db.Text, nullable=False)
     is_read = db.Column(db.Boolean, nullable=False, default=False, server_default="0")
     created_at = db.Column(db.DateTime, nullable=False, default=db.func.now())
 

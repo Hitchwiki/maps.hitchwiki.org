@@ -45,6 +45,8 @@ def form():
         updated_user.trustroots_username = form.trustroots_username.data
         updated_user.email_notifications = form.email_notifications.data
         updated_user.nearby_hitchhikers_email = form.nearby_hitchhikers_email.data
+        updated_user.allow_messages = form.allow_messages.data
+        updated_user.message_email_notifications = form.message_email_notifications.data
         security.datastore.put(updated_user)
         security.datastore.commit()
         return redirect("/me")
@@ -58,6 +60,8 @@ def form():
     form.trustroots_username.data = current_user.trustroots_username
     form.email_notifications.data = current_user.email_notifications
     form.nearby_hitchhikers_email.data = current_user.nearby_hitchhikers_email
+    form.allow_messages.data = current_user.allow_messages
+    form.message_email_notifications.data = current_user.message_email_notifications
 
     return render_template("security/edit_user.html", form=form)
 
@@ -298,6 +302,11 @@ def show_account(username, is_me: bool = False):
     if can_follow:
         is_following = Follow.query.filter_by(follower_id=current_user.id, followed_id=user.id).first() is not None
 
+    # The Chat button only shows on another registered user's page, while logged in, and
+    # only if that user opted into receiving messages (allow_messages). Same gate the send
+    # endpoint enforces server-side, so the button never appears where a POST would 403.
+    can_message = user_known and not is_me and not current_user.is_anonymous and bool(user.allow_messages)
+
     return render_template(
         "security/account.html",
         user=user,
@@ -311,6 +320,7 @@ def show_account(username, is_me: bool = False):
         age=age,
         can_follow=can_follow,
         is_following=is_following,
+        can_message=can_message,
     )
 
 

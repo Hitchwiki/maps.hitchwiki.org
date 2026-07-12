@@ -74,6 +74,33 @@ def notify_co_hitchhiker_invite(invited_user_id, inviter_username):
     )
 
 
+def notify_new_message(recipient_id, sender_username):
+    """Tell a user they received a new chat message from `sender_username`.
+
+    Deduped on the (kind, link) pair rather than blindly appended: while a conversation is
+    unread we keep a single "new message" notification pointing at the thread and refresh
+    its timestamp, so an active back-and-forth doesn't bury the bell under ten identical
+    rows. Once the recipient opens the thread the notification is marked read, and the next
+    message creates a fresh one.
+    """
+    link = f"/messages/{sender_username}"
+    existing = (
+        Notification.query.filter_by(user_id=recipient_id, kind="message", link=link, is_read=False)
+        .order_by(Notification.created_at.desc())
+        .first()
+    )
+    if existing is not None:
+        existing.created_at = db.func.now()
+        db.session.commit()
+        return
+    add_notification(
+        recipient_id,
+        f"{sender_username} sent you a message.",
+        link=link,
+        kind="message",
+    )
+
+
 def notify_nearby_hitchhikers(user_id, usernames):
     """Tell a user which other hitchhikers were logged near them recently.
 
