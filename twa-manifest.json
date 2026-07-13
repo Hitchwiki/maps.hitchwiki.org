@@ -1,0 +1,58 @@
+{
+  "packageId": "org.hitchwiki.maps.twa",
+  "host": "maps.hitchwiki.org",
+  "name": "Hitchwiki Maps",
+  "launcherName": "HW Maps",
+  "display": "standalone",
+  "themeColor": "#F3DA71",
+  "themeColorDark": "#000000",
+  "navigationColor": "#000000",
+  "navigationColorDark": "#000000",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#F3DA71",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://maps.hitchwiki.org/static/logo_512.png",
+  "maskableIconUrl": "https://maps.hitchwiki.org/static/logo_512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "/home/till/Documents/hitchhiking/maps.hitchwiki.org/android.keystore",
+    "alias": "android"
+  },
+  "appVersionName": "1",
+  "appVersionCode": 1,
+  "shortcuts": [
+    {
+      "name": "Hitchhiking Map",
+      "shortName": "Hitchhiking ",
+      "url": "https://hitchhikingmap.com/",
+      "chosenIconUrl": "https://maps.hitchwiki.org/static/logo_512.png"
+    }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://maps.hitchwiki.org/static/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": {
+      "enabled": true
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://maps.hitchwiki.org/",
+  "minSdkVersion": 21,
+  "orientation": "any",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "protocolHandlers": [],
+  "fileHandlers": [],
+  "launchHandlerClientMode": "",
+  "displayOverride": [],
+  "appVersion": "1"
+}

@@ -3,9 +3,9 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "org.hitchwiki.maps",
+      "package_name": "org.hitchwiki.maps.twa",
       "sha256_cert_fingerprints": [
-        "REPLACE_WITH_SHA256_FINGERPRINT_FROM_BUBBLEWRAP"
+        "F8:B3:09:7A:5F:9F:04:E9:CE:95:C6:05:86:12:A2:D4:C7:2E:E6:6E:FC:3C:72:59:7B:EC:7F:DE:74:8C:AE:EC"
       ]
     }
   }

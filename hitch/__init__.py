@@ -275,6 +275,11 @@ def register_routes(app):
     def copyright():
         return render_template("copyright.html")
 
+    @app.route("/privacy")
+    @app.route("/privacy.html")
+    def privacy():
+        return render_template("privacy.html")
+
     # These files are manually served in such a way to conform to web standards of them being in the root
     @app.route("/favicon.ico")
     def favicon():

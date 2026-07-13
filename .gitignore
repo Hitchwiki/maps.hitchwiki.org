@@ -492,3 +492,22 @@ logs/*
 # themselves; these aren't part of the app, so keep them out of the repo.
 package.json
 package-lock.json
+
+# Android TWA (Bubblewrap) build artifacts. The signing keystore is a SECRET and
+# must never be committed — losing/leaking it means you can never ship an app
+# update. Build outputs are large and regenerable. twa-manifest.json (the config)
+# is intentionally NOT ignored so the TWA setup is reproducible.
+*.keystore
+*.aab
+*.apk
+*.idsig
+.gradle/
+app/
+build.gradle
+gradle.properties
+gradle/
+gradlew
+gradlew.bat
+settings.gradle
+manifest-checksum.txt
+store_icon.png
