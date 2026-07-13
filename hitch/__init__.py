@@ -298,6 +298,20 @@ def register_routes(app):
             "sw.js",
         )
 
+    # Digital Asset Links: proves this domain authorises the Android TWA wrapper
+    # (the Play Store app) to open its URLs full-screen without a browser address
+    # bar. Chrome fetches it from exactly /.well-known/assetlinks.json, so it must
+    # be served from the site root, not from static/. The package_name +
+    # sha256 fingerprint inside the file must match the signing keystore used by
+    # `bubblewrap build`, otherwise the app falls back to a Custom Tab with a URL bar.
+    @app.route("/.well-known/assetlinks.json")
+    def assetlinks():
+        return send_from_directory(
+            os.path.join(app.root_path, "static"),
+            "assetlinks.json",
+            mimetype="application/json",
+        )
+
     # Cache policy for public, versioned/generated files, in one place so it OVERRIDES
     # the no-cache + Vary: Cookie that Werkzeug (send_from_directory with no max_age) and
     # the session layer inject — both defeat caching of files that are safe to cache.
