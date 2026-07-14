@@ -28,7 +28,7 @@
         {
             "key": "amenity",
             "value": "fuel",
-            "object_types": ["node", "way", "relation"],
+            "object_types": ["node"],
             "description": "Gas stations near hitchhiking spots are read from OSM to flag spots that sit at a fuel station (a good place to ask drivers for a ride).",
             "doc_url": "https://wiki.openstreetmap.org/wiki/Tag:amenity=fuel"
         }
