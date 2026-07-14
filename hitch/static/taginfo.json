@@ -14,7 +14,7 @@
         {
             "key": "highway",
             "value": "hitchhiking",
-            "object_types": ["node", "way", "relation"],
+            "object_types": ["node"],
             "description": "Official designated hitchhiking spots are imported from OSM and shown as markers on the map; user-submitted rides within 100 m are linked to them.",
             "doc_url": "https://wiki.openstreetmap.org/wiki/Tag:highway=hitchhiking"
         },
