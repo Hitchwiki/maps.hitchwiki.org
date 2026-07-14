@@ -43,6 +43,17 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        // Initial camera: if location permission is ALREADY granted, center on last-known location
+        // without prompting (the FAB still owns the request flow). Otherwise the map opens at its
+        // default world view.
+        val hasLoc = androidx.core.content.ContextCompat.checkSelfPermission(
+                this, Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
+            androidx.core.content.ContextCompat.checkSelfPermission(
+                this, Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (hasLoc) {
+            lifecycleScope.launch { locationProvider.current()?.let { viewModel.onUserLocation(it) } }
+        }
+
         setContent {
             MaterialTheme {
                 AppNav(
