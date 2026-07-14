@@ -50,6 +50,7 @@ kotlin {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.sqldelight.android.driver)
             implementation(libs.androidx.activityCompose)
+            implementation(libs.maplibre.android)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
