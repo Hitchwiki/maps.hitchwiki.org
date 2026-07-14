@@ -20,6 +20,21 @@ logger = logging.getLogger(__name__)
 dirs = get_dirs()
 dist_dir = dirs["dist"]
 
+# Canonical site origin + per-city URL builder. Defined here (before the render
+# loop) so each city page can embed a self-referencing canonical that matches,
+# byte for byte, the sitemap entry built later.
+SITE_URL = "https://maps.hitchwiki.org"
+
+
+def _city_loc(country, city_name):
+    # Match the on-disk filename (cities.py replaces "/" with "-"), then
+    # percent-encode each path segment so spaces/diacritics produce valid URLs.
+    safe_filename = city_name.replace("/", "-")
+    country_seg = urllib.parse.quote(country)
+    city_seg = urllib.parse.quote(f"{safe_filename}.html")
+    return f"{SITE_URL}/city/{country_seg}/{city_seg}"
+
+
 # Load template environment
 env = Environment(loader=FileSystemLoader('hitch/templates'))
 city_template = env.get_template('city_template.html')
@@ -162,7 +177,12 @@ for i, city in enumerate(cities.itertuples(), start=1):
     rendered_cities.append(len(city_rides) >= 3)
     if rendered_cities[-1]:
         # logger.info(f"Rendering city page for {city.city}, {city.country} ({len(city_rides)} rides)")
-        rendered = city_template.render(city=city, title=city.city, reviews=city_rides)
+        rendered = city_template.render(
+            city=city,
+            title=city.city,
+            reviews=city_rides,
+            canonical_url=_city_loc(city.country, city.city),
+        )
         # Replace "/" with "-" to avoid filesystem issues
         safe_filename = city.city.replace("/", "-")
         with open(os.path.join(country_folder, f"{safe_filename}.html"), "w") as f:
@@ -180,7 +200,6 @@ with open(os.path.join(dist_dir, "city", "index.html"), "w") as f:
 # SEO pages (the rest of the site is the SPA map / JSON data, not worth indexing).
 # Built here because this is the only place that knows which cities actually got a
 # page (the rendered_cities mask) — pointing the sitemap at unrendered cities 404s.
-SITE_URL = "https://maps.hitchwiki.org"
 lastmod = date.today().isoformat()
 
 
@@ -193,15 +212,6 @@ def _sitemap_url(loc, priority):
         f"    <priority>{priority}</priority>\n"
         f"  </url>\n"
     )
-
-
-def _city_loc(country, city_name):
-    # Match the on-disk filename (cities.py replaces "/" with "-"), then
-    # percent-encode each path segment so spaces/diacritics produce valid URLs.
-    safe_filename = city_name.replace("/", "-")
-    country_seg = urllib.parse.quote(country)
-    city_seg = urllib.parse.quote(f"{safe_filename}.html")
-    return f"{SITE_URL}/city/{country_seg}/{city_seg}"
 
 
 # Static, server-rendered pages reachable from the map's menu / action buttons.

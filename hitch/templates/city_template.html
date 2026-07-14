@@ -1,8 +1,13 @@
 {% extends "security/base.html" %}
 
-{% block title %}
-{{title}} - Hitchhiking - Hitchwiki Map
-{% endblock %}
+{% block title %}{{ city.city }} - Hitchhiking - Hitchwiki Map{% endblock %}
+
+{% block meta_description %}Hitchhiking spots, community ratings and recent rides for {{ city.city }}{% if city.country %}, {{ city.country }}{% endif %}. See where drivers pick up and how long the wait is.{% endblock %}
+
+{% block og_title %}Hitchhiking in {{ city.city }}{% if city.country %}, {{ city.country }}{% endif %} – Hitchwiki Map{% endblock %}
+
+{% block og_description %}Community hitchhiking spots, ratings and recent rides for {{ city.city }}{% if city.country %}, {{ city.country }}{% endif %} on the Hitchwiki Map.{% endblock %}
+
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <div class="bg-white rounded-lg shadow-lg p-6">

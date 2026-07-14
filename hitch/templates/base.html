@@ -25,6 +25,10 @@
     <link rel="manifest" href="/manifest.json" />
 
     <title>{% block title %}{{ "%s | Hitchhiking Map"|format(title) if title else "Hitchhiking Map" }}{% endblock %}</title>
+    {# Self-referencing canonical, emitted only when a page passes canonical_url
+       (the per-city SEO pages). Prevents 14k near-identical <head>s from being
+       clustered as duplicates. Omitted (not left empty) for pages without one. #}
+    {% block canonical %}{% if canonical_url %}<link rel="canonical" href="{{ canonical_url }}" />{% endif %}{% endblock %}
     <meta name="description" content="{% block meta_description %}Discover hitchhiking spots worldwide on an interactive map. See community ratings, waiting times, and trip data. Share your own rides.{% endblock %}" />
     <meta property="og:title" content="{% block og_title %}Hitchhiking Map – Find & Share Hitchhiking Spots on a Map{% endblock %}" />
     <meta property="og:description" content="{% block og_description %}Discover hitchhiking spots worldwide on an interactive map. See community ratings, waiting times, and trip data. Share your own rides.{% endblock %}" />
@@ -34,7 +38,10 @@
     <meta property="og:site_name" content="Hitchwiki Maps" />
     {# base_url drops the query and fragment, so a link shared with filters or a
        #map= viewport still previews as the page it actually is. #}
-    <meta property="og:url" content="{% block og_url %}{{ request.base_url }}{% endblock %}" />
+    {# `request` exists only when Flask serves the page live; during static
+       generation (cities.py) it is undefined, so guard it with `is defined` or
+       the whole render aborts. Static city pages supply canonical_url instead. #}
+    <meta property="og:url" content="{% block og_url %}{{ canonical_url if canonical_url else (request.base_url if request is defined else '') }}{% endblock %}" />
     {# Only pages that can render a picture of themselves (currently a shared route)
        set og_image. Without an image a messenger shows a text-only card, which is
        the honest result for pages that have no single representative view. #}
