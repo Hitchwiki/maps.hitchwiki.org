@@ -12,7 +12,12 @@ import org.hitchwiki.maps.map.PlatformMap
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MapScreen(viewModel: MapViewModel, onRequestLocation: () -> Unit, modifier: Modifier = Modifier) {
+fun MapScreen(
+    viewModel: MapViewModel,
+    onRequestLocation: () -> Unit,
+    onOpenDetail: (String, Float, Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val state by viewModel.state.collectAsState()
     LaunchedEffect(Unit) { viewModel.load() }
 
@@ -47,26 +52,18 @@ fun MapScreen(viewModel: MapViewModel, onRequestLocation: () -> Unit, modifier: 
             modifier = Modifier.align(Alignment.BottomStart).padding(16.dp),
         ) { Text("◎") }
 
-        // Minimal detail summary (full sheet is P3).
         if (state.selectedSid != null) {
-            val d = state.selectedDetail
-            ModalBottomSheet(onDismissRequest = { viewModel.clearSelection() }) {
-                Column(Modifier.fillMaxWidth().padding(16.dp)) {
-                    if (state.detailLoading) {
-                        Text("Loading…")
-                    } else if (state.detailError != null) {
-                        Text("Couldn't load spot details.")
-                    } else if (d != null) {
-                        Text("Spot", style = MaterialTheme.typography.titleMedium)
-                        d.spot.wait?.let { Text("Avg wait: $it min") }
-                        d.spot.distance?.let { Text("Avg ride: $it km") }
-                        Text("Rides logged: ${d.rides.size}")
-                    } else {
-                        Text("No details available.")
-                    }
-                    Spacer(Modifier.height(24.dp))
-                }
-            }
+            SpotSummarySheet(
+                state = state,
+                onDismiss = { viewModel.clearSelection() },
+                onOpenDetail = {
+                    onOpenDetail(
+                        state.selectedSid!!,
+                        (state.selectedRating ?: 0.0).toFloat(),
+                        state.selectedReviewCount ?: 0,
+                    )
+                },
+            )
         }
     }
 }

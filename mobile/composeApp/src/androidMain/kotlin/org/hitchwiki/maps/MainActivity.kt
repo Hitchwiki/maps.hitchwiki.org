@@ -39,6 +39,8 @@ class MainActivity : ComponentActivity() {
                 MapScreen(
                     viewModel = viewModel,
                     onRequestLocation = { permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) },
+                    // TODO(Task 8): navigate to the full spot-detail screen once AppNav exists.
+                    onOpenDetail = { _, _, _ -> },
                 )
             }
         }
