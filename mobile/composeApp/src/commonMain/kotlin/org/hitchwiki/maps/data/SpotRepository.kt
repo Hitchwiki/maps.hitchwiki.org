@@ -2,16 +2,16 @@ package org.hitchwiki.maps.data
 import org.hitchwiki.maps.model.Spot
 
 class SpotRepository(private val api: HitchwikiApi, private val cache: SpotCache) {
-    /** Network-first: fetch, persist, return. On network failure fall back to the last
-     *  cached copy (offline field use). Rethrow only when the cache is also empty. */
+    // Network-first: only the fetch is guarded, so a cache-write failure propagates
+    // instead of masquerading as an offline event and returning stale data.
     suspend fun spots(forceRefresh: Boolean = false): List<Spot> {
-        return try {
-            val fresh = api.spots()
-            cache.saveSpots(fresh)
-            fresh
+        val fresh = try {
+            api.spots()
         } catch (e: Throwable) {
             val cached = cache.loadSpots()
-            if (cached.isNotEmpty()) cached else throw e
+            return if (cached.isNotEmpty()) cached else throw e
         }
+        cache.saveSpots(fresh)
+        return fresh
     }
 }

@@ -10,7 +10,12 @@ import org.hitchwiki.maps.model.Spot
 import org.hitchwiki.maps.model.SpotDetail
 
 fun defaultHttpClient(engine: HttpClientEngine): HttpClient =
-    HttpClient(engine) { install(ContentNegotiation) { json(appJson) } }
+    HttpClient(engine) {
+        // Non-2xx responses throw, so the repository's offline fallback fires on server
+        // errors even when the error body would otherwise parse as valid JSON.
+        expectSuccess = true
+        install(ContentNegotiation) { json(appJson) }
+    }
 
 class HitchwikiApi(private val client: HttpClient, private val baseUrl: String = BASE_URL) {
     suspend fun spots(): List<Spot> = client.get("$baseUrl/spots.json").body()
