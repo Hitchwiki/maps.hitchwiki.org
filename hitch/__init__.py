@@ -303,6 +303,18 @@ def register_routes(app):
             "sw.js",
         )
 
+    # Taginfo project file: lets OSM's taginfo (https://taginfo.openstreetmap.org)
+    # list this project under the OSM tags it consumes. Taginfo polls it daily; the
+    # URL registered in taginfo-projects is https://maps.hitchwiki.org/taginfo.json,
+    # so it must be served from the site root, not from /static/.
+    @app.route("/taginfo.json")
+    def taginfo():
+        return send_from_directory(
+            os.path.join(app.root_path, "static"),
+            "taginfo.json",
+            mimetype="application/json",
+        )
+
     # Digital Asset Links: proves this domain authorises the Android TWA wrapper
     # (the Play Store app) to open its URLs full-screen without a browser address
     # bar. Chrome fetches it from exactly /.well-known/assetlinks.json, so it must

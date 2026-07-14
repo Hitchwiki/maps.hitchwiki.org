@@ -1,0 +1,36 @@
+{
+    "data_format": 1,
+    "data_url": "https://maps.hitchwiki.org/taginfo.json",
+    "project": {
+        "name": "Hitchwiki Maps",
+        "description": "Community hitchhiking map that aggregates rides, official hitchhiking spots, car-pooling spots and gas stations.",
+        "project_url": "https://maps.hitchwiki.org",
+        "doc_url": "https://maps.hitchwiki.org",
+        "icon_url": "https://maps.hitchwiki.org/static/logo_192.png",
+        "contact_name": "Hitchwiki Maps",
+        "contact_email": "info@hitchwiki.org"
+    },
+    "tags": [
+        {
+            "key": "highway",
+            "value": "hitchhiking",
+            "object_types": ["node", "way", "relation"],
+            "description": "Official designated hitchhiking spots are imported from OSM and shown as markers on the map; user-submitted rides within 100 m are linked to them.",
+            "doc_url": "https://wiki.openstreetmap.org/wiki/Tag:highway=hitchhiking"
+        },
+        {
+            "key": "amenity",
+            "value": "car_pooling",
+            "object_types": ["node", "way", "relation"],
+            "description": "Car-pooling / ride-sharing meeting points are imported from OSM and surfaced as nearby car-pooling spots on the map.",
+            "doc_url": "https://wiki.openstreetmap.org/wiki/Tag:amenity=car_pooling"
+        },
+        {
+            "key": "amenity",
+            "value": "fuel",
+            "object_types": ["node", "way", "relation"],
+            "description": "Gas stations near hitchhiking spots are read from OSM to flag spots that sit at a fuel station (a good place to ask drivers for a ride).",
+            "doc_url": "https://wiki.openstreetmap.org/wiki/Tag:amenity=fuel"
+        }
+    ]
+}
