@@ -18,12 +18,12 @@ from hitch.helpers import dirs
 
 ROUTE_REQUEST_LOG_PATH = os.path.join(dirs["root"], "logs", "route_requests.csv")
 
-_HEADER = ["timestamp", "start_lat", "start_lon", "dest_lat", "dest_lon"]
+_HEADER = ["timestamp", "start_name", "start_lat", "start_lon", "dest_name", "dest_lat", "dest_lon"]
 
 
-def log_route_request(start_lat, start_lon, dest_lat, dest_lon):
-    """Record one requested route. Never raises: logging must not break the
-    (fire-and-forget) beacon request."""
+def log_route_request(start_lat, start_lon, dest_lat, dest_lon, start_name="", dest_name=""):
+    """Record one requested route, with the geocoded place names when available.
+    Never raises: logging must not break the (fire-and-forget) beacon request."""
     try:
         os.makedirs(os.path.dirname(ROUTE_REQUEST_LOG_PATH), exist_ok=True)
         write_header = not os.path.exists(ROUTE_REQUEST_LOG_PATH) or os.path.getsize(ROUTE_REQUEST_LOG_PATH) == 0
@@ -34,8 +34,10 @@ def log_route_request(start_lat, start_lon, dest_lat, dest_lon):
             writer.writerow(
                 [
                     datetime.now(timezone.utc).isoformat(),
+                    (start_name or "")[:200],
                     f"{start_lat:.5f}",
                     f"{start_lon:.5f}",
+                    (dest_name or "")[:200],
                     f"{dest_lat:.5f}",
                     f"{dest_lon:.5f}",
                 ]

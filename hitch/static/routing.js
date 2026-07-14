@@ -589,6 +589,9 @@
       const body = JSON.stringify({
         slat: +from[0].toFixed(5), slon: +from[1].toFixed(5),
         dlat: +to[0].toFixed(5), dlon: +to[1].toFixed(5),
+        // The geocoded/reverse-geocoded labels of each endpoint, if known.
+        sname: (RJ.start && RJ.start.label) || "",
+        dname: (RJ.dest && RJ.dest.label) || "",
       });
       const blob = new Blob([body], { type: "application/json" });
       if (navigator.sendBeacon) navigator.sendBeacon("/log-route-request", blob);

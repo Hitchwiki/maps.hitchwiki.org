@@ -339,7 +339,7 @@ def log_route_request_endpoint():
     except (KeyError, TypeError, ValueError):
         return ("", 204)
     if -90 <= slat <= 90 and -180 <= slon <= 180 and -90 <= dlat <= 90 and -180 <= dlon <= 180:
-        log_route_request(slat, slon, dlat, dlon)
+        log_route_request(slat, slon, dlat, dlon, data.get("sname", ""), data.get("dname", ""))
     return ("", 204)
 
 
