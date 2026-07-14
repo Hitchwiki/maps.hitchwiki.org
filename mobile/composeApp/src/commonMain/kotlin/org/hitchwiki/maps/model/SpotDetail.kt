@@ -5,14 +5,20 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class SpotDetail(val spot: SpotInfo = SpotInfo(), val rides: List<SpotRide> = emptyList())
 
+/** An OSM element reference. car_pooling and fuel are emitted as {id, osm_type} objects (not
+ *  strings) because these features are often tagged on ways/relations, not just nodes — both
+ *  parts are needed to build a stable openstreetmap.org/{osm_type}/{id} URL. */
+@Serializable
+data class OsmRef(val id: Long, @SerialName("osm_type") val osmType: String)
+
 // Click-time spot info slimmed out of spots.json; keys omitted when absent.
 @Serializable
 data class SpotInfo(
     val wait: Int? = null,
     val distance: Int? = null,
     @SerialName("osm_id") val osmId: Long? = null,
-    @SerialName("car_pooling") val carPooling: String? = null,
-    val fuel: String? = null,
+    @SerialName("car_pooling") val carPooling: OsmRef? = null,
+    val fuel: OsmRef? = null,
     @SerialName("hitchwiki_article") val hitchwikiArticle: String? = null,
     @SerialName("hitchwiki_map") val hitchwikiMap: String? = null,
 )

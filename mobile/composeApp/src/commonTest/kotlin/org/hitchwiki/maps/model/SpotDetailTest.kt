@@ -24,4 +24,16 @@ class SpotDetailTest {
         val d = appJson.decodeFromString<SpotDetail>("""{"spot":{},"rides":[]}""")
         assertNull(d.spot.wait); assertTrue(d.rides.isEmpty())
     }
+
+    // car_pooling and fuel are {id, osm_type} objects in the real per-spot JSON, not strings.
+    // Parsing them into OsmRef is what unblocks the OSM link chips (and would crash as String?).
+    @Test fun parsesCarPoolingAndFuelObjects() {
+        val d = appJson.decodeFromString<SpotDetail>(
+            """{"spot":{"car_pooling":{"id":123,"osm_type":"way"},"fuel":{"id":45,"osm_type":"node"}},"rides":[]}"""
+        )
+        assertEquals(123L, d.spot.carPooling?.id)
+        assertEquals("way", d.spot.carPooling?.osmType)
+        assertEquals(45L, d.spot.fuel?.id)
+        assertEquals("node", d.spot.fuel?.osmType)
+    }
 }
