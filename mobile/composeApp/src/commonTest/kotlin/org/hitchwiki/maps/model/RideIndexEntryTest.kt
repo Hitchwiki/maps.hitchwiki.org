@@ -9,6 +9,13 @@ class RideIndexEntryTest {
         "v":null,"m":null,"rd":null,"c":null}]
     """.trimIndent()
 
+    // Populated path: "rd" is an INTEGER epoch-ms in the real backend output, not a string.
+    private val populatedFixture = """
+      [{"id":"src-xyz","sid":"48.13743_11.57549","lat":48.13743,"lon":11.57549,
+        "u":"bob","t":1735548300000,"r":4,"km":42.5,"w":15,"osm":true,"wiki":true,"cp":false,
+        "v":"car","m":["thumb","sign"],"rd":1735548300000,"fuel":true,"c":"nice"}]
+    """.trimIndent()
+
     @Test fun parsesShortKeys() {
         val e = appJson.decodeFromString<List<RideIndexEntry>>(fixture).single()
         assertEquals("liftershalte.info-83b5f328", e.id)
@@ -17,5 +24,15 @@ class RideIndexEntryTest {
         assertNull(e.submittedMs); assertEquals(5, e.rating); assertNull(e.distanceKm)
         assertEquals(20, e.waitMin); assertFalse(e.osm)
         assertNull(e.vehicleKind); assertNull(e.signalMethods); assertNull(e.comment)
+        assertFalse(e.fuel)
+    }
+
+    @Test fun parsesPopulatedFieldsWithIntegerRideDatetime() {
+        val e = appJson.decodeFromString<List<RideIndexEntry>>(populatedFixture).single()
+        assertEquals(1735548300000L, e.rideDatetimeMs)
+        assertEquals(listOf("thumb", "sign"), e.signalMethods)
+        assertTrue(e.fuel)
+        assertEquals("car", e.vehicleKind)
+        assertEquals(42.5, e.distanceKm)
     }
 }

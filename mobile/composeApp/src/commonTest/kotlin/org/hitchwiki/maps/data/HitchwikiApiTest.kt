@@ -29,4 +29,16 @@ class HitchwikiApiTest {
         assertEquals("/rides/by-spot/38.65081_68.76809.json", path)
         assertEquals(5, d.spot.wait)
     }
+    @Test fun ridesIndexHitsRidesIndexJson() = runTest {
+        var path: String? = null
+        val a = api { req -> path = req.url.encodedPath; ok(
+            """[{"id":"src-xyz","sid":"48.13743_11.57549","lat":48.13743,"lon":11.57549,
+                "u":"bob","t":1735548300000,"r":4,"km":42.5,"w":15,"osm":true,"wiki":true,"cp":false,
+                "v":"car","m":["thumb","sign"],"rd":1735548300000,"fuel":true,"c":"nice"}]""") }
+        val rides = a.ridesIndex()
+        assertEquals("/rides_index.json", path)
+        assertEquals(1, rides.size)
+        assertEquals("src-xyz", rides[0].id)
+        assertEquals(1735548300000L, rides[0].rideDatetimeMs)
+    }
 }

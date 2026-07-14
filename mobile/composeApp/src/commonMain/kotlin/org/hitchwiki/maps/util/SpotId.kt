@@ -6,7 +6,7 @@ package org.hitchwiki.maps.util
 fun spotId(lat: Double, lon: Double): String = "${fixed5(lat)}_${fixed5(lon)}"
 
 private fun fixed5(v: Double): String {
-    // Round half-up to 5 decimals, then render with exactly 5 fractional digits.
+    // Round half-to-even (matches Python round()) to 5 decimals, then render with exactly 5 fractional digits.
     val scaled = kotlin.math.round(v * 100000.0).toLong()
     val sign = if (scaled < 0) "-" else ""
     val abs = kotlin.math.abs(scaled)

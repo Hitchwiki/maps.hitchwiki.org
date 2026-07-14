@@ -17,8 +17,9 @@ data class RideIndexEntry(
     val osm: Boolean = false,
     val wiki: Boolean = false,
     val cp: Boolean = false,
+    val fuel: Boolean = false,
     @SerialName("v") val vehicleKind: String? = null,
     @SerialName("m") val signalMethods: List<String>? = null,
-    @SerialName("rd") val rideDatetime: String? = null,
+    @SerialName("rd") val rideDatetimeMs: Long? = null,
     @SerialName("c") val comment: String? = null,
 )
