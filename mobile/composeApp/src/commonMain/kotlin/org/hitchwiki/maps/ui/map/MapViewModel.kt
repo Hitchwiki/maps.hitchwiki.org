@@ -18,6 +18,9 @@ class MapViewModel(
     private val _state = MutableStateFlow(MapUiState())
     val state: StateFlow<MapUiState> = _state.asStateFlow()
 
+    // sid → Spot, built once per load so selectSpot is O(1) over ~35k spots.
+    private var spotsBySid: Map<String, org.hitchwiki.maps.model.Spot> = emptyMap()
+
     fun load() {
         _state.update { it.copy(loading = true, error = null) }
         scope.launch {
@@ -26,6 +29,7 @@ class MapViewModel(
                 // Build the (potentially 35k-feature) GeoJSON once here rather than inside the
                 // update lambda, which MutableStateFlow.update may re-invoke on CAS contention.
                 val geo = buildSpotsGeoJson(fresh)
+                spotsBySid = fresh.associateBy { org.hitchwiki.maps.util.spotId(it.lat, it.lon) }
                 _state.update { it.copy(loading = false, spots = fresh, geoJson = geo) }
             } catch (e: Throwable) {
                 _state.update { it.copy(loading = false, error = e.message ?: "Failed to load spots") }
@@ -34,7 +38,11 @@ class MapViewModel(
     }
 
     fun selectSpot(sid: String) {
-        _state.update { it.copy(selectedSid = sid, selectedDetail = null, detailLoading = true, detailError = null) }
+        val s = spotsBySid[sid]
+        _state.update { it.copy(
+            selectedSid = sid, selectedDetail = null, detailLoading = true, detailError = null,
+            selectedRating = s?.rating, selectedReviewCount = s?.reviewCount,
+        ) }
         scope.launch {
             try {
                 val d = details.detail(sid)
@@ -56,8 +64,10 @@ class MapViewModel(
         }
     }
 
-    fun clearSelection() =
-        _state.update { it.copy(selectedSid = null, selectedDetail = null, detailLoading = false, detailError = null) }
+    fun clearSelection() = _state.update { it.copy(
+        selectedSid = null, selectedDetail = null, detailLoading = false, detailError = null,
+        selectedRating = null, selectedReviewCount = null,
+    ) }
 
     fun onUserLocation(loc: LatLng) =
         _state.update { it.copy(userLocation = loc, cameraTarget = loc) }
