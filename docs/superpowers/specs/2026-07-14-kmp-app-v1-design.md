@@ -5,16 +5,25 @@
 
 ## Goal
 
-Convert the Hitchwiki Maps experience into **native Android + iOS apps** built with
+Convert the Hitchwiki Maps experience into **native mobile apps** built with
 **Kotlin Multiplatform (KMP) + Compose Multiplatform (CMP)**. The motivation is native
 mobile apps (app-store presence, native GPS/maps, push, offline field use) — the existing
 web PWA is not sufficient on mobile.
+
+**MVP is Android only.** iOS is a first-class *design* target, not an MVP *ship* target:
+we build with KMP/CMP and keep all platform-specific code behind `expect/actual` boundaries
+so iOS can be brought up later with minimal rework, but the first shippable version targets
+Android alone. Practically this means we don't block MVP progress on iOS-specific unknowns
+(MapLibre-on-iOS interop, CocoaPods, Xcode signing), while never taking an Android shortcut
+that would paint iOS into a corner.
 
 The Python backend (`hitch/`) and its generated `dist/` JSON stay the source of truth.
 The mobile app is a **client** of that backend, not a replacement for it.
 
 ## Non-goals (v1)
 
+- **Shipping an iOS build.** iOS is designed-for (shared KMP code, `expect/actual`
+  boundaries kept clean) but not brought up, tested, or released in the MVP.
 - Desktop or web Kotlin targets (possible later; not now).
 - Routing / directions (the repeatable-routes planner) — deferred to a later phase.
 - Replacing the web frontend (`map.js` / `routing.js`) — the web app is untouched.
@@ -24,12 +33,12 @@ The mobile app is a **client** of that backend, not a replacement for it.
 
 | Decision | Choice |
 |---|---|
-| Kotlin target | Kotlin Multiplatform — Android + iOS (v1) |
+| Kotlin target | Kotlin Multiplatform — **Android MVP**, iOS designed-for (later) |
 | Primary driver | Native mobile apps (stores, GPS, push, offline) |
 | UI | Compose Multiplatform (shared UI across Android + iOS) |
 | Map | MapLibre native + offline OSM vector-tile packs (PMTiles) |
 | v1 features | Map + spot browsing, offline map packs, ride submission + login |
-| Deferred | Routing/directions, desktop/web target |
+| Deferred | Routing/directions, iOS ship, desktop/web target |
 | Write path | App submits through the Python backend (single server `NSEC` stays server-side) |
 | Repo | Fork this repo; add the KMP app under a top-level `mobile/` dir |
 | Build order | Layer by layer (core → data → ui), with an early MapLibre spike to de-risk |
@@ -49,9 +58,13 @@ maps.hitchwiki.org/                (fork)
     │   ├── :core                   models, DTOs, kotlinx.serialization
     │   ├── :data                   Ktor client, repositories, SQLDelight cache, outbox
     │   └── :ui                     Compose Multiplatform screens + viewmodels
-    ├── iosApp/                     Xcode host project (thin)
-    └── androidApp/                 Android host (thin)
+    ├── iosApp/                     Xcode host project (thin) — scaffolded, not shipped in MVP
+    └── androidApp/                 Android host (thin) — MVP ship target
 ```
+
+The `iosApp/` host is scaffolded from the start so the shared code keeps compiling for the
+iOS target and the `expect/actual` surface stays honest, but it is not a build/test/release
+target for the MVP.
 
 Clean layered boundaries (matching the chosen build order): **core → data → ui**, each
 independently testable. Each layer depends only on the one below it.
@@ -136,14 +149,17 @@ Keeping everything behind `/api/` means the existing web app is untouched.
 
 Each phase gets its own spec → plan → implement cycle.
 
-- **P0 — Scaffold.** KMP+CMP project under `mobile/`; builds and runs an empty app on both
-  Android and iOS; CI green. Fork/repo setup happens here.
+- **P0 — Scaffold.** KMP+CMP project under `mobile/`; builds and runs an empty app on
+  Android (MVP ship target); the `iosApp/` host is scaffolded so shared code keeps
+  compiling for the iOS target, but iOS is not run/tested; CI green. Fork/repo setup here.
 - **P1 — Data layer.** Ktor client + kotlinx.serialization models for `dist/` JSON +
-  SQLDelight repositories; unit-tested against real JSON fixtures. Includes the **MapLibre
-  spike** (a throwaway proof that MapLibre renders inside CMP on both platforms) to de-risk
-  the biggest unknown before the map phase.
-- **P2 — Map layer.** MapLibre `expect/actual`; base map + spot markers from the repository
-  on both platforms; one offline PMTiles region proven end to end.
+  SQLDelight repositories; unit-tested against real JSON fixtures. Includes a **MapLibre
+  spike on Android** (throwaway proof that MapLibre renders inside CMP) to de-risk the map
+  phase. The iOS MapLibre interop spike is deferred to whenever iOS bring-up starts — it is
+  no longer an MVP blocker.
+- **P2 — Map layer.** MapLibre `expect/actual` (Android actual implemented; iOS actual
+  stubbed/`TODO` behind the same interface); base map + spot markers from the repository on
+  Android; one offline PMTiles region proven end to end on Android.
 - **P3 — UI.** Compose screens: map, spot-detail sheet, filters/search, recent-rides list.
 - **P4 — Auth.** Mobile OAuth + bearer token + secure storage; backend `/api/auth/*`.
 - **P5 — Write.** Ride form + outbox + offline retry; backend bearer/JSON `/ride`.
@@ -155,18 +171,21 @@ Each phase gets its own spec → plan → implement cycle.
 - `commonMain` unit tests (kotlin.test): JSON parsing, repositories, outbox/idempotency,
   filter logic.
 - Backend: pytest for the new `/api/auth` endpoints and bearer/JSON `/ride`.
-- Map/UI: verified on emulator/device by the user (headless browsers/emulators are not run
-  in the agent environment). Optional Android screenshot tests (Paparazzi).
+- Map/UI: verified on Android emulator/device by the user (headless browsers/emulators are
+  not run in the agent environment). Optional Android screenshot tests (Paparazzi). iOS is
+  not tested in the MVP.
 
 ## Risks & external dependencies
 
 - **MapLibre-in-CMP on iOS** — custom `expect/actual` interop (CocoaPods/Swift), community
-  support varies. Mitigated by the P1 spike.
+  support varies. **Deferred out of the MVP** (Android-only ship); becomes a risk to spike
+  when iOS bring-up starts. Kept off the critical path by the Android-first MVP.
 - **Offline tile pipeline** — Planetiler/PMTiles generation + hosting is real infra work;
   scope it during P6 (or earlier as a side track).
-- **iOS build** — needs a Mac + Xcode (developer is on macOS ✓).
-- **Store accounts** — Apple ($99/yr) and Google Play accounts are needed only to ship, not
-  to build.
+- **iOS bring-up (post-MVP)** — needs a Mac + Xcode (developer is on macOS ✓), plus the
+  iOS MapLibre actual and iOS signing. Deliberately outside MVP scope.
+- **Store accounts** — Google Play account needed to ship the MVP; Apple ($99/yr) only when
+  iOS ships later.
 
 ## Open questions for later phases (not blocking v1 P0–P1)
 
