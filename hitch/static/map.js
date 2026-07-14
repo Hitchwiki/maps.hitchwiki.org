@@ -374,6 +374,22 @@ function populateHeatmapLegend(legendData) {
 })();
 
 
+// Beacon the picked search result to the server so we can see which places
+// people look up — the geocoder runs client-side, so this is the only signal.
+// sendBeacon is fire-and-forget and survives the page being navigated away.
+function logSearchRequest(geocode) {
+  try {
+    if (!geocode || !geocode.center) return;
+    const body = JSON.stringify({
+      name: geocode.name || "",
+      lat: +geocode.center.lat.toFixed(5),
+      lon: +geocode.center.lng.toFixed(5),
+    });
+    const blob = new Blob([body], { type: "application/json" });
+    if (navigator.sendBeacon) navigator.sendBeacon("/log-search-request", blob);
+  } catch (e) { /* logging must never break search */ }
+}
+
 // Set up the geocoder for location search
 function setupGeocoder() {
   var geocoderOpts = {
@@ -422,6 +438,7 @@ function setupGeocoder() {
 
   geocoderController.on("markgeocode", function (e) {
     var zoom = geocoderOpts.zoom || map.getZoom();
+    logSearchRequest(e.geocode);   // record which place was searched (server has no other signal)
     map.setView(e.geocode.center, zoom);
     geocoderInput.value = "";
   });

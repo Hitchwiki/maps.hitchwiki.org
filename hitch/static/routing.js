@@ -510,6 +510,7 @@
     const search = RJ.searchToken = {};   // a later compute() invalidates this one
     RJ._computeTimer = setTimeout(() => {
       const from = RJ.start.latlng, to = RJ.dest.latlng;
+      logRouteRequest(from, to);   // record which route was asked for (server has no other signal)
       const res = alternatives(RJ.router, from, to, DEFAULT_MAX_WALK, 3, 0.6);
       clearRoutes(); // drop anything a previous run left before drawing fresh
       if (res.length) { showRoutes(res); return; }
@@ -579,6 +580,20 @@
   // replaceState (not assignment) avoids firing a navigate/popstate loop; a fresh
   // load / paste is handled in init().
   const DIR_PATH_RE = /^\/dir\/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)\/?$/;
+
+  // Beacon the requested route to the server so we can see which corridors are in
+  // demand — routing is computed client-side, so this is the only server signal.
+  // sendBeacon is fire-and-forget and survives the page being navigated away.
+  function logRouteRequest(from, to) {
+    try {
+      const body = JSON.stringify({
+        slat: +from[0].toFixed(5), slon: +from[1].toFixed(5),
+        dlat: +to[0].toFixed(5), dlon: +to[1].toFixed(5),
+      });
+      const blob = new Blob([body], { type: "application/json" });
+      if (navigator.sendBeacon) navigator.sendBeacon("/log-route-request", blob);
+    } catch (e) { /* logging must never break routing */ }
+  }
 
   function updateShareUrl() {
     if (!RJ.start || !RJ.dest) return;

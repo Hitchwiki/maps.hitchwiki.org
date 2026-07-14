@@ -44,6 +44,8 @@ from hitch.blueprints.utils.notifications import notify_co_hitchhiker_invite, un
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON, REPORT_REASONS
 from hitch.blueprints.utils.ride_ip_log import get_client_ip, log_ride_ip
+from hitch.blueprints.utils.route_request_log import log_route_request
+from hitch.blueprints.utils.search_request_log import log_search_request
 from hitch.extensions import db
 from hitch.helpers import get_db, get_dirs
 from hitch.models import CoHitchhiker, Follow, ProposedSpot, RideEvent, RideReport, User
@@ -322,6 +324,38 @@ def render_directions(start, dest):
         is_logged_in=not current_user.is_anonymous,
         unread_notifications=unread_count(current_user),
     )
+
+
+# Fire-and-forget beacon from routing.js each time the in-app planner runs a
+# search. Route planning is entirely client-side, so this is the only place the
+# server learns which corridors people ask for. Always returns 204 — the client
+# uses navigator.sendBeacon and never reads the response.
+@main_bp.route("/log-route-request", methods=["POST"])
+def log_route_request_endpoint():
+    data = request.get_json(silent=True) or {}
+    try:
+        slat, slon = float(data["slat"]), float(data["slon"])
+        dlat, dlon = float(data["dlat"]), float(data["dlon"])
+    except (KeyError, TypeError, ValueError):
+        return ("", 204)
+    if -90 <= slat <= 90 and -180 <= slon <= 180 and -90 <= dlat <= 90 and -180 <= dlon <= 180:
+        log_route_request(slat, slon, dlat, dlon)
+    return ("", 204)
+
+
+# Fire-and-forget beacon from map.js each time a place is picked from the search
+# bar. The geocoder runs client-side, so this is the only place the server learns
+# which places people search for. Always returns 204 (client uses sendBeacon).
+@main_bp.route("/log-search-request", methods=["POST"])
+def log_search_request_endpoint():
+    data = request.get_json(silent=True) or {}
+    try:
+        lat, lon = float(data["lat"]), float(data["lon"])
+    except (KeyError, TypeError, ValueError):
+        return ("", 204)
+    if -90 <= lat <= 90 and -180 <= lon <= 180:
+        log_search_request(data.get("name", ""), lat, lon)
+    return ("", 204)
 
 
 @main_bp.route("/dir/<start>/<dest>/preview.png")
