@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 import org.hitchwiki.maps.data.*
 import org.hitchwiki.maps.db.HitchwikiDb
 import org.hitchwiki.maps.location.LocationProvider
-import org.hitchwiki.maps.ui.map.MapScreen
+import org.hitchwiki.maps.ui.AppNav
 import org.hitchwiki.maps.ui.map.MapViewModel
 
 class MainActivity : ComponentActivity() {
@@ -36,11 +36,11 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MaterialTheme {
-                MapScreen(
-                    viewModel = viewModel,
+                AppNav(
+                    mapViewModel = viewModel,
+                    detailSource = details,
+                    scope = lifecycleScope,
                     onRequestLocation = { permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) },
-                    // TODO(Task 8): navigate to the full spot-detail screen once AppNav exists.
-                    onOpenDetail = { _, _, _ -> },
                 )
             }
         }
