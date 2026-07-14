@@ -25,13 +25,18 @@ class MapViewModel(
         _state.update { it.copy(loading = true, error = null) }
         scope.launch {
             try {
+                println("HitchwikiLoad: fetching spots")
                 val fresh = spots.spots()
+                println("HitchwikiLoad: got ${fresh.size} spots")
                 // Build the (potentially 35k-feature) GeoJSON once here rather than inside the
                 // update lambda, which MutableStateFlow.update may re-invoke on CAS contention.
                 val geo = buildSpotsGeoJson(fresh)
+                println("HitchwikiLoad: built geojson len=${geo.length}")
                 spotsBySid = fresh.associateBy { org.hitchwiki.maps.util.spotId(it.lat, it.lon) }
                 _state.update { it.copy(loading = false, spots = fresh, geoJson = geo) }
+                println("HitchwikiLoad: state updated")
             } catch (e: Throwable) {
+                println("HitchwikiLoad: FAILED ${e::class.simpleName}: ${e.message}")
                 _state.update { it.copy(loading = false, error = e.message ?: "Failed to load spots") }
             }
         }

@@ -171,8 +171,10 @@ actual fun PlatformMap(state: MapState, callbacks: MapCallbacks, modifier: Modif
             // pending camera target via the already-ready map, without touching style/layers/listeners.
             mapRef.value?.let { m ->
                 if (lastPushed.value != state.geoJson) {
+                    android.util.Log.d("HitchwikiMap", "setGeoJson len=${state.geoJson.length}")
                     m.style?.getSourceAs<GeoJsonSource>(SRC)?.setGeoJson(state.geoJson)
                     lastPushed.value = state.geoJson
+                    android.util.Log.d("HitchwikiMap", "setGeoJson done")
                 }
                 state.cameraTarget?.let {
                     m.animateCamera(CameraUpdateFactory.newLatLngZoom(MlLatLng(it.lat, it.lon), 12.0))

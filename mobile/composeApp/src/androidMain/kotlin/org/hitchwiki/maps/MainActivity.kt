@@ -18,6 +18,15 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // DIAGNOSTICS ONLY: log any uncaught throwable (from any thread) before delegating to
+        // the previous handler, so an unreproduced first-run crash leaves a trace in logcat.
+        // Behavior is unchanged -- the previous handler still runs afterwards.
+        val prev = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            android.util.Log.e("HitchwikiCrash", "Uncaught on ${thread.name}", throwable)
+            prev?.uncaughtException(thread, throwable)
+        }
+
         // Build the P1 data graph. DatabaseDriverFactory's Android actual takes a Context.
         val db = HitchwikiDb(DatabaseDriverFactory(applicationContext).create())
         val api = HitchwikiApi(defaultHttpClient(OkHttp.create()))
