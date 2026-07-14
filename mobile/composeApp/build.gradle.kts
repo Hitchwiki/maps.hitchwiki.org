@@ -51,6 +51,7 @@ kotlin {
             implementation(libs.sqldelight.android.driver)
             implementation(libs.androidx.activityCompose)
             implementation(libs.maplibre.android)
+            implementation(libs.play.services.location)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)

@@ -3,6 +3,9 @@
 
     <!-- Required for MapLibre vector tile fetching (osm_us_style.json) and the app's own API calls. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Required for fused/last-known location lookups in LocationProvider. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
     <application
         android:allowBackup="true"
