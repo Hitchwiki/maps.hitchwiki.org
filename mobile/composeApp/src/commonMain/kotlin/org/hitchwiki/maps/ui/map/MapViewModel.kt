@@ -23,7 +23,10 @@ class MapViewModel(
         scope.launch {
             try {
                 val fresh = spots.spots()
-                _state.update { it.copy(loading = false, spots = fresh, geoJson = buildSpotsGeoJson(fresh)) }
+                // Build the (potentially 35k-feature) GeoJSON once here rather than inside the
+                // update lambda, which MutableStateFlow.update may re-invoke on CAS contention.
+                val geo = buildSpotsGeoJson(fresh)
+                _state.update { it.copy(loading = false, spots = fresh, geoJson = geo) }
             } catch (e: Throwable) {
                 _state.update { it.copy(loading = false, error = e.message ?: "Failed to load spots") }
             }
@@ -31,20 +34,30 @@ class MapViewModel(
     }
 
     fun selectSpot(sid: String) {
-        _state.update { it.copy(selectedSid = sid, selectedDetail = null, detailLoading = true) }
+        _state.update { it.copy(selectedSid = sid, selectedDetail = null, detailLoading = true, detailError = null) }
         scope.launch {
             try {
                 val d = details.detail(sid)
                 // Ignore a late result if the user already selected/closed another spot.
-                _state.update { if (it.selectedSid == sid) it.copy(selectedDetail = d, detailLoading = false) else it }
+                _state.update {
+                    if (it.selectedSid == sid) it.copy(selectedDetail = d, detailLoading = false, detailError = null) else it
+                }
             } catch (e: Throwable) {
-                _state.update { if (it.selectedSid == sid) it.copy(detailLoading = false) else it }
+                // Surface the failure instead of leaving detailLoading=false with no signal,
+                // which the UI would otherwise render as a permanent "Loading…" sheet.
+                _state.update {
+                    if (it.selectedSid == sid) {
+                        it.copy(detailLoading = false, detailError = e.message ?: "Failed to load spot details")
+                    } else {
+                        it
+                    }
+                }
             }
         }
     }
 
     fun clearSelection() =
-        _state.update { it.copy(selectedSid = null, selectedDetail = null, detailLoading = false) }
+        _state.update { it.copy(selectedSid = null, selectedDetail = null, detailLoading = false, detailError = null) }
 
     fun onUserLocation(loc: LatLng) =
         _state.update { it.copy(userLocation = loc, cameraTarget = loc) }

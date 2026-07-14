@@ -50,6 +50,9 @@ actual fun PlatformMap(state: MapState, callbacks: MapCallbacks, modifier: Modif
     // setup on every recomposition (getMapAsync's callback fires immediately once the map is
     // already ready) and risk double-registering the click listener.
     val mapRef = remember { mutableStateOf<MapLibreMap?>(null) }
+    // Tracks the last GeoJSON string actually pushed to the source, so `update` can skip
+    // re-parsing the multi-MB (~35k-feature) source on every recomposition when it hasn't changed.
+    val lastPushed = remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
 
     // MapLibre's MapView needs Activity/Fragment lifecycle events forwarded to it (it manages a
     // native GL context that must start/stop with the surrounding lifecycle) -- AndroidView's
@@ -167,7 +170,10 @@ actual fun PlatformMap(state: MapState, callbacks: MapCallbacks, modifier: Modif
             // On recomposition, push the latest GeoJSON to the existing source and consume any
             // pending camera target via the already-ready map, without touching style/layers/listeners.
             mapRef.value?.let { m ->
-                m.style?.getSourceAs<GeoJsonSource>(SRC)?.setGeoJson(state.geoJson)
+                if (lastPushed.value != state.geoJson) {
+                    m.style?.getSourceAs<GeoJsonSource>(SRC)?.setGeoJson(state.geoJson)
+                    lastPushed.value = state.geoJson
+                }
                 state.cameraTarget?.let {
                     m.animateCamera(CameraUpdateFactory.newLatLngZoom(MlLatLng(it.lat, it.lon), 12.0))
                     callbacks.onCameraConsumed()

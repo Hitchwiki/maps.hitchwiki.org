@@ -11,6 +11,7 @@ data class MapUiState(
     val selectedSid: String? = null,
     val selectedDetail: SpotDetail? = null,
     val detailLoading: Boolean = false,
+    val detailError: String? = null,
     val userLocation: LatLng? = null,
     // Non-null when the map should animate to a new center; the map clears it after consuming.
     val cameraTarget: LatLng? = null,

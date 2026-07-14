@@ -52,13 +52,17 @@ fun MapScreen(viewModel: MapViewModel, onRequestLocation: () -> Unit, modifier: 
             val d = state.selectedDetail
             ModalBottomSheet(onDismissRequest = { viewModel.clearSelection() }) {
                 Column(Modifier.fillMaxWidth().padding(16.dp)) {
-                    if (state.detailLoading || d == null) {
+                    if (state.detailLoading) {
                         Text("Loading…")
-                    } else {
+                    } else if (state.detailError != null) {
+                        Text("Couldn't load spot details.")
+                    } else if (d != null) {
                         Text("Spot", style = MaterialTheme.typography.titleMedium)
                         d.spot.wait?.let { Text("Avg wait: $it min") }
                         d.spot.distance?.let { Text("Avg ride: $it km") }
                         Text("Rides logged: ${d.rides.size}")
+                    } else {
+                        Text("No details available.")
                     }
                     Spacer(Modifier.height(24.dp))
                 }

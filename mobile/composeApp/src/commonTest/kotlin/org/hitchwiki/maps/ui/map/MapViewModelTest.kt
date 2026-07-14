@@ -63,4 +63,15 @@ class MapViewModelTest {
         assertEquals(LatLng(48.0, 11.0), vm.state.value.userLocation)
         assertEquals(LatLng(48.0, 11.0), vm.state.value.cameraTarget)
     }
+    @Test fun selectSpotDetailFailureSetsErrorNotStuckLoading() = runTest {
+        val failing = object : org.hitchwiki.maps.data.SpotDetailSource {
+            override suspend fun detail(sid: String): org.hitchwiki.maps.model.SpotDetail = throw RuntimeException("boom")
+        }
+        val vm = MapViewModel(repoReturning("""[]"""), failing, this)
+        vm.selectSpot("x"); advanceUntilIdle()
+        val s = vm.state.value
+        assertFalse(s.detailLoading)        // not stuck loading
+        assertNull(s.selectedDetail)
+        assertNotNull(s.detailError)        // error surfaced
+    }
 }
