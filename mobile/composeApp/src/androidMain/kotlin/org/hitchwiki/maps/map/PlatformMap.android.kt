@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
@@ -31,6 +32,12 @@ private const val LYR_POINT = "spots-points"
 actual fun PlatformMap(state: MapState, callbacks: MapCallbacks, modifier: Modifier) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    // The click listener below is registered once inside AndroidView's `factory` and would
+    // otherwise close over the `callbacks` instance from the FIRST composition -- MapScreen
+    // creates a fresh MapCallbacks on every recomposition, so a stale closure would silently
+    // stop forwarding clicks to the current callbacks. rememberUpdatedState keeps a live pointer
+    // the once-registered listener can read at call time instead.
+    val currentCallbacks = rememberUpdatedState(callbacks)
 
     // MapView is created once (outside AndroidView's factory) so both the lifecycle-forwarding
     // DisposableEffect below and AndroidView's factory can reference the same instance.
@@ -77,6 +84,12 @@ actual fun PlatformMap(state: MapState, callbacks: MapCallbacks, modifier: Modif
         factory = {
             // Runs once per MapView instance: registers the style/layers/click-listener exactly
             // once. Recompositions update the already-ready map via mapRef in the `update` block.
+            // Style/tile loads happen off the setStyle callback's control flow (network fetches,
+            // asset parsing), so a failure would otherwise leave a silently blank map -- surface
+            // it to logcat for the manual emulator test.
+            mapView.addOnDidFailLoadingMapListener { errorMessage ->
+                android.util.Log.e("PlatformMap", "Map failed to load: $errorMessage")
+            }
             mapView.getMapAsync { map ->
                 mapRef.value = map
                 map.setStyle(Style.Builder().fromUri("asset://osm_us_style.json")) { style ->
@@ -129,7 +142,7 @@ actual fun PlatformMap(state: MapState, callbacks: MapCallbacks, modifier: Modif
                         val hits = map.queryRenderedFeatures(screen, LYR_POINT)
                         val sid = hits.firstOrNull()?.getStringProperty("sid")
                         if (sid != null) {
-                            callbacks.onSpotClick(sid)
+                            currentCallbacks.value.onSpotClick(sid)
                             return@addOnMapClickListener true
                         }
                         // Tapped a cluster? zoom in one step to expand it.
