@@ -26,7 +26,8 @@ class MapViewModelSelectedTest {
     @Test fun selectSpotSetsRatingAndCountFromLoadedSpot() = runTest {
         // spot at lat 1.0 lon 2.0 → sid "1.00000_2.00000", rating 4.0, review_count 7
         val vm = MapViewModel(
-            repoReturning("""[{"lat":1.0,"lon":2.0,"rating":4.0,"review_count":7}]"""), noDetail, this)
+            repoReturning("""[{"lat":1.0,"lon":2.0,"rating":4.0,"review_count":7}]"""), noDetail, this,
+            StandardTestDispatcher(testScheduler))
         vm.load(); advanceUntilIdle()
         vm.selectSpot("1.00000_2.00000"); advanceUntilIdle()
         assertEquals(4.0, vm.state.value.selectedRating)
@@ -34,14 +35,15 @@ class MapViewModelSelectedTest {
     }
     @Test fun clearSelectionResetsRatingAndCount() = runTest {
         val vm = MapViewModel(
-            repoReturning("""[{"lat":1.0,"lon":2.0,"rating":4.0,"review_count":7}]"""), noDetail, this)
+            repoReturning("""[{"lat":1.0,"lon":2.0,"rating":4.0,"review_count":7}]"""), noDetail, this,
+            StandardTestDispatcher(testScheduler))
         vm.load(); advanceUntilIdle()
         vm.selectSpot("1.00000_2.00000"); advanceUntilIdle()
         vm.clearSelection()
         assertNull(vm.state.value.selectedRating); assertNull(vm.state.value.selectedReviewCount)
     }
     @Test fun unknownSidLeavesRatingNull() = runTest {
-        val vm = MapViewModel(repoReturning("""[]"""), noDetail, this)
+        val vm = MapViewModel(repoReturning("""[]"""), noDetail, this, StandardTestDispatcher(testScheduler))
         vm.load(); advanceUntilIdle()
         vm.selectSpot("9.99999_9.99999"); advanceUntilIdle()
         assertNull(vm.state.value.selectedRating)

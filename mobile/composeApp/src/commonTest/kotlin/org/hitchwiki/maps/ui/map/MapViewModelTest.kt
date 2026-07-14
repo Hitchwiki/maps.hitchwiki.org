@@ -33,7 +33,7 @@ class MapViewModelTest {
     @Test fun loadPopulatesSpotsAndGeoJson() = runTest {
         val vm = MapViewModel(
             repoReturning("""[{"lat":1.0,"lon":2.0,"rating":4.0,"review_count":3}]"""),
-            FakeDetails(SpotDetail()), this)
+            FakeDetails(SpotDetail()), this, StandardTestDispatcher(testScheduler))
         vm.load(); advanceUntilIdle()
         val s = vm.state.value
         assertFalse(s.loading); assertEquals(1, s.spots.size)
