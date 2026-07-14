@@ -1,0 +1,28 @@
+# The repo-root .gitignore has blanket rules (from a prior Android TWA/Bubblewrap
+# setup) that ignore gradle/, gradlew, gradlew.bat, gradle.properties anywhere in
+# the tree — those files there were disposable build output, but here they're the
+# committed Gradle wrapper + version catalog for this KMP project. Un-ignore them.
+!gradle/
+!gradle/**
+!gradlew
+!gradlew.bat
+!gradle.properties
+
+# Local machine config — never commit
+local.properties
+
+# Gradle
+.gradle/
+build/
+**/build/
+
+# IDE
+.idea/
+*.iml
+.kotlin/
+
+# iOS / Xcode
+iosApp/**/xcuserdata/
+iosApp/**/*.xcuserstate
+iosApp/**/DerivedData/
+.DS_Store
