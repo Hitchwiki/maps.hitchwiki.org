@@ -908,6 +908,9 @@ async function loadCountrySheetLead(name) {
 async function openCountrySheet(name) {
   clear();
   $$("#country-sheet-name").textContent = name;
+  // Share the deep link that reopens this country sheet (#country/<name>).
+  $$("#share-country-btn").dataset.shareUrl = `${location.origin}/#country/${encodeURIComponent(name)}`;
+  $$("#share-country-btn").dataset.shareTitle = `Hitchhiking in ${name} – Hitchwiki Maps`;
   $$("#country-sheet-rating").style.display = "none";
   $$("#country-sheet-insights").hidden = true;
   $$("#country-sheet-lead").innerHTML = `<p class="country-status">Loading from Hitchwiki…</p>`;
@@ -1142,6 +1145,9 @@ function openEventSheet(ev) {
   $$("#event-sheet-name").textContent = ev.name || "Event";
   $$("#event-sheet-dates").textContent = formatEventDates(ev);
   const wikiUrl = ev.url || COUNTRY_WIKI_BASE + encodeURIComponent((ev.title || ev.name || "").replace(/ /g, "_"));
+  // Sharing an event shares the Hitchwiki page it comes from, not a map URL.
+  $$("#share-event-btn").dataset.shareUrl = wikiUrl;
+  $$("#share-event-btn").dataset.shareTitle = ev.name || "Hitchhiking event";
   $$("#event-sheet-source").innerHTML = ev.title
     ? `Text from <a href="${escapeHtml(wikiUrl)}" target="_blank" rel="noopener">Hitchwiki: ${escapeHtml(ev.title)}</a>, ` +
       `licensed <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA</a>.`
@@ -2191,34 +2197,8 @@ function markerClick(marker) {
   // client keeps it, and is safely ignorable when it's stripped.
   const spotPath = `/spot/${data.lat.toFixed(5)}_${data.lon.toFixed(5)}`;
   const spotUrl = `${location.origin}${spotPath}#map=17/${data.lat.toFixed(5)}/${data.lon.toFixed(5)}`;
-  const shareText = `Hitchhiking spot at ${data.lat.toFixed(4)}, ${data.lon.toFixed(4)}`;
-  const shareBtn = $$("#share-spot-btn");
-  const shareMenu = $$("#share-spot-menu");
-
-  if (navigator.share) {
-    shareMenu.hidden = true;
-    shareBtn.onclick = () => navigator.share({ title: shareText, url: spotUrl });
-  } else {
-    shareBtn.onclick = (e) => {
-      e.stopPropagation();
-      shareMenu.hidden = !shareMenu.hidden;
-    };
-    document.addEventListener('click', () => { shareMenu.hidden = true; }, { once: false });
-
-    $$("#share-copy-link").onclick = (e) => {
-      e.preventDefault();
-      navigator.clipboard.writeText(spotUrl).then(() => {
-        const orig = $$("#share-copy-link").textContent;
-        $$("#share-copy-link").textContent = 'Copied!';
-        setTimeout(() => { $$("#share-copy-link").textContent = orig; }, 1500);
-      });
-      shareMenu.hidden = true;
-    };
-
-    $$("#share-whatsapp").href = `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + spotUrl)}`;
-    $$("#share-telegram").href = `https://t.me/share/url?url=${encodeURIComponent(spotUrl)}&text=${encodeURIComponent(shareText)}`;
-    $$("#share-signal").href = `sgnl://send?text=${encodeURIComponent(shareText + ' ' + spotUrl)}`;
-  }
+  // The shared delegated handler in base.html reads data-share-url at click time.
+  $$("#share-spot-btn").dataset.shareUrl = spotUrl;
 }
 
 function bar(selector) {

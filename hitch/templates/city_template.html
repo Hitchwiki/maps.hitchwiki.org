@@ -8,12 +8,16 @@
 
 {% block og_description %}Community hitchhiking spots, ratings and recent rides for {{ city.city }}{% if city.country %}, {{ city.country }}{% endif %} on the Hitchwiki Map.{% endblock %}
 
+{% from "_share.html" import share_button %}
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <div class="bg-white rounded-lg shadow-lg p-6">
         <nav><br><a href="/city/index.html" id="back">&lt; All cities</a> | <a href="https://hitchwiki.org/en/index.php?title={{city.city | urlencode}}" target="_blank" rel="noopener" id="hitchwiki-link">{{city.city}} on Hitchwiki</a><br></nav>
         <article class="mt-6">
-            <h2>Hitchhiking from {{city.city}}</h2>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+                <h2 style="margin:0;">Hitchhiking from {{city.city}}</h2>
+                {{ share_button(url=canonical_url, title="Hitchhiking in " ~ city.city ~ " – Hitchwiki Maps") }}
+            </div>
 
             <a class="map-link" href="/#location,{{city.lat}},{{city.lng}},12"><div id="static-map"></div><span class="map-overlay">{{city.city}} on Hitchhiking Map</span> </a>
 

@@ -167,13 +167,10 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
         <a id="spot-google-link" class="spot-action-link" target="_blank" rel="noopener">Go to on Google Maps</a>
         <a id="spot-streetview-link" class="spot-action-link" target="_blank" rel="noopener">See on Google Street View</a>
         <a id="spot-osm-link" class="spot-action-link" target="_blank" rel="noopener">Go to on OpenStreetMap</a>
-        <a id="share-spot-btn" class="spot-action-link" href="javascript:void(0);">Share this spot</a>
-        <div id="share-spot-menu" hidden>
-            <a id="share-copy-link" href="#">Copy link</a>
-            <a id="share-whatsapp" href="#" target="_blank" rel="noopener">WhatsApp</a>
-            <a id="share-telegram" href="#" target="_blank" rel="noopener">Telegram</a>
-            <a id="share-signal" href="#" target="_blank" rel="noopener">Signal</a>
-        </div>
+        <button type="button" class="share-btn" id="share-spot-btn" data-share-title="Hitchhiking spot on Hitchwiki Maps">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            <span class="share-btn-label">Share this spot</span>
+        </button>
     </div>
     <!-- Start a tracked ride FROM this exact spot. Seeding the in-ride flow with the
          canonical spot coordinates (instead of wherever the user long-presses) keeps
@@ -388,6 +385,12 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
                  users can adjust filters without leaving the page. -->
             <div id="insights-filter-slot"></div>
             <p class="insights-subtitle" id="insights-subtitle">Stats for the rides currently selected by your filters.</p>
+            <!-- No data-share-url: the shared handler falls back to the current URL,
+                 which carries the active filters so the recipient sees the same view. -->
+            <button type="button" class="share-btn" data-share-title="Hitchhiking insights – Hitchwiki Maps">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                <span class="share-btn-label">Share these insights</span>
+            </button>
         </header>
 
         <section class="insights-stats" id="insights-stats" aria-label="Summary statistics"></section>
@@ -490,6 +493,10 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
             <h1 id="country-sheet-name"></h1>
             <span class="country-rating" id="country-sheet-rating" style="display:none;"></span>
         </div>
+        <button type="button" class="share-btn" id="share-country-btn" data-share-title="Hitchhiking in this country – Hitchwiki Maps">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            <span class="share-btn-label">Share</span>
+        </button>
         <!-- Pre-computed waiting-time / distance histograms (dist/country_insights.json).
              Same charts as /insights; hidden until data for the country is loaded. -->
         <div class="country-insights" id="country-sheet-insights" hidden>
@@ -537,6 +544,10 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
             <h1 id="event-sheet-name"></h1>
             <div class="event-dates" id="event-sheet-dates"></div>
         </div>
+        <button type="button" class="share-btn" id="share-event-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            <span class="share-btn-label">Share</span>
+        </button>
         <div class="event-description" id="event-sheet-description"></div>
         <div class="event-source" id="event-sheet-source"></div>
     </div>
@@ -562,6 +573,16 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
     </a>
 </div>
 {% endif %}
+
+<!-- Floating "share this map view" button. No data-share-url, so the shared
+     handler (base.html) copies the current URL — including the #map=zoom/lat/lon
+     viewport and any active filter query params — letting someone share exactly
+     what they're looking at. Sits just below the account button, top-right. -->
+<button type="button" class="share-btn share-view-btn{% if hide_account_button %} no-account{% endif %}"
+        id="share-view-btn" title="Share this map view" aria-label="Share this map view">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+    <span class="share-btn-label sr-only">Share view</span>
+</button>
 
 <!-- Bottom action pane -->
 <div class="bottom-action-pane" id="bottom-action-pane">

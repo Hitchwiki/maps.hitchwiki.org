@@ -38,8 +38,13 @@
 </{{ tag }}>
 {% endmacro %}
 
+{% from "_share.html" import share_button %}
 {% block content %}
-<h1>Leaderboard</h1>
+<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+  <h1 style="margin:0;">Leaderboard</h1>
+  {# data-share-url is filled in / kept in sync with the active tab by the tab JS. #}
+  {{ share_button(title="Hitchhiking leaderboard – Hitchwiki Maps") }}
+</div>
 
 <div class="leaderboard-tabs">
   <button class="leaderboard-tab active" data-pane="most-rides">Most rides</button>
@@ -159,21 +164,34 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Tab switching between the leaderboard panes.
+    // Tab switching between the leaderboard panes. Each tab is deep-linkable via
+    // a #<pane> hash, so the Share button always points at the tab you're viewing.
     const tabs = document.querySelectorAll('.leaderboard-tab');
+    const shareBtn = document.querySelector('.share-btn');
+
+    function activateTab(pane, pushHash) {
+        const tab = document.querySelector('.leaderboard-tab[data-pane="' + pane + '"]');
+        if (!tab) return;
+        tabs.forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.leaderboard-pane').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('pane-' + pane).classList.add('active');
+        if (pane === 'longest-ride') initLongestThumbnails();
+        else if (pane === 'longest-24h') initH24Thumbnails();
+        // Reflect the tab in the URL + Share button without adding history entries.
+        if (pushHash) history.replaceState(null, '', location.pathname + '#' + pane);
+        if (shareBtn) shareBtn.dataset.shareUrl = location.origin + location.pathname + '#' + pane;
+    }
+
     tabs.forEach(tab => {
-        tab.addEventListener('click', function() {
-            tabs.forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.leaderboard-pane').forEach(p => p.classList.remove('active'));
-            tab.classList.add('active');
-            document.getElementById('pane-' + tab.dataset.pane).classList.add('active');
-            if (tab.dataset.pane === 'longest-ride') {
-                initLongestThumbnails();
-            } else if (tab.dataset.pane === 'longest-24h') {
-                initH24Thumbnails();
-            }
-        });
+        tab.addEventListener('click', function() { activateTab(tab.dataset.pane, true); });
     });
+
+    // Open the tab named in the URL hash on load (e.g. /leaderboard#longest-ride);
+    // otherwise seed the Share button with the default (Most rides) tab.
+    const initialPane = location.hash.replace(/^#/, '');
+    if (document.getElementById('pane-' + initialPane)) activateTab(initialPane, false);
+    else activateTab('most-rides', false);
 });
 </script>
 {% endblock %}

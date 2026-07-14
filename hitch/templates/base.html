@@ -47,11 +47,63 @@
        the honest result for pages that have no single representative view. #}
     {% block og_image %}{% endblock %}
 
+    {# Shared "Share" button, used across every page (ride detail, account,
+       activities, leaderboard, city pages) and every map bottom-sheet. The
+       click handler lives once at the bottom of <body>; see share-btn script. #}
+    <style>
+      .share-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: #f0f0f0;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        color: #333;
+        font: inherit;
+        font-size: 0.85em;
+        cursor: pointer;
+        text-decoration: none;
+        line-height: 1.2;
+      }
+      .share-btn:hover { background: #e4e4e4; text-decoration: none; }
+      .share-btn.copied { background: #d4edda; border-color: #28a745; color: #155724; }
+    </style>
+
     {% block head %}{% endblock %}
   </head>
 
   <body {% block body_attribs %}{% endblock body_attribs %}>
     {% block main %}{% endblock %}
     {% block scripts %}{% endblock %}
+
+    {# One delegated handler for every .share-btn on the page. Native share sheet
+       when available (mobile / installed PWA — where there's no address bar to
+       copy from, which is the whole reason these exist), else copy to clipboard
+       with a "Link copied!" confirmation on the button's .share-btn-label.
+       The URL to share is data-share-url; falling back to the current location
+       lets filter/zoom-dependent views (map view, insights) share "as-is". #}
+    <script>
+      document.addEventListener('click', async function (e) {
+        var btn = e.target.closest && e.target.closest('.share-btn');
+        if (!btn) return;
+        e.preventDefault();
+        var url = btn.dataset.shareUrl || window.location.href;
+        var title = btn.dataset.shareTitle || document.title;
+        try {
+          if (navigator.share) { await navigator.share({ title: title, url: url }); return; }
+        } catch (err) { if (err && err.name === 'AbortError') return; }
+        try {
+          await navigator.clipboard.writeText(url);
+          var label = btn.querySelector('.share-btn-label');
+          if (label) {
+            var prev = label.textContent;
+            btn.classList.add('copied');
+            label.textContent = 'Link copied!';
+            setTimeout(function () { btn.classList.remove('copied'); label.textContent = prev; }, 1800);
+          }
+        } catch (err) { window.prompt('Copy this link:', url); }
+      });
+    </script>
   </body>
 </html>
