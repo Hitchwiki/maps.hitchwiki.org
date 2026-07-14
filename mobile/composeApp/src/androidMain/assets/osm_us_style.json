@@ -4,6 +4,7 @@
   "sources": {
     "openmaptiles": { "type": "vector", "url": "https://tiles.openstreetmap.us/vector/openmaptiles.json" }
   },
+  "glyphs": "https://tiles.openstreetmap.us/fonts/{fontstack}/{range}.pbf",
   "layers": [
     { "id": "background", "type": "background", "paint": { "background-color": "#f8f4f0" } },
     { "id": "water", "type": "fill", "source": "openmaptiles", "source-layer": "water",
@@ -20,6 +21,10 @@
       "filter": ["<=", "admin_level", 2],
       "paint": { "line-color": "#9e9cab", "line-dasharray": [3, 1], "line-width": 1 } },
     { "id": "building", "type": "fill", "source": "openmaptiles", "source-layer": "building",
-      "paint": { "fill-color": "#e0dcd4" } }
+      "paint": { "fill-color": "#e0dcd4" } },
+    { "id": "place-labels", "type": "symbol", "source": "openmaptiles", "source-layer": "place",
+      "filter": ["in", "class", "city", "town", "village"],
+      "layout": { "text-field": "{name}", "text-font": ["Noto Sans Regular"], "text-size": 12, "text-max-width": 8 },
+      "paint": { "text-color": "#3a3a3a", "text-halo-color": "#ffffff", "text-halo-width": 1.2 } }
   ]
 }
