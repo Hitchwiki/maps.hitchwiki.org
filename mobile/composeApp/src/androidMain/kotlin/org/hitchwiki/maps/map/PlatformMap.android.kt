@@ -21,11 +21,13 @@ import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression
 import org.maplibre.android.style.layers.CircleLayer
 import org.maplibre.android.style.layers.PropertyFactory
+import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.android.style.sources.GeoJsonOptions
 import org.maplibre.android.style.sources.GeoJsonSource
 
 private const val SRC = "spots"
 private const val LYR_CLUSTER = "spots-clusters"
+private const val LYR_CLUSTER_COUNT = "spots-cluster-count"
 private const val LYR_POINT = "spots-points"
 
 @Composable
@@ -116,6 +118,21 @@ actual fun PlatformMap(state: MapState, callbacks: MapCallbacks, modifier: Modif
                                     ),
                                 ),
                                 PropertyFactory.circleOpacity(0.85f),
+                            )
+                        },
+                    )
+
+                    // Cluster-count numbers: drawn on top of the cluster circles.
+                    style.addLayer(
+                        SymbolLayer(LYR_CLUSTER_COUNT, SRC).apply {
+                            setFilter(Expression.has("point_count"))
+                            setProperties(
+                                PropertyFactory.textField(Expression.toString(Expression.get("point_count_abbreviated"))),
+                                PropertyFactory.textFont(arrayOf("Noto Sans Regular")),
+                                PropertyFactory.textSize(12f),
+                                PropertyFactory.textColor(android.graphics.Color.WHITE),
+                                PropertyFactory.textAllowOverlap(true),
+                                PropertyFactory.textIgnorePlacement(true),
                             )
                         },
                     )
