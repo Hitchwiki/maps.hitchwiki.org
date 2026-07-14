@@ -716,15 +716,14 @@ actual fun PlatformMap(state: MapState, callbacks: MapCallbacks, modifier: Modif
                         }
                     }
                 }
-                tag = MapHolder(this)
             }
         },
         update = { view ->
-            val map = (view.tag as? MapHolder)?.let { null } // map accessed async below
+            // On recomposition, push the latest GeoJSON to the existing source and consume any
+            // pending camera target. getMapAsync runs the callback immediately if the map is
+            // already ready, so this does not re-init the map or re-add layers/listeners.
             view.getMapAsync { m ->
-                // Update the source data when spots change.
                 m.style?.getSourceAs<GeoJsonSource>(SRC)?.setGeoJson(state.geoJson)
-                // Consume a pending camera target.
                 state.cameraTarget?.let {
                     m.animateCamera(CameraUpdateFactory.newLatLngZoom(MlLatLng(it.lat, it.lon), 12.0))
                     callbacks.onCameraConsumed()
@@ -733,10 +732,8 @@ actual fun PlatformMap(state: MapState, callbacks: MapCallbacks, modifier: Modif
         },
     )
 }
-
-private class MapHolder(val view: MapView)
 ```
-Note: `MapView` needs lifecycle calls (`onStart/onResume/onPause/onStop/onDestroy/onLowMemory`) to render reliably. Wire them via a `DisposableEffect` + the Compose `LifecycleOwner`, or call `onStart()`/`onResume()` in `factory` and `onStop()`/`onDestroy()` in `AndroidView`'s `onRelease`. Implement the minimal lifecycle needed for the map to display and not leak; record what you wired in your report. If the `update` block's async `getMapAsync` double-registers click listeners or causes flicker, keep the map reference from `factory` (e.g. in the `MapHolder`) and update the source directly instead of calling `getMapAsync` again — fix to whatever renders correctly and report it.
+Note: `MapView` needs lifecycle calls (`onStart/onResume/onPause/onStop/onDestroy/onLowMemory`) to render reliably. Wire them via a `DisposableEffect` + the Compose `LifecycleOwner`, or call `onStart()`/`onResume()` in `factory` and `onStop()`/`onDestroy()` in `AndroidView`'s `onRelease`. Implement the minimal lifecycle needed for the map to display and not leak; record what you wired in your report. If the `update` block's async `getMapAsync` double-registers click listeners or causes flicker, hold the ready `MapLibreMap` from `factory` in a `remember { mutableStateOf<MapLibreMap?>(null) }` (or the `MapView` via `view.tag`) and update the source directly in `update` instead of calling `getMapAsync` again — fix to whatever renders correctly and report it.
 
 - [ ] **Step 4: Build**
 
