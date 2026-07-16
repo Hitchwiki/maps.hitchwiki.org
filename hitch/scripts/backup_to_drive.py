@@ -66,7 +66,7 @@ def _load_env(path=ENV_FILE):
 
 _load_env()
 
-# rclone remote to upload into, e.g. "gdrive:hitchmap-backups". Configured in .env.
+# rclone remote to upload into, e.g. "gdrive:hitchwiki_maps-backups". Configured in .env.
 RCLONE_REMOTE = os.environ.get("BACKUP_RCLONE_REMOTE", "")
 
 # Backups older than this are deleted from the remote on every run.
@@ -74,7 +74,7 @@ RETENTION_DAYS = int(os.environ.get("BACKUP_RETENTION_DAYS", "28"))
 
 # Every backup is named like this, so the prune step can match our own files and
 # never touches anything else that happens to live in the same Drive folder.
-FILENAME_PREFIX = "hitchhiking-"
+FILENAME_PREFIX = "hitchwiki_maps-"
 FILENAME_GLOB = f"{FILENAME_PREFIX}*.sqlite.gz"
 
 # Columns nulled out in the backup copy. `password` is intentionally absent — see module docstring.
@@ -187,7 +187,7 @@ def main():
         default=os.path.join(PROJECT_ROOT, "db", os.environ.get("DATABASE_NAME", "hitchhiking-prod.sqlite")),
         help="path to the live SQLite database",
     )
-    parser.add_argument("--remote", default=RCLONE_REMOTE, help="rclone remote, e.g. gdrive:hitchmap-backups")
+    parser.add_argument("--remote", default=RCLONE_REMOTE, help="rclone remote, e.g. gdrive:hitchwiki_maps-backups")
     parser.add_argument("--retention-days", type=int, default=RETENTION_DAYS)
     parser.add_argument("--keep-local", metavar="PATH", help="also write the scrubbed .gz here")
     parser.add_argument("--no-upload", action="store_true", help="build and verify the backup but skip Drive")

@@ -9,13 +9,17 @@
 # token expires (~1h after you create it), which looks like a working setup that breaks a
 # week later.
 #
+# Create this file BEFORE the container next starts. Docker bind-mounts a missing source path
+# by creating it as an empty *directory*, so a `docker compose up` with no rclone.conf leaves
+# a root-owned directory here and rclone silently runs with no remotes configured.
+#
 # To generate the token, on a machine with a browser (NOT this headless server):
 #
 #   rclone config
 #     n) New remote
 #     name> gdrive
 #     Storage> drive
-#     client_id>            (blank is fine; a personal OAuth client ID gets better rate limits)
+#     client_id>            (see the rate-limit note below)
 #     client_secret>        (blank)
 #     scope> 1              (full access — needed for the prune step to delete old backups)
 #     root_folder_id>       (blank, or the ID of a specific folder from its Drive URL)
@@ -26,12 +30,21 @@
 #
 # Then `rclone config file` shows the path; copy the [gdrive] block here, and set in .env:
 #
-#   BACKUP_RCLONE_REMOTE=gdrive:hitchmap-backups
+#   BACKUP_RCLONE_REMOTE=gdrive:hitchwiki_maps-backups
 #
-# Create that folder in Drive first (`rclone mkdir gdrive:hitchmap-backups`). Verify with:
+# Create that folder in Drive first (`rclone mkdir gdrive:hitchwiki_maps-backups`). Verify with:
 #
 #   sudo docker exec hitchhiking-map python3 /app/hitch/scripts/backup_to_drive.py --no-upload
 #   sudo docker exec hitchhiking-map rclone lsd gdrive:
+#
+# Rate limits: a blank client_id means you share rclone's global default OAuth client with
+# every other rclone user, whose per-minute quota is frequently exhausted — it surfaces as
+# "Error 403: Quota exceeded ... consumer project_number:202264815644". Ours is currently
+# blank and works, because one upload a week is a handful of API calls and the job retries.
+# If the weekly run starts failing on 403s, create a personal OAuth client (Google Cloud
+# Console -> APIs & Services -> enable Drive API -> OAuth client ID, type "Desktop app") and
+# re-run `rclone config` with that client_id/client_secret. That gives this project its own
+# quota and is the standard fix.
 
 [gdrive]
 type = drive
