@@ -1,0 +1,40 @@
+# Google Drive credentials for the weekly backup job (hitch/scripts/backup_to_drive.py).
+#
+# Copy to deploy/rclone.conf and fill in a real token. That file is gitignored and mounted
+# into the container at /root/.config/rclone/rclone.conf — it must NOT be committed and must
+# NOT be baked into the image.
+#
+# The mount is deliberately read-write: rclone refreshes the OAuth access token and writes
+# the new one back to this file. Mounting it :ro makes uploads fail once the initial access
+# token expires (~1h after you create it), which looks like a working setup that breaks a
+# week later.
+#
+# To generate the token, on a machine with a browser (NOT this headless server):
+#
+#   rclone config
+#     n) New remote
+#     name> gdrive
+#     Storage> drive
+#     client_id>            (blank is fine; a personal OAuth client ID gets better rate limits)
+#     client_secret>        (blank)
+#     scope> 1              (full access — needed for the prune step to delete old backups)
+#     root_folder_id>       (blank, or the ID of a specific folder from its Drive URL)
+#     service_account_file> (blank)
+#     Edit advanced config? n
+#     Use auto config? y    -> opens a browser, log in as the account that owns the backups
+#     Configure this as a Shared Drive? n
+#
+# Then `rclone config file` shows the path; copy the [gdrive] block here, and set in .env:
+#
+#   BACKUP_RCLONE_REMOTE=gdrive:hitchmap-backups
+#
+# Create that folder in Drive first (`rclone mkdir gdrive:hitchmap-backups`). Verify with:
+#
+#   sudo docker exec hitchhiking-map python3 /app/hitch/scripts/backup_to_drive.py --no-upload
+#   sudo docker exec hitchhiking-map rclone lsd gdrive:
+
+[gdrive]
+type = drive
+scope = drive
+token = {"access_token":"...","token_type":"Bearer","refresh_token":"...","expiry":"..."}
+team_drive =

@@ -2,8 +2,9 @@
 FROM python:3.12-slim
 
 # Install system dependencies
+# rclone is used by the weekly backup_to_drive.py job to upload to Google Drive
 RUN apt-get update && \
-    apt-get install -y curl build-essential cron && \
+    apt-get install -y curl build-essential cron rclone && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Node.js (LTS) and upgrade npm

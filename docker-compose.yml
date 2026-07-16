@@ -16,6 +16,9 @@ services:
       # stale copy baked into the image at build time, so cron and the web app would
       # resolve DATABASE_NAME differently and write to two different databases.
       - ./.env:/app/.env:ro
+      # Google Drive OAuth token for the weekly backup job (see deploy/rclone.conf.example).
+      # Mounted rather than baked into the image so the refresh token never lands in a layer.
+      - ./deploy/rclone.conf:/root/.config/rclone/rclone.conf
     environment:
       - FLASK_RUN_PORT=4242
     env_file:

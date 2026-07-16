@@ -38,6 +38,12 @@
 0 5 * * * cd /app && /usr/bin/flock -n /tmp/dashboard.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate dashboard' > logs/dashboard.log 2>&1
 # every day at 6 AM
 0 6 * * * cd /app && /usr/bin/flock -n /tmp/cities.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate cities' > logs/cities.log 2>&1
+# every Sunday at 1 AM — off-site backup of the SQLite DB to Google Drive, PII scrubbed.
+# Standalone script, not a `flask generate` one. Runs before the 2 AM routing rebuild so the
+# two heaviest jobs on this OOM-prone host don't overlap: the backup holds a full ~400 MB
+# snapshot plus its gzip on disk. Emails are replaced with placeholders and 2FA secrets /
+# phone numbers / login IPs are dropped before anything leaves the host.
+0 1 * * 0 cd /app && /usr/bin/flock -n /tmp/backup_to_drive.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/python3 /app/hitch/scripts/backup_to_drive.py' > logs/backup_to_drive.log 2>&1
 # every Monday at 8 AM
 0 8 * * 1 cd /app && /usr/bin/flock -n /tmp/sync_hitchhiking_rides_dataset.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate sync_hitchhiking_rides_dataset' > logs/sync_hitchhiking_rides_dataset.log 2>&1
 # first of every month at 9 AM — regenerate country hitchability CSV + country_ratings.json / country_insights.json
