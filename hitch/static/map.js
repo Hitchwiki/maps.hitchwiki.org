@@ -54,7 +54,7 @@ function createMap() {
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution:
-      '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> | Data: <a href="/copyright">maps.hitchwiki.org</a> &amp; <a href="https://hitchmap.com/copyright.html">Hitchmap</a> (<a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a>)',
+      '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> | Data: <a href="/copyright">maps.hitchwiki.org</a> &amp; <a href="https://hitchmap.com/copyright.html" rel="nofollow">Hitchmap</a> (<a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a>)',
   }).addTo(map);
 
   return map;
@@ -388,6 +388,30 @@ function logSearchRequest(geocode) {
     const blob = new Blob([body], { type: "application/json" });
     if (navigator.sendBeacon) navigator.sendBeacon("/log-search-request", blob);
   } catch (e) { /* logging must never break search */ }
+}
+
+// Beacon the settled filter combination to the server so we can see which
+// filters people actually use, and — via the match count — which ones return
+// something worth looking at. Filtering is client-side, so this is the only
+// signal. Debounced: every keystroke in a text filter re-runs applyParams, and
+// we want one row per intent, not per character. Deduped against the last row
+// sent so re-running navigate() (marker click, pane change) doesn't re-log an
+// unchanged filter set.
+let filterLogTimer = null;
+let lastLoggedFilters = null;
+
+function logFilterRequest(filters, matches) {
+  const signature = JSON.stringify(filters);
+  if (signature === lastLoggedFilters) return;
+  clearTimeout(filterLogTimer);
+  filterLogTimer = setTimeout(() => {
+    try {
+      lastLoggedFilters = signature;
+      const body = JSON.stringify({ filters: filters, matches: matches });
+      const blob = new Blob([body], { type: "application/json" });
+      if (navigator.sendBeacon) navigator.sendBeacon("/log-filter-request", blob);
+    } catch (e) { /* logging must never break filtering */ }
+  }, 2000);
 }
 
 // Set up the geocoder for location search
@@ -2992,6 +3016,28 @@ async function applyParams() {
     if (hitchwikiToggle.checked) {
       filterMarkers = filterMarkers.filter((x) => !!x.options._data.wiki);
     }
+    // Record what was asked for and how much it found, now that every filter
+    // has been applied but before the markers are duplicated into the pane.
+    logFilterRequest(
+      {
+        recent: recentToggle.checked,
+        osmonly: osmToggle.checked,
+        carpoolingonly: carPoolingToggle.checked,
+        fuelonly: fuelToggle.checked,
+        hitchwikionly: hitchwikiToggle.checked,
+        user: userFilter.value,
+        text: textFilter.value,
+        mindistance: distanceFilter.value,
+        minrides: minRidesFilter.value,
+        minrating: minRatingFilter.value,
+        vehicle: vehicleFilter.value,
+        method: methodFilter.value,
+        mindate: minDateFilter.value,
+        maxdate: maxDateFilter.value,
+      },
+      filterMarkers.length
+    );
+
     // duplicate all markers to the filtering pane
     filterMarkers = filterMarkers.map((spot) => {
       let loc = spot.getLatLng();
@@ -3008,6 +3054,10 @@ async function applyParams() {
     }).addTo(map);
   } else {
     document.body.classList.remove("filtering");
+    // Filters are gone: forget the last logged set so that re-applying the same
+    // filters later counts as a fresh intent rather than a duplicate.
+    clearTimeout(filterLogTimer);
+    lastLoggedFilters = null;
   }
 }
 

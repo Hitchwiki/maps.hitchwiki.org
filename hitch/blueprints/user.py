@@ -3,6 +3,7 @@ import json
 import os
 from datetime import datetime
 from types import SimpleNamespace
+from urllib.parse import quote
 
 import pandas as pd
 from flask import Blueprint, current_app, jsonify, redirect, render_template, request, send_file, url_for
@@ -288,6 +289,8 @@ def show_account(username, is_me: bool = False):
 
     single_source = _single_external_source(user.username)
     source_label = _EXTERNAL_SOURCE_LABELS.get(single_source)
+    source_url_template = _EXTERNAL_SOURCE_PROFILE_URLS.get(single_source)
+    source_url = source_url_template.format(username=quote(user.username, safe="")) if source_url_template else None
     # Unregistered stubs normally hide the Hitchwiki profile link, but for names whose rides
     # all came from Hitchwiki-derived sources the nickname *is* a Hitchwiki username, so keep it.
     show_hitchwiki_link = single_source in _HITCHWIKI_SOURCES
@@ -316,6 +319,7 @@ def show_account(username, is_me: bool = False):
         notifications=notifications,
         user_known=user_known,
         source_label=source_label,
+        source_url=source_url,
         show_hitchwiki_link=show_hitchwiki_link,
         age=age,
         can_follow=can_follow,
@@ -754,6 +758,12 @@ def _rides_by_hitchhiker(username):
 # came from a single one of these sources, so visitors know the name is an external stub
 # (e.g. a legacy hitchmap.com contributor) rather than a Hitchwiki Maps account.
 _EXTERNAL_SOURCE_LABELS = {"hitchmap.com": "Hitchmap", "triphopping.com": "Triphopping"}
+
+# Sources that host a public profile page per contributor, so the badge after the name can
+# link back to the original account. `{username}` is filled with the URL-quoted nickname.
+# Rendered nofollow+ugc: the nickname comes from user-submitted ride data, so we neither
+# vouch for the target nor want to pass ranking to an unbounded set of external profiles.
+_EXTERNAL_SOURCE_PROFILE_URLS = {"hitchmap.com": "https://hitchmap.com/account/{username}"}
 
 # Sources whose ride nicknames are Hitchwiki usernames. A stub page for such a name is
 # really that person's Hitchwiki account, so we still link to their Hitchwiki profile even
