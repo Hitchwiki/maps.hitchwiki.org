@@ -38,6 +38,7 @@ from hitch.blueprints.utils.driver_info_choices import (
     REASON_DESCRIPTION_BY_CODE,
     REASON_TO_PICK_UP_CHOICES,
 )
+from hitch.blueprints.utils.filter_request_log import FILTER_FIELDS, log_filter_request
 from hitch.blueprints.utils.iso_country_codes import ISO_3166_1_ALPHA_2
 from hitch.blueprints.utils.license_plate_country_codes import LICENSE_PLATE_COUNTRY_CHOICES
 from hitch.blueprints.utils.notifications import notify_co_hitchhiker_invite, unread_count
@@ -355,6 +356,31 @@ def log_search_request_endpoint():
         return ("", 204)
     if -90 <= lat <= 90 and -180 <= lon <= 180:
         log_search_request(data.get("name", ""), lat, lon)
+    return ("", 204)
+
+
+# Fire-and-forget beacon from map.js once a filter combination settles (the
+# client debounces, so this is one row per intent rather than one per keystroke).
+# Filtering is entirely client-side, so this is the only place the server learns
+# which filters people use. `matches` records how many spots survived, which is
+# what separates a useful filter from one people try and abandon. Always returns
+# 204 (client uses sendBeacon).
+@main_bp.route("/log-filter-request", methods=["POST"])
+def log_filter_request_endpoint():
+    data = request.get_json(silent=True) or {}
+    filters = data.get("filters")
+    if not isinstance(filters, dict):
+        return ("", 204)
+    # Only ever record the filters we know about — the client is untrusted, and
+    # unknown keys would not have a column to land in anyway.
+    known = {k: filters[k] for k in FILTER_FIELDS if filters.get(k) not in (None, "", False)}
+    if not known:
+        return ("", 204)
+    try:
+        matches = int(data["matches"])
+    except (KeyError, TypeError, ValueError):
+        matches = None
+    log_filter_request(known, matches)
     return ("", 204)
 
 
