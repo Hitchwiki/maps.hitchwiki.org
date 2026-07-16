@@ -163,6 +163,14 @@ url = {https://maps.hitchwiki.org},
 }
 ```
 
+### Backup
+
+A copy of the SQLite database is uploaded weekly (Sundays, 1 AM) to the Google Drive of `play.hitchwiki@gmail.com`, into the `hitchwiki_maps-backups` folder. The last 4 weeks are kept.
+
+User emails are replaced with placeholders (`user<id>@example.invalid`) before upload, along with 2FA secrets, phone numbers and login IPs. Password hashes are kept so the backup can restore working logins. Everything else is a complete copy.
+
+See `hitch/scripts/backup_to_drive.py` and `deploy/rclone.conf.example` (setup runbook).
+
 ### Other applications using our data
 
 We are aware of the following applications making downstream usage of data collected under this or its predecessor project, we expect them to use correct attribution and licensing:
