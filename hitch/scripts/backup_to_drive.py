@@ -159,9 +159,31 @@ def compress(src_path, dst_path):
     logger.info("compressed to %.1f MB", os.path.getsize(dst_path) / 1e6)
 
 
+def resolve_rclone_config():
+    """Locate rclone.conf explicitly rather than letting rclone find it via $HOME.
+
+    Left to itself, rclone derives the config path from $HOME, and when $HOME is unset it
+    shells out to `getent` — which does not exist in this slim image. It then falls back to
+    ./.rclone.conf, finds no [gdrive] section, and the upload dies *after* the snapshot,
+    scrub and gzip have already run. cron does set HOME, so this is latent rather than
+    broken, but passing --config costs nothing and removes the dependency on both $HOME and
+    getent. It also makes host runs work without exporting RCLONE_CONFIG.
+    """
+    explicit = os.environ.get("RCLONE_CONFIG")
+    if explicit:
+        return explicit
+    candidates = [
+        "/root/.config/rclone/rclone.conf",  # where docker-compose mounts it
+        os.path.join(PROJECT_ROOT, "deploy", "rclone.conf"),  # host checkout
+    ]
+    return next((c for c in candidates if os.path.exists(c)), None)
+
+
 def rclone(args):
+    config = resolve_rclone_config()
+    full = ["rclone", *(["--config", config] if config else []), *args]
     logger.info("rclone %s", " ".join(args))
-    proc = subprocess.run(["rclone", *args], capture_output=True, text=True)
+    proc = subprocess.run(full, capture_output=True, text=True)
     if proc.returncode != 0:
         raise RuntimeError(f"rclone {args[0]} failed ({proc.returncode}): {proc.stderr.strip()}")
     return proc.stdout
@@ -199,6 +221,15 @@ def main():
     if not args.remote and not args.no_upload:
         logger.error("no remote configured: set BACKUP_RCLONE_REMOTE in .env or pass --remote (or --no-upload)")
         return 1
+    if not args.no_upload:
+        # Preflight: snapshot + scrub + gzip take ~40 s and ~500 MB of disk. Discovering a
+        # missing config only at the upload step wastes all of that and leaves a confusing
+        # log in which everything "worked" until the last line.
+        config = resolve_rclone_config()
+        if not config:
+            logger.error("no rclone config found: expected /root/.config/rclone/rclone.conf or deploy/rclone.conf")
+            return 1
+        logger.info("using rclone config: %s", config)
 
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     name = f"{FILENAME_PREFIX}{stamp}.sqlite.gz"
