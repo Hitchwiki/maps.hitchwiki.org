@@ -513,3 +513,6 @@ manifest-checksum.txt
 store_icon.png
 # Google Drive OAuth token for the weekly backup job (deploy/rclone.conf.example is the template)
 deploy/rclone.conf
+
+# Google OAuth client secret JSON downloaded from Google Cloud Console
+client_secret_*.json
