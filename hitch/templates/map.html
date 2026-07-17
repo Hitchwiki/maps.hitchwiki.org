@@ -615,12 +615,39 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
     <br><button>Cancel</button>
 </div>
 
+<!-- Shown before the success overlay to someone who just logged a ride anonymously,
+     at most once per browser. -->
+<div id="signup-prompt-overlay" class="success-overlay" style="display: none;">
+    <div class="success-content">
+        <h2>Ride saved!</h2>
+        <p>Want to remember your trips? With an account your rides stay yours — you can find them again, edit them, and see everywhere you've been.</p>
+        <p class="signup-prompt-note">You don't have to give up your privacy: pick a username and an email address that can't be traced back to you personally. We never show your email, and nothing forces the name to be your real one.</p>
+        <p class="signup-prompt-note">We don't understand hitchhikers' preferences around anonymity well yet. If you tell us what matters to you, we can build for it — <a href="https://docs.google.com/forms/d/e/1FAIpQLSdGLlPKhjRXIjG2VB-BlkxbsagNeXce5eI3sKFHe-_scJMFnw/viewform" target="_blank" rel="noopener">share your thoughts</a>.</p>
+        <div class="signup-prompt-actions">
+            <button id="signup-prompt-yes" class="success-close-btn">Yes, let's sign up</button>
+            <button id="signup-prompt-no" class="success-secondary-btn">I want to stay anonymous</button>
+        </div>
+    </div>
+</div>
+
+<!-- Shown before the success overlay to a logged-in user who added an anonymous
+     co-hitchhiker, at most once per browser. -->
+<div id="invite-prompt-overlay" class="success-overlay" style="display: none;">
+    <div class="success-content">
+        <h2>Ride saved!</h2>
+        <p>You hitchhiked with someone anonymous. Invite them to sign up and the ride shows up on their map too — and you can log future rides together.</p>
+        <p class="signup-prompt-note">We'll copy an invite link you can send them however you like.</p>
+        <div class="signup-prompt-actions">
+            <button id="invite-prompt-share" class="success-close-btn">Send invite link</button>
+            <button id="invite-prompt-skip" class="success-secondary-btn">Skip</button>
+        </div>
+    </div>
+</div>
+
 <!-- Full-screen success overlay -->
 <div id="success-overlay" class="success-overlay" style="display: none;">
     <div class="success-content">
         <h2>Success!</h2>
-        <p>Add a photo to your ride at <a href="https://hitchwiki.org/en/Special:Upload" target="_blank" rel="noopener">Special:Upload</a> on Hitchwiki.</p>
-        <hr class="success-divider">
         <p>Thank you for your contribution!</p>
         <p>We'd love to hear your thoughts! <a href="https://docs.google.com/forms/d/e/1FAIpQLSdGLlPKhjRXIjG2VB-BlkxbsagNeXce5eI3sKFHe-_scJMFnw/viewform?usp=header" target="_blank" rel="noopener">Share feedback</a> to help us improve Hitchhiking Map.</p>
         <p>Your ride will appear on the map within 10 minutes. Refreshing may be needed.</p>

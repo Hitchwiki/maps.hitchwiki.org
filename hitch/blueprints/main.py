@@ -47,6 +47,7 @@ from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON, REPORT_REASO
 from hitch.blueprints.utils.ride_ip_log import get_client_ip, log_ride_ip
 from hitch.blueprints.utils.route_request_log import log_route_request
 from hitch.blueprints.utils.search_request_log import log_search_request
+from hitch.blueprints.utils.signup_prompt_log import PROMPT_ACTIONS, log_signup_prompt
 from hitch.extensions import db
 from hitch.helpers import get_db, get_dirs
 from hitch.models import CoHitchhiker, Follow, ProposedSpot, RideEvent, RideReport, User
@@ -381,6 +382,19 @@ def log_filter_request_endpoint():
     except (KeyError, TypeError, ValueError):
         matches = None
     log_filter_request(known, matches)
+    return ("", 204)
+
+
+# Fire-and-forget beacon from map.js for the post-submit sign-up nudges. The
+# overlays are client-side (shown at most once per browser), so this is the only
+# place the server learns whether they convert. Always returns 204 (client uses
+# sendBeacon).
+@main_bp.route("/log-signup-prompt", methods=["POST"])
+def log_signup_prompt_endpoint():
+    data = request.get_json(silent=True) or {}
+    prompt, action = data.get("prompt"), data.get("action")
+    if action in PROMPT_ACTIONS.get(prompt, ()):
+        log_signup_prompt(prompt, action)
     return ("", 204)
 
 
@@ -1098,6 +1112,15 @@ def ride_form():
 
         if wants_json:
             return jsonify({"ok": True, "d_tag": d_tag}), 200
+
+        # A nudge only makes sense for a ride just created — an edit is not the moment to
+        # ask someone to sign up, and the ride's anonymity was already decided. The client
+        # shows each overlay at most once per browser and then falls through to #success.
+        if not edit_d_tag:
+            if current_user.is_anonymous:
+                return redirect("/#success-anon")
+            if "Anonymous" in [ch.strip() for ch in data.get("co_hitchhiker", "").split(",")]:
+                return redirect("/#success-invite")
         return redirect("/#success")
 
     except (AssertionError, ValueError, KeyError) as err:

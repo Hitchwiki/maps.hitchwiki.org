@@ -1926,6 +1926,42 @@ ul.no-style {
   background: #218838;
 }
 
+/* Secondary ("no thanks") action on the sign-up nudges. Deliberately quiet next to
+   the green primary, but a real button — an opt-out people can't find reads as a
+   dark pattern, and we want the decline logged rather than the overlay dismissed
+   by clicking the backdrop. */
+.success-secondary-btn {
+  background: none;
+  color: #666;
+  border: 1px solid #ccc;
+  padding: 12px 30px;
+  border-radius: 6px;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.success-secondary-btn:hover {
+  background: #f0f0f0;
+}
+
+.signup-prompt-note {
+  font-size: 0.95em !important;
+  color: #666 !important;
+}
+
+.signup-prompt-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.signup-prompt-actions .success-close-btn {
+  margin-top: 0;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

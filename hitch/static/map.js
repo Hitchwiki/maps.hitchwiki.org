@@ -1858,6 +1858,14 @@ function handleHashChange() {
     showSuccessOverlay();
   }
 
+  // #success-anon / #success-invite are the same success, prefixed by a one-time
+  // sign-up nudge (anonymous submitter / anonymous co-hitchhiker).
+  if (window.location.hash == "#success-anon" || window.location.hash == "#success-invite") {
+    const kind = window.location.hash == "#success-anon" ? "anon" : "invite";
+    history.replaceState(null, null, " ");
+    showPostSubmitOverlay(kind);
+  }
+
   if (window.location.hash == "#success-duplicate") {
     history.replaceState(null, null, " ");
     bar(".sidebar.success-duplicate");
@@ -2503,6 +2511,113 @@ function showSuccessOverlay() {
   }
 }
 
+// The post-submit sign-up nudges are shown at most once per browser — a prompt that
+// returns after every anonymous ride is nagging, and a second impression tells us
+// nothing new about whether the first one converted.
+const SIGNUP_PROMPT_SEEN_KEY = "signupPromptSeen";
+const INVITE_PROMPT_SEEN_KEY = "invitePromptSeen";
+
+function promptSeen(key) {
+  try {
+    return localStorage.getItem(key) === "1";
+  } catch (e) {
+    // No localStorage (private mode / blocked storage) means we can't remember a
+    // dismissal, so treat the prompt as already seen rather than show it forever.
+    return true;
+  }
+}
+
+function markPromptSeen(key) {
+  try {
+    localStorage.setItem(key, "1");
+  } catch (e) {}
+}
+
+// Fire-and-forget: the overlays are client-side, so this is the only way the server
+// learns whether they drive sign-ups. sendBeacon survives the page navigating to /login.
+function logSignupPrompt(prompt, action) {
+  try {
+    const blob = new Blob([JSON.stringify({ prompt: prompt, action: action })], {
+      type: "application/json",
+    });
+    if (navigator.sendBeacon) navigator.sendBeacon("/log-signup-prompt", blob);
+  } catch (e) {}
+}
+
+function showSignupPromptOverlay() {
+  const overlay = $$("#signup-prompt-overlay");
+  if (!overlay) return showSuccessOverlay();
+  markPromptSeen(SIGNUP_PROMPT_SEEN_KEY);
+  logSignupPrompt("anon-signup", "shown");
+  overlay.style.display = "flex";
+
+  // Both buttons are explicit, and the backdrop deliberately doesn't dismiss: an
+  // unlogged exit would leave the conversion numbers unreadable.
+  $$("#signup-prompt-yes").onclick = function () {
+    logSignupPrompt("anon-signup", "signup");
+    window.location.href = "/login";
+  };
+  $$("#signup-prompt-no").onclick = function () {
+    logSignupPrompt("anon-signup", "stay-anonymous");
+    overlay.style.display = "none";
+    showSuccessOverlay();
+  };
+}
+
+function showInvitePromptOverlay() {
+  const overlay = $$("#invite-prompt-overlay");
+  if (!overlay) return showSuccessOverlay();
+  markPromptSeen(INVITE_PROMPT_SEEN_KEY);
+  logSignupPrompt("co-hitchhiker-invite", "shown");
+  overlay.style.display = "flex";
+
+  // The invite carries the inviter's name so a sign-up arriving through it is
+  // attributable in the access log.
+  const url =
+    window.location.origin +
+    "/login" +
+    (window.USERNAME ? "?invite=" + encodeURIComponent(window.USERNAME) : "");
+  const shareBtn = $$("#invite-prompt-share");
+  const done = function () {
+    overlay.style.display = "none";
+    showSuccessOverlay();
+  };
+
+  shareBtn.onclick = async function () {
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Join me on Hitchwiki Maps", url: url });
+        logSignupPrompt("co-hitchhiker-invite", "invite");
+        return done();
+      }
+    } catch (err) {
+      // Backing out of the share sheet is not a decision — leave the overlay up
+      // and log nothing, so they can still share or skip.
+      if (err && err.name === "AbortError") return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      shareBtn.textContent = "Link copied!";
+    } catch (e) {
+      window.prompt("Copy this invite link:", url);
+    }
+    logSignupPrompt("co-hitchhiker-invite", "invite");
+    setTimeout(done, 1500);
+  };
+  $$("#invite-prompt-skip").onclick = function () {
+    logSignupPrompt("co-hitchhiker-invite", "skip");
+    done();
+  };
+}
+
+// Entry point for the three post-submit hashes. Each nudge falls through to the
+// plain success overlay once it has had its one showing.
+function showPostSubmitOverlay(kind) {
+  if (kind === "anon" && !promptSeen(SIGNUP_PROMPT_SEEN_KEY)) showSignupPromptOverlay();
+  else if (kind === "invite" && !promptSeen(INVITE_PROMPT_SEEN_KEY)) showInvitePromptOverlay();
+  else showSuccessOverlay();
+}
+
 
 
 function arrowLine(from, to, opts = {}) {
@@ -3118,6 +3233,9 @@ async function navigate() {
   } else if (mainArgs[0] == "success") {
     history.replaceState(null, null, " ");
     showSuccessOverlay();
+  } else if (mainArgs[0] == "success-anon" || mainArgs[0] == "success-invite") {
+    history.replaceState(null, null, " ");
+    showPostSubmitOverlay(mainArgs[0] == "success-anon" ? "anon" : "invite");
   } else if (mainArgs[0] == "success-duplicate") {
     history.replaceState(null, null, " ");
     bar(".sidebar.success-duplicate");
