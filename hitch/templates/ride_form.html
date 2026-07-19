@@ -45,6 +45,9 @@
 {% endif %}
 <div class="container" style="max-width: 800px; margin: 2rem auto; padding: 2rem;">
     <a href="/" style="color: #555; text-decoration: none; font-size: 0.9em;">← Back to map</a>
+    <div id="test-mode-banner" style="display:none; background:#fff3cd; border:1px solid #ffe08a; color:#664d03; padding:10px 14px; border-radius:6px; margin:12px 0; font-size:0.95em;">
+        🧪 <strong>Test mode is on.</strong> Rides submitted here will <strong>not</strong> be saved or published to the map.
+    </div>
     <h2>Submit Your Ride Experience</h2>
     
     <div class="ride-info" style="background-color: #f8f9fa; padding: 1rem; margin-bottom: 2rem; border-radius: 5px;">
@@ -775,8 +778,27 @@
     })();
 
     // Validate co-hitchhiker on form submit
+    // Test mode (the 9-tap heatmap easter egg, key set in map.js) must suppress the
+    // real publish here too, not only in the in-ride flow (inride.js). This classic
+    // "Add a ride" form is a full-page POST to /ride, so it never saw that flag —
+    // rides created in test mode were published to the relay and appeared on the map.
+    // Short-circuit before validation/submission: nothing is sent, and we land on the
+    // same /#success the server would have redirected to.
+    const IN_TEST_MODE = localStorage.getItem('inride.testMode') === '1';
+    if (IN_TEST_MODE) {
+        const banner = document.getElementById('test-mode-banner');
+        if (banner) banner.style.display = 'block';
+    }
+
     const originalValidateForm = validateForm;
     validateForm = function() {
+        if (IN_TEST_MODE) {
+            console.log('[test mode] skipped /ride form submit');
+            alert('🧪 Test mode is on — this ride was NOT saved or published.');
+            window.location.href = '/#success';
+            return false;
+        }
+
         if (!originalValidateForm()) return false;
 
         const input = document.getElementById('co-hitchhiker-input');
