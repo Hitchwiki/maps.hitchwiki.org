@@ -73,7 +73,8 @@ Modelled on OpenStreetMap's `/node/<id>#map=<zoom>/<lat>/<lon>`. Two independent
 - **ServiceArea** / **RoadIsland** / **RoutingSearch**: Routing-support data
 
 ### Data Processing Scripts (hitch/scripts/)
-- **fetch_nostr.py**: Fetches ride data from Nostr relays (runs every 30min via cron)
+- **fetch_nostr.py**: FULL Nostr fetch — Node.js `dist/index.js` re-fetches the entire kind-36820 history and Python delete-and-recreates the whole `ride_event` table. Also the only writer of the public `dist/allPosts.json` / `allPosts.csv` exports. Now runs **weekly** (Mon 00:50), not every 30 min: re-fetching + re-serialising 75k events / 100+ MB pinned a CPU core for a minute+ every half hour on this OOM-prone host. Only still needed to catch **back-dated events** (a `since` query skips them) and to refresh the public exports before the Monday HF dataset push — deletions are now handled incrementally.
+- **fetch_nostr_incremental.py**: INCREMENTAL Nostr fetch (runs every 5min via cron). Asks the relay only for events with `created_at >=` the newest ride we already hold (Node.js `dist/index_incremental.js`, `SINCE` env → `dist/newPosts.json`), then **upserts** them keyed on the addressable coordinate `(pubkey, d)`, newest-`created_at`-wins. Because a kind-36820 edit reuses the same `d` under the same `pubkey` but re-publishes with a fresh `created_at` (~now) and a new event `id`, a `since` query always catches edits — even to old rides; the upsert overwrites the row in place (including its PK `id`). **Deletions:** the same run fetches ALL kind-5 (NIP-09) deletion events (they're rare/tiny, so no watermark → never miss one → `dist/newDeletions.json`) and removes each referenced ride, but only when the deletion's `pubkey` matches the stored ride's `pubkey` (author-only, so a forged delete can't wipe someone else's ride). The one thing left for the weekly full run is back-dated events. Steady state is sub-second. Both scripts share `parse_post_to_ride_fields` (`hitch/scripts/nostr_ride_parsing.py`) so their extracted columns never drift, and share `/tmp/fetch_nostr.lockfile` so they never overlap.
 - **show.py**: Generates map data views (runs every 10min via cron)
 - **dashboard.py**: Analytics dashboard generation (daily)
 - **cities.py**: Per-city page generation (daily)
@@ -221,14 +222,13 @@ The application aggregates hitchhiking data from multiple sources:
 1. **Nostr Protocol Network** (Primary ride data source)
    - **Source**: Decentralized Nostr relays (relay.maps.hitchwiki.org)
    - **Data Type**: Hitchhiking ride events (Nostr event kind 36820)
-   - **Fetching**: Every 30 minutes via `fetch_nostr.py`
+   - **Fetching**: Every 5 minutes via `fetch_nostr_incremental.py` (only new/edited events, upserted; also applies NIP-09 deletions); a FULL re-fetch via `fetch_nostr.py` runs weekly to catch back-dated events and refresh the public exports
    - **Process Flow**:
-     - Node.js script (`hitch/scripts/fetch_hitchhiking_events/src/index.ts`) fetches events from relays - relays might contain new rides from other apps and also new rides from this app that were directly sent to the nostr relay on creation (because doing it natively in .ts is easier than in python)
-     - Writes raw events to `dist/allPosts.json` and `dist/allPosts.csv` (those are just intermediate files, actually we want the latest state of rides from nostr to go straight into our local database - we do this in the next step by recreating the database, this is simpler than only trying to sync the changes)
-     - Python script (`fetch_nostr.py`) reads `dist/allPosts.json`
+     - Node.js script fetches events from relays - relays might contain new rides from other apps and also new rides from this app that were directly sent to the nostr relay on creation (because doing it natively in .ts is easier than in python). Two entry points: `src/index.ts` (full history → `dist/allPosts.json` + `.csv`, used by the nightly `fetch_nostr`) and `src/index_incremental.ts` (events since a `SINCE` timestamp → compact `dist/newPosts.json`, used by the 30-min `fetch_nostr_incremental`)
+     - Python reads the JSON: `fetch_nostr.py` reads `dist/allPosts.json` and delete-and-recreates the whole table; `fetch_nostr_incremental.py` reads `dist/newPosts.json` and upserts by `(pubkey, d)`. Both parse content via the shared `parse_post_to_ride_fields`
      - Parses JSON content and extracts ride metadata (stops, signals, ratings, etc.)
      - the nostr events can contain information about rides that this project does not support yet, all information that is supported is stored in RideEvent, we aim incorporate all information from the nostr rides in the furture
-     - Stores in `RideEvent` table with full deletion/recreation on each fetch
+     - Stores in `RideEvent` table (nightly full run recreates it; 30-min incremental upserts into it)
    - **Output Files** (in `dist/` directory):
      - `allPosts.json` - Raw Nostr events in JSON format
      - `allPosts.csv` - Raw Nostr events in CSV format
@@ -285,7 +285,7 @@ We use the sqlite tables as a canonical format to easily translate between the n
   - Parsed content fields: stops, signals, hitchhikers, rating, waiting_duration
   - Extracted coordinates: start lat/lon, destination lat/lon
   - User metadata: hitchhiker nicknames, submission times
-  - **Written by**: `fetch_nostr.py:33-74` (full table delete/recreate every 30 min)
+  - **Written by**: `fetch_nostr.py` (full table delete/recreate, weekly) and `fetch_nostr_incremental.py` (upsert by `(pubkey, d)` + NIP-09 deletions, every 30 min)
   - **Read by**: `show.py:57`, `main.py:64,191` (ride submission/editing)
 
 - **`osm_hitchhiking_spot`**: OSM official spots (id, latitude, longitude, tags)
@@ -384,9 +384,9 @@ When a user submits a new ride or edits an existing one:
    - No immediate write to the local `RideEvent` table — the ride only exists on Nostr relays at this point
    - Exception: co-hitchhiker records ARE written to the local `CoHitchhiker` table immediately, because co-hitchhiker acceptance is app-local state (not stored on Nostr). The submitter lists co-hitchhiker usernames, and each co-hitchhiker must accept via `/accept-co-hitchhiking-ride/<d_tag>` — this acceptance workflow only exists in the local DB.
    - For edits, the updated event is re-published to Nostr with the same `d_tag`
-2. **up to ~30 min later**: `fetch_nostr` cron runs (every 30 min) → Node.js fetches all events from relays → Python deletes & rebuilds entire `RideEvent` table (ride now in local DB)
+2. **up to ~5 min later**: `fetch_nostr_incremental` cron runs (every 5 min) → Node.js fetches only events newer than our newest ride (plus all kind-5 deletions) → Python upserts them into `RideEvent` by `(pubkey, d)` and applies deletions (ride now in local DB). A weekly full `fetch_nostr` still delete-and-recreates the whole table to catch back-dated events and refresh the public exports
 3. **up to ~10 min later**: `show.py` cron (every 10 min) detects DB modification → regenerates `spots.json`, `rides_index.json`, etc.
-4. **Ride appears on map** — total latency up to ~40 minutes after submission
+4. **Ride appears on map** — total latency up to ~15 minutes after submission
 
 ```
 User submits form
@@ -394,8 +394,8 @@ User submits form
 Flask → Nostr Relays (publish ride event)
     ↓ (redirect to /#success, ride NOT on map yet)
     ...
-    ↓ (up to ~30 min, cron)
-fetch_nostr → Nostr Relays → dist/allPosts.json → RideEvent table
+    ↓ (up to ~5 min, cron)
+fetch_nostr_incremental → Nostr Relays → dist/newPosts.json → RideEvent table (upsert)
     ↓ (up to ~10 min, cron)
 show.py → dist/{spots,rides_index,spots_recent,heatmap}.json
         → dist/rides/by-spot/<sid>.json (one file per spot, lazy-loaded)
@@ -404,7 +404,8 @@ Map UI loads updated JSON → ride visible on map
 ```
 
 ### Cron Schedule (deploy/cron.sh)
-- **Every 30 minutes**: `fetch_nostr` - Fetch new rides from Nostr
+- **Every 5 minutes**: `fetch_nostr_incremental` - Fetch only new/edited rides from Nostr and upsert them + apply NIP-09 deletions (cheap; replaced the every-30-min full `fetch_nostr`)
+- **Weekly (Mon 00:50)**: `fetch_nostr` - FULL Nostr re-fetch + table rebuild; catches back-dated events and refreshes the public `allPosts.json`/`.csv` exports (deletions are handled by the 30-min incremental job)
 - **Every 10 minutes**: `show` - Regenerate JSON map data
 - **Daily at 2 AM**: `build_ride_routes.py --skip-detailed` - Rebuild the routing graph (`dist/repeatable_routes.json`, `dist/oneoff_routes.json`, `dist/test_routes.json`). Not a `flask generate` script — cron calls the file directly with `python3`
 - **Daily at 3 AM**: `sync_osm` - Sync OSM hitchhiking spots

@@ -1,6 +1,20 @@
 # @reboot cd hitch && screen -d -m bash -c '. $HOME/.bashrc; /usr/local/bin/waitress-serve server:app; bash'
-# every 30 minutes
-*/30 * * * * cd /app && /usr/bin/flock -n /tmp/fetch_nostr.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate fetch_nostr' > logs/fetch_nostr.log 2>&1
+# every 5 minutes — INCREMENTAL Nostr fetch. Asks the relay only for events newer than the
+# newest ride we already hold and upserts them (keyed on the addressable (pubkey, d)), instead
+# of re-fetching + re-serialising the whole 75k-event / 100+ MB history every run. Because it's
+# sub-second in steady state (a since-query returning ~0 rides + a few hundred tiny kind-5
+# events) it can run far more often than the old full fetch, which pinned a CPU core for a
+# minute+ and could only be afforded every 30 min. Also fetches all kind-5 (NIP-09) deletion
+# events and removes the referenced rides (author-pubkey checked), so a deleted ride disappears
+# within ~5 min, not a week. Shares fetch_nostr.lockfile with the weekly full job (flock -n) so
+# the two never overlap — if a 5-min tick lands during the weekly full run it simply skips.
+*/5 * * * * cd /app && /usr/bin/flock -n /tmp/fetch_nostr.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate fetch_nostr_incremental' > logs/fetch_nostr.log 2>&1
+# every Monday at 00:50 — FULL Nostr fetch (delete-and-recreate). The incremental job now
+# handles deletions too, so this is only needed to (a) catch back-dated events an incremental
+# `since` query skips, and (b) regenerate the public dist/allPosts.json / allPosts.csv exports.
+# Runs weekly, a few hours before the Monday 08:00 Hugging Face dataset push that reads
+# allPosts.json, so that export is always fresh for the push.
+50 0 * * 1 cd /app && /usr/bin/flock -n /tmp/fetch_nostr.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate fetch_nostr' > logs/fetch_nostr_full.log 2>&1
 # every 10 minutes
 */10 * * * * cd /app && /usr/bin/flock -n /tmp/show.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate show' > logs/show.log 2>&1
 

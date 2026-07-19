@@ -20,12 +20,15 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy package.json and install Node dependencies
-# COPY package.json ./
-# RUN npm install
-
 # Copy the rest of the code
 COPY . .
+
+# Build the Nostr fetch scripts (TypeScript -> dist/index.js, dist/index_incremental.js).
+# node_modules/ and dist/ are .dockerignore'd, so they are NOT copied from the build context
+# and must be produced here, in the image. fetch_nostr / fetch_nostr_incremental run these.
+WORKDIR /app/hitch/scripts/fetch_hitchhiking_events
+RUN npm ci && npm run build
+WORKDIR /app
 
 # Expose port (adjust if your server uses a different port)
 EXPOSE 4242
