@@ -84,7 +84,6 @@ Modelled on OpenStreetMap's `/node/<id>#map=<zoom>/<lat>/<lon>`. Two independent
 - **sync_hitchwiki.py**: Hitchwiki article synchronization (extracts coordinates from wiki articles, daily)
 - **sync_events.py**: Hitchwiki events synchronization. Pulls every page in `Category:Events`, extracts each `{{Event|name|start|end|lat|lon}}` template, keeps events whose end date is today or later, and writes `dist/events.json` directly (self-contained → no DB model, like `country_ratings`). The map draws a calendar-pin marker per event; clicking it opens a bottom sheet with the name, dates, a plain-text blurb from the wiki page, and a Hitchwiki link (daily at 4:15 AM). Note: Hitchwiki is behind Cloudflare, which 403s ("Just a moment…") requests without a browser-like `User-Agent`, so the script sends one.
 - **build_ride_routes.py**: Builds the routing graph from rides (daily at 2 AM). For every ride with a destination it fetches an OSRM driving route and records which *other* known start spots lie within 300 m of the polyline, in travel order; sequences shared by ≥2 rides become the "repeatable" trees in `dist/repeatable_routes.json` (read by `static/routing.js`). The same run also writes `dist/oneoff_routes.json` — the identical trees with the ≥2 threshold dropped to 1 (so a corridor a single ride established still forms edges), indexing the *same* `spots` array and carrying a `spot_count` guard. The routers fetch/build it lazily and search it **only when the repeatable graph connects nothing** (`routing.js` `loadFallbackRouter` / `repeatable_router.py` `load_oneoff_router`); it's a ~6× larger superset (~3.4 MB), so it must not load on every map view. Routes that use a support-1 leg are flagged in the UI ("1 logged ride"). Standalone script (plain `python3`, not `flask generate`), reads SQLite directly. OSRM responses are cached in `dist/route_cache.jsonl` (~675 MB, read via a byte-offset index so geometries never all sit in RAM), so a daily run only fetches routes for rides added since the last run. Spot consolidation must stay identical to `show.py`'s (5 m merge → service-area/road-island polygon grouping → snap onto `dist/spots.json`), otherwise routes reference phantom spots with no map marker.
-- **sync_upstream.py**: Legacy hitchmap.com data sync (daily at 7 AM)
 - **backup_to_drive.py**: Weekly off-site backup of the SQLite DB to Google Drive with PII scrubbed (Sundays at 1 AM). Standalone script (plain `python3`, stdlib only, no app context), not a `flask generate` one. Pipeline: online-backup-API snapshot (a plain `cp` of a live DB can capture a torn page) → scrub → `VACUUM` → gzip (~417 MB → ~99 MB, ~40 s) → `rclone copyto` → prune backups older than `BACKUP_RETENTION_DAYS` (28). **The `VACUUM` is part of the scrub, not an optimisation** — an `UPDATE` leaves the old email behind in freelist pages, recoverable from a file that looks clean via SQL. The scrub replaces `user.email` with `user<id>@example.invalid` (keyed by id because the column is UNIQUE; `.invalid` is RFC 2606 reserved so a restored backup can't mail a real person) and nulls `tf_totp_secret`, `us_totp_secrets`, `mf_recovery_codes`, `us_phone_number`, `tf_phone_number`, `last_login_ip`, `current_login_ip`. **`password` hashes are deliberately kept** so the backup can restore working logins; 2FA users would re-enrol. Note the scrub only covers the `user` table — ride comments sometimes contain emails hitchhikers typed in themselves, but that text is already public on the map. Config: `BACKUP_RCLONE_REMOTE=gdrive:hitchwiki_maps-backups` in `.env` plus `deploy/rclone.conf` (gitignored, generate per `deploy/rclone.conf.example`). Test with `--no-upload` (optionally `--keep-local <path>`); a full run takes ~5.5 min, mostly upload. Uses its own Google OAuth client (Cloud project `hitchwiki-maps`) — a blank `client_id` shares rclone's global client and 403s with `Quota exceeded ... project_number:202264815644`. **`deploy/rclone.conf.example` is the full setup runbook — read it before touching any of this.** The traps it covers, all hit for real during setup:
   - The OAuth consent screen must be **published ("In production")**, not left in **Testing**. Testing-mode refresh tokens expire after **7 days** and this job runs every 7 days, so it would yield one good backup then fail silently forever. Adding yourself as a Test user does *not* fix the expiry. (Publishing *unverified* is fine and unrelated — it only adds an interstitial.)
   - The conf is mounted **read-write** because rclone rewrites it with a refreshed access token roughly hourly (verified by backdating the expiry). `:ro` works for an hour, then breaks.
@@ -276,7 +275,6 @@ The database must exist before the application can run. Two initialization paths
 2. **Production Setup**: Download pre-populated database
    - `curl https://hitchmap.com/dump.sqlite > db/hitchhiking.sqlite`
    - Contains historical ride data from legacy hitchmap.com
-   - Can be synced with upstream via `sync_upstream.py` (daily at 7 AM)
 
 #### Core Sqlite Tables (see hitch/models.py for the database schema)
 We use the sqlite tables as a canonical format to easily translate between the nostr data and the data we serve to the frontend via .json files and to store some that is not updated frequently information (e.g. about hitchwiki articles and osm).
@@ -311,12 +309,10 @@ We use the sqlite tables as a canonical format to easily translate between the n
   - **Purpose**: We want to know which users were on a ride together, if so there are two rows in this table with the same nostr_ride_event_d_tag and different references to co_hitchhiker, a co_hitchhiker can be added by the creator of the ride, but has to be accepted by the other user, then both users show up on the frontend for this ride and both can edit the ride
   - **Read by**: Not currently queried (future feature)
 
-# TODO: is this needed or deprecated stuff? specifically when do we use sync_upstream
-**Legacy Tables (from upstream sync):**
-- **`points`**, **`duplicates`**, **`service_areas`**, **`road_islands`**
-  - Synced from hitchmap.com dump via `sync_upstream.py:23-28,97-132`
-  - Used for routing and legacy data compatibility
-  - Read by: `show.py:57` (via pandas `read_sql`), `main.py:253` (duplicate reporting)
+**Legacy Tables:**
+- **`points`**, **`duplicates`**
+  - Historical hitchmap.com data, now maintained locally by the app: `duplicates` is written by user duplicate reports (`main.py`, `to_sql("duplicates", ...)`), `points` backs the review-moderation queue (`user.py`). Both already resident in the prod DB.
+  - There was a `sync_upstream.py` that pulled these (plus unused legacy `service_areas`/`road_islands`) from a nomadwiki.org dump daily; it was removed 2026-07-19 — the dump URL 404s (301s to the wiki home page) and the runtime routing tables are the singular `service_area`/`road_island` built from OSM by `sync_service_areas.py`/`sync_road_islands.py`, not these.
 
 ### Generated JSON Files
 
@@ -418,7 +414,6 @@ Map UI loads updated JSON → ride visible on map
 - **Daily at 4:15 AM**: `sync_events` - Sync Hitchwiki `Category:Events` into `dist/events.json`
 - **Daily at 5 AM**: `dashboard` - Regenerate analytics dashboard
 - **Daily at 6 AM**: `cities` - Regenerate per-city pages
-- **Daily at 7 AM**: `sync_upstream` - Upstream (legacy hitchmap.com) data synchronization
 - **Daily at midnight**: `notify_nearby_hitchhikers` - Send nearby-hitchhiker notification emails
 - **Weekly (Sun 1 AM)**: `backup_to_drive.py` - Scrubbed SQLite backup to Google Drive. Runs before the 2 AM routing rebuild so the two heaviest jobs on this OOM-prone host don't overlap (the backup holds a full ~400 MB snapshot plus its gzip on disk)
 - **Weekly (Mon 8 AM)**: `sync_hitchhiking_rides_dataset` - Push rides to the Hugging Face dataset
