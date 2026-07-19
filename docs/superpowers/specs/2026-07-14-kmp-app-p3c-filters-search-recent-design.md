@@ -14,8 +14,10 @@ on top of the existing map + spot-detail experience. The shared UI compiles for 
 map stays a stub; only Android is run/tested.
 
 - **Filter the map** by rating and spot flags, correctly under clustering.
-- **Search + Recent** in one screen: an empty query shows the latest rides; typing filters them
-  by hitchhiker name and comment. Tapping a result flies the map to that spot.
+- **Search + Recent inline on the map**: an inline search field lives in the map's top bar;
+  focusing it (empty query) drops a results overlay showing the latest rides, and typing filters
+  them by hitchhiker name and comment. Tapping a result dismisses the overlay and flies the map to
+  that spot. No separate search screen/route.
 
 ## Non-goals (P3c)
 
@@ -29,11 +31,11 @@ map stays a stub; only Android is run/tested.
 
 | Decision | Choice |
 |---|---|
-| Entry points | Pinned **top search bar** on the map + a **⚙ filter icon**; map stays home |
-| Search screen | New `search` route: text field + results; **empty query → Recent list** |
+| Entry points | Inline **search field** in the map's top bar + a **⚙ filter icon**; all on the map |
+| Search UI | Type directly in the map field; a **results overlay** drops over the map; focused + **empty query → Recent list** |
 | Search data | `spots_recent.json` (latest 1000 rides, ~397 KB); filter by **name + comment** |
-| Search load | **Lazy** — fetched only when the search screen opens, never on map startup |
-| Result tap | Pop to map → `MapViewModel.focusSpot(lat, lon, sid)` → camera fly + summary sheet |
+| Search load | **Lazy** — fetched on first focus of the search field, never on map startup |
+| Result tap | Dismiss the overlay → `MapViewModel.focusSpot(lat, lon, sid)` → camera fly + summary sheet |
 | Filters | `min rating` (Any/3+/4+/5) + flag toggles **OSM · Hitchwiki · car-pooling · fuel** |
 | Filter mechanism | Filter the in-memory `Spot` list → **rebuild the clustered GeoJSON source** (off-main) |
 | Enabling change | Rewrite `buildSpotsGeoJson` to direct `StringBuilder` output (~12 s → sub-second) |
@@ -82,22 +84,25 @@ the map — the Android actual still feeds the returned String straight into `Ge
   yields a null-coordinate entry that is simply skipped (never crashes the list).
 - `data/RecentRidesSource.kt` — interface + `ApiRecentRidesSource` calling
   `HitchwikiApi.recentRides()` (`GET /spots_recent.json`). Lazy: constructed with the graph but
-  only invoked when the search screen mounts.
+  only invoked on first focus of the map's search field.
 - `ui/search/SearchViewModel.kt` — plain-class VM (same pattern as `MapViewModel`): loads recent
   once, holds `query`, exposes `results` (empty query → all; else name/comment case-insensitive
-  substring), plus loading/error/empty state.
-- `ui/search/SearchScreen.kt` — `TextField` + a lazy list of result rows; empty/loading/error
-  states; a row tap invokes `onResult(lat, lon, sid)`.
+  substring), plus loading/error/empty state. Hosted by the map (there is no search screen).
+- `ui/map/MapSearchBar.kt` — the inline search UI drawn over the map: a `TextField` pinned in the
+  top bar plus, when the field is focused or the query is non-empty, a **results overlay** (a
+  bounded, scrollable surface of result rows) drawn beneath it. Empty + focused → Recent. A row tap
+  invokes `onResult(lat, lon, sid)` and clears focus/query. `load()` is triggered on first focus.
 - `ui/common/RecentRideRow.kt` — one result row (name, rating stars, truncated comment, distance/
   date) — recent records have a different shape than `SpotDetail` rides, so this is a small
   dedicated row rather than reusing `RideCard`.
 
 ### Wiring
-- `ui/map/MapScreen.kt` — add the pinned top search bar (tap → `onOpenSearch`) with the ⚙ filter
-  icon (toggles the `FilterSheet`); keep the location FAB and summary sheet.
-- `ui/AppNav.kt` — add `composable("search")` → `SearchScreen`; its `onResult` pops back to `map`
-  and calls `mapViewModel.focusSpot(...)`. Add `onOpenSearch = { nav.navigate("search") }` to the
-  map destination.
+- `ui/map/MapScreen.kt` — host `MapSearchBar` (top-center) and the ⚙ filter action + `FilterSheet`;
+  keep the location FAB and summary sheet. A result tap calls `mapViewModel.focusSpot(...)`; there
+  is no navigation.
+- `ui/AppNav.kt` — build/remember the `SearchViewModel` from the injected `recentSource` + `scope`
+  and pass it to `MapScreen`. No `search` route (map is the only home; `spot/{sid}` unchanged).
+- `MainActivity.kt` — construct `ApiRecentRidesSource(api)` and pass it into `AppNav`.
 - `HitchwikiApi.kt` — add `recentRides(): List<RecentRide>`.
 
 ## Data flow
@@ -109,14 +114,14 @@ spots.json  ──(P1/P2, eager)──▶ MapViewModel.spots ──applyFilters(
                                                           ▼
                                           MapUiState.geoJson ──▶ PlatformMap source
 
-spots_recent.json ──(lazy, on search open)──▶ SearchViewModel.recent
+spots_recent.json ──(lazy, on 1st search-field focus)──▶ SearchViewModel.recent
         │                                            │
         │                                   query filter (name+comment)
         ▼                                            ▼
-   RecentRide(lat,lon,sid)                    SearchScreen results
+   RecentRide(lat,lon,sid)              MapSearchBar results overlay (over the map)
                                                      │ tap
                                                      ▼
-                              nav pop → MapViewModel.focusSpot(lat,lon,sid)
+                         clear focus/query → MapViewModel.focusSpot(lat,lon,sid)
                                      → cameraTarget + selectSpot → summary sheet
 ```
 
