@@ -437,6 +437,13 @@ stat_updates = [
     )
     for name, row in user_stats.iterrows()
 ]
+# Zero everyone first, then re-apply the surviving totals. A user who hid/removed
+# ALL their rides drops out of user_stats entirely, so a plain per-nickname UPDATE
+# would never touch their row and their cached totals would freeze at the last
+# non-zero value (their profile then shows "0 rides" from the live query but stale
+# rides/km/min in Insights and achievements). The reset + re-apply run in one
+# transaction, so no user ever observes a transient zero.
+stats_conn.execute("UPDATE user SET total_rides = 0, total_distance_km = 0, total_waiting_time_min = 0")
 stats_conn.executemany(
     "UPDATE user SET total_rides = ?, total_distance_km = ?, total_waiting_time_min = ? WHERE lower(username) = ?",
     stat_updates,
