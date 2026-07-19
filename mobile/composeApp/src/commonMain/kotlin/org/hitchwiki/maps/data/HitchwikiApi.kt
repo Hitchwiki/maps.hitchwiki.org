@@ -5,6 +5,7 @@ import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.serialization.kotlinx.json.json
+import org.hitchwiki.maps.model.RecentRide
 import org.hitchwiki.maps.model.RideIndexEntry
 import org.hitchwiki.maps.model.Spot
 import org.hitchwiki.maps.model.SpotDetail
@@ -22,5 +23,6 @@ class HitchwikiApi(private val client: HttpClient, private val baseUrl: String =
     suspend fun ridesIndex(): List<RideIndexEntry> = client.get("$baseUrl/rides_index.json").body()
     // Per-spot detail filename is the spot id; see util.spotId / generate_spot_id.
     suspend fun spotDetail(sid: String): SpotDetail = client.get("$baseUrl/rides/by-spot/$sid.json").body()
+    suspend fun recentRides(): List<RecentRide> = client.get("$baseUrl/spots_recent.json").body()
     companion object { const val BASE_URL = "https://maps.hitchwiki.org" }
 }
