@@ -1,6 +1,7 @@
 package org.hitchwiki.maps.ui.map
 import org.hitchwiki.maps.data.SpotDetailSource
 import org.hitchwiki.maps.data.SpotRepository
+import org.hitchwiki.maps.data.applyFilters
 import org.hitchwiki.maps.data.buildSpotsGeoJson
 import org.hitchwiki.maps.geo.LatLng
 import kotlinx.coroutines.CoroutineDispatcher
@@ -43,7 +44,7 @@ class MapViewModel(
                 val loaded = withContext(workDispatcher) {
                     val fresh = spots.spots()
                     println("HitchwikiLoad: got ${fresh.size} spots")
-                    val geo = buildSpotsGeoJson(fresh)
+                    val geo = buildSpotsGeoJson(applyFilters(fresh, _state.value.filterState))
                     println("HitchwikiLoad: built geojson len=${geo.length}")
                     val bySid = fresh.associateBy { org.hitchwiki.maps.util.spotId(it.lat, it.lon) }
                     LoadResult(fresh, geo, bySid)
@@ -56,6 +57,23 @@ class MapViewModel(
                 _state.update { it.copy(loading = false, error = e.message ?: "Failed to load spots") }
             }
         }
+    }
+
+    /** Re-filter the already-loaded spots and rebuild the clustered source off-main. spotsBySid
+     *  stays on the full set, so focusSpot still resolves a currently-filtered-out spot. */
+    fun setFilter(state: FilterState) {
+        _state.update { it.copy(filterState = state) }
+        scope.launch {
+            val full = _state.value.spots
+            val geo = withContext(workDispatcher) { buildSpotsGeoJson(applyFilters(full, state)) }
+            _state.update { it.copy(geoJson = geo) }
+        }
+    }
+
+    /** Center the map on a spot (from a search/recent result) and open its summary sheet. */
+    fun focusSpot(lat: Double, lon: Double, sid: String) {
+        _state.update { it.copy(cameraTarget = LatLng(lat, lon)) }
+        selectSpot(sid)
     }
 
     fun selectSpot(sid: String) {

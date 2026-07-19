@@ -17,4 +17,5 @@ data class MapUiState(
     val userLocation: LatLng? = null,
     // Non-null when the map should animate to a new center; the map clears it after consuming.
     val cameraTarget: LatLng? = null,
+    val filterState: FilterState = FilterState(),
 )
