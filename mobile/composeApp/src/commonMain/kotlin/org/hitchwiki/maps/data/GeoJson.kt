@@ -1,29 +1,24 @@
 package org.hitchwiki.maps.data
 import org.hitchwiki.maps.model.Spot
 import org.hitchwiki.maps.util.spotId
-import kotlinx.serialization.json.*
 
 /** Build a GeoJSON FeatureCollection string for MapLibre's clustered GeoJsonSource.
- *  Each spot → a Point at [lon, lat] (GeoJSON order) with `sid` (for the tap→detail lookup)
- *  and `rating` (for the color ramp). Returned as a String so no MapLibre type leaks into
- *  commonMain — the Android actual feeds the String straight into GeoJsonSource. */
+ *  Each spot -> a Point at [lon, lat] (GeoJSON order) with `sid` (tap->detail lookup) and
+ *  `rating` (color ramp). Built with a StringBuilder rather than the kotlinx JSON DSL because
+ *  the DSL costs ~12 s for 35k features; direct appends are sub-second, which is what makes
+ *  interactive filter rebuilds (and a faster cold load) viable. `sid` comes from spotId() and
+ *  contains only [0-9 . _ -], so it needs no JSON string escaping. */
 fun buildSpotsGeoJson(spots: List<Spot>): String {
-    val features = spots.map { s ->
-        buildJsonObject {
-            put("type", "Feature")
-            putJsonObject("geometry") {
-                put("type", "Point")
-                putJsonArray("coordinates") { add(s.lon); add(s.lat) }
-            }
-            putJsonObject("properties") {
-                put("sid", spotId(s.lat, s.lon))
-                put("rating", s.rating)
-            }
-        }
+    val sb = StringBuilder(spots.size * 96 + 48)
+    sb.append("""{"type":"FeatureCollection","features":[""")
+    for (i in spots.indices) {
+        val s = spots[i]
+        if (i > 0) sb.append(',')
+        sb.append("""{"type":"Feature","geometry":{"type":"Point","coordinates":[""")
+        sb.append(s.lon).append(',').append(s.lat)
+        sb.append("""]},"properties":{"sid":"""").append(spotId(s.lat, s.lon))
+        sb.append("""","rating":""").append(s.rating).append("}}")
     }
-    val fc = buildJsonObject {
-        put("type", "FeatureCollection")
-        put("features", JsonArray(features))
-    }
-    return fc.toString()
+    sb.append("]}")
+    return sb.toString()
 }
