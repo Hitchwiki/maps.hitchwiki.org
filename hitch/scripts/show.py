@@ -138,6 +138,11 @@ def merge_derived_destinations(df):
     are inferred from prose, not logged GPS fixes, so they carry is_exact=False. Doing it
     here means every downstream view (spots dest lines, distance, routing input) treats a
     derived destination exactly like a real last stop. See hitch/scripts/extract_destinations.py."""
+    # Flag rides whose destination we inferred from prose rather than one the user logged, so
+    # leaderboards that rank by distance can exclude them — a mis-geocoded derived destination
+    # must never win "longest ride". Downstream map views still treat it like a real last stop.
+    # Set unconditionally (even on the early returns below) so the column always exists.
+    df["dest_is_derived"] = False
     try:
         derived = pd.read_sql("select d, latitude, longitude, is_exact from derived_ride_location", get_db())
     except pd.errors.DatabaseError:
@@ -155,6 +160,7 @@ def merge_derived_destinations(df):
             continue  # need a start stop to anchor the ride
         stops.append({"location": {"latitude": loc[0], "longitude": loc[1], "is_exact": loc[2]}})
         df.at[i, "stops"] = stops
+        df.at[i, "dest_is_derived"] = True
         merged += 1
     return merged
 
@@ -1143,7 +1149,12 @@ write_json_file(recent[["url", "submission_time", "hitchhiker_name", "rating", "
 # Precompute the 10 longest rides for the leaderboard so the /leaderboard route can
 # just read this file instead of scanning and haversine-ing every ride on each request.
 # Card fields mirror main._ride_to_card so the recent-style ride_card template renders them.
-longest = rides_df.dropna(subset=["distance"]).sort_values("distance", ascending=False).iloc[:10].copy()
+# Only rank rides the hitchhiker actually logged a destination for: a destination we mined
+# from comment text can be mis-geocoded (a same-named city on another continent), which would
+# otherwise fabricate a "12,000 km" ride at the top of the board. See merge_derived_destinations.
+longest = (
+    rides_df[~rides_df["dest_is_derived"]].dropna(subset=["distance"]).sort_values("distance", ascending=False).iloc[:10].copy()
+)
 longest["d_tag"] = longest["d"]
 longest["created"] = pd.to_datetime(longest["created_at"], unit="s").dt.strftime("%Y-%m-%d %H:%M")
 longest["rating"] = longest["rating"].fillna(0).astype(int)
@@ -1188,6 +1199,9 @@ qualifying_24h = window_df[
     & window_df["start_dt"].notna()
     & window_df["end_dt"].notna()
     & window_df["distance"].notna()
+    # Same rule as the longest-ride board: rank only logged destinations, never mined ones.
+    # (A derived destination has no arrival_time so end_dt is already NaN, but be explicit.)
+    & ~window_df["dest_is_derived"]
 ]
 
 leaderboard_24h = []
