@@ -52,6 +52,20 @@ fun MapScreen(
             modifier = Modifier.align(Alignment.BottomStart).padding(16.dp),
         ) { Text("◎") }
 
+        var showFilter by remember { mutableStateOf(false) }
+        FilledTonalButton(
+            onClick = { showFilter = true },
+            modifier = Modifier.align(Alignment.TopEnd).padding(16.dp),
+        ) { Text(if (state.filterState.isActive) "⚙ Filters •" else "⚙ Filters") }
+
+        if (showFilter) {
+            FilterSheet(
+                current = state.filterState,
+                onApply = { viewModel.setFilter(it) },
+                onDismiss = { showFilter = false },
+            )
+        }
+
         if (state.selectedSid != null) {
             SpotSummarySheet(
                 state = state,
