@@ -163,6 +163,41 @@ _merged = merge_derived_destinations(rides_df)
 logger.info(f"Merged {_merged} derived destination(s) from comment text")
 
 
+def merge_derived_waits(df):
+    """Fill in waiting times we mined from comment text (derived_ride_wait, keyed by the
+    ride's Nostr `d` tag) on rides that reached Nostr without a `waiting_duration`. Written
+    as ISO 8601 on the first stop, exactly the shape get_wait() already reads, so every
+    downstream wait view (spot averages, heatmap, routing) treats a derived wait like a
+    logged one. Never overwrites a wait the ride already carries. See
+    hitch/scripts/extract_wait_times.py."""
+    try:
+        derived = pd.read_sql("select d, waiting_minutes from derived_ride_wait", get_db())
+    except pd.errors.DatabaseError:
+        return 0  # table absent on DBs that predate the enrichment
+    by_d = {r.d: int(r.waiting_minutes) for r in derived.itertuples()}
+    if not by_d:
+        return 0
+    merged = 0
+    for i, row in df.iterrows():
+        minutes = by_d.get(row["d"])
+        if minutes is None:
+            continue
+        stops = list(row["stops"]) if isinstance(row["stops"], list) else []
+        if not stops or not isinstance(stops[0], dict):
+            continue  # need a first stop to attach the wait to
+        # Only fill a gap — a wait already logged on the ride always wins.
+        if stops[0].get("waiting_duration"):
+            continue
+        stops[0] = {**stops[0], "waiting_duration": f"PT{minutes}M"}
+        df.at[i, "stops"] = stops
+        merged += 1
+    return merged
+
+
+_merged_waits = merge_derived_waits(rides_df)
+logger.info(f"Merged {_merged_waits} derived wait time(s) from comment text")
+
+
 def get_vehicle_kind(mot):
     if isinstance(mot, dict):
         return mot.get("kind") or None

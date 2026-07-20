@@ -323,6 +323,36 @@ class DerivedRideLocation(db.Model):
         return {"location": {"latitude": self.latitude, "longitude": self.longitude, "is_exact": bool(self.is_exact)}}
 
 
+class DerivedRideWait(db.Model):
+    """A waiting time we inferred for a ride that reached Nostr without one, keyed by `d`.
+
+    Many hitchmap.com / hitchwiki.org rides carry no `waiting_duration` on their first
+    stop yet the free-text comment states how long the hitchhiker waited before getting
+    picked up ("waited 20 min and a truck stopped"). hitch/scripts/extract_wait_times.py
+    mines those comments (a cheap `\\d+ min` regex gate, then an LLM that only accepts a
+    comment which actually says the writer *waited* N minutes and then got a ride — not a
+    journey/drive duration) and stores the result here so it can be merged back onto the
+    ride's first stop via to_iso().
+
+    Kept in its own table — not written to Nostr and not columns on RideEvent — because
+    fetch_nostr rebuilds ride_event wholesale, and because this is data only we hold. The
+    minutes are inferred from prose, never a logged timer. Mirrors DerivedRideLocation.
+    """
+
+    __tablename__ = "derived_ride_wait"
+
+    d = db.Column(db.String(255), primary_key=True)
+    waiting_minutes = db.Column(db.Integer, nullable=False)
+    source_comment = db.Column(db.Text, nullable=True)
+    kind = db.Column(db.String(64), nullable=True)
+    created_at = db.Column(db.Integer, nullable=True)
+
+    def to_iso(self):
+        # ISO 8601 duration, the same shape a Nostr stop's `waiting_duration` carries, so
+        # it merges straight onto stops[0] and every wait consumer reads it unchanged.
+        return f"PT{int(self.waiting_minutes)}M"
+
+
 class ProposedSpot(db.Model):
     """A hitchhiking spot a user proposed by long-pressing the map.
 
