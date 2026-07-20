@@ -32,6 +32,7 @@ class MainActivity : ComponentActivity() {
         val api = HitchwikiApi(defaultHttpClient(OkHttp.create()))
         val repository = SpotRepository(api, SqlDelightSpotCache(db))
         val details = ApiSpotDetailSource(api)
+        val recentSource = ApiRecentRidesSource(api)
         val viewModel = MapViewModel(repository, details, lifecycleScope)
         val locationProvider = LocationProvider(applicationContext)
 
@@ -59,6 +60,7 @@ class MainActivity : ComponentActivity() {
                 AppNav(
                     mapViewModel = viewModel,
                     detailSource = details,
+                    recentSource = recentSource,
                     scope = lifecycleScope,
                     onRequestLocation = { permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) },
                 )

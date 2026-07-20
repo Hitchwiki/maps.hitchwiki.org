@@ -8,11 +8,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import kotlinx.coroutines.CoroutineScope
+import org.hitchwiki.maps.data.RecentRidesSource
 import org.hitchwiki.maps.data.SpotDetailSource
 import org.hitchwiki.maps.ui.detail.SpotDetailScreen
 import org.hitchwiki.maps.ui.detail.SpotDetailViewModel
 import org.hitchwiki.maps.ui.map.MapScreen
 import org.hitchwiki.maps.ui.map.MapViewModel
+import org.hitchwiki.maps.ui.search.SearchScreen
+import org.hitchwiki.maps.ui.search.SearchViewModel
 
 /**
  * Top-level navigation graph: the map is the start destination, and tapping a marker's
@@ -24,6 +27,7 @@ import org.hitchwiki.maps.ui.map.MapViewModel
 fun AppNav(
     mapViewModel: MapViewModel,
     detailSource: SpotDetailSource,
+    recentSource: RecentRidesSource,
     scope: CoroutineScope,
     onRequestLocation: () -> Unit,
 ) {
@@ -34,6 +38,15 @@ fun AppNav(
                 viewModel = mapViewModel,
                 onRequestLocation = onRequestLocation,
                 onOpenDetail = { sid, rating, count -> nav.navigate("spot/$sid?rating=$rating&count=$count") },
+                onOpenSearch = { nav.navigate("search") },
+            )
+        }
+        composable("search") {
+            val vm = remember { SearchViewModel(recentSource, scope) }
+            SearchScreen(
+                viewModel = vm,
+                onResult = { lat, lon, sid -> mapViewModel.focusSpot(lat, lon, sid); nav.popBackStack() },
+                onBack = { nav.popBackStack() },
             )
         }
         composable(

@@ -16,6 +16,7 @@ fun MapScreen(
     viewModel: MapViewModel,
     onRequestLocation: () -> Unit,
     onOpenDetail: (String, Float, Int) -> Unit,
+    onOpenSearch: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsState()
@@ -53,10 +54,17 @@ fun MapScreen(
         ) { Text("◎") }
 
         var showFilter by remember { mutableStateOf(false) }
-        FilledTonalButton(
-            onClick = { showFilter = true },
-            modifier = Modifier.align(Alignment.TopEnd).padding(16.dp),
-        ) { Text(if (state.filterState.isActive) "⚙ Filters •" else "⚙ Filters") }
+        Surface(
+            onClick = onOpenSearch,
+            tonalElevation = 3.dp,
+            shape = MaterialTheme.shapes.large,
+            modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(16.dp),
+        ) {
+            Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("🔍  Search rides…", Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                TextButton(onClick = { showFilter = true }) { Text(if (state.filterState.isActive) "⚙ •" else "⚙") }
+            }
+        }
 
         if (showFilter) {
             FilterSheet(
