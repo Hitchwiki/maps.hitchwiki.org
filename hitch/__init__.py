@@ -367,3 +367,27 @@ def register_routes(app):
             response.headers["Cache-Control"] = "public, max-age=300, stale-while-revalidate=600"
             response.headers["Vary"] = "Accept-Encoding"
         return response
+
+    # Per-user and per-action pages that must never enter a search index.
+    #
+    # /account/<username> renders 200 for ANY name — deliberately, so rides logged
+    # under a legacy nickname stay browsable — which makes it an unbounded space of
+    # indexable soft-404s (Google had picked up names belonging to nobody). The
+    # report/accept routes are one-off actions tied to a single ride id, and a
+    # /login carrying ?next= is a duplicate of /login with a throwaway parameter.
+    # Bare /login stays indexable.
+    #
+    # Sent as a header rather than a <meta> tag so it applies to redirects and to
+    # every template in the group without relying on inheritance.
+    #
+    # NOTE: robots.txt must keep allowing these paths. A Disallow would stop
+    # crawlers fetching them, so they would never see this header, and URLs already
+    # in the index would stay there — the opposite of the intent.
+    NOINDEX_PREFIXES = ("/account/", "/report-ride/", "/accept-co-hitchhiking-ride/")
+
+    @app.after_request
+    def set_noindex_headers(response):
+        path = request.path
+        if path.startswith(NOINDEX_PREFIXES) or (path.rstrip("/") == "/login" and request.args.get("next")):
+            response.headers["X-Robots-Tag"] = "noindex"
+        return response
