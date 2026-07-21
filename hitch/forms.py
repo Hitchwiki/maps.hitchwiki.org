@@ -42,4 +42,9 @@ class UserEditForm(FlaskForm):
     nearby_hitchhikers_email = BooleanField("Email me about other hitchhikers who were close by", default=False)
     allow_messages = BooleanField("Let other hitchhikers message me (adds a Chat button to my profile)", default=True)
     message_email_notifications = BooleanField("Email me when I receive a new message", default=True)
+    distance_unit = SelectField(
+        "Distance units",
+        choices=[("metric", "Metric (km)"), ("imperial", "Imperial (miles)")],
+        default="metric",
+    )
     submit = SubmitField("Submit")

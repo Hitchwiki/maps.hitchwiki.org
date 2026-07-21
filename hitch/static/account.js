@@ -17,14 +17,20 @@
 
   // ── Pure formatters (unit-tested) ──────────────────────────────────────────
 
+  // Distances arrive in km and are rendered in the user's chosen unit. The converters
+  // are map.js globals; fall back to metric so this module still loads standalone
+  // (the node unit tests require() it without map.js).
+  const dispKm = (km) => (typeof toDisplayDistance === "function" ? toDisplayDistance(km) : km);
+  const dispUnit = () => (typeof distanceUnitLabel === "function" ? distanceUnitLabel() : "km");
+
   function formatInsights(insights) {
     const i = insights || {};
-    const km = Math.round(i.distance_km || 0);
+    const km = Math.round(dispKm(i.distance_km || 0));
     const mins = Math.round(i.waiting_min || 0);
     const hours = Math.floor(mins / 60);
     return {
       rides: String(i.rides || 0),
-      distance: km.toLocaleString("en-US") + " km",
+      distance: km.toLocaleString("en-US") + " " + dispUnit(),
       // Waiting time reads as hours once it passes an hour; minutes alone below that.
       waiting: hours > 0 ? hours + " h " + (mins % 60) + " m" : mins + " m",
       partners: String(i.partners || 0),
@@ -111,7 +117,7 @@
     if (ride.wait_min != null) out.push({ text: durationText(ride.wait_min), dot: "stopped" });
     if (ride.ride_min != null) out.push({ text: durationText(ride.ride_min), dot: "going" });
     if (ride.distance_km != null) {
-      out.push({ text: Math.round(ride.distance_km).toLocaleString("en-US") + " km", dot: null });
+      out.push({ text: Math.round(dispKm(ride.distance_km)).toLocaleString("en-US") + " " + dispUnit(), dot: null });
     }
     return out;
   }

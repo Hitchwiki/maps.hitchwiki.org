@@ -185,7 +185,7 @@ On Hitchwiki: <a href="https://hitchwiki.org/en/User:{{ escaped_hitchwiki_userna
   <h2><a href="{{ url_for('user.show_insights', username=user.username) }}">Insights</a></h2>
   <div class="stats-grid">
     <div class="stat"><span class="stat-value">{{ user.total_rides or 0 }}</span><span class="stat-label">rides</span></div>
-    <div class="stat"><span class="stat-value">{{ (user.total_distance_km or 0) | round | int }}</span><span class="stat-label">km travelled</span></div>
+    <div class="stat"><span class="stat-value">{{ convert_km(user.total_distance_km or 0) | round | int }}</span><span class="stat-label">{{ distance_unit_label() }} travelled</span></div>
     <div class="stat"><span class="stat-value">{{ (user.total_waiting_time_min or 0) | round | int }}</span><span class="stat-label">min waiting</span></div>
   </div>
   <a href="{{ url_for('user.show_insights', username=user.username) }}">See all insights and achievements →</a>

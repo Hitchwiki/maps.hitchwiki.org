@@ -68,6 +68,9 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
 <!-- Expose auth state to the in-ride tracker (it decides whether to show the soft login prompt). -->
 <script>window.IS_LOGGED_IN = {{ 'true' if is_logged_in else 'false' }};</script>
 <script>window.USERNAME = {{ (username or '')|tojson }};</script>
+<!-- Display unit for every distance the map renders ("metric" | "imperial"). Set from the
+     logged-in user's profile setting; anonymous visitors always get metric. -->
+<script>window.DISTANCE_UNIT = {{ distance_unit()|tojson }};</script>
 <script src="{{ asset_url('/static/map.js') }}"></script>
 <script src="{{ asset_url('/static/routing.js') }}"></script>
 <script src="{{ asset_url('/static/ride_score.js') }}"></script>
@@ -322,7 +325,7 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
         <div class="filter-pane-row">
             <input id="user-filter" type="text" value="" placeholder="Filter by user" />
             <input id="text-filter" type="search" value="" placeholder="Search comments" />
-            <input id="distance-filter" type="number" value="" placeholder="Min ride distance (km)" />
+            <input id="distance-filter" type="number" value="" placeholder="Min ride distance ({{ distance_unit_label() }})" />
         </div>
         <div class="filter-pane-row">
             <label class="filter-field">
@@ -411,7 +414,7 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
         <section class="insights-chart-block">
             <div class="insights-chart-head">
                 <h3>Ride distance</h3>
-                <span class="insights-chart-unit">kilometres</span>
+                <span class="insights-chart-unit">{{ "miles" if distance_unit() == "imperial" else "kilometres" }}</span>
             </div>
             <div class="insights-chart-summary" id="insights-distance-summary"></div>
             <div class="insights-chart-wrap">
@@ -515,7 +518,7 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
             <section class="insights-chart-block" id="country-distance-block">
                 <div class="insights-chart-head">
                     <h3>Ride distance</h3>
-                    <span class="insights-chart-unit">kilometres</span>
+                    <span class="insights-chart-unit">{{ "miles" if distance_unit() == "imperial" else "kilometres" }}</span>
                 </div>
                 <div class="insights-chart-summary" id="country-distance-summary"></div>
                 <div class="insights-chart-wrap">

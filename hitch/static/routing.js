@@ -272,8 +272,14 @@
   }
   function fmtClock(d) { return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); }
   function fmtDay(d) { return d.toLocaleDateString([], { weekday: "short" }); }
+  // Distance display follows the user's unit setting. The conversion helpers live in
+  // map.js; fall back to metric so routing.js still runs standalone (node harness),
+  // where map.js isn't loaded. All routing maths stays in km either way.
+  const dispKm = (km) => (typeof toDisplayDistance === "function" ? toDisplayDistance(km) : km);
+  const dispUnit = () => (typeof distanceUnitLabel === "function" ? distanceUnitLabel() : "km");
   // Sub-10 km legs are usually walks, where 0.4 vs 0 km is the whole message.
-  function fmtKm(km) { return km < 10 ? km.toFixed(1) : String(Math.round(km)); }
+  function fmtKm(km) { const v = dispKm(km); return v < 10 ? v.toFixed(1) : String(Math.round(v)); }
+  function fmtDist(km) { return `${fmtKm(km)} ${dispUnit()}`; }
 
   const WALK_ICON = "fa-solid fa-person-walking";
   const RIDE_ICON = "fa-solid fa-thumbs-up";
@@ -285,7 +291,7 @@
   const MAX_CHIPS = 7;
   function chipStrip(rt) {
     const chip = (l) => `<span class="rp-chip rp-chip-${l.mode}"><i class="${
-      l.mode === "walk" ? WALK_ICON : RIDE_ICON}"></i><span>${fmtKm(l.km)} km</span></span>`;
+      l.mode === "walk" ? WALK_ICON : RIDE_ICON}"></i><span>${fmtDist(l.km)}</span></span>`;
     const shown = rt.legs.slice(0, MAX_CHIPS).map(chip);
     const rest = rt.legs.length - MAX_CHIPS;
     if (rest > 0) shown.push(`<span class="rp-chip rp-chip-more">+${rest}</span>`);
@@ -711,7 +717,7 @@
     return L.divIcon({
       className: "route-tag-wrap",
       html: `<div class="route-tag active" style="--rc:${color}">
-        <b>${fmtTime(e.coreMin)}</b><span class="rt-sub">${rt.carKm.toFixed(0)} km${mid}</span>
+        <b>${fmtTime(e.coreMin)}</b><span class="rt-sub">${fmtDist(rt.carKm)}${mid}</span>
         ${ends ? `<span class="rt-ends">${ends}</span>` : ""}</div>`,
       iconSize: null, iconAnchor: [0, 12],
     });
@@ -997,7 +1003,7 @@
       <span class="rp-edge-body">
         <span class="rp-edge-head"><i class="${leg.mode === "walk" ? WALK_ICON : RIDE_ICON}"></i>
           <b>${leg.mode === "walk" ? "Walk" : "Ride"}</b></span>
-        <span class="rp-edge-sub">${fmtKm(leg.km)} km · ${fmtTime(leg.minutes)}${
+        <span class="rp-edge-sub">${fmtDist(leg.km)} · ${fmtTime(leg.minutes)}${
           weak ? ' · <span class="rp-weak">1 logged ride</span>' : ""}</span>
       </span>`;
     if (weak) li.classList.add("rp-edge-weak");
@@ -1092,7 +1098,7 @@
             <span class="rp-opt-clock">${fmtClock(depart)}—${fmtClock(arrive)}${dayTag}</span>
             <span class="rp-opt-chips">${chipStrip(rt)}</span>
             <span class="rp-opt-head"><b>${fmtTime(e.coreMin)}</b> <span class="rp-opt-delta">${delta}</span></span>
-            <span class="rp-opt-sub">${rt.carKm.toFixed(0)} km${mid} · ${cars} ride${cars > 1 ? "s" : ""} · ${Math.round(rt.waitMin)} min wait</span>
+            <span class="rp-opt-sub">${fmtDist(rt.carKm)}${mid} · ${cars} ride${cars > 1 ? "s" : ""} · ${Math.round(rt.waitMin)} min wait</span>
             ${ends ? `<span class="rp-opt-ends">${ends}</span>` : ""}
             ${oneOff ? '<span class="rp-opt-weak"><i class="fa-solid fa-circle-info"></i>' +
               "Includes a leg only one hitchhiker has logged</span>" : ""}

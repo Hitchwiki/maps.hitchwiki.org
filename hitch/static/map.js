@@ -5,6 +5,55 @@ if ("serviceWorker" in navigator) {
 
 // Helpers and variables
 var $$ = (e) => document.querySelector(e);
+
+// --- Distance units -------------------------------------------------------
+// Every distance in the data (spots, rides, routing graph) is in kilometres; the user's
+// profile setting only changes how we render it. These helpers are global on purpose so
+// map.js, routing.js and account.js all format through the same place.
+const KM_PER_MILE = 1.609344;
+function distanceUnit() {
+  return window.DISTANCE_UNIT === "imperial" ? "imperial" : "metric";
+}
+function distanceUnitLabel() {
+  return distanceUnit() === "imperial" ? "mi" : "km";
+}
+// km -> the number to display (miles when the user picked imperial).
+function toDisplayDistance(km) {
+  return distanceUnit() === "imperial" ? km / KM_PER_MILE : km;
+}
+// A user-entered distance (in their unit) -> km, so filters can compare against ride data.
+function fromDisplayDistance(value) {
+  return distanceUnit() === "imperial" ? value * KM_PER_MILE : value;
+}
+// "412 km" / "256 mi". decimals defaults to 0; pass null for a bare number.
+function formatDistance(km, decimals = 0) {
+  if (km == null || Number.isNaN(km)) return "-";
+  return toDisplayDistance(km).toFixed(decimals) + " " + distanceUnitLabel();
+}
+// Long unit name for chart axis labels.
+function distanceAxisLabel() {
+  return distanceUnit() === "imperial" ? "miles" : "kilometres";
+}
+// Pre-computed km stats/histograms (country_insights.json, per-spot files) rescaled for
+// display. Bin *counts* are unit-independent — only the value axis moves — so a linear
+// scale of the bounds is exact, no re-binning needed. Returns the input untouched in metric.
+function scaleStatsToDisplay(stats) {
+  if (!stats || distanceUnit() !== "imperial") return stats;
+  const out = { ...stats };
+  ["mean", "median", "stdev", "min", "max"].forEach((k) => {
+    if (typeof out[k] === "number") out[k] = toDisplayDistance(out[k]);
+  });
+  return out;
+}
+function scaleHistToDisplay(hist) {
+  if (!hist || distanceUnit() !== "imperial") return hist;
+  return {
+    ...hist,
+    lo: toDisplayDistance(hist.lo),
+    hi: toDisplayDistance(hist.hi),
+    binWidth: toDisplayDistance(hist.binWidth),
+  };
+}
 var allMarkers = [],
   destinationMarkers = [],
   active = [],
@@ -863,11 +912,15 @@ async function loadCountryInsights(cc) {
   wrap.hidden = false;
 
   renderCountryMetric("wait", entry.wait, "min", "waiting-time");
-  renderCountryMetric("distance", entry.distance, "km", "distance");
+  // The JSON is in km; rescale stats and histogram bounds for an imperial reader.
+  const distanceMetric = entry.distance
+    ? { ...entry.distance, stats: scaleStatsToDisplay(entry.distance.stats), hist: scaleHistToDisplay(entry.distance.hist) }
+    : entry.distance;
+  renderCountryMetric("distance", distanceMetric, distanceUnitLabel(), "distance");
 
   countryInsightsLastDraw = {
     wait: entry.wait ? entry.wait.hist : null,
-    distance: entry.distance ? entry.distance.hist : null,
+    distance: distanceMetric ? distanceMetric.hist : null,
   };
   // Draw after a frame so the sheet has its final width before we size canvases.
   requestAnimationFrame(redrawCountryInsightsCharts);
@@ -892,7 +945,7 @@ function redrawCountryInsightsCharts() {
   if (countryInsightsLastDraw.wait)
     renderHistogram($$("#country-wait-chart"), countryInsightsLastDraw.wait, { xLabel: "minutes" });
   if (countryInsightsLastDraw.distance)
-    renderHistogram($$("#country-distance-chart"), countryInsightsLastDraw.distance, { xLabel: "kilometres" });
+    renderHistogram($$("#country-distance-chart"), countryInsightsLastDraw.distance, { xLabel: distanceAxisLabel() });
 }
 
 function countryWikiApi(title, params) {
@@ -2105,7 +2158,7 @@ function summaryText(data, hists = { wait: null, distance: null }) {
     : '';
 
   const wait = !data.wait || Number.isNaN(data.wait) ? "-" : data.wait.toFixed(0) + " min";
-  const distance = !data.distance || Number.isNaN(data.distance) ? "-" : data.distance.toFixed(0) + " km";
+  const distance = !data.distance || Number.isNaN(data.distance) ? "-" : formatDistance(data.distance);
 
   // Lines are <div>s rather than <br>-separated text: each histogram is a block
   // element, and a <br> after one would open an empty line under the chart.
@@ -2113,7 +2166,7 @@ function summaryText(data, hists = { wait: null, distance: null }) {
     <div>Waiting time: ${wait}</div>
     ${spotHistogramMarkup(hists.wait, "spot-wait-hist", "min")}
     <div>Ride distance: ${distance}</div>
-    ${spotHistogramMarkup(hists.distance, "spot-distance-hist", "km")}
+    ${spotHistogramMarkup(scaleHistToDisplay(hists.distance), "spot-distance-hist", distanceUnitLabel())}
     ${osmLink}${carPoolingLink}${fuelLink}${hitchwikiLink}${hitchwikiMapLink}`;
 }
 
@@ -3306,7 +3359,8 @@ function applyRideFilters(rides) {
     ? Date.parse(maxDateFilter.value + "T23:59:59.999Z")
     : null;
   const commentNeedle = textFilter.value ? textFilter.value.toLowerCase() : null;
-  const minDistanceKm = distanceFilter.value ? parseFloat(distanceFilter.value) : null;
+  // The box is typed in the user's unit; ride.km is always km, so convert before comparing.
+  const minDistanceKm = distanceFilter.value ? fromDisplayDistance(parseFloat(distanceFilter.value)) : null;
   const minRides = minRidesFilter.value ? parseInt(minRidesFilter.value, 10) : null;
   const minRating = minRatingFilter.value ? parseFloat(minRatingFilter.value) : null;
   const recentCutoffMs = recentToggle.checked
@@ -3713,7 +3767,7 @@ function redrawInsightsCharts() {
   const waitCanvas = document.getElementById("insights-wait-chart");
   const distCanvas = document.getElementById("insights-distance-chart");
   drawHistogram(waitCanvas, insightsLastDraw.wait.clipped, { xLabel: "minutes" });
-  drawHistogram(distCanvas, insightsLastDraw.distance.clipped, { xLabel: "kilometres" });
+  drawHistogram(distCanvas, insightsLastDraw.distance.clipped, { xLabel: distanceAxisLabel() });
 }
 
 async function showInsightsView() {
@@ -3739,7 +3793,7 @@ async function showInsightsView() {
     .map((r) => r.w)
     .filter((v) => v != null && !Number.isNaN(v) && v >= 0);
   const distValues = filtered
-    .map((r) => r.km)
+    .map((r) => (r.km == null ? r.km : toDisplayDistance(r.km)))
     .filter((v) => v != null && !Number.isNaN(v) && v >= 0);
 
   const waitStats = computeStats(waitValues);
@@ -3754,7 +3808,7 @@ async function showInsightsView() {
 
   renderSelectionCard("insights-stats", stats);
   renderChartSummary("insights-wait-summary", waitStats, "min");
-  renderChartSummary("insights-distance-summary", distStats, "km");
+  renderChartSummary("insights-distance-summary", distStats, distanceUnitLabel());
   renderChartNote("insights-wait-note", waitClip.hidden, waitValues.length, "waiting-time");
   renderChartNote("insights-distance-note", distClip.hidden, distValues.length, "distance");
   setInsightsSubtitle(

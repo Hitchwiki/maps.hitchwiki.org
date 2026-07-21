@@ -26,7 +26,7 @@
         {{ ride.created }}
         {% if ride.rating > 0 %}&nbsp;{{ "⭐" * ride.rating }}{% endif %}
         &mdash; <span class="hitchhiker-name">{{ ride.hitchhiker_name }}</span>
-        {% if ride.distance is not none %}&mdash; {{ ride.distance }} km{% endif %}
+        {% if ride.distance is not none %}&mdash; {{ format_distance(ride.distance) }}{% endif %}
     </div>
     {% if ride.pickup_lat and ride.pickup_lon %}
     <div class="map-thumbnail" id="{{ thumb_prefix }}-{{ idx }}" style="height:100px;"></div>
@@ -99,7 +99,7 @@
       <div class="h24-head" style="display:flex; align-items:baseline; gap:0.5rem; border-bottom:2px solid #ccc; padding:0.3rem 0;">
         <span style="color:#999; min-width:1.5em;">{{ loop.index }}</span>
         <a href="/account/{{ entry.hitchhiker_name }}" style="font-weight:600;">{{ entry.hitchhiker_name }}</a>
-        <span style="margin-left:auto; font-weight:600;">{{ entry.total_distance }} km</span>
+        <span style="margin-left:auto; font-weight:600;">{{ format_distance(entry.total_distance) }}</span>
       </div>
       <div style="color:#888; font-size:0.8em; margin:0.2rem 0 0.5rem;">
         {{ entry.rides|length }} ride{{ "s" if entry.rides|length != 1 else "" }} &middot; {{ entry.window_start }} &rarr; {{ entry.window_end }}

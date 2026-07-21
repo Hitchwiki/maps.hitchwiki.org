@@ -56,6 +56,12 @@ class User(db.Model, fsqla.FsUserMixin):
     # chat itself. Only consulted when allow_messages is on (no messages arrive otherwise).
     message_email_notifications = db.Column(db.Boolean, default=True, nullable=False, server_default="1")
 
+    # Which unit system distances are *displayed* in ("metric" = km, "imperial" = miles).
+    # Storage and every computation stay in km — this is a presentation preference only, so a
+    # user switching units never rewrites ride data. Private: unlike the profile fields above
+    # it is never rendered on the public profile.
+    distance_unit = db.Column(db.String(16), default="metric", nullable=False, server_default="metric")
+
     # Lifetime hitchhiking stats, recomputed from all ride events on every show.py
     # run (not maintained on ride submission). Shown in the profile "Insights"
     # section so the page doesn't have to aggregate every ride on each load.

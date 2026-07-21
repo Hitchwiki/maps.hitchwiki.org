@@ -19,6 +19,7 @@ from hitch.blueprints.messages import messages_bp
 from hitch.blueprints.oauth import oauth_bp
 from hitch.blueprints.user import user_bp
 from hitch.extensions import db, mail, security
+from hitch.helpers import convert_km, current_distance_unit, distance_unit_label, format_distance
 from hitch.models import Role, User
 from hitch.settings import config
 
@@ -102,6 +103,13 @@ def register_template_globals(app):
             return path
         sep = "&" if "?" in path else "?"
         return f"{path}{sep}v={version}"
+
+    # Distance rendering follows the logged-in user's unit preference (User.distance_unit).
+    # Exposed as template globals so every page formats km through one place.
+    app.jinja_env.globals["format_distance"] = format_distance
+    app.jinja_env.globals["convert_km"] = convert_km
+    app.jinja_env.globals["distance_unit"] = current_distance_unit
+    app.jinja_env.globals["distance_unit_label"] = distance_unit_label
 
 
 def register_extensions(app):

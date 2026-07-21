@@ -73,7 +73,7 @@ a.record:hover { border-color: #dcc688; }
 <div class="record-grid">
   {# A record links to its ride only when the ride has a d-tag; legacy/imported rides have none. #}
   {% for key, emoji, label, value in [
-       ("distance", "🛣️", "Longest ride", records.distance.value | round | int ~ " km" if records.distance else None),
+       ("distance", "🛣️", "Longest ride", format_distance(records.distance.value) if records.distance else None),
        ("wait", "⏳", "Longest wait", records.wait.value ~ " min" if records.wait else None),
      ] %}
   {% set record = records[key] %}
@@ -93,7 +93,7 @@ a.record:hover { border-color: #dcc688; }
 
 <div class="stats-grid">
   <div class="stat"><span class="stat-value">{{ total_rides }}</span><span class="stat-label">rides</span></div>
-  <div class="stat"><span class="stat-value">{{ total_km | round | int }}</span><span class="stat-label">km travelled</span></div>
+  <div class="stat"><span class="stat-value">{{ convert_km(total_km) | round | int }}</span><span class="stat-label">{{ distance_unit_label() }} travelled</span></div>
   <div class="stat"><span class="stat-value">{{ total_waiting_min | round | int }}</span><span class="stat-label">min waiting</span></div>
   <div class="stat"><span class="stat-value">{{ partners }}</span><span class="stat-label">partners</span></div>
 </div>

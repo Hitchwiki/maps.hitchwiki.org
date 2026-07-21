@@ -48,6 +48,7 @@ def form():
         updated_user.nearby_hitchhikers_email = form.nearby_hitchhikers_email.data
         updated_user.allow_messages = form.allow_messages.data
         updated_user.message_email_notifications = form.message_email_notifications.data
+        updated_user.distance_unit = form.distance_unit.data
         security.datastore.put(updated_user)
         security.datastore.commit()
         return redirect("/me")
@@ -63,6 +64,7 @@ def form():
     form.nearby_hitchhikers_email.data = current_user.nearby_hitchhikers_email
     form.allow_messages.data = current_user.allow_messages
     form.message_email_notifications.data = current_user.message_email_notifications
+    form.distance_unit.data = current_user.distance_unit or "metric"
 
     return render_template("security/edit_user.html", form=form)
 

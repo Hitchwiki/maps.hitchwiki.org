@@ -21,6 +21,10 @@
     <p>{{ form.allow_messages() }} {{ form.allow_messages.label }}</p>
     <p>{{ form.message_email_notifications() }} {{ form.message_email_notifications.label }}</p>
     <br>
+    <!-- Display preference, not personal data: it is never shown on the public profile. -->
+    <p>{{ form.distance_unit.label }} {{ form.distance_unit() }}</p>
+    <p style="color:#666; font-size:0.85em;">Only affects how distances are shown to you. Not shown on your public profile.</p>
+    <br>
     {{ form.submit }}
 </form>
 {% endblock %}
