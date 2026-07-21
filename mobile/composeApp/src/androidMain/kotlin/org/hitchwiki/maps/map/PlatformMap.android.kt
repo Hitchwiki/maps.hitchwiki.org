@@ -106,10 +106,10 @@ actual fun PlatformMap(state: MapState, callbacks: MapCallbacks, modifier: Modif
                 map.setStyle(Style.Builder().fromUri("asset://osm_us_style.json")) { style ->
                     val source = GeoJsonSource(
                         SRC, state.geoJson,
-                        // clusterMaxZoom 11: above it, spots always render individually (was 13,
-                        // which forced zooming in ~2 extra levels for single-spot granularity).
-                        // clusterRadius 44 (px) breaks clusters apart a little sooner too.
-                        GeoJsonOptions().withCluster(true).withClusterMaxZoom(11).withClusterRadius(44),
+                        // clusterMaxZoom 9: above it, spots always render individually. Small 2-3
+                        // spot clusters otherwise survived to ~zoom 13 (way too far in). clusterRadius
+                        // 32 (px) also makes only genuinely-overlapping points merge below zoom 9.
+                        GeoJsonOptions().withCluster(true).withClusterMaxZoom(9).withClusterRadius(32),
                     )
                     style.addSource(source)
 
