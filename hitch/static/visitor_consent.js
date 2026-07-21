@@ -139,34 +139,56 @@
     // city pages, which don't all load style.css.
     style.textContent =
       "#hm-consent{position:fixed;left:12px;right:12px;bottom:12px;z-index:100000;" +
-      "max-width:560px;margin:0 auto;background:#fff;color:#222;border:1px solid #ccc;" +
-      "border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.18);padding:14px 16px;" +
-      "font-size:.92em;line-height:1.45;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}" +
-      "#hm-consent p{margin:0 0 10px}" +
-      "#hm-consent .hm-consent-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}" +
-      "#hm-consent button{cursor:pointer;border-radius:6px;padding:7px 14px;font-size:.95em;border:1px solid #ccc;background:#f4f4f4;color:#222}" +
+      "max-width:600px;margin:0 auto;background:#fff;color:#222;border:1px solid #ccc;" +
+      "border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.18);padding:16px 18px;" +
+      "font-size:.9em;line-height:1.45;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));" +
+      "max-height:80vh;overflow-y:auto}" +
+      "#hm-consent h2{margin:0 0 8px;font-size:1.05em}" +
+      "#hm-consent p{margin:0 0 12px}" +
+      "#hm-consent .hm-cat{border-top:1px solid #e5e5e5;padding:9px 0}" +
+      "#hm-consent .hm-cat-head{display:flex;align-items:center;justify-content:space-between;gap:10px}" +
+      "#hm-consent .hm-cat-name{font-weight:bold}" +
+      "#hm-consent .hm-cat-state{font-size:.85em;color:#666;white-space:nowrap}" +
+      "#hm-consent .hm-cat-desc{margin:4px 0 0;color:#555;font-size:.92em}" +
+      "#hm-consent .hm-consent-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;" +
+      "border-top:1px solid #e5e5e5;padding-top:12px;margin-top:4px}" +
+      "#hm-consent button{cursor:pointer;border-radius:6px;padding:8px 15px;font-size:.95em;border:1px solid #ccc;background:#f4f4f4;color:#222}" +
       "#hm-consent button.hm-consent-yes{background:#1a73e8;border-color:#1a73e8;color:#fff}" +
       "#hm-consent a{color:#1a73e8;margin-left:auto;font-size:.9em}" +
       "@media (prefers-color-scheme:dark){#hm-consent{background:#222;color:#eee;border-color:#444}" +
+      "#hm-consent .hm-cat,#hm-consent .hm-consent-actions{border-color:#3a3a3a}" +
+      "#hm-consent .hm-cat-desc,#hm-consent .hm-cat-state{color:#aaa}" +
       "#hm-consent button{background:#333;border-color:#555;color:#eee}}";
     document.head.appendChild(style);
 
     banner = document.createElement("div");
     banner.id = "hm-consent";
     banner.setAttribute("role", "dialog");
-    banner.setAttribute("aria-label", "Recognise this browser?");
-    // The copy states exactly what the choice controls, and says plainly that
-    // usage is measured either way. Anything vaguer would make declining feel
-    // like an opt-out it isn't.
+    banner.setAttribute("aria-label", "Cookies and similar technologies");
+    // The familiar two-category consent layout, but the descriptions have to stay
+    // literally true. In particular the analytics row says what happens when you
+    // decline: page views are still counted, storage-free. A generic "Reject" that
+    // silently kept full tracking would be the dark pattern this text avoids.
     banner.innerHTML =
-      "<p><strong>Recognise this browser next time?</strong> " +
-      "We count how the map is used either way, without cookies and without naming anyone. " +
-      "Saying yes stores a random ID in this browser so we can tell a returning visitor " +
-      "from a new one — that's all it does.</p>" +
+      "<h2>Cookies and similar technologies</h2>" +
+      "<p>We use a small amount of browser storage to run the map and to understand how it is used. " +
+      "Everything below stays on our own servers — no advertising, no third parties, nothing sold.</p>" +
+      '<div class="hm-cat">' +
+      '<div class="hm-cat-head"><span class="hm-cat-name">Essential</span>' +
+      '<span class="hm-cat-state">Always active</span></div>' +
+      '<p class="hm-cat-desc">Keeps you signed in and saves a ride you have started but not yet ' +
+      "submitted, so it survives losing signal. The site cannot work without this.</p></div>" +
+      '<div class="hm-cat">' +
+      '<div class="hm-cat-head"><span class="hm-cat-name">Analytics</span>' +
+      '<span class="hm-cat-state">Optional</span></div>' +
+      '<p class="hm-cat-desc">Stores one random ID in your browser so we can tell a returning ' +
+      "visitor from a new one, and see whether people who look up spots ever add their own rides. " +
+      "It is not linked to your name, your account or your rides. " +
+      "If you decline, we still count page views anonymously — but nothing is stored on your device.</p></div>" +
       '<div class="hm-consent-actions">' +
-      '<button type="button" class="hm-consent-yes">Yes, that\'s fine</button>' +
-      '<button type="button" class="hm-consent-no">No thanks</button>' +
-      '<a href="/privacy">Privacy</a>' +
+      '<button type="button" class="hm-consent-yes">Accept all</button>' +
+      '<button type="button" class="hm-consent-no">Reject non-essential</button>' +
+      '<a href="/privacy">Privacy policy</a>' +
       "</div>";
     document.body.appendChild(banner);
 
@@ -176,6 +198,11 @@
     banner.querySelector(".hm-consent-no").addEventListener("click", function () {
       window.hmVisitorConsent.deny();
     });
+    // "Reject" must be reachable without a mouse and dismissible like any dialog.
+    banner.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") window.hmVisitorConsent.deny();
+    });
+    banner.querySelector(".hm-consent-no").focus();
   }
 
   function maybePrompt() {
