@@ -427,6 +427,11 @@ function populateHeatmapLegend(legendData) {
 // people look up — the geocoder runs client-side, so this is the only signal.
 // sendBeacon is fire-and-forget and survives the page being navigated away.
 function logSearchRequest(geocode) {
+  // Mirrored into Umami as a funnel/journey step. Deliberately without the place
+  // name: the server CSV already records which places are looked up, and a
+  // free-text place per session is exactly the high-cardinality, re-identifying
+  // detail the cookieless setup is meant to keep out of the analytics store.
+  hmTrack('search_used');
   try {
     if (!geocode || !geocode.center) return;
     const body = JSON.stringify({
@@ -456,6 +461,13 @@ function logFilterRequest(filters, matches) {
   filterLogTimer = setTimeout(() => {
     try {
       lastLoggedFilters = signature;
+      // Inside the debounce so Umami sees one event per intent, not per
+      // keystroke. Only the names of the active filters are sent — the values
+      // include free text and usernames, which don't belong in analytics.
+      const active = Object.keys(filters).filter((k) => filters[k]);
+      if (active.length) {
+        hmTrack('filters_applied', { filters: active.sort().join('|'), matches: matches });
+      }
       const body = JSON.stringify({ filters: filters, matches: matches });
       const blob = new Blob([body], { type: "application/json" });
       if (navigator.sendBeacon) navigator.sendBeacon("/log-filter-request", blob);

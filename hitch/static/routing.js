@@ -10,6 +10,12 @@
 (function () {
   "use strict";
 
+  // Analytics helper from base.html. Resolved once through a local alias rather
+  // than referenced as a bare global, because this file is also exercised under
+  // node with only `window`/`document`/`fetch` stubbed (see CLAUDE.md), where a
+  // bare hmTrack would be a ReferenceError instead of a no-op.
+  const hmTrack = (typeof window !== "undefined" && window.hmTrack) || function () {};
+
   // ---- engine constants --------------------------------------------------
   const WALK_KMH = 5, CAR_KMH = 100, CAR_FACTOR = 1.25, EARTH_KM = 6371;
   // How far one is willing to walk — applied uniformly to first/last mile
@@ -446,6 +452,9 @@
   // ---- open / close ------------------------------------------------------
   function open() {
     if (RJ.active) return;
+    // Entry step of the routing funnel: opened -> searched -> found. The drop
+    // between opened and searched is people who couldn't express their trip.
+    hmTrack('routing_opened');
     RJ.active = true;
     document.body.classList.add("routing-active");
     if (!panel) buildPanel();
@@ -517,9 +526,19 @@
     RJ._computeTimer = setTimeout(() => {
       const from = RJ.start.latlng, to = RJ.dest.latlng;
       logRouteRequest(from, to);   // record which route was asked for (server has no other signal)
+      // Coordinates stay out of Umami (the server CSV has them); the straight-line
+      // distance is what tells us whether people plan city hops or continents.
+      hmTrack('route_searched', { km: Math.round(haversineKm(from, to)) });
       const res = alternatives(RJ.router, from, to, DEFAULT_MAX_WALK, 3, 0.6);
       clearRoutes(); // drop anything a previous run left before drawing fresh
-      if (res.length) { showRoutes(res); return; }
+      if (res.length) {
+        // Splitting the outcome by graph matters: a route that only exists in the
+        // one-off graph rests on a single logged ride, so a high share of these
+        // means the repeatable graph is too sparse to be the primary answer.
+        hmTrack('route_found', { graph: 'repeatable', options: res.length });
+        showRoutes(res);
+        return;
+      }
 
       // Nothing repeats between these points. Retry on the one-off graph before
       // giving up — a corridor one hitchhiker logged once still beats nothing.
@@ -530,7 +549,14 @@
         if (search !== RJ.searchToken) return;   // superseded while downloading
         const alt = FB ? alternatives(FB, from, to, DEFAULT_MAX_WALK, 3, 0.6) : [];
         clearRoutes();
-        if (!alt.length) { setStatus(diagnoseNoRoute(FB || RJ.router, from, to, DEFAULT_MAX_WALK, !!FB)); return; }
+        if (!alt.length) {
+          // The failure mode is the actionable part: which end (or the middle)
+          // has too little logged data is what says where to recruit rides.
+          hmTrack('route_none', { reason: diagnoseNoRouteReason(FB || RJ.router, from, to, DEFAULT_MAX_WALK) });
+          setStatus(diagnoseNoRoute(FB || RJ.router, from, to, DEFAULT_MAX_WALK, !!FB));
+          return;
+        }
+        hmTrack('route_found', { graph: 'oneoff', options: alt.length });
         showRoutes(alt);
       });
     }, 30);
@@ -549,6 +575,18 @@
     highlight(0);
     upgradeAllToStreets(token);
     updateShareUrl();       // make this search shareable (#dir/from/to)
+  }
+
+  // The same diagnosis as diagnoseNoRoute(), reduced to one of four fixed labels
+  // for analytics. Kept separate from the prose so the wording can be reworded
+  // freely without silently splitting an event into two categories.
+  function diagnoseNoRouteReason(R, start, dest, maxWalk) {
+    const startCovered = spotsNear(R, start, maxWalk).length > 0;
+    const destCovered = spotsNear(R, dest, maxWalk).length > 0;
+    if (!startCovered && !destCovered) return 'both-uncovered';
+    if (!startCovered) return 'start-uncovered';
+    if (!destCovered) return 'dest-uncovered';
+    return 'gap-in-middle';
   }
 
   // When no route is found, explain which end is the problem so the user can act
