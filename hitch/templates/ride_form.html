@@ -310,6 +310,10 @@
         </div>
     </form>
 </div>
+{# `scripts` must close `main` first: a named block nested inside another is
+   rendered at its definition site AND again where base.html calls it, which
+   emitted this entire script section (Leaflet included) twice per page. #}
+{% endblock %}
 
 {% block scripts %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
