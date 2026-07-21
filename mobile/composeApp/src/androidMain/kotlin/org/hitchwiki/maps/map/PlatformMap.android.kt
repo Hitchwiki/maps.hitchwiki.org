@@ -1,6 +1,7 @@
 package org.hitchwiki.maps.map
 
 import android.graphics.Point
+import android.graphics.RectF
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateOf
@@ -24,6 +25,7 @@ import org.maplibre.android.style.layers.PropertyFactory
 import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.android.style.sources.GeoJsonOptions
 import org.maplibre.android.style.sources.GeoJsonSource
+import org.maplibre.geojson.Point as GjPoint
 
 private const val SRC = "spots"
 private const val LYR_CLUSTER = "spots-clusters"
@@ -97,10 +99,17 @@ actual fun PlatformMap(state: MapState, callbacks: MapCallbacks, modifier: Modif
             }
             mapView.getMapAsync { map ->
                 mapRef.value = map
+                // The compass defaults to the top-right, where it hides under the status bar and
+                // search pill. Drop it below the search bar (top-right) so it's fully on-screen.
+                val d = context.resources.displayMetrics.density
+                map.uiSettings.setCompassMargins(0, (150 * d).toInt(), (16 * d).toInt(), 0)
                 map.setStyle(Style.Builder().fromUri("asset://osm_us_style.json")) { style ->
                     val source = GeoJsonSource(
                         SRC, state.geoJson,
-                        GeoJsonOptions().withCluster(true).withClusterMaxZoom(13).withClusterRadius(50),
+                        // clusterMaxZoom 11: above it, spots always render individually (was 13,
+                        // which forced zooming in ~2 extra levels for single-spot granularity).
+                        // clusterRadius 44 (px) breaks clusters apart a little sooner too.
+                        GeoJsonOptions().withCluster(true).withClusterMaxZoom(11).withClusterRadius(44),
                     )
                     style.addSource(source)
 
@@ -167,14 +176,26 @@ actual fun PlatformMap(state: MapState, callbacks: MapCallbacks, modifier: Modif
 
                     map.addOnMapClickListener { point ->
                         val screen = map.projection.toScreenLocation(point)
-                        val hits = map.queryRenderedFeatures(screen, LYR_POINT)
-                        val sid = hits.firstOrNull()?.getStringProperty("sid")
+                        // A single-pixel hit test makes the 6px markers hard to tap. Query a
+                        // finger-sized box (~24dp) around the tap and, when several spots fall in
+                        // it, pick the one nearest the tap so the closest marker always wins.
+                        val slop = 24f * context.resources.displayMetrics.density
+                        val box = RectF(screen.x - slop, screen.y - slop, screen.x + slop, screen.y + slop)
+                        val hits = map.queryRenderedFeatures(box, LYR_POINT)
+                        val nearest = hits.minByOrNull { f ->
+                            val g = f.geometry() as? GjPoint ?: return@minByOrNull Float.MAX_VALUE
+                            val p = map.projection.toScreenLocation(MlLatLng(g.latitude(), g.longitude()))
+                            val dx = p.x - screen.x
+                            val dy = p.y - screen.y
+                            dx * dx + dy * dy
+                        }
+                        val sid = nearest?.getStringProperty("sid")
                         if (sid != null) {
                             currentCallbacks.value.onSpotClick(sid)
                             return@addOnMapClickListener true
                         }
                         // Tapped a cluster? zoom in one step to expand it.
-                        val clusterHit = map.queryRenderedFeatures(screen, LYR_CLUSTER).isNotEmpty()
+                        val clusterHit = map.queryRenderedFeatures(box, LYR_CLUSTER).isNotEmpty()
                         if (clusterHit) {
                             // CameraUpdateFactory.zoomBy(double, Point) takes the integer-pixel
                             // android.graphics.Point at 11.5.0, not the PointF that
