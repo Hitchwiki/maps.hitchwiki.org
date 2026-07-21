@@ -15,10 +15,16 @@
        proxies /1p/* to the Umami container (umami_first_party snippet in the
        hitchwiki-private repo); the tracker derives its collect URL from its own
        script src, so it posts to /1p/api/send without further configuration. #}
+    {# Must load before the (deferred) tracker: it defines the before-send hook,
+       which is what lets a consented visitor's very first pageview carry their
+       durable id. Calling identify() after load would leave that pageview in a
+       different session from the rest of the visit. #}
+    <script src="/static/visitor_consent.js"></script>
     <script
       defer
       src="/1p/script.js"
       data-website-id="f3576395-def8-4d09-9725-7f74dde89c72"
+      data-before-send="hmVisitorBeforeSend"
     ></script>
     <script>
       // Funnel events are fired from map.js / the ride form through this one
