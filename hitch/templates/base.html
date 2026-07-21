@@ -4,18 +4,32 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- Google Analytics 4 — cookieless mode (client_storage: 'none' disables all cookies) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-84G3GNXSME"></script>
+    {# Umami (self-hosted at 1p.hitchhiking.org, shared with the other Hitchwiki
+       sites). It identifies visitors by a daily-rotating salted hash of IP+UA,
+       so it sets no cookie and touches no browser storage — no consent banner
+       is required, and a visitor cannot be followed across days. That also means
+       every funnel we measure is session-scoped by construction.
+
+       Loaded from /1p/ on our own origin, not from 1p.hitchhiking.org: blocklists
+       match the analytics hostname, and this audience blocks more than most. Caddy
+       proxies /1p/* to the Umami container (umami_first_party snippet in the
+       hitchwiki-private repo); the tracker derives its collect URL from its own
+       script src, so it posts to /1p/api/send without further configuration. #}
+    <script
+      defer
+      src="/1p/script.js"
+      data-website-id="f3576395-def8-4d09-9725-7f74dde89c72"
+    ></script>
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-84G3GNXSME', {
-        'anonymize_ip': true,
-        'client_storage': 'none',
-        'allow_google_signals': false,
-        'allow_ad_personalization_signals': false
-      });
+      // Funnel events are fired from map.js / the ride form through this one
+      // helper. It must never throw: the tracker is `defer`, so early clicks can
+      // land before it loads, and ad-blockers stop it loading at all — in both
+      // cases the product feature has to carry on working untracked.
+      window.hmTrack = function (name, data) {
+        try {
+          if (window.umami) window.umami.track(name, data || {});
+        } catch (e) {}
+      };
     </script>
 
     {# Root-relative: a relative "favicon.ico" resolves against the current path,

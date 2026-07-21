@@ -1743,6 +1743,10 @@ function setupEventListeners() {
   var addSpotBtn = document.getElementById('action-add-spot');
   if (addSpotBtn) {
     addSpotBtn.addEventListener('click', function() {
+      // Funnel step 2: intent to contribute. The gap between this and
+      // ride_form_submitted is what tells us whether the form (or the login
+      // wall behind it) is where contributors are lost.
+      hmTrack('add_ride_clicked', { source: 'action-pane' });
       window.location.href = "/ride";
     });
   }
@@ -2182,6 +2186,12 @@ async function handleMarkerClick(marker, point, e) {
   reportDuplicate(marker);
   setSpotUrl(point.lat, point.lng);
 
+  // Funnel step 1: the visitor is looking up a spot. Only the ride count is
+  // reported — the spot id is a coordinate pair, and pinning a session to a
+  // precise location is exactly the kind of data this cookieless setup exists
+  // to avoid collecting.
+  hmTrack('spot_opened', { rides: (marker.options._data || {}).review_count || 0 });
+
   // Show the spot pane immediately with a loading spinner for rides
   markerClick(marker);
 
@@ -2589,6 +2599,10 @@ function markPromptSeen(key) {
 // Fire-and-forget: the overlays are client-side, so this is the only way the server
 // learns whether they drive sign-ups. sendBeacon survives the page navigating to /login.
 function logSignupPrompt(prompt, action) {
+  // Mirrored into Umami so the sign-up nudge shows up as a step in the same
+  // funnel as the rest of the flow; the server-side log stays as the durable
+  // record (it survives ad-blockers, which drop the tracker entirely).
+  hmTrack('signup_prompt', { prompt: prompt, action: action });
   try {
     const blob = new Blob([JSON.stringify({ prompt: prompt, action: action })], {
       type: "application/json",

@@ -551,11 +551,23 @@
         }
     }
     
+    // Funnel step 3: the form actually rendered. Split by edit vs. new, because a
+    // stalled edit and a stalled first-time submission are different problems.
+    {# Quote in JS, not in the expression: Jinja autoescaping turns emitted
+       quote characters into &#34;, which is a syntax error inside <script>. #}
+    hmTrack('ride_form_started', {
+        mode: '{{ "edit" if request.args.get("edit") else "new" }}',
+        auth: '{{ "anon" if current_user.is_anonymous else "user" }}'
+    });
+
     // Add form validation
     function validateForm() {
         const coords = getCoordinates();
 
         if (!coords.pickup) {
+            // Funnel drop-off we can act on: they tried to submit without ever
+            // picking a location, i.e. the map-thumbnail affordance was missed.
+            hmTrack('ride_form_blocked', { reason: 'no-pickup' });
             alert('Please select a pickup location by clicking on the pickup map thumbnail.');
             return false;
         }
@@ -565,10 +577,15 @@
         const errSpan = document.getElementById('arrival-error-message');
         errSpan.textContent = '';
         if (dep && arr && new Date(arr) <= new Date(dep)) {
+            hmTrack('ride_form_blocked', { reason: 'arrival-before-departure' });
             errSpan.textContent = 'Arrival must be later than the pickup time.';
             return false;
         }
 
+        // Funnel step 4: the submission is on its way to the server. Fired here
+        // rather than on the success page because the post redirects to /#success
+        // on the map, where a pageview alone can't be told apart from a normal visit.
+        hmTrack('ride_form_submitted', { destination: coords.destination ? 'yes' : 'no' });
         return true;
     }
     
@@ -1021,6 +1038,4 @@
     });
 </script>
 <!-- End of scripts block -->
-{% endblock %}
-<!-- End of main content block -->
 {% endblock %}
