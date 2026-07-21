@@ -127,7 +127,15 @@ actual fun PlatformMap(state: MapState, callbacks: MapCallbacks, modifier: Modif
                         SymbolLayer(LYR_CLUSTER_COUNT, SRC).apply {
                             setFilter(Expression.has("point_count"))
                             setProperties(
-                                PropertyFactory.textField(Expression.toString(Expression.get("point_count_abbreviated"))),
+                                // Cap the label at "999+" so large clusters never overflow the
+                                // circle; below 1000 show the exact count.
+                                PropertyFactory.textField(
+                                    Expression.switchCase(
+                                        Expression.gte(Expression.get("point_count"), Expression.literal(1000)),
+                                        Expression.literal("999+"),
+                                        Expression.toString(Expression.get("point_count")),
+                                    ),
+                                ),
                                 PropertyFactory.textFont(arrayOf("Noto Sans Regular")),
                                 PropertyFactory.textSize(12f),
                                 PropertyFactory.textColor(android.graphics.Color.WHITE),
