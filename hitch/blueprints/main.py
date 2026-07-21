@@ -7,6 +7,7 @@ import subprocess
 import sys
 import time
 from datetime import datetime
+from functools import lru_cache
 
 import pandas as pd
 from flask import (
@@ -304,6 +305,75 @@ def _route_preview(start, dest, build=True):
     return _route_preview(start, dest, build=False)
 
 
+@lru_cache(maxsize=1)
+def _country_cc_by_name():
+    """Country name -> ISO-2 code, from the same geojson the map's Countries mode uses.
+
+    Cached for the process: the file is small but this runs on every crawler hit,
+    and the mapping only changes when the geojson is redeployed.
+    """
+    path = os.path.join(current_app.root_path, "static", "countries.geojson")
+    try:
+        with open(path) as f:
+            geo = json.load(f)
+    except (OSError, ValueError):
+        return {}
+    return {f["properties"]["name"]: f["properties"]["cc"] for f in geo.get("features", [])}
+
+
+def _country_description(name):
+    """One sentence of real statistics for a country, or None if we have none.
+
+    Built from dist/country_insights.json (median wait/distance, keyed by ISO code)
+    — the same numbers the country sheet draws as histograms. A country with no
+    entry gets no description, which makes the page noindex: an empty country view
+    is a soft 404 and would only dilute the site.
+    """
+    cc = _country_cc_by_name().get(name)
+    if not cc:
+        return None
+    path = safe_join(get_dirs()["dist"], "country_insights.json")
+    if not path or not os.path.isfile(path):
+        return None
+    try:
+        with open(path) as f:
+            insights = json.load(f).get(cc) or {}
+    except (OSError, ValueError):
+        return None
+
+    wait = (insights.get("wait") or {}).get("stats") or {}
+    distance = (insights.get("distance") or {}).get("stats") or {}
+    # n is the sample size behind the median; without it there is no claim to make.
+    if not wait.get("n"):
+        return None
+
+    parts = [f"Median wait {round(wait['median'])} min across {wait['n']} logged rides"]
+    if distance.get("median"):
+        parts.append(f"typical ride {round(distance['median'])} km")
+    return f"Hitchhiking in {name}: {', '.join(parts)}. Read what hitchhiking there is like and see waiting-time statistics."
+
+
+# Country permalink, mirroring /spot/<id>. The name lives in the path rather than
+# the older #country/<name> fragment because crawlers discard everything after
+# "#": every country shared one indexable URL ("/"), so none of them could rank,
+# carry its own description, or appear in the sitemap. map.js reads the path back
+# and opens the same country sheet; the legacy hash is still accepted.
+@main_bp.route("/country/<name>")
+def render_country(name):
+    description = _country_description(name)
+    return render_template(
+        "map.html",
+        map_variation=None,
+        spot_title=f"Hitchhiking in {name}",
+        spot_description=description,
+        spot_url=_external_https("main.render_country", name=name),
+        hide_add_spot_button=current_app.config.get("HIDE_ADD_SPOT_BUTTON", False),
+        hide_account_button=current_app.config.get("HIDE_ACCOUNT_BUTTON", False),
+        is_logged_in=not current_user.is_anonymous,
+        unread_notifications=unread_count(current_user),
+    )
+
+
 # Shareable route permalink, mirroring /spot/<id>: the endpoints live in the path
 # rather than the old #dir/<from>/<to> fragment because a fragment never reaches
 # the server, so a pasted route link could never carry its own preview. routing.js
@@ -411,21 +481,24 @@ def render_directions_preview(start, dest):
     # a way a crawler would notice; let the CDN and the messenger keep it.
     return send_file(path, mimetype="image/png", max_age=604800)
 
+
 @main_bp.route("/driver_info_choices.json")
 def driver_info_choices_json():
     """Choice lists for the in-ride details sheet — same options as the /ride form,
     delivered as JSON so the client renders them without duplicating the data."""
     from hitch.blueprints.utils.ride_score import WEIGHTS
 
-    return jsonify({
-        "reasons": REASON_TO_PICK_UP_CHOICES,
-        "genders": GENDER_CHOICES,
-        "languages": LANGUAGE_CHOICES,
-        "countries": COUNTRY_CHOICES,
-        "plate_countries": LICENSE_PLATE_COUNTRY_CHOICES,
-        "vehicle_kinds": VEHICLE_KIND_CHOICES,
-        "passenger_kinds": WEIGHTS["passenger_kinds"],
-    })
+    return jsonify(
+        {
+            "reasons": REASON_TO_PICK_UP_CHOICES,
+            "genders": GENDER_CHOICES,
+            "languages": LANGUAGE_CHOICES,
+            "countries": COUNTRY_CHOICES,
+            "plate_countries": LICENSE_PLATE_COUNTRY_CHOICES,
+            "vehicle_kinds": VEHICLE_KIND_CHOICES,
+            "passenger_kinds": WEIGHTS["passenger_kinds"],
+        }
+    )
 
 
 def _ride_to_card(ride):

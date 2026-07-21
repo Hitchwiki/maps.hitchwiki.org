@@ -1014,8 +1014,10 @@ async function loadCountrySheetLead(name) {
 async function openCountrySheet(name) {
   clear();
   $$("#country-sheet-name").textContent = name;
-  // Share the deep link that reopens this country sheet (#country/<name>).
-  $$("#share-country-btn").dataset.shareUrl = `${location.origin}/#country/${encodeURIComponent(name)}`;
+  // Share the deep link that reopens this country sheet. The path form, not the
+  // old #country/<name>: several messengers strip a #fragment when auto-linking a
+  // pasted URL, and only the path can carry the country's own link preview.
+  $$("#share-country-btn").dataset.shareUrl = `${location.origin}/country/${encodeURIComponent(name)}`;
   $$("#share-country-btn").dataset.shareTitle = `Hitchhiking in ${name} – Hitchwiki Maps`;
   $$("#country-sheet-rating").style.display = "none";
   $$("#country-sheet-insights").hidden = true;
@@ -2940,6 +2942,31 @@ function clearParams() {
 
 const MAP_HASH_RE = /^#?map=(\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)$/;
 const SPOT_PATH_RE = /^\/spot\/(-?\d+\.\d+)_(-?\d+\.\d+)\/?$/;
+// /country/<name> — the indexable form of the older #country/<name>. A fragment
+// never reaches the server and is stripped by crawlers, so every country shared
+// the single URL "/" and none could rank or carry its own description.
+const COUNTRY_PATH_RE = /^\/country\/([^/]+)\/?$/;
+
+// The country named by the path, or null. The legacy hash is handled separately
+// in navigate(), which rewrites it to this path.
+function countryFromUrl() {
+  const m = COUNTRY_PATH_RE.exec(window.location.pathname);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+// Point the address bar at a country without reloading. pushState, not replace:
+// opening a country sheet IS a navigation, so back should close it — except when
+// we are only canonicalising the legacy #country/<name> form, where pushing would
+// leave the back button on a URL that immediately reopens the same sheet.
+function setCountryUrl(name, canonicalising) {
+  const url = new URL(window.location.href);
+  const path = `/country/${encodeURIComponent(name)}`;
+  if (url.pathname === path && !url.hash) return;
+  url.pathname = path;
+  // Drop a #country/<name> hash we are replacing; keep a #map= viewport.
+  if (url.hash && !parseMapHash(url.hash)) url.hash = "";
+  window.history[canonicalising ? "replaceState" : "pushState"]({}, "", url);
+}
 // Shared route permalink, written by routing.js (updateShareUrl) and served by
 // Flask's render_directions so the link can carry its own OpenGraph preview.
 const DIR_PATH_RE = /^\/dir\/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)\/?$/;
@@ -3056,7 +3083,15 @@ function setSpotUrl(lat, lon) {
 // hash, and the map variation we were served under are all kept.
 function clearSpotUrl() {
   const url = new URL(window.location.href);
-  if (!SPOT_PATH_RE.test(url.pathname) && !url.searchParams.has("lat") && !url.searchParams.has("lon")) {
+  // /country/<name> is pane state in the path just like /spot/<id>, so closing a
+  // pane has to reset it too — otherwise navigate() re-reads the path and
+  // immediately reopens the country sheet the user just closed.
+  if (
+    !SPOT_PATH_RE.test(url.pathname) &&
+    !COUNTRY_PATH_RE.test(url.pathname) &&
+    !url.searchParams.has("lat") &&
+    !url.searchParams.has("lon")
+  ) {
     return;
   }
   url.pathname = BASE_PATH;
@@ -3274,6 +3309,10 @@ async function navigate() {
     mainArgs = [spot.lat, spot.lon];
   }
 
+  // Same rule as the spot path: /country/<name> names the open pane, and only a
+  // hash that is itself navigation state (the legacy #country/…) may override it.
+  const pathCountry = !mainArgs[0] || isMapHash ? countryFromUrl() : null;
+
   // #insights swaps the map for the insights view. Filter pane stays visible
   // so users can keep narrowing the selection and see the histograms update.
   if (mainArgs[0] === "insights") {
@@ -3304,8 +3343,14 @@ async function navigate() {
     updateBottomPaneVar();
     setSheetSnap($$(".sidebar.menu"), "full", MENU_SHEET_SNAPS);
   } else if (mainArgs[0] == "country" && args[1]) {
-    // #country/<name> opens the Hitchwiki country info sheet.
-    openCountrySheet(decodeURIComponent(args[1]));
+    // Legacy #country/<name>: open the sheet, then rewrite the URL to the
+    // indexable /country/<name> path. replaceState, since canonicalising an
+    // equivalent URL is not a navigation.
+    const legacyName = decodeURIComponent(args[1]);
+    openCountrySheet(legacyName);
+    setCountryUrl(legacyName, true);
+  } else if (pathCountry) {
+    openCountrySheet(pathCountry);
   } else if (mainArgs[0] == "select-pickup" || mainArgs[0] == "select-destination") {
     clear();
     setupLocationSelection(mainArgs[0], args[1]);

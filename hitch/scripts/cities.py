@@ -36,9 +36,9 @@ def _city_loc(country, city_name):
 
 
 # Load template environment
-env = Environment(loader=FileSystemLoader('hitch/templates'))
-city_template = env.get_template('city_template.html')
-city_index = env.get_template('city_index.html')
+env = Environment(loader=FileSystemLoader("hitch/templates"))
+city_template = env.get_template("city_template.html")
+city_index = env.get_template("city_index.html")
 
 # Load rides directly from the ride_event table (rides.json may not exist yet on a
 # fresh install; the DB is the canonical source — see CLAUDE.md "Database Storage").
@@ -51,11 +51,7 @@ rides["hitchhikers"] = rides["hitchhikers"].apply(lambda x: json.loads(x) if isi
 def _hitchhiker_name(hitchhikers):
     if isinstance(hitchhikers, list) and hitchhikers:
         first = hitchhikers[0]
-        if (
-            isinstance(first, dict)
-            and isinstance(first.get("nickname"), str)
-            and first["nickname"].strip() != ""
-        ):
+        if isinstance(first, dict) and isinstance(first.get("nickname"), str) and first["nickname"].strip() != "":
             return first["nickname"]
     return "Anonymous"
 
@@ -71,8 +67,7 @@ def _coords(row):
     if len(stops) > 1:
         end = stops[-1]["location"]
         return pd.Series(
-            {"lat": start["latitude"], "lon": start["longitude"],
-             "dest_lat": end["latitude"], "dest_lon": end["longitude"]}
+            {"lat": start["latitude"], "lon": start["longitude"], "dest_lat": end["latitude"], "dest_lon": end["longitude"]}
         )
     return pd.Series({"lat": start["latitude"], "lon": start["longitude"], "dest_lat": None, "dest_lon": None})
 
@@ -93,8 +88,7 @@ rides["ride_datetime"] = pd.to_datetime(rides["stops"].apply(_ride_datetime), er
 # Build the HTML "text" the city template renders for each review.
 rides["hitchhiker_name"] = rides["hitchhiker_name"].fillna("Anonymous")
 rides["text"] = (
-    rides["comment"].fillna("").map(html.escape).str.replace("\n", "<br>")
-    + "<br>―" + rides["hitchhiker_name"].map(html.escape)
+    rides["comment"].fillna("").map(html.escape).str.replace("\n", "<br>") + "<br>―" + rides["hitchhiker_name"].map(html.escape)
 )
 rides = rides.dropna(subset=["lat", "lon"])
 logger.info(f"Loaded {len(rides)} rides")
@@ -223,6 +217,38 @@ def _sitemap_url(loc, priority):
 #   - "?heatmap=true" is a query-param view of "/" whose server HTML is identical
 #     to "/" (the heatmap is drawn client-side). We still list it so the heatmap
 #     view is explicitly advertised, but it intentionally shares "/"'s content.
+def _country_locs():
+    """Sitemap URLs for /country/<name>, one per country we can actually describe.
+
+    Only countries with waiting-time stats are listed: main.render_country emits
+    a description (and therefore stays indexable) exactly when country_insights
+    has them, so listing the rest would point the sitemap at noindex pages — the
+    same mistake as pointing it at cities that never got rendered.
+
+    The country view used to be reachable only as "#country/<name>". Crawlers drop
+    everything after "#", so all ~90 countries were the single URL "/" and none of
+    them could be listed here at all.
+    """
+    geo_path = os.path.join(dirs["base"], "static", "countries.geojson")
+    insights_path = os.path.join(dist_dir, "country_insights.json")
+    try:
+        with open(geo_path) as f:
+            features = json.load(f).get("features", [])
+        with open(insights_path) as f:
+            insights = json.load(f)
+    except (OSError, ValueError):
+        logger.warning("No country insights/geojson — skipping country URLs in sitemap")
+        return []
+
+    locs = []
+    for feature in features:
+        props = feature.get("properties") or {}
+        stats = ((insights.get(props.get("cc")) or {}).get("wait") or {}).get("stats") or {}
+        if stats.get("n"):
+            locs.append(f"{SITE_URL}/country/{urllib.parse.quote(props['name'])}")
+    return sorted(locs)
+
+
 STATIC_PAGES = [
     (f"{SITE_URL}/", "1.0"),
     (f"{SITE_URL}/?heatmap=true", "0.6"),
@@ -238,13 +264,20 @@ sitemap_parts = [
 ]
 for loc, priority in STATIC_PAGES:
     sitemap_parts.append(_sitemap_url(loc, priority))
+country_locs = _country_locs()
+# Above the per-city priority: a country page aggregates every city in it, and
+# "hitchhiking in <country>" is the broader query we can realistically rank for.
+for loc in country_locs:
+    sitemap_parts.append(_sitemap_url(loc, "0.8"))
 for city in cities[rendered_cities].itertuples():
     sitemap_parts.append(_sitemap_url(_city_loc(city.country, city.city), "0.7"))
 sitemap_parts.append("</urlset>\n")
 
 with open(os.path.join(dist_dir, "sitemap.xml"), "w", encoding="utf-8") as f:
     f.write("".join(sitemap_parts))
-logger.info(f"Wrote sitemap.xml with {sum(rendered_cities) + len(STATIC_PAGES)} URLs")
+logger.info(
+    f"Wrote sitemap.xml with {sum(rendered_cities) + len(STATIC_PAGES) + len(country_locs)} URLs ({len(country_locs)} countries)"
+)
 
 # Open access so search engines and AI crawlers can discover the city pages.
 # Discovery is opt-in by NOT disallowing, so AI training/search bots (GPTBot,
