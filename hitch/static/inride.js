@@ -4,6 +4,21 @@
 (function () {
   "use strict";
 
+  // Analytics helper from base.html, resolved once through a local alias so this
+  // file stays usable in a bare context where it is absent (same reasoning as
+  // routing.js). Never let a missing tracker break the journey.
+  const hmTrack = (typeof window !== "undefined" && window.hmTrack) || function () {};
+
+  // Minutes a journey has been waiting, for analytics only. Rounded: the exact
+  // second is noise, and a coarse number keeps event-data cardinality sane.
+  function waitMinutes(j) {
+    try {
+      return Math.round(journeyStore.currentWaitMs(j, Date.now()) / 60000);
+    } catch (e) {
+      return 0;
+    }
+  }
+
   const KEY = "inride.journey";
   const PENDING_KEY = "inride.pendingStart"; // only across the login redirect
 
@@ -169,8 +184,14 @@
       return chain.then(function () {
         return submitBody(item.body).then(function (res) {
           if (res.json && res.json.ok) {
+            // The ride actually reached the server. Finishing a journey only
+            // queues it, so without this the funnel would report rides we never
+            // received — a hitchhiker on a dead link looks identical to a success.
+            hmTrack("journey_ride_uploaded", { kind: item.kind, attempts: item.attempts });
             outboxStore.remove(item.id);
           } else if (res.status === 400 && res.json && res.json.transient !== true) {
+            // Permanently rejected: this ride is lost unless someone intervenes.
+            hmTrack("journey_ride_rejected", { kind: item.kind, attempts: item.attempts + 1 });
             outboxStore.update(item.id, {
               status: "failed",
               lastError: (res.json && res.json.error) || "Rejected",
@@ -198,6 +219,13 @@
   // network. The outbox flush (now + on reconnect) performs the actual upload. If the
   // enqueue happens while offline, reassure the user the ride is saved.
   function completeFinish(j, dest, finishMs) {
+    // The successful end of the funnel: a ride is now queued for submission.
+    // ride_min comes from the boarding timestamp, so it excludes waiting.
+    hmTrack("journey_finished", {
+      wait_min: Math.round((j.finalWaitMs || 0) / 60000),
+      ride_min: j.gotRideMs ? Math.round((finishMs - j.gotRideMs) / 60000) : 0,
+      leg: j.legIndex || 0,
+    });
     const id = uuid();
     outboxStore.add({
       id: id, kind: "finish", createdAt: Date.now(), attempts: 0, lastError: null, status: "pending",
@@ -244,6 +272,9 @@
     const j = journeyStore.get(); if (!j || j.state !== "waiting") return;
     // Bank the active segment and stop the clock so a break/overnight is excluded.
     j.waitAccumMs = journeyStore.currentWaitMs(j, Date.now());
+    // Paused time is excluded from the recorded wait, so a heavily used pause
+    // would mean reported waits understate real roadside time.
+    hmTrack("journey_paused", { wait_min: waitMinutes(j) });
     j.waitSegmentStartMs = null; j.state = "paused";
     journeyUI.render(journeyStore.set(j));
   };
@@ -251,6 +282,7 @@
   // Restart the wait segment from now — continues from where it froze. State: paused → waiting.
   journeyFlow.resume = function () {
     const j = journeyStore.get(); if (!j || j.state !== "paused") return;
+    hmTrack("journey_resumed", { wait_min: waitMinutes(j) });
     j.waitSegmentStartMs = Date.now(); j.state = "waiting";
     journeyUI.render(journeyStore.set(j));
   };
@@ -268,6 +300,10 @@
       details: null,
       legIndex: 0,
     });
+    // Entry point of the in-ride funnel. This is a second, separate contribution
+    // path from the /ride form — a journey that reaches Finish or Give up submits
+    // a ride without ever touching add_ride_clicked.
+    hmTrack("journey_started", { co_hitchhikers: (coHitchhikers || []).length });
     journeyUI.render(j);
   };
 
@@ -282,8 +318,13 @@
   // Distinct from Give Up (which records a rated spot experience); this just discards, so
   // it confirms first to avoid throwing away a real wait accidentally.
   journeyFlow.cancel = function () {
-    if (!journeyStore.get()) return;
+    const j = journeyStore.get();
+    if (!j) return;
     if (!window.confirm("Cancel this journey? Your wait won't be saved.")) return;
+    // The silent loss: a started journey that produces no ride at all. Distinct
+    // from give-up, which does submit one — so this is the count that says how
+    // much real hitchhiking the tracker records but never publishes.
+    hmTrack("journey_cancelled", { from_state: j.state, wait_min: waitMinutes(j), leg: j.legIndex || 0 });
     journeyStore.clear();
     journeyUI.teardown();
   };
@@ -294,7 +335,11 @@
   journeyFlow.giveUp = function () {
     const j = journeyStore.get(); if (!j) return;
     const waitMin = Math.round(journeyStore.currentWaitMs(j, Date.now()) / 60000);
+    // Tracked inside the sheet callback, not before it: opening the give-up sheet
+    // and then backing out of it is not giving up, and counting it as such would
+    // overstate the failure rate.
     journeyUI.giveUpSheet(function (details) {
+      hmTrack("journey_gave_up", { wait_min: waitMin, leg: j.legIndex || 0 });
       const id = uuid();
       outboxStore.add({
         id: id, kind: "giveup", createdAt: Date.now(), attempts: 0, lastError: null, status: "pending",
@@ -313,6 +358,9 @@
   // captured; submission is deferred to Finish Ride (destination not known yet).
   journeyFlow.gotRide = function (details) {
     const j = journeyStore.get(); if (!j || (j.state !== "waiting")) return;
+    // The wait paid off. wait_min here is the real thing people want to know
+    // about a spot, and it is measured rather than remembered after the fact.
+    hmTrack("journey_got_ride", { wait_min: waitMinutes(j), leg: j.legIndex || 0 });
     j.gotRideMs = Date.now();
     j.finalWaitMs = journeyStore.currentWaitMs(j, j.gotRideMs);
     j.details = details; // {rating, vehicle_kind, signal:[...], comment}
@@ -404,6 +452,9 @@
       legIndex: (prev && prev.legIndex || 0) + 1,
       coHitchhikers: (prev && prev.coHitchhikers) || [],
     });
+    // Continuing a multi-leg trip rather than stopping. journey_started does not
+    // fire for these, so the leg counter is the only way to see them.
+    hmTrack("journey_next_leg", { leg: j.legIndex });
     journeyUI.render(j);
   };
 
