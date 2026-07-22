@@ -349,7 +349,13 @@ The `show.py` script runs every 10 minutes and generates map data files from the
    - Used for tabular "Recent Rides" page
    - Includes ride URL, timestamp, username, rating, distance
 
-5. **`heatmap.json`** - Predicted waiting times
+5. **`races.json`** - Race standings for `/races`
+   - A race is a city pair + timespan, defined in `RACES.md` at the repo root; `hitch/scripts/races.py` parses it and ranks the top 3 fastest hitchhikers per race (chains of consecutive rides, ≤10 km between legs, ≤20 km from the city centres — the file documents the full rule set)
+   - Hardly any ride logs an arrival time, so a missing one is estimated from the leg distance at 75 km/h; affected entries are flagged `estimated` and the page says "partly estimated"
+   - `races.py` is a pure library (no app context, no side effects) — `show.py` calls it, `/races` (`user.py`) only reads the JSON
+   - Standings for *every* race are precomputed, but which races the page lists is decided per request by `races.current_races` (running now, or starting within the next month) so a race opens/closes on its own date rather than on the next cron run
+
+6. **`heatmap.json`** - Predicted waiting times
    - Generated using sklearn Gaussian Process model
    - RGBA image overlay data (lat/lon bounds: -56 to 80, -180 to 180)
    - Legend with color boundaries for waiting time visualization

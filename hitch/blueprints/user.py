@@ -20,6 +20,7 @@ from hitch.extensions import db, security
 from hitch.forms import UserEditForm
 from hitch.helpers import get_db, get_dirs, haversine_np
 from hitch.models import CoHitchhiker, Follow, Notification, RideEvent, RidePlace, RideReport, Trip, TripRide, User
+from hitch.scripts.races import current_races
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
 
@@ -1323,3 +1324,15 @@ def leaderboard():
         longest_rides=_read_leaderboard_json("longest_rides.json"),
         longest_24h=_read_leaderboard_json("longest_24h.json"),
     )
+
+
+@user_bp.route("/races", methods=["GET"])
+def races():
+    """Podiums for the city-to-city races defined in RACES.md.
+
+    Standings are precomputed by show.py into dist/races.json — ranking every hitchhiker's
+    ride chains per race is far too heavy for a request. Which races are *shown* is decided
+    here rather than there, so a race opens and closes on its date instead of on the next
+    cron run: only races running now or starting within the next month.
+    """
+    return render_template("races.html", races=current_races(_read_leaderboard_json("races.json")))

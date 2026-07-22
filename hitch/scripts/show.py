@@ -19,6 +19,7 @@ from sklearn.exceptions import InconsistentVersionWarning
 
 from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON, REPORTS_TO_HIDE
 from hitch.helpers import e, get_bearing, get_db, get_dirs, haversine_np, write_json_file
+from hitch.scripts.races import build_races, estimate_arrival
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger(__name__)
@@ -42,7 +43,7 @@ def should_regenerate_json():
     db_mtime = os.path.getmtime(db_path)
 
     # Check each JSON file
-    json_files = ["spots.json", "rides_index.json", "spots_recent.json", "longest_rides.json", "longest_24h.json"]
+    json_files = ["spots.json", "rides_index.json", "spots_recent.json", "longest_rides.json", "longest_24h.json", "races.json"]
 
     # Per-spot ride directory — treat the dir itself as the canary.
     by_spot_dir = os.path.join(dirs["dist"], "rides", "by-spot")
@@ -1245,6 +1246,42 @@ for name, group in qualifying_24h.groupby("hitchhiker_name"):
 
 leaderboard_24h.sort(key=lambda e: e["total_distance"], reverse=True)
 write_json_file(leaderboard_24h[:10], "longest_24h.json")
+
+# Precompute the race standings (see RACES.md for the definition and rules) so /races is
+# a file read. Qualifying rides: a named hitchhiker, a logged destination (never a mined
+# one — a mis-geocoded city would fabricate an impossible finish) and a departure time.
+# An arrival time is used when present and estimated from the leg distance otherwise;
+# see races.estimate_arrival for why insisting on a real arrival is not an option.
+race_df = window_df[
+    (window_df["hitchhiker_name"] != "Anonymous")
+    & window_df["start_dt"].notna()
+    & window_df["dest_lat"].notna()
+    & window_df["dest_lon"].notna()
+    & window_df["distance"].notna()
+    & ~window_df["dest_is_derived"]
+]
+race_rides_by_name: dict[str, list] = {}
+for _, row in race_df.iterrows():
+    start = row["start_dt"].to_pydatetime()
+    end = row["end_dt"].to_pydatetime() if pd.notna(row["end_dt"]) else None
+    estimated = end is None or end < start
+    if estimated:
+        end = estimate_arrival(start, row["lat"], row["lon"], row["dest_lat"], row["dest_lon"])
+    card = _build_ride_card(row)
+    card["estimated"] = estimated
+    race_rides_by_name.setdefault(row["hitchhiker_name"], []).append(
+        {
+            "lat": row["lat"],
+            "lon": row["lon"],
+            "dest_lat": row["dest_lat"],
+            "dest_lon": row["dest_lon"],
+            "start": start,
+            "end": end,
+            "estimated": estimated,
+            "card": card,
+        }
+    )
+write_json_file(build_races(os.path.join(dirs["root"], "RACES.md"), race_rides_by_name), "races.json")
 
 # duplicates["from_url"] = "#" + duplicates.from_lat.astype(str) + "," + duplicates.from_lon.astype(str)
 # duplicates["to_url"] = "#" + duplicates.to_lat.astype(str) + "," + duplicates.to_lon.astype(str)

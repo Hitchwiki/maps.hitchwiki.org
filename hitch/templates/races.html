@@ -1,0 +1,131 @@
+{% extends "security/base.html" %}
+
+{% set title = "Races" %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<link rel="stylesheet" href="/static/map_thumbnail.css" />
+<link rel="stylesheet" href="/static/ride_card.css" />
+<style>
+  .race { margin: 0 0 2.5rem; }
+  .race-head { border-bottom: 2px solid #ccc; padding-bottom: 0.3rem; }
+  .race-head h2 { margin: 0; font-size: 1.15em; }
+  .race-span { color: #888; font-size: 0.8em; }
+  .race-badge {
+    font-size: 0.62em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+    vertical-align: middle; padding: 0.15em 0.5em; border-radius: 999px; margin-left: 0.4rem;
+  }
+  .race-badge.running { background: #e6f4ea; color: #1b6b34; }
+  .race-badge.upcoming { background: #f1f1f1; color: #666; }
+  .podium-entry { margin: 1rem 0 0; }
+  .podium-head { display: flex; align-items: baseline; gap: 0.5rem; border-bottom: 1px solid #eee; padding: 0.3rem 0; }
+  .podium-medal { min-width: 1.6em; }
+  .podium-time { margin-left: auto; font-weight: 600; }
+  .podium-sub { color: #888; font-size: 0.8em; margin: 0.2rem 0 0.5rem; }
+</style>
+{% endblock %}
+
+{% macro ride_card(ride, thumb_prefix, idx) %}
+{% set tag = "a" if ride.d_tag else "div" %}
+<{{ tag }} class="ride-card"{% if ride.d_tag %} href="/ride/{{ ride.d_tag }}"{% endif %}>
+    <div class="ride-meta">
+        {{ ride.created }}
+        {% if ride.rating > 0 %}&nbsp;{{ "⭐" * ride.rating }}{% endif %}
+        {% if ride.distance is not none %}&mdash; {{ format_distance(ride.distance) }}{% endif %}
+    </div>
+    {% if ride.pickup_lat and ride.pickup_lon %}
+    <div class="map-thumbnail" id="{{ thumb_prefix }}-{{ idx }}" style="height:100px;"></div>
+    {% endif %}
+    {% if ride.comment %}
+    <div class="ride-comment">{{ ride.comment }}</div>
+    {% endif %}
+</{{ tag }}>
+{% endmacro %}
+
+{% from "_share.html" import share_button %}
+{% block content %}
+<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+  <h1 style="margin:0;">Races</h1>
+  {{ share_button(title="Hitchhiking races – Hitchwiki Maps") }}
+</div>
+
+<p style="color:#666; font-size:0.85em;">
+  Each race is a city pair and a timespan. Hitchhikers who logged a chain of consecutive
+  rides from one city to the other are ranked by how long the whole journey took &mdash;
+  waiting time included. Only rides with a username, a logged destination and a departure
+  time can be timed, so only those count; a missing arrival time is estimated from the
+  distance at 75 km/h. Only races running right now and races starting within the next
+  month are listed.
+</p>
+
+{% for race in races %}
+{% set race_idx = loop.index0 %}
+<div class="race">
+  <div class="race-head">
+    <h2>
+      {{ race.name }}
+      {% if race.status == "upcoming" %}
+      <span class="race-badge upcoming">starts in {{ race.starts_in_days }} day{{ "s" if race.starts_in_days != 1 else "" }}</span>
+      {% else %}
+      <span class="race-badge running">running</span>
+      {% endif %}
+    </h2>
+    <span class="race-span">
+      {{ race.start }} &rarr; {{ race.finish }} &middot; {{ race["from"] }} &ndash; {{ race.to }}
+      &middot; max {{ race.max_gap_km|round|int }} km between rides, {{ race.max_radius_km|round|int }} km from the city centres
+    </span>
+  </div>
+
+  {% if race.status == "upcoming" %}
+    <p style="color:#666; font-size:0.9em;">Not started yet &mdash; the board opens on {{ race["from"] }}.</p>
+  {% elif race.entries %}
+    {% for entry in race.entries %}
+    {% set entry_idx = loop.index0 %}
+    <div class="podium-entry">
+      <div class="podium-head">
+        <span class="podium-medal">{{ ["🥇", "🥈", "🥉"][entry_idx] if entry_idx < 3 else loop.index }}</span>
+        <a href="/account/{{ entry.hitchhiker_name }}" style="font-weight:600;">{{ entry.hitchhiker_name }}</a>
+        <span class="podium-time">{{ entry.duration }}</span>
+      </div>
+      <div class="podium-sub">
+        {{ entry.rides|length }} ride{{ "s" if entry.rides|length != 1 else "" }} &middot; {{ entry.started }} &rarr; {{ entry.finished }}
+        {% if entry.estimated %}&middot; <span title="At least one ride logged no arrival time; it was estimated from the distance at 75 km/h.">partly estimated</span>{% endif %}
+      </div>
+      {% for ride in entry.rides %}
+      {{ ride_card(ride, "race-thumb-" ~ race_idx ~ "-" ~ entry_idx, loop.index0) }}
+      {% endfor %}
+    </div>
+    {% endfor %}
+  {% else %}
+    <p style="color:#666; font-size:0.9em;">Nobody has logged this route yet &mdash; be the first.</p>
+  {% endif %}
+</div>
+{% else %}
+<p style="color:#666; font-size:0.9em;">No race is running right now, and none starts within the next month.</p>
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="/static/map_thumbnail.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Every pane here is visible on load (no tabs), so the thumbnails can be built
+    // straight away — ids match the `race-thumb-<raceIdx>-<entryIdx>-<rideIdx>` the
+    // template emits.
+    const races = {{ races | tojson }};
+    races.forEach((race, ci) => {
+        if (race.status === 'upcoming') return;  // its podium isn't rendered yet
+        (race.entries || []).forEach((entry, ei) => {
+            entry.rides.forEach((ride, ri) => {
+                if (ride.pickup_lat && ride.pickup_lon) {
+                    initMapThumbnail(`race-thumb-${ci}-${ei}-${ri}`, ride.pickup_lat, ride.pickup_lon);
+                }
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

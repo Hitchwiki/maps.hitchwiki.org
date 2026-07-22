@@ -254,6 +254,7 @@ STATIC_PAGES = [
     (f"{SITE_URL}/?heatmap=true", "0.6"),
     (f"{SITE_URL}/recent", "0.6"),
     (f"{SITE_URL}/leaderboard", "0.6"),
+    (f"{SITE_URL}/races", "0.6"),
     (f"{SITE_URL}/dashboard.html", "0.5"),
     (f"{SITE_URL}/city/index.html", "0.5"),
 ]
