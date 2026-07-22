@@ -86,3 +86,15 @@ to beat rather than empty.
 - from: 2026-08-22
 - to: 2026-09-03
 - name: Tramprennen
+
+## Hurum Forest → Føyno
+- start: Hurum Forest, Norway, 59.6000, 10.4200
+- finish: Føyno, Norway, 59.7386, 5.4072
+- from: 2026-07-22
+- to: 2026-08-08
+
+## Føyno → Fontpedrouse
+- start: Føyno, Norway, 59.7386, 5.4072
+- finish: Fontpedrouse, France, 42.5347, 2.1836
+- from: 2026-08-01
+- to: 2026-08-31
