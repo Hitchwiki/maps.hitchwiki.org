@@ -916,9 +916,7 @@ places["nearby_car_pooling"] = places.apply(
 logger.info(f"Found {places['nearby_car_pooling'].notnull().sum()} places with nearby car pooling spots")
 
 logger.info("Finding nearby OSM fuel stations")
-places["nearby_fuel"] = places.apply(
-    lambda row: find_nearby_fuel_station(row["lat"], row["lon"], fuel_grid), axis=1
-)
+places["nearby_fuel"] = places.apply(lambda row: find_nearby_fuel_station(row["lat"], row["lon"], fuel_grid), axis=1)
 logger.info(f"Found {places['nearby_fuel'].notnull().sum()} places at a fuel station")
 
 logger.info("Finding nearby Hitchwiki articles")
@@ -1298,8 +1296,6 @@ else:
         estimated = end is None or end < start
         if estimated:
             end = estimate_arrival(start, row["lat"], row["lon"], row["dest_lat"], row["dest_lon"])
-        card = _build_ride_card(row)
-        card["estimated"] = estimated
         race_rides_by_name.setdefault(row["hitchhiker_name"], []).append(
             {
                 "lat": row["lat"],
@@ -1309,7 +1305,6 @@ else:
                 "start": start,
                 "end": end,
                 "estimated": estimated,
-                "card": card,
             }
         )
     write_json_file(build_races(races_md_path, race_rides_by_name), "races.json")

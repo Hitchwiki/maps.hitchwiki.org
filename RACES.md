@@ -30,15 +30,16 @@ One `##` heading per race — the heading is the race name — followed by these
 
 ```
 ## Berlin → Amsterdam
-- start: Berlin, 52.5200, 13.4050
-- finish: Amsterdam, 52.3731, 4.8922
+- start: Berlin, Germany, 52.5200, 13.4050
+- finish: Amsterdam, Netherlands, 52.3731, 4.8922
 - from: 2015-01-01
 - to: 2030-12-31
 - name: Tramprennen
 ```
 
-`start`/`finish` are `name, latitude, longitude` (city centre). `from`/`to` are inclusive
-`YYYY-MM-DD` dates.
+`start`/`finish` are `city, country, latitude, longitude` (city centre). The country is
+required — half the interesting city names exist in several countries. `from`/`to` are
+inclusive `YYYY-MM-DD` dates.
 
 `name` is the event the race belongs to, and is optional: the page titles a race
 `<name> <heading>` — "Tramprennen Berlin → Amsterdam" — and falls back to
@@ -55,13 +56,33 @@ hitchhiker has already completed inside the race window, so every board opens wi
 to beat rather than empty.
 
 ## Berlin → Prague
-- start: Berlin, 52.5200, 13.4050
-- finish: Prague, 50.0755, 14.4378
+- start: Berlin, Germany, 52.5200, 13.4050
+- finish: Prague, Czechia, 50.0755, 14.4378
 - from: 2026-07-01
 - to: 2026-07-31
 
 ## Utrecht → Rotterdam
-- start: Utrecht, 52.0907, 5.1214
-- finish: Rotterdam, 51.9244, 4.4777
+- start: Utrecht, Netherlands, 52.0907, 5.1214
+- finish: Rotterdam, Netherlands, 51.9244, 4.4777
 - from: 2026-07-01
 - to: 2026-07-31
+
+## Jena → Munich
+- start: Jena, Germany, 50.9271, 11.5892
+- finish: Munich, Germany, 48.1372, 11.5755
+- from: 2026-08-01
+- to: 2026-08-31
+
+## Lüneburg → Pui
+- start: Lüneburg, Germany, 53.2464, 10.4115
+- finish: Pui, Romania, 45.5147, 23.0806
+- from: 2026-08-22
+- to: 2026-09-03
+- name: Tramprennen
+
+## Weiden in der Oberpfalz → Pui
+- start: Weiden in der Oberpfalz, Germany, 49.6767, 12.1561
+- finish: Pui, Romania, 45.5147, 23.0806
+- from: 2026-08-22
+- to: 2026-09-03
+- name: Tramprennen

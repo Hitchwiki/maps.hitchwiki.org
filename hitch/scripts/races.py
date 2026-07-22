@@ -49,14 +49,18 @@ def haversine_km(lat1, lon1, lat2, lon2):
 
 _HEADING_RE = re.compile(r"^##\s+(.+?)\s*$")
 _KEY_RE = re.compile(r"^[-*]\s*([a-z ]+?)\s*:\s*(.+?)\s*$", re.IGNORECASE)
-_PLACE_RE = re.compile(r"^(.+?)\s*,\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$")
+# "City, Country, lat, lon". The country is required: city names repeat across borders
+# (Frankfurt, Cambridge, Tripoli), and a race board that just says "Frankfurt" leaves the
+# reader guessing which one the coordinates mean.
+_PLACE_RE = re.compile(r"^([^,]+?)\s*,\s*([^,]+?)\s*,\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$")
 
 
 def _parse_place(value):
     m = _PLACE_RE.match(value)
     if not m:
         return None
-    return {"name": m.group(1).strip(), "lat": float(m.group(2)), "lon": float(m.group(3))}
+    city, country = m.group(1).strip(), m.group(2).strip()
+    return {"name": f"{city}, {country}", "city": city, "country": country, "lat": float(m.group(3)), "lon": float(m.group(4))}
 
 
 def _parse_date(value, end_of_day=False):
@@ -189,7 +193,7 @@ def rank_race(race, rides_by_name, top=3):
     """Podium for one race: the `top` fastest hitchhikers, fastest first.
 
     `rides_by_name` maps hitchhiker name -> their rides (dicts with lat/lon, dest_lat/
-    dest_lon, tz-aware `start`/`end` datetimes and a `card` for rendering), in any order.
+    dest_lon and tz-aware `start`/`end` datetimes), in any order.
     """
     results = []
     for name, all_rides in rides_by_name.items():
@@ -210,7 +214,9 @@ def rank_race(race, rides_by_name, top=3):
                     "finished": chain["rides"][-1]["end"].strftime("%Y-%m-%d %H:%M"),
                     # True when any leg's arrival had to be estimated, so the UI can say so.
                     "estimated": any(r.get("estimated") for r in chain["rides"]),
-                    "rides": [r["card"] for r in chain["rides"]],
+                    # Only the count: the page reports how many lifts it took, but the
+                    # individual rides are the hitchhiker's own log, not race results.
+                    "ride_count": len(chain["rides"]),
                 }
             )
     results.sort(key=lambda e: e["duration_s"])
@@ -236,11 +242,23 @@ def format_duration(seconds):
 # "Virtual race Berlin → Prague" says exactly what it is.
 UNNAMED_RACE_TITLE = "Virtual race"
 
-# How far ahead the page looks: a race starting later than this is not news yet.
-UPCOMING_DAYS = 30
+# How far ahead the page looks: a race starting later than this is not news yet. One
+# calendar month, not a flat 30 days — an event starting "next month" on the 22nd would
+# otherwise miss the cut by a day in every 31-day month.
+UPCOMING_MONTHS = 1
 
 
-def current_races(races, now=None, upcoming_days=UPCOMING_DAYS):
+def _add_months(when, months):
+    """`when` shifted by whole months, clamped to the target month's last day."""
+    month = when.month - 1 + months
+    year, month = when.year + month // 12, month % 12 + 1
+    last_day = [31, 29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][
+        month - 1
+    ]
+    return when.replace(year=year, month=month, day=min(when.day, last_day))
+
+
+def current_races(races, now=None, upcoming_months=UPCOMING_MONTHS):
     """The races `/races` shows: the ones running right now plus the ones starting within
     the next month. Finished races and anything further out are dropped — the page is a
     "what can I race today" board, not an archive.
@@ -251,7 +269,7 @@ def current_races(races, now=None, upcoming_days=UPCOMING_DAYS):
     upcoming ones, `starts_in_days`.
     """
     now = now or datetime.now(timezone.utc)
-    horizon = now + timedelta(days=upcoming_days)
+    horizon = _add_months(now, upcoming_months)
     visible = []
     for race in races:
         frm, to = _parse_date(race.get("from", "")), _parse_date(race.get("to", ""), end_of_day=True)

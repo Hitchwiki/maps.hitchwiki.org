@@ -29,18 +29,30 @@ def ride(start_ll, dest_ll, depart_h, arrive_h):
         "dest_lon": dest_ll[1],
         "start": T0 + timedelta(hours=depart_h),
         "end": T0 + timedelta(hours=arrive_h),
-        "card": {},
     }
+
+
+def test_a_place_without_a_country_is_rejected(tmp_path):
+    md = tmp_path / "RACES.md"
+    md.write_text(
+        "## Berlin → Prague\n"
+        "- start: Berlin, 52.5200, 13.4050\n"  # no country
+        "- finish: Prague, Czechia, 50.0755, 14.4378\n"
+        "- from: 2020-01-01\n- to: 2030-01-01\n",
+        encoding="utf-8",
+    )
+    assert parse_races_md(str(md)) == []
 
 
 def test_parse_races_md_reads_the_real_file():
     races = parse_races_md("RACES.md")
     assert races, "RACES.md should define at least one race"
     first = races[0]
-    assert first["start"]["name"] and first["finish"]["name"]
+    assert first["start"]["city"] and first["start"]["country"]
+    assert first["start"]["name"] == f"{first['start']['city']}, {first['start']['country']}"
     assert first["from"] < first["to"]
     # The format example lives in a fenced code block and must not become a race.
-    assert not any(r["start"]["name"] == "Berlin" and r["finish"]["name"] == "Amsterdam" for r in races)
+    assert not any(r["start"]["city"] == "Berlin" and r["finish"]["city"] == "Amsterdam" for r in races)
 
 
 def test_two_leg_chain_ranks_and_reports_its_duration():
@@ -48,7 +60,7 @@ def test_two_leg_chain_ranks_and_reports_its_duration():
     (entry,) = rank_race(RACE, rides)
     assert entry["hitchhiker_name"] == "anna"
     assert entry["duration_s"] == 5 * 3600  # first departure -> last arrival, waiting included
-    assert len(entry["rides"]) == 2
+    assert entry["ride_count"] == 2
 
 
 def test_fastest_of_several_attempts_wins_and_podium_is_sorted():
@@ -130,12 +142,12 @@ def test_race_titles_fall_back_to_virtual_race(tmp_path):
     md = tmp_path / "RACES.md"
     md.write_text(
         "## Berlin → Prague\n"
-        "- start: Berlin, 52.5200, 13.4050\n"
-        "- finish: Prague, 50.0755, 14.4378\n"
+        "- start: Berlin, Germany, 52.5200, 13.4050\n"
+        "- finish: Prague, Czechia, 50.0755, 14.4378\n"
         "- from: 2020-01-01\n- to: 2030-01-01\n\n"
         "## Berlin → Amsterdam\n"
-        "- start: Berlin, 52.5200, 13.4050\n"
-        "- finish: Amsterdam, 52.3731, 4.8922\n"
+        "- start: Berlin, Germany, 52.5200, 13.4050\n"
+        "- finish: Amsterdam, Netherlands, 52.3731, 4.8922\n"
         "- from: 2020-01-01\n- to: 2030-01-01\n"
         "- name: Tramprennen\n",
         encoding="utf-8",
@@ -144,8 +156,24 @@ def test_race_titles_fall_back_to_virtual_race(tmp_path):
     assert titles == ["Virtual race Berlin → Prague", "Tramprennen Berlin → Amsterdam"]
 
 
-def test_build_races_shapes_the_json_the_page_reads():
-    out = build_races("RACES.md", {"anna": [ride(BERLIN, PRAGUE, 0, 5)]})
-    berlin_prague = [r for r in out if r["start"] == "Berlin" and r["finish"] == "Prague"]
-    assert berlin_prague, "RACES.md should still define Berlin → Prague"
-    assert berlin_prague[0]["entries"][0]["hitchhiker_name"] == "anna"
+def test_build_races_shapes_the_json_the_page_reads(tmp_path):
+    # Own definitions file: the real RACES.md is retuned every month, and this test is
+    # about the JSON shape, not about which races happen to be running.
+    md = tmp_path / "RACES.md"
+    md.write_text(
+        "## Berlin → Prague\n"
+        "- start: Berlin, Germany, 52.5200, 13.4050\n"
+        "- finish: Prague, Czechia, 50.0755, 14.4378\n"
+        "- from: 2020-01-01\n- to: 2030-01-01\n",
+        encoding="utf-8",
+    )
+    (race,) = build_races(str(md), {"anna": [ride(BERLIN, PRAGUE, 0, 5)]})
+    assert race["title"] == "Virtual race Berlin → Prague"
+    assert (race["start"], race["finish"]) == ("Berlin, Germany", "Prague, Czechia")
+    assert (race["from"], race["to"]) == ("2020-01-01", "2030-01-01")
+    assert race["entries"][0]["hitchhiker_name"] == "anna"
+
+
+def test_the_real_races_md_still_parses():
+    """A typo in RACES.md must not silently empty the page."""
+    assert parse_races_md("RACES.md"), "RACES.md defines no valid race"
