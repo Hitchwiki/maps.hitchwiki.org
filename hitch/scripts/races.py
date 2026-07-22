@@ -97,6 +97,9 @@ def parse_races_md(path):
                 "finish": finish,
                 "from": frm,
                 "to": to,
+                # A race can carry an event name ("Tramprennen"); most don't, and those
+                # are simply virtual races between the two cities.
+                "title": f"{section['keys'].get('name', UNNAMED_RACE_TITLE).strip()} {section['name']}",
                 "max_gap_km": _float_or(section["keys"].get("max gap"), DEFAULT_MAX_GAP_KM),
                 "max_radius_km": _float_or(section["keys"].get("max radius"), DEFAULT_MAX_RADIUS_KM),
             }
@@ -229,6 +232,10 @@ def format_duration(seconds):
     return " ".join(parts)
 
 
+# Prefix for a race nobody organised: the page still needs to call it something, and
+# "Virtual race Berlin → Prague" says exactly what it is.
+UNNAMED_RACE_TITLE = "Virtual race"
+
 # How far ahead the page looks: a race starting later than this is not news yet.
 UPCOMING_DAYS = 30
 
@@ -264,12 +271,13 @@ def current_races(races, now=None, upcoming_days=UPCOMING_DAYS):
 
 
 def build_races(races_md_path, rides_by_name, top=3):
-    """[{name, start, finish, from, to, entries: [...]}] for every race in RACES.md."""
+    """[{name, title, start, finish, from, to, entries: [...]}] for every race in RACES.md."""
     out = []
     for race in parse_races_md(races_md_path):
         out.append(
             {
                 "name": race["name"],
+                "title": race["title"],
                 "start": race["start"]["name"],
                 "finish": race["finish"]["name"],
                 "from": race["from"].strftime("%Y-%m-%d"),

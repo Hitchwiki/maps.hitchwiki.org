@@ -43,12 +43,22 @@ def should_regenerate_json():
     db_mtime = os.path.getmtime(db_path)
 
     # Check each JSON file
-    json_files = ["spots.json", "rides_index.json", "spots_recent.json", "longest_rides.json", "longest_24h.json", "races.json"]
+    # races.json is deliberately absent: it is rebuilt on its own hourly schedule further
+    # down, so its age must not decide whether the rest of the map data is regenerated.
+    json_files = ["spots.json", "rides_index.json", "spots_recent.json", "longest_rides.json", "longest_24h.json"]
 
     # Per-spot ride directory — treat the dir itself as the canary.
     by_spot_dir = os.path.join(dirs["dist"], "rides", "by-spot")
     if not os.path.isdir(by_spot_dir):
         logger.info("Regeneration needed: rides/by-spot directory is missing")
+        return True
+
+    # A new or retuned race in RACES.md must reach the page without waiting for the next
+    # ride to land: the DB mtime alone would never notice a config-only change.
+    races_json = os.path.join(dirs["dist"], "races.json")
+    races_md = os.path.join(dirs["root"], "RACES.md")
+    if os.path.exists(races_md) and (not os.path.exists(races_json) or os.path.getmtime(races_md) > os.path.getmtime(races_json)):
+        logger.info("Regeneration needed: RACES.md is newer than races.json")
         return True
 
     # Only check heatmap if it's enabled
@@ -1252,36 +1262,57 @@ write_json_file(leaderboard_24h[:10], "longest_24h.json")
 # one — a mis-geocoded city would fabricate an impossible finish) and a departure time.
 # An arrival time is used when present and estimated from the leg distance otherwise;
 # see races.estimate_arrival for why insisting on a real arrival is not an option.
-race_df = window_df[
-    (window_df["hitchhiker_name"] != "Anonymous")
-    & window_df["start_dt"].notna()
-    & window_df["dest_lat"].notna()
-    & window_df["dest_lon"].notna()
-    & window_df["distance"].notna()
-    & ~window_df["dest_is_derived"]
-]
-race_rides_by_name: dict[str, list] = {}
-for _, row in race_df.iterrows():
-    start = row["start_dt"].to_pydatetime()
-    end = row["end_dt"].to_pydatetime() if pd.notna(row["end_dt"]) else None
-    estimated = end is None or end < start
-    if estimated:
-        end = estimate_arrival(start, row["lat"], row["lon"], row["dest_lat"], row["dest_lon"])
-    card = _build_ride_card(row)
-    card["estimated"] = estimated
-    race_rides_by_name.setdefault(row["hitchhiker_name"], []).append(
-        {
-            "lat": row["lat"],
-            "lon": row["lon"],
-            "dest_lat": row["dest_lat"],
-            "dest_lon": row["dest_lon"],
-            "start": start,
-            "end": end,
-            "estimated": estimated,
-            "card": card,
-        }
-    )
-write_json_file(build_races(os.path.join(dirs["root"], "RACES.md"), race_rides_by_name), "races.json")
+#
+# Rebuilt at most hourly, not on every 10-minute show run: a podium barely moves within an
+# hour, and this is the only output here that scans every hitchhiker's rides per race.
+# Deliberately NOT in should_regenerate_json's canary list — an hour-old races.json there
+# would drag a whole show run out of its skip path even when no ride changed.
+RACES_MAX_AGE_S = 3600
+races_path = os.path.join(dirs["dist"], "races.json")
+races_md_path = os.path.join(dirs["root"], "RACES.md")
+races_mtime = os.path.getmtime(races_path) if os.path.exists(races_path) else None
+races_stale = (
+    current_app.config.get("FORCE_REGENERATE", False)
+    or races_mtime is None
+    or (time.time() - races_mtime) >= RACES_MAX_AGE_S
+    # An edited RACES.md is a deliberate change (a race added, a date retuned) and should
+    # not wait out the hour.
+    or (os.path.exists(races_md_path) and os.path.getmtime(races_md_path) > races_mtime)
+)
+
+if not races_stale:
+    logger.info(f"races.json is {int(time.time() - races_mtime)}s old (< {RACES_MAX_AGE_S}s), skipping race standings")
+else:
+    race_df = window_df[
+        (window_df["hitchhiker_name"] != "Anonymous")
+        & window_df["start_dt"].notna()
+        & window_df["dest_lat"].notna()
+        & window_df["dest_lon"].notna()
+        & window_df["distance"].notna()
+        & ~window_df["dest_is_derived"]
+    ]
+    race_rides_by_name: dict[str, list] = {}
+    for _, row in race_df.iterrows():
+        start = row["start_dt"].to_pydatetime()
+        end = row["end_dt"].to_pydatetime() if pd.notna(row["end_dt"]) else None
+        estimated = end is None or end < start
+        if estimated:
+            end = estimate_arrival(start, row["lat"], row["lon"], row["dest_lat"], row["dest_lon"])
+        card = _build_ride_card(row)
+        card["estimated"] = estimated
+        race_rides_by_name.setdefault(row["hitchhiker_name"], []).append(
+            {
+                "lat": row["lat"],
+                "lon": row["lon"],
+                "dest_lat": row["dest_lat"],
+                "dest_lon": row["dest_lon"],
+                "start": start,
+                "end": end,
+                "estimated": estimated,
+                "card": card,
+            }
+        )
+    write_json_file(build_races(races_md_path, race_rides_by_name), "races.json")
 
 # duplicates["from_url"] = "#" + duplicates.from_lat.astype(str) + "," + duplicates.from_lon.astype(str)
 # duplicates["to_url"] = "#" + duplicates.to_lat.astype(str) + "," + duplicates.to_lon.astype(str)

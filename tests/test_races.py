@@ -126,6 +126,24 @@ def test_unparseable_dates_are_dropped_rather_than_raising():
     assert current_races([_race("broken", "not-a-date", "2026-12-31")], now=NOW) == []
 
 
+def test_race_titles_fall_back_to_virtual_race(tmp_path):
+    md = tmp_path / "RACES.md"
+    md.write_text(
+        "## Berlin → Prague\n"
+        "- start: Berlin, 52.5200, 13.4050\n"
+        "- finish: Prague, 50.0755, 14.4378\n"
+        "- from: 2020-01-01\n- to: 2030-01-01\n\n"
+        "## Berlin → Amsterdam\n"
+        "- start: Berlin, 52.5200, 13.4050\n"
+        "- finish: Amsterdam, 52.3731, 4.8922\n"
+        "- from: 2020-01-01\n- to: 2030-01-01\n"
+        "- name: Tramprennen\n",
+        encoding="utf-8",
+    )
+    titles = [r["title"] for r in parse_races_md(str(md))]
+    assert titles == ["Virtual race Berlin → Prague", "Tramprennen Berlin → Amsterdam"]
+
+
 def test_build_races_shapes_the_json_the_page_reads():
     out = build_races("RACES.md", {"anna": [ride(BERLIN, PRAGUE, 0, 5)]})
     berlin_prague = [r for r in out if r["start"] == "Berlin" and r["finish"] == "Prague"]
