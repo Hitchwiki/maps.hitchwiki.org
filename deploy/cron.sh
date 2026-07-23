@@ -63,5 +63,13 @@
 # every day at midnight
 0 0 * * * cd /app && /usr/bin/flock -n /tmp/notify_nearby_hitchhikers.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate notify_nearby_hitchhikers' > logs/notify_nearby_hitchhikers.log 2>&1
 
+# every day at 1:30 AM — prune the route link-preview cache (dist/dir). It's a pure cache:
+# any /dir/<from>/<to> hit regenerates its .json/.png pair on demand (~4-7 s cold), and the
+# URL space is quadratic in coordinates — crawlers can mint new keys forever — so without a
+# sweep the directory grows unbounded (~2 MB/day observed). mtime is generation time, not
+# last access, so a route still being shared after 7 days is simply rebuilt once. The shared
+# OSM tile cache (dist/tiles) is deliberately kept forever and is NOT touched here.
+30 1 * * * find /app/dist/dir -type f -mtime +7 -delete > logs/prune_dir_previews.log 2>&1
+
 # every day at 00:30 — remind signed-up users who still have zero logged rides (7- and 30-day nudge)
 30 0 * * * cd /app && /usr/bin/flock -n /tmp/remind_inactive_users.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate remind_inactive_users' > logs/remind_inactive_users.log 2>&1

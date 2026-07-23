@@ -413,6 +413,7 @@ Map UI loads updated JSON → ride visible on map
 - **Every 5 minutes**: `fetch_nostr_incremental` - Fetch only new/edited rides from Nostr and upsert them + apply NIP-09 deletions (cheap; replaced the every-30-min full `fetch_nostr`)
 - **Weekly (Mon 00:50)**: `fetch_nostr` - FULL Nostr re-fetch + table rebuild; catches back-dated events and refreshes the public `allPosts.json`/`.csv` exports (deletions are handled by the 30-min incremental job)
 - **Every 10 minutes**: `show` - Regenerate JSON map data
+- **Daily at 1:30 AM**: prune `dist/dir/` route link-preview cache — plain `find -mtime +7 -delete`; previews regenerate on demand, the `dist/tiles` cache is not touched
 - **Daily at 2 AM**: `build_ride_routes.py --skip-detailed` - Rebuild the routing graph (`dist/repeatable_routes.json`, `dist/oneoff_routes.json`, `dist/test_routes.json`). Not a `flask generate` script — cron calls the file directly with `python3`
 - **Daily at 3 AM**: `sync_osm` - Sync OSM hitchhiking spots
 - **Daily at 3:30 AM**: `sync_car_pooling` - Sync OSM car-pooling spots
