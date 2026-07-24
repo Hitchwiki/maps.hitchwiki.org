@@ -98,3 +98,87 @@ to beat rather than empty.
 - finish: Fontpedrouse, France, 42.5347, 2.1836
 - from: 2026-08-01
 - to: 2026-08-31
+
+## Rome → Naples
+- start: Rome, Italy, 41.8931, 12.4828
+- finish: Naples, Italy, 40.8358, 14.2486
+- from: 2026-09-01
+- to: 2026-09-30
+
+## Hengelo → Bochum
+- start: Hengelo, Netherlands, 52.2656, 6.7931
+- finish: Bochum, Germany, 51.4819, 7.2158
+- from: 2026-09-01
+- to: 2026-09-30
+
+## Tours → Nantes
+- start: Tours, France, 47.3936, 0.6892
+- finish: Nantes, France, 47.2181, -1.5528
+- from: 2026-09-01
+- to: 2026-09-30
+
+## Uničov → Wrocław
+- start: Uničov, Czechia, 49.7708, 17.1214
+- finish: Wrocław, Poland, 51.1100, 17.0325
+- from: 2026-09-01
+- to: 2026-09-30
+
+## Tábor → Prague
+- start: Tábor, Czechia, 49.4144, 14.6578
+- finish: Prague, Czechia, 50.0875, 14.4214
+- from: 2026-09-01
+- to: 2026-09-30
+
+## Cambridge → Leicester
+- start: Cambridge, United Kingdom, 52.2050, 0.1225
+- finish: Leicester, United Kingdom, 52.6361, -1.1331
+- from: 2026-09-01
+- to: 2026-09-30
+
+## Tartu → Riga
+- start: Tartu, Estonia, 58.3800, 26.7225
+- finish: Riga, Latvia, 56.9475, 24.1069
+- from: 2026-09-01
+- to: 2026-09-30
+
+## Bremen → Hannover
+- start: Bremen, Germany, 53.0758, 8.8072
+- finish: Hannover, Germany, 52.3667, 9.7167
+- from: 2026-09-01
+- to: 2026-09-30
+
+## Grenoble → Lyon
+- start: Grenoble, France, 45.1715, 5.7224
+- finish: Lyon, France, 45.7600, 4.8400
+- from: 2026-09-01
+- to: 2026-09-30
+
+## Sheffield → Manchester
+- start: Sheffield, United Kingdom, 53.3808, -1.4703
+- finish: Manchester, United Kingdom, 53.4790, -2.2452
+- from: 2026-09-01
+- to: 2026-09-30
+
+## Karlsruhe → Mannheim
+- start: Karlsruhe, Germany, 49.0092, 8.4040
+- finish: Mannheim, Germany, 49.4878, 8.4661
+- from: 2026-09-01
+- to: 2026-09-30
+
+## Hengelo → Münster
+- start: Hengelo, Netherlands, 52.2656, 6.7931
+- finish: Münster, Germany, 51.9625, 7.6256
+- from: 2026-09-01
+- to: 2026-09-30
+
+## Limerick → Dublin
+- start: Limerick, Ireland, 52.6653, -8.6238
+- finish: Dublin, Ireland, 53.3497, -6.2603
+- from: 2026-09-01
+- to: 2026-09-30
+
+## Essen → Cologne
+- start: Essen, Germany, 51.4508, 7.0131
+- finish: Cologne, Germany, 50.9364, 6.9528
+- from: 2026-09-01
+- to: 2026-09-30
