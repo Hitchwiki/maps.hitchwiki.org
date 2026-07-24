@@ -107,6 +107,9 @@
   // buildFinishBody lives in ride_submit.js (loaded before this file) so it
   // can be unit-tested outside the DOM. Alias it locally to keep call sites unchanged.
   const buildFinishBody = window.RideSubmit.buildFinishBody;
+  // Normalises Leaflet LatLng (.lng) and plain {lat, lon} to one shape. Every pin picker
+  // output passes through this, so .lng never reaches a journey field or a POST body.
+  const toLatLon = window.RideSubmit.toLatLon;
 
   // Weights + choice lists for the in-ride details sheet, fetched once. Kept module-level
   // so the sheet can render and score synchronously after load. Both are small and cached
@@ -394,17 +397,24 @@
           completeFinish(jj, dest, finishMs);
         });
       };
-      // Step 1: confirm the destination — GPS (up to 3 tries), falling back to a manual
-      // pin. Lock the button while GPS resolves; clear it before either prompt so the
-      // user isn't staring at a spinner while answering.
-      journeyUI.setFinishBusy(true);
-      getFixWithRetry().then(
-        function (dest) { journeyUI.setFinishBusy(false); askAndSubmit(dest); },
-        function () {
-          journeyUI.setFinishBusy(false);
-          journeyUI.manualPin(function (dest) { askAndSubmit(dest); });
-        }
-      );
+      // Step 1: confirm the drop-off on the map. ALWAYS asked, on every leg including the
+      // last one before End Hitch. A silent GPS fix logged the ride wherever the user
+      // happened to be when they pressed Finish — often a café hours after arriving — and
+      // nothing downstream could tell that apart from a real drop-off. The picker opens
+      // instantly and locates in the background, so Finish never blocks on GPS.
+      journeyUI.pinConfirm({
+        title: "Where did you get out?",
+        hint: "Drag the pin or tap the map, then confirm.",
+        confirmLabel: "Confirm Drop-off",
+        seed: null,
+        color: "orange",
+        autoLocate: true,
+        myLocation: true,
+        onConfirm: askAndSubmit,
+        // Aborting the picker must not discard the journey: stay in-ride with the button
+        // released so Finish can be pressed again.
+        onCancel: function () { journeyUI.setFinishBusy(false); },
+      });
     };
     // Nudge to enrich the log before saving — but only when details are incomplete.
     // "Add details" saves onto j.details then proceeds; "Skip" proceeds as-is.
@@ -463,7 +473,7 @@
   // Returns a close handle { close() } so callers can dismiss programmatically.
   const journeyUI = {
     _openDialog: null,   // guard: only one dialog open at a time (see Task-3 note)
-    _picking: false,     // guard: a pin picker (manualPin) is open — don't stack another
+    _picking: false,     // guard: a pin picker (pinConfirm) is open — don't stack another
     _setPin: null,       // while picking: (latlng) => reposition the destination pin (long-press)
     _tickInterval: null, // 1-s live-timer interval; at most one running at a time
     _dockEl: null,       // the persistent docked action bar
@@ -841,14 +851,26 @@
       setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 4000);
     },
 
-    // Inline manual-pin fallback for destination selection.
-    // We cannot reuse setupLocationSelection() here because its confirmLocationSelection()
+    // Unified draggable-pin confirm step. Replaces the two near-identical pickers this
+    // file used to carry (manualPin for the drop-off, setWaitingSpot for the next waiting
+    // spot) — which had DIFFERENT coordinate output contracts, a mismatch that once
+    // shipped destination_lon: undefined to the backend. onConfirm ALWAYS gets {lat, lon}.
+    //
+    // We cannot reuse setupLocationSelection() from map.js: its confirmLocationSelection()
     // writes to sessionStorage and then does window.location.href = "/ride" — a redirect
-    // that would exit the in-ride flow entirely. Instead we build a minimal pin-selection
-    // UI directly on the Leaflet map and hand the chosen latlng to the callback.
-    manualPin(cb, seedLatLng) {
+    // that would exit the in-ride flow entirely.
+    //
+    // opts:
+    //   title, hint, confirmLabel — card copy (developer constants, not user input)
+    //   seed       {lat, lon} | null — initial pin position; null → current map centre
+    //   color      "orange" (drop-off) | "green" (waiting spot)
+    //   autoLocate bool — request GPS in the background and snap the pin if untouched
+    //   myLocation bool — show the "Use my location" button
+    //   onConfirm(dest {lat, lon})
+    //   onCancel() — optional
+    pinConfirm(opts) {
       if (!window.L || !window.map) {
-        // No map available (edge case) — reset busy so the user isn't stuck.
+        // No map available (edge case) — never leave the Finish button spinning.
         journeyUI.setFinishBusy(false);
         return;
       }
@@ -857,38 +879,45 @@
       if (journeyUI._picking) return;
       journeyUI._picking = true;
 
-      // Leaflet LatLng exposes .lat and .lng (not .lon). buildFinishBody reads dest.lon,
-      // so we normalize .lng → .lon when reading the marker position; passing a raw
-      // Leaflet LatLng would leave destination_lon=undefined and the backend would
-      // reject the submission without a clear error.
-      // seedLatLng (optional) pre-places the pin; defaults to the current map centre.
-      const marker = L.marker(seedLatLng || window.map.getCenter(), {
+      const c = window.map.getCenter();
+      const seed = opts.seed || { lat: c.lat, lon: c.lng };
+
+      const marker = L.marker([seed.lat, seed.lon], {
         draggable: true,
         icon: L.icon({
-          iconUrl: "/static/markers/marker-icon-2x-orange.png",
+          iconUrl: "/static/markers/marker-icon-2x-" + (opts.color || "orange") + ".png",
           shadowUrl: "/static/markers/marker-shadow.png",
           iconSize: [25, 41], iconAnchor: [12, 41],
           popupAnchor: [1, -34], shadowSize: [41, 41],
         }),
       }).addTo(window.map);
 
-      // Tapping the map also repositions the destination pin (same UX as the
-      // standard location-selection UI in map.js).
-      function onMapClick(e) { marker.setLatLng(e.latlng); }
+      // Once the user has placed the pin themselves, a late GPS fix must never move it —
+      // a fix can land 20 s after the picker opens, long after they dragged the pin.
+      let touched = false;
+      function touch() { touched = true; }
+      marker.on("dragstart", touch);
+
+      // Tapping the map also repositions the pin (same UX as the standard
+      // location-selection UI in map.js).
+      function onMapClick(e) { touch(); marker.setLatLng(e.latlng); }
       window.map.on("click", onMapClick);
 
       // Expose a reposition hook so a long-press (routed through inrideOnEntryGesture)
       // can drop the pin too — but ONLY while this picker is open, so long-press never
-      // drops a pin before the user has entered the Finish flow.
-      journeyUI._setPin = function (ll) { marker.setLatLng(ll); };
+      // drops a pin outside the flow.
+      journeyUI._setPin = function (ll) { touch(); marker.setLatLng(ll); };
 
       const ui = document.createElement("div");
       ui.className = "location-selection-ui";
       ui.innerHTML = [
-        "<h4>Drop a pin for your destination</h4>",
-        "<p>Tap & drag the pin, then confirm.</p>",
+        "<h4>" + opts.title + "</h4>",
+        "<p>" + opts.hint + "</p>",
         '<div class="lsel-actions">',
-        '<button class="lsel-confirm" id="inr-pin-confirm">Confirm Destination</button>',
+        // "Use my location" is a positive/neutral action — give it confirm styling so it
+        // doesn't read as a dismiss button; only Cancel gets the muted lsel-cancel style.
+        opts.myLocation ? '<button class="lsel-confirm" id="inr-pin-myloc">Use my location</button>' : "",
+        '<button class="lsel-confirm" id="inr-pin-confirm">' + opts.confirmLabel + "</button>",
         '<button class="lsel-cancel" id="inr-pin-cancel">Cancel</button>',
         "</div>",
       ].join("");
@@ -897,6 +926,53 @@
       // pins) so a stray tap on one repositions the pin instead of opening its
       // sheet and swallowing the click. See body.inr-picking rule in style.css.
       document.body.classList.add("inr-picking");
+
+      // One geolocation request shared by the background autoLocate and the button, so
+      // tapping "Use my location" mid-flight never starts a second fix.
+      let fixPromise = null;
+      function requestFix() {
+        if (!fixPromise) {
+          fixPromise = getFixWithRetry();
+          // Drop a failed fix so an explicit tap retries instead of replaying the
+          // cached rejection.
+          fixPromise.catch(function () { fixPromise = null; });
+        }
+        return fixPromise;
+      }
+
+      const locBtn = document.getElementById("inr-pin-myloc");
+      function setLocating(on) {
+        if (!locBtn) return;
+        locBtn.disabled = on;
+        locBtn.textContent = on ? "Locating…" : "Use my location";
+      }
+
+      function moveTo(fix) {
+        marker.setLatLng([fix.lat, fix.lon]);
+        window.map.setView([fix.lat, fix.lon]);
+      }
+
+      if (opts.autoLocate) {
+        setLocating(true);
+        requestFix().then(
+          function (fix) { setLocating(false); if (!touched) moveTo(fix); },
+          // Silent: the user never asked for this fix, and the pin is already usable.
+          function () { setLocating(false); }
+        );
+      }
+
+      if (locBtn) {
+        locBtn.addEventListener("click", function () {
+          setLocating(true);
+          requestFix().then(
+            function (fix) { setLocating(false); touch(); moveTo(fix); },
+            function () {
+              setLocating(false);
+              journeyUI.error("Couldn't get your location — drag the pin instead.");
+            }
+          );
+        });
+      }
 
       function cleanup() {
         window.map.removeLayer(marker);
@@ -910,14 +986,13 @@
       document.getElementById("inr-pin-confirm").addEventListener("click", function () {
         const ll = marker.getLatLng();
         cleanup();
-        // Normalize Leaflet's .lng → .lon so buildFinishBody receives the correct longitude.
-        cb({ lat: ll.lat, lon: ll.lng });
+        // Normalize Leaflet's .lng → .lon so every consumer sees exactly one shape.
+        opts.onConfirm(toLatLon(ll));
       });
 
       document.getElementById("inr-pin-cancel").addEventListener("click", function () {
         cleanup();
-        // User dismissed the pin — stay in in-ride state with busy cleared (retry possible).
-        journeyUI.setFinishBusy(false);
+        if (opts.onCancel) opts.onCancel();
       });
     },
 
