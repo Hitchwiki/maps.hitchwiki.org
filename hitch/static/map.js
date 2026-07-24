@@ -64,7 +64,6 @@ var allMarkers = [],
   bars = document.querySelectorAll(".sidebar, .topbar"),
   heatmapLayer = null,
   heatmapData = null,
-  heatmapActive = false,
   normalLayer = null,
   heatmapLegend = null,
   spotsData = null,
@@ -231,17 +230,6 @@ async function loadHeatmapData() {
   }
 }
 
-// Toggle heatmap layer (also updates ?heatmap= query param so the state is shareable)
-async function toggleHeatmap() {
-  if (heatmapActive) {
-    await setHeatmapActive(false);
-    setQueryParameter('heatmap', false);
-  } else {
-    const ok = await setHeatmapActive(true);
-    if (ok) setQueryParameter('heatmap', true);
-  }
-}
-
 // Apply or remove the heatmap layer/legend without touching the URL.
 // Returns true if the requested state was reached.
 async function setHeatmapActive(active) {
@@ -256,7 +244,6 @@ async function setHeatmapActive(active) {
     positionLegendPane();
     if (btn) btn.classList.remove('active');
     if (text) text.textContent = 'Heatmap';
-    heatmapActive = false;
     return true;
   }
 
@@ -284,7 +271,6 @@ async function setHeatmapActive(active) {
   heatmapLayer.addTo(map);
   if (btn) btn.classList.add('active');
   if (text) text.textContent = 'Normal';
-  heatmapActive = true;
   return true;
 }
 
@@ -391,13 +377,10 @@ function populateHeatmapLegend(legendData) {
       setMapMode(mapMode === 'heatmap' ? 'spots' : 'heatmap'));
   }
 
-  // Restore the requested map mode from the URL: ?mapmode=countries takes
-  // precedence, otherwise the legacy ?heatmap=true selects heatmap mode.
-  if (getQueryParameter('mapmode') === 'countries') {
-    await setMapMode('countries');
-  } else if (getQueryParameter('heatmap') === 'true') {
-    await setMapMode('heatmap');
-  }
+  // Restore the requested map mode from the URL. applyMapMode, not setMapMode: the
+  // URL already says this, so there is nothing to write back.
+  const initialMode = mapModeFromUrl();
+  if (initialMode !== mapMode) await applyMapMode(initialMode);
 
   // These functions make the navigation work
   handleHashChange();
@@ -1151,8 +1134,9 @@ async function loadEventMarkers(map) {
     marker.addTo(eventLayer);
   });
 
-  // Events follow the spot markers: visible in spots/heatmap modes, hidden in Countries.
-  if (mapMode !== "countries") eventLayer.addTo(map);
+  // Events follow the spot markers, so they belong to spots mode only. The load is
+  // async and can land after a mode was already applied, so ask the mode, don't assume.
+  if (mapMode === "spots") eventLayer.addTo(map);
   console.log(`Loaded ${eventsData.length} event(s)`);
 }
 
@@ -1393,29 +1377,61 @@ async function loadEventSheetText(ev) {
     : `<p class="sheet-status">No description available.</p>`;
 }
 
-// Single source of truth for which map mode is active.
-async function setMapMode(mode) {
-  mapMode = mode;
-
-  // Countries mode replaces spots with the choropleth; the other modes show spots.
-  if (mode === "countries") {
-    await setHeatmapActive(false);
-    setSpotsVisible(false);
-    setEventsVisible(false);
-    const layer = await loadCountryLayer();
-    if (!map.hasLayer(layer)) layer.addTo(map);
+// Put the map into `mode` without touching the URL. The three modes are mutually
+// exclusive — each one owns the map:
+//   spots     — the hitchhiking-spot markers
+//   heatmap   — the predicted-waiting-time overlay, and nothing else on top of it
+//   countries — the choropleth
+// Heatmap used to share the screen with the spots. Nothing hid them; they merely
+// faded, because `body.zoomed-out` dims the overlay pane to 30% below zoom 9 — so
+// the spots looked gone at the zoom you normally read a heatmap at, and came back
+// at zoom 9+. Two things then made that inconsistency visible: cluster bubbles
+// (below zoom 7) live in the marker pane and were never dimmed at all, and a filter
+// draws its matches unclustered, so they stayed on screen over the heatmap. The
+// mode now decides outright instead of an opacity rule deciding by accident.
+async function applyMapMode(mode) {
+  // Settle the heatmap first, because it is the one mode that can refuse: with no
+  // heatmap.json setHeatmapActive alerts and returns false. Committing to the mode
+  // anyway would hide the spots and leave the user on an empty map, so fall back.
+  if (mode === "heatmap") {
+    if (!(await setHeatmapActive(true))) mode = "spots";
   } else {
-    if (countryLayer && map.hasLayer(countryLayer)) map.removeLayer(countryLayer);
-    setSpotsVisible(true);
-    setEventsVisible(true);
-    await setHeatmapActive(mode === "heatmap");
+    await setHeatmapActive(false);
   }
 
+  mapMode = mode;
+
+  if (mode === "countries") {
+    const layer = await loadCountryLayer();
+    if (!map.hasLayer(layer)) layer.addTo(map);
+  } else if (countryLayer && map.hasLayer(countryLayer)) {
+    map.removeLayer(countryLayer);
+  }
+  setSpotsVisible(mode === "spots");
+  // Events are their own overlay, not spots: they stay with the markers in spots
+  // mode and step aside for the two full-map views.
+  setEventsVisible(mode === "spots");
+
   updateMapModeButtons();
-  // Keep the state shareable. Heatmap keeps using the legacy ?heatmap param so
-  // existing deep-links stay valid; Countries mode uses ?mapmode=countries.
-  setQueryParameter("heatmap", mode === "heatmap");
-  setQueryParameter("mapmode", mode === "countries" ? "countries" : false);
+}
+
+// Single source of truth for which map mode is active: applies it and records it in
+// the URL. applyParams() reconciles the other direction (URL -> mode) by calling
+// applyMapMode directly, because writing the URL from there would re-enter navigate().
+async function setMapMode(mode) {
+  await applyMapMode(mode);
+  // Record what was actually applied, not what was asked for — applyMapMode falls
+  // back to spots when the heatmap can't load, and the URL must not claim otherwise.
+  // Heatmap keeps using the legacy ?heatmap param so existing deep-links stay valid;
+  // Countries mode uses ?mapmode=countries.
+  setQueryParameter("heatmap", mapMode === "heatmap");
+  setQueryParameter("mapmode", mapMode === "countries" ? "countries" : false);
+}
+
+// The mode named by the current URL. Countries wins over the legacy ?heatmap flag.
+function mapModeFromUrl() {
+  if (getQueryParameter("mapmode") === "countries") return "countries";
+  return getQueryParameter("heatmap") === "true" ? "heatmap" : "spots";
 }
 
 function updateMapModeButtons() {
@@ -3189,10 +3205,15 @@ function clearSpotUrl() {
 }
 
 async function applyParams() {
-  // Sync heatmap visibility with ?heatmap=true so links can deep-link into the heatmap view
-  const heatmapWanted = getQueryParameter("heatmap") == "true";
-  if (heatmapWanted !== heatmapActive) {
-    await setHeatmapActive(heatmapWanted);
+  // Sync the map mode with the URL so links can deep-link into any of the three
+  // views. This used to reconcile only the heatmap *layer*, leaving `mapMode` stale —
+  // a second owner of "is the heatmap on" that could contradict the mode switcher.
+  // Reconciling the mode itself keeps one owner; applyMapMode() rather than
+  // setMapMode() because the URL already says this, and writing it back would
+  // re-enter navigate().
+  const wantedMode = mapModeFromUrl();
+  if (wantedMode !== mapMode) {
+    await applyMapMode(wantedMode);
   }
 
   recentToggle.checked = getQueryParameter("recent") == "true";
@@ -4415,7 +4436,6 @@ function startAddSpotFromGesture(latlng, containerPoint) {
 window.map = map; // intentional: exposes the Leaflet instance for inride.js (marker placement, layer removal)
 window.getLocationMarker = () => locationMarker;
 window.setMapMode = setMapMode;
-window.toggleHeatmap = toggleHeatmap;
 window.startAddSpotFromGesture = startAddSpotFromGesture;
 window.startProposeSpotFromGesture = startProposeSpotFromGesture;
 window.setupLocationSelection = setupLocationSelection;
