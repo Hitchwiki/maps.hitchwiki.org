@@ -16,6 +16,15 @@
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
+  // Accept either a Leaflet LatLng (.lat/.lng) or a plain {lat, lon}, always return
+  // {lat, lon}. The in-ride pin pickers used to disagree on this shape, which once
+  // produced destination_lon: undefined in a submitted ride body.
+  // `!= null` rather than `||`: lon 0 (Greenwich) is falsy but valid.
+  function toLatLon(p) {
+    if (!p) return null;
+    return { lat: p.lat, lon: p.lon != null ? p.lon : p.lng };
+  }
+
   // Build the /ride form body from a journey + destination. client_d_tag pins the Nostr
   // d_tag so outbox retries replace rather than duplicate. finishMs is captured at the
   // START of journeyFlow.finish() so GPS/manual-pin delay doesn't inflate arrival time.
@@ -65,5 +74,5 @@
     };
   }
 
-  return { isoLocal, buildFinishBody, buildGiveUpBody };
+  return { isoLocal, buildFinishBody, buildGiveUpBody, toLatLon };
 });
