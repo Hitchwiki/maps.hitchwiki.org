@@ -1,5 +1,23 @@
 # CLAUDE.md
 
+> ## ⚠️ Other agents are working in this repo at the same time
+>
+> **Never discard work you did not write.** Multiple Claude Code sessions edit this
+> checkout concurrently, and the working tree can gain changes at any moment — including
+> while you are mid-task.
+>
+> - **Never** run `git checkout -- <file>`, `git restore`, `git reset --hard`, `git clean`,
+>   or `git stash` on files you didn't change. There is no branch to recover them from
+>   (this repo commits straight to `main`), so a discarded edit is gone for good.
+> - **Stage explicitly.** `git add <specific files>`, never `git add -A` / `git add .` —
+>   otherwise you sweep another agent's half-finished work into your commit.
+> - **Re-check `git status` right before committing.** Files you never touched appearing
+>   there is normal; leave them alone.
+> - **Never `git push --force`.** Pull/rebase and push normally; if a push is rejected,
+>   `git pull --rebase` and retry.
+> - Before editing a file, prefer re-reading it — another agent may have changed it since
+>   you last looked.
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Development Commands
