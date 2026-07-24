@@ -1041,6 +1041,46 @@ body.inride-active .leaflet-bottom.leaflet-right {
   text-decoration: underline;
 }
 
+/* "Read on at Hitchwiki" call to action, shared by the country and event sheets.
+   Wiki text shown on the map is only an excerpt; this is the hand-off that sends
+   readers (and potential editors) to Hitchwiki itself, so it reads as an action
+   rather than as the small-print source credit that sits below it. */
+.wiki-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid #cfe0fb;
+  border-radius: 10px;
+  background: #f2f7ff;
+  color: #1558c0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-decoration: none;
+}
+/* `display: flex` above would otherwise defeat the `hidden` attribute we use to
+   keep the CTA out of the sheet until an article has actually loaded. */
+.wiki-cta[hidden] {
+  display: none;
+}
+.wiki-cta:hover,
+.wiki-cta:focus-visible {
+  background: #e6f0ff;
+  border-color: #a9c9f6;
+  text-decoration: none;
+}
+.wiki-cta-arrow {
+  flex: none;
+  font-size: 1.05rem;
+  transition: transform 0.15s ease;
+}
+.wiki-cta:hover .wiki-cta-arrow {
+  transform: translateX(2px);
+}
+
 /* Hitchwiki event markers and their bottom sheet. */
 .event-marker {
   background: transparent;

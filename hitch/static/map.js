@@ -983,6 +983,21 @@ async function findHitchhikingSection(title) {
   }
 }
 
+// Fill a "keep reading on Hitchwiki" call to action. Wiki text on the map is an
+// excerpt, and Hitchwiki is where it can actually be extended — so the link is an
+// invitation to read on and contribute, not just a source credit (that stays in the
+// separate attribution line, which CC BY-SA requires).
+function setWikiCta(el, url, label) {
+  if (!el) return;
+  if (!url) {
+    el.hidden = true;
+    return;
+  }
+  el.href = url;
+  el.innerHTML = `<span>${escapeHtml(label)}</span><span class="wiki-cta-arrow" aria-hidden="true">→</span>`;
+  el.hidden = false;
+}
+
 // Fetch and render a country's Hitchwiki summary: the "== Hitchhiking ==" section
 // when present, otherwise the lead section.
 async function loadCountrySheetLead(name) {
@@ -1004,6 +1019,9 @@ async function loadCountrySheetLead(name) {
     }
     const html = renderCountryWikitext(wikitext);
     lead.innerHTML = html || `<p class="country-status">No summary text available for ${escapeHtml(name)}.</p>`;
+    // Only invite people over once we know the article actually rendered — a CTA
+    // pointing at a page that failed to load would send them to a red link.
+    if (html) setWikiCta($$("#country-sheet-cta"), wikiUrl, `Read the full ${title} article on Hitchwiki`);
   } catch (e) {
     console.warn("Could not load Hitchwiki section:", e);
     lead.innerHTML = `<p class="country-status">No Hitchwiki summary could be loaded for ${escapeHtml(name)}.</p>`;
@@ -1023,6 +1041,7 @@ async function openCountrySheet(name) {
   $$("#country-sheet-insights").hidden = true;
   $$("#country-sheet-lead").innerHTML = `<p class="country-status">Loading from Hitchwiki…</p>`;
   $$("#country-sheet-source").innerHTML = "";
+  $$("#country-sheet-cta").hidden = true;
   bar(".sidebar.country");
   updateBottomPaneVar();
   setSheetSnap($$(".sidebar.country"), "full", COUNTRY_SHEET_SNAPS);
@@ -1261,6 +1280,11 @@ function openEventSheet(ev) {
       `licensed <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA</a>.`
     : "";
   $$("#event-sheet-description").innerHTML = `<p class="sheet-status">Loading from Hitchwiki…</p>`;
+  // The event page is on Hitchwiki and stays the place to update it, so invite the
+  // reader over rather than only crediting the source below. Same condition as the
+  // credit line: without a known page we'd only have a guessed title-from-name URL,
+  // which can land on a non-existent article.
+  setWikiCta($$("#event-sheet-cta"), ev.url || ev.title ? wikiUrl : "", "Read this event on Hitchwiki");
   bar(".sidebar.event");
   updateBottomPaneVar();
   setSheetSnap($$(".sidebar.event"), "full", EVENT_SHEET_SNAPS);
@@ -2168,11 +2192,13 @@ function summaryText(data, hists = { wait: null, distance: null }) {
   const fuelLink = data.fuel
     ? `<div>⛽ <a href="https://www.openstreetmap.org/${data.fuel.osm_type}/${data.fuel.id}" target="_blank" rel="noopener noreferrer">Gas station</a></div>`
     : '';
+  // Phrased as an invitation, not a label: the wiki article is where the advice for
+  // this spot actually lives, and we want map users to carry on reading there.
   const hitchwikiLink = data.hitchwiki_article
-    ? `<div>📄 <a href="${data.hitchwiki_article}" target="_blank" rel="noopener noreferrer">Mentioned on Hitchwiki</a></div>`
+    ? `<div>📄 <a href="${data.hitchwiki_article}" target="_blank" rel="noopener noreferrer">Read about this spot on Hitchwiki</a></div>`
     : '';
   const hitchwikiMapLink = data.hitchwiki_map
-    ? `<div>🗺️ <a href="${data.hitchwiki_map}" target="_blank" rel="noopener noreferrer">On Hitchwiki</a></div>`
+    ? `<div>🗺️ <a href="${data.hitchwiki_map}" target="_blank" rel="noopener noreferrer">Read about this area on Hitchwiki</a></div>`
     : '';
 
   const wait = !data.wait || Number.isNaN(data.wait) ? "-" : data.wait.toFixed(0) + " min";

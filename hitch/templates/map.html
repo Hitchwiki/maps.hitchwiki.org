@@ -528,6 +528,9 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
             </section>
         </div>
         <div class="country-lead" id="country-sheet-lead"></div>
+        {# The sheet only shows one section of the wiki article. The CTA is the invitation
+           to keep reading (and contribute) on Hitchwiki itself, not a bare attribution. #}
+        <a class="wiki-cta" id="country-sheet-cta" target="_blank" rel="noopener" hidden></a>
         <div class="country-source" id="country-sheet-source"></div>
     </div>
 </div>
@@ -551,6 +554,7 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
             <span class="share-btn-label">Share</span>
         </button>
         <div class="event-description" id="event-sheet-description"></div>
+        <a class="wiki-cta" id="event-sheet-cta" target="_blank" rel="noopener" hidden></a>
         <div class="event-source" id="event-sheet-source"></div>
     </div>
 </div>
