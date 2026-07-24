@@ -2544,7 +2544,11 @@ body.showing-insights .heatmap-legend-pane {
   font-size: 12px;
   line-height: 1.35;
   color: #666;
-  max-width: 260px;
+  /* 260px broke one-sentence bodies mid-clause ("...Waiting for / another ride?").
+     340px fits every current body on one line down to ~360px-wide phones; `balance`
+     keeps the wrap even (no lonely trailing word) when it still has to happen. */
+  max-width: 340px;
+  text-wrap: balance;
 }
 
 .inride-dialog .inr-actions {
