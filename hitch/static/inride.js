@@ -1780,6 +1780,57 @@
     },
   };
 
+  // ── Permanent "Start Hitchhiking" launcher ───────────────────────────────────
+  // Give Up / Got a Ride only exist once a journey is running, so the tracker had no
+  // visible way in: you had to know about the map long-press or find a spot's "Hitch
+  // here". This button is on screen whenever no journey is active and opens the same
+  // waiting-spot picker used after a drop-off ("Use my location" or drag/tap a pin),
+  // then hands the confirmed point to the normal start flow — soft login gate,
+  // co-hitchers, then the waiting dock with Give Up / Got a Ride.
+  //
+  // It is mounted once and never removed: every "something else owns the bottom of the
+  // screen" case is a CSS rule on #inr-start-btn (see style.css), so there is no
+  // show/hide lifecycle to keep in sync with render/teardown.
+  const startLauncher = {
+    _el: null,
+
+    mount() {
+      if (startLauncher._el) return;
+      // Deployments that hide the contribution entry points must not get a second
+      // one back through the journey tracker.
+      if (window.HIDE_ADD_SPOT_BUTTON) return;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.id = "inr-start-btn";
+      // Same classes as the dock buttons so it inherits their shape/weight/shadow;
+      // the id rule only re-positions it and trims it to content width.
+      btn.className = "inr-big inr-big--green";
+      // fa-thumbs-up is already this app's "start hitching" icon (spot sheet's
+      // "Hitch here"); it never shares the screen with the Got a Ride! button.
+      btn.innerHTML = '<i class="fa-solid fa-thumbs-up" aria-hidden="true"></i> Start Hitchhiking';
+      btn.addEventListener("click", startLauncher.open);
+      document.body.appendChild(btn);
+      // Same reason as the dock/chip: without this a tap falls through to Leaflet and
+      // opens whatever spot sits under the button.
+      sealTaps(btn);
+      startLauncher._el = btn;
+    },
+
+    // Seeded at the map centre so Confirm is a single tap for someone who already
+    // panned to where they are; "Use my location" and dragging the pin both stay
+    // available inside setWaitingSpot.
+    open() {
+      if (journeyStore.get()) return; // one journey at a time
+      if (document.body.classList.contains("inr-picking")) return; // picker already open
+      if (!window.map) return;
+      hmTrack("journey_start_button_clicked", {});
+      const c = window.map.getCenter();
+      journeyUI.setWaitingSpot({ lat: c.lat, lon: c.lng }, function (ll) {
+        journeyFlow.startFromChoose(ll);
+      });
+    },
+  };
+
   // ── Entry point from map gestures ────────────────────────────────────────────
   // Returns true if we handled the gesture (so map.js skips its old behavior).
   // Returning false is defensive — currently we always handle when no journey
@@ -2145,7 +2196,7 @@
     },
   };
 
-  window.inride = { journeyStore, journeyUI, journeyFlow, outboxStore, submitBody, flushOutbox, outboxUI };
+  window.inride = { journeyStore, journeyUI, journeyFlow, outboxStore, submitBody, flushOutbox, outboxUI, startLauncher };
 
   // ── On-load init ─────────────────────────────────────────────────────────────
 
@@ -2165,6 +2216,11 @@
   // Rehydrate on load: restore the docked UI + timer for an in-progress journey.
   // Also complete a login round-trip (pendingStart) begun from the soft prompt.
   function initInride() {
+    // Mount first and unconditionally: every early return below leaves a state in which
+    // the launcher is either wanted (no journey) or hidden by CSS (journey active /
+    // dialog open), so it must exist in the DOM before any of them can be taken.
+    startLauncher.mount();
+
     // Complete the login round-trip: the "Log in" button stashed the chosen spot in
     // PENDING_KEY before redirecting; on return we pick it up and start the journey.
     const pend = localStorage.getItem(PENDING_KEY);

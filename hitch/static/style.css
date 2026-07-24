@@ -2640,6 +2640,48 @@ body.showing-insights .heatmap-legend-pane {
 .inr-big--red   { background: #d73027; }
 .inr-big--green { background: #1a9850; }
 
+/* ── Permanent "Start Hitchhiking" launcher (inride.js startLauncher) ─────────
+   Reuses .inr-big/.inr-big--green so it reads as the same family as Give Up /
+   Got a Ride, but centred and content-width: this one is always-on chrome, and a
+   full-width bar sitting on the map forever would cost too much of the view.
+   Bottom offset matches .inr-dock--stack so it clears the fixed OSM attribution
+   (bottom: 64px) the same way the journey dock does. */
+#inr-start-btn {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 28px);
+  z-index: 2002;
+  /* .inr-big is written for a flex row (flex: 1, padding: 15px 0); this button has
+     no flex parent, so give it its own intrinsic size. */
+  flex: 0 0 auto;
+  width: auto;
+  padding: 13px 22px;
+  /* Stay on one line: the bottom-right control stack (locate/mode/zoom) is only
+     ~13px clear of this button on a 320px screen, so a wrap would grow it into them. */
+  white-space: nowrap;
+}
+#inr-start-btn:hover { background: #157a40; }
+/* Keep the centring translate — a bare scale() would drop it and jump the button. */
+#inr-start-btn:active { transform: translateX(-50%) scale(0.97); }
+
+/* Anything that owns the bottom of the screen wins over the launcher: a running
+   journey (whose own dock replaces it), an open pin picker, any journey dialog or
+   sheet (they all mount an .inride-scrim), an open side/bottom sheet — whose own
+   "Hitch here" is the better entry point in that context — or the duplicate-report
+   topbar. Hiding by rule rather than by removing the node keeps the launcher free
+   of any lifecycle of its own. */
+body.inride-active #inr-start-btn,
+body.inr-picking #inr-start-btn,
+body.selecting-location #inr-start-btn,
+body.adding-spot #inr-start-btn,
+body.reporting-duplicate #inr-start-btn,
+body:has(.inride-scrim) #inr-start-btn,
+body:has(.sidebar.visible) #inr-start-btn,
+body:has(.topbar.visible) #inr-start-btn {
+  display: none;
+}
+
 /* Non-blocking "saved offline" confirmation toast — sits above the dock stack. */
 .inr-toast {
   position: fixed;
