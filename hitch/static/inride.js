@@ -1659,7 +1659,7 @@
       });
     },
 
-    dialog({ title, body, actions, onClose, centered, forced }) {
+    dialog({ title, body, actions, onClose, centered, forced, cancelButton }) {
       // Close any already-open dialog so rapid re-triggers don't stack overlays.
       if (journeyUI._openDialog) journeyUI._openDialog.close();
 
@@ -1704,6 +1704,20 @@
       });
 
       card.appendChild(actionsEl);
+
+      // Explicit way out for dialogs whose every button *does* something (the spot
+      // menu: Start Hitching / Log a past ride / Propose a spot). A scrim tap already
+      // dismisses, but that affordance is invisible, so the dialog read as inescapable.
+      // Same round red × as the journey dock's Cancel, sitting below the actions.
+      if (cancelButton && !forced) {
+        const cancelBtn = document.createElement("button");
+        cancelBtn.type = "button";
+        cancelBtn.className = "inr-cancel";
+        cancelBtn.setAttribute("aria-label", "Close");
+        cancelBtn.innerHTML = '<i class="fa-solid fa-xmark" aria-hidden="true"></i>';
+        cancelBtn.addEventListener("click", close);
+        card.appendChild(cancelBtn);
+      }
 
       // Tap the scrim (outside the card) to cancel — unless the dialog is `forced`
       // (a required answer, e.g. would-ride-again on finish), where there is no way out
@@ -1885,6 +1899,8 @@
       title: "This spot",
       body: "Track a ride from here now — or log a ride you already got.",
       onClose: () => { if (previewPin && window.map) window.map.removeLayer(previewPin); previewPin = null; },
+      // Every action here commits to a flow, so the dialog needs a visible dismiss.
+      cancelButton: true,
       actions: [
         {
           label: "Start Hitching",

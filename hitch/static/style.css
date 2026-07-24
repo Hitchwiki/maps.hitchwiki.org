@@ -2506,6 +2506,13 @@ body.showing-insights .heatmap-legend-pane {
   border: none;
 }
 
+/* Dismiss: the same round red × as the journey dock's Cancel, centered below the
+   actions row. The card is block-flow (the dock is flex), so `align-self` from
+   .inr-cancel does nothing here — auto side margins do the centering. */
+.inride-dialog .inr-cancel {
+  margin: 14px auto 0;
+}
+
 /* ── Waiting-state persistent chrome (Task 5) ───────────────────────────────
    The docked bar and status chip sit above the map but BELOW the map controls;
    Task 12 will raise the controls above them. z-index 1200 clears the Leaflet
