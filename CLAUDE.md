@@ -88,6 +88,7 @@ Modelled on OpenStreetMap's `/node/<id>#map=<zoom>/<lat>/<lon>`. Two independent
 - **Follow** / **Notification**: User following and notifications
 - **Trip** / **TripRide**: Trips grouping multiple rides
 - **RideReport**: User-reported issues on rides
+- **SpotName**: Cached reverse-geocoded street name per spot id (see `spot_names.py`)
 - **ServiceArea** / **RoadIsland** / **RoutingSearch**: Routing-support data
 
 ### Data Processing Scripts (hitch/scripts/)
@@ -109,6 +110,7 @@ Modelled on OpenStreetMap's `/node/<id>#map=<zoom>/<lat>/<lon>`. Two independent
   - **The conf file must exist before the container starts.** Docker bind-mounts a missing source path by creating it as an empty *directory*, so `docker compose up` without it leaves a root-owned dir at `deploy/rclone.conf` and rclone silently has no remotes.
   - The Console's client secret JSON downloads to the **project root**, which is this git repo. `client_secret_*.json` is gitignored now, but check `git status` after any Console download.
   - Authorizing on this headless host: VS Code Remote-SSH already forwards `localhost:53682`, so `rclone authorize` run *on the server* completes in the laptop browser with no manual tunnel and no secret leaving the host.
+- **spot_names.py**: Reverse-geocode spots into street names (daily at 4:30 AM). Standalone script (plain `python3`, not `flask generate`) filling the `spot_name` table — the last step of the naming cascade in `hitch/scripts/spot_naming.py`, which `show.py` uses to give each spot a display name instead of bare coordinates. The cascade is: OSM `highway=hitchhiking` spot ≤100 m → the `service_area` polygon the spot was merged into → fuel station ≤100 m → car-pooling spot ≤100 m → this cached geocode. The first four are free (those tables already store OSM `tags`, and `show.py` already picks the service-area polygon when merging), but only ~5.5k of 35k spots have any OSM feature nearby, so the geocode carries the rest. Photon at 1 req/s, `--limit N` per run (default 2000) so a cron run stays bounded; the initial ~30k backlog is a manual `--limit 0` run (~8 h). **Reads `dist/spots.json`, so it must run after `show`** (same dependency as `sync_fuel`). A row with a NULL `name` means Photon answered and the place has no street — never retried; a *failed request* writes no row at all, so an outage can't permanently mark thousands of spots unnameable.
 - **sync_hitchhiking_rides_dataset.py**: Push rides to the Hugging Face dataset (weekly)
 - **notify_nearby_hitchhikers.py**: Email notifications for nearby hitchhikers (daily)
 - **Destination enrichment (occasional manual batch jobs, NOT cron; both write inferred destinations to the `derived_ride_location` table, keyed by Nostr `d`, distinguished by the `kind` column; `show.py` + `build_ride_routes.py` merge these onto rides that reached Nostr with no destination).** Standalone scripts (plain `python3`), run against the root-owned prod DB via `sudo`:
@@ -358,7 +360,7 @@ The `show.py` script runs every 10 minutes and generates map data files from the
 
 3. **`rides/by-spot/<spot_id>.json`** - Per-spot detail files
    - One JSON file per spot, written under `dist/rides/by-spot/`
-   - Shape: `{"spot": {wait, distance, osm_id, car_pooling, hitchwiki_article, hitchwiki_map}, "rides": [{id, rating, wait, comment, hitchhiker_name, submission_time, ride_datetime}, ...]}` — `spot` holds the click-time info slimmed out of spots.json (keys omitted when absent)
+   - Shape: `{"spot": {name, wait, distance, osm_id, car_pooling, hitchwiki_article, hitchwiki_map}, "rides": [{id, rating, wait, comment, hitchhiker_name, submission_time, ride_datetime}, ...]}` — `spot` holds the click-time info slimmed out of spots.json (keys omitted when absent). `name` is the spot's display name (see `spot_names.py`); it lives here rather than in `spots.json` because ~30k name strings would add ~1 MB to the file every visitor downloads on map load
    - Fetched lazily by the frontend only when a marker is clicked (`map.js` handleMarkerClick merges `spot` into the marker data and re-renders the summary)
    - The `by-spot` directory is wiped and rewritten on each `show.py` run so deleted spots don't leave stale files
 
@@ -438,6 +440,7 @@ Map UI loads updated JSON → ride visible on map
 - **Daily at 3:45 AM**: `sync_fuel` - Sync OSM fuel / gas stations near spots
 - **Daily at 4 AM**: `sync_hitchwiki` - Sync Hitchwiki article coordinates
 - **Daily at 4:15 AM**: `sync_events` - Sync Hitchwiki `Category:Events` into `dist/events.json`
+- **Daily at 4:30 AM**: `spot_names.py` - Reverse-geocode street names for spots no OSM feature can name. Not a `flask generate` script — cron calls the file directly with `python3`. Runs after `show` because it reads `dist/spots.json`
 - **Daily at 5 AM**: `dashboard` - Regenerate analytics dashboard
 - **Daily at 6 AM**: `cities` - Regenerate per-city pages
 - **Daily at midnight**: `notify_nearby_hitchhikers` - Send nearby-hitchhiker notification emails

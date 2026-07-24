@@ -212,11 +212,13 @@ fields of the returned dict.
 
 - `spot_title`: `"Raststätte Michendorf-Nord — hitchhiking spot"`, falling back to
   today's `"Hitchhiking spot at 52.30217, 13.01991"` when unnamed.
-- `spot_description`: unchanged. `_spot_description` must tolerate a preview with no
-  `rating`, emitting only the closing "See the spot on the hitchhiking map."
+- `spot_description`: `_spot_description` returns `None` for a preview with no
+  `rating`, so a named-but-unrated spot has a real title but no description.
 
-The existing `noindex` rule for spots with no data is unchanged — a name alone does
-not make a spot worth indexing.
+That last point is what keeps the existing `noindex` rule intact: the template's
+robots meta keys off `spot_description`, so emitting any sentence for a spot with no
+ride data would turn ~30k thin pages indexable. A name alone does not make a spot
+worth indexing.
 
 ## Out of scope
 
