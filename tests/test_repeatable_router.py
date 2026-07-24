@@ -54,8 +54,8 @@ def test_walk_between_nearby_spots():
     # Two corridors that don't share a spot but pass within walking distance:
     # A->B (corridor 1) and B'->C (corridor 2) where B and B' are ~0.5 km apart.
     spots = [
-        [50.0, 14.0],    # 0 A
-        [50.0, 14.5],    # 1 B
+        [50.0, 14.0],  # 0 A
+        [50.0, 14.5],  # 1 B
         [50.0045, 14.5],  # 2 B' (~0.5 km north of B)
         [50.0045, 15.0],  # 3 C
     ]
@@ -109,8 +109,8 @@ def test_waiting_counts_each_separate_boarding():
     # Two corridors separated by a walk => two boardings => two waits summed.
     spots = [[50.0, 14.0], [50.0, 14.5], [50.0045, 14.5], [50.0045, 15.0]]
     trees = [
-        {"s": 0, "nodes": [[1, -1, 2, 10]]},   # A->B, wait 10
-        {"s": 2, "nodes": [[3, -1, 2, 15]]},   # B'->C, wait 15
+        {"s": 0, "nodes": [[1, -1, 2, 10]]},  # A->B, wait 10
+        {"s": 2, "nodes": [[3, -1, 2, 15]]},  # B'->C, wait 15
     ]
     router = make_router(spots, trees)
     res = router.route((50.0, 14.0), (50.0045, 15.0))

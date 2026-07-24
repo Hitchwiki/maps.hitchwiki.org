@@ -130,7 +130,9 @@ def e(s):
 
 
 dirs = get_dirs()
-def write_json_file(data:pd.DataFrame | dict, filename):
+
+
+def write_json_file(data: pd.DataFrame | dict, filename):
     """Writes a JSON file into the dist folder containing data for the map
 
     Args:

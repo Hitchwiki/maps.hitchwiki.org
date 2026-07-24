@@ -208,14 +208,7 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
     # Tristate: True / False / None (unanswered). `is not None` because an explicit
     # "no" is falsy but still an answer worth publishing.
     driver_would_ride_again = custom_object.get("driver_would_ride_again")
-    if (
-        driver_reasons
-        or driver_country
-        or driver_yob
-        or driver_gender
-        or driver_languages
-        or driver_would_ride_again is not None
-    ):
+    if driver_reasons or driver_country or driver_yob or driver_gender or driver_languages or driver_would_ride_again is not None:
         occupants = [
             Occupant(
                 origin_country=driver_country,

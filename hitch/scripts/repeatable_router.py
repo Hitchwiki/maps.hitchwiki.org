@@ -158,8 +158,8 @@ class RepeatableRouter:
         self.edge_km = {}
         self.edge_wait = {}
         self.edge_support = {}  # (u, v) -> rides that took this edge
-        self.tree_adj = []   # tree_id -> {u: [(v, km, wait)]}
-        self.board = {}      # u -> [(tree_id, v, km, wait)]  (boardable edges at u)
+        self.tree_adj = []  # tree_id -> {u: [(v, km, wait)]}
+        self.board = {}  # u -> [(tree_id, v, km, wait)]  (boardable edges at u)
         car_spots = set()
         waits = []
         for tree in trees:
@@ -257,8 +257,8 @@ class RepeatableRouter:
         if max_attempts is None:
             max_attempts = k * 8
         pen = {}
-        kept = []          # itinerary dicts
-        kept_edges = []    # (edge_set, car_km) per kept route
+        kept = []  # itinerary dicts
+        kept_edges = []  # (edge_set, car_km) per kept route
         for _ in range(max_attempts):
             if len(kept) >= k:
                 break
@@ -307,6 +307,7 @@ class RepeatableRouter:
         searches onto different corridors; it never affects reported real times.
         """
         NO_TREE = -1
+
         def walk_min(km):
             return km / WALK_SPEED_KMH * 60
 
@@ -413,15 +414,17 @@ class RepeatableRouter:
                 if support is not None:
                     leg["support"] = min(leg["support"], support)
             else:
-                legs.append({
-                    "mode": mode,
-                    "from": coord(a),
-                    "to": coord(b),
-                    "km": km,
-                    "via": [] if b in (ORIGIN, DEST) else [self.spots[b]],
-                    "wait_minutes": round(wait, 1) if kind == "board" else 0.0,
-                    "support": support,
-                })
+                legs.append(
+                    {
+                        "mode": mode,
+                        "from": coord(a),
+                        "to": coord(b),
+                        "km": km,
+                        "via": [] if b in (ORIGIN, DEST) else [self.spots[b]],
+                        "wait_minutes": round(wait, 1) if kind == "board" else 0.0,
+                        "support": support,
+                    }
+                )
         for leg in legs:
             speed = WALK_SPEED_KMH if leg["mode"] == "walk" else CAR_SPEED_KMH
             leg["minutes"] = round(leg["km"] / speed * 60, 1)  # travel only
@@ -507,8 +510,7 @@ def main():
     args = ap.parse_args()
 
     router = load_router(args.data, max_walk_km=args.max_walk_km)
-    print(f"Graph: {len(router.car_spots)} car-graph spots, {len(router.edge_km)} car edges, "
-          f"{len(router.tree_adj)} corridors")
+    print(f"Graph: {len(router.car_spots)} car-graph spots, {len(router.edge_km)} car edges, {len(router.tree_adj)} corridors")
     search = router.routes if args.no_fallback else functools.partial(routes_with_fallback, router)
     alts = search(args.start, args.dest, k=args.k, max_overlap=args.max_overlap)
     if not alts:
@@ -522,15 +524,19 @@ def main():
         if car_legs and car_legs[0]["via"]:
             v = car_legs[0]["via"][len(car_legs[0]["via"]) // 2]
             mid = f"  ~via {v[0]:.2f},{v[1]:.2f}"
-        print(f"\nOption {itin['rank'] + 1}: {h}h{m:02d}m  ({itin['car_km']} km car, {itin['walk_km']} km walk, "
-              f"{itin['num_car_legs']} car leg(s), {itin['wait_minutes']:.0f} min waiting){mid}")
+        print(
+            f"\nOption {itin['rank'] + 1}: {h}h{m:02d}m  ({itin['car_km']} km car, {itin['walk_km']} km walk, "
+            f"{itin['num_car_legs']} car leg(s), {itin['wait_minutes']:.0f} min waiting){mid}"
+        )
         for leg in itin["legs"]:
             icon = "🚶" if leg["mode"] == "walk" else "🚗"
             via = f" via {len(leg['via'])} spots" if leg["via"] else ""
             wait = f" +{leg['wait_minutes']:.0f}m wait" if leg["mode"] == "car" else ""
             weak = "  [1 logged ride]" if leg["mode"] == "car" and leg["support"] < 2 else ""
-            print(f"  {icon} {leg['mode']:4} {leg['km']:7.2f} km  {leg['minutes']:6.1f} min{wait}  "
-                  f"{leg['from'][0]:.5f},{leg['from'][1]:.5f} -> {leg['to'][0]:.5f},{leg['to'][1]:.5f}{via}{weak}")
+            print(
+                f"  {icon} {leg['mode']:4} {leg['km']:7.2f} km  {leg['minutes']:6.1f} min{wait}  "
+                f"{leg['from'][0]:.5f},{leg['from'][1]:.5f} -> {leg['to'][0]:.5f},{leg['to'][1]:.5f}{via}{weak}"
+            )
 
 
 if __name__ == "__main__":

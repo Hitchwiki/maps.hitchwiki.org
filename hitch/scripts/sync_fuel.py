@@ -7,6 +7,7 @@ Fuel data is only ever used to flag hitchhiking spots that sit *at* a gas statio
 spot coordinates from the already-generated dist/spots.json, reduce them to 1° tiles, and
 query Overpass for fuel only inside those tiles — batched into a handful of union queries.
 """
+
 import json
 import logging
 import math
@@ -19,11 +20,7 @@ from hitch.extensions import db
 from hitch.helpers import get_dirs
 from hitch.models import OsmFuelStationSpot
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger(__name__)
 
 overpass_url = "https://overpass-api.de/api/interpreter"
@@ -138,19 +135,19 @@ for el in elements:
         skipped += 1
         continue
 
-    db.session.add(OsmFuelStationSpot(
-        id=el["id"],
-        osm_type=el["type"],
-        latitude=lat,
-        longitude=lon,
-        tags=el.get("tags", {}),
-        timestamp=el.get("timestamp"),
-        user=el.get("user"),
-        uid=el.get("uid"),
-    ))
+    db.session.add(
+        OsmFuelStationSpot(
+            id=el["id"],
+            osm_type=el["type"],
+            latitude=lat,
+            longitude=lon,
+            tags=el.get("tags", {}),
+            timestamp=el.get("timestamp"),
+            user=el.get("user"),
+            uid=el.get("uid"),
+        )
+    )
 db.session.commit()
 
 final_count = db.session.query(OsmFuelStationSpot).count()
-logger.info(
-    f"SYNC FUEL SCRIPT FINISHED — {final_count} stations saved (prior: {prior_count}, skipped: {skipped})"
-)
+logger.info(f"SYNC FUEL SCRIPT FINISHED — {final_count} stations saved (prior: {prior_count}, skipped: {skipped})")

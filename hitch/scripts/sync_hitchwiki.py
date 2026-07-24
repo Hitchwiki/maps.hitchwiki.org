@@ -69,12 +69,12 @@ def extract_coords_and_headings(text):
 
 def extract_maps(text):
     """Extract map patterns from wiki text.
-    
+
     Looks for patterns like: |map = <map lat='51.049' lng='13.74' zoom='11'.../>
     """
     map_pattern = re.compile(r"\|map\s*=\s*<map\s+lat='([^']+)'\s+lng='([^']+)'\s+zoom='([^']+)'")
     maps = [(m.start(), m.group(0), m.group(1), m.group(2), m.group(3)) for m in map_pattern.finditer(text)]
-    
+
     return maps
 
 
@@ -91,19 +91,12 @@ def find_maps(raw_wiki_page: str, title: str, base_url: str = "https://hitchwiki
     """
     results = []
     maps = extract_maps(raw_wiki_page)
-    
+
     for _, map_tag, lat, lng, zoom in maps:
         link = base_url + title
-        
-        results.append({
-            "title": title,
-            "lat": lat,
-            "lng": lng, 
-            "zoom": zoom,
-            "link": link,
-            "map_tag": map_tag
-        })
-    
+
+        results.append({"title": title, "lat": lat, "lng": lng, "zoom": zoom, "link": link, "map_tag": map_tag})
+
     return results
 
 
@@ -181,7 +174,8 @@ else:
                 resp = http_requests.get(api_url, params=params, headers=headers, timeout=30)
                 if resp.status_code == 429:
                     import time
-                    wait = 2 ** attempt
+
+                    wait = 2**attempt
                     logger.warning(f"Rate limited (429), waiting {wait}s...")
                     time.sleep(wait)
                     continue
@@ -293,9 +287,9 @@ maps_df = pd.DataFrame(maps)
 
 # Filter out rows with non-numeric latitude or longitude
 valid_maps_df = maps_df[
-    pd.to_numeric(maps_df["lat"], errors="coerce").notnull() & 
-    pd.to_numeric(maps_df["lng"], errors="coerce").notnull() &
-    pd.to_numeric(maps_df["zoom"], errors="coerce").notnull()
+    pd.to_numeric(maps_df["lat"], errors="coerce").notnull()
+    & pd.to_numeric(maps_df["lng"], errors="coerce").notnull()
+    & pd.to_numeric(maps_df["zoom"], errors="coerce").notnull()
 ]
 
 for _, row in valid_maps_df.iterrows():

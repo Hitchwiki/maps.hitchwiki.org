@@ -67,8 +67,7 @@ def notify_co_hitchhiker_invite(invited_user_id, inviter_username):
     """Tell a user they were added as a co-hitchhiker on a ride and must accept/reject it."""
     add_notification(
         invited_user_id,
-        f"{inviter_username} added you as a co-hitchhiker on a ride. "
-        "Accept or reject it below.",
+        f"{inviter_username} added you as a co-hitchhiker on a ride. Accept or reject it below.",
         link="/me",
         kind="co_hitchhiker",
     )
