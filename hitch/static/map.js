@@ -60,8 +60,6 @@ var allMarkers = [],
   oldActive = [],
   oldMarkers = [],
   destLineGroup = null,
-  filterDestLineGroup = null,
-  filterMarkerGroup = null,
   map,
   bars = document.querySelectorAll(".sidebar, .topbar"),
   heatmapLayer = null,
@@ -173,7 +171,10 @@ async function loadMarkers(map) {
         allMarkers.push(marker);
       });
 
-      markerCluster.addTo(map);
+      // Never `markerCluster.addTo(map)` directly — syncSpotLayer() owns which
+      // spot layer is attached, so a filter restored from the URL before the
+      // markers finished loading still wins.
+      syncSpotLayer();
     })
     .catch((error) => {
       console.error("Error loading markers:", error);
@@ -1052,14 +1053,70 @@ async function openCountrySheet(name) {
   loadCountryInsights(cc);
 }
 
+// --- Which spot markers are on the map ---------------------------------------
+// Two independent inputs decide this and they used to be expressed in
+// incompatible ways: the map mode (Countries replaces spots with the choropleth)
+// removed a *layer*, while the filters hid whole Leaflet *panes* via CSS
+// (`body.filtering` set `display:none` on the marker and overlay panes) and
+// re-drew the matches into a private pane stacked above everything else.
+// That pane trick had two side effects the filters never intended:
+//   * it hid every other marker on the map, not just the unmatched spots — the
+//     propose-a-spot pin, the location picker, event pins — leaving only the
+//     shadow pane's drop shadow behind, i.e. a pin-shaped shadow and no pin;
+//   * the matches, living outside the overlay pane, escaped the pane-level rules
+//     real spots obey (`body.zoomed-out` dims the overlay pane to 30%), so with a
+//     filter on they stayed fully opaque over the heatmap while unfiltered spots
+//     faded out — the same markers behaving two different ways.
+// So there is now one rule instead of two mechanisms: at most one spot layer is
+// attached to the map at a time, and it is an ordinary layer in the ordinary
+// panes. Everything else on the map is left alone.
+let spotsWanted = true; // false in Countries mode
+let filterLayer = null; // matches of the active filter, or null when no filter is set
+// The same matches as a plain array. handleMapClick's tap-to-nearest-spot needs to
+// sort them, which a LayerGroup cannot do (it used to be handed the group itself
+// and threw `markers.sort is not a function` on every mobile tap while filtering).
+let filteredMarkers = null;
+
+function syncSpotLayer() {
+  const showFiltered = spotsWanted && !!filterLayer;
+  const showAll = spotsWanted && !filterLayer;
+  setLayerAttached(markerCluster, showAll);
+  setLayerAttached(filterLayer, showFiltered);
+}
+
+function setLayerAttached(layer, attached) {
+  if (!layer) return;
+  if (attached && !map.hasLayer(layer)) layer.addTo(map);
+  else if (!attached && map.hasLayer(layer)) map.removeLayer(layer);
+}
+
 // Show or hide the hitchhiking-spot markers (hidden in Countries mode).
 function setSpotsVisible(visible) {
-  if (!markerCluster) return;
-  if (visible) {
-    if (!map.hasLayer(markerCluster)) markerCluster.addTo(map);
-  } else if (map.hasLayer(markerCluster)) {
-    map.removeLayer(markerCluster);
+  spotsWanted = visible;
+  syncSpotLayer();
+}
+
+// Install the current filter result: an array of spot markers, or null to go back
+// to showing all of them. The markers are copies of the real ones (a Leaflet layer
+// can only have one parent, and the originals belong to markerCluster) that
+// delegate their click to the original, so the spot pane still opens against the
+// marker that carries the ride data.
+function setFilteredMarkers(markers) {
+  if (filterLayer) {
+    map.removeLayer(filterLayer);
+    filterLayer = null;
   }
+  filteredMarkers = markers;
+  if (markers) {
+    filterLayer = L.layerGroup(
+      markers.map((spot) => {
+        const copy = L.circleMarker(spot.getLatLng(), Object.assign({}, spot.options));
+        copy.on("click", (e) => spot.fire("click", e));
+        return copy;
+      })
+    );
+  }
+  syncSpotLayer();
 }
 
 // --- Hitchwiki events ---------------------------------------------------------
@@ -1804,14 +1861,18 @@ function setupEventListeners() {
   }
 
 
-  let filterMapPane = map.createPane("filtering");
-  filterMapPane.style.zIndex = 450;
+  // Destination arrow heads of the selected spot. A custom pane defaults to
+  // `z-index: auto`, which paints *below* the tile pane (z 200) — the line that
+  // set this one used to be overwritten by a copy-paste ("filterMapPane" was
+  // assigned twice), so the arrow heads were being drawn under the map tiles.
+  // 455 puts them above the destination lines in the overlay pane (400) and the
+  // country choropleth (450), below the planned route (routing.js, 455 < 460) and
+  // the markers (600).
+  let arrowPane = map.createPane("arrowlines");
+  arrowPane.style.zIndex = 455;
 
-  map.createPane("arrowlines");
-  filterMapPane.style.zIndex = 1450;
-
-  // Dedicated pane for the heatmap image overlay so it stays visible while
-  // filtering (the filtering CSS hides .leaflet-overlay-pane).
+  // Dedicated pane for the heatmap image overlay, below the overlay pane (400)
+  // so spot markers and routes always draw on top of it.
   let heatmapPane = map.createPane("heatmap");
   heatmapPane.style.zIndex = 350;
 
@@ -1851,10 +1912,12 @@ function handleMapClick(e) {
   // open an underlying spot instead of the country sheet.
   if (window.innerWidth < 780 && mapMode !== "countries") {
     var layerPoint = map.latLngToLayerPoint(e.latlng);
-    let markers = document.body.classList.contains("filtering")
-      ? filterMarkerGroup
-      : allMarkers;
-    var circles = markers.sort(
+    // Only the spots actually on screen may be tapped: with a filter on, the
+    // unmatched ones are gone from the map and must not be reachable by a tap.
+    let markers = filteredMarkers || allMarkers;
+    // Copy before sorting — allMarkers is shared state and sorting it in place
+    // would reorder the array every other consumer iterates.
+    var circles = markers.slice().sort(
       (a, b) =>
         a.getLatLng().distanceTo(e.latlng) - b.getLatLng().distanceTo(e.latlng)
     );
@@ -2727,7 +2790,9 @@ function showPostSubmitOverlay(kind) {
 
 
 
-function arrowLine(from, to, opts = {}) {
+// The arrow heads carry the whole drawing (the connecting line is not stroked), so
+// the pane below is where a destination arrow actually lives.
+function arrowLine(from, to) {
   return L.polylineDecorator([from, to], {
     patterns: [
       {
@@ -2755,16 +2820,12 @@ function renderPoints() {
 
   destLineGroup = L.layerGroup();
 
-  let opts = document.body.classList.contains("filtering")
-    ? { pane: "filtering" }
-    : {};
-
   for (let a of active) {
     let lats = a.options._data.dest_lats;
     let lons = a.options._data.dest_lons;
     if (lats && lats.length) {
       for (let i in lats) {
-        arrowLine(a.getLatLng(), [lats[i], lons[i]], opts).addTo(destLineGroup);
+        arrowLine(a.getLatLng(), [lats[i], lons[i]]).addTo(destLineGroup);
       }
     }
   }
@@ -3166,14 +3227,9 @@ async function applyParams() {
     minDateFilter.value ||
     maxDateFilter.value
   ) {
-    if (filterMarkerGroup) filterMarkerGroup.remove();
-    if (filterDestLineGroup) filterDestLineGroup.remove();
-
     let filterMarkers = distanceFilter.value
         ? destinationMarkers
         : allMarkers;
-    // display filtering state and show filter pane
-    document.body.classList.add("filtering");
     var fp = document.getElementById('filter-pane');
     if (fp) fp.classList.add('visible');
 
@@ -3272,7 +3328,7 @@ async function applyParams() {
       filterMarkers = filterMarkers.filter((x) => !!x.options._data.wiki);
     }
     // Record what was asked for and how much it found, now that every filter
-    // has been applied but before the markers are duplicated into the pane.
+    // has been applied.
     logFilterRequest(
       {
         recent: recentToggle.checked,
@@ -3293,22 +3349,9 @@ async function applyParams() {
       filterMarkers.length
     );
 
-    // duplicate all markers to the filtering pane
-    filterMarkers = filterMarkers.map((spot) => {
-      let loc = spot.getLatLng();
-      let marker = new L.circleMarker(
-        loc,
-        Object.assign({}, spot.options, { pane: "filtering" })
-      );
-      marker.on("click", (e) => spot.fire("click", e));
-      return marker;
-    });
-
-    filterMarkerGroup = L.layerGroup(filterMarkers, {
-      pane: "filtering",
-    }).addTo(map);
+    setFilteredMarkers(filterMarkers);
   } else {
-    document.body.classList.remove("filtering");
+    setFilteredMarkers(null);
     // Filters are gone: forget the last logged set so that re-applying the same
     // filters later counts as a fresh intent rather than a duplicate.
     clearTimeout(filterLogTimer);
@@ -4319,13 +4362,16 @@ function setupAddSpotGesture() {
 // or null. Markers hidden inside a cluster are skipped so we only ever snap to a
 // pin the user can actually see.
 function findNearbySpotMarker(containerPoint, thresholdPx = 22) {
-    // Only snap to spots that are actually shown. Countries mode removes the cluster
-    // from the map (but leaves markerCluster non-null), so guard on layer visibility —
-    // otherwise a tap could snap to an invisible spot.
-    if (!markerCluster || !map.hasLayer(markerCluster)) return null;
+    // Only snap to spots that are actually on screen — otherwise a long press
+    // silently jumps the new pin onto a spot the user cannot see. Countries mode
+    // shows none; a filter narrows them to the matches (drawn flat, no clustering);
+    // otherwise it's the cluster's currently un-clustered markers.
+    if (!spotsWanted) return null;
+    if (!filteredMarkers && !(markerCluster && map.hasLayer(markerCluster))) return null;
+    const candidates = filteredMarkers || allMarkers;
     let best = null, bestDist = thresholdPx;
-    for (const marker of allMarkers) {
-        if (markerCluster && markerCluster.getVisibleParent(marker) !== marker) continue;
+    for (const marker of candidates) {
+        if (!filteredMarkers && markerCluster.getVisibleParent(marker) !== marker) continue;
         const d = map.latLngToContainerPoint(marker.getLatLng()).distanceTo(containerPoint);
         if (d <= bestDist) {
             bestDist = d;

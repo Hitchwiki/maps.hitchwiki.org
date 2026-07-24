@@ -1679,18 +1679,15 @@ body.adding-spot .horizontal-button {
 .leaflet-arrowlines-pane {
   pointer-events: none;
 }
-body.zoomed-out .leaflet-overlay-pane {
+/* Below zoom 9 a selected spot's destination arrows span half a continent, so the
+   spot circles and their arrows are faded back to keep a wide view readable. Both
+   panes are listed because the arrow heads live in their own pane — the fade must
+   not split a single drawing across two opacities. Filtering deliberately does NOT
+   appear here: filtered spots are the same circleMarkers in the same overlay pane
+   as unfiltered ones, so they dim identically, which is the point. */
+body.zoomed-out .leaflet-overlay-pane,
+body.zoomed-out .leaflet-arrowlines-pane {
   opacity: 0.3;
-}
-body.has-points .leaflet-overlay-pane {
-  opacity: 0.3;
-}
-body.filtering .leaflet-overlay-pane,
-body.filtering .leaflet-marker-pane {
-  display: none;
-}
-body:not(.filtering) .leaflet-filtering-pane {
-  display: none;
 }
 @media only screen and (max-width: 700px) {
   .topbar {

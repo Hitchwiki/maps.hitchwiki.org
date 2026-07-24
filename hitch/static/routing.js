@@ -690,12 +690,12 @@
   }
 
   // Routes must not live in the default overlay pane: style.css dims it to 30%
-  // opacity while zoomed out (body.zoomed-out, set below zoom 9) and hides it
-  // outright while filtering. Both rules exist to keep a spot's destination
-  // arrows from cluttering a wide view — but drawRoutes() fitBounds()es onto a
-  // whole intercity route, which lands below zoom 9 every time, so the routes
-  // would draw at ~0.07-0.28 effective opacity. Own pane, above the overlay pane
-  // (400) and the country choropleth (450), below the markers (600).
+  // opacity while zoomed out (body.zoomed-out, set below zoom 9). That rule
+  // exists to keep a spot's destination arrows from cluttering a wide view — but
+  // drawRoutes() fitBounds()es onto a whole intercity route, which lands below
+  // zoom 9 every time, so the routes would draw at 30% opacity. Own pane, above
+  // the overlay pane (400), the country choropleth (450) and the destination
+  // arrow heads (455), below the markers (600).
   function routePane() {
     if (!map.getPane("routes")) {
       const p = map.createPane("routes");
