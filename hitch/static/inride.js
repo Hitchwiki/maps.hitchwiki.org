@@ -249,7 +249,11 @@
   // prompt so they can choose to log in (and preserve the chosen spot across the
   // redirect) or carry on without an account. No hard block — anonymous is fine.
   journeyFlow.startFromChoose = function (latlng) {
-    if (window.IS_LOGGED_IN) return journeyFlow.beginWithCoHitchers(latlng);
+    // Callers pass either a Leaflet LatLng (map.js, entry gestures) or {lat, lon}
+    // (pinConfirm). Normalise once here so the redirect stash below can't store
+    // lon: undefined and silently lose the chosen spot across login.
+    const p = toLatLon(latlng);
+    if (window.IS_LOGGED_IN) return journeyFlow.beginWithCoHitchers(p);
     journeyUI.dialog({
       title: "Track your rides?",
       body: "Log in to keep your ride history, or just continue anonymously.",
@@ -260,11 +264,11 @@
           cls: "inr-go",
           onClick: () => {
             // Stash the chosen pickup so we can resume after the redirect back.
-            localStorage.setItem(PENDING_KEY, JSON.stringify({ lat: latlng.lat, lon: latlng.lng }));
+            localStorage.setItem(PENDING_KEY, JSON.stringify({ lat: p.lat, lon: p.lon }));
             window.location.href = "/login?next=/";
           },
         },
-        { label: "Continue anonymously", cls: "inr-grey", onClick: () => journeyFlow.beginWithCoHitchers(latlng) },
+        { label: "Continue anonymously", cls: "inr-grey", onClick: () => journeyFlow.beginWithCoHitchers(p) },
       ],
     });
   };
@@ -292,9 +296,11 @@
 
   // Seed the waiting journey. Pickup = the chosen latlng; wait timer starts now.
   journeyFlow.start = function (latlng, coHitchhikers) {
+    // Accepts a Leaflet LatLng or {lat, lon} — see toLatLon.
+    const p = toLatLon(latlng);
     const j = journeyStore.set({
       state: "waiting",
-      pickup: { lat: latlng.lat, lon: latlng.lng },
+      pickup: { lat: p.lat, lon: p.lon },
       coHitchhikers: coHitchhikers || [],
       waitAccumMs: 0,
       waitSegmentStartMs: Date.now(),
@@ -432,6 +438,8 @@
   };
 
   // After a ride is saved, ask whether to start another leg or call it a day.
+  // `dropoff` is now a point the user confirmed on the map at Finish, not a silent GPS
+  // fix — so waiting there needs no second picker. Only actually moving does.
   journeyFlow.whatsNext = function (dropoff) {
     // Clear the in-ride dock, chip, pickup pin, and tick interval so they don't
     // show through behind the dialog. State remains in-ride in the store until
@@ -439,10 +447,29 @@
     journeyUI.teardown();
     journeyUI.dialog({
       title: "What's next?",
-      body: "Ride saved — dropped off here. Waiting for another ride from this spot?",
+      body: "Ride saved — dropped off here. Waiting for another ride?",
       actions: [
-        { label: "Next Ride", cls: "inr-go",   onClick: () => journeyUI.setWaitingSpot(dropoff, journeyFlow.nextRide, () => journeyFlow.whatsNext(dropoff)) },
-        { label: "End Hitch", cls: "inr-grey",  onClick: () => journeyFlow.end() },
+        { label: "Next ride from here", cls: "inr-go", onClick: () => journeyFlow.nextRide(dropoff) },
+        {
+          label: "Wait somewhere else",
+          cls: "inr-ghost",
+          // Dropped at a motorway exit and walking to a better on-ramp: the walked-to
+          // spot is the one worth logging, so this must stay reachable.
+          onClick: () => journeyUI.pinConfirm({
+            title: "Where are you waiting?",
+            hint: "Drag the pin or tap the map, then confirm.",
+            confirmLabel: "Confirm",
+            seed: dropoff,
+            color: "green",
+            // The confirmed drop-off is a better default here than a fresh fix.
+            autoLocate: false,
+            myLocation: true,
+            onConfirm: journeyFlow.nextRide,
+            // Return to this dialog, or the user is stranded with no way to End Hitch.
+            onCancel: () => journeyFlow.whatsNext(dropoff),
+          }),
+        },
+        { label: "End Hitch", cls: "inr-grey", onClick: () => journeyFlow.end() },
       ],
     });
   };
@@ -452,11 +479,13 @@
 
   // New leg: drop-off is the DEFAULT waiting location but the user can move it
   // (dropped at an exit, walks to a better spot). Fresh timers; pickup = confirmed pt.
-  // latlng is a Leaflet LatLng (has .lat / .lng) — delivered by setWaitingSpot's Confirm.
+  // Accepts a Leaflet LatLng or {lat, lon} — see toLatLon. Called with the confirmed
+  // drop-off ("Next ride from here") or a pinConfirm result ("Wait somewhere else").
   journeyFlow.nextRide = function (latlng) {
+    const p = toLatLon(latlng);
     const prev = journeyStore.get();
     const j = journeyStore.set({
-      state: "waiting", pickup: { lat: latlng.lat, lon: latlng.lng },
+      state: "waiting", pickup: { lat: p.lat, lon: p.lon },
       waitAccumMs: 0, waitSegmentStartMs: Date.now(),
       gotRideMs: null, finalWaitMs: null, details: null,
       legIndex: (prev && prev.legIndex || 0) + 1,
@@ -1805,86 +1834,6 @@
       journeyUI._openDialog = { close };
       return { close };
     },
-
-    // Confirm-step for choosing a new waiting spot after a drop-off.
-    // Reuses the draggable-pin pattern from manualPin with a "Use my location" shortcut.
-    //
-    // Coordinate contract:
-    //   - defaultLatLng IN: {lat, lon}  (drop-off from finish, matches buildFinishBody shape)
-    //   - GPS fix (getFixWithRetry): {lat, lon} — moved onto the marker via setLatLng
-    //   - onConfirm OUT: marker.getLatLng() → Leaflet LatLng (has .lat / .lng)
-    //     nextRide reads latlng.lng, so we must pass a Leaflet LatLng — NOT {lat, lon}.
-    //   - onCancel (optional): called when user taps Cancel; used to return to whatsNext.
-    setWaitingSpot(defaultLatLng, onConfirm, onCancel) {
-      if (!window.L || !window.map) return;
-
-      // Pre-place the pin at the drop-off so one tap confirms (common case: wait here).
-      const marker = L.marker([defaultLatLng.lat, defaultLatLng.lon], {
-        draggable: true,
-        icon: L.icon({
-          iconUrl: "/static/markers/marker-icon-2x-green.png",
-          shadowUrl: "/static/markers/marker-shadow.png",
-          iconSize: [25, 41], iconAnchor: [12, 41],
-          popupAnchor: [1, -34], shadowSize: [41, 41],
-        }),
-      }).addTo(window.map);
-
-      // Tapping the map also repositions the waiting pin (mirrors manualPin / main map UX).
-      function onMapClick(e) { marker.setLatLng(e.latlng); }
-      window.map.on("click", onMapClick);
-
-      const ui = document.createElement("div");
-      ui.className = "location-selection-ui";
-      ui.innerHTML = [
-        "<h4>Where are you waiting?</h4>",
-        "<p>Drag the pin or tap the map, then confirm.</p>",
-        '<div class="lsel-actions">',
-        // "Use my location" is a positive/neutral action — give it confirm styling so
-        // it doesn't read as a dismiss button; Cancel gets lsel-cancel (muted style).
-        '<button class="lsel-confirm" id="inr-waiting-myloc">Use my location</button>',
-        '<button class="lsel-confirm" id="inr-waiting-confirm">Confirm</button>',
-        '<button class="lsel-cancel" id="inr-waiting-cancel">Cancel</button>',
-        "</div>",
-      ].join("");
-      document.body.appendChild(ui);
-      // Neutralize overlay markers (e.g. Hitchwiki event pins) while choosing the
-      // new waiting spot, so a tap on one repositions the pin instead of opening
-      // its sheet. See body.inr-picking rule in style.css.
-      document.body.classList.add("inr-picking");
-
-      function cleanup() {
-        window.map.removeLayer(marker);
-        window.map.off("click", onMapClick);
-        document.body.classList.remove("inr-picking");
-        if (ui.parentNode) ui.parentNode.removeChild(ui);
-      }
-
-      document.getElementById("inr-waiting-myloc").addEventListener("click", function () {
-        // GPS fix returns {lat, lon}; convert to array for Leaflet's setLatLng.
-        getFixWithRetry().then(
-          function (fix) {
-            marker.setLatLng([fix.lat, fix.lon]);
-            window.map.setView([fix.lat, fix.lon]);
-          },
-          function () {
-            journeyUI.error("Couldn't get your location — drag the pin instead.");
-          }
-        );
-      });
-
-      document.getElementById("inr-waiting-confirm").addEventListener("click", function () {
-        // Pass Leaflet LatLng (has .lat / .lng) so nextRide's latlng.lng read is correct.
-        const ll = marker.getLatLng();
-        cleanup();
-        onConfirm(ll);
-      });
-
-      // Cancel returns the user to the "What's next?" dialog (e.g. to choose End Hitch).
-      document.getElementById("inr-waiting-cancel").addEventListener("click", function () {
-        cleanup();
-        if (onCancel) onCancel();
-      });
-    },
   };
 
   // ── Permanent "Start Hitchhiking" launcher ───────────────────────────────────
@@ -1923,17 +1872,25 @@
       startLauncher._el = btn;
     },
 
-    // Seeded at the map centre so Confirm is a single tap for someone who already
-    // panned to where they are; "Use my location" and dragging the pin both stay
-    // available inside setWaitingSpot.
+    // Opens the same waiting-spot picker used after a drop-off.
     open() {
       if (journeyStore.get()) return; // one journey at a time
       if (document.body.classList.contains("inr-picking")) return; // picker already open
       if (!window.map) return;
       hmTrack("journey_start_button_clicked", {});
-      const c = window.map.getCenter();
-      journeyUI.setWaitingSpot({ lat: c.lat, lon: c.lng }, function (ll) {
-        journeyFlow.startFromChoose(ll);
+      journeyUI.pinConfirm({
+        title: "Where are you waiting?",
+        hint: "Drag the pin or tap the map, then confirm.",
+        confirmLabel: "Confirm",
+        // Seeded at the map centre so Confirm is one tap for someone who already panned
+        // to where they are; "Use my location" and dragging stay available.
+        seed: null,
+        color: "green",
+        // No background fix here: the user chose this view deliberately, so snapping the
+        // pin away from where they panned would fight them.
+        autoLocate: false,
+        myLocation: true,
+        onConfirm: journeyFlow.startFromChoose,
       });
     },
   };
