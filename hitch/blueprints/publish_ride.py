@@ -23,6 +23,31 @@ from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import (
 
 ALLOWED_VEHICLE_KINDS = [k.value for k in KindEnum]
 
+# Co-hitchhikers travel as a comma-separated string of usernames. A co-hitchhiker without
+# an account is the literal "Anonymous", optionally suffixed with ":male" / ":female" when
+# the submitter told us that person's gender (so it reaches Nostr as the hitchhiker's
+# `gender`). Usernames are [a-zA-Z0-9]+, so the colon can never collide with a real one.
+ANONYMOUS_NICKNAME = "Anonymous"
+ANONYMOUS_CO_HITCHHIKER_GENDERS = ("male", "female")
+
+
+def is_anonymous_co_hitchhiker(token: str) -> bool:
+    """True for "Anonymous" and its gendered variants ("Anonymous:female")."""
+    return (token or "").strip().split(":", 1)[0] == ANONYMOUS_NICKNAME
+
+
+def anonymous_co_hitchhiker_gender(token: str) -> str | None:
+    """Gender encoded in an anonymous token, or None when unstated (or not one we accept)."""
+    parts = (token or "").strip().split(":", 1)
+    gender = parts[1].strip() if len(parts) == 2 else ""
+    return gender if gender in ANONYMOUS_CO_HITCHHIKER_GENDERS else None
+
+
+def anonymous_co_hitchhiker_token(gender: str | None) -> str:
+    """Inverse of the above — used when re-filling the edit form from a stored ride."""
+    return f"{ANONYMOUS_NICKNAME}:{gender}" if gender in ANONYMOUS_CO_HITCHHIKER_GENDERS else ANONYMOUS_NICKNAME
+
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -140,14 +165,21 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
     else:
         signals = None
 
-    hitchhiker = Hitchhiker(nickname="Anonymous") if current_user.is_anonymous else construct_hitchhiker_from_current_user()
+    hitchhiker = (
+        Hitchhiker(nickname=ANONYMOUS_NICKNAME) if current_user.is_anonymous else construct_hitchhiker_from_current_user()
+    )
 
-    # Build hitchhikers list: the current user plus any anonymous co-hitchhikers
+    # Build hitchhikers list: the current user plus any anonymous co-hitchhikers. Named
+    # co-hitchhikers are not published here — they only join the event once they accept
+    # the invite (see accept_co_hitchhiker in user.py).
     hitchhikers = [hitchhiker]
     co_hitchhiker_str = custom_object.get("co_hitchhiker", "")
     if co_hitchhiker_str:
-        anon_count = sum(1 for name in co_hitchhiker_str.split(",") if name.strip() == "Anonymous")
-        hitchhikers.extend(Hitchhiker(nickname="Anonymous") for _ in range(anon_count))
+        hitchhikers.extend(
+            Hitchhiker(nickname=ANONYMOUS_NICKNAME, gender=anonymous_co_hitchhiker_gender(token))
+            for token in co_hitchhiker_str.split(",")
+            if is_anonymous_co_hitchhiker(token)
+        )
 
     now = pd.Timestamp.now()
 

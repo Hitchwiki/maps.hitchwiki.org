@@ -1394,25 +1394,43 @@
       field.appendChild(inputWrap);
       sheet.appendChild(field);
 
-      // "Add anonymous" — a co-hitcher with no account. Multiple are allowed; the
-      // backend counts "Anonymous" entries in co_hitchhiker into anonymous occupants.
-      const anonBtn = document.createElement("button");
-      anonBtn.type = "button";
-      anonBtn.className = "inr-cohitch-anon";
-      anonBtn.innerHTML = '<i class="fa-solid fa-user-secret" aria-hidden="true"></i> Add anonymous';
-      anonBtn.addEventListener("click", function () { addAnonymous(); });
-      sheet.appendChild(anonBtn);
+      // "Add anonymous" — a co-hitcher with no account. Multiple are allowed; the backend
+      // turns each "Anonymous" entry in co_hitchhiker into an anonymous hitchhiker. The
+      // gendered variants post "Anonymous:male" / "Anonymous:female" so the gender reaches
+      // Nostr as that hitchhiker's `gender` (see publish_ride.py).
+      const anonRow = document.createElement("div");
+      anonRow.className = "inr-cohitch-anonrow";
+      [
+        { gender: "", label: "Add anonymous" },
+        { gender: "male", label: "Anonymous ♂" },
+        { gender: "female", label: "Anonymous ♀" },
+      ].forEach(function (opt) {
+        const anonBtn = document.createElement("button");
+        anonBtn.type = "button";
+        anonBtn.className = "inr-cohitch-anon";
+        anonBtn.innerHTML = '<i class="fa-solid fa-user-secret" aria-hidden="true"></i> ' + opt.label;
+        anonBtn.addEventListener("click", function () { addAnonymous(opt.gender); });
+        anonRow.appendChild(anonBtn);
+      });
+      sheet.appendChild(anonRow);
+
+      // Chips show the gender as a symbol; the raw token is what's sent on submit.
+      function chipLabel(name) {
+        if (name === "Anonymous:male") return "Anonymous ♂";
+        if (name === "Anonymous:female") return "Anonymous ♀";
+        return name;
+      }
 
       function renderChips() {
         chips.innerHTML = "";
         selected.forEach(function (name) {
           const chip = document.createElement("span");
           chip.className = "inr-cohitch-chip";
-          chip.textContent = name;
+          chip.textContent = chipLabel(name);
           const x = document.createElement("button");
           x.type = "button";
           x.className = "inr-cohitch-chip__x";
-          x.setAttribute("aria-label", "Remove " + name);
+          x.setAttribute("aria-label", "Remove " + chipLabel(name));
           x.innerHTML = "&times;";
           x.addEventListener("click", function () {
             const i = selected.indexOf(name);
@@ -1435,10 +1453,10 @@
         suggest.style.display = "none";
       }
 
-      function addAnonymous() {
+      function addAnonymous(gender) {
         // No account, so no username to dedupe/self-exclude — and multiple anonymous
         // co-hitchers are allowed (the backend counts each "Anonymous" entry).
-        selected.push("Anonymous");
+        selected.push(gender ? "Anonymous:" + gender : "Anonymous");
         renderChips();
       }
 

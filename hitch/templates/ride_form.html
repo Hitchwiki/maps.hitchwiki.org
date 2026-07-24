@@ -161,7 +161,14 @@
                 <ul id="co-hitchhiker-suggestions" style="display:none; position:absolute; z-index:1000; background:#fff; border:1px solid #ccc; border-top:none; list-style:none; padding:0; margin:0; width:100%; max-height:200px; overflow-y:auto;"></ul>
             </div>
             <span id="co-hitchhiker-error-message" class="error text-danger"></span>
-            <button type="button" id="add-anonymous-hitchhiker" class="btn btn-outline-secondary btn-sm" style="margin-top:6px;">+1 Anonymous hitchhiker</button>
+            {# Anonymous co-hitchhikers can optionally carry a gender, which is published as
+               the hitchhiker's `gender` on Nostr. The value rides along in the hidden field
+               as "Anonymous:male" / "Anonymous:female" (see publish_ride.py). #}
+            <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">
+                <button type="button" id="add-anonymous-hitchhiker" class="btn btn-outline-secondary btn-sm" data-anon-gender="">+1 Anonymous hitchhiker</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-anon-gender="male">+1 Anonymous ♂</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-anon-gender="female">+1 Anonymous ♀</button>
+            </div>
         </div>
             
         <div class="form-group">
@@ -682,13 +689,29 @@
             return val ? val.split(',').map(s => s.trim()).filter(Boolean) : [];
         }
 
+        // "Anonymous", "Anonymous:male", "Anonymous:female" — the wire tokens for a
+        // co-hitchhiker with no account (publish_ride.py turns them into hitchhikers).
+        function isAnonymousTag(name) {
+            return name.split(':')[0] === 'Anonymous';
+        }
+
+        // Show the gender as a symbol; the raw "Anonymous:female" token stays in the
+        // hidden field, which is what gets posted.
+        function tagLabel(name) {
+            if (!isAnonymousTag(name)) return name;
+            const gender = name.split(':')[1];
+            if (gender === 'male') return 'Anonymous ♂';
+            if (gender === 'female') return 'Anonymous ♀';
+            return 'Anonymous';
+        }
+
         function renderTags() {
             tagsContainer.innerHTML = '';
             getTags().forEach((name, idx) => {
                 const tag = document.createElement('span');
                 const isLocked = getLockedTags().includes(name);
                 tag.style.cssText = 'display:inline-flex; align-items:center; background:#e0e0e0; border-radius:3px; padding:2px 6px; font-size:0.9em; gap:4px;';
-                tag.textContent = name;
+                tag.textContent = tagLabel(name);
                 if (!isLocked) {
                     const remove = document.createElement('button');
                     remove.type = 'button';
@@ -712,8 +735,8 @@
             name = name.trim();
             if (!name) return;
             const tags = getTags();
-            // Allow duplicate "Anonymous" entries but not duplicate real usernames
-            if (name !== 'Anonymous' && tags.includes(name)) {
+            // Allow duplicate anonymous entries but not duplicate real usernames
+            if (!isAnonymousTag(name) && tags.includes(name)) {
                 input.value = '';
                 suggestions.style.display = 'none';
                 return;
@@ -788,9 +811,12 @@
             if (suggestions.children.length > 0) suggestions.style.display = 'block';
         });
 
-        // +1 Anonymous hitchhiker button
-        document.getElementById('add-anonymous-hitchhiker').addEventListener('click', () => {
-            addTag('Anonymous');
+        // +1 Anonymous hitchhiker buttons (plain / male / female)
+        document.querySelectorAll('#co-hitchhiker-container [data-anon-gender]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const gender = btn.dataset.anonGender;
+                addTag(gender ? 'Anonymous:' + gender : 'Anonymous');
+            });
         });
 
         // Expose for sessionStorage save/restore

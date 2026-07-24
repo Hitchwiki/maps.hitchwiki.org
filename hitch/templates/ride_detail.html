@@ -313,7 +313,7 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
                     {% if h.nickname and h.nickname != 'Anonymous' %}
                         <a class="hitchhiker-chip" href="/account/{{ h.nickname }}">{% if sign %}{{ sign }} {% endif %}{{ h.nickname }}</a>
                     {% else %}
-                        <span class="hitchhiker-chip">Anonymous</span>
+                        <span class="hitchhiker-chip">{% if sign %}{{ sign }} {% endif %}Anonymous</span>
                     {% endif %}
                 {% endfor %}
             </div>

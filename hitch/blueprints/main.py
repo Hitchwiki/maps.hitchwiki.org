@@ -25,7 +25,12 @@ from flask_security import current_user
 from sqlalchemy import text
 from werkzeug.utils import safe_join
 
-from hitch.blueprints.publish_ride import ALLOWED_VEHICLE_KINDS, create_record_from_custom_object
+from hitch.blueprints.publish_ride import (
+    ALLOWED_VEHICLE_KINDS,
+    anonymous_co_hitchhiker_token,
+    create_record_from_custom_object,
+    is_anonymous_co_hitchhiker,
+)
 from hitch.blueprints.utils.driver_info_choices import (
     ALLOWED_GENDERS,
     ALLOWED_REASONS_TO_PICK_UP,
@@ -958,14 +963,18 @@ def ride_form():
                     if h.get("nickname") and h.get("nickname") != current_nickname and h.get("nickname") != "Anonymous"
                 }
                 # Anonymous hitchhikers are always co-hitchhikers (creator must be
-                # logged in to edit, so they are never "Anonymous" themselves)
-                anon_count = sum(1 for h in all_hitchhikers if h.get("nickname") == "Anonymous")
+                # logged in to edit, so they are never "Anonymous" themselves). Their
+                # gender round-trips through the form token so re-saving an edited ride
+                # doesn't silently drop it.
+                anon_tokens = [
+                    anonymous_co_hitchhiker_token(h.get("gender")) for h in all_hitchhikers if h.get("nickname") == "Anonymous"
+                ]
                 pending_invites = {
                     c.co_hitchhiker
                     for c in db.session.query(CoHitchhiker).filter_by(nostr_ride_event_d_tag=edit_d_tag, accepted="open").all()
                 }
                 locked_co_hitchhikers = sorted(hitchhikers_on_nostr | pending_invites)
-                all_co = locked_co_hitchhikers + ["Anonymous"] * anon_count
+                all_co = locked_co_hitchhikers + anon_tokens
                 ride_data["co_hitchhiker"] = ",".join(all_co)
                 ride_data["co_hitchhiker_locked"] = ",".join(locked_co_hitchhikers)
 
@@ -1160,7 +1169,7 @@ def ride_form():
             invited_user_ids = []
             for ch in data["co_hitchhiker"].split(","):
                 username = ch.strip()
-                if username == "" or username == "Anonymous":
+                if username == "" or is_anonymous_co_hitchhiker(username):
                     continue  # anonymous hitchhikers are handled in the Nostr event, not in CoHitchhiker
                 if username == current_username:
                     continue  # skip self
@@ -1192,7 +1201,7 @@ def ride_form():
         if not edit_d_tag:
             if current_user.is_anonymous:
                 return redirect("/#success-anon")
-            if "Anonymous" in [ch.strip() for ch in data.get("co_hitchhiker", "").split(",")]:
+            if any(is_anonymous_co_hitchhiker(ch) for ch in data.get("co_hitchhiker", "").split(",")):
                 return redirect("/#success-invite")
         return redirect("/#success")
 

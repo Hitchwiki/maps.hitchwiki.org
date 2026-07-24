@@ -3107,6 +3107,15 @@ body:has(.topbar.visible) #inr-start-btn {
 .inr-cohitch-suggest li { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee; }
 .inr-cohitch-suggest li:hover { background: #f0f0f0; }
 /* "Add anonymous" secondary action under the username field. */
+/* Row of "add anonymous" buttons (plain / ♂ / ♀) — wraps on narrow sheets. */
+.inr-cohitch-anonrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.inr-cohitch-anonrow .inr-cohitch-anon { margin-top: 0; }
+
 .inr-cohitch-anon {
   margin-top: 10px;
   display: inline-flex;
