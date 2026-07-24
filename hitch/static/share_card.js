@@ -28,6 +28,27 @@
 
   const SANS = "'Helvetica Neue', Helvetica, Arial, sans-serif";
 
+  // ── road routing ────────────────────────────────────────────────────────────
+  // The same public OSRM the route planner (routing.js) and the trip map already
+  // use. One request per card — i.e. per logged ride — which is a rounding error
+  // next to what the planner sends.
+  const OSRM_URL = "https://router.project-osrm.org/route/v1/driving/";
+  const OSRM_TIMEOUT_MS = 5000; // in line with the 6 s tile timeout: never stall the card
+  // overview=full, not simplified. Simplified thins an 863 km route down to 28
+  // points — ~25 px apart on this card, which visibly cuts the corners off the
+  // line that is the whole point of the feature. Full costs 35 KB there, against
+  // the ~30 basemap tiles (several hundred KB) the same card already downloads.
+  //
+  // A driving route is normally 1.1-1.4x the crow flight. Anything past 3x is not
+  // a detour but a wrong answer — OSRM bridging a sea crossing the rider actually
+  // took by ferry, or snapping a sloppily logged destination onto the far side of
+  // an estuary. Fall back to the straight line, which at least does not lie about
+  // the roads taken.
+  const MAX_DETOUR_RATIO = 3;
+  // Under a kilometre the road line and the straight line are the same two pixels,
+  // and the ratio guard above is meaningless at that scale. Skip the request.
+  const MIN_ROUTE_KM = 1;
+
   // ── projection ──────────────────────────────────────────────────────────────
   // Plain Web Mercator, in pixels at a given zoom (world = 256 * 2^z px).
   function lonToX(lon, z) {
@@ -38,14 +59,107 @@
     return (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * TILE * Math.pow(2, z);
   }
 
-  // Highest zoom at which both points still fit inside the map area with padding.
-  function fitZoom(a, b) {
+  // Highest zoom at which every point still fits inside the map area with padding.
+  // It takes the whole path, not just the two ends: a road route that bows out —
+  // around a bay, over a pass — would otherwise be framed on its endpoints and cut
+  // off at the edge of the card.
+  function fitZoom(points) {
     for (let z = MAX_ZOOM; z >= MIN_ZOOM; z--) {
-      const dx = Math.abs(lonToX(a.lon, z) - lonToX(b.lon, z));
-      const dy = Math.abs(latToY(a.lat, z) - latToY(b.lat, z));
-      if (dx <= CARD_W - 2 * MAP_PAD && dy <= MAP_H - 2 * MAP_PAD) return z;
+      const b = pixelBounds(points, z);
+      if (b.maxX - b.minX <= CARD_W - 2 * MAP_PAD && b.maxY - b.minY <= MAP_H - 2 * MAP_PAD) return z;
     }
     return MIN_ZOOM;
+  }
+
+  function pixelBounds(points, z) {
+    const xs = points.map(function (p) { return lonToX(p.lon, z); });
+    const ys = points.map(function (p) { return latToY(p.lat, z); });
+    return {
+      minX: Math.min.apply(null, xs),
+      maxX: Math.max.apply(null, xs),
+      minY: Math.min.apply(null, ys),
+      maxY: Math.max.apply(null, ys),
+    };
+  }
+
+  // A route crossing the antimeridian would span the whole world in pixel space and
+  // zoom the card out to z=2. Express every longitude as the equivalent nearest to
+  // the pickup instead (so 179 next to -179 becomes 181) and let the tile loop wrap
+  // the x index. Only the projection sees these values; the real lon/lat go to
+  // Photon and to the distance maths untouched.
+  function unwrapLon(lon, refLon) {
+    if (Math.abs(lon - refLon) <= 180) return lon;
+    return lon + (lon < refLon ? 360 : -360);
+  }
+
+  // ── road route ──────────────────────────────────────────────────────────────
+  // Google's encoded-polyline format, precision 5. OSRM will hand back GeoJSON
+  // instead, but that is 6.6x the bytes for the identical line (Basel-Berlin at
+  // overview=full: 35 KB against 228 KB), which is worth 25 lines of decoder.
+  function decodePolyline(str) {
+    const points = [];
+    let i = 0;
+    let lat = 0;
+    let lon = 0;
+    while (i < str.length) {
+      let shift = 0;
+      let result = 0;
+      let b;
+      do {
+        b = str.charCodeAt(i++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      lat += result & 1 ? ~(result >> 1) : result >> 1;
+      shift = 0;
+      result = 0;
+      do {
+        b = str.charCodeAt(i++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      lon += result & 1 ? ~(result >> 1) : result >> 1;
+      points.push({ lat: lat / 1e5, lon: lon / 1e5 });
+    }
+    return points;
+  }
+
+  // The driving route between the two spots, or null to fall back to the straight
+  // line. Null on every failure path — a dead network, a slow response, a pair OSRM
+  // cannot connect, or a route long enough to be obviously wrong — because a card
+  // with a straight line is fine and a card that never appears is not.
+  function roadGeometry(from, to, crowKm) {
+    if (!(crowKm >= MIN_ROUTE_KM)) return Promise.resolve(null);
+    const coords = from.lon + "," + from.lat + ";" + to.lon + "," + to.lat;
+    const url = OSRM_URL + coords + "?overview=full&geometries=polyline";
+
+    // AbortController rather than a bare Promise.race, so a stalled request is
+    // actually torn down instead of left running behind the finished card.
+    let controller = null;
+    let timer = null;
+    try {
+      controller = new AbortController();
+      timer = setTimeout(function () { controller.abort(); }, OSRM_TIMEOUT_MS);
+    } catch (e) {
+      controller = null;
+    }
+
+    return fetch(url, controller ? { signal: controller.signal } : undefined)
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || d.code !== "Ok" || !d.routes || !d.routes[0]) return null;
+        const route = d.routes[0];
+        const km = route.distance / 1000;
+        if (km > crowKm * MAX_DETOUR_RATIO) return null;
+        const points = decodePolyline(route.geometry || "");
+        if (points.length < 2) return null;
+        return { points: points, km: km };
+      })
+      .catch(function () { return null; })
+      .then(function (result) {
+        if (timer) clearTimeout(timer);
+        return result;
+      });
   }
 
   // ── tiles ───────────────────────────────────────────────────────────────────
@@ -94,16 +208,19 @@
   }
 
   // ── map decorations ─────────────────────────────────────────────────────────
-  function drawRoute(ctx, from, to) {
+  // path: [{x, y}, ...] — the road route when OSRM answered, otherwise the two
+  // endpoints, which draws exactly the straight line this used to.
+  function drawRoute(ctx, path) {
+    if (path.length < 2) return;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
+    ctx.beginPath();
+    ctx.moveTo(path[0].x, path[0].y);
+    for (let i = 1; i < path.length; i++) ctx.lineTo(path[i].x, path[i].y);
     // White casing under the coloured stroke so the line stays readable over both
     // pale fields and dark forest on the basemap.
     ctx.strokeStyle = "rgba(255,255,255,0.95)";
     ctx.lineWidth = 20;
-    ctx.beginPath();
-    ctx.moveTo(from.x, from.y);
-    ctx.lineTo(to.x, to.y);
     ctx.stroke();
     ctx.strokeStyle = GREEN;
     ctx.lineWidth = 10;
@@ -274,13 +391,7 @@
     const dLat = num(ride.destLat);
     const dLon = num(ride.destLon);
     const to = dLat !== null && dLon !== null ? { lat: dLat, lon: dLon } : null;
-    // A ride that crosses the antimeridian would otherwise span the whole world in
-    // pixel space and zoom out to z=2; project the destination at the nearest
-    // equivalent longitude and let the tile loop wrap the x index instead. Only the
-    // projection uses it — `to.lon` stays in [-180,180] for Photon and haversine.
-    const toProj = to
-      ? { lat: to.lat, lon: to.lon + (Math.abs(to.lon - from.lon) > 180 ? (to.lon < from.lon ? 360 : -360) : 0) }
-      : null;
+    const crowKm = to ? haversineKm(from, to) : null;
 
     const facts = { waitMin: null, rideMin: null, distance: null };
     const wait = num(ride.waitMin);
@@ -289,7 +400,6 @@
       const mins = Math.round((new Date(ride.arrivedAt) - new Date(ride.departedAt)) / 60000);
       if (isFinite(mins) && mins > 0) facts.rideMin = mins;
     }
-    if (to) facts.distance = displayDistance(haversineKm(from, to));
 
     const canvas = document.createElement("canvas");
     canvas.width = CARD_W;
@@ -298,28 +408,51 @@
     ctx.fillStyle = "#dfe3e0"; // shows through wherever a tile failed to load
     ctx.fillRect(0, 0, CARD_W, MAP_H);
 
-    const z = toProj ? fitZoom(from, toProj) : SOLO_ZOOM;
-    const fx = lonToX(from.lon, z);
-    const fy = latToY(from.lat, z);
-    const tx = toProj ? lonToX(toProj.lon, z) : fx;
-    const ty = toProj ? latToY(toProj.lat, z) : fy;
-    const originX = (fx + tx) / 2 - CARD_W / 2;
-    const originY = (fy + ty) / 2 - MAP_H / 2;
+    // The route has to be in hand before anything else: it decides the zoom, which
+    // decides which tiles to fetch. So this one request is serial ahead of the rest
+    // rather than alongside them — a second or so onto a build that already waits
+    // on ~30 tiles and two reverse geocodes, spent behind the overlay's status line.
+    return (to ? roadGeometry(from, to, crowKm) : Promise.resolve(null)).then(function (road) {
+      // Longitudes unwrapped relative to the pickup, for projection only.
+      const path = road
+        ? road.points.map(function (p) { return { lat: p.lat, lon: unwrapLon(p.lon, from.lon) }; })
+        : to
+          ? [from, { lat: to.lat, lon: unwrapLon(to.lon, from.lon) }]
+          : [from];
+      // Headline the distance actually travelled when we know the roads taken; the
+      // great-circle figure show.py records for the spot page is the fallback.
+      if (road) facts.distance = displayDistance(road.km);
+      else if (to) facts.distance = displayDistance(crowKm);
 
-    const p1 = { x: fx - originX, y: fy - originY };
-    const p2 = { x: tx - originX, y: ty - originY };
+      const z = to ? fitZoom(path) : SOLO_ZOOM;
+      const b = pixelBounds(path, z);
+      const originX = (b.minX + b.maxX) / 2 - CARD_W / 2;
+      const originY = (b.minY + b.maxY) / 2 - MAP_H / 2;
+      const toPx = function (p) {
+        return { x: lonToX(p.lon, z) - originX, y: latToY(p.lat, z) - originY };
+      };
 
-    return Promise.all([
-      drawBasemap(ctx, z, originX, originY),
-      loadLogo(),
-      nearestTown(from.lat, from.lon),
-      to ? nearestTown(to.lat, to.lon) : Promise.resolve(null),
-    ]).then(function (res) {
+      const line = path.map(toPx);
+      const p1 = line[0];
+      const p2 = line[line.length - 1];
+
+      return Promise.all([
+        drawBasemap(ctx, z, originX, originY),
+        loadLogo(),
+        nearestTown(from.lat, from.lon),
+        to ? nearestTown(to.lat, to.lon) : Promise.resolve(null),
+      ]).then(function (res) {
+        return { res: res, line: line, p1: p1, p2: p2 };
+      });
+    }).then(function (stage) {
+      const res = stage.res;
       const logo = res[1];
       facts.fromName = res[2] || coordLabel(from.lat, from.lon);
       facts.toName = to ? res[3] || coordLabel(to.lat, to.lon) : null;
 
-      if (to) drawRoute(ctx, p1, p2);
+      const p1 = stage.p1;
+      const p2 = stage.p2;
+      if (to) drawRoute(ctx, stage.line);
       drawPin(ctx, p1, GREEN);
       if (to) drawPin(ctx, p2, ORANGE);
       drawAttribution(ctx);
