@@ -166,6 +166,10 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
     </a>
     <div id="spot-sheet-body">
     <div id="spot-header-row">
+        <!-- Resolved by show.py from OSM (official spot / service area / fuel / car pooling)
+             or a cached reverse geocode, and shipped in the per-spot detail file. Hidden
+             for spots nothing can name, so the pane looks exactly as it did before. -->
+        <div id="spot-name" hidden></div>
         <div id="spot-coords-line">Coordinates: <span id="spot-header"></span></div>
         <a id="spot-google-link" class="spot-action-link" target="_blank" rel="noopener">Go to on Google Maps</a>
         <a id="spot-streetview-link" class="spot-action-link" target="_blank" rel="noopener">See on Google Street View</a>

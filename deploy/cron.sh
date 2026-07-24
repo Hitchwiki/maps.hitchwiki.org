@@ -46,6 +46,12 @@
 30 3 * * * cd /app && /usr/bin/flock -n /tmp/sync_car_pooling.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate sync_car_pooling' > logs/sync_car_pooling.log 2>&1
 # every day at 3:45 AM
 45 3 * * * cd /app && /usr/bin/flock -n /tmp/sync_fuel.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate sync_fuel' > logs/sync_fuel.log 2>&1
+# every day at 4:30 AM — reverse-geocode street names for spots no OSM feature can name.
+# Standalone script, not a `flask generate` one. Reads dist/spots.json, so it must run
+# after `show`; capped at 2000 geocodes (~33 min at the 1 req/s we hold ourselves to
+# against Photon) so a nightly run stays bounded. The initial ~30k backlog is drained by
+# a manual `--limit 0` run, after which only newly created spots are left.
+30 4 * * * cd /app && /usr/bin/flock -n /tmp/spot_names.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/python3 /app/hitch/scripts/spot_names.py' > logs/spot_names.log 2>&1
 # every day at 5 AM
 0 5 * * * cd /app && /usr/bin/flock -n /tmp/dashboard.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate dashboard' > logs/dashboard.log 2>&1
 # every day at 6 AM

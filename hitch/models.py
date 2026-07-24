@@ -298,6 +298,27 @@ class RidePlace(db.Model):
     to_cc = db.Column(db.String(2), nullable=True)
 
 
+class SpotName(db.Model):
+    """Reverse-geocoded street name for a spot, keyed by its `generate_spot_id`.
+
+    Only the last step of the naming cascade (hitch/scripts/spot_naming.py): the spots
+    that no OSM feature within 100 m can name — about 84% of them. Written offline by
+    hitch/scripts/spot_names.py at one request per second against Photon, which is why
+    it is cached at all rather than resolved when the spot is rendered.
+
+    A NULL `name` means Photon answered and the place has no street or settlement, and
+    is never asked again. A spot that failed to resolve has no row, so it is retried.
+    """
+
+    __tablename__ = "spot_name"
+
+    spot_id = db.Column(db.String(64), primary_key=True)
+    name = db.Column(db.String(255), nullable=True)
+    latitude = db.Column("lat", db.Float, nullable=False)
+    longitude = db.Column("lon", db.Float, nullable=False)
+    geocoded_at = db.Column(db.String(32), nullable=False)
+
+
 class DerivedRideLocation(db.Model):
     """A destination we inferred for a ride that reached Nostr without one, keyed by `d`.
 

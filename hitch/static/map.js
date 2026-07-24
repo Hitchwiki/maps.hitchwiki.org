@@ -2347,6 +2347,17 @@ async function handleMarkerClick(marker, point, e) {
 
   marker.options._data.rides = spotRides;
 
+  // The spot's name arrives with this fetch, not with spots.json. Guard on the pane
+  // still showing this marker: clicking a second spot while the first is in flight
+  // would otherwise stamp the first spot's name onto the second one's pane.
+  const spotName = marker.options._data.name;
+  if (spotName && active && active[0] === marker) {
+    const nameEl = $$("#spot-name");
+    nameEl.textContent = spotName;
+    nameEl.hidden = false;
+    $$("#share-spot-btn").dataset.shareTitle = `${spotName} – Hitchwiki Maps`;
+  }
+
   // Re-render the summary now that the fetched spot details and rides are merged in
   // (the first render in markerClick only had the slim spots.json fields, so it could
   // show the averages but not the distributions).
@@ -2369,6 +2380,12 @@ function markerClick(marker) {
   updateBottomPaneVar();
   setSpotSheetSnap("full");
   $$("#spot-header").innerText = `${data.lat.toFixed(4)}, ${data.lon.toFixed(4)}`;
+  // Reset the name and share title to their unnamed defaults: the name only arrives
+  // once handleMarkerClick's fetch lands, and the previous spot's must not linger.
+  const nameEl = $$("#spot-name");
+  nameEl.textContent = "";
+  nameEl.hidden = true;
+  $$("#share-spot-btn").dataset.shareTitle = "Hitchhiking spot on Hitchwiki Maps";
   $$("#spot-google-link").href = window.ontouchstart
     ? `geo:${data.lat},${data.lon}`
     : `https://www.google.com/maps/place/${data.lat},${data.lon}`;

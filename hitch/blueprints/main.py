@@ -174,19 +174,28 @@ def _spot_preview(spot_id):
 
     rides = payload.get("rides") or []
     ratings = [r["rating"] for r in rides if r.get("rating")]
-    if not ratings:
-        return None
     spot = payload.get("spot") or {}
+    name = spot.get("name")
+    # A name alone is worth a preview — it gives the tab and the messenger card a real
+    # place instead of coordinates — so the rating fields are optional from here on.
+    if not ratings and not name:
+        return None
     return {
-        "rating": sum(ratings) / len(ratings),
-        "count": len(rides),
+        "name": name,
+        "rating": sum(ratings) / len(ratings) if ratings else None,
+        "count": len(rides) if ratings else None,
         "wait": spot.get("wait"),
         "distance": spot.get("distance"),
     }
 
 
 def _spot_description(preview):
-    """One sentence a messenger/crawler can show under the link."""
+    """One sentence a messenger/crawler can show under the link, or None if we have
+    nothing to say. Returning None for a named-but-unrated spot is deliberate: the
+    template's robots meta keys off the description, and naming ~30k spots must not
+    turn them into 30k indexable pages that say nothing."""
+    if not preview or preview["rating"] is None:
+        return None
     plural = "ride" if preview["count"] == 1 else "rides"
     parts = [f"Rated {preview['rating']:.1f}/5 from {preview['count']} {plural}."]
     if preview["wait"]:
@@ -211,11 +220,12 @@ def render_spot(spot_id):
         abort(404)
     lat, lon = (float(v) for v in spot_id.split("_"))
     preview = _spot_preview(spot_id)
+    name = preview["name"] if preview else None
     return render_template(
         "map.html",
         map_variation=None,
-        spot_title=f"Hitchhiking spot at {lat:.5f}, {lon:.5f}",
-        spot_description=_spot_description(preview) if preview else None,
+        spot_title=f"{name} — hitchhiking spot" if name else f"Hitchhiking spot at {lat:.5f}, {lon:.5f}",
+        spot_description=_spot_description(preview),
         spot_url=_external_https("main.render_spot", spot_id=spot_id),
         hide_add_spot_button=current_app.config.get("HIDE_ADD_SPOT_BUTTON", False),
         hide_account_button=current_app.config.get("HIDE_ACCOUNT_BUTTON", False),

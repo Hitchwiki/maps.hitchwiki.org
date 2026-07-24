@@ -20,6 +20,7 @@ from sklearn.exceptions import InconsistentVersionWarning
 from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON, REPORTS_TO_HIDE
 from hitch.helpers import e, get_bearing, get_db, get_dirs, haversine_np, write_json_file
 from hitch.scripts.races import build_races, estimate_arrival
+from hitch.scripts.spot_naming import resolve_spot_name
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger(__name__)
@@ -583,8 +584,13 @@ if len(unique_coords) > 1:
 # remap every ride to a single busiest-member anchor per polygon — exactly the anchor
 # trick the 5 m merge uses, so the spot id / per-spot files stay stable.
 t_group = time.perf_counter()
+
+# Names of the service-area polygons, keyed by the anchor coordinate of the spot they
+# swallowed. Populated below; feeds the spot's display name, so the name a spot shows
+# always describes the polygon it was actually merged into.
+service_area_name_by_anchor = {}
 try:
-    service_areas_df = pd.read_sql("select geom_id, geometry_wkt from service_area", get_db())
+    service_areas_df = pd.read_sql("select geom_id, name, geometry_wkt from service_area", get_db())
     road_islands_df = pd.read_sql("select id, geometry_wkt from road_island", get_db())
 except (pd.errors.DatabaseError, sqlite3.OperationalError):
     # Tables absent (sync scripts never run, e.g. fresh/dev DB): keep the 5 m merge only.
@@ -646,6 +652,15 @@ if service_areas_df is not None and (len(service_areas_df) or len(road_islands_d
     anchors = unique_pts.groupby("label", sort=False)[["lat", "lon"]].first()
     anchors.columns = ["anchor_lat", "anchor_lon"]
     unique_pts = unique_pts.merge(anchors, on="label", how="left")
+
+    # Carry each service area's name onto the anchor it produced, so the spot can be
+    # titled after the rest area / filling station it sits in. Read from the same label
+    # the merge used, never re-derived, or the name could describe a different polygon
+    # than the one the spot was folded into.
+    sa_name_by_id = dict(zip(service_areas_df["geom_id"], service_areas_df["name"]))
+    for label, a_lat, a_lon in zip(unique_pts["label"], unique_pts["anchor_lat"], unique_pts["anchor_lon"]):
+        if label.startswith("sa:"):
+            service_area_name_by_anchor[(a_lat, a_lon)] = sa_name_by_id.get(int(label[3:]))
 
     anchor_lat = dict(zip(zip(unique_pts["lat"], unique_pts["lon"]), unique_pts["anchor_lat"]))
     anchor_lon = dict(zip(zip(unique_pts["lat"], unique_pts["lon"]), unique_pts["anchor_lon"]))
@@ -931,6 +946,45 @@ places["hitchwiki_map_link"] = places.apply(
 )
 logger.info(f"Found {places['hitchwiki_map_link'].notnull().sum()} places visible in Hitchwiki maps")
 
+
+def fetch_osm_tags(table, ids):
+    """{osm_id: tags} for just the features that matched a spot.
+
+    Deliberately NOT part of the bulk reads above: `tags` is a JSON blob, and pulling it
+    for all 406k fuel stations costs roughly 200 MB resident on a host the OOM killer has
+    already visited (CLAUDE.md). Only ~5.5k of them are ever within 100 m of a spot.
+    """
+    ids = sorted({int(i) for i in ids if pd.notna(i)})
+    if not ids:
+        return {}
+    tags = {}
+    # SQLite allows 999 bound variables per statement by default; chunk under that.
+    for start in range(0, len(ids), 900):
+        chunk = ids[start : start + 900]
+        placeholders = ",".join("?" * len(chunk))
+        rows = pd.read_sql(f"select id, tags from {table} where id in ({placeholders})", get_db(), params=chunk)
+        for _, row in rows.iterrows():
+            value = row["tags"]
+            with contextlib.suppress(ValueError, TypeError):
+                tags[int(row["id"])] = json.loads(value) if isinstance(value, str) else value
+    return tags
+
+
+logger.info("Fetching OSM tags for matched features")
+osm_spot_tags = fetch_osm_tags("osm_hitchhiking_spot", places["nearby_osm_id"])
+fuel_tags = fetch_osm_tags("osm_fuel_station_spot", [f["id"] for f in places["nearby_fuel"] if f])
+car_pooling_tags = fetch_osm_tags("osm_car_pooling_spot", [c["id"] for c in places["nearby_car_pooling"] if c])
+
+# Reverse-geocoded street names for the ~84% of spots no OSM feature can name, cached by
+# hitch/scripts/spot_names.py. Absent on a fresh/dev DB that has never run it.
+try:
+    spot_names_df = pd.read_sql("select spot_id, name from spot_name", get_db())
+    geocoded_names = dict(zip(spot_names_df["spot_id"], spot_names_df["name"]))
+except (pd.errors.DatabaseError, sqlite3.OperationalError):
+    logger.info("spot_name table not found — spots with no OSM feature will stay unnamed")
+    geocoded_names = {}
+logger.info(f"Loaded {len(geocoded_names)} cached geocoded spot names")
+
 logger.info("Generating JSON data files")
 
 # spots.json is downloaded by every visitor on map load, so it only carries
@@ -977,6 +1031,19 @@ for _, place in places.iterrows():
     spots_data.append(spot_data)
 
     detail = {}
+    # Human-readable title for the spot pane, in place of bare coordinates. Lives in the
+    # per-spot file rather than spots.json: ~30k name strings would add roughly a
+    # megabyte to the file every visitor downloads on map load, and nothing needs the
+    # name before a marker is clicked.
+    name = resolve_spot_name(
+        hitchhiking_tags=osm_spot_tags.get(int(place["nearby_osm_id"])) if pd.notna(place["nearby_osm_id"]) else None,
+        service_area_name=service_area_name_by_anchor.get((place["lat"], place["lon"])),
+        fuel_tags=fuel_tags.get(place["nearby_fuel"]["id"]) if place["nearby_fuel"] else None,
+        car_pooling_tags=car_pooling_tags.get(place["nearby_car_pooling"]["id"]) if place["nearby_car_pooling"] else None,
+        geocoded_name=geocoded_names.get(spot_id),
+    )
+    if name:
+        detail["name"] = name
     # The popup only ever shows these as whole numbers (toFixed(0)), so store
     # them rounded to ints — smaller payload, no precision the UI would use.
     if pd.notna(place["wait"]):
