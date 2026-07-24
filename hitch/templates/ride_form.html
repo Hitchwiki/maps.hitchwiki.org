@@ -867,6 +867,23 @@
                     ? document.getElementById('co-hitchhiker-hidden').value + ',' : '') + partial;
         }
 
+        // Hand the facts of this ride to the success overlay on the map. The POST
+        // redirects to a bare /#success, so without this stash the share card would
+        // have nothing to draw. sessionStorage survives the navigation; map.js
+        // consumes and clears the entry the first time it shows the overlay.
+        try {
+            const c = getCoordinates();
+            sessionStorage.setItem('hmLastRide', JSON.stringify({
+                pickupLat: c.pickup ? c.pickup[0] : '',
+                pickupLon: c.pickup ? c.pickup[1] : '',
+                destLat: c.destination ? c.destination[0] : '',
+                destLon: c.destination ? c.destination[1] : '',
+                waitMin: document.querySelector('input[name="wait"]')?.value || '',
+                departedAt: document.getElementById('datetime_ride')?.value || '',
+                arrivedAt: document.getElementById('arrival_datetime')?.value || '',
+            }));
+        } catch (e) {}
+
         // Disable submit button to prevent duplicate submissions during the ~5s Nostr publish
         const submitBtn = document.querySelector('button[type="submit"]');
         submitBtn.disabled = true;

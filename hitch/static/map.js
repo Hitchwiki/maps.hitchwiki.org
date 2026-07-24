@@ -2669,27 +2669,159 @@ function setupEventSheet() {
   });
 }
 
+// The ride form stashes the facts of the just-submitted ride here before the
+// full-page POST navigates away — the redirect is a bare /#success, so this is the
+// only way the success overlay can know what was logged.
+const LAST_RIDE_KEY = "hmLastRide";
+
+function takeLastRide() {
+  try {
+    const raw = sessionStorage.getItem(LAST_RIDE_KEY);
+    // Consumed once: a later /#success (a duplicate report, a reload) must not
+    // offer a card for a ride that was already shared.
+    sessionStorage.removeItem(LAST_RIDE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
 function showSuccessOverlay() {
   const overlay = $$("#success-overlay");
-  if (overlay) {
-    overlay.style.display = "flex";
-    
-    // Add click handler for the close button
-    const closeBtn = $$("#success-close-btn");
-    if (closeBtn) {
-      // Dismissing the overlay returns to the map the user submitted from — no
-      // navigation, so the restored viewport stays exactly where they left it.
-      closeBtn.onclick = function() {
-        overlay.style.display = "none";
-      };
-    }
-    
-    // Close overlay when clicking outside the content
-    overlay.onclick = function(e) {
-      if (e.target === overlay) {
-        overlay.style.display = "none";
-      }
+  if (!overlay) return;
+  overlay.style.display = "flex";
+
+  // Dismissing the overlay returns to the map the user submitted from — no
+  // navigation, so the restored viewport stays exactly where they left it. Every
+  // exit is available without sharing: the ×, "Not now", the backdrop, and Esc.
+  const close = function () {
+    overlay.style.display = "none";
+    document.removeEventListener("keydown", onKey);
+  };
+  const onKey = function (e) {
+    if (e.key === "Escape") close();
+  };
+  document.addEventListener("keydown", onKey);
+  const closeBtn = $$("#success-close-btn");
+  if (closeBtn) {
+    closeBtn.onclick = function () {
+      hmTrack("ride_share", { action: "dismiss" });
+      close();
     };
+  }
+  const dismissBtn = $$("#success-dismiss");
+  if (dismissBtn) dismissBtn.onclick = close;
+  overlay.onclick = function (e) {
+    if (e.target === overlay) close();
+  };
+
+  setupShareCard();
+}
+
+// Builds the shareable image and wires the share button. Anything that goes wrong
+// (no stashed ride, no network for the tiles, a browser without canvas export)
+// degrades to sharing just the text + link — never to a broken overlay.
+function setupShareCard() {
+  const block = $$("#success-share-block");
+  const shareBtn = $$("#success-share-btn");
+  const status = $$("#share-card-status");
+  const img = $$("#share-card-img");
+  const caption = $$("#share-card-caption");
+  // sw.js caches "/", so a returning visitor can run this (new) map.js against a
+  // cached copy of the old overlay markup. Bail out to the plain success message
+  // rather than throwing on the missing elements.
+  if (!shareBtn || !status || !img || !caption) return;
+  const ride = takeLastRide();
+
+  let card = null;
+
+  const shareTextOnly = function () {
+    // Fallback link when we never learned where the ride started: the map itself.
+    const url = card ? card.url : window.location.origin + "/";
+    const text = card ? card.text : "Check out Hitchwiki Maps — the hitchhiking map";
+    return doShare({ text: text, url: url, files: null });
+  };
+
+  if (!ride || !window.hmShareCard) {
+    // Nothing to draw — keep the nudge, drop the picture.
+    if (block) block.style.display = "none";
+    shareBtn.textContent = "Share Hitchwiki Maps";
+    shareBtn.onclick = shareTextOnly;
+    return;
+  }
+
+  shareBtn.disabled = true;
+  window.hmShareCard
+    .build(ride)
+    .then(function (result) {
+      card = result;
+      img.src = result.dataUrl;
+      img.style.display = "block";
+      status.style.display = "none";
+      caption.textContent = result.text;
+      shareBtn.disabled = false;
+      shareBtn.onclick = function () {
+        return doShare({ text: result.text, url: result.url, files: [result.blob] });
+      };
+    })
+    .catch(function (err) {
+      console.warn("share card failed", err);
+      if (block) block.style.display = "none";
+      shareBtn.disabled = false;
+      shareBtn.onclick = shareTextOnly;
+    });
+
+  // Native share sheet with the image attached where that is supported; otherwise
+  // copy the text + link and download the image so it can still be attached by hand.
+  function doShare(payload) {
+    const message = payload.text + " " + payload.url;
+    const file =
+      payload.files && typeof File === "function"
+        ? new File(payload.files, "hitchwiki-ride.png", { type: "image/png" })
+        : null;
+
+    // The URL goes inside the text rather than in `url`: share targets that accept
+    // files routinely drop the separate url field, which would strip the link.
+    if (file && navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
+      return navigator
+        .share({ files: [file], text: message })
+        .then(function () { hmTrack("ride_share", { action: "shared", mode: "image" }); })
+        .catch(function (err) {
+          if (err && err.name === "AbortError") return; // backing out is not a failure
+          return copyFallback(message, payload.files);
+        });
+    }
+    if (navigator.share) {
+      return navigator
+        .share({ title: "Hitchwiki Maps", text: payload.text, url: payload.url })
+        .then(function () { hmTrack("ride_share", { action: "shared", mode: "link" }); })
+        .catch(function (err) {
+          if (err && err.name === "AbortError") return;
+          return copyFallback(message, payload.files);
+        });
+    }
+    return copyFallback(message, payload.files);
+  }
+
+  function copyFallback(message, blobs) {
+    if (blobs && blobs.length && card) {
+      const a = document.createElement("a");
+      a.href = card.dataUrl;
+      a.download = "hitchwiki-ride.png";
+      a.click();
+    }
+    const done = function () {
+      hmTrack("ride_share", { action: "shared", mode: "copy" });
+      shareBtn.textContent = "Copied — paste it anywhere!";
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(message).then(done, function () {
+        window.prompt("Copy this:", message);
+        done();
+      });
+    }
+    window.prompt("Copy this:", message);
+    done();
   }
 }
 

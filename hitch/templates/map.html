@@ -75,6 +75,7 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
 <script src="{{ asset_url('/static/routing.js') }}"></script>
 <script src="{{ asset_url('/static/ride_score.js') }}"></script>
 <script src="{{ asset_url('/static/ride_submit.js') }}"></script>
+<script src="{{ asset_url('/static/share_card.js') }}"></script>
 <script src="{{ asset_url('/static/inride.js') }}"></script>
 <script src="{{ asset_url('/static/account.js') }}"></script>
 <script src="{{ asset_url('/static/welcome.js') }}"></script>
@@ -654,14 +655,25 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
     </div>
 </div>
 
-<!-- Full-screen success overlay -->
+<!-- Full-screen success overlay. Most of it is the share nudge: the feedback ask is a
+     single line at the top, and the rest of the space sells passing the ride on. -->
 <div id="success-overlay" class="success-overlay" style="display: none;">
-    <div class="success-content">
-        <h2>Success!</h2>
-        <p>Thank you for your contribution!</p>
-        <p>We'd love to hear your thoughts! <a href="https://docs.google.com/forms/d/e/1FAIpQLSdGLlPKhjRXIjG2VB-BlkxbsagNeXce5eI3sKFHe-_scJMFnw/viewform?usp=header" target="_blank" rel="noopener">Share feedback</a> to help us improve Hitchhiking Map.</p>
-        <p>Your ride will appear on the map within 10 minutes. Refreshing may be needed.</p>
-        <button id="success-close-btn" class="success-close-btn">Continue</button>
+    <div class="success-content success-share-content">
+        <button type="button" id="success-dismiss" class="success-dismiss" aria-label="Close">&times;</button>
+        <p class="success-feedback">Ride saved — thank you! We'd love to hear your thoughts: <a href="https://docs.google.com/forms/d/e/1FAIpQLSdGLlPKhjRXIjG2VB-BlkxbsagNeXce5eI3sKFHe-_scJMFnw/viewform?usp=header" target="_blank" rel="noopener">share feedback</a>.</p>
+        <div id="success-share-block">
+            <h2>Show your friends</h2>
+            <p class="success-share-sub">Send them the map of your ride — it's how most hitchhikers find us.</p>
+            <div class="share-card-frame">
+                <div id="share-card-status" class="share-card-status">Drawing your ride…</div>
+                <img id="share-card-img" class="share-card-img" alt="Your hitchhiking ride as a shareable image" style="display: none;">
+            </div>
+            <p id="share-card-caption" class="share-card-caption"></p>
+        </div>
+        <div class="signup-prompt-actions">
+            <button type="button" id="success-share-btn" class="success-close-btn">Share my ride</button>
+            <button type="button" id="success-close-btn" class="success-secondary-btn">Not now</button>
+        </div>
     </div>
 </div>
 
