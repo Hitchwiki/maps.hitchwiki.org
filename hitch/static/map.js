@@ -2438,31 +2438,31 @@ function renderSpotSummary(data) {
 
 // `hists` is omitted by the GPX export, which wants the plain summary lines only.
 function summaryText(data, hists = { wait: null, distance: null }) {
-  const osmLink = data.osm_id ? `<div>🚏 <a href="https://www.openstreetmap.org/node/${data.osm_id}" target="_blank" rel="noopener noreferrer">Official hitchhiking spot</a></div>` : '';
+  const osmLink = data.osm_id ? `<div>🚏 <a href="https://www.openstreetmap.org/node/${data.osm_id}" target="_blank" rel="noopener noreferrer">${tr("Official hitchhiking spot")}</a></div>` : '';
   const carPoolingLink = data.car_pooling
-    ? `<div>🚗 <a href="https://www.openstreetmap.org/${data.car_pooling.osm_type}/${data.car_pooling.id}" target="_blank" rel="noopener noreferrer">Car pooling spot</a></div>`
+    ? `<div>🚗 <a href="https://www.openstreetmap.org/${data.car_pooling.osm_type}/${data.car_pooling.id}" target="_blank" rel="noopener noreferrer">${tr("Car pooling spot")}</a></div>`
     : '';
   const fuelLink = data.fuel
-    ? `<div>⛽ <a href="https://www.openstreetmap.org/${data.fuel.osm_type}/${data.fuel.id}" target="_blank" rel="noopener noreferrer">Gas station</a></div>`
+    ? `<div>⛽ <a href="https://www.openstreetmap.org/${data.fuel.osm_type}/${data.fuel.id}" target="_blank" rel="noopener noreferrer">${tr("Gas station")}</a></div>`
     : '';
   // Phrased as an invitation, not a label: the wiki article is where the advice for
   // this spot actually lives, and we want map users to carry on reading there.
   const hitchwikiLink = data.hitchwiki_article
-    ? `<div>📄 <a href="${data.hitchwiki_article}" target="_blank" rel="noopener noreferrer">Read about this spot on Hitchwiki</a></div>`
+    ? `<div>📄 <a href="${data.hitchwiki_article}" target="_blank" rel="noopener noreferrer">${tr("Read about this spot on Hitchwiki")}</a></div>`
     : '';
   const hitchwikiMapLink = data.hitchwiki_map
-    ? `<div>🗺️ <a href="${data.hitchwiki_map}" target="_blank" rel="noopener noreferrer">Read about this area on Hitchwiki</a></div>`
+    ? `<div>🗺️ <a href="${data.hitchwiki_map}" target="_blank" rel="noopener noreferrer">${tr("Read about this area on Hitchwiki")}</a></div>`
     : '';
 
-  const wait = !data.wait || Number.isNaN(data.wait) ? "-" : data.wait.toFixed(0) + " min";
+  const wait = !data.wait || Number.isNaN(data.wait) ? "-" : tr("{n} min", { n: data.wait.toFixed(0) });
   const distance = !data.distance || Number.isNaN(data.distance) ? "-" : formatDistance(data.distance);
 
   // Lines are <div>s rather than <br>-separated text: each histogram is a block
   // element, and a <br> after one would open an empty line under the chart.
-  return `<div>Rating: ${data.rating && data.rating.toFixed(0)}/5</div>
-    <div>Waiting time: ${wait}</div>
+  return `<div>${tr("Rating: {rating}/5", { rating: data.rating && data.rating.toFixed(0) })}</div>
+    <div>${tr("Waiting time: {wait}", { wait })}</div>
     ${spotHistogramMarkup(hists.wait, "spot-wait-hist", "min")}
-    <div>Ride distance: ${distance}</div>
+    <div>${tr("Ride distance: {distance}", { distance })}</div>
     ${spotHistogramMarkup(scaleHistToDisplay(hists.distance), "spot-distance-hist", distanceUnitLabel())}
     ${osmLink}${carPoolingLink}${fuelLink}${hitchwikiLink}${hitchwikiMapLink}`;
 }

@@ -2100,7 +2100,7 @@
       btn.className = "inr-big inr-big--green";
       // fa-thumbs-up is already this app's "start hitching" icon (spot sheet's
       // "Hitch here"); it never shares the screen with the Got a Ride! button.
-      btn.innerHTML = '<i class="fa-solid fa-thumbs-up" aria-hidden="true"></i> Start Hitchhiking';
+      btn.innerHTML = '<i class="fa-solid fa-thumbs-up" aria-hidden="true"></i> ' + tr("Start Hitchhiking");
       btn.addEventListener("click", startLauncher.open);
 
       const past = document.createElement("button");
@@ -2109,7 +2109,7 @@
       past.className = "inr-big inr-big--green-light";
       // The 🚗💨 the bottom action pane used for "Add your ride", desaturated: it keeps
       // that entry point recognisable while staying visually secondary to the green half.
-      past.innerHTML = '<span class="inr-emoji-bw" aria-hidden="true">🚗💨</span> Log a past ride';
+      past.innerHTML = '<span class="inr-emoji-bw" aria-hidden="true">🚗💨</span> ' + tr("Log a past ride");
       past.addEventListener("click", function () {
         // Same funnel step the bottom action pane used to report, so the
         // add_ride_clicked → ride_form_submitted drop-off stays comparable.

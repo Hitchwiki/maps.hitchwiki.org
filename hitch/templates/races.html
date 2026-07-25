@@ -1,6 +1,6 @@
 {% extends "security/base.html" %}
 
-{% set title = "Races" %}
+{% set title = t("Races") %}
 
 {% block head %}
 {{ super() }}
@@ -26,8 +26,8 @@
 {% from "_share.html" import share_button %}
 {% block content %}
 <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
-  <h1 style="margin:0;">Races</h1>
-  {{ share_button(title="Hitchhiking races – Hitchwiki Maps") }}
+  <h1 style="margin:0;">{{ t("Races") }}</h1>
+  {{ share_button(title=t("Hitchhiking races – Hitchwiki Maps")) }}
 </div>
 
 {#
@@ -45,9 +45,9 @@
     <h2>
       {{ race.title }}
       {% if race.status == "upcoming" %}
-      <span class="race-badge upcoming">starts in {{ race.starts_in_days }} day{{ "s" if race.starts_in_days != 1 else "" }}</span>
+      <span class="race-badge upcoming">{{ t("starts in {n} day" if race.starts_in_days == 1 else "starts in {n} days", n=race.starts_in_days) }}</span>
       {% else %}
-      <span class="race-badge running">running</span>
+      <span class="race-badge running">{{ t("running") }}</span>
       {% endif %}
     </h2>
     {# Tolerances (max {{ race.max_gap_km }} km between consecutive rides, {{ race.max_radius_km }} km
@@ -58,7 +58,7 @@
   </div>
 
   {% if race.status == "upcoming" %}
-    <p style="color:#666; font-size:0.9em;">Not started yet &mdash; the board opens on {{ race["from"] }}.</p>
+    <p style="color:#666; font-size:0.9em;">{{ t("Not started yet — the board opens on {date}.", date=race["from"]) }}</p>
   {% elif race.entries %}
     {% for entry in race.entries %}
     {% set entry_idx = loop.index0 %}
@@ -69,17 +69,17 @@
         <span class="podium-time">{{ entry.duration }}</span>
       </div>
       <div class="podium-sub">
-        {{ entry.ride_count }} ride{{ "s" if entry.ride_count != 1 else "" }} &middot; {{ entry.started }} &rarr; {{ entry.finished }}
-        {% if entry.estimated %}&middot; <span title="At least one ride logged no arrival time; it was estimated from the distance at 75 km/h.">partly estimated</span>{% endif %}
+        {{ t("{n} ride" if entry.ride_count == 1 else "{n} rides", n=entry.ride_count) }} &middot; {{ entry.started }} &rarr; {{ entry.finished }}
+        {% if entry.estimated %}&middot; <span title="{{ t('At least one ride logged no arrival time; it was estimated from the distance at 75 km/h.') }}">{{ t("partly estimated") }}</span>{% endif %}
       </div>
     </div>
     {% endfor %}
   {% else %}
-    <p style="color:#666; font-size:0.9em;">Nobody has logged this route yet &mdash; be the first.</p>
+    <p style="color:#666; font-size:0.9em;">{{ t("Nobody has logged this route yet — be the first.") }}</p>
   {% endif %}
 </div>
 {% else %}
-<p style="color:#666; font-size:0.9em;">No race is running right now, and none starts within the next month.</p>
+<p style="color:#666; font-size:0.9em;">{{ t("No race is running right now, and none starts within the next month.") }}</p>
 {% endfor %}
 {% endblock %}
 

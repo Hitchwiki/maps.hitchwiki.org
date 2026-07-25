@@ -1,6 +1,6 @@
 {% extends "security/base.html" %}
 
-{% set title = "Leaderboard" %}
+{% set title = t("Leaderboard") %}
 
 {% block head %}
 {{ super() }}
@@ -41,28 +41,28 @@
 {% from "_share.html" import share_button %}
 {% block content %}
 <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
-  <h1 style="margin:0;">Leaderboard</h1>
+  <h1 style="margin:0;">{{ t("Leaderboard") }}</h1>
   {# data-share-url is filled in / kept in sync with the active tab by the tab JS. #}
-  {{ share_button(title="Hitchhiking leaderboard – Hitchwiki Maps") }}
+  {{ share_button(title=t("Hitchhiking leaderboard – Hitchwiki Maps")) }}
 </div>
 
 <div class="leaderboard-tabs">
-  <button class="leaderboard-tab active" data-pane="most-rides">Most rides</button>
-  <button class="leaderboard-tab" data-pane="longest-ride">Longest ride</button>
-  <button class="leaderboard-tab" data-pane="longest-24h">Longest 24h</button>
+  <button class="leaderboard-tab active" data-pane="most-rides">{{ t("Most rides") }}</button>
+  <button class="leaderboard-tab" data-pane="longest-ride">{{ t("Longest ride") }}</button>
+  <button class="leaderboard-tab" data-pane="longest-24h">{{ t("Longest 24h") }}</button>
 </div>
 
 <div class="leaderboard-pane active" id="pane-most-rides">
-  <p style="color:#666; font-size:0.85em;">All users ranked by number of rides logged</p>
+  <p style="color:#666; font-size:0.85em;">{{ t("All users ranked by number of rides logged") }}</p>
   {% if not current_user.is_authenticated %}
-  <p style="color:#999; font-size:0.8em;">Want to show up here? <a href="{{ url_for_security('login') }}">Log in</a> and start logging your rides.</p>
+  <p style="color:#999; font-size:0.8em;">{{ t("Want to show up here? {link} and start logging your rides.", link='<a href="' ~ url_for_security('login') ~ '">' ~ t("Log in") ~ '</a>')|safe }}</p>
   {% endif %}
   <table style="width:100%; border-collapse:collapse; font-size:0.9em;">
     <thead>
       <tr style="border-bottom:2px solid #ccc; text-align:left;">
         <th style="padding:0.4rem 0.6rem;">#</th>
-        <th style="padding:0.4rem 0.6rem;">User</th>
-        <th style="padding:0.4rem 0.6rem; text-align:right;">Rides</th>
+        <th style="padding:0.4rem 0.6rem;">{{ t("User") }}</th>
+        <th style="padding:0.4rem 0.6rem; text-align:right;">{{ t("Rides") }}</th>
       </tr>
     </thead>
     <tbody>
@@ -80,18 +80,18 @@
 </div>
 
 <div class="leaderboard-pane" id="pane-longest-ride">
-  <p style="color:#666; font-size:0.85em;">The 10 longest rides by start-to-destination distance</p>
+  <p style="color:#666; font-size:0.85em;">{{ t("The 10 longest rides by start-to-destination distance") }}</p>
   {% if longest_rides %}
     {% for ride in longest_rides %}
     {{ ride_card(ride, "longest-thumb", loop.index0) }}
     {% endfor %}
   {% else %}
-    <p style="color:#666; font-size:0.9em;">No rides with a destination yet.</p>
+    <p style="color:#666; font-size:0.9em;">{{ t("No rides with a destination yet.") }}</p>
   {% endif %}
 </div>
 
 <div class="leaderboard-pane" id="pane-longest-24h">
-  <p style="color:#666; font-size:0.85em;">Most distance covered within a single 24-hour window &mdash; only named hitchhikers and rides with both a departure and arrival time count. Each entry lists every ride in that window.</p>
+  <p style="color:#666; font-size:0.85em;">{{ t("Most distance covered within a single 24-hour window — only named hitchhikers and rides with both a departure and arrival time count. Each entry lists every ride in that window.") }}</p>
   {% if longest_24h %}
     {% for entry in longest_24h %}
     {% set entry_idx = loop.index0 %}
@@ -102,7 +102,7 @@
         <span style="margin-left:auto; font-weight:600;">{{ format_distance(entry.total_distance) }}</span>
       </div>
       <div style="color:#888; font-size:0.8em; margin:0.2rem 0 0.5rem;">
-        {{ entry.rides|length }} ride{{ "s" if entry.rides|length != 1 else "" }} &middot; {{ entry.window_start }} &rarr; {{ entry.window_end }}
+        {{ t("{n} ride" if entry.rides|length == 1 else "{n} rides", n=entry.rides|length) }} &middot; {{ entry.window_start }} &rarr; {{ entry.window_end }}
       </div>
       {% for ride in entry.rides %}
       {{ ride_card(ride, "h24-thumb-" ~ entry_idx, loop.index0) }}
@@ -110,7 +110,7 @@
     </div>
     {% endfor %}
   {% else %}
-    <p style="color:#666; font-size:0.9em;">No qualifying rides yet.</p>
+    <p style="color:#666; font-size:0.9em;">{{ t("No qualifying rides yet.") }}</p>
   {% endif %}
 </div>
 {% endblock %}
