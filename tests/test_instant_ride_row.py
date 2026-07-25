@@ -203,3 +203,25 @@ class TestStorageFailureNeverBreaksTheSubmit:
 
         with app.app_context():
             assert _db.session.query(RideEvent).filter_by(d="maps.hitchwiki.org-abc").count() == 0
+
+
+class TestSuccessRedirectCarriesTheDTag:
+    def test_a_new_ride_redirects_with_its_d_tag(self, client, monkeypatch, clean_rides):
+        # The full-page POST navigates away, so the redirect URL is the only channel
+        # through which the success overlay can learn the ride's permalink.
+        monkeypatch.setattr(main, "HitchhikingDataStandardToNostrPoster", _RecordingPoster)
+        resp = client.post(
+            "/ride",
+            data={
+                "rate": "4",
+                "wait": "12",
+                "signal": "thumb",
+                "comment": "great ride",
+                "pickup_lat": "51.08170",
+                "pickup_lon": "13.73629",
+                "destination_lat": "",
+                "destination_lon": "",
+            },
+        )
+        assert resp.status_code == 302
+        assert resp.headers["Location"] == "/?ride=maps.hitchwiki.org-abc#success-anon"

@@ -385,7 +385,7 @@
   // ride: {pickupLat, pickupLon, destLat, destLon, waitMin, departedAt, arrivedAt}
   // Resolves to {blob, dataUrl, fromName, toName, text, url} — everything the
   // success overlay needs to preview and to hand to the Web Share API.
-  function build(ride) {
+  function build(ride, dTag) {
     const from = { lat: num(ride.pickupLat), lon: num(ride.pickupLon) };
     if (from.lat === null || from.lon === null) return Promise.reject(new Error("no pickup"));
     const dLat = num(ride.destLat);
@@ -458,11 +458,15 @@
       drawAttribution(ctx);
       drawPanel(ctx, facts, logo);
 
-      // The ride has no permalink yet — it only gets one once the Nostr fetch cron
-      // ingests it (/ride/<d_tag> 404s until then), so we share the starting spot,
-      // whose page renders for any well-formed coordinate.
+      // The ride's own permalink. It resolves as soon as the submit POST returns —
+      // the server writes the published event into the local DB rather than waiting
+      // for the Nostr fetch cron. Falls back to the starting spot when no d tag
+      // reached us: the offline outbox submits over fetch without navigating, and a
+      // returning visitor can be running this file against a cached older page.
       const spotId = from.lat.toFixed(5) + "_" + from.lon.toFixed(5);
-      const url = window.location.origin + "/spot/" + spotId;
+      const url = dTag
+        ? window.location.origin + "/ride/" + encodeURIComponent(dTag)
+        : window.location.origin + "/spot/" + spotId;
       const text = facts.toName
         ? "Check out my hitchhiking ride from " + facts.fromName + " to " + facts.toName
         : "Check out my hitchhiking ride from " + facts.fromName;

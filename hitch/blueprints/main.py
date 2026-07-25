@@ -8,6 +8,7 @@ import sys
 import time
 from datetime import datetime
 from functools import lru_cache
+from urllib.parse import quote
 
 import pandas as pd
 from flask import (
@@ -1289,12 +1290,16 @@ def ride_form():
         # A nudge only makes sense for a ride just created — an edit is not the moment to
         # ask someone to sign up, and the ride's anonymity was already decided. The client
         # shows each overlay at most once per browser and then falls through to #success.
+        # The d tag travels in the URL because the full-page POST navigates away: the
+        # success overlay's share card links to /ride/<d_tag>, which now resolves
+        # immediately (see _store_published_ride). map.js strips the param once read.
+        success_query = f"/?ride={quote(d_tag)}"
         if not edit_d_tag:
             if current_user.is_anonymous:
-                return redirect("/#success-anon")
+                return redirect(f"{success_query}#success-anon")
             if any(is_anonymous_co_hitchhiker(ch) for ch in data.get("co_hitchhiker", "").split(",")):
-                return redirect("/#success-invite")
-        return redirect("/#success")
+                return redirect(f"{success_query}#success-invite")
+        return redirect(f"{success_query}#success")
 
     except (AssertionError, ValueError, KeyError) as err:
         # Bad input — permanent. 400 with no `transient` flag; the offline outbox flags it

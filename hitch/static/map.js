@@ -2861,6 +2861,13 @@ function setupShareCard() {
   if (!shareBtn || !status || !img || !caption) return;
   const ride = takeLastRide();
 
+  // The submit redirect carries the new ride's d tag as ?ride=<d_tag>. Read it, then
+  // drop it from the URL: it is a one-shot hand-off, not part of the map's address.
+  // replaceState, not pushState — canonicalising is not a navigation.
+  const params = new URLSearchParams(window.location.search);
+  const dTag = params.get("ride");
+  if (dTag) history.replaceState({}, "", "/" + window.location.hash);
+
   let card = null;
 
   const shareTextOnly = function () {
@@ -2880,7 +2887,7 @@ function setupShareCard() {
 
   shareBtn.disabled = true;
   window.hmShareCard
-    .build(ride)
+    .build(ride, dTag)
     .then(function (result) {
       card = result;
       img.src = result.dataUrl;
