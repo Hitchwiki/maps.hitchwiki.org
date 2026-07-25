@@ -50,14 +50,14 @@ from hitch.blueprints.utils.license_plate_country_codes import LICENSE_PLATE_COU
 from hitch.blueprints.utils.notifications import notify_co_hitchhiker_invite, unread_count
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON, REPORT_REASONS, REPORTS_TO_HIDE
-from hitch.blueprints.utils.ride_facts import haversine_km, ride_map_entry, stop_facts
+from hitch.blueprints.utils.ride_facts import haversine_km, ride_map_entry, spot_id_for, stop_facts
 from hitch.blueprints.utils.ride_ip_log import get_client_ip, log_ride_ip
 from hitch.blueprints.utils.route_request_log import log_route_request
 from hitch.blueprints.utils.search_request_log import log_search_request
 from hitch.blueprints.utils.signup_prompt_log import PROMPT_ACTIONS, log_signup_prompt
 from hitch.extensions import db
 from hitch.helpers import get_db, get_dirs
-from hitch.models import CoHitchhiker, Follow, ProposedSpot, RideEvent, RideReport, User
+from hitch.models import CoHitchhiker, Follow, ProposedSpot, RideEvent, RideReport, SpotName, User
 from hitch.scripts.nostr_ride_parsing import parse_post_to_ride_fields
 
 main_bp = Blueprint("main", __name__)
@@ -248,6 +248,55 @@ def _spot_description(preview):
         parts.append(f"Rides average {round(preview['distance'])} km.")
     parts.append("See the spot on the hitchhiking map.")
     return " ".join(parts)
+
+
+# Roughly what a messenger card shows before it truncates. Long ride comments are
+# common, so trim rather than let the preview run into an ellipsis mid-sentence.
+RIDE_COMMENT_PREVIEW_CHARS = 200
+
+
+def _ride_place_name(spot_id):
+    """Display name of the spot a ride started from, or None.
+
+    Prefers the per-spot file, which holds the fully-cascaded name the map itself shows
+    (OSM feature, then service area, then fuel, then car-pooling, then geocode). A ride
+    logged minutes ago has no such file yet — exactly the ride whose link gets shared —
+    so fall back to the cached geocode in spot_name.
+    """
+    if not spot_id:
+        return None
+    preview = _spot_preview(spot_id)
+    if preview and preview.get("name"):
+        return preview["name"]
+    row = db.session.get(SpotName, spot_id)
+    return row.name if row else None
+
+
+def _ride_preview_meta(ride, spot_id):
+    """(title, description) for a ride's tab title and link preview.
+
+    /ride/<d_tag> is what the success overlay's share card now links to, so a shared
+    ride must not unfurl with the generic site blurb. Text only — a per-ride map image
+    would need a whole generation pipeline like route_preview.py.
+    """
+    place = _ride_place_name(spot_id)
+    title = f"Hitchhiking ride from {place}" if place else "A hitchhiking ride"
+    if ride.get("distance_km"):
+        title += f" – {round(ride['distance_km'])} km"
+
+    parts = []
+    if ride.get("rating"):
+        parts.append(f"Rated {ride['rating']}/5.")
+    if ride.get("wait"):
+        parts.append(f"Waited {ride['wait']} min.")
+    comment = (ride.get("comment") or "").strip()
+    if comment:
+        if len(comment) > RIDE_COMMENT_PREVIEW_CHARS:
+            comment = comment[:RIDE_COMMENT_PREVIEW_CHARS].rstrip() + "…"
+        parts.append(comment)
+    if not parts:
+        parts.append("A hitchhiking ride logged on Hitchwiki Maps.")
+    return title, " ".join(parts)
 
 
 # OSM-style permalink for a single spot, mirroring /node/<id>#map=z/lat/lon.
@@ -795,12 +844,19 @@ def ride_detail(d_tag):
     # An owner deletion hides the ride from the map, so the owner sees "hidden" state
     # instead of a delete button (the ride page itself stays reachable via its permalink).
     owner_deleted = RideReport.query.filter_by(ride_d_tag=d_tag, reason=OWNER_DELETE_REASON).first() is not None
+
+    # The share card links here, so the page needs its own preview rather than
+    # base.html's site-wide blurb.
+    spot_id = spot_id_for(pickup_lat, pickup_lon) if pickup_lat is not None and pickup_lon is not None else None
+    og_title, og_description = _ride_preview_meta(ride_view, spot_id)
     return render_template(
         "ride_detail.html",
         ride=ride_view,
         already_reported=already_reported,
         owner_deleted=owner_deleted,
         report_confirmed=request.args.get("reported") == "1",
+        og_title=og_title,
+        og_description=og_description,
     )
 
 

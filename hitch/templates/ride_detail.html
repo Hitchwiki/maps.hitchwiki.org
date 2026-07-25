@@ -1,6 +1,8 @@
 {% extends 'base.html' %}
 
-{% block title %}Ride Details | Hitchhiking Map{% endblock %}
+{% block title %}{{ og_title }} | Hitchhiking Map{% endblock %}
+{% block og_title %}{{ og_title }}{% endblock %}
+{% block og_description %}{{ og_description }}{% endblock %}
 
 {% block head %}
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
