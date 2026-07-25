@@ -894,9 +894,9 @@ body.spots-loaded.has-start-bar:not(.inride-active) .leaflet-bottom.leaflet-righ
   text-decoration: none;
 }
 
-/* Scoped to real pointer/hover devices: a `:hover` rule bound only via a mouse
-   (no inline onclick) makes touch browsers treat the first tap as "entering
-   hover" and only deliver the actual click on a second tap. */
+/* Scoped to real pointer devices so a tap doesn't leave the button stuck in its
+   hover shade after the finger lifts. (This is cosmetic only — the two-tap bug
+   these buttons had was a URL race in setMapMode, not a touch-hover artifact.) */
 @media (hover: hover) and (pointer: fine) {
   .mapmode-btn:hover {
     background: #f5f5f5 !important;

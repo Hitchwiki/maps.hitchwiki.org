@@ -1572,8 +1572,13 @@ async function setMapMode(mode) {
   // back to spots when the heatmap can't load, and the URL must not claim otherwise.
   // Heatmap keeps using the legacy ?heatmap param so existing deep-links stay valid;
   // Countries mode uses ?mapmode=countries.
-  setQueryParameter("heatmap", mapMode === "heatmap");
-  setQueryParameter("mapmode", mapMode === "countries" ? "countries" : false);
+  // Both params must land in a SINGLE write: the mode is spread across two params,
+  // so two writes make the URL briefly describe a third mode, and the navigate()
+  // that fires on the intermediate state re-applies it on top of this one.
+  setQueryParameters({
+    heatmap: mapMode === "heatmap",
+    mapmode: mapMode === "countries" ? "countries" : false,
+  });
 }
 
 // The mode named by the current URL. Countries wins over the legacy ?heatmap flag.
@@ -3420,19 +3425,24 @@ const minDateFilter = document.getElementById("min-date-filter");
 const maxDateFilter = document.getElementById("max-date-filter");
 const clearFilters = document.getElementById("clear-filters");
 
-function setQueryParameter(key, value) {
-  const url = new URL(window.location.href); // Get the current URL
-
-  // Set or update the query parameter
-  if (value) {
-    url.searchParams.set(key, value);
-  } else {
-    url.searchParams.delete(key);
-  }
-
-  // Update the URL without reloading
+// Write several query parameters in ONE history entry and ONE navigate().
+// Writing them one at a time makes the URL pass through a state that describes a
+// mode nobody asked for (dropping ?heatmap before adding ?mapmode=countries reads
+// as "spots" in between), and each intermediate write kicks off its own async
+// applyParams() -> applyMapMode(); the loser of that race then overwrites the mode
+// the user actually picked. See setMapMode.
+function setQueryParameters(entries) {
+  const url = new URL(window.location.href);
+  Object.entries(entries).forEach(([key, value]) => {
+    if (value) url.searchParams.set(key, value);
+    else url.searchParams.delete(key);
+  });
   window.history.replaceState({}, "", url.toString());
   navigate();
+}
+
+function setQueryParameter(key, value) {
+  setQueryParameters({ [key]: value });
 }
 
 function getQueryParameter(key) {
