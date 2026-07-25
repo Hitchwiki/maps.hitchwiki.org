@@ -1207,6 +1207,23 @@ function relativeAge(iso) {
 // rides/by-spot/<sid>.json so a just-logged ride is in the spot pane immediately.
 let pendingRidesBySpot = new Map();
 
+// Newest Date.parse-able submission_time among rides, or -Infinity if none parse.
+// Shared by both pending-merge paths below so a missing/unparseable timestamp never
+// regresses latest_ms or writes NaN into it.
+function newestSubmissionMs(rides) {
+  return rides.reduce((max, r) => {
+    const t = Date.parse(r.submission_time);
+    return Number.isNaN(t) ? max : Math.max(max, t);
+  }, -Infinity);
+}
+
+// Rides that carry both destination coordinates, split into the parallel dest_lats/
+// dest_lons arrays spots.json uses (renderPoints' arrows, the distance filter).
+function pendingDestArrays(rides) {
+  const withDest = rides.filter((r) => r.dest_lat != null && r.dest_lon != null);
+  return { lats: withDest.map((r) => r.dest_lat), lons: withDest.map((r) => r.dest_lon) };
+}
+
 // Fetch /pending_rides.json and fold it into the markers. Non-blocking overlay like
 // loadProposedSpotMarkers, and must run after loadMarkers (it reads allMarkers and adds
 // to markerCluster). Silent on any failure: a missing endpoint or a bad payload leaves
@@ -1239,6 +1256,26 @@ async function loadPendingRides(map) {
     // filter is not reproducible client-side — a recomputed colour would be subtly
     // wrong for ten minutes, which is worse than a stale one.
     marker.options._data.review_count = (marker.options._data.review_count || 0) + group.rides.length;
+
+    // Recent-activity filter reads latest_ms; without this a pending ride would be
+    // invisible to the one filter meant to surface fresh activity. Never lower it — the
+    // generated value can already be newer than this batch (rides don't arrive in
+    // submission order).
+    const newestPendingMs = newestSubmissionMs(group.rides);
+    if (Number.isFinite(newestPendingMs)) {
+      marker.options._data.latest_ms = Math.max(marker.options._data.latest_ms || -Infinity, newestPendingMs);
+    }
+
+    // renderPoints() draws destination arrows from dest_lats/dest_lons, and the distance
+    // filter reads them too; append any pending rides that carry a destination.
+    const dest = pendingDestArrays(group.rides);
+    if (dest.lats.length) {
+      const hadDests = !!(marker.options._data.dest_lats && marker.options._data.dest_lats.length);
+      marker.options._data.dest_lats = (marker.options._data.dest_lats || []).concat(dest.lats);
+      marker.options._data.dest_lons = (marker.options._data.dest_lons || []).concat(dest.lons);
+      if (!hadDests) destinationMarkers.push(marker);
+    }
+
     pendingRidesBySpot.set(group.spotId, group.rides);
   }
 
@@ -1259,16 +1296,35 @@ function addPendingSpotMarker(spot) {
   const color = { 1: "red", 2: "orange", 3: "yellow", 4: "lightgreen", 5: "lightgreen" }[Math.round(rating)];
   const opacity = { 1: 0.3, 2: 0.4, 3: 0.6, 4: 0.8, 5: 0.8 }[Math.round(rating)];
   const coords = new L.latLng(spot.lat, spot.lon);
+
+  const data = { lat: spot.lat, lon: spot.lon, rating: rating, review_count: spot.review_count, text: "" };
+  // Recent-activity filter reads latest_ms — a brand-new spot's only rides are the
+  // pending ones, so this is the sole source for it.
+  const latestMs = newestSubmissionMs(spot.rides);
+  if (Number.isFinite(latestMs)) data.latest_ms = latestMs;
+  // renderPoints() draws destination arrows from dest_lats/dest_lons, and the distance
+  // filter reads them; populate from whichever pending rides carry a destination.
+  const dest = pendingDestArrays(spot.rides);
+  if (dest.lats.length) {
+    data.dest_lats = dest.lats;
+    data.dest_lons = dest.lons;
+  }
+
   const marker = L.circleMarker(coords, {
     radius: 5,
-    weight: 1,
+    // Mirror loadMarkers exactly so a pending-created marker is indistinguishable from
+    // a generated one.
+    weight: 1 + (spot.review_count > 2),
     fillOpacity: opacity,
     color: "black",
     fillColor: color,
     spotId: spot.spotId,
-    _data: { lat: spot.lat, lon: spot.lon, rating: rating, review_count: spot.review_count, text: "" },
+    _data: data,
   });
   marker.on("click", async (e) => await handleMarkerClick(marker, coords, e));
+  if (spot.review_count >= 3)
+    marker.on("add", (_) => setTimeout((_) => marker.bringToFront(), 0));
+  if (data.dest_lats?.length) destinationMarkers.push(marker);
   marker.addTo(markerCluster);
   allMarkers.push(marker);
 }
