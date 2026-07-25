@@ -309,7 +309,7 @@ We use the sqlite tables as a canonical format to easily translate between the n
   - Parsed content fields: stops, signals, hitchhikers, rating, waiting_duration
   - Extracted coordinates: start lat/lon, destination lat/lon
   - User metadata: hitchhiker nicknames, submission times
-  - **Written by**: `fetch_nostr.py` (full table delete/recreate, weekly) and `fetch_nostr_incremental.py` (upsert by `(pubkey, d)` + NIP-09 deletions, every 30 min)
+  - **Written by**: `fetch_nostr.py` (full table delete/recreate, weekly), `fetch_nostr_incremental.py` (upsert by `(pubkey, d)` + NIP-09 deletions, every 5 min), and `main.py`'s `_store_published_ride` (same upsert, called synchronously right after this app publishes/edits a ride, so the row exists before the next fetch cron runs — see Ride Creation/Update Flow)
   - **Read by**: `show.py:57`, `main.py:64,191` (ride submission/editing)
 
 - **`osm_hitchhiking_spot`**: OSM official spots (id, latitude, longitude, tags)
@@ -385,7 +385,16 @@ The `show.py` script runs every 10 minutes and generates map data files from the
    - Legend with color boundaries for waiting time visualization
    - Can be disabled via `GENERATE_HEATMAP=False` config
 
+7. **`generated_at.json`** - `{"ts": <epoch seconds>}`, the instant `show.py` took its DB snapshot
+   - Captured as `snapshot_ts` before any table is read, but written last, so the file never claims a snapshot whose data isn't on disk yet
+   - Read by `/pending_rides.json` (see below) to know which rides the generated files are still missing
+
 **Note**: JSON regeneration is optimized - files are only rebuilt when database modification time is newer than existing JSON files (unless `--force` flag is used).
+
+#### Live-from-DB endpoints (bypass `dist/` entirely)
+A couple of routes in `main.py` read the database directly on every request instead of serving pre-generated files, because their whole purpose is to show something newer than the last `show.py` run:
+- **`/proposed_spots.json`** - all `ProposedSpot` rows, newest first
+- **`/pending_rides.json`** - rides with `created_at >=` the `generated_at.json` snapshot (falling back to `rides_index.json`'s mtime if that file doesn't exist yet, which under-returns rather than double-shows). Normally an empty array; `map.js` fetches it after `loadMarkers` and folds the rides into the map via `pending_rides.js` — bumping an existing marker's count/`latest_ms`/destinations, or drawing a brand-new marker for a spot with no ride in `spots.json` yet — so a ride is visible within moments of submission rather than after the next `show.py` pass
 
 ### Data Flow Summary
 
@@ -400,7 +409,7 @@ Hitchwiki API → sync_hitchwiki.py → HitchwikiArticle* tables ↓
                                                               ↓
                                                          show.py
                                                               ↓
-                                  dist/{spots,rides_index,spots_recent,heatmap}.json
+                                  dist/{spots,rides_index,spots_recent,heatmap,generated_at}.json
                                           + dist/rides/by-spot/<sid>.json
                                                               ↓
                                                         Map UI (map.js)
@@ -410,28 +419,31 @@ Hitchwiki API → sync_hitchwiki.py → HitchwikiArticle* tables ↓
 
 When a user submits a new ride or edits an existing one:
 
-1. **Immediate**: Flask validates form data → publishes ride event directly to Nostr relays (synchronous, ~5 sec) → returns redirect to `/#success`
-   - No immediate write to the local `RideEvent` table — the ride only exists on Nostr relays at this point
+1. **Immediate**: Flask validates form data → publishes ride event directly to Nostr relays (synchronous, ~5 sec) → `_store_published_ride` (`main.py`) parses that same signed event with `parse_post_to_ride_fields` — the function both fetch scripts use — and upserts it into the local `RideEvent` table on `(pubkey, d)`, `created_at >=` (we are the publisher, so our copy is always at least as new) → returns redirect to `/#success`. This never raises: the ride is already on the relays by this point, so a local DB failure is logged and swallowed rather than turned into a 500 (a silently-rejected relay publish would then only be caught by the weekly full `fetch_nostr`, which drops what no fetch ever confirmed — the same gap `dist/temporary.json` exists to record). Because the row lands immediately, `/ride/<d_tag>` resolves and the ride shows on the author's profile at once, and an edit's new text is live immediately too — the cron steps below are how the *generated* map files (`spots.json`, `rides_index.json`, per-spot files) and `/pending_rides.json`'s fallback catch up, not how the ride reaches the DB.
    - Exception: co-hitchhiker records ARE written to the local `CoHitchhiker` table immediately, because co-hitchhiker acceptance is app-local state (not stored on Nostr). The submitter lists co-hitchhiker usernames, and each co-hitchhiker must accept via `/accept-co-hitchhiking-ride/<d_tag>` — this acceptance workflow only exists in the local DB.
    - For edits, the updated event is re-published to Nostr with the same `d_tag`
-2. **up to ~5 min later**: `fetch_nostr_incremental` cron runs (every 5 min) → Node.js fetches only events newer than our newest ride (plus all kind-5 deletions) → Python upserts them into `RideEvent` by `(pubkey, d)` and applies deletions (ride now in local DB). A weekly full `fetch_nostr` still delete-and-recreates the whole table to catch back-dated events and refresh the public exports
-3. **up to ~10 min later**: `show.py` cron (every 10 min) detects DB modification → regenerates `spots.json`, `rides_index.json`, etc.
-4. **Ride appears on map** — total latency up to ~15 minutes after submission
+2. **up to ~5 min later**: `fetch_nostr_incremental` cron runs (every 5 min) → Node.js fetches only events newer than our newest ride (plus all kind-5 deletions) → Python upserts them into `RideEvent` by `(pubkey, d)` and applies deletions. For our own rides this is a no-op re-confirmation (the row is already there from step 1, `_store_published_ride`'s upsert lands the same fields the cron would); it's the only path by which rides published straight to the relay by other Nostr clients (not through this app's submit form) reach the local DB. A weekly full `fetch_nostr` still delete-and-recreates the whole table to catch back-dated events and refresh the public exports
+3. **up to ~10 min later**: `show.py` cron (every 10 min) detects DB modification → regenerates `spots.json`, `rides_index.json`, etc. Until this runs, a just-submitted ride is on `/ride/<d_tag>` and the author's profile, but the map itself only shows it via `/pending_rides.json` (see Generated JSON Files)
+4. **Ride appears on map** — the map itself picks the ride up via `/pending_rides.json` within moments of submission (see Generated JSON Files); the *generated* files catch up within ~10 minutes, at which point `/pending_rides.json` stops serving that ride (deduped by `show.py`'s `snapshot_ts`) and the marker/spot pane come from `spots.json` / the per-spot file instead
 
 ```
 User submits form
     ↓ (immediate)
 Flask → Nostr Relays (publish ride event)
-    ↓ (redirect to /#success, ride NOT on map yet)
+    ↓ (immediate)
+_store_published_ride → RideEvent table (upsert) — /ride/<d_tag> and the profile page work now
+    ↓ (redirect to /#success)
     ...
     ↓ (up to ~5 min, cron)
-fetch_nostr_incremental → Nostr Relays → dist/newPosts.json → RideEvent table (upsert)
+fetch_nostr_incremental → Nostr Relays → dist/newPosts.json → RideEvent table (upsert, re-confirms our own rides; the only path for other sources)
     ↓ (up to ~10 min, cron)
-show.py → dist/{spots,rides_index,spots_recent,heatmap}.json
+show.py → dist/{spots,rides_index,spots_recent,heatmap,generated_at}.json
         → dist/rides/by-spot/<sid>.json (one file per spot, lazy-loaded)
     ↓
 Map UI loads updated JSON → ride visible on map
 ```
+
+In between steps 1 and 3, `/pending_rides.json` (served live from the DB, see Generated JSON Files) is what makes the ride visible on the map without waiting for the cron.
 
 ### Cron Schedule (deploy/cron.sh)
 - **Every 5 minutes**: `fetch_nostr_incremental` - Fetch only new/edited rides from Nostr and upsert them + apply NIP-09 deletions (cheap; replaced the every-30-min full `fetch_nostr`)
