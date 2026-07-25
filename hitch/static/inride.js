@@ -63,6 +63,71 @@
     count() { return outboxStore.get().length; },
   };
 
+  // Every ride this journey has logged so far, oldest first — one entry per Finish and
+  // per Give Up. Kept because the whole journey, not the single leg, is what gets closed
+  // out at the end: the success overlay needs the LAST ride's facts, and the auto-trip
+  // needs all of them. Entry shape:
+  //   { id (outbox item id), dTag (server d tag once uploaded), ride (share-card facts), at }
+  // Reset by journeyFlow.start (a new journey) and by finalizeJourney (this one is done).
+  //
+  // Durable, and the d tag is written back into it, because a journey easily outlives the
+  // page: a locked phone reloads the PWA between legs, which would otherwise lose the d
+  // tags of the legs already uploaded and quietly drop them from the trip.
+  const JOURNEY_LOG_KEY = "inride.journeyLog";
+  const journeyLogStore = {
+    get() {
+      try { const v = JSON.parse(localStorage.getItem(JOURNEY_LOG_KEY)); return Array.isArray(v) ? v : []; }
+      catch (e) { return []; }
+    },
+    set(list) { localStorage.setItem(JOURNEY_LOG_KEY, JSON.stringify(list)); return list; },
+    add(entry) {
+      const l = journeyLogStore.get();
+      l.push(entry);
+      journeyLogStore.set(l);
+      return entry;
+    },
+    // Fill in the server-assigned d tag for one of the journey's rides once it uploads.
+    noteDTag(itemId, dTag) {
+      const l = journeyLogStore.get();
+      const entry = l.find((e) => e.id === itemId);
+      if (!entry || entry.dTag) return;
+      entry.dTag = dTag;
+      journeyLogStore.set(l);
+    },
+    clear() { localStorage.removeItem(JOURNEY_LOG_KEY); },
+  };
+
+  // A finished multi-ride journey waiting to be grouped into a trip server-side. Durable
+  // because the rides may still be sitting in the outbox — a journey hitched through a
+  // dead zone must still group itself once the phone reconnects, possibly days later.
+  // Shape: { entries: [{ id, dTag|null }], createdAt }.
+  const PENDING_TRIP_KEY = "inride.pendingTrip";
+  const pendingTripStore = {
+    get() {
+      try {
+        const v = JSON.parse(localStorage.getItem(PENDING_TRIP_KEY));
+        return v && Array.isArray(v.entries) ? v : null;
+      } catch (e) { return null; }
+    },
+    set(rec) { localStorage.setItem(PENDING_TRIP_KEY, JSON.stringify(rec)); return rec; },
+    clear() { localStorage.removeItem(PENDING_TRIP_KEY); },
+    // Fill in the server-assigned d tag for one of the rides once it has uploaded.
+    noteDTag(itemId, dTag) {
+      const rec = pendingTripStore.get();
+      if (!rec) return;
+      const entry = rec.entries.find((e) => e.id === itemId);
+      if (!entry || entry.dTag) return;
+      entry.dTag = dTag;
+      pendingTripStore.set(rec);
+    },
+  };
+
+  // Server-assigned Nostr d tags for rides uploaded in THIS page session, keyed by outbox
+  // item id. The client uuid only pins the d tag's suffix (the server prefixes its source),
+  // so the real value is knowable no earlier than the upload response — which is what the
+  // share card's /ride/<d_tag> link and the auto-trip both need.
+  const uploadedDTags = {};
+
   // ── GPS helper ───────────────────────────────────────────────────────────────
   // A GPS "fix" = up to 3 attempts. Timeout / position-unavailable → retry;
   // PERMISSION_DENIED (code 1) is terminal and rejects immediately so the caller
@@ -191,6 +256,7 @@
             // queues it, so without this the funnel would report rides we never
             // received — a hitchhiker on a dead link looks identical to a success.
             hmTrack("journey_ride_uploaded", { kind: item.kind, attempts: item.attempts });
+            noteUploaded(item.id, res.json.d_tag);
             outboxStore.remove(item.id);
           } else if (res.status === 400 && res.json && res.json.transient !== true) {
             // Permanently rejected: this ride is lost unless someone intervenes.
@@ -209,14 +275,158 @@
         });
       });
     }, Promise.resolve()).then(
-      function () { flushing = false; if (window.inride.outboxUI) window.inride.outboxUI.refresh(); },
+      function () {
+        flushing = false;
+        if (window.inride.outboxUI) window.inride.outboxUI.refresh();
+        // A journey waiting to be grouped may have just had its last ride land.
+        tryCreateTrip();
+      },
       function () { flushing = false; } // never leave the guard stuck on an unexpected throw
     );
+  }
+
+  // Record the d tag the server minted for an uploaded ride, everywhere that cares: the
+  // in-memory map for this page, and the two durable records that outlive it.
+  function noteUploaded(itemId, dTag) {
+    if (!dTag) return;
+    uploadedDTags[itemId] = dTag;
+    journeyLogStore.noteDTag(itemId, dTag);
+    pendingTripStore.noteDTag(itemId, dTag);
   }
 
   // Replaced below (on-load section) with the real interval starter. Declared here so the
   // capture flows can call it before that definition is reached at module-eval time.
   let startOutboxTimer = function () {};
+
+  // Facts the share card draws from, pulled off the /ride body we already built so the
+  // two can never disagree. A give-up body carries no destination and no ride times;
+  // share_card.js treats those as absent and draws the pickup-only card.
+  function rideFactsFromBody(body) {
+    return {
+      pickupLat: body.pickup_lat,
+      pickupLon: body.pickup_lon,
+      destLat: body.destination_lat,
+      destLon: body.destination_lon,
+      waitMin: body.wait,
+      departedAt: body.datetime_ride,
+      arrivedAt: body.arrival_datetime,
+    };
+  }
+
+  // ── End of journey: success overlay + auto-grouped trip ──────────────────────
+  // How long to wait for a ride's server d tag before the share card settles for linking
+  // to the map instead. Nothing is blocked on this — see resolveDTag.
+  const DTAG_WAIT_MS = 8000;
+  // A pending trip whose rides never uploaded is dropped after this. Far longer than any
+  // realistic offline stretch, and it stops a dead record retrying on every page load.
+  const PENDING_TRIP_MAX_AGE_MS = 7 * 24 * 3600 * 1000;
+
+  // Resolves with the ride's server-assigned d tag once it uploads, or null when that
+  // takes too long or never happens.
+  //
+  // A promise rather than a value because Give Up finalises the journey in the same
+  // breath as queueing the ride: the upload is still in flight, and the d tag decides
+  // only whether the share card links to /ride/<d_tag> or to the map. The overlay opens
+  // immediately and this wait sits behind the card's own "Drawing your ride…" status,
+  // instead of leaving the hitchhiker looking at a bare map for several seconds.
+  function resolveDTag(itemId, known) {
+    if (known || uploadedDTags[itemId]) return Promise.resolve(known || uploadedDTags[itemId]);
+    if (navigator.onLine === false) return Promise.resolve(null);
+    return new Promise(function (resolve) {
+      const deadline = Date.now() + DTAG_WAIT_MS;
+      const poll = setInterval(function () {
+        if (uploadedDTags[itemId] || Date.now() > deadline) {
+          clearInterval(poll);
+          resolve(uploadedDTags[itemId] || null);
+        }
+      }, 300);
+    });
+  }
+
+  // Show the map's success overlay — the same one a ride logged through the /ride form
+  // gets — for the last ride of the journey. map.js owns the overlay; a context without
+  // it (a unit test, an old cached page) simply gets none.
+  function showJourneySuccess(entry) {
+    if (!entry || typeof window.showPostSubmitOverlay !== "function") return;
+    hmTrack("journey_success_shown", {});
+    // An anonymous journey routes through the same one-time sign-up nudge an anonymously
+    // logged past ride gets; everyone else goes straight to the share card.
+    window.showPostSubmitOverlay(window.IS_LOGGED_IN ? "" : "anon", {
+      ride: entry.ride,
+      dTag: resolveDTag(entry.id, entry.dTag),
+    });
+  }
+
+  // POST the finished journey's rides to /auto-trip once every one of them has a server
+  // d tag. Called after finalising a journey, after each outbox flush, on reconnect and
+  // on load, so a journey logged offline groups itself as soon as the phone is back.
+  let creatingTrip = false;
+  function tryCreateTrip() {
+    if (creatingTrip) return;
+    const rec = pendingTripStore.get();
+    if (!rec) return;
+    if (Date.now() - rec.createdAt > PENDING_TRIP_MAX_AGE_MS) return pendingTripStore.clear();
+    // Test mode never reaches the real /ride, so there are no real rides to group.
+    if (localStorage.getItem("inride.testMode") === "1") return pendingTripStore.clear();
+
+    const queued = new Set(outboxStore.pending().map(function (it) { return it.id; }));
+    // A ride still queued may yet upload — wait for it rather than grouping a partial
+    // journey we would then never be able to complete (a trip is written once).
+    if (rec.entries.some(function (e) { return !e.dTag && queued.has(e.id); })) return;
+    // Rides the outbox permanently rejected never got a d tag; the rest still form a trip.
+    const dTags = rec.entries.map(function (e) { return e.dTag; }).filter(Boolean);
+    if (dTags.length < 2) return pendingTripStore.clear();
+
+    creatingTrip = true;
+    fetch("/auto-trip", {
+      method: "POST",
+      headers: { "X-Requested-With": "inride", "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ ride_d_tags: dTags.join(",") }),
+    })
+      .then(function (r) {
+        return r.json().then(
+          function (j) { return { status: r.status, json: j }; },
+          function () { return { status: r.status, json: null }; }
+        );
+      })
+      .then(function (res) {
+        creatingTrip = false;
+        if (res.json && res.json.ok) {
+          pendingTripStore.clear();
+          hmTrack("journey_trip_created", { rides: dTags.length });
+          if (typeof window.showTripCreated === "function") window.showTripCreated(res.json);
+        } else if (res.status === 400) {
+          // Permanently refused (too few groupable rides, or rides not ours to group).
+          // Retrying can only produce the same answer.
+          pendingTripStore.clear();
+        }
+        // Anything else — offline, 5xx — keeps the record for the next attempt.
+      })
+      .catch(function () { creatingTrip = false; });
+  }
+
+  // End of a tracked journey, however it ended: End Hitch, Give Up, cancelling a leg, or
+  // discarding a stale one. Kept in one place so every exit closes the journey out the
+  // same way rather than only the End Hitch button — what the hitchhiker produced is the
+  // journey as a whole, not the leg they happened to stop on.
+  function finalizeJourney(opts) {
+    const log = journeyLogStore.get();
+    journeyStore.clear();
+    journeyLogStore.clear();
+    journeyUI.teardown();
+    if (!log.length) return; // nothing was ever logged — a journey started by mistake
+    flushOutbox(); // the last leg was very likely queued moments ago
+    // More than one ride means these legs were one hitch, which is information the rides
+    // on their own don't carry. Queue the grouping; the POST goes out once they upload.
+    if (log.length > 1) {
+      pendingTripStore.set({
+        entries: log.map(function (e) { return { id: e.id, dTag: e.dTag || uploadedDTags[e.id] || null }; }),
+        createdAt: Date.now(),
+      });
+      tryCreateTrip();
+    }
+    if (!opts || opts.share !== false) showJourneySuccess(log[log.length - 1]);
+  }
 
   // Enqueue the finished ride durably, THEN proceed — the journey never blocks on the
   // network. The outbox flush (now + on reconnect) performs the actual upload. If the
@@ -230,10 +440,12 @@
       leg: j.legIndex || 0,
     });
     const id = uuid();
+    const body = buildFinishBody(j, dest, finishMs, id);
     outboxStore.add({
       id: id, kind: "finish", createdAt: Date.now(), attempts: 0, lastError: null, status: "pending",
-      body: buildFinishBody(j, dest, finishMs, id),
+      body: body,
     });
+    journeyLogStore.add({ id: id, dTag: null, ride: rideFactsFromBody(body), at: Date.now() });
     journeyUI.setFinishBusy(false);
     if (window.inride.outboxUI) window.inride.outboxUI.refresh();
     startOutboxTimer();
@@ -298,6 +510,9 @@
   journeyFlow.start = function (latlng, coHitchhikers) {
     // Accepts a Leaflet LatLng or {lat, lon} — see toLatLon.
     const p = toLatLon(latlng);
+    // A fresh journey logs nothing yet. nextRide deliberately does NOT do this: its legs
+    // belong to the journey already in progress.
+    journeyLogStore.clear();
     const j = journeyStore.set({
       state: "waiting",
       pickup: { lat: p.lat, lon: p.lon },
@@ -334,8 +549,10 @@
     // from give-up, which does submit one — so this is the count that says how
     // much real hitchhiking the tracker records but never publishes.
     hmTrack("journey_cancelled", { from_state: j.state, wait_min: waitMinutes(j), leg: j.legIndex || 0 });
-    journeyStore.clear();
-    journeyUI.teardown();
+    // Only the *current* leg's wait is thrown away. Earlier legs of the same journey are
+    // already-logged rides, so this still ends the journey properly — success overlay and
+    // auto-trip included — rather than silently dropping what was recorded.
+    finalizeJourney({ share: true });
   };
 
   // Gave up waiting. Capture a rating + comment inline (no redirect — the /ride form
@@ -350,16 +567,18 @@
     journeyUI.giveUpSheet(function (details) {
       hmTrack("journey_gave_up", { wait_min: waitMin, leg: j.legIndex || 0 });
       const id = uuid();
+      const body = window.RideSubmit.buildGiveUpBody(j, waitMin, details, id);
       outboxStore.add({
         id: id, kind: "giveup", createdAt: Date.now(), attempts: 0, lastError: null, status: "pending",
-        body: window.RideSubmit.buildGiveUpBody(j, waitMin, details, id),
+        body: body,
       });
-      journeyStore.clear();
-      journeyUI.teardown();
+      journeyLogStore.add({ id: id, dTag: null, ride: rideFactsFromBody(body), at: Date.now() });
       if (window.inride.outboxUI) window.inride.outboxUI.refresh();
       startOutboxTimer();
       if (navigator.onLine === false) journeyUI.toast("Saved — will upload when you're back online.");
-      flushOutbox();
+      // Giving up ends the journey, so it gets the same close-out as End Hitch — the
+      // wait it recorded is a logged spot experience like any other.
+      finalizeJourney({ share: true });
     });
   };
 
@@ -474,8 +693,14 @@
     });
   };
 
-  // End the journey: wipe stored state and remove all journey chrome.
-  journeyFlow.end = function () { journeyStore.clear(); journeyUI.teardown(); };
+  // End the journey: wipe stored state, remove all journey chrome, and close it out with
+  // the success overlay for the last ride logged (plus a trip if there were several).
+  journeyFlow.end = function () { finalizeJourney({ share: true }); };
+
+  // Same close-out without the overlay, for discarding a journey left over from more than
+  // a day ago: whatever it logged still deserves its trip, but a share card for a ride
+  // from another day is not a confirmation of anything the user just did.
+  journeyFlow.discard = function () { finalizeJourney({ share: false }); };
 
   // New leg: drop-off is the DEFAULT waiting location but the user can move it
   // (dropped at an exit, walks to a better spot). Fresh timers; pickup = confirmed pt.
@@ -2313,7 +2538,10 @@
     },
   };
 
-  window.inride = { journeyStore, journeyUI, journeyFlow, outboxStore, submitBody, flushOutbox, outboxUI, startLauncher };
+  window.inride = {
+    journeyStore, journeyUI, journeyFlow, outboxStore, submitBody, flushOutbox, outboxUI, startLauncher,
+    journeyLogStore, pendingTripStore, finalizeJourney, tryCreateTrip, rideFactsFromBody,
+  };
 
   // ── On-load init ─────────────────────────────────────────────────────────────
 
@@ -2367,7 +2595,7 @@
         body: "You have a hitching journey from more than 24 hours ago. Continue where you left off?",
         actions: [
           { label: "Resume",  cls: "inr-go", onClick: function () { journeyUI.render(j); } },
-          { label: "Discard", cls: "inr-grey",    onClick: function () { journeyFlow.end(); } },
+          { label: "Discard", cls: "inr-grey",    onClick: function () { journeyFlow.discard(); } },
         ],
       });
       return;
@@ -2388,13 +2616,17 @@
     }, 30000);
   };
 
-  // Reconnect → drain immediately (don't wait for the interval).
-  window.addEventListener("online", function () { flushOutbox(); });
+  // Reconnect → drain immediately (don't wait for the interval), and retry a trip whose
+  // POST itself was what failed (its rides may already be uploaded).
+  window.addEventListener("online", function () { flushOutbox(); tryCreateTrip(); });
 
   // On load: restore the chip and, if a previous session left queued rides, flush + tick.
   function initOutbox() {
     outboxUI.refresh();
     if (outboxStore.pending().length) { flushOutbox(); startOutboxTimer(); }
+    // A journey finished on a previous visit may still owe its trip — either its rides
+    // were queued then, or the grouping POST never got through.
+    tryCreateTrip();
   }
 
   // Run only after Leaflet's window.map is ready — _renderInRide places a Leaflet marker

@@ -672,6 +672,9 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
     <div class="success-content success-share-content">
         <button type="button" id="success-dismiss" class="success-dismiss" aria-label="Close">&times;</button>
         <p class="success-feedback">Ride saved — thank you! We'd love to hear your thoughts: <a href="https://docs.google.com/forms/d/e/1FAIpQLSdGLlPKhjRXIjG2VB-BlkxbsagNeXce5eI3sKFHe-_scJMFnw/viewform?usp=header" target="_blank" rel="noopener">share feedback</a>.</p>
+        <!-- Filled in by showTripCreated() when a tracked journey's rides were grouped
+             into a trip. Hidden otherwise, and for a single-ride journey. -->
+        <p id="success-trip-note" class="success-trip-note" style="display: none;"></p>
         <div id="success-share-block">
             <h2>Show your friends</h2>
             <p class="success-share-sub">Send them the map of your ride — it's how most hitchhikers find us.</p>

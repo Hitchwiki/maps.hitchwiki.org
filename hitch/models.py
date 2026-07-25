@@ -115,7 +115,12 @@ class Trip(db.Model):
     # A named collection of rides belonging to one user (e.g. "Summer 2026 Balkans").
     # Rides are attached via TripRide rows keyed on the ride's Nostr d-tag.
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    # Nullable because a multi-ride journey logged anonymously through the in-ride tracker
+    # is auto-grouped into a trip too (see /auto-trip), and there is no account to hang it
+    # off. An ownerless trip is reachable only by its link and nobody can edit or delete it
+    # — every trip-mutating route compares trip.user_id to a logged-in id, which None never
+    # equals.
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
     name = db.Column(db.String(255), nullable=False)
     # Optional free-text blurb the user writes to describe the trip.
     description = db.Column(db.Text, nullable=True)

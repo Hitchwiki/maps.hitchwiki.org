@@ -1,16 +1,18 @@
 import io
 import json
 import os
+import time
 from datetime import datetime
 from types import SimpleNamespace
 from urllib.parse import quote
 
 import pandas as pd
+import requests
 from flask import Blueprint, current_app, jsonify, redirect, render_template, request, send_file, url_for
 from flask_security import current_user
 from sqlalchemy import text
 
-from hitch.blueprints.publish_ride import construct_hitchhiker_from_current_user
+from hitch.blueprints.publish_ride import ANONYMOUS_NICKNAME, construct_hitchhiker_from_current_user
 from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import HitchhikingRecord
 from hitch.blueprints.utils.notifications import notify_new_follower
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
@@ -973,6 +975,141 @@ def save_trip():
     return redirect(f"/trip/{trip.id}")
 
 
+# ── Auto-grouped trips (in-ride tracker) ──────────────────────────────────────
+# A tracked journey that produced more than one ride is grouped into a trip without
+# being asked: those rides are consecutive legs of one hitch by construction, so making
+# someone rebuild that grouping by hand in /create-trip is busywork. inride.js posts to
+# /auto-trip once the journey's rides have all reached the server.
+
+# Ceiling on the rides one auto-trip may contain. A real journey is a handful of legs;
+# the cap stops a crafted POST sweeping an unbounded slice of the ride table into one page.
+AUTO_TRIP_MAX_RIDES = 40
+# Only recently published rides can be auto-grouped. The tracker posts within seconds of
+# the last leg (or, offline, whenever the device next reconnects), so a generous window
+# still covers every honest case while keeping historical rides out of reach.
+AUTO_TRIP_MAX_AGE_S = 30 * 24 * 3600
+
+# Photon's reverse lookup answers with the nearest *feature*, which at a roadside pickup
+# is usually a street or a POI; its `city` field is filled in exactly then, so prefer that
+# over `name`. Same preference order as route_preview.place_label — but deliberately with
+# no reverse_geocoder fallback: that library loads a ~30 MB table into the process, and
+# unlike route_preview (a short-lived subprocess) this runs inside the waitress workers,
+# which this host has been OOM-killed over before.
+_PLACE_TYPES = {"city", "town", "village", "hamlet", "municipality", "locality", "district", "county", "state"}
+_PLACE_TIMEOUT_S = 4
+_PLACE_USER_AGENT = "maps.hitchwiki.org trip naming (+https://maps.hitchwiki.org)"
+
+
+def _place_label(lat, lon):
+    """Nearest settlement name for a coordinate, or None when it can't be resolved."""
+    try:
+        response = requests.get(
+            "https://photon.komoot.io/reverse",
+            params={"lat": lat, "lon": lon, "lang": "en", "limit": 1},
+            headers={"User-Agent": _PLACE_USER_AGENT},
+            timeout=_PLACE_TIMEOUT_S,
+        )
+        response.raise_for_status()
+        props = response.json()["features"][0]["properties"]
+        if props.get("type") in _PLACE_TYPES and props.get("name"):
+            return props["name"]
+        for key in ("city", "locality", "district", "county", "state", "country"):
+            if props.get(key):
+                return props[key]
+        return props.get("name") or None
+    except (requests.RequestException, ValueError, KeyError, IndexError):
+        return None
+
+
+def _auto_trip_name(rides):
+    """Generic name for an auto-grouped trip: "<start> → <end>, <Month Year>".
+
+    Collapses to "<start>, <Month Year>" when both ends resolve to the same place or the
+    journey never recorded where it ended, and to "Hitchhiking trip, <Month Year>" when
+    nothing reverse-geocodes (Photon down, or a coordinate far from any settlement). The
+    owner can rename it afterwards — this only has to beat "Untitled trip".
+    """
+    ordered = sorted(rides, key=lambda r: (r.get("submission_sort_key") is not None, r.get("submission_sort_key") or 0))
+    points = _trip_route_points(ordered)
+    start = _place_label(points[0]["lat"], points[0]["lon"]) if points else None
+    end = _place_label(points[-1]["lat"], points[-1]["lon"]) if len(points) > 1 else None
+
+    where = f"{start} → {end}" if start and end and end != start else (start or "Hitchhiking trip")
+    keys = [r["submission_sort_key"] for r in ordered if r.get("submission_sort_key")]
+    when = pd.Timestamp(min(keys)) if keys else pd.Timestamp.now()
+    # Trip.name is VARCHAR(255); place names are short but the cap keeps a pathological
+    # Photon answer from being silently truncated by the database instead.
+    return f"{where}, {when.strftime('%B %Y')}"[:255]
+
+
+def _ride_hitchhiker_nicknames(ride):
+    """Nicknames listed on a ride event ("Anonymous" for an unattributed one)."""
+    return [(h or {}).get("nickname") for h in ((ride.content or {}).get("hitchhikers") or [])]
+
+
+def _may_auto_group(ride, user):
+    """Whether `user` (possibly anonymous) may put `ride` into an auto-trip.
+
+    A logged-in hitchhiker has to be listed on the ride. An anonymous visitor has no
+    identity to check against, so the only rides they can group are ones with no named
+    hitchhiker at all — which is exactly what an anonymous journey produces, and stops a
+    crafted POST bundling someone else's attributed rides onto a trip page.
+    """
+    nicknames = _ride_hitchhiker_nicknames(ride)
+    if user.is_anonymous:
+        return bool(nicknames) and all(n == ANONYMOUS_NICKNAME for n in nicknames)
+    return _norm_nickname(user.username) in [_norm_nickname(n) for n in nicknames if n]
+
+
+def _trip_payload(trip, created):
+    return {"ok": True, "trip_id": trip.id, "name": trip.name, "url": f"/trip/{trip.id}", "created": created}
+
+
+@user_bp.route("/auto-trip", methods=["POST"])
+def auto_trip():
+    """Group the rides of one finished in-ride journey into a trip. Form in, JSON out.
+
+    Returns the existing trip untouched when any of the rides is already in one, so the
+    client's offline retry can repeat the call without minting duplicate trips.
+    """
+    raw = [d.strip() for d in (request.form.get("ride_d_tags") or "").split(",")]
+    d_tags = [d for d in dict.fromkeys(raw) if d][:AUTO_TRIP_MAX_RIDES]
+    if len(d_tags) < 2:
+        return jsonify({"ok": False, "error": "need at least two rides"}), 400
+
+    # Already grouped — this is a repeat of a call that did land. Hand back the same trip
+    # rather than creating a second one holding the same rides.
+    already = TripRide.query.filter(TripRide.ride_d_tag.in_(d_tags)).first()
+    if already:
+        trip = db.session.get(Trip, already.trip_id)
+        if trip:
+            return jsonify(_trip_payload(trip, created=False))
+
+    cutoff = int(time.time()) - AUTO_TRIP_MAX_AGE_S
+    rides = [
+        ride
+        for d_tag in d_tags
+        if (ride := db.session.query(RideEvent).filter_by(d=d_tag).first()) is not None
+        and (ride.created_at or 0) >= cutoff
+        and _may_auto_group(ride, current_user)
+    ]
+    if len(rides) < 2:
+        return jsonify({"ok": False, "error": "no groupable rides"}), 400
+
+    trip = Trip(
+        # None for an anonymous journey: there is no account to own it. See models.Trip.
+        user_id=None if current_user.is_anonymous else current_user.id,
+        name=_auto_trip_name([_extract_ride_info(ride, "trip") for ride in rides]),
+        description=None,
+    )
+    db.session.add(trip)
+    db.session.flush()  # assign trip.id before we reference it below
+    for ride in rides:
+        db.session.add(TripRide(trip_id=trip.id, ride_d_tag=ride.d))
+    db.session.commit()
+    return jsonify(_trip_payload(trip, created=True))
+
+
 @user_bp.route("/delete-trip/<int:trip_id>", methods=["POST"])
 def delete_trip(trip_id):
     """Delete a trip and its ride membership (owner only)."""
@@ -992,7 +1129,9 @@ def show_trip(trip_id):
     trip = db.session.get(Trip, trip_id)
     if trip is None:
         return redirect("/")
-    owner = db.session.get(User, trip.user_id)
+    # An auto-grouped anonymous trip has no user_id; session.get(User, None) is an error,
+    # not a miss, so the guard has to come first. The template already renders ownerless.
+    owner = db.session.get(User, trip.user_id) if trip.user_id else None
     is_owner = not current_user.is_anonymous and current_user.id == trip.user_id
     rides = _rides_for_trip(trip.id)
     date_span = _trip_date_span(rides)
@@ -1020,7 +1159,7 @@ def trip_preview_image(trip_id):
     if trip is None:
         return redirect("/")
 
-    owner = db.session.get(User, trip.user_id)
+    owner = db.session.get(User, trip.user_id) if trip.user_id else None
     rides = _rides_for_trip(trip.id)
     points = _trip_route_points(rides)
     description = _trip_preview_description(owner, _trip_date_span(rides), rides)

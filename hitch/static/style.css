@@ -2074,6 +2074,18 @@ ul.no-style {
   margin: 0 24px 18px 0 !important;
 }
 
+/* The auto-grouped-trip line. Tinted rather than plain grey like .success-feedback:
+   it is the one piece of news on this overlay the user did not ask for, so it has to
+   read as a notice instead of blending into the feedback ask above it. */
+.success-trip-note {
+  font-size: 0.95em !important;
+  color: #2f6b3a !important;
+  background: #eaf5ec;
+  border-radius: 8px;
+  padding: 10px 12px !important;
+  margin: 0 0 18px 0 !important;
+}
+
 .success-share-content h2 {
   margin-bottom: 6px;
 }

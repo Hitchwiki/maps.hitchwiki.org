@@ -86,7 +86,7 @@ Modelled on OpenStreetMap's `/node/<id>#map=<zoom>/<lat>/<lon>`. Two independent
 - **CoHitchhiker**: Co-hitchhiker acceptance tracking
 - **User** / **Role**: Flask-Security accounts and roles
 - **Follow** / **Notification**: User following and notifications
-- **Trip** / **TripRide**: Trips grouping multiple rides
+- **Trip** / **TripRide**: Trips grouping multiple rides. `Trip.user_id` is **nullable**: a multi-ride journey logged anonymously through the in-ride tracker is auto-grouped into an ownerless trip (see the in-ride tracker section). An ownerless trip is reachable only by its link — every trip-mutating route compares `trip.user_id` to a logged-in id, which `None` never equals — and any `db.session.get(User, trip.user_id)` must be guarded, since `session.get` with a `None` pk raises rather than returning `None`
 - **RideReport**: User-reported issues on rides
 - **SpotName**: Cached reverse-geocoded street name per spot id (see `spot_names.py`)
 - **ServiceArea** / **RoadIsland** / **RoutingSearch**: Routing-support data
@@ -224,6 +224,12 @@ conn.commit(); conn.close()
 "
 ```
 Failure to do this causes `sqlalchemy.exc.OperationalError: no such column: <table>.<col>` on any query that touches that model, which presents as a 500 for every affected route.
+
+**Changing a column's constraints is not an `ALTER`.** SQLite has no `ALTER TABLE ... ALTER COLUMN`, so relaxing a `NOT NULL` (or changing a type) needs the twelve-step table rebuild: create the new table, copy the rows, drop the old one, rename. `hitch/scripts/migrate_trip_user_nullable.py` is the worked example (it made `trip.user_id` nullable for anonymous auto-trips) — standalone stdlib script, idempotent, verifies the row count survived:
+```bash
+sudo docker exec hitchhiking-map python3 /app/hitch/scripts/migrate_trip_user_nullable.py --db /app/db/hitchhiking-prod.sqlite
+```
+Run the migration **before** pushing the code that depends on it: a deploy is a push, so the new code is live within a minute or two and would otherwise hit an `IntegrityError` on the old constraint.
 
 ### Container killed by OOM (exit code 137)
 If the `hitchhiking-map` container is down with exit code 137 (`Exited (137)`), it was killed by the Linux OOM killer. This happened on 2026-04-07.
@@ -457,6 +463,23 @@ Map UI loads updated JSON → ride visible on map
 ```
 
 In between steps 1 and 3, `/pending_rides.json` (served live from the DB, see Generated JSON Files) is what makes the ride visible on the map without waiting for the cron.
+
+### In-ride tracker: end of a journey (`hitch/static/inride.js`)
+
+The "Start hitchhiking" flow is the *other* contribution path (the `/ride` form is the first). One journey can log several rides — one per Finish, plus one for a Give Up — and they reach the server through a durable localStorage **outbox**, not a form POST. Two stores exist alongside it:
+
+- **`inride.journeyLog`** — every ride *this* journey has logged, oldest first: `{id (outbox item id), dTag (filled in on upload), ride (share-card facts), at}`. Reset by `journeyFlow.start` (a new journey) but deliberately **not** by `nextRide` (a further leg of the same one). The d tag is written back here rather than kept in memory because a long hitch outlives the page — a locked phone reloads the PWA between legs, which would otherwise drop every already-uploaded leg from the trip.
+- **`inride.pendingTrip`** — a finished multi-ride journey still owing its trip: `{entries: [{id, dTag|null}], createdAt}`. Durable because the rides may still be queued; a journey hitched through a dead zone must group itself once the phone reconnects, possibly days later. Dropped after 7 days.
+
+**`finalizeJourney()` is the single close-out**, called by End Hitch, Give Up, cancelling a leg, and discarding a stale journey (that last one with `share: false`). Every exit runs it, because what the hitchhiker produced is the journey as a whole, not the leg they happened to stop on. It:
+
+1. Opens **the same success overlay a past-ride submission gets** (`map.js` `showPostSubmitOverlay` / `showSuccessOverlay`), for the **last** ride logged. Anonymous journeys route through the one-time sign-up nudge exactly as `#success-anon` does.
+2. Queues the auto-trip when the journey logged more than one ride.
+
+Two things are worth knowing before editing this:
+
+- **The share card's d tag is only knowable after the upload.** The client uuid pins just the *suffix* of the Nostr `d` (the server prefixes its source), so the real value arrives in the `/ride` reply. `showSuccessOverlay(opts)` therefore accepts `opts.dTag` as a **promise** — Give Up finalises the journey in the same breath as queueing the ride, and waiting on it before opening the overlay would leave the user staring at a bare map for the ~5 s of the Nostr publish. The wait sits behind the card's own "Drawing your ride…" status instead; after `DTAG_WAIT_MS` it settles for `null` and the card links to the map.
+- **`POST /auto-trip`** (`user.py`) is fire-and-forget and idempotent: it returns the existing trip if any of the posted d-tags is already in one, so the client's retry can repeat it freely. It only groups recently published rides (`AUTO_TRIP_MAX_AGE_S`) that the caller may group — listed hitchhiker for a logged-in user, *no* named hitchhiker for an anonymous one, so a crafted POST can't bundle someone else's rides onto a trip page. The name is `"<start> → <end>, <Month Year>"` from Photon reverse geocoding, collapsing to one place or to `"Hitchhiking trip"` when that fails. **No `reverse_geocoder` fallback here** (unlike `route_preview.py`): it loads ~30 MB into the long-lived waitress workers, and this host has been OOM-killed before.
 
 ### Cron Schedule (deploy/cron.sh)
 - **Every 5 minutes**: `fetch_nostr_incremental` - Fetch only new/edited rides from Nostr and upsert them + apply NIP-09 deletions (cheap; replaced the every-30-min full `fetch_nostr`)

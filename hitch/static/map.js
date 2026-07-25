@@ -2878,10 +2878,27 @@ function takeLastRide() {
   }
 }
 
-function showSuccessOverlay() {
+// The trip the in-ride tracker grouped a finished journey's rides into, or null.
+//
+// Held rather than rendered on arrival because the two events race in both directions:
+// the grouping POST only resolves once every ride of the journey has uploaded, while an
+// anonymous journey shows the sign-up nudge first and opens the success overlay later.
+// Whichever happens second does the rendering.
+let lastTripCreated = null;
+
+// `opts` is how a caller that never navigated hands the ride in directly:
+// {ride, dTag}. The /ride form's redirect can't do that (the POST navigates away), so
+// it goes through sessionStorage + ?ride= instead; the in-ride tracker, which submits
+// over fetch and stays on the page, passes its last logged ride here.
+function showSuccessOverlay(opts) {
   const overlay = $$("#success-overlay");
   if (!overlay) return;
   overlay.style.display = "flex";
+  // A trip note belongs to the journey that was handed in via opts. Reached from a bare
+  // #success (the /ride form's redirect) there is no journey, so anything left over from
+  // an earlier one in this session must not show.
+  if (!opts) lastTripCreated = null;
+  renderTripCreatedNote();
 
   // Dismissing the overlay returns to the map the user submitted from — no
   // navigation, so the restored viewport stays exactly where they left it. Every
@@ -2889,6 +2906,7 @@ function showSuccessOverlay() {
   const close = function () {
     overlay.style.display = "none";
     document.removeEventListener("keydown", onKey);
+    lastTripCreated = null; // the note has been seen; the next journey brings its own
   };
   const onKey = function (e) {
     if (e.key === "Escape") close();
@@ -2907,13 +2925,33 @@ function showSuccessOverlay() {
     if (e.target === overlay) close();
   };
 
-  setupShareCard();
+  setupShareCard(opts);
+}
+
+function renderTripCreatedNote() {
+  const note = $$("#success-trip-note");
+  if (!note) return; // an old cached copy of the overlay markup (see setupShareCard)
+  note.textContent = "";
+  note.style.display = "none";
+  if (!lastTripCreated || !lastTripCreated.url) return;
+  const link = document.createElement("a");
+  link.href = lastTripCreated.url;
+  link.textContent = lastTripCreated.name || "your trip";
+  note.textContent = "Your rides were grouped into a trip: ";
+  note.appendChild(link);
+  note.style.display = "block";
+}
+
+// Called by inride.js once /auto-trip replies.
+function showTripCreated(trip) {
+  lastTripCreated = trip;
+  renderTripCreatedNote();
 }
 
 // Builds the shareable image and wires the share button. Anything that goes wrong
 // (no stashed ride, no network for the tiles, a browser without canvas export)
 // degrades to sharing just the text + link — never to a broken overlay.
-function setupShareCard() {
+function setupShareCard(opts) {
   const block = $$("#success-share-block");
   const shareBtn = $$("#success-share-btn");
   const status = $$("#share-card-status");
@@ -2923,14 +2961,20 @@ function setupShareCard() {
   // cached copy of the old overlay markup. Bail out to the plain success message
   // rather than throwing on the missing elements.
   if (!shareBtn || !status || !img || !caption) return;
-  const ride = takeLastRide();
+  // A caller that handed the ride in directly wins over the stash — but the stash is
+  // still consumed, so a stale entry can't resurface on the next plain /#success.
+  const stashed = takeLastRide();
+  const ride = (opts && opts.ride) || stashed;
 
   // The submit redirect carries the new ride's d tag as ?ride=<d_tag>. Read it, then
   // drop it from the URL: it is a one-shot hand-off, not part of the map's address.
   // replaceState, not pushState — canonicalising is not a navigation.
   const params = new URLSearchParams(window.location.search);
-  const dTag = params.get("ride");
-  if (dTag) history.replaceState({}, "", "/" + window.location.hash);
+  const urlDTag = params.get("ride");
+  if (urlDTag) history.replaceState({}, "", "/" + window.location.hash);
+  // May be a promise: the in-ride tracker opens this overlay while the last ride is
+  // still uploading, and the d tag it links to only exists once the server replies.
+  const dTag = (opts && opts.dTag) || urlDTag;
 
   let card = null;
 
@@ -2950,8 +2994,10 @@ function setupShareCard() {
   }
 
   shareBtn.disabled = true;
-  window.hmShareCard
-    .build(ride, dTag)
+  Promise.resolve(dTag)
+    .then(function (resolved) {
+      return window.hmShareCard.build(ride, resolved);
+    })
     .then(function (result) {
       card = result;
       img.src = result.dataUrl;
@@ -3061,9 +3107,9 @@ function logSignupPrompt(prompt, action) {
   } catch (e) {}
 }
 
-function showSignupPromptOverlay() {
+function showSignupPromptOverlay(opts) {
   const overlay = $$("#signup-prompt-overlay");
-  if (!overlay) return showSuccessOverlay();
+  if (!overlay) return showSuccessOverlay(opts);
   markPromptSeen(SIGNUP_PROMPT_SEEN_KEY);
   logSignupPrompt("anon-signup", "shown");
   overlay.style.display = "flex";
@@ -3077,13 +3123,13 @@ function showSignupPromptOverlay() {
   $$("#signup-prompt-no").onclick = function () {
     logSignupPrompt("anon-signup", "stay-anonymous");
     overlay.style.display = "none";
-    showSuccessOverlay();
+    showSuccessOverlay(opts);
   };
 }
 
-function showInvitePromptOverlay() {
+function showInvitePromptOverlay(opts) {
   const overlay = $$("#invite-prompt-overlay");
-  if (!overlay) return showSuccessOverlay();
+  if (!overlay) return showSuccessOverlay(opts);
   markPromptSeen(INVITE_PROMPT_SEEN_KEY);
   logSignupPrompt("co-hitchhiker-invite", "shown");
   overlay.style.display = "flex";
@@ -3097,7 +3143,7 @@ function showInvitePromptOverlay() {
   const shareBtn = $$("#invite-prompt-share");
   const done = function () {
     overlay.style.display = "none";
-    showSuccessOverlay();
+    showSuccessOverlay(opts);
   };
 
   shareBtn.onclick = async function () {
@@ -3129,10 +3175,10 @@ function showInvitePromptOverlay() {
 
 // Entry point for the three post-submit hashes. Each nudge falls through to the
 // plain success overlay once it has had its one showing.
-function showPostSubmitOverlay(kind) {
-  if (kind === "anon" && !promptSeen(SIGNUP_PROMPT_SEEN_KEY)) showSignupPromptOverlay();
-  else if (kind === "invite" && !promptSeen(INVITE_PROMPT_SEEN_KEY)) showInvitePromptOverlay();
-  else showSuccessOverlay();
+function showPostSubmitOverlay(kind, opts) {
+  if (kind === "anon" && !promptSeen(SIGNUP_PROMPT_SEEN_KEY)) showSignupPromptOverlay(opts);
+  else if (kind === "invite" && !promptSeen(INVITE_PROMPT_SEEN_KEY)) showInvitePromptOverlay(opts);
+  else showSuccessOverlay(opts);
 }
 
 
