@@ -16,6 +16,15 @@
   // bare hmTrack would be a ReferenceError instead of a no-op.
   const hmTrack = (typeof window !== "undefined" && window.hmTrack) || function () {};
 
+  // Same reasoning as hmTrack above, for map.js's tr() (client-side i18n, see
+  // hitch/static/map.js): guarded so headless node runs of this file don't throw.
+  // Falls back to plain English with {placeholder}s substituted by hand.
+  function T(text, vars) {
+    if (typeof tr === "function") return tr(text, vars);
+    if (!vars) return text;
+    return Object.keys(vars).reduce((s, k) => s.split("{" + k + "}").join(vars[k]), text);
+  }
+
   // ---- engine constants --------------------------------------------------
   const WALK_KMH = 5, CAR_KMH = 100, CAR_FACTOR = 1.25, EARTH_KM = 6371;
   // How far one is willing to walk — applied uniformly to first/last mile
@@ -347,8 +356,8 @@
     if (e.endsKm < 0.2) return "";
     // Too far to reasonably walk in a city -> suggest public transport.
     return e.endsKm > 3
-      ? "+ transit to start &amp; end"
-      : `+ ${fmtTime(e.endsMin)} walk to start &amp; end`;
+      ? T("+ transit to start &amp; end")
+      : T("+ {time} walk to start &amp; end", { time: fmtTime(e.endsMin) });
   }
   function pinIcon(kind) {
     return L.divIcon({
@@ -365,19 +374,19 @@
     panel.id = "route-panel";
     panel.hidden = true;
     panel.innerHTML = `
-      <button class="rp-close" title="Close" aria-label="Close route planning">
+      <button class="rp-close" title="${T("Close")}" aria-label="${T("Close route planning")}">
         <i class="fa-solid fa-arrow-left"></i>
       </button>
       <div class="rp-fields">
         <div class="rp-field" data-field="start">
           <span class="rp-dot rp-dot-start"></span>
-          <input type="text" autocomplete="off" placeholder="Choose starting point, or click on the map" />
-          <button class="rp-clear" tabindex="-1" aria-label="Clear">&times;</button>
+          <input type="text" autocomplete="off" placeholder="${T("Choose starting point, or click on the map")}" />
+          <button class="rp-clear" tabindex="-1" aria-label="${T("Clear")}">&times;</button>
         </div>
         <div class="rp-field" data-field="dest">
           <span class="rp-dot rp-dot-dest"></span>
-          <input type="text" autocomplete="off" placeholder="Choose destination, or click on the map" />
-          <button class="rp-clear" tabindex="-1" aria-label="Clear">&times;</button>
+          <input type="text" autocomplete="off" placeholder="${T("Choose destination, or click on the map")}" />
+          <button class="rp-clear" tabindex="-1" aria-label="${T("Clear")}">&times;</button>
         </div>
       </div>
       <div class="rp-suggest" hidden></div>
@@ -419,7 +428,7 @@
       item.innerHTML = `<i class="fa-solid fa-location-dot"></i> <span>${res.html || res.name}</span>`;
       item.addEventListener("click", () => {
         const c = res.center;
-        setPoint(field, [c.lat, c.lng], (res.name || "").split(",")[0] || "Location");
+        setPoint(field, [c.lat, c.lng], (res.name || "").split(",")[0] || T("Location"));
         hideSuggest();
       });
       box.appendChild(item);
@@ -514,11 +523,11 @@
   }
 
   function compute() {
-    if (!RJ.router) { setStatus("Loading route data…"); return; }
+    if (!RJ.router) { setStatus(T("Loading route data…")); return; }
     if (!RJ.start || !RJ.dest) return;
     hideSuggest();
     clearRoutes();
-    setStatus("Finding routes…");
+    setStatus(T("Finding routes…"));
     // Defer so "Finding routes…" paints before the (sync) search runs. Cancel any
     // pending compute so two quick clicks can't both draw and orphan a layer.
     clearTimeout(RJ._computeTimer);
@@ -544,7 +553,7 @@
       // giving up — a corridor one hitchhiker logged once still beats nothing.
       // (clearRoutes above cancelled the token; this search is still the live one.)
       RJ.searchToken = search;
-      setStatus("No repeatable route — checking one-off rides…");
+      setStatus(T("No repeatable route — checking one-off rides…"));
       loadFallbackRouter().then((FB) => {
         if (search !== RJ.searchToken) return;   // superseded while downloading
         const alt = FB ? alternatives(FB, from, to, DEFAULT_MAX_WALK, 3, 0.6) : [];
@@ -597,22 +606,19 @@
     const startCovered = spotsNear(R, start, maxWalk).length > 0;
     const destCovered = spotsNear(R, dest, maxWalk).length > 0;
     if (!startCovered && !destCovered) {
-      return "No route found: both your start and destination are in areas where too few people have hitchhiked. " +
-        "Try points nearer to major roads or cities.";
+      return T("No route found: both your start and destination are in areas where too few people have hitchhiked. Try points nearer to major roads or cities.");
     }
     if (!startCovered) {
-      return "No route found: your starting point is in an area where too few people have hitchhiked. " +
-        "Move it closer to a major road or city, or search just the later part of your trip.";
+      return T("No route found: your starting point is in an area where too few people have hitchhiked. Move it closer to a major road or city, or search just the later part of your trip.");
     }
     if (!destCovered) {
-      return "No route found: your destination is in an area where too few people have hitchhiked. " +
-        "Move it closer to a major road or city, or search just the earlier part of your trip.";
+      return T("No route found: your destination is in an area where too few people have hitchhiked. Move it closer to a major road or city, or search just the earlier part of your trip.");
     }
     // The middle is the gap. Say so — and, when the one-off graph was searched
     // too, that no single logged ride bridges it either.
-    return "No route found: we couldn't connect these two points" +
-      (triedOneOff ? ", even using rides only one person has logged" : " with repeatable rides") +
-      ". Try searching for part of the route — e.g. between larger cities along the way.";
+    return T(triedOneOff
+      ? "No route found: we couldn't connect these two points, even using rides only one person has logged. Try searching for part of the route — e.g. between larger cities along the way."
+      : "No route found: we couldn't connect these two points with repeatable rides. Try searching for part of the route — e.g. between larger cities along the way.");
   }
 
   // ---- shareable route URL (/dir/<slat>,<slon>/<dlat>,<dlon>) ------------
@@ -750,7 +756,7 @@
   function tagIcon(rt, i) {
     const color = ALT_COLORS[i % ALT_COLORS.length];
     const e = routeEnds(rt);
-    const mid = e.midWalkMin > 0.5 ? ` · ${fmtTime(e.midWalkMin)} walk` : "";
+    const mid = e.midWalkMin > 0.5 ? ` · ${T("{time} walk", { time: fmtTime(e.midWalkMin) })}` : "";
     const ends = endsLabel(rt);
     return L.divIcon({
       className: "route-tag-wrap",
@@ -820,8 +826,8 @@
         if (seen.has(key) && !change) return; seen.add(key);
         let m;
         if (change) {
-          const tip = kind === "first" ? "Start hitchhiking here — tap for rides"
-            : kind === "last" ? "Get off here — tap for rides" : "Change car here — tap for rides";
+          const tip = kind === "first" ? T("Start hitchhiking here — tap for rides")
+            : kind === "last" ? T("Get off here — tap for rides") : T("Change car here — tap for rides");
           m = L.marker(c, { icon: carStopIcon(kind, color), zIndexOffset: 400 })
             .bindTooltip(tip, { direction: "top" });
         } else {
@@ -961,10 +967,10 @@
     if (!body.querySelector(".rp-options")) {
       body.innerHTML =
         '<div class="rp-sheet-head">' +
-        '<h3 class="rp-sheet-title">Routes</h3>' +
-        '<button type="button" class="share-btn" data-share-title="Hitchhiking route – Hitchwiki Maps">' +
+        '<h3 class="rp-sheet-title">' + T("Routes") + '</h3>' +
+        '<button type="button" class="share-btn" data-share-title="' + T("Hitchhiking route – Hitchwiki Maps") + '">' +
         '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>' +
-        '<span class="share-btn-label">Share</span></button>' +
+        '<span class="share-btn-label">' + T("Share") + '</span></button>' +
         '</div><div class="rp-options"></div>';
     }
     return body.querySelector(".rp-options");
@@ -1003,7 +1009,7 @@
     if (open && !steps.childElementCount) steps.appendChild(buildItinerary(rt));
     steps.hidden = !open;
     btn.setAttribute("aria-expanded", String(open));
-    btn.textContent = open ? "Hide details" : "Details";
+    btn.textContent = open ? T("Hide details") : T("Details");
     if (open) highlight(i);
   }
 
@@ -1040,9 +1046,9 @@
       <span class="rp-rail"><span class="rp-line"></span></span>
       <span class="rp-edge-body">
         <span class="rp-edge-head"><i class="${leg.mode === "walk" ? WALK_ICON : RIDE_ICON}"></i>
-          <b>${leg.mode === "walk" ? "Walk" : "Ride"}</b></span>
+          <b>${leg.mode === "walk" ? T("Walk") : T("Ride")}</b></span>
         <span class="rp-edge-sub">${fmtDist(leg.km)} · ${fmtTime(leg.minutes)}${
-          weak ? ' · <span class="rp-weak">1 logged ride</span>' : ""}</span>
+          weak ? ` · <span class="rp-weak">${T("1 logged ride")}</span>` : ""}</span>
       </span>`;
     if (weak) li.classList.add("rp-edge-weak");
     // Corridor spots the driver merely passes: worth listing (you can be dropped
@@ -1053,7 +1059,7 @@
       const toggle = document.createElement("button");
       toggle.type = "button";
       toggle.className = "rp-via-toggle";
-      toggle.textContent = `${via.length} spot${via.length > 1 ? "s" : ""} on the way`;
+      toggle.textContent = T(via.length === 1 ? "{n} spot on the way" : "{n} spots on the way", { n: via.length });
       const list = document.createElement("ul");
       list.className = "rp-via"; list.hidden = true;
       via.forEach((c) => {
@@ -1082,7 +1088,7 @@
       <span class="rp-time"></span>
       <span class="rp-rail"><span class="rp-line rp-line-wait"></span></span>
       <span class="rp-edge-body"><span class="rp-edge-head"><i class="fa-regular fa-clock"></i>
-        <b>Wait</b></span> <span class="rp-edge-sub">about ${fmtTime(min)}</span></span>`;
+        <b>${T("Wait")}</b></span> <span class="rp-edge-sub">${T("about {time}", { time: fmtTime(min) })}</span></span>`;
     return li;
   }
 
@@ -1116,8 +1122,8 @@
       const e = routeEnds(rt);
       const cars = rt.legs.filter((l) => l.mode === "car").length;
       const oneOff = rt.minSupport < MIN_SUPPORT;
-      const delta = i === 0 ? "fastest" : "+" + fmtTime(e.coreMin - fastest);
-      const mid = e.midWalkMin > 0.5 ? ` · ${fmtTime(e.midWalkMin)} walk` : "";
+      const delta = i === 0 ? T("fastest") : "+" + fmtTime(e.coreMin - fastest);
+      const mid = e.midWalkMin > 0.5 ? ` · ${T("{time} walk", { time: fmtTime(e.midWalkMin) })}` : "";
       const ends = endsLabel(rt);
       // Depart-now clock line, as a transit app shows it. rt.totalMin includes the
       // first/last-mile walks and every wait, so it is the honest door-to-door span.
@@ -1136,12 +1142,12 @@
             <span class="rp-opt-clock">${fmtClock(depart)}—${fmtClock(arrive)}${dayTag}</span>
             <span class="rp-opt-chips">${chipStrip(rt)}</span>
             <span class="rp-opt-head"><b>${fmtTime(e.coreMin)}</b> <span class="rp-opt-delta">${delta}</span></span>
-            <span class="rp-opt-sub">${fmtDist(rt.carKm)}${mid} · ${cars} ride${cars > 1 ? "s" : ""} · ${Math.round(rt.waitMin)} min wait</span>
+            <span class="rp-opt-sub">${fmtDist(rt.carKm)}${mid} · ${T(cars === 1 ? "{n} ride" : "{n} rides", { n: cars })} · ${T("{n} min wait", { n: Math.round(rt.waitMin) })}</span>
             ${ends ? `<span class="rp-opt-ends">${ends}</span>` : ""}
             ${oneOff ? '<span class="rp-opt-weak"><i class="fa-solid fa-circle-info"></i>' +
-              "Includes a leg only one hitchhiker has logged</span>" : ""}
+              T("Includes a leg only one hitchhiker has logged") + "</span>" : ""}
           </button>
-          <button class="rp-details-btn" type="button" aria-expanded="false">Details</button>
+          <button class="rp-details-btn" type="button" aria-expanded="false">${T("Details")}</button>
           <div class="rp-steps" hidden></div>
         </div>`;
       row.querySelector(".rp-opt-summary").addEventListener("click", () => highlight(i));
