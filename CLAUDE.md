@@ -185,7 +185,11 @@ Only `dist/`, `hitch/static/`, `hitch/templates/`, `db/`, and `logs/` are bind-m
 ```bash
 sudo docker cp hitch/scripts/<script>.py hitchhiking-map:/app/hitch/scripts/<script>.py
 ```
-Because `dist/`, `static/`, and `templates/` **are** mounted, changes to generated JSON, `map.js`, `style.css`, and `map.html` are picked up live without a rebuild; changes under `hitch/scripts/` and `deploy/cron.sh` require a rebuild/redeploy to take effect (including the cron entry that schedules the script).
+Because `dist/` and `static/` **are** mounted, changes to generated JSON, `map.js` and `style.css` are picked up live without a rebuild — no restart needed, and `asset_url()` re-hashes on the next render so browsers don't serve a stale copy.
+
+**Templates are the exception: mounted, but NOT live.** The production process runs with `TEMPLATES_AUTO_RELOAD` unset and `debug=False`, so `app.jinja_env.auto_reload` is `False` and each template is compiled once at boot and cached for the life of the process. An edit to `hitch/templates/*.html` is visible inside the container (`docker exec … grep`) while the served page still shows the old markup. **`sudo docker restart hitchhiking-map` is required** (a few seconds of 502). Watch for the half-applied state this creates: a change that spans a template and a static file goes live in two pieces, the JS/CSS immediately and the HTML only on restart.
+
+Changes under `hitch/scripts/` and `deploy/cron.sh` require a rebuild/redeploy to take effect (including the cron entry that schedules the script).
 
 ### Finding errors for internal server errors (500s)
 The app runs inside Docker. Flask tracebacks are NOT in the Apache logs — they go to the container's stdout/stderr. To get the real traceback:
