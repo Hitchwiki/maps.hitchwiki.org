@@ -282,13 +282,17 @@ def _ride_preview_meta(ride, spot_id):
     """
     place = _ride_place_name(spot_id)
     title = f"Hitchhiking ride from {place}" if place else "A hitchhiking ride"
+    # Truthiness is deliberate here, unlike the wait check below: a 0.0 km ride (pickup
+    # and destination coincide) isn't worth putting in the title as "– 0 km".
     if ride.get("distance_km"):
         title += f" – {round(ride['distance_km'])} km"
 
     parts = []
     if ride.get("rating"):
         parts.append(f"Rated {ride['rating']}/5.")
-    if ride.get("wait"):
+    # An instant pickup (wait == 0) is a real, good outcome, not a missing value — keep
+    # it distinct from "wait never recorded" the same way stop_facts and the template do.
+    if ride.get("wait") is not None:
         parts.append(f"Waited {ride['wait']} min.")
     comment = (ride.get("comment") or "").strip()
     if comment:

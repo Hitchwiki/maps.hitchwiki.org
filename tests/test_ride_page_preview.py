@@ -2,6 +2,7 @@
 
 import json
 import os
+from datetime import datetime, timezone
 
 import pytest
 
@@ -49,9 +50,16 @@ class TestRidePreview:
         # link someone shares seconds after logging it.
         with app.app_context():
             # latitude/longitude/geocoded_at are NOT NULL columns on SpotName (see
-            # hitch/models.py); the writer (spot_names.py) always supplies them.
+            # hitch/models.py); the writer (spot_names.py) always supplies them, using a
+            # full ISO-8601 UTC timestamp for geocoded_at, which we mirror here.
             _db.session.add(
-                SpotName(spot_id=SPOT_ID, name="Bergstraße", latitude=51.08170, longitude=13.73629, geocoded_at="2026-01-01")
+                SpotName(
+                    spot_id=SPOT_ID,
+                    name="Bergstraße",
+                    latitude=51.08170,
+                    longitude=13.73629,
+                    geocoded_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                )
             )
             _db.session.commit()
             title, _ = main_bp._ride_preview_meta(_ride_view(), SPOT_ID)
@@ -81,6 +89,17 @@ class TestRidePreview:
         with app.app_context():
             _, description = main_bp._ride_preview_meta(_ride_view(comment="x" * 500), SPOT_ID)
         assert len(description) < 320
+
+    def test_an_instant_pickup_is_not_confused_with_no_wait_recorded(self, app, dist):
+        # wait=0 is a genuine, good outcome (picked up instantly) and must read
+        # differently from wait=None (no waiting time was ever logged) — a truthiness
+        # check on `wait` would collapse the two.
+        with app.app_context():
+            _, zero_wait = main_bp._ride_preview_meta(_ride_view(wait=0), SPOT_ID)
+            _, no_wait = main_bp._ride_preview_meta(_ride_view(wait=None), SPOT_ID)
+        assert "Waited 0 min." in zero_wait
+        assert "Waited" not in no_wait
+        assert zero_wait != no_wait
 
     def test_a_ride_with_no_pickup_has_no_spot_to_name(self, app, dist):
         with app.app_context():
