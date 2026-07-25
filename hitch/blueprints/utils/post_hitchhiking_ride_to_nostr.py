@@ -73,6 +73,11 @@ class HitchhikingDataStandardToNostrPoster:
 
         self.event_kind = int(os.getenv("NOSTR_EVENT_KIND"))
 
+        # The most recently published signed event. The caller writes it straight into
+        # the local ride_event table so the ride is live before the fetch cron runs;
+        # post() still returns only the d tag, which every existing caller relies on.
+        self.last_event = None
+
     def post(self, ride_record: HitchhikingRecord, tags: list = None, d_tag: str = None) -> str:
         """Post a ride in the standardized format to Nostr and return the d tag.
 
@@ -118,6 +123,8 @@ class HitchhikingDataStandardToNostrPoster:
         )
 
         event.sign(self.private_key_hex)
+
+        self.last_event = event
 
         _append_event_to_temporary_json(event)
 
