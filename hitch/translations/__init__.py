@@ -38,6 +38,14 @@ def current_lang():
     return getattr(g, "lang", "en")
 
 
+def client_translations():
+    """The current language's whole dict, for map.js's JS-side t() (see map.js
+    and client_translations_json() in hitch/__init__.py). Empty for English so
+    the page never ships a no-op translations blob."""
+    lang = current_lang()
+    return _load(lang) if lang != "en" else {}
+
+
 def t(text, **kwargs):
     """Translate `text` (the English source string, used as the lookup key)
     into the current request's language, then apply any {placeholder} values.

@@ -71,6 +71,12 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
 <!-- Display unit for every distance the map renders ("metric" | "imperial"). Set from the
      logged-in user's profile setting; anonymous visitors always get metric. -->
 <script>window.DISTANCE_UNIT = {{ distance_unit()|tojson }};</script>
+<!-- JS-side twin of the server's t() (hitch/translations), read by map.js's own t().
+     Empty object for English -- see client_translations_json(). -->
+<script>
+window.__LANG__ = {{ g.lang|tojson }};
+window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
+</script>
 <script src="{{ asset_url('/static/map.js') }}"></script>
 <script src="{{ asset_url('/static/routing.js') }}"></script>
 <script src="{{ asset_url('/static/ride_score.js') }}"></script>

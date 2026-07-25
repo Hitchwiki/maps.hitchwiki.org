@@ -1,6 +1,7 @@
 """Initialize the Flask application at flask init."""
 
 import importlib
+import json
 import mimetypes
 import os
 import resource
@@ -22,7 +23,7 @@ from hitch.extensions import db, mail, security
 from hitch.helpers import convert_km, current_distance_unit, distance_unit_label, format_distance
 from hitch.models import Role, User
 from hitch.settings import config
-from hitch.translations import SUPPORTED_LANGUAGES, t
+from hitch.translations import SUPPORTED_LANGUAGES, client_translations, t
 
 baseDir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
@@ -94,6 +95,18 @@ def create_app(config_name=None):
 def register_i18n(app):
     app.jinja_env.globals["t"] = t
     app.jinja_env.globals["SUPPORTED_LANGUAGES"] = SUPPORTED_LANGUAGES
+
+    @app.template_global()
+    def client_translations_json():
+        """The current language's translation dict as a JSON literal, for map.js's
+        JS-side t() -- see the <script> in map.html that sets window.__TRANSLATIONS__.
+        Not marked |tojson in the template because Jinja's tojson HTML-escapes (turns
+        '"' into '&#34;' etc.) for safe embedding in an attribute, which would corrupt
+        the JSON when embedded directly in a <script> body; json.dumps is exactly what
+        we want there, just needs `</` guarded so a translation can't prematurely close
+        the surrounding <script> tag.
+        """
+        return json.dumps(client_translations(), ensure_ascii=False).replace("</", "<\\/")
 
     # The only signal for which language to render: which blueprint registration
     # served the request (see register_blueprints -- main_bp is registered a second

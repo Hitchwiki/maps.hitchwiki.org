@@ -6,6 +6,30 @@ if ("serviceWorker" in navigator) {
 // Helpers and variables
 var $$ = (e) => document.querySelector(e);
 
+// --- i18n -------------------------------------------------------------------
+// JS-side twin of hitch/translations/__init__.py's t(): looks a string up by its
+// English source text in the dict map.html injected as window.__TRANSLATIONS__
+// (only for the current request's language -- see client_translations_json() /
+// register_i18n in hitch/__init__.py), falling back to the English source
+// whenever the language is "en" or the string has no translation yet. vars is a
+// plain {name: value} object substituted into "{name}" placeholders -- no
+// format-spec support like Python's t() since callers here always pass an
+// already-formatted display string (e.g. formatDistance's output).
+//
+// Named tr(), not t(): this file already uses `t` all over as a local variable/
+// parameter name (e.g. the wiki-text renderer's `t = t.replace(...)` pipeline),
+// and shadowing a one-letter global there would be an easy, silent bug.
+function tr(text, vars) {
+  var dict = window.__TRANSLATIONS__ || {};
+  var s = window.__LANG__ && window.__LANG__ !== "en" && dict[text] ? dict[text] : text;
+  if (vars) {
+    Object.keys(vars).forEach((k) => {
+      s = s.split("{" + k + "}").join(vars[k]);
+    });
+  }
+  return s;
+}
+
 // --- Distance units -------------------------------------------------------
 // Every distance in the data (spots, rides, routing graph) is in kilometres; the user's
 // profile setting only changes how we render it. These helpers are global on purpose so
@@ -249,14 +273,14 @@ async function setHeatmapActive(active) {
     setTestBtnBelowLegend(false);
     positionLegendPane();
     if (btn) btn.classList.remove('active');
-    if (text) text.textContent = 'Heatmap';
+    if (text) text.textContent = tr('Heatmap');
     return true;
   }
 
   if (!heatmapData) {
     heatmapData = await loadHeatmapData();
     if (!heatmapData) {
-      alert('Heatmap data is not available');
+      alert(tr('Heatmap data is not available'));
       return false;
     }
   }
@@ -276,7 +300,7 @@ async function setHeatmapActive(active) {
 
   heatmapLayer.addTo(map);
   if (btn) btn.classList.add('active');
-  if (text) text.textContent = 'Normal';
+  if (text) text.textContent = tr('Normal');
   return true;
 }
 
@@ -479,7 +503,7 @@ function setupGeocoder() {
     defaultMarkGeocode: false,
     position: "topleft",
     provider: "photon",
-    placeholder: "Search",
+    placeholder: tr("Search"),
     zoom: 11,
     geocoder: L.Control.Geocoder.photon(),
   };
@@ -497,8 +521,8 @@ function setupGeocoder() {
     geocoderController.getContainer()
   );
   routeBtn.href = "#routing";
-  routeBtn.title = "Route planning";
-  routeBtn.setAttribute("aria-label", "Route planning");
+  routeBtn.title = tr("Route planning");
+  routeBtn.setAttribute("aria-label", tr("Route planning"));
   routeBtn.innerHTML = '<i class="fa-solid fa-route"></i>';
   // Keep clicks on the button from reaching the map (pan/zoom on the control).
   L.DomEvent.disableClickPropagation(routeBtn);
@@ -508,8 +532,8 @@ function setupGeocoder() {
   // until wanted, and one tap from the search bar.
   const filterBtn = L.DomUtil.create("a", "geocoder-filter-btn", geocoderController.getContainer());
   filterBtn.href = "#";
-  filterBtn.title = "Filters";
-  filterBtn.setAttribute("aria-label", "Filters");
+  filterBtn.title = tr("Filters");
+  filterBtn.setAttribute("aria-label", tr("Filters"));
   filterBtn.innerHTML = '<i class="fa-solid fa-sliders"></i>';
   L.DomEvent.disableClickPropagation(filterBtn);
   L.DomEvent.on(filterBtn, "click", function (ev) {
@@ -639,7 +663,7 @@ function showLocation(e) {
 // locationerror handler: permission denied, position unavailable, or timeout.
 function onLocationError(e) {
   setLocateButtonState(locationMarker ? "active" : "idle");
-  alert("Could not get your location: " + e.message);
+  alert(tr("Could not get your location:") + " " + e.message);
 }
 
 // OsmAnd-style "current location" button. Anchored bottom-right above the zoom
@@ -1000,9 +1024,10 @@ function setWikiCta(el, url, label) {
 async function loadCountrySheetLead(name) {
   const title = COUNTRY_WIKI_TITLE_ALIASES[name] || name;
   const wikiUrl = COUNTRY_WIKI_BASE + encodeURIComponent(title.replace(/ /g, "_"));
-  $$("#country-sheet-source").innerHTML =
-    `Text from <a href="${wikiUrl}" target="_blank" rel="noopener">Hitchwiki: ${escapeHtml(title)}</a>, ` +
-    `licensed <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA</a>.`;
+  $$("#country-sheet-source").innerHTML = tr("Text from {link}, licensed {license}.", {
+    link: `<a href="${wikiUrl}" target="_blank" rel="noopener">Hitchwiki: ${escapeHtml(title)}</a>`,
+    license: `<a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA</a>`,
+  });
 
   const lead = $$("#country-sheet-lead");
   try {
@@ -1011,17 +1036,17 @@ async function loadCountrySheetLead(name) {
     const data = await fetch(countryWikiApi(title, "&prop=wikitext&section=" + section)).then((r) => r.json());
     const wikitext = data && data.parse && data.parse.wikitext && data.parse.wikitext["*"];
     if (!wikitext) {
-      lead.innerHTML = `<p class="country-status">No Hitchwiki summary could be loaded for ${escapeHtml(name)}.</p>`;
+      lead.innerHTML = `<p class="country-status">${tr("No Hitchwiki summary could be loaded for {name}.", { name: escapeHtml(name) })}</p>`;
       return;
     }
     const html = renderCountryWikitext(wikitext);
-    lead.innerHTML = html || `<p class="country-status">No summary text available for ${escapeHtml(name)}.</p>`;
+    lead.innerHTML = html || `<p class="country-status">${tr("No summary text available for {name}.", { name: escapeHtml(name) })}</p>`;
     // Only invite people over once we know the article actually rendered — a CTA
     // pointing at a page that failed to load would send them to a red link.
-    if (html) setWikiCta($$("#country-sheet-cta"), wikiUrl, `Read the full ${title} article on Hitchwiki`);
+    if (html) setWikiCta($$("#country-sheet-cta"), wikiUrl, tr("Read the full {title} article on Hitchwiki", { title }));
   } catch (e) {
     console.warn("Could not load Hitchwiki section:", e);
-    lead.innerHTML = `<p class="country-status">No Hitchwiki summary could be loaded for ${escapeHtml(name)}.</p>`;
+    lead.innerHTML = `<p class="country-status">${tr("No Hitchwiki summary could be loaded for {name}.", { name: escapeHtml(name) })}</p>`;
   }
 }
 
@@ -1033,10 +1058,10 @@ async function openCountrySheet(name) {
   // old #country/<name>: several messengers strip a #fragment when auto-linking a
   // pasted URL, and only the path can carry the country's own link preview.
   $$("#share-country-btn").dataset.shareUrl = `${location.origin}/country/${encodeURIComponent(name)}`;
-  $$("#share-country-btn").dataset.shareTitle = `Hitchhiking in ${name} – Hitchwiki Maps`;
+  $$("#share-country-btn").dataset.shareTitle = tr("Hitchhiking in {name} – Hitchwiki Maps", { name });
   $$("#country-sheet-rating").style.display = "none";
   $$("#country-sheet-insights").hidden = true;
-  $$("#country-sheet-lead").innerHTML = `<p class="country-status">Loading from Hitchwiki…</p>`;
+  $$("#country-sheet-lead").innerHTML = `<p class="country-status">${tr("Loading from Hitchwiki…")}</p>`;
   $$("#country-sheet-source").innerHTML = "";
   $$("#country-sheet-cta").hidden = true;
   bar(".sidebar.country");
@@ -1381,13 +1406,13 @@ function startProposeSpotFromGesture(latlng, containerPoint) {
 
   const ui = L.DomUtil.create("div", "propose-spot-ui location-selection-ui");
   ui.innerHTML =
-    "<h4>Propose a hitch spot</h4>" +
-    "<p>Drag the pin to fine-tune, add a short note (optional), then propose.</p>" +
+    `<h4>${tr("Propose a hitch spot")}</h4>` +
+    `<p>${tr("Drag the pin to fine-tune, add a short note (optional), then propose.")}</p>` +
     '<textarea class="propose-spot-comment" maxlength="500" rows="2" ' +
-    'placeholder="Why is this a good spot? (optional)"></textarea>' +
+    `placeholder="${tr("Why is this a good spot? (optional)")}"></textarea>` +
     '<div class="lsel-actions">' +
-    '<button class="lsel-confirm">Propose spot</button>' +
-    '<button class="lsel-cancel">Cancel</button>' +
+    `<button class="lsel-confirm">${tr("Propose spot")}</button>` +
+    `<button class="lsel-cancel">${tr("Cancel")}</button>` +
     "</div>";
   document.body.appendChild(ui);
   document.body.classList.add("selecting-location");
@@ -1433,7 +1458,7 @@ function startProposeSpotFromGesture(latlng, containerPoint) {
     } catch (err) {
       console.error("Could not propose spot:", err);
       confirmBtn.disabled = false;
-      alert("Sorry, could not save your proposed spot. Please try again.");
+      alert(tr("Sorry, could not save your proposed spot. Please try again."));
     }
   });
 }
@@ -1458,22 +1483,24 @@ function formatEventDates(ev) {
 
 function openEventSheet(ev) {
   clear();
-  $$("#event-sheet-name").textContent = ev.name || "Event";
+  $$("#event-sheet-name").textContent = ev.name || tr("Event");
   $$("#event-sheet-dates").textContent = formatEventDates(ev);
   const wikiUrl = ev.url || COUNTRY_WIKI_BASE + encodeURIComponent((ev.title || ev.name || "").replace(/ /g, "_"));
   // Sharing an event shares the Hitchwiki page it comes from, not a map URL.
   $$("#share-event-btn").dataset.shareUrl = wikiUrl;
-  $$("#share-event-btn").dataset.shareTitle = ev.name || "Hitchhiking event";
+  $$("#share-event-btn").dataset.shareTitle = ev.name || tr("Hitchhiking event");
   $$("#event-sheet-source").innerHTML = ev.title
-    ? `Text from <a href="${escapeHtml(wikiUrl)}" target="_blank" rel="noopener">Hitchwiki: ${escapeHtml(ev.title)}</a>, ` +
-      `licensed <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA</a>.`
+    ? tr("Text from {link}, licensed {license}.", {
+        link: `<a href="${escapeHtml(wikiUrl)}" target="_blank" rel="noopener">Hitchwiki: ${escapeHtml(ev.title)}</a>`,
+        license: `<a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA</a>`,
+      })
     : "";
-  $$("#event-sheet-description").innerHTML = `<p class="sheet-status">Loading from Hitchwiki…</p>`;
+  $$("#event-sheet-description").innerHTML = `<p class="sheet-status">${tr("Loading from Hitchwiki…")}</p>`;
   // The event page is on Hitchwiki and stays the place to update it, so invite the
   // reader over rather than only crediting the source below. Same condition as the
   // credit line: without a known page we'd only have a guessed title-from-name URL,
   // which can land on a non-existent article.
-  setWikiCta($$("#event-sheet-cta"), ev.url || ev.title ? wikiUrl : "", "Read this event on Hitchwiki");
+  setWikiCta($$("#event-sheet-cta"), ev.url || ev.title ? wikiUrl : "", tr("Read this event on Hitchwiki"));
   bar(".sidebar.event");
   updateBottomPaneVar();
   setSheetSnap($$(".sidebar.event"), "full", EVENT_SHEET_SNAPS);
@@ -1522,7 +1549,7 @@ async function loadEventSheetText(ev) {
   const desc = (ev.description || "").trim();
   body.innerHTML = desc
     ? desc.split(/\n\n+/).map((p) => `<p>${escapeHtml(p).replace(/\n/g, "<br>")}</p>`).join("")
-    : `<p class="sheet-status">No description available.</p>`;
+    : `<p class="sheet-status">${tr("No description available.")}</p>`;
 }
 
 // Put the map into `mode` without touching the URL. The three modes are mutually
@@ -1812,9 +1839,9 @@ function registerHeatmapTap() {
 // Vertical Spots/Heatmap/Countries switcher, sitting just above the locate button.
 function setupMapModeControl() {
   const modes = [
-    { mode: "spots", icon: "fa-solid fa-thumbs-up", title: "Spots" },
-    { mode: "heatmap", icon: "fa fa-fire", title: "Waiting-time heatmap" },
-    { mode: "countries", icon: "fa-solid fa-earth-europe", title: "Country hitchability" },
+    { mode: "spots", icon: "fa-solid fa-thumbs-up", title: tr("Spots") },
+    { mode: "heatmap", icon: "fa fa-fire", title: tr("Waiting-time heatmap") },
+    { mode: "countries", icon: "fa-solid fa-earth-europe", title: tr("Country hitchability") },
   ];
   const ModeControl = L.Control.extend({
     options: { position: "bottomright" },
@@ -1954,9 +1981,9 @@ function setupLocateControl() {
       const container = L.DomUtil.create("div", "leaflet-bar locate-control");
       const btn = L.DomUtil.create("a", "locate-control-btn", container);
       btn.href = "#";
-      btn.title = "Show my location";
+      btn.title = tr("Show my location");
       btn.setAttribute("role", "button");
-      btn.setAttribute("aria-label", "Show my location");
+      btn.setAttribute("aria-label", tr("Show my location"));
       btn.innerHTML = '<i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i>';
       // Keep taps on the button from reaching the map (pan/zoom/add-point).
       L.DomEvent.disableClickPropagation(container);
@@ -2225,11 +2252,11 @@ function reportDuplicate(marker) {
     let activePoint = active[0].getLatLng();
 
     if (activePoint.equals(point)) {
-      alert("A marker cannot be a duplicate of itself.");
+      alert(tr("A marker cannot be a duplicate of itself."));
       return;
     }
 
-    if (confirm(`Are you sure you want to report a duplicate?`)) {
+    if (confirm(tr("Are you sure you want to report a duplicate?"))) {
       document.body.innerHTML += `<form id=dupform method=POST action=report-duplicate><input name=report value=${[
         activePoint.lat,
         activePoint.lng,
@@ -2275,7 +2302,7 @@ function renderRideCards(rides) {
   if (!rides.length) return "";
   return rides.map((r) => {
     const rating = r.rating > 0 ? "&nbsp;" + "⭐".repeat(r.rating) : "";
-    const wait = r.wait != null && !Number.isNaN(r.wait) ? `${r.wait} min wait` : "";
+    const wait = r.wait != null && !Number.isNaN(r.wait) ? tr("{wait} min wait", { wait: r.wait }) : "";
     const date = formatRideDate(r.ride_datetime || r.submission_time);
     const metaBits = [date, wait].filter(Boolean).join(" · ");
     const startTime = r.ride_datetime ? formatRideDateTime(r.ride_datetime) : "";
@@ -2284,7 +2311,7 @@ function renderRideCards(rides) {
       : "";
     const name = r.hitchhiker_name && r.hitchhiker_name !== "Anonymous"
       ? `<a class="hitchhiker-name" href="/account/${encodeURIComponent(r.hitchhiker_name)}">${escapeHtml(r.hitchhiker_name)}</a>`
-      : `<span class="hitchhiker-name">Anonymous</span>`;
+      : `<span class="hitchhiker-name">${tr("Anonymous")}</span>`;
     const comment = r.comment ? `<div class="ride-comment">${escapeHtml(r.comment)}</div>` : "";
     const href = r.id ? `/ride/${encodeURIComponent(r.id)}` : "";
     const clickable = href ? ` data-ride-href="${href}" role="link" tabindex="0" style="cursor:pointer;"` : "";
@@ -2521,7 +2548,7 @@ async function handleMarkerClick(marker, point, e) {
   // Update rides content now that the fetch is complete
   $$("#spot-text").innerHTML = renderRideCards(spotRides);
   if (spotRides.length === 0 && (!marker.options._data.distance || Number.isNaN(marker.options._data.distance)))
-    $$("#extra-text").innerHTML = "No comments/ride info.";
+    $$("#extra-text").innerHTML = tr("No comments/ride info.");
   else $$("#extra-text").innerHTML = "";
 }
 
@@ -2540,7 +2567,7 @@ function markerClick(marker) {
   const nameEl = $$("#spot-name");
   nameEl.textContent = "";
   nameEl.hidden = true;
-  $$("#share-spot-btn").dataset.shareTitle = "Hitchhiking spot on Hitchwiki Maps";
+  $$("#share-spot-btn").dataset.shareTitle = tr("Hitchhiking spot on Hitchwiki Maps");
   $$("#spot-google-link").href = window.ontouchstart
     ? `geo:${data.lat},${data.lon}`
     : `https://www.google.com/maps/place/${data.lat},${data.lon}`;
@@ -2961,8 +2988,8 @@ function renderTripCreatedNote() {
   if (!lastTripCreated || !lastTripCreated.url) return;
   const link = document.createElement("a");
   link.href = lastTripCreated.url;
-  link.textContent = lastTripCreated.name || "your trip";
-  note.textContent = "Your rides were grouped into a trip: ";
+  link.textContent = lastTripCreated.name || tr("your trip");
+  note.textContent = tr("Your rides were grouped into a trip:") + " ";
   note.appendChild(link);
   note.style.display = "block";
 }
@@ -3006,14 +3033,14 @@ function setupShareCard(opts) {
   const shareTextOnly = function () {
     // Fallback link when we never learned where the ride started: the map itself.
     const url = card ? card.url : window.location.origin + "/";
-    const text = card ? card.text : "Check out Hitchwiki Maps — the hitchhiking map";
+    const text = card ? card.text : tr("Check out Hitchwiki Maps — the hitchhiking map");
     return doShare({ text: text, url: url, files: null });
   };
 
   if (!ride || !window.hmShareCard) {
     // Nothing to draw — keep the nudge, drop the picture.
     if (block) block.style.display = "none";
-    shareBtn.textContent = "Share Hitchwiki Maps";
+    shareBtn.textContent = tr("Share Hitchwiki Maps");
     shareBtn.onclick = shareTextOnly;
     return;
   }
@@ -3101,15 +3128,15 @@ function setupShareCard(opts) {
     const done = function () {
       shareCompleted = true;
       hmTrack("ride_share", { action: "shared", mode: "copy" });
-      shareBtn.textContent = "Copied — paste it anywhere!";
+      shareBtn.textContent = tr("Copied — paste it anywhere!");
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
       return navigator.clipboard.writeText(message).then(done, function () {
-        window.prompt("Copy this:", message);
+        window.prompt(tr("Copy this:"), message);
         done();
       });
     }
-    window.prompt("Copy this:", message);
+    window.prompt(tr("Copy this:"), message);
     done();
   }
 }
@@ -3193,7 +3220,7 @@ function showInvitePromptOverlay(opts) {
   shareBtn.onclick = async function () {
     try {
       if (navigator.share) {
-        await navigator.share({ title: "Join me on Hitchwiki Maps", url: url });
+        await navigator.share({ title: tr("Join me on Hitchwiki Maps"), url: url });
         logSignupPrompt("co-hitchhiker-invite", "invite");
         return done();
       }
@@ -3204,9 +3231,9 @@ function showInvitePromptOverlay(opts) {
     }
     try {
       await navigator.clipboard.writeText(url);
-      shareBtn.textContent = "Link copied!";
+      shareBtn.textContent = tr("Link copied!");
     } catch (e) {
-      window.prompt("Copy this invite link:", url);
+      window.prompt(tr("Copy this invite link:"), url);
     }
     logSignupPrompt("co-hitchhiker-invite", "invite");
     setTimeout(done, 1500);
@@ -4264,12 +4291,12 @@ function renderSelectionCard(containerId, statsSet) {
   const el = document.getElementById(containerId);
   if (!el) return;
   const rows = [
-    ["Rides", statsSet.totalCount.toLocaleString()],
-    ["Spots", statsSet.spotCount.toLocaleString()],
+    [tr("Rides"), statsSet.totalCount.toLocaleString()],
+    [tr("Spots"), statsSet.spotCount.toLocaleString()],
   ];
   el.innerHTML = `
     <div class="insights-stat-card">
-      <div class="insights-stat-title">Selection</div>
+      <div class="insights-stat-title">${tr("Selection")}</div>
       ${rows
         .map(
           ([k, v]) =>
@@ -4455,7 +4482,7 @@ var AddSpotButton = L.Control.extend({
     );
     var container = L.DomUtil.create("a", "", controlDiv);
     container.href = "javascript:void(0);";
-    container.innerText = "🚗💨 Add your ride";
+    container.innerText = "🚗💨 " + tr("Add your ride");
 
     container.onclick = function (e) {      
       // Redirect directly to ride form instead of crosshair selection
@@ -4506,7 +4533,7 @@ var AccountButton = L.Control.extend({
     );
     var container = L.DomUtil.create("a", "", controlDiv);
     container.href = "/me";
-    container.innerHTML = "👤 Your account";
+    container.innerHTML = "👤 " + tr("Your account");
 
     return controlDiv;
   },
@@ -4523,7 +4550,7 @@ var RoutingButton = L.Control.extend({
     );
     var container = L.DomUtil.create("a", "", controlDiv);
     container.href = "#routing";
-    container.innerHTML = "🗺️ Route";
+    container.innerHTML = "🗺️ " + tr("Route");
     return controlDiv;
   },
 });
@@ -4539,7 +4566,7 @@ var HeatmapInfoButton = L.Control.extend({
     );
     var container = L.DomUtil.create("a", "", controlDiv);
     container.href = "javascript:void(0);";
-    container.innerHTML = "\u2139 What can I see here?";
+    container.innerHTML = "\u2139 " + tr("What can I see here?");
 
     container.onclick = function (e) {
       navigateHome();
@@ -4647,18 +4674,23 @@ function setupLocationSelection(selectionType, initialCoords, opts = {}) {
     // the original "Select Pickup/Destination Location" copy.
     let heading, instruction, confirmLabel;
     if (opts.isNewSpot && opts.existingSpot) {
-        heading = 'Add a ride to this spot';
-        instruction = 'This matches an existing hitch spot. Confirm to add your ride here.';
-        confirmLabel = 'Add ride';
+        heading = tr('Add a ride to this spot');
+        instruction = tr('This matches an existing hitch spot. Confirm to add your ride here.');
+        confirmLabel = tr('Add ride');
     } else if (opts.isNewSpot) {
-        heading = 'Add a hitch spot here?';
-        instruction = 'Drag the pin to fine-tune, then confirm.';
-        confirmLabel = 'Add spot';
+        heading = tr('Add a hitch spot here?');
+        instruction = tr('Drag the pin to fine-tune, then confirm.');
+        confirmLabel = tr('Add spot');
     } else {
-        const what = selectionType === 'select-pickup' ? 'Pickup' : 'Destination';
-        heading = `Select ${what} Location`;
-        instruction = `Click on the map or drag the marker to choose your ${what.toLowerCase()} location`;
-        confirmLabel = 'Confirm Location';
+        // Two full strings per side rather than composing one template with a
+        // lowercased {what}: German capitalizes every noun, so a translated
+        // "Abholung" lowercased to "abholung" would be wrong mid-sentence.
+        const isPickup = selectionType === 'select-pickup';
+        heading = isPickup ? tr('Select Pickup Location') : tr('Select Destination Location');
+        instruction = isPickup
+            ? tr('Click on the map or drag the marker to choose your pickup location')
+            : tr('Click on the map or drag the marker to choose your destination location');
+        confirmLabel = tr('Confirm Location');
     }
 
     // Add custom UI for location selection — a compact card pinned to the bottom

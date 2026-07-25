@@ -60,6 +60,65 @@ SOURCE_STRINGS = [
     "typical ride {km} km",
     "Hitchhiking in {name}",
     "Hitchhiking in {name}: {facts}. Read what hitchhiking there is like and see waiting-time statistics.",
+    # --- map.js UI strings (client-side tr(), see hitch/static/map.js) ---
+    "Add a hitch spot here?",
+    "Add a ride to this spot",
+    "Add ride",
+    "Add spot",
+    "Add your ride",
+    "A marker cannot be a duplicate of itself.",
+    "Anonymous",
+    "Are you sure you want to report a duplicate?",
+    "Cancel",
+    "Check out Hitchwiki Maps — the hitchhiking map",
+    "Click on the map or drag the marker to choose your destination location",
+    "Click on the map or drag the marker to choose your pickup location",
+    "Confirm Location",
+    "Copied — paste it anywhere!",
+    "Copy this:",
+    "Copy this invite link:",
+    "Could not get your location:",
+    "Country hitchability",
+    "Drag the pin to fine-tune, add a short note (optional), then propose.",
+    "Drag the pin to fine-tune, then confirm.",
+    "Event",
+    "Filters",
+    "Heatmap",
+    "Heatmap data is not available",
+    "Hitchhiking event",
+    "Hitchhiking in {name} – Hitchwiki Maps",
+    "Hitchhiking spot on Hitchwiki Maps",
+    "Join me on Hitchwiki Maps",
+    "Loading from Hitchwiki…",
+    "No comments/ride info.",
+    "No description available.",
+    "No Hitchwiki summary could be loaded for {name}.",
+    "Normal",
+    "No summary text available for {name}.",
+    "Propose a hitch spot",
+    "Propose spot",
+    "Read the full {title} article on Hitchwiki",
+    "Read this event on Hitchwiki",
+    "Rides",
+    "Route",
+    "Route planning",
+    "Search",
+    "Select Destination Location",
+    "Selection",
+    "Select Pickup Location",
+    "Share Hitchwiki Maps",
+    "Show my location",
+    "Sorry, could not save your proposed spot. Please try again.",
+    "Spots",
+    "Text from {link}, licensed {license}.",
+    "This matches an existing hitch spot. Confirm to add your ride here.",
+    "Waiting-time heatmap",
+    "{wait} min wait",
+    "What can I see here?",
+    "Why is this a good spot? (optional)",
+    "Your account",
+    "Your rides were grouped into a trip:",
+    "your trip",
 ]
 
 
@@ -91,6 +150,9 @@ def _translate_batch(strings, lang_name, api_key):
         "- Preserve capitalization style of proper nouns (Hitchhiking Map, Hitchwiki, "
         "Hitchmap) -- keep those brand names untranslated.\n"
         "- Keep punctuation and sentence-ending periods where the source has them.\n"
+        "- Use the informal register throughout (e.g. German 'du', not the formal 'Sie') "
+        "-- this is a volunteer hitchhiking community site, not a corporate/government one, "
+        "and every string must agree with every other string's register.\n"
         "- Return ONLY a JSON object: {\"<source string>\": \"<translation>\", ...} "
         "with exactly one entry per input string, no other keys, no commentary."
     )
