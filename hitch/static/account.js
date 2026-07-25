@@ -23,6 +23,15 @@
   const dispKm = (km) => (typeof toDisplayDistance === "function" ? toDisplayDistance(km) : km);
   const dispUnit = () => (typeof distanceUnitLabel === "function" ? distanceUnitLabel() : "km");
 
+  // Same fallback dance as dispKm/dispUnit above: tr() is a map.js global, absent when
+  // this module is require()'d standalone under node for the unit tests, so those keep
+  // seeing the plain English (with {placeholder}s substituted by hand).
+  function T(text, vars) {
+    if (typeof tr === "function") return tr(text, vars);
+    if (!vars) return text;
+    return Object.keys(vars).reduce((s, k) => s.split("{" + k + "}").join(vars[k]), text);
+  }
+
   function formatInsights(insights) {
     const i = insights || {};
     const km = Math.round(dispKm(i.distance_km || 0));
@@ -32,19 +41,19 @@
       rides: String(i.rides || 0),
       distance: km.toLocaleString("en-US") + " " + dispUnit(),
       // Waiting time reads as hours once it passes an hour; minutes alone below that.
-      waiting: hours > 0 ? hours + " h " + (mins % 60) + " m" : mins + " m",
+      waiting: hours > 0 ? T("{h} h {m} m", { h: hours, m: mins % 60 }) : T("{m} m", { m: mins }),
       partners: String(i.partners || 0),
     };
   }
 
   // `shown` is what the payload carried (capped server-side); `total` is the real count.
   function ridesSummary(shown, total) {
-    if (total > shown) return "Showing " + shown + " of " + total + " rides";
-    return total + (total === 1 ? " ride" : " rides");
+    if (total > shown) return T("Showing {shown} of {total} rides", { shown, total });
+    return T(total === 1 ? "{n} ride" : "{n} rides", { n: total });
   }
 
   function awardsSummary(n) {
-    return n + (n === 1 ? " award earned" : " awards earned");
+    return T(n === 1 ? "{n} award earned" : "{n} awards earned", { n });
   }
 
   function rideLabel(ride) {
@@ -67,13 +76,13 @@
     const month = MONTHS[Number(match[2]) - 1];
     if (!month) return "";
     const stamp = match[1].slice(2) + (match[4] ? " " + match[4] + ":" + match[5] : "");
-    return Number(match[3]) + " - " + month + " - " + stamp;
+    return Number(match[3]) + " - " + T(month) + " - " + stamp;
   }
 
   // What identifies a ride in the list. Place names when we have them; otherwise the
   // date, which is the only other thing that distinguishes one ride from another.
   function rideTitle(ride) {
-    return rideRoute(ride) || formatRideDate(ride.created) || "Unknown ride";
+    return rideRoute(ride) || formatRideDate(ride.created) || T("Unknown ride");
   }
 
   // The route split into its two ends, so the row can render the destination as a real
@@ -91,16 +100,16 @@
     const toFlag = flagEmoji(ride.to_cc);
 
     // With no origin name the date carries the row, and the arrow would dangle.
-    const start = from ? (fromFlag ? fromFlag + " " + from : from) : formatRideDate(ride.created) || "Unknown ride";
+    const start = from ? (fromFlag ? fromFlag + " " + from : from) : formatRideDate(ride.created) || T("Unknown ride");
 
     if (to) return { start: start, end: toFlag ? toFlag + " " + to : to, endKind: "place" };
-    if (ride.gave_up) return { start: start, end: "gave up", endKind: "gaveup" };
+    if (ride.gave_up) return { start: start, end: T("gave up"), endKind: "gaveup" };
     if (ride.missing_destination) return { start: start, end: "", endKind: "missing" };
     return { start: start, end: "", endKind: null };
   }
 
   function durationText(mins) {
-    return mins >= 60 ? Math.floor(mins / 60) + " h " + (mins % 60) + " m" : mins + " min";
+    return mins >= 60 ? T("{h} h {m} m", { h: Math.floor(mins / 60), m: mins % 60 }) : T("{m} min", { m: mins });
   }
 
   // The stats beside a ride's completion pie, as {text, dot} entries so the row can draw
@@ -175,8 +184,8 @@
   }
 
   function nudgeText(n) {
-    if (n === 0) return "Every ride is fully logged. Nice.";
-    return n === 1 ? "1 ride could use more detail" : n + " rides could use more detail";
+    if (n === 0) return T("Every ride is fully logged. Nice.");
+    return T(n === 1 ? "{n} ride could use more detail" : "{n} rides could use more detail", { n });
   }
 
   // Where a ride's "fix this" CTAs point, or null when the ride isn't editable.
@@ -229,13 +238,13 @@
     sheet.appendChild(el("div", "inr-sheet__grab"));
     const closeX = el("button", "inr-sheet__close");
     closeX.type = "button";
-    closeX.setAttribute("aria-label", "Close");
+    closeX.setAttribute("aria-label", T("Close"));
     closeX.innerHTML = "&times;";
     closeX.addEventListener("click", close);
     sheet.appendChild(closeX);
 
     const body = el("div", "acct-body");
-    body.appendChild(el("p", "acct-loading", "Loading…"));
+    body.appendChild(el("p", "acct-loading", T("Loading…")));
     sheet.appendChild(body);
 
     function onKey(e) {
@@ -269,18 +278,18 @@
       })
       .catch(function () {
         body.innerHTML = "";
-        body.appendChild(el("p", "acct-error", "Couldn't load your account. Check your connection."));
+        body.appendChild(el("p", "acct-error", T("Couldn't load your account. Check your connection.")));
       });
   }
 
   function renderLoggedOut(body) {
-    body.appendChild(el("h4", null, "Your rides, saved"));
+    body.appendChild(el("h4", null, T("Your rides, saved")));
     body.appendChild(
-      el("p", "acct-pitch", "Log in to track your hitchhiking, keep your ride history, and see your stats.")
+      el("p", "acct-pitch", T("Log in to track your hitchhiking, keep your ride history, and see your stats."))
     );
     const btn = el("button", "inr-big inr-big--green");
     btn.type = "button";
-    btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Log in with Hitchwiki';
+    btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> ' + T("Log in with Hitchwiki");
     btn.addEventListener("click", startLogin);
     body.appendChild(btn);
   }
@@ -291,17 +300,17 @@
     if (needsProfile) {
       const nudge = el("a", "acct-nudge");
       nudge.href = "/edit-user";
-      nudge.textContent = "Finish setting up your profile →";
+      nudge.textContent = T("Finish setting up your profile →");
       body.appendChild(nudge);
     }
 
     const s = formatInsights(data.insights);
     const stats = el("div", "acct-stats");
     [
-      ["Rides", s.rides],
-      ["Distance", s.distance],
-      ["Waiting", s.waiting],
-      ["Partners", s.partners],
+      [T("Rides"), s.rides],
+      [T("Distance"), s.distance],
+      [T("Waiting"), s.waiting],
+      [T("Partners"), s.partners],
     ].forEach(function (pair) {
       const cell = el("div", "acct-stat");
       cell.appendChild(el("span", "acct-stat__val", pair[1]));
@@ -347,7 +356,7 @@
         li.classList.add("acct-ride--clickable");
         li.tabIndex = 0;
         li.setAttribute("role", "link");
-        li.setAttribute("aria-label", "View ride details");
+        li.setAttribute("aria-label", T("View ride details"));
         const openView = function () { window.open(viewUrl, "_blank", "noopener"); };
         li.addEventListener("click", function (e) {
           // The pie and the warning are their own links to the edit form; a click on one
@@ -378,8 +387,8 @@
         rosette.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i>';
         pie.appendChild(rosette);
         pie.setAttribute("role", "img");
-        pie.setAttribute("aria-label", "Ride fully logged");
-        pie.title = "Fully logged — nice one!";
+        pie.setAttribute("aria-label", T("Ride fully logged"));
+        pie.title = T("Fully logged — nice one!");
       } else {
         const cta = Boolean(editUrl);
         pie = el(cta ? "a" : "span", "acct-pie acct-pie--" + tier + (cta ? " acct-pie--cta" : ""));
@@ -390,12 +399,12 @@
           pie.href = editUrl;
           pie.target = "_blank";
           pie.rel = "noopener";
-          pie.title = pct + "% complete — add driver and vehicle details";
-          pie.setAttribute("aria-label", "Ride " + pct + "% complete. Add driver and vehicle details.");
+          pie.title = T("{pct}% complete — add driver and vehicle details", { pct });
+          pie.setAttribute("aria-label", T("Ride {pct}% complete. Add driver and vehicle details.", { pct }));
         } else {
           pie.setAttribute("role", "img");
-          pie.setAttribute("aria-label", pct + "% of driver and vehicle details recorded");
-          pie.title = pct + "% complete";
+          pie.setAttribute("aria-label", T("{pct}% of driver and vehicle details recorded", { pct }));
+          pie.title = T("{pct}% complete", { pct });
         }
       }
       li.appendChild(pie);
@@ -426,12 +435,12 @@
           warn.href = editUrl;
           warn.target = "_blank";
           warn.rel = "noopener";
-          warn.title = "No destination recorded — add it";
-          warn.setAttribute("aria-label", "No destination recorded for this ride. Add it.");
+          warn.title = T("No destination recorded — add it");
+          warn.setAttribute("aria-label", T("No destination recorded for this ride. Add it."));
         } else {
-          warn.title = "No destination recorded for this ride";
+          warn.title = T("No destination recorded for this ride");
           warn.setAttribute("role", "img");
-          warn.setAttribute("aria-label", "No destination recorded for this ride");
+          warn.setAttribute("aria-label", T("No destination recorded for this ride"));
         }
         routeEl.appendChild(warn);
       }
@@ -445,7 +454,7 @@
           if (i) statsEl.appendChild(el("span", "acct-ride__sep", " · "));
           if (stat.dot) {
             const dot = el("span", "acct-dot acct-dot--" + stat.dot);
-            dot.title = stat.dot === "stopped" ? "Waiting at the roadside" : "Moving";
+            dot.title = stat.dot === "stopped" ? T("Waiting at the roadside") : T("Moving");
             statsEl.appendChild(dot);
           }
           statsEl.appendChild(el("span", null, stat.text));
@@ -459,7 +468,7 @@
     body.appendChild(list);
 
     if (rides.length > RIDES_SHOWN_COLLAPSED) {
-      const more = el("button", "acct-more", "Show all " + rides.length);
+      const more = el("button", "acct-more", T("Show all {n}", { n: rides.length }));
       more.type = "button";
       more.addEventListener("click", function () {
         list.querySelectorAll(".acct-ride--hidden").forEach(function (n) {
@@ -472,7 +481,7 @@
 
     const profile = el("a", "acct-profile-link");
     profile.href = data.profile_url || "/me";
-    profile.textContent = "View full profile →";
+    profile.textContent = T("View full profile →");
     body.appendChild(profile);
   }
 
@@ -532,7 +541,7 @@
           dot.setAttribute("role", "img");
           dot.setAttribute(
             "aria-label",
-            count === 1 ? "1 ride could use more detail" : count + " rides could use more detail"
+            T(count === 1 ? "{n} ride could use more detail" : "{n} rides could use more detail", { n: count })
           );
           link.appendChild(dot);
         } else if (count === 0 && existing) {

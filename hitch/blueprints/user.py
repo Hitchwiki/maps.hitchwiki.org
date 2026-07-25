@@ -23,6 +23,7 @@ from hitch.forms import UserEditForm
 from hitch.helpers import get_db, get_dirs, haversine_np
 from hitch.models import CoHitchhiker, Follow, Notification, RideEvent, RidePlace, RideReport, Trip, TripRide, User
 from hitch.scripts.races import current_races
+from hitch.translations import t
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
 
@@ -492,8 +493,8 @@ def _achievements(values):
             cards.append(
                 {
                     "emoji": emoji,
-                    "name": name,
-                    "blurb": blurb,
+                    "name": t(name),
+                    "blurb": t(blurb),
                     "current": min(current, threshold),
                     "target": threshold,
                     "unit": ladder["unit"],
