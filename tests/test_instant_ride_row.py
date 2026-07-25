@@ -49,6 +49,13 @@ def _raw_event(d_tag="maps.hitchwiki.org-abc", created_at=1_800_000_000, event_i
     }
 
 
+def _boom_ride_event(**kwargs):
+    """Stand-in for the `RideEvent` constructor used by `_store_published_ride`'s insert
+    branch. Raising here drives a genuine DB-layer exception through the function's
+    except/rollback path — unlike a parse failure, which returns before ever reaching it."""
+    raise RuntimeError("boom")
+
+
 class _RecordingPoster:
     """Fake poster that publishes nothing but exposes a signed-looking event."""
 
@@ -104,12 +111,40 @@ class TestStorePublishedRide:
             assert rows[0].id == "e2"
             assert rows[0].comment == "rewritten"
 
-    def test_a_broken_event_never_breaks_the_submit(self, app, clean_rides):
-        # The ride is already on the relay at this point; a local storage failure must
-        # not turn a successful publish into a 500.
+    def test_an_unparseable_event_is_skipped(self, app, clean_rides):
+        # parse_post_to_ride_fields returns None for content that isn't valid JSON, so
+        # this only proves the early `return` — not the except/rollback path below it.
+        # See test_a_db_error_during_storage_never_breaks_the_submit_... for that.
         with app.app_context():
             main._store_published_ride(_StubEvent({"not": "an event"}))
             assert _db.session.query(RideEvent).count() == 0
+
+    def test_a_db_error_during_storage_never_breaks_the_submit_and_leaves_the_session_usable(self, app, clean_rides, monkeypatch):
+        # The ride is already on the relay at this point; a local storage failure must
+        # not turn a successful publish into a 500. Unlike the parse-failure test above,
+        # this raises from inside the try block so the except/rollback path is actually
+        # exercised.
+        with app.app_context():
+            monkeypatch.setattr(main, "RideEvent", _boom_ride_event)
+
+            main._store_published_ride(_StubEvent(_raw_event()))
+
+            assert _db.session.query(RideEvent).count() == 0
+
+            # The rollback must leave the session usable for whatever write follows in
+            # the real handler (CoHitchhiker rows are committed right after this call).
+            probe = RideEvent(
+                id="usable-check",
+                kind=36820,
+                pubkey=PUBKEY,
+                sig="s" * 128,
+                content={},
+                created_at=1,
+                d="usable-check-d",
+            )
+            _db.session.add(probe)
+            _db.session.commit()
+            assert _db.session.query(RideEvent).filter_by(d="usable-check-d").one().id == "usable-check"
 
     def test_no_event_is_tolerated(self, app, clean_rides):
         with app.app_context():
@@ -139,3 +174,32 @@ class TestRideIsLiveAfterSubmit:
         assert resp.status_code == 200
 
         assert client.get("/ride/maps.hitchwiki.org-abc").status_code == 200
+
+
+class TestStorageFailureNeverBreaksTheSubmit:
+    def test_endpoint_still_returns_ok_when_local_storage_fails(self, app, client, monkeypatch, clean_rides):
+        # A local DB failure while storing the just-published ride must not surface as a
+        # 500, and must not look like a transient relay failure (503) either — the ride
+        # *was* published successfully; only our local mirror of it failed to write.
+        monkeypatch.setattr(main, "HitchhikingDataStandardToNostrPoster", _RecordingPoster)
+        monkeypatch.setattr(main, "RideEvent", _boom_ride_event)
+
+        resp = client.post(
+            "/ride",
+            data={
+                "rate": "4",
+                "wait": "12",
+                "signal": "thumb",
+                "comment": "great ride",
+                "pickup_lat": "51.08170",
+                "pickup_lon": "13.73629",
+                "destination_lat": "52.51739",
+                "destination_lon": "13.39513",
+            },
+            headers={"X-Requested-With": "inride"},
+        )
+        assert resp.status_code == 200
+        assert resp.get_json()["ok"] is True
+
+        with app.app_context():
+            assert _db.session.query(RideEvent).filter_by(d="maps.hitchwiki.org-abc").count() == 0
