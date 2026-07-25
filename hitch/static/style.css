@@ -1922,6 +1922,26 @@ ul.no-style {
   color: #000;
 }
 
+.lang-switcher {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.lang-switcher .lang-link {
+  border-bottom: none !important;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: #f0f0f0;
+  font-size: 0.85em;
+  font-weight: 600;
+  text-decoration: none;
+}
+.lang-switcher .lang-link.active {
+  background: #333;
+  color: #fff;
+}
+
 .make-invisible {
   display: none;
 }
