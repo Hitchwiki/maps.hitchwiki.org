@@ -1,6 +1,6 @@
 {% extends "security/base.html" %}
 
-{% set title = "My rides" %}
+{% set title = t("My rides") %}
 
 {% block head %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
@@ -37,7 +37,7 @@
 {% endblock %}
 
 {% block content %}
-<h1>My rides for {{ current_user.username }}</h1>
+<h1>{{ t("My rides for {name}", name=current_user.username) }}</h1>
 
 {% if is_logged_in %}
   {% if rides %}
@@ -54,34 +54,34 @@
         
         {% if ride.pickup_lat and ride.pickup_lon %}
         <div class="location-section">
-            <h5><i class="fa fa-map-marker" style="color: #28a745;"></i> Pickup Location</h5>
-            <a href="/#{{ ride.pickup_lat }},{{ ride.pickup_lon }}" title="View spot on map" style="display:block; text-decoration:none;">
+            <h5><i class="fa fa-map-marker" style="color: #28a745;"></i> {{ t("Pickup Location") }}</h5>
+            <a href="/#{{ ride.pickup_lat }},{{ ride.pickup_lon }}" title="{{ t('View spot on map') }}" style="display:block; text-decoration:none;">
               <div class="map-thumbnail" id="ride-thumbnail-{{ loop.index0 }}">
                   <div class="map-thumbnail-overlay">
-                      View on map ↗
+                      {{ t("View on map ↗") }}
                   </div>
               </div>
               <div class="coordinates-text">{{ "%.4f, %.4f"|format(ride.pickup_lat, ride.pickup_lon) }}</div>
             </a>
         </div>
         {% endif %}
-        
+
         {% if ride.comment %}
         <div class="ride-comment">
-            <strong>Comment:</strong> {{ ride.comment }}
+            <strong>{{ t("Comment:") }}</strong> {{ ride.comment }}
         </div>
         {% endif %}
-        
+
         <div class="edit-button">
-            <a href="/ride?edit={{ ride.d_tag }}" class="btn btn-primary">Edit Ride</a>
+            <a href="/ride?edit={{ ride.d_tag }}" class="btn btn-primary">{{ t("Edit Ride") }}</a>
         </div>
     </div>
     {% endfor %}
   {% else %}
-    <p>No rides found.</p>
+    <p>{{ t("No rides found.") }}</p>
   {% endif %}
 {% else %}
-  <p>Please <a href="/login">log in</a> to view your rides.</p>
+  <p>{{ t("Please {link} to view your rides.", link='<a href="/login">' ~ t("log in") ~ '</a>')|safe }}</p>
 {% endif %}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>

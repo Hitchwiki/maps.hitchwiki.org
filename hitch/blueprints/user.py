@@ -38,6 +38,29 @@ def form():
         return redirect("/login")
 
     form = UserEditForm()
+    # WTForms field labels/choices are set once at class-definition time (module import),
+    # long before any request -- and so before g.lang exists -- so t() there would always
+    # render English. Translate them here instead, per request, overwriting the field's
+    # `.text`/`.choices` before render. Choice *values* (form.gender.data on submit) are
+    # untouched, only the displayed label -- so this is safe regardless of language.
+    # origin_country's ~250 pycountry names are left untranslated (a much bigger,
+    # separate task, same as place names elsewhere in the app).
+    form.gender.label.text = t("Gender")
+    form.gender.choices = [(v, t(lbl)) for v, lbl in form.gender.choices]
+    form.year_of_birth.label.text = t("Year of Birth")
+    form.hitchhiking_since.label.text = t("Hitchhiking Since")
+    form.origin_country.label.text = t("Where are you from?")
+    form.origin_country.choices = [(v, t(lbl) if v == "" else lbl) for v, lbl in form.origin_country.choices]
+    form.origin_city.label.text = t("Which city are you from?")
+    form.hitchwiki_username.label.text = t("Hitchwiki Username")
+    form.trustroots_username.label.text = t("Trustroots Username")
+    form.email_notifications.label.text = t("Receive notifications and updates via email")
+    form.nearby_hitchhikers_email.label.text = t("Email me about other hitchhikers who were close by")
+    form.allow_messages.label.text = t("Let other hitchhikers message me (adds a Chat button to my profile)")
+    form.message_email_notifications.label.text = t("Email me when I receive a new message")
+    form.distance_unit.label.text = t("Distance units")
+    form.distance_unit.choices = [(v, t(lbl)) for v, lbl in form.distance_unit.choices]
+    form.submit.label.text = t("Submit")
 
     if form.validate_on_submit():
         updated_user = security.datastore.find_user(username=current_user.username)
@@ -497,7 +520,7 @@ def _achievements(values):
                     "blurb": t(blurb),
                     "current": min(current, threshold),
                     "target": threshold,
-                    "unit": ladder["unit"],
+                    "unit": t(ladder["unit"]),
                     "earned": current >= threshold,
                     "progress": min(current / threshold, 1.0),
                 }

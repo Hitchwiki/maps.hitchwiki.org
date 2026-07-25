@@ -23,7 +23,7 @@ from hitch.extensions import db, mail, security
 from hitch.helpers import convert_km, current_distance_unit, distance_unit_label, format_distance
 from hitch.models import Role, User
 from hitch.settings import config
-from hitch.translations import LANGUAGE_ENDONYMS, SUPPORTED_LANGUAGES, client_translations, t
+from hitch.translations import LANGUAGE_ENDONYMS, LANGUAGE_FLAGS, SUPPORTED_LANGUAGES, client_translations, t
 
 baseDir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
@@ -96,6 +96,7 @@ def register_i18n(app):
     app.jinja_env.globals["t"] = t
     app.jinja_env.globals["SUPPORTED_LANGUAGES"] = SUPPORTED_LANGUAGES
     app.jinja_env.globals["LANGUAGE_ENDONYMS"] = LANGUAGE_ENDONYMS
+    app.jinja_env.globals["LANGUAGE_FLAGS"] = LANGUAGE_FLAGS
 
     @app.template_global()
     def client_translations_json():

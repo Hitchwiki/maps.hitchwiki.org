@@ -1,9 +1,9 @@
 {% extends "security/base.html" %}
 
-{% set title = "Edit Account" %}
+{% set title = t("Edit Account") %}
 
 {% block content %}
-<h1>Edit your personal data </h1>
+<h1>{{ t("Edit your personal data") }}</h1>
 <form method="POST" action="{{ url_for('user.form') }}">
     {{ form.csrf_token }}
     <p>{{ form.gender.label }} {{ form.gender() }}</p>
@@ -13,8 +13,8 @@
     <p>{{ form.origin_city.label }} {{ form.origin_city() }}</p>
     <p>{{ form.trustroots_username.label }} {{ form.trustroots_username() }}</p>
     <br><br>
-    <p>Pay attention to our <a href="https://github.com/Hitchwiki/maps.hitchwiki.org/blob/main/docs/PRIVACY_POLICY.md">Privacy Policy.</a></p>
-    <p>This personal information will be shown publicly.</p>
+    <p>{{ t("Pay attention to our {link}", link='<a href="https://github.com/Hitchwiki/maps.hitchwiki.org/blob/main/docs/PRIVACY_POLICY.md">' ~ t("Privacy Policy.") ~ '</a>')|safe }}</p>
+    <p>{{ t("This personal information will be shown publicly.") }}</p>
     <br>
     <p>{{ form.email_notifications() }} {{ form.email_notifications.label }}</p>
     <p>{{ form.nearby_hitchhikers_email() }} {{ form.nearby_hitchhikers_email.label }}</p>
@@ -23,7 +23,7 @@
     <br>
     <!-- Display preference, not personal data: it is never shown on the public profile. -->
     <p>{{ form.distance_unit.label }} {{ form.distance_unit() }}</p>
-    <p style="color:#666; font-size:0.85em;">Only affects how distances are shown to you. Not shown on your public profile.</p>
+    <p style="color:#666; font-size:0.85em;">{{ t("Only affects how distances are shown to you. Not shown on your public profile.") }}</p>
     <br>
     {{ form.submit }}
 </form>

@@ -251,18 +251,8 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
         </figcaption>
     </figure>
     <div class="sheet-body">
-    {# Every main_bp route is mirrored under /<lang> for each of SUPPORTED_LANGUAGES
-       (see hitch/__init__.py), so switching language is just re-pointing at the same
-       path with/without that prefix -- lang_switch_url does the rewrite. Language
-       names are shown as endonyms (LANGUAGE_ENDONYMS), not translated, which is the
-       standard convention for switcher UI -- a German visitor still needs to
-       recognize "English", not read a translation of it. #}
-    <div class="lang-switcher">
-        <i class="fa-solid fa-globe" aria-hidden="true"></i>
-        {% for code in SUPPORTED_LANGUAGES %}
-        <a href="{{ lang_switch_url(code) }}" class="lang-link{% if g.lang == code %} active{% endif %}" hreflang="{{ code }}">{{ LANGUAGE_ENDONYMS[code] }}</a>
-        {% endfor %}
-    </div>
+    {# The language switcher moved to the top brand bar (flag + name, top-right) --
+       see the .lang-picker in the "Top brand bar" block below. #}
     <p></p>
     <p>{{ t("Do you want to help with anything on this map or help the hitchhiking community in another way?") }}</p>
     <p>{{ t("Join our {link}", link='<a href="https://signal.group/#CjQKIFSj0oaPjMY_eB1uHfXEuxH459W6gtfEke0krGgTabZBEhB1ZK3YP53QSPBuviWzHO_F">Signal Chat</a>')|safe }}</p>
@@ -717,5 +707,44 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
         <img src="/static/logo.png" alt="Hitchwiki Logo">
         <span>Hitchwiki Maps</span>
     </a>
+    {# Every main_bp/user_bp route is mirrored under /<lang> for each of SUPPORTED_LANGUAGES
+       (see hitch/__init__.py), so switching is just re-pointing at the same path with/
+       without that prefix -- lang_switch_url does the rewrite. Flag + endonym per
+       language (LANGUAGE_FLAGS / LANGUAGE_ENDONYMS): the endonym is never translated --
+       a French visitor still needs to recognize "English", not read "Anglais". #}
+    <div class="lang-picker" id="lang-picker">
+        <button type="button" class="lang-picker-btn" id="lang-picker-btn" aria-haspopup="true" aria-expanded="false">
+            <span aria-hidden="true">{{ LANGUAGE_FLAGS[g.lang] }}</span>
+            <span class="lang-picker-name">{{ LANGUAGE_ENDONYMS[g.lang] }}</span>
+            <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+        </button>
+        <ul class="lang-picker-menu" id="lang-picker-menu" hidden>
+            {% for code in SUPPORTED_LANGUAGES %}
+            <li>
+                <a href="{{ lang_switch_url(code) }}" hreflang="{{ code }}" class="lang-picker-item{% if g.lang == code %} active{% endif %}">
+                    <span aria-hidden="true">{{ LANGUAGE_FLAGS[code] }}</span> {{ LANGUAGE_ENDONYMS[code] }}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
 </div>
+<script>
+(function () {
+    var wrap = document.getElementById('lang-picker');
+    var btn = document.getElementById('lang-picker-btn');
+    var menu = document.getElementById('lang-picker-menu');
+    if (!wrap || !btn || !menu) return;
+    function close() { menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); }
+    function toggle(e) {
+        e.stopPropagation();
+        var open = !menu.hidden;
+        if (open) close();
+        else { menu.hidden = false; btn.setAttribute('aria-expanded', 'true'); }
+    }
+    btn.addEventListener('click', toggle);
+    document.addEventListener('click', function (e) { if (!wrap.contains(e.target)) close(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+})();
+</script>
 {% endblock %}

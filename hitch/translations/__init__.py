@@ -31,6 +31,19 @@ LANGUAGE_ENDONYMS = {
     "pl": "Polski",
 }
 
+# One representative flag per language for the switcher UI. A language isn't a
+# country, so this is inherently a simplification (fr could be many Francophone
+# flags, pt could be BR) -- picked the flag most visitors would associate with
+# each language first, same tradeoff every flag-based language picker makes.
+LANGUAGE_FLAGS = {
+    "en": "🇬🇧",
+    "de": "🇩🇪",
+    "fr": "🇫🇷",
+    "pt": "🇵🇹",
+    "ru": "🇷🇺",
+    "pl": "🇵🇱",
+}
+
 _TRANSLATIONS_DIR = os.path.dirname(__file__)
 _cache = {}
 

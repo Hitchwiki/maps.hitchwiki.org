@@ -1922,25 +1922,6 @@ ul.no-style {
   color: #000;
 }
 
-.lang-switcher {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-.lang-switcher .lang-link {
-  border-bottom: none !important;
-  padding: 3px 10px;
-  border-radius: 12px;
-  background: #f0f0f0;
-  font-size: 0.85em;
-  font-weight: 600;
-  text-decoration: none;
-}
-.lang-switcher .lang-link.active {
-  background: #333;
-  color: #fff;
-}
 
 .make-invisible {
   display: none;
@@ -2182,7 +2163,62 @@ ul.no-style {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 14px;
+}
+
+/* Language picker: flag + name button, top-right of the yellow brand bar. */
+.lang-picker {
+  position: relative;
+  flex-shrink: 0;
+}
+.lang-picker-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 14px;
+  padding: 4px 10px;
+  font: inherit;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+}
+.lang-picker-btn:hover { background: rgba(255, 255, 255, 0.85); }
+.lang-picker-btn .fa-chevron-down { font-size: 0.7em; opacity: 0.7; }
+.lang-picker-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 1002;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  min-width: 150px;
+}
+.lang-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  color: #333;
+  text-decoration: none;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.lang-picker-item:hover { background: #f0f0f0; }
+.lang-picker-item.active { background: #333; color: #fff; }
+
+@media only screen and (max-width: 700px) {
+  .lang-picker-btn { font-size: 12px; padding: 3px 8px; }
+  .lang-picker-name { display: none; }
 }
 
 .top-brand-bar a {

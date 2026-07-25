@@ -57,16 +57,16 @@
 <div class="trip-detail-header">
   <h1>{{ trip.name }}</h1>
   <div class="trip-header-actions">
-    <button type="button" class="share-btn" id="share-btn" data-share-url="{{ url_for('user.show_trip', trip_id=trip.id, _external=True) }}" data-share-title="{{ trip.name }} on Hitchwiki Maps">
+    <button type="button" class="share-btn" id="share-btn" data-share-url="{{ url_for('user.show_trip', trip_id=trip.id, _external=True) }}" data-share-title="{{ t('{name} on Hitchwiki Maps', name=trip.name) }}">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-      <span class="share-btn-label">Share</span>
+      <span class="share-btn-label">{{ t("Share") }}</span>
     </button>
-    {% if is_owner %}<a class="btn-edit-trip" href="/edit-trip/{{ trip.id }}">Edit trip</a>{% endif %}
+    {% if is_owner %}<a class="btn-edit-trip" href="/edit-trip/{{ trip.id }}">{{ t("Edit trip") }}</a>{% endif %}
   </div>
 </div>
 <p class="trip-byline">
-  {% if owner %}by <a href="{{ url_for('user.show_account', username=owner.username) }}">{{ owner.username }}</a> · {% endif %}
-  {% if date_span %}{{ date_span }} · {% endif %}{{ rides|length }} ride{{ '' if rides|length == 1 else 's' }}
+  {% if owner %}{{ t("by {link}", link='<a href="' ~ url_for('user.show_account', username=owner.username) ~ '">' ~ owner.username ~ '</a>')|safe }} · {% endif %}
+  {% if date_span %}{{ date_span }} · {% endif %}{{ t("{n} ride" if rides|length == 1 else "{n} rides", n=rides|length) }}
 </p>
 {% if trip.description %}
 <p class="trip-description">{{ trip.description }}</p>
@@ -86,9 +86,9 @@
           {% if ride.rating > 0 %}&nbsp;{{ "⭐" * ride.rating }}{% endif %}
       </div>
       {% if ride.pickup_lat and ride.pickup_lon %}
-      <a href="/#{{ ride.pickup_lat }},{{ ride.pickup_lon }}" title="View spot on map" style="display:block; text-decoration:none;">
+      <a href="/#{{ ride.pickup_lat }},{{ ride.pickup_lon }}" title="{{ t('View spot on map') }}" style="display:block; text-decoration:none;">
         <div class="map-thumbnail" id="ride-thumb-{{ loop.index0 }}" style="height:100px;">
-          <div class="map-thumbnail-overlay">View on map ↗</div>
+          <div class="map-thumbnail-overlay">{{ t("View on map ↗") }}</div>
         </div>
         <div style="color:#888; font-size:0.8em;">{{ "%.4f, %.4f"|format(ride.pickup_lat, ride.pickup_lon) }}</div>
       </a>
@@ -99,7 +99,7 @@
   </div>
   {% endfor %}
 {% else %}
-  <p style="color:#666; font-size:0.9em;">This trip has no rides yet.</p>
+  <p style="color:#666; font-size:0.9em;">{{ t("This trip has no rides yet.") }}</p>
 {% endif %}
 {% endblock %}
 
@@ -147,10 +147,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 const label = shareBtn.querySelector('.share-btn-label');
                 const prev = label.textContent;
                 shareBtn.classList.add('copied');
-                label.textContent = 'Link copied!';
+                label.textContent = '{{ t("Link copied!") }}';
                 setTimeout(() => { shareBtn.classList.remove('copied'); label.textContent = prev; }, 1800);
             } catch (e) {
-                window.prompt('Copy this link:', url);
+                window.prompt('{{ t("Copy this link:") }}', url);
             }
         });
     }
