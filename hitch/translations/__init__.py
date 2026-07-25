@@ -17,7 +17,10 @@ import os
 
 from flask import g
 
-SUPPORTED_LANGUAGES = ("en", "de", "fr", "pt", "ru", "pl")
+SUPPORTED_LANGUAGES = (
+    "en", "de", "fr", "pt", "ru", "pl", "es", "it", "hr", "cs", "et", "hu", "zh", "ja", "ro",
+    "bg", "da", "el", "fi", "ka", "lt", "lv", "mn", "nl", "no", "sk", "sl", "sr", "sv", "tr", "uk",
+)
 
 # Each language's own name for itself, for the switcher UI (hitch/templates/map.html).
 # Deliberately NOT translated (an endonym is shown the same in every language) --
@@ -29,6 +32,31 @@ LANGUAGE_ENDONYMS = {
     "pt": "Português",
     "ru": "Русский",
     "pl": "Polski",
+    "es": "Español",
+    "it": "Italiano",
+    "hr": "Hrvatski",
+    "cs": "Čeština",
+    "et": "Eesti",
+    "hu": "Magyar",
+    "zh": "中文",
+    "ja": "日本語",
+    "ro": "Română",
+    "bg": "Български",
+    "da": "Dansk",
+    "el": "Ελληνικά",
+    "fi": "Suomi",
+    "ka": "ქართული",
+    "lt": "Lietuvių",
+    "lv": "Latviešu",
+    "mn": "Монгол",
+    "nl": "Nederlands",
+    "no": "Norsk",
+    "sk": "Slovenčina",
+    "sl": "Slovenščina",
+    "sr": "Српски",
+    "sv": "Svenska",
+    "tr": "Türkçe",
+    "uk": "Українська",
 }
 
 # One representative flag per language for the switcher UI. A language isn't a
@@ -42,6 +70,31 @@ LANGUAGE_FLAGS = {
     "pt": "🇵🇹",
     "ru": "🇷🇺",
     "pl": "🇵🇱",
+    "es": "🇪🇸",
+    "it": "🇮🇹",
+    "hr": "🇭🇷",
+    "cs": "🇨🇿",
+    "et": "🇪🇪",
+    "hu": "🇭🇺",
+    "zh": "🇨🇳",
+    "ja": "🇯🇵",
+    "ro": "🇷🇴",
+    "bg": "🇧🇬",
+    "da": "🇩🇰",
+    "el": "🇬🇷",
+    "fi": "🇫🇮",
+    "ka": "🇬🇪",
+    "lt": "🇱🇹",
+    "lv": "🇱🇻",
+    "mn": "🇲🇳",
+    "nl": "🇳🇱",
+    "no": "🇳🇴",
+    "sk": "🇸🇰",
+    "sl": "🇸🇮",
+    "sr": "🇷🇸",
+    "sv": "🇸🇪",
+    "tr": "🇹🇷",
+    "uk": "🇺🇦",
 }
 
 _TRANSLATIONS_DIR = os.path.dirname(__file__)
