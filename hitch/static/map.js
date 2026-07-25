@@ -354,6 +354,9 @@ function populateHeatmapLegend(legendData) {
   // User-proposed spots (blue markers) — non-blocking overlay, like events.
   loadProposedSpotMarkers(map);
 
+  // Rides logged since the last show.py run — non-blocking, like the overlays above.
+  loadPendingRides(map);
+
   setupEventListeners();
 
   // Nudge first-time users toward the features they'd otherwise miss; short delay
@@ -1197,6 +1200,77 @@ function relativeAge(iso) {
   if (s < 3600) return Math.floor(s / 60) + "m ago";
   if (s < 86400) return Math.floor(s / 3600) + "h ago";
   return Math.floor(s / 86400) + "d ago";
+}
+
+// Rides logged since show.py last generated the map files, keyed by the spot they
+// belong to. handleMarkerClick merges these into what it fetches from
+// rides/by-spot/<sid>.json so a just-logged ride is in the spot pane immediately.
+let pendingRidesBySpot = new Map();
+
+// Fetch /pending_rides.json and fold it into the markers. Non-blocking overlay like
+// loadProposedSpotMarkers, and must run after loadMarkers (it reads allMarkers and adds
+// to markerCluster). Silent on any failure: a missing endpoint or a bad payload leaves
+// the map exactly as the generated files drew it.
+async function loadPendingRides(map) {
+  if (!window.PendingRides) return;
+  let data;
+  try {
+    const resp = await fetch("/pending_rides.json");
+    if (!resp.ok) return;
+    data = await resp.json();
+  } catch (error) {
+    console.warn("Could not load pending rides:", error);
+    return;
+  }
+  if (!Array.isArray(data) || !data.length) return;
+
+  const spots = allMarkers.map((m) => {
+    const latlng = m.getLatLng();
+    return { lat: latlng.lat, lon: latlng.lng, spotId: m.options.spotId };
+  });
+  const plan = window.PendingRides.planPendingMerge(data, spots);
+
+  const markersBySpotId = new Map(allMarkers.map((m) => [m.options.spotId, m]));
+  for (const group of plan.attach) {
+    const marker = markersBySpotId.get(group.spotId);
+    if (!marker) continue;
+    // Only the count moves. show.py's mean rating is taken over a filtered ride set
+    // (low-value rides are dropped from detail views but still counted here), and that
+    // filter is not reproducible client-side — a recomputed colour would be subtly
+    // wrong for ten minutes, which is worse than a stale one.
+    marker.options._data.review_count = (marker.options._data.review_count || 0) + group.rides.length;
+    pendingRidesBySpot.set(group.spotId, group.rides);
+  }
+
+  for (const spot of plan.create) {
+    addPendingSpotMarker(spot);
+    pendingRidesBySpot.set(spot.spotId, spot.rides);
+  }
+
+  console.log(`Loaded ${data.length} pending ride(s) into ${plan.attach.length + plan.create.length} spot(s)`);
+}
+
+// Draw a marker for a spot that has no entry in spots.json yet — the first ride ever
+// logged there. Styled exactly like loadMarkers' circle markers so it is
+// indistinguishable from a generated one, and carries the same spotId/_data contract
+// that handleMarkerClick depends on.
+function addPendingSpotMarker(spot) {
+  const rating = spot.rating || 3;
+  const color = { 1: "red", 2: "orange", 3: "yellow", 4: "lightgreen", 5: "lightgreen" }[Math.round(rating)];
+  const opacity = { 1: 0.3, 2: 0.4, 3: 0.6, 4: 0.8, 5: 0.8 }[Math.round(rating)];
+  const coords = new L.latLng(spot.lat, spot.lon);
+  const marker = L.circleMarker(coords, {
+    radius: 5,
+    weight: 1,
+    fillOpacity: opacity,
+    color: "black",
+    fillColor: color,
+    spotId: spot.spotId,
+    _data: { lat: spot.lat, lon: spot.lon, rating: rating, review_count: spot.review_count, text: "" },
+  });
+  marker.on("click", async (e) => await handleMarkerClick(marker, coords, e));
+  marker.addTo(markerCluster);
+  allMarkers.push(marker);
 }
 
 // Load /proposed_spots.json (served live from the DB) and add each as a blue circle
@@ -2340,6 +2414,14 @@ async function handleMarkerClick(marker, point, e) {
     }
   } catch (error) {
     console.error(`Error loading rides for spot ${spotId}:`, error);
+  }
+
+  // Fold in rides show.py has not generated yet. Deduped on the d tag, so a ride that
+  // is in both (the files regenerated after this page loaded its pending list) renders
+  // once. A brand-new spot has no file at all — the 404 branch above leaves spotRides
+  // empty and this supplies its single ride.
+  if (window.PendingRides) {
+    spotRides = window.PendingRides.mergeSpotRides(spotRides, pendingRidesBySpot.get(spotId));
   }
 
   // Sort newest-first by submission time so the freshest ride is at the top
