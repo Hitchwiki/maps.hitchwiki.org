@@ -111,7 +111,7 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
     var deferredPrompt = null;
 
     if (isIOS) {
-        textEl.innerHTML = 'Tap the <strong>Share</strong> button, then <strong>Add to Home Screen</strong>.';
+        textEl.innerHTML = '{{ t("Tap the <strong>Share</strong> button, then <strong>Add to Home Screen</strong>.")|safe }}';
     }
 
     // Chromium fires beforeinstallprompt when the PWA is installable — capture it
@@ -153,19 +153,19 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
         <i class="fa-solid fa-mobile-screen"></i>
     </div>
     <div class="install-hint-body">
-        <div class="install-hint-title">Add Hitchhiking Map to your home screen</div>
-        <div class="install-hint-text" id="install-hint-text">Use it like a normal app right from your home screen.</div>
+        <div class="install-hint-title">{{ t("Add Hitchhiking Map to your home screen") }}</div>
+        <div class="install-hint-text" id="install-hint-text">{{ t("Use it like a normal app right from your home screen.") }}</div>
     </div>
-    <button type="button" id="install-hint-action" class="install-hint-action" hidden>Install</button>
-    <button type="button" id="install-hint-close" class="install-hint-close" aria-label="Dismiss">&times;</button>
+    <button type="button" id="install-hint-action" class="install-hint-action" hidden>{{ t("Install") }}</button>
+    <button type="button" id="install-hint-close" class="install-hint-close" aria-label="{{ t('Dismiss') }}">&times;</button>
 </div>
 <div id="map"></div>
-<div id="spots-loading-overlay" aria-label="Loading spots">
+<div id="spots-loading-overlay" aria-label="{{ t('Loading spots') }}">
     <i class="fa-solid fa-circle-notch fa-spin"></i>
 </div>
 <div class="sidebar show-spot spot bottom-sheet">
     <div class="sheet-handle" id="spot-sheet-handle" aria-hidden="true"></div>
-    <a href="javascript:void(0);" id="spot-close" title="Close" aria-label="Close">
+    <a href="javascript:void(0);" id="spot-close" title="{{ t('Close') }}" aria-label="{{ t('Close') }}">
         <svg width="14" height="14" version="1.1" xmlns="http://www.w3.org/2000/svg">
             <line x1="1" y1="13" x2="13" y2="1" stroke="black" stroke-width="2" />
             <line x1="1" y1="1" x2="13" y2="13" stroke="black" stroke-width="2" />
@@ -177,13 +177,13 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
              or a cached reverse geocode, and shipped in the per-spot detail file. Hidden
              for spots nothing can name, so the pane looks exactly as it did before. -->
         <div id="spot-name" hidden></div>
-        <div id="spot-coords-line">Coordinates: <span id="spot-header"></span></div>
-        <a id="spot-google-link" class="spot-action-link" target="_blank" rel="noopener">Go to on Google Maps</a>
-        <a id="spot-streetview-link" class="spot-action-link" target="_blank" rel="noopener">See on Google Street View</a>
-        <a id="spot-osm-link" class="spot-action-link" target="_blank" rel="noopener">Go to on OpenStreetMap</a>
-        <button type="button" class="share-btn" id="share-spot-btn" data-share-title="Hitchhiking spot on Hitchwiki Maps">
+        <div id="spot-coords-line">{{ t("Coordinates:") }} <span id="spot-header"></span></div>
+        <a id="spot-google-link" class="spot-action-link" target="_blank" rel="noopener">{{ t("Go to on Google Maps") }}</a>
+        <a id="spot-streetview-link" class="spot-action-link" target="_blank" rel="noopener">{{ t("See on Google Street View") }}</a>
+        <a id="spot-osm-link" class="spot-action-link" target="_blank" rel="noopener">{{ t("Go to on OpenStreetMap") }}</a>
+        <button type="button" class="share-btn" id="share-spot-btn" data-share-title="{{ t('Hitchhiking spot on Hitchwiki Maps') }}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-            <span class="share-btn-label">Share this spot</span>
+            <span class="share-btn-label">{{ t("Share this spot") }}</span>
         </button>
     </div>
     <!-- Both halves record a ride from THIS exact spot, differing only in tense: "Hitch
@@ -193,61 +193,61 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
          clustered spots. Same split as the map's #inr-start-bar. -->
     <div class="inr-split" id="spot-contribute">
         <button type="button" id="spot-hitch-here">
-            <i class="fa-solid fa-thumbs-up" aria-hidden="true"></i> Hitch here
+            <i class="fa-solid fa-thumbs-up" aria-hidden="true"></i> {{ t("Hitch here") }}
         </button>
         {% if not hide_add_spot_button %}
         <button type="button" id="spot-log-past">
-            <span class="inr-emoji-bw" aria-hidden="true">🚗💨</span> Log a past ride
+            <span class="inr-emoji-bw" aria-hidden="true">🚗💨</span> {{ t("Log a past ride") }}
         </button>
         {% endif %}
     </div>
     <div id='spot-summary'></div>
     <div id="spot-rate-prompt">
-        <div class="rate-label">Rate this spot</div>
-        <div class="rate-stars" id="spot-rate-stars" role="radiogroup" aria-label="Rate this spot">
-            <button type="button" class="rate-star" data-rate="1" aria-label="1 star">★</button>
-            <button type="button" class="rate-star" data-rate="2" aria-label="2 stars">★</button>
-            <button type="button" class="rate-star" data-rate="3" aria-label="3 stars">★</button>
-            <button type="button" class="rate-star" data-rate="4" aria-label="4 stars">★</button>
-            <button type="button" class="rate-star" data-rate="5" aria-label="5 stars">★</button>
+        <div class="rate-label">{{ t("Rate this spot") }}</div>
+        <div class="rate-stars" id="spot-rate-stars" role="radiogroup" aria-label="{{ t('Rate this spot') }}">
+            <button type="button" class="rate-star" data-rate="1" aria-label="{{ t('1 star') }}">★</button>
+            <button type="button" class="rate-star" data-rate="2" aria-label="{{ t('2 stars') }}">★</button>
+            <button type="button" class="rate-star" data-rate="3" aria-label="{{ t('3 stars') }}">★</button>
+            <button type="button" class="rate-star" data-rate="4" aria-label="{{ t('4 stars') }}">★</button>
+            <button type="button" class="rate-star" data-rate="5" aria-label="{{ t('5 stars') }}">★</button>
         </div>
     </div>
-    <h4>Rides</h4>
+    <h4>{{ t("Rides") }}</h4>
     <div id='spot-text'></div>
     <i id="extra-text"></i>
     </div>
 </div>
 <div class="sidebar success-duplicate">
-    <h3>Success!</h3>
+    <h3>{{ t("Success!") }}</h3>
 
-    <p>Thanks for your contribution!</p>
-    <p>Your duplicate report will be subject to a manual review, or it will be merged automatically within 10 minutes.
+    <p>{{ t("Thanks for your contribution!") }}</p>
+    <p>{{ t("Your duplicate report will be subject to a manual review, or it will be merged automatically within 10 minutes.") }}
     </p>
 </div>
 <div class="sidebar failed">
-    <h3>Failed!</h3>
+    <h3>{{ t("Failed!") }}</h3>
 
-    <p>Try to submit the review again.</p>
+    <p>{{ t("Try to submit the review again.") }}</p>
 </div>
 <div class="sidebar registered">
-    <h3>Success!</h3>
+    <h3>{{ t("Success!") }}</h3>
 
-    <p>You're registered and logged in.</p>
+    <p>{{ t("You're registered and logged in.") }}</p>
 </div>
 <div class="sidebar menu bottom-sheet">
     <div class="sheet-handle" id="menu-sheet-handle" aria-hidden="true"></div>
-    <a href="javascript:void(0);" class="sheet-close" id="menu-close" title="Close" aria-label="Close">
+    <a href="javascript:void(0);" class="sheet-close" id="menu-close" title="{{ t('Close') }}" aria-label="{{ t('Close') }}">
         <svg width="14" height="14" version="1.1" xmlns="http://www.w3.org/2000/svg">
             <line x1="1" y1="13" x2="13" y2="1" stroke="black" stroke-width="2" />
             <line x1="1" y1="1" x2="13" y2="13" stroke="black" stroke-width="2" />
         </svg>
     </a>
     <figure class="menu-hero">
-        <img src="/static/Hitchhiker-Luxemburg-1977.jpg" alt="Hitchhiker on a roadside in Luxembourg, 1977" />
+        <img src="/static/Hitchhiker-Luxemburg-1977.jpg" alt="{{ t('Hitchhiker on a roadside in Luxembourg, 1977') }}" />
         <figcaption>
-            By <a href="//commons.wikimedia.org/wiki/User:Roger_McLassus" target="_blank" rel="noopener">Roger McLassus</a> — Own work,
+            {{ t("By") }} <a href="//commons.wikimedia.org/wiki/User:Roger_McLassus" target="_blank" rel="noopener">Roger McLassus</a> — {{ t("Own work") }},
             <a href="http://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA 3.0</a>,
-            <a href="https://commons.wikimedia.org/w/index.php?curid=354545" target="_blank" rel="noopener">Link</a>
+            <a href="https://commons.wikimedia.org/w/index.php?curid=354545" target="_blank" rel="noopener">{{ t("Link") }}</a>
         </figcaption>
     </figure>
     <div class="sheet-body">
@@ -262,49 +262,52 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
         <a href="{{ lang_switch_url('de') }}" class="lang-link{% if g.lang == 'de' %} active{% endif %}" hreflang="de">Deutsch</a>
     </div>
     <p></p>
-    <p>Do you want to help with anything on this map or help the hitchhiking community in another way?</p>
-    <p>Join our <a href="https://signal.group/#CjQKIFSj0oaPjMY_eB1uHfXEuxH459W6gtfEke0krGgTabZBEhB1ZK3YP53QSPBuviWzHO_F">Signal Chat</a></p>
+    <p>{{ t("Do you want to help with anything on this map or help the hitchhiking community in another way?") }}</p>
+    <p>{{ t("Join our {link}", link='<a href="https://signal.group/#CjQKIFSj0oaPjMY_eB1uHfXEuxH459W6gtfEke0krGgTabZBEhB1ZK3YP53QSPBuviWzHO_F">Signal Chat</a>')|safe }}</p>
     <p></p>
     <ul class="no-style">
-        <li><i class="fab fa-github"></i><a href="https://github.com/Hitchwiki/maps.hitchwiki.org">Contribute</a></li>
-        <li><i class="fab fa-github"></i><a href="https://github.com/Hitchwiki/maps.hitchwiki.org/issues/new">Report bugs</a></li>
-        <li><i class="fa fa-download"></i>Download rides</li>
+        <li><i class="fab fa-github"></i><a href="https://github.com/Hitchwiki/maps.hitchwiki.org">{{ t("Contribute") }}</a></li>
+        <li><i class="fab fa-github"></i><a href="https://github.com/Hitchwiki/maps.hitchwiki.org/issues/new">{{ t("Report bugs") }}</a></li>
+        <li><i class="fa fa-download"></i>{{ t("Download rides") }}</li>
         <ul>
-            <li><a href="https://huggingface.co/datasets/Hitchwiki/hitchhiking-rides-dataset">Full dataset</a></li>
-            <li><a href="javascript:exportAsGPX()">As GPX (to import into offline maps)</a></li>
+            <li><a href="https://huggingface.co/datasets/Hitchwiki/hitchhiking-rides-dataset">{{ t("Full dataset") }}</a></li>
+            <li><a href="javascript:exportAsGPX()">{{ t("As GPX (to import into offline maps)") }}</a></li>
         </ul>
-        <li><i class="fa fa-chart-simple"></i><a href="/dashboard.html" target="_blank" rel="noopener">Charts & graphs</a></li>
+        <li><i class="fa fa-chart-simple"></i><a href="/dashboard.html" target="_blank" rel="noopener">{{ t("Charts & graphs") }}</a></li>
     </ul>
-    <h4>Contact</h4>
+    <h4>{{ t("Contact") }}</h4>
     <p>
-        &copy; Reach out to <a href=https://tillwenke.github.io/about />Till Wenke</a> or
-        <a href=https://github.com/leon-wbr>Leon Weber</a>        
+        &copy; {{ t("Reach out to {a} or {b}", a='<a href=https://tillwenke.github.io/about />Till Wenke</a>', b='<a href=https://github.com/leon-wbr>Leon Weber</a>')|safe }}
     </p>
-    <h4>License</h4>
+    <h4>{{ t("License") }}</h4>
     <p>
-        Hitchwiki Map software is licensed under <a href="https://github.com/Hitchwiki/maps.hitchwiki.org/blob/main/LICENSE" target="_blank" rel="noopener">AGPL 3.0</a>. The Hitchwiki Maps database is licensed under the <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>, the license used
-        by OpenStreetMap. Individual reviews you write — your comment and username — are licensed under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>. See <a href="/copyright" target="_blank" rel="noopener">Copyright and License</a> for details.
+        {{ t("Hitchwiki Map software is licensed under {agpl}. The Hitchwiki Maps database is licensed under the {odbl}, the license used by OpenStreetMap. Individual reviews you write — your comment and username — are licensed under {ccbysa}. See {copyright_link} for details.",
+             agpl='<a href="https://github.com/Hitchwiki/maps.hitchwiki.org/blob/main/LICENSE" target="_blank" rel="noopener">AGPL 3.0</a>',
+             odbl='<a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>',
+             ccbysa='<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>',
+             copyright_link='<a href="/copyright" target="_blank" rel="noopener">Copyright and License</a>')|safe }}
     </p>
-    <h4>Privacy</h4>
+    <h4>{{ t("Privacy") }}</h4>
     <p>
-        See our <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a> for what data we collect and how ride data is published.
+        {{ t("See our {link} for what data we collect and how ride data is published.", link='<a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>')|safe }}
     </p>
-    <h4>Credits</h4>
+    <h4>{{ t("Credits") }}</h4>
     <p>
-        Maps by
-        <a href="https://openstreetmap.org">OpenStreetMap</a> and
-        <a href="https://tinyworldmap.com">tinyworldmap</a>
+        {{ t("Maps by {a} and {b}", a='<a href="https://openstreetmap.org">OpenStreetMap</a>', b='<a href="https://tinyworldmap.com">tinyworldmap</a>')|safe }}
     </p>
     <p>
-        Data by
-        <a href="https://hitchwiki.org">Hitchwiki</a> (<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>),
-        <a href="/copyright" target="_blank" rel="noopener">Hitchwiki Maps</a> (<a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a> + reviews <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>),
-        <a href="https://hitchmap.com/copyright.html" rel="nofollow">Hitchmap</a> (<a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a>) and
-        <a href="/users" target="_blank" rel="noopener">many hitchhikers</a>.
+        {{ t("Data by {a} ({a_license}), {b} ({b_license}), {c} ({c_license}) and {d}.",
+             a='<a href="https://hitchwiki.org">Hitchwiki</a>',
+             a_license='<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>',
+             b='<a href="/copyright" target="_blank" rel="noopener">Hitchwiki Maps</a>',
+             b_license='<a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a> + ' ~ t("reviews {license}", license='<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>'),
+             c='<a href="https://hitchmap.com/copyright.html" rel="nofollow">Hitchmap</a>',
+             c_license='<a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a>',
+             d='<a href="/users" target="_blank" rel="noopener">' ~ t("many hitchhikers") ~ '</a>')|safe }}
     </p>
-    <h4>Attribution</h4>
+    <h4>{{ t("Attribution") }}</h4>
     <p>
-        See full attribution <a href="https://github.com/Hitchwiki/maps.hitchwiki.org/blob/main/docs/ATTRIBUTION.md" target="_blank" rel="noopener">here</a>.
+        {{ t("See full attribution {link}.", link='<a href="https://github.com/Hitchwiki/maps.hitchwiki.org/blob/main/docs/ATTRIBUTION.md" target="_blank" rel="noopener">' ~ t("here") ~ '</a>')|safe }}
     </p>
     <p>
         Copyright &copy; 2022-2025 <a href=https://github.com/bopjesvla>Bob de Ruiter</a> &
@@ -320,9 +323,9 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
 <div class="filters-scrim" id="filters-scrim"></div>
 <div class="filter-pane collapsed" id="filter-pane">
     <div class="filter-pane-header">
-        <span>Filters</span>
-        <i id="filter-loading-spinner" class="fa-solid fa-circle-notch fa-spin" style="display: none; margin-left: 8px;" aria-label="Loading"></i>
-        <button id="filter-collapse-btn" class="filter-collapse-btn" title="Close filters" aria-label="Close filters">
+        <span>{{ t("Filters") }}</span>
+        <i id="filter-loading-spinner" class="fa-solid fa-circle-notch fa-spin" style="display: none; margin-left: 8px;" aria-label="{{ t('Loading') }}"></i>
+        <button id="filter-collapse-btn" class="filter-collapse-btn" title="{{ t('Close filters') }}" aria-label="{{ t('Close filters') }}">
             <i class="fa-solid fa-xmark"></i>
         </button>
     </div>
@@ -330,81 +333,81 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
         <!-- Spot-quality filters are the ones people reach for most, so they sit at the
              top in their own highlighted block, ahead of the secondary ride filters. -->
         <div class="filter-pane-primary">
-            <span class="filter-primary-title">Spot quality</span>
+            <span class="filter-primary-title">{{ t("Spot quality") }}</span>
             <div class="filter-pane-row">
                 <label class="filter-field">
-                    <span>Min rides per spot</span>
-                    <input id="min-rides-filter" type="number" min="1" step="1" value="" placeholder="Any" />
+                    <span>{{ t("Min rides per spot") }}</span>
+                    <input id="min-rides-filter" type="number" min="1" step="1" value="" placeholder="{{ t('Any') }}" />
                 </label>
                 <label class="filter-field">
-                    <span>Min average rating (0&ndash;5)</span>
-                    <input id="min-rating-filter" type="number" min="0" max="5" step="0.1" value="" placeholder="Any" />
+                    <span>{{ t("Min average rating (0–5)") }}</span>
+                    <input id="min-rating-filter" type="number" min="0" max="5" step="0.1" value="" placeholder="{{ t('Any') }}" />
                 </label>
             </div>
             <!-- Gas-station filter is a click-to-toggle icon (highlights when on),
                  not a checkbox. A hidden checkbox holds the state so the shared
                  filter logic (applyParams / filterMarkers / rides index) stays uniform. -->
             <div class="filter-pane-row quality-icon-row">
-                <button type="button" id="fuel-icon-toggle" class="quality-icon-toggle" aria-pressed="false" title="Show only spots at a gas station">
+                <button type="button" id="fuel-icon-toggle" class="quality-icon-toggle" aria-pressed="false" title="{{ t('Show only spots at a gas station') }}">
                     <span class="quality-icon">⛽</span>
-                    <span>Gas stations</span>
+                    <span>{{ t("Gas stations") }}</span>
                 </button>
                 <input id="fuel-toggle" type="checkbox" hidden />
             </div>
         </div>
         <div class="filter-pane-row">
-            <input id="user-filter" type="text" value="" placeholder="Filter by user" />
-            <input id="text-filter" type="search" value="" placeholder="Search comments" />
-            <input id="distance-filter" type="number" value="" placeholder="Min ride distance ({{ distance_unit_label() }})" />
+            <input id="user-filter" type="text" value="" placeholder="{{ t('Filter by user') }}" />
+            <input id="text-filter" type="search" value="" placeholder="{{ t('Search comments') }}" />
+            <input id="distance-filter" type="number" value="" placeholder="{{ t('Min ride distance ({unit})', unit=distance_unit_label()) }}" />
         </div>
         <div class="filter-pane-row">
             <label class="filter-field">
-                <span>Vehicle</span>
+                <span>{{ t("Vehicle") }}</span>
                 <select id="vehicle-filter">
-                    <option value="">Any</option>
-                    <option value="car">🚗 car</option>
-                    <option value="bus">🚌 bus</option>
-                    <option value="van">🚐 van</option>
-                    <option value="truck">🚚 truck</option>
-                    <option value="motorbike">🏍️ motorbike</option>
-                    <option value="scooter">🛵 scooter</option>
-                    <option value="taxi">🚕 taxi</option>
-                    <option value="horse-cart">🐎 horse-cart</option>
-                    <option value="train">🚆 train</option>
-                    <option value="camper">🏕️ camper</option>
-                    <option value="tractor">🚜 tractor</option>
-                    <option value="plane">✈️ plane</option>
-                    <option value="ferry">⛴️ ferry</option>
-                    <option value="boat">⛵ boat</option>
+                    <option value="">{{ t("Any") }}</option>
+                    <option value="car">🚗 {{ t("car") }}</option>
+                    <option value="bus">🚌 {{ t("bus") }}</option>
+                    <option value="van">🚐 {{ t("van") }}</option>
+                    <option value="truck">🚚 {{ t("truck") }}</option>
+                    <option value="motorbike">🏍️ {{ t("motorbike") }}</option>
+                    <option value="scooter">🛵 {{ t("scooter") }}</option>
+                    <option value="taxi">🚕 {{ t("taxi") }}</option>
+                    <option value="horse-cart">🐎 {{ t("horse-cart") }}</option>
+                    <option value="train">🚆 {{ t("train") }}</option>
+                    <option value="camper">🏕️ {{ t("camper") }}</option>
+                    <option value="tractor">🚜 {{ t("tractor") }}</option>
+                    <option value="plane">✈️ {{ t("plane") }}</option>
+                    <option value="ferry">⛴️ {{ t("ferry") }}</option>
+                    <option value="boat">⛵ {{ t("boat") }}</option>
                 </select>
             </label>
             <label class="filter-field">
-                <span>Signal method</span>
+                <span>{{ t("Signal method") }}</span>
                 <select id="method-filter">
-                    <option value="">Any</option>
-                    <option value="thumb">👍 thumb</option>
-                    <option value="sign">🪧 sign</option>
-                    <option value="asking">💬 asking</option>
-                    <option value="waving">👋 waving</option>
-                    <option value="invited">🎉 invited</option>
-                    <option value="prearranged">📅 prearranged</option>
+                    <option value="">{{ t("Any") }}</option>
+                    <option value="thumb">👍 {{ t("thumb") }}</option>
+                    <option value="sign">🪧 {{ t("sign") }}</option>
+                    <option value="asking">💬 {{ t("asking") }}</option>
+                    <option value="waving">👋 {{ t("waving") }}</option>
+                    <option value="invited">🎉 {{ t("invited") }}</option>
+                    <option value="prearranged">📅 {{ t("prearranged") }}</option>
                 </select>
             </label>
             <label class="filter-field">
-                <span>Ride date from</span>
+                <span>{{ t("Ride date from") }}</span>
                 <input id="min-date-filter" type="date" value="" />
             </label>
             <label class="filter-field">
-                <span>Ride date to</span>
+                <span>{{ t("Ride date to") }}</span>
                 <input id="max-date-filter" type="date" value="" />
             </label>
         </div>
         <div class="filter-pane-row filter-toggles">
-            <label><input id="recent-toggle" type="checkbox" value="" /> Last 24h</label>
-            <label><input id="osm-toggle" type="checkbox" value="" /> Official spots</label>
-            <label><input id="car-pooling-toggle" type="checkbox" value="" /> Car pooling</label>
-            <label><input id="hitchwiki-toggle" type="checkbox" value="" /> Hitchwiki articles</label>
-            <button id="clear-filters">Clear</button>
+            <label><input id="recent-toggle" type="checkbox" value="" /> {{ t("Last 24h") }}</label>
+            <label><input id="osm-toggle" type="checkbox" value="" /> {{ t("Official spots") }}</label>
+            <label><input id="car-pooling-toggle" type="checkbox" value="" /> {{ t("Car pooling") }}</label>
+            <label><input id="hitchwiki-toggle" type="checkbox" value="" /> {{ t("Hitchwiki articles") }}</label>
+            <button id="clear-filters">{{ t("Clear") }}</button>
         </div>
     </div>
 </div>
@@ -413,57 +416,55 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
 <div id="insights-pane" class="insights-pane" style="display: none;">
     <div class="insights-inner">
         <header class="insights-header">
-            <h2>Insights</h2>
+            <h2>{{ t("Insights") }}</h2>
             <!-- The filter pane is moved into this slot while #insights is active so
                  users can adjust filters without leaving the page. -->
             <div id="insights-filter-slot"></div>
-            <p class="insights-subtitle" id="insights-subtitle">Stats for the rides currently selected by your filters.</p>
+            <p class="insights-subtitle" id="insights-subtitle">{{ t("Stats for the rides currently selected by your filters.") }}</p>
             <!-- No data-share-url: the shared handler falls back to the current URL,
                  which carries the active filters so the recipient sees the same view. -->
-            <button type="button" class="share-btn" data-share-title="Hitchhiking insights – Hitchwiki Maps">
+            <button type="button" class="share-btn" data-share-title="{{ t('Hitchhiking insights – Hitchwiki Maps') }}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-                <span class="share-btn-label">Share these insights</span>
+                <span class="share-btn-label">{{ t("Share these insights") }}</span>
             </button>
         </header>
 
-        <section class="insights-stats" id="insights-stats" aria-label="Summary statistics"></section>
+        <section class="insights-stats" id="insights-stats" aria-label="{{ t('Summary statistics') }}"></section>
 
         <section class="insights-chart-block">
             <div class="insights-chart-head">
-                <h3>Waiting time</h3>
-                <span class="insights-chart-unit">minutes</span>
+                <h3>{{ t("Waiting time") }}</h3>
+                <span class="insights-chart-unit">{{ t("minutes") }}</span>
             </div>
             <div class="insights-chart-summary" id="insights-wait-summary"></div>
             <div class="insights-chart-wrap">
-                <canvas id="insights-wait-chart" class="insights-chart" aria-label="Histogram of waiting time"></canvas>
-                <div class="insights-chart-empty" id="insights-wait-empty" hidden>No waiting-time data for these rides.</div>
+                <canvas id="insights-wait-chart" class="insights-chart" aria-label="{{ t('Histogram of waiting time') }}"></canvas>
+                <div class="insights-chart-empty" id="insights-wait-empty" hidden>{{ t("No waiting-time data for these rides.") }}</div>
             </div>
             <div class="insights-chart-note" id="insights-wait-note"></div>
         </section>
 
         <section class="insights-chart-block">
             <div class="insights-chart-head">
-                <h3>Ride distance</h3>
-                <span class="insights-chart-unit">{{ "miles" if distance_unit() == "imperial" else "kilometres" }}</span>
+                <h3>{{ t("Ride distance") }}</h3>
+                <span class="insights-chart-unit">{{ t("miles") if distance_unit() == "imperial" else t("kilometres") }}</span>
             </div>
             <div class="insights-chart-summary" id="insights-distance-summary"></div>
             <div class="insights-chart-wrap">
-                <canvas id="insights-distance-chart" class="insights-chart" aria-label="Histogram of ride distance"></canvas>
-                <div class="insights-chart-empty" id="insights-distance-empty" hidden>No distance data for these rides.</div>
+                <canvas id="insights-distance-chart" class="insights-chart" aria-label="{{ t('Histogram of ride distance') }}"></canvas>
+                <div class="insights-chart-empty" id="insights-distance-empty" hidden>{{ t("No distance data for these rides.") }}</div>
             </div>
             <div class="insights-chart-note" id="insights-distance-note"></div>
         </section>
 
         <p class="insights-foot insights-deeper-hint">
-            For deeper analysis you can grab the full
-            <a href="https://huggingface.co/datasets/Hitchwiki/hitchhiking-rides-dataset" target="_blank" rel="noopener">rides dataset on Hugging Face</a>
-            — it includes hitchhiker and driver demographics and many more details about each ride than are shown here.
-            Share what you find with the
-            <a href="https://hitchwiki.org/en/Hitchwiki:Community_Portal" target="_blank" rel="noopener">hitchhiking community</a>.
+            {{ t("For deeper analysis you can grab the full {dataset_link} — it includes hitchhiker and driver demographics and many more details about each ride than are shown here. Share what you find with the {community_link}.",
+                 dataset_link='<a href="https://huggingface.co/datasets/Hitchwiki/hitchhiking-rides-dataset" target="_blank" rel="noopener">' ~ t("rides dataset on Hugging Face") ~ '</a>',
+                 community_link='<a href="https://hitchwiki.org/en/Hitchwiki:Community_Portal" target="_blank" rel="noopener">' ~ t("hitchhiking community") ~ '</a>')|safe }}
         </p>
 
         <p class="insights-foot">
-            <a href="#" id="insights-back-link">← Back to map</a>
+            <a href="#" id="insights-back-link">← {{ t("Back to map") }}</a>
         </p>
     </div>
 </div>
@@ -471,8 +472,8 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
 <!-- Heatmap legend pane (shown when heatmap is active) -->
 <div class="heatmap-legend-pane" id="heatmap-legend-pane" style="display: none;">
     <div class="filter-pane-header">
-        <span>Waiting time (minutes)</span>
-        <button id="legend-collapse-btn" class="filter-collapse-btn" title="Toggle legend">
+        <span>{{ t("Waiting time (minutes)") }}</span>
+        <button id="legend-collapse-btn" class="filter-collapse-btn" title="{{ t('Toggle legend') }}">
             <i class="fa-solid fa-chevron-up"></i>
         </button>
     </div>
@@ -482,14 +483,14 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
             <div class="legend-labels" id="legend-labels"></div>
         </div>
         <div class="uncertainty-indicator">
-            <div class="uncertainty-title">Data certainty:</div>
+            <div class="uncertainty-title">{{ t("Data certainty:") }}</div>
             <div class="uncertainty-scale">
                 <div class="uncertainty-bar">
                     <div class="uncertainty-gradient" id="uncertainty-gradient"></div>
                 </div>
                 <div class="uncertainty-labels">
-                    <span>Less certain</span>
-                    <span>More certain</span>
+                    <span>{{ t("Less certain") }}</span>
+                    <span>{{ t("More certain") }}</span>
                 </div>
             </div>
         </div>
@@ -497,25 +498,24 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
 </div>
 <div class="sidebar routing bottom-sheet">
     <div class="sheet-handle" id="routing-sheet-handle" aria-hidden="true"></div>
-    <a href="javascript:void(0);" class="sheet-close" id="routing-close" title="Close" aria-label="Close">
+    <a href="javascript:void(0);" class="sheet-close" id="routing-close" title="{{ t('Close') }}" aria-label="{{ t('Close') }}">
         <svg width="14" height="14" version="1.1" xmlns="http://www.w3.org/2000/svg">
             <line x1="1" y1="13" x2="13" y2="1" stroke="black" stroke-width="2" />
             <line x1="1" y1="1" x2="13" y2="13" stroke="black" stroke-width="2" />
         </svg>
     </a>
     <div class="sheet-body">
-        <h3>Route Planning</h3>
-        <p>Route planning is under development.</p>
-        <p>If you have ideas for how to push this further, join the conversation in our
-            <a href="https://signal.group/#CjQKIFSj0oaPjMY_eB1uHfXEuxH459W6gtfEke0krGgTabZBEhB1ZK3YP53QSPBuviWzHO_F"
-               target="_blank" rel="noopener noreferrer">Signal Chat</a>.</p>
+        <h3>{{ t("Route Planning") }}</h3>
+        <p>{{ t("Route planning is under development.") }}</p>
+        <p>{{ t("If you have ideas for how to push this further, join the conversation in our {link}.",
+                link='<a href="https://signal.group/#CjQKIFSj0oaPjMY_eB1uHfXEuxH459W6gtfEke0krGgTabZBEhB1ZK3YP53QSPBuviWzHO_F" target="_blank" rel="noopener noreferrer">Signal Chat</a>')|safe }}</p>
     </div>
 </div>
 <!-- Country info sheet: Hitchwiki lead section for a country tapped in Countries mode.
      Content is loaded client-side by openCountrySheet() in map.js. -->
 <div class="sidebar country bottom-sheet">
     <div class="sheet-handle" id="country-sheet-handle" aria-hidden="true"></div>
-    <a href="javascript:void(0);" class="sheet-close" id="country-close" title="Close" aria-label="Close">
+    <a href="javascript:void(0);" class="sheet-close" id="country-close" title="{{ t('Close') }}" aria-label="{{ t('Close') }}">
         <svg width="14" height="14" version="1.1" xmlns="http://www.w3.org/2000/svg">
             <line x1="1" y1="13" x2="13" y2="1" stroke="black" stroke-width="2" />
             <line x1="1" y1="1" x2="13" y2="13" stroke="black" stroke-width="2" />
@@ -526,34 +526,34 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
             <h1 id="country-sheet-name"></h1>
             <span class="country-rating" id="country-sheet-rating" style="display:none;"></span>
         </div>
-        <button type="button" class="share-btn" id="share-country-btn" data-share-title="Hitchhiking in this country – Hitchwiki Maps">
+        <button type="button" class="share-btn" id="share-country-btn" data-share-title="{{ t('Hitchhiking in this country – Hitchwiki Maps') }}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-            <span class="share-btn-label">Share</span>
+            <span class="share-btn-label">{{ t("Share") }}</span>
         </button>
         <!-- Pre-computed waiting-time / distance histograms (dist/country_insights.json).
              Same charts as /insights; hidden until data for the country is loaded. -->
         <div class="country-insights" id="country-sheet-insights" hidden>
             <section class="insights-chart-block" id="country-wait-block">
                 <div class="insights-chart-head">
-                    <h3>Waiting time</h3>
-                    <span class="insights-chart-unit">minutes</span>
+                    <h3>{{ t("Waiting time") }}</h3>
+                    <span class="insights-chart-unit">{{ t("minutes") }}</span>
                 </div>
                 <div class="insights-chart-summary" id="country-wait-summary"></div>
                 <div class="insights-chart-wrap">
-                    <canvas id="country-wait-chart" class="insights-chart" aria-label="Histogram of waiting time"></canvas>
-                    <div class="insights-chart-empty" id="country-wait-empty" hidden>No waiting-time data for this country.</div>
+                    <canvas id="country-wait-chart" class="insights-chart" aria-label="{{ t('Histogram of waiting time') }}"></canvas>
+                    <div class="insights-chart-empty" id="country-wait-empty" hidden>{{ t("No waiting-time data for this country.") }}</div>
                 </div>
                 <div class="insights-chart-note" id="country-wait-note"></div>
             </section>
             <section class="insights-chart-block" id="country-distance-block">
                 <div class="insights-chart-head">
-                    <h3>Ride distance</h3>
-                    <span class="insights-chart-unit">{{ "miles" if distance_unit() == "imperial" else "kilometres" }}</span>
+                    <h3>{{ t("Ride distance") }}</h3>
+                    <span class="insights-chart-unit">{{ t("miles") if distance_unit() == "imperial" else t("kilometres") }}</span>
                 </div>
                 <div class="insights-chart-summary" id="country-distance-summary"></div>
                 <div class="insights-chart-wrap">
-                    <canvas id="country-distance-chart" class="insights-chart" aria-label="Histogram of ride distance"></canvas>
-                    <div class="insights-chart-empty" id="country-distance-empty" hidden>No distance data for this country.</div>
+                    <canvas id="country-distance-chart" class="insights-chart" aria-label="{{ t('Histogram of ride distance') }}"></canvas>
+                    <div class="insights-chart-empty" id="country-distance-empty" hidden>{{ t("No distance data for this country.") }}</div>
                 </div>
                 <div class="insights-chart-note" id="country-distance-note"></div>
             </section>
@@ -569,7 +569,7 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
      Populated client-side by openEventSheet() in map.js from dist/events.json. -->
 <div class="sidebar event bottom-sheet">
     <div class="sheet-handle" id="event-sheet-handle" aria-hidden="true"></div>
-    <a href="javascript:void(0);" class="sheet-close" id="event-close" title="Close" aria-label="Close">
+    <a href="javascript:void(0);" class="sheet-close" id="event-close" title="{{ t('Close') }}" aria-label="{{ t('Close') }}">
         <svg width="14" height="14" version="1.1" xmlns="http://www.w3.org/2000/svg">
             <line x1="1" y1="13" x2="13" y2="1" stroke="black" stroke-width="2" />
             <line x1="1" y1="1" x2="13" y2="13" stroke="black" stroke-width="2" />
@@ -582,7 +582,7 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
         </div>
         <button type="button" class="share-btn" id="share-event-btn">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-            <span class="share-btn-label">Share</span>
+            <span class="share-btn-label">{{ t("Share") }}</span>
         </button>
         <div class="event-description" id="event-sheet-description"></div>
         <a class="wiki-cta" id="event-sheet-cta" target="_blank" rel="noopener" hidden></a>
@@ -598,12 +598,12 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
 <!-- Top-right account button -->
 {% if not hide_account_button %}
 <div class="top-account-btn{% if is_logged_in %} logged-in{% else %} logged-out{% endif %}" id="top-account-btn">
-    <a href="/me" title="{{ 'You have unread notifications' if unread_notifications else 'Your account' }}">
+    <a href="/me" title="{{ t('You have unread notifications') if unread_notifications else t('Your account') }}">
         <i class="fa-solid fa-circle-user"></i>
         {% if not is_logged_in %}
-        <span class="account-dot account-dot--red" role="img" aria-label="Log in to track your rides"></span>
+        <span class="account-dot account-dot--red" role="img" aria-label="{{ t('Log in to track your rides') }}"></span>
         {% elif unread_notifications %}
-        <span class="notif-bell" aria-label="{{ unread_notifications }} unread notifications">
+        <span class="notif-bell" aria-label="{{ t('{n} unread notifications', n=unread_notifications) }}">
             <i class="fa-solid fa-bell"></i>
         </span>
         {% endif %}
@@ -616,54 +616,55 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
      viewport and any active filter query params — letting someone share exactly
      what they're looking at. Sits just below the account button, top-right. -->
 <button type="button" class="share-btn share-view-btn{% if hide_account_button %} no-account{% endif %}"
-        id="share-view-btn" title="Share this map view" aria-label="Share this map view">
+        id="share-view-btn" title="{{ t('Share this map view') }}" aria-label="{{ t('Share this map view') }}">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-    <span class="share-btn-label sr-only">Share view</span>
+    <span class="share-btn-label sr-only">{{ t("Share view") }}</span>
 </button>
 
 <!-- Bottom action pane -->
 <div class="bottom-action-pane" id="bottom-action-pane">
-    <a class="action-btn" href="/recent" id="action-activities" title="Activities" target="_blank" rel="noopener">
+    <a class="action-btn" href="/recent" id="action-activities" title="{{ t('Activities') }}" target="_blank" rel="noopener">
         <i class="fa-solid fa-calendar-days"></i>
-        <span>Activities</span>
+        <span>{{ t("Activities") }}</span>
     </a>
-    <a class="action-btn" href="#insights" id="action-insights" title="Insights">
+    <a class="action-btn" href="#insights" id="action-insights" title="{{ t('Insights') }}">
         <i class="fa-solid fa-chart-column"></i>
-        <span>Insights</span>
+        <span>{{ t("Insights") }}</span>
     </a>
     {# "Add your ride" used to live here. It moved to the always-visible contribution
        bar over the map (inride.js startLauncher, "Log a past ride"), where it sits
        beside "Start Hitchhiking" instead of reading as one more nav destination. #}
-    <a class="action-btn" href="/leaderboard" title="Leaderboard" target="_blank" rel="noopener">
+    <a class="action-btn" href="/leaderboard" title="{{ t('Leaderboard') }}" target="_blank" rel="noopener">
         <i class="fa-solid fa-trophy"></i>
-        <span>Leaderboard</span>
+        <span>{{ t("Leaderboard") }}</span>
     </a>
-    <a class="action-btn" href="/races" title="Races" target="_blank" rel="noopener">
+    <a class="action-btn" href="/races" title="{{ t('Races') }}" target="_blank" rel="noopener">
         <i class="fa-solid fa-flag-checkered"></i>
-        <span>Races</span>
+        <span>{{ t("Races") }}</span>
     </a>
-    <button class="action-btn" id="action-menu" title="Menu">
+    <button class="action-btn" id="action-menu" title="{{ t('Menu') }}">
         <i class="fa-solid fa-bars"></i>
-        <span>Menu</span>
+        <span>{{ t("Menu") }}</span>
     </button>
 </div>
 
 <div class="topbar duplicate">
-    <span>Click on the duplicated marker.</span>
-    <br><button>Cancel</button>
+    <span>{{ t("Click on the duplicated marker.") }}</span>
+    <br><button>{{ t("Cancel") }}</button>
 </div>
 
 <!-- Shown before the success overlay to someone who just logged a ride anonymously,
      at most once per browser. -->
 <div id="signup-prompt-overlay" class="success-overlay" style="display: none;">
     <div class="success-content">
-        <h2>Ride saved!</h2>
-        <p>Want to remember your trips? With an account your rides stay yours — you can find them again, edit them, and see everywhere you've been.</p>
-        <p class="signup-prompt-note">You don't have to give up your privacy: pick a username and an email address that can't be traced back to you personally. We never show your email, and nothing forces the name to be your real one.</p>
-        <p class="signup-prompt-note">We don't understand hitchhikers' preferences around anonymity well yet. If you tell us what matters to you, we can build for it — <a href="https://docs.google.com/forms/d/e/1FAIpQLSdGLlPKhjRXIjG2VB-BlkxbsagNeXce5eI3sKFHe-_scJMFnw/viewform" target="_blank" rel="noopener">share your thoughts</a>.</p>
+        <h2>{{ t("Ride saved!") }}</h2>
+        <p>{{ t("Want to remember your trips? With an account your rides stay yours — you can find them again, edit them, and see everywhere you've been.") }}</p>
+        <p class="signup-prompt-note">{{ t("You don't have to give up your privacy: pick a username and an email address that can't be traced back to you personally. We never show your email, and nothing forces the name to be your real one.") }}</p>
+        <p class="signup-prompt-note">{{ t("We don't understand hitchhikers' preferences around anonymity well yet. If you tell us what matters to you, we can build for it — {link}.",
+                link='<a href="https://docs.google.com/forms/d/e/1FAIpQLSdGLlPKhjRXIjG2VB-BlkxbsagNeXce5eI3sKFHe-_scJMFnw/viewform" target="_blank" rel="noopener">' ~ t("share your thoughts") ~ '</a>')|safe }}</p>
         <div class="signup-prompt-actions">
-            <button id="signup-prompt-yes" class="success-close-btn">Yes, let's sign up</button>
-            <button id="signup-prompt-no" class="success-secondary-btn">I want to stay anonymous</button>
+            <button id="signup-prompt-yes" class="success-close-btn">{{ t("Yes, let's sign up") }}</button>
+            <button id="signup-prompt-no" class="success-secondary-btn">{{ t("I want to stay anonymous") }}</button>
         </div>
     </div>
 </div>
@@ -672,12 +673,12 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
      co-hitchhiker, at most once per browser. -->
 <div id="invite-prompt-overlay" class="success-overlay" style="display: none;">
     <div class="success-content">
-        <h2>Ride saved!</h2>
-        <p>You hitchhiked with someone anonymous. Invite them to sign up and the ride shows up on their map too — and you can log future rides together.</p>
-        <p class="signup-prompt-note">We'll copy an invite link you can send them however you like.</p>
+        <h2>{{ t("Ride saved!") }}</h2>
+        <p>{{ t("You hitchhiked with someone anonymous. Invite them to sign up and the ride shows up on their map too — and you can log future rides together.") }}</p>
+        <p class="signup-prompt-note">{{ t("We'll copy an invite link you can send them however you like.") }}</p>
         <div class="signup-prompt-actions">
-            <button id="invite-prompt-share" class="success-close-btn">Send invite link</button>
-            <button id="invite-prompt-skip" class="success-secondary-btn">Skip</button>
+            <button id="invite-prompt-share" class="success-close-btn">{{ t("Send invite link") }}</button>
+            <button id="invite-prompt-skip" class="success-secondary-btn">{{ t("Skip") }}</button>
         </div>
     </div>
 </div>
@@ -686,30 +687,31 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
      single line at the top, and the rest of the space sells passing the ride on. -->
 <div id="success-overlay" class="success-overlay" style="display: none;">
     <div class="success-content success-share-content">
-        <button type="button" id="success-dismiss" class="success-dismiss" aria-label="Close">&times;</button>
-        <p class="success-feedback">Ride saved — thank you! We'd love to hear your thoughts: <a href="https://docs.google.com/forms/d/e/1FAIpQLSdGLlPKhjRXIjG2VB-BlkxbsagNeXce5eI3sKFHe-_scJMFnw/viewform?usp=header" target="_blank" rel="noopener">share feedback</a>.</p>
+        <button type="button" id="success-dismiss" class="success-dismiss" aria-label="{{ t('Close') }}">&times;</button>
+        <p class="success-feedback">{{ t("Ride saved — thank you! We'd love to hear your thoughts: {link}.",
+                link='<a href="https://docs.google.com/forms/d/e/1FAIpQLSdGLlPKhjRXIjG2VB-BlkxbsagNeXce5eI3sKFHe-_scJMFnw/viewform?usp=header" target="_blank" rel="noopener">' ~ t("share feedback") ~ '</a>')|safe }}</p>
         <!-- Filled in by showTripCreated() when a tracked journey's rides were grouped
              into a trip. Hidden otherwise, and for a single-ride journey. -->
         <p id="success-trip-note" class="success-trip-note" style="display: none;"></p>
         <div id="success-share-block">
-            <h2>Show your friends</h2>
-            <p class="success-share-sub">Send them the map of your ride — it's how most hitchhikers find us.</p>
+            <h2>{{ t("Show your friends") }}</h2>
+            <p class="success-share-sub">{{ t("Send them the map of your ride — it's how most hitchhikers find us.") }}</p>
             <div class="share-card-frame">
-                <div id="share-card-status" class="share-card-status">Drawing your ride…</div>
-                <img id="share-card-img" class="share-card-img" alt="Your hitchhiking ride as a shareable image" style="display: none;">
+                <div id="share-card-status" class="share-card-status">{{ t("Drawing your ride…") }}</div>
+                <img id="share-card-img" class="share-card-img" alt="{{ t('Your hitchhiking ride as a shareable image') }}" style="display: none;">
             </div>
             <p id="share-card-caption" class="share-card-caption"></p>
         </div>
         <div class="signup-prompt-actions">
-            <button type="button" id="success-share-btn" class="success-close-btn">Share my ride</button>
-            <button type="button" id="success-close-btn" class="success-secondary-btn">Not now</button>
+            <button type="button" id="success-share-btn" class="success-close-btn">{{ t("Share my ride") }}</button>
+            <button type="button" id="success-close-btn" class="success-secondary-btn">{{ t("Not now") }}</button>
         </div>
     </div>
 </div>
 
 <!-- Top brand bar -->
 <div class="top-brand-bar">
-    <a href="https://hitchwiki.org" target="_blank" rel="noopener" title="Visit Hitchwiki.org">
+    <a href="https://hitchwiki.org" target="_blank" rel="noopener" title="{{ t('Visit Hitchwiki.org') }}">
         <img src="/static/logo.png" alt="Hitchwiki Logo">
         <span>Hitchwiki Maps</span>
     </a>
