@@ -17,7 +17,19 @@ import os
 
 from flask import g
 
-SUPPORTED_LANGUAGES = ("en", "de")
+SUPPORTED_LANGUAGES = ("en", "de", "fr", "pt", "ru", "pl")
+
+# Each language's own name for itself, for the switcher UI (hitch/templates/map.html).
+# Deliberately NOT translated (an endonym is shown the same in every language) --
+# a German visitor still needs to recognize "English", not read a translation of it.
+LANGUAGE_ENDONYMS = {
+    "en": "English",
+    "de": "Deutsch",
+    "fr": "Français",
+    "pt": "Português",
+    "ru": "Русский",
+    "pl": "Polski",
+}
 
 _TRANSLATIONS_DIR = os.path.dirname(__file__)
 _cache = {}

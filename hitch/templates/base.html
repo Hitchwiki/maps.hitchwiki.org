@@ -62,13 +62,14 @@
        generation (cities.py) it is undefined, so guard it with `is defined` or
        the whole render aborts. Static city pages supply canonical_url instead. #}
     <meta property="og:url" content="{% block og_url %}{{ canonical_url if canonical_url else (request.base_url if request is defined else '') }}{% endblock %}" />
-    {# Tells search engines the German mirror at /de/... is a translation of this exact
-       page, not a duplicate -- see lang_switch_url (hitch/__init__.py) for how the two
+    {# Tells search engines each /<lang>/... mirror is a translation of this exact
+       page, not a duplicate -- see lang_switch_url (hitch/__init__.py) for how the
        paths relate. Guarded the same way as og_url above: absent during cities.py's
        static generation, which has no request. #}
     {% if request is defined %}
-    <link rel="alternate" hreflang="en" href="{{ request.host_url.rstrip('/') }}{{ lang_switch_url('en') }}" />
-    <link rel="alternate" hreflang="de" href="{{ request.host_url.rstrip('/') }}{{ lang_switch_url('de') }}" />
+    {% for code in SUPPORTED_LANGUAGES %}
+    <link rel="alternate" hreflang="{{ code }}" href="{{ request.host_url.rstrip('/') }}{{ lang_switch_url(code) }}" />
+    {% endfor %}
     <link rel="alternate" hreflang="x-default" href="{{ request.host_url.rstrip('/') }}{{ lang_switch_url('en') }}" />
     {% endif %}
     {# Only pages that can render a picture of themselves (currently a shared route)

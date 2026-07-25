@@ -251,15 +251,17 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
         </figcaption>
     </figure>
     <div class="sheet-body">
-    {# Every main_bp route is mirrored under /de (see hitch/__init__.py), so switching
-       language is just re-pointing at the same path with/without that prefix --
-       lang_switch_url does the rewrite. Language names are shown as endonyms
-       (English/Deutsch), not translated, which is the standard convention for
-       switcher UI -- a German visitor still needs to recognize "English". #}
+    {# Every main_bp route is mirrored under /<lang> for each of SUPPORTED_LANGUAGES
+       (see hitch/__init__.py), so switching language is just re-pointing at the same
+       path with/without that prefix -- lang_switch_url does the rewrite. Language
+       names are shown as endonyms (LANGUAGE_ENDONYMS), not translated, which is the
+       standard convention for switcher UI -- a German visitor still needs to
+       recognize "English", not read a translation of it. #}
     <div class="lang-switcher">
         <i class="fa-solid fa-globe" aria-hidden="true"></i>
-        <a href="{{ lang_switch_url('en') }}" class="lang-link{% if g.lang == 'en' %} active{% endif %}" hreflang="en">English</a>
-        <a href="{{ lang_switch_url('de') }}" class="lang-link{% if g.lang == 'de' %} active{% endif %}" hreflang="de">Deutsch</a>
+        {% for code in SUPPORTED_LANGUAGES %}
+        <a href="{{ lang_switch_url(code) }}" class="lang-link{% if g.lang == code %} active{% endif %}" hreflang="{{ code }}">{{ LANGUAGE_ENDONYMS[code] }}</a>
+        {% endfor %}
     </div>
     <p></p>
     <p>{{ t("Do you want to help with anything on this map or help the hitchhiking community in another way?") }}</p>

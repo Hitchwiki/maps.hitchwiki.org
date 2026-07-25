@@ -23,7 +23,7 @@ from hitch.extensions import db, mail, security
 from hitch.helpers import convert_km, current_distance_unit, distance_unit_label, format_distance
 from hitch.models import Role, User
 from hitch.settings import config
-from hitch.translations import SUPPORTED_LANGUAGES, client_translations, t
+from hitch.translations import LANGUAGE_ENDONYMS, SUPPORTED_LANGUAGES, client_translations, t
 
 baseDir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
@@ -95,6 +95,7 @@ def create_app(config_name=None):
 def register_i18n(app):
     app.jinja_env.globals["t"] = t
     app.jinja_env.globals["SUPPORTED_LANGUAGES"] = SUPPORTED_LANGUAGES
+    app.jinja_env.globals["LANGUAGE_ENDONYMS"] = LANGUAGE_ENDONYMS
 
     @app.template_global()
     def client_translations_json():
@@ -110,24 +111,30 @@ def register_i18n(app):
 
     # The only signal for which language to render: which blueprint registration
     # served the request (see register_blueprints -- main_bp and user_bp are each
-    # registered a second time under /de, sharing every view function, as "main_de"
-    # / "user_de"). Nothing to do with Accept-Language or cookies, so a URL always
-    # renders the same language for every visitor/crawler.
+    # registered again per non-English language, as "main_<lang>" / "user_<lang>").
+    # Nothing to do with Accept-Language or cookies, so a URL always renders the
+    # same language for every visitor/crawler.
     @app.before_request
     def set_locale():
-        g.lang = "de" if request.blueprint and request.blueprint.endswith("_de") else "en"
+        bp = request.blueprint or ""
+        lang = bp.rsplit("_", 1)[1] if "_" in bp else "en"
+        g.lang = lang if lang in SUPPORTED_LANGUAGES else "en"
 
     @app.template_global()
     def lang_switch_url(lang):
         """The current page's URL rewritten into `lang`, for the language switcher.
 
-        Every main_bp/user_bp route is mirrored verbatim under /de (register_blueprints),
-        so switching is just adding/stripping that one prefix -- no per-route
-        translation table to maintain.
+        Every main_bp/user_bp route is mirrored verbatim under /<lang> for each
+        non-English language (register_blueprints), so switching is just adding/
+        stripping that one prefix -- no per-route translation table to maintain.
         """
         path = request.path
-        stripped = path[3:] or "/" if path == "/de" or path.startswith("/de/") else path
-        target = ("/de" if stripped == "/" else "/de" + stripped) if lang == "de" else stripped
+        current_prefix = next(
+            (code for code in SUPPORTED_LANGUAGES if code != "en" and (path == f"/{code}" or path.startswith(f"/{code}/"))),
+            None,
+        )
+        stripped = (path[len(current_prefix) + 1 :] or "/") if current_prefix else path
+        target = stripped if lang == "en" else (f"/{lang}" if stripped == "/" else f"/{lang}{stripped}")
         qs = request.query_string.decode()
         return target + (f"?{qs}" if qs else "")
 
@@ -169,18 +176,21 @@ def register_extensions(app):
 def register_blueprints(app):
     app.register_blueprint(oauth_bp)
     app.register_blueprint(main_bp)
-    # German mirror of every main_bp route under /de, sharing the exact same view
-    # functions -- see CLAUDE.md's URL scheme section: identity lives in the path,
-    # so /de/spot/<id> is simply a different path to the same spot. set_locale()
-    # (register_i18n) tells the two registrations apart by request.blueprint.
-    app.register_blueprint(main_bp, url_prefix="/de", name="main_de")
     app.register_blueprint(user_bp)
-    # Same German mirror for user_bp (account, leaderboard, races, trips, ...) --
-    # /me, /leaderboard, /races etc. all need a /de/ counterpart too, not just the
-    # map itself. A handler that does e.g. redirect("/me") still lands on the
-    # English path either way; that's a known gap, not something this mirror fixes.
-    app.register_blueprint(user_bp, url_prefix="/de", name="user_de")
     app.register_blueprint(messages_bp)
+    # Every non-English language in SUPPORTED_LANGUAGES gets a /<lang> mirror of
+    # main_bp and user_bp, sharing the exact same view functions -- see CLAUDE.md's
+    # URL scheme section: identity lives in the path, so /de/spot/<id> is simply a
+    # different path to the same spot. set_locale() (register_i18n) tells all these
+    # registrations apart by request.blueprint ("main_<lang>" / "user_<lang>").
+    # /me, /leaderboard, /races etc. need a mirror too, not just the map itself --
+    # though a handler that does e.g. redirect("/me") still lands on the English
+    # path either way; that's a known gap, not something this mirror fixes.
+    for lang in SUPPORTED_LANGUAGES:
+        if lang == "en":
+            continue
+        app.register_blueprint(main_bp, url_prefix=f"/{lang}", name=f"main_{lang}")
+        app.register_blueprint(user_bp, url_prefix=f"/{lang}", name=f"user_{lang}")
 
 
 def register_commands(app):

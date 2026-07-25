@@ -29,6 +29,10 @@ _TRANSLATIONS_DIR = os.path.join(os.path.dirname(_HERE), "translations")
 
 LANGUAGE_NAMES = {
     "de": "German",
+    "fr": "French",
+    "pt": "Portuguese",
+    "ru": "Russian",
+    "pl": "Polish",
 }
 
 # Every string passed to t(...) in the codebase (templates + main.py). Keep this
