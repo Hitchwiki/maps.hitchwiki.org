@@ -50,6 +50,7 @@ from hitch.blueprints.utils.license_plate_country_codes import LICENSE_PLATE_COU
 from hitch.blueprints.utils.notifications import notify_co_hitchhiker_invite, unread_count
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON, REPORT_REASONS
+from hitch.blueprints.utils.ride_facts import haversine_km, stop_facts
 from hitch.blueprints.utils.ride_ip_log import get_client_ip, log_ride_ip
 from hitch.blueprints.utils.route_request_log import log_route_request
 from hitch.blueprints.utils.search_request_log import log_search_request
@@ -641,28 +642,14 @@ def ride_detail(d_tag):
         abort(404)
 
     content = ride.content or {}
-    stops = content.get("stops") or []
-    pickup_lat = pickup_lon = dest_lat = dest_lon = None
-    departure_time = None
-    arrival_time = None
-    waiting_minutes = None
-    if stops:
-        first = stops[0]
-        loc = first.get("location") or {}
-        pickup_lat = loc.get("latitude")
-        pickup_lon = loc.get("longitude")
-        departure_time = first.get("departure_time")
-        wd = first.get("waiting_duration")
-        if wd:
-            m = re.match(r"PT(\d+)M", wd)
-            if m:
-                waiting_minutes = int(m.group(1))
-        if len(stops) > 1:
-            last_stop = stops[-1]
-            last_loc = last_stop.get("location") or {}
-            dest_lat = last_loc.get("latitude")
-            dest_lon = last_loc.get("longitude")
-            arrival_time = last_stop.get("arrival_time")
+    facts = stop_facts(content.get("stops"))
+    pickup_lat = facts["pickup_lat"]
+    pickup_lon = facts["pickup_lon"]
+    dest_lat = facts["dest_lat"]
+    dest_lon = facts["dest_lon"]
+    departure_time = facts["departure_time"]
+    arrival_time = facts["arrival_time"]
+    waiting_minutes = facts["waiting_minutes"]
 
     signal_methods = []
     for sig in content.get("signals") or []:
@@ -674,14 +661,7 @@ def ride_detail(d_tag):
         {"nickname": h.get("nickname") or "Anonymous", "gender": h.get("gender")} for h in (content.get("hitchhikers") or [])
     ]
 
-    distance_km = None
-    if pickup_lat is not None and dest_lat is not None and pickup_lon is not None and dest_lon is not None:
-        # Haversine
-        lat1, lon1, lat2, lon2 = map(math.radians, [pickup_lat, pickup_lon, dest_lat, dest_lon])
-        dlat = lat2 - lat1
-        dlon = lon2 - lon1
-        a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
-        distance_km = 2 * 6371 * math.asin(math.sqrt(a))
+    distance_km = haversine_km(pickup_lat, pickup_lon, dest_lat, dest_lon)
 
     submission_dt = ride.submission_time or None
 
