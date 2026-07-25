@@ -17,7 +17,9 @@
 - **No headless browser on this host** (prod server). Frontend logic is verified with `node --test` against pure modules, and by reading code. Ask the user to check the browser behaviour.
 - **Requirement comments:** every non-obvious block gets a comment explaining the *why*, not the *what*. This is a project convention, enforced in review.
 - **Lint:** `ruff check` and `ruff format` (line length 130) must pass before every commit.
-- **Python tests:** `python -m pytest tests/ -v -m "not network"` from the project root, in the venv (`source .venv/bin/activate`).
+- **Python tests run in the container, not the host venv.** This is the prod server: the host `.venv` has pytest but *not* Flask, so a host `pytest` dies on `import hitch`. `hitch/blueprints/`, `hitch/scripts/` and `tests/` are baked into the image rather than bind-mounted, so the container runs a stale copy until the edited files are pushed in. Use the helper, which does both and takes pytest arguments:
+  `.superpowers/sdd/2026-07-25-instant-ride-visibility/run-tests.sh -v`
+  (single file: `… /run-tests.sh tests/test_ride_facts.py -v`). Wherever a task step below says `source .venv/bin/activate && python -m pytest …`, run it through this helper instead. `ruff` needs no app import and runs fine on the host.
 - **JS tests:** `node --test tests/` from the project root.
 - **The spot id format is `f"{round(lat, 5):.5f}_{round(lon, 5):.5f}"`** — it must match `generate_spot_id` in `hitch/scripts/show.py:708` exactly, or per-spot lookups 404.
 - **A ride's `id` in map data is its Nostr `d` tag, not the event id.** `show.py:1096` sets `"id": ride["d"]`, and `renderRideCards` links to `/ride/${r.id}`. Every new payload and every dedupe key follows that.
@@ -384,7 +386,7 @@ and replace the inline Haversine block (`distance_km = None` through the `2 * 63
     distance_km = haversine_km(pickup_lat, pickup_lon, dest_lat, dest_lon)
 ```
 
-Leave the rest of the view (hitchhikers with genders, driver, vehicle) untouched — it needs fields the helper deliberately does not carry. `spot_id_for` is imported now but only used in Task 8; that is fine, ruff does not flag used-later imports, but if `ruff check` reports `F401` for it, add the import in Task 8 instead.
+Leave the rest of the view (hitchhikers with genders, driver, vehicle) untouched — it needs fields the helper deliberately does not carry. `spot_id_for` is imported now but only used in Task 7; if `ruff check` reports `F401` for it, drop it from this task's import line and add it in Task 7 instead.
 
 - [ ] **Step 6: Verify nothing about the ride page changed**
 
