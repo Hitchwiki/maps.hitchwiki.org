@@ -1423,17 +1423,38 @@ def _last_generation_ts():
     was built from, so the fallback under-returns pending rides rather than
     double-showing rides that are already in the generated files. Returns None when
     nothing has been generated at all, in which case there is no map data to add to.
+
+    generated_at.json is written ~400 lines after spots.json/rides_index.json/the
+    per-spot files, so a run killed in between (this host OOM-kills the container — see
+    CLAUDE.md) leaves it pointing at a STALE snapshot while the generated files already
+    hold newer rides. Trusting that stale ts would let /pending_rides.json add those
+    same rides' counts on top of a review_count that already includes them. In a healthy
+    run generated_at.json is always the file written last, so if it is *older* than
+    rides_index.json the previous run did not finish — treat it as absent and fall
+    through to the mtime fallback, which under-returns and is therefore safe.
     """
     dist = get_dirs()["dist"]
+    generated_at_path = os.path.join(dist, "generated_at.json")
+    generated_at_ts = generated_at_mtime = None
     try:
-        with open(os.path.join(dist, "generated_at.json")) as f:
-            return float(json.load(f)["ts"])
+        with open(generated_at_path) as f:
+            generated_at_ts = float(json.load(f)["ts"])
+        generated_at_mtime = os.path.getmtime(generated_at_path)
     except (OSError, ValueError, KeyError, TypeError):
-        pass
+        generated_at_ts = generated_at_mtime = None
+
     try:
-        return os.path.getmtime(os.path.join(dist, "rides_index.json"))
+        rides_index_mtime = os.path.getmtime(os.path.join(dist, "rides_index.json"))
     except OSError:
-        return None
+        rides_index_mtime = None
+
+    if generated_at_ts is not None and rides_index_mtime is not None and generated_at_mtime < rides_index_mtime:
+        return rides_index_mtime
+    if generated_at_ts is not None:
+        # Either healthy (newer than rides_index.json) or there is no rides_index.json
+        # to compare against at all — nothing to detect staleness with, so trust it.
+        return generated_at_ts
+    return rides_index_mtime
 
 
 def _hidden_ride_dtags(d_tags):

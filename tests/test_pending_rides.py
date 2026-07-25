@@ -87,6 +87,24 @@ class TestCutoff:
         _add(app, _ride("old", GENERATED_TS - 60), _ride("fresh", GENERATED_TS + 60))
         assert [e["id"] for e in client.get("/pending_rides.json").get_json()] == ["fresh"]
 
+    def test_a_generated_at_older_than_the_rides_index_is_treated_as_stale(self, app, client, dist):
+        # A run killed after writing rides_index.json but before generated_at.json
+        # (this host OOM-kills the container — see CLAUDE.md) leaves generated_at.json
+        # holding a STALE ts while the generated files already contain newer rides. In a
+        # healthy run generated_at.json is always written LAST, so an older mtime means
+        # the previous run didn't finish: treat it as absent and fall back to the
+        # rides_index.json mtime, same as if generated_at.json didn't exist at all.
+        stale_ts = GENERATED_TS - 3600
+        _write_generated_at(dist, ts=stale_ts)
+        os.utime(dist / "generated_at.json", (stale_ts, stale_ts))
+        index = dist / "rides_index.json"
+        index.write_text("[]")
+        os.utime(index, (GENERATED_TS, GENERATED_TS))
+        # "old" postdates the stale ts but predates the rides_index.json mtime: it must
+        # NOT show up as pending, which is only true if the stale ts was ignored.
+        _add(app, _ride("old", GENERATED_TS - 60), _ride("fresh", GENERATED_TS + 60))
+        assert [e["id"] for e in client.get("/pending_rides.json").get_json()] == ["fresh"]
+
     def test_no_generated_data_at_all_yields_nothing(self, app, client, dist):
         _add(app, _ride("fresh", GENERATED_TS + 60))
         assert client.get("/pending_rides.json").get_json() == []

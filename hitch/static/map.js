@@ -1212,7 +1212,15 @@ let pendingRidesBySpot = new Map();
 // regresses latest_ms or writes NaN into it.
 function newestSubmissionMs(rides) {
   return rides.reduce((max, r) => {
-    const t = Date.parse(r.submission_time);
+    const raw = typeof r.submission_time === "string" ? r.submission_time : "";
+    // show.py computes latest_ms for spots.json from this same naive string interpreted
+    // as UTC (pandas to_datetime on a UTC host). Date.parse treats a naive string as
+    // LOCAL time instead, so without normalising here the two scales could disagree by
+    // up to 14 hours and corrupt the Math.max below. Only append Z when the string has
+    // no zone of its own — one that already states a Z or a +HH:MM/-HH:MM offset must
+    // keep it.
+    const iso = raw && !/(?:Z|[+-]\d{2}:\d{2})$/.test(raw) ? raw + "Z" : raw;
+    const t = Date.parse(iso);
     return Number.isNaN(t) ? max : Math.max(max, t);
   }, -Infinity);
 }

@@ -590,8 +590,9 @@
         }
 
         // Funnel step 4: the submission is on its way to the server. Fired here
-        // rather than on the success page because the post redirects to /#success
-        // on the map, where a pageview alone can't be told apart from a normal visit.
+        // rather than on the success page because the post redirects to
+        // /?ride=<d_tag>#success on the map, where a pageview alone can't be told
+        // apart from a normal visit.
         hmTrack('ride_form_submitted', { destination: coords.destination ? 'yes' : 'no' });
         return true;
     }
@@ -868,9 +869,10 @@
         }
 
         // Hand the facts of this ride to the success overlay on the map. The POST
-        // redirects to a bare /#success, so without this stash the share card would
-        // have nothing to draw. sessionStorage survives the navigation; map.js
-        // consumes and clears the entry the first time it shows the overlay.
+        // redirects to /?ride=<d_tag>#success, but that only carries the d tag — the
+        // pickup/destination coords still need this stash, or the share card would have
+        // nothing to draw. sessionStorage survives the navigation; map.js consumes and
+        // clears the entry the first time it shows the overlay.
         try {
             const c = getCoordinates();
             sessionStorage.setItem('hmLastRide', JSON.stringify({

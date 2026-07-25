@@ -161,7 +161,11 @@ class RideEvent(db.Model):
     pubkey = db.Column(db.String(64), nullable=False)
     sig = db.Column(db.String(128), nullable=False)
     content = db.Column(db.JSON, nullable=False)
-    created_at = db.Column(db.Integer, nullable=False)
+    # Indexed: /pending_rides.json filters on this column on every map load, and without
+    # an index that's a full scan of a 75k-row / ~130 MB table (verified via EXPLAIN QUERY
+    # PLAN against prod). Creating the index on the production DB is a separate deploy
+    # step (ALTER not applied by this ORM change) — see CLAUDE.md's migration section.
+    created_at = db.Column(db.Integer, nullable=False, index=True)
 
     # Ride details as columns for easier querying
     version = db.Column(db.String(32), nullable=True)
