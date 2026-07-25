@@ -9,6 +9,16 @@
   // routing.js). Never let a missing tracker break the journey.
   const hmTrack = (typeof window !== "undefined" && window.hmTrack) || function () {};
 
+  // map.js's tr() (client-side i18n, see hitch/static/map.js), guarded the same way:
+  // this file is eval'd standalone by tests/inride_journey_end.test.js, in a sandbox
+  // that never defines tr, so a bare call would throw ReferenceError. Falls back to
+  // plain English with {placeholder}s substituted by hand.
+  function T(text, vars) {
+    if (typeof tr === "function") return tr(text, vars);
+    if (!vars) return text;
+    return Object.keys(vars).reduce((s, k) => s.split("{" + k + "}").join(vars[k]), text);
+  }
+
   // Minutes a journey has been waiting, for analytics only. Rounded: the exact
   // second is noise, and a coarse number keeps event-data cardinality sane.
   function waitMinutes(j) {
@@ -263,12 +273,12 @@
             hmTrack("journey_ride_rejected", { kind: item.kind, attempts: item.attempts + 1 });
             outboxStore.update(item.id, {
               status: "failed",
-              lastError: (res.json && res.json.error) || "Rejected",
+              lastError: (res.json && res.json.error) || T("Rejected"),
               attempts: item.attempts + 1,
             });
           } else {
             outboxStore.update(item.id, {
-              lastError: (res.json && res.json.error) || "Offline",
+              lastError: (res.json && res.json.error) || T("Offline"),
               attempts: item.attempts + 1,
             });
           }
@@ -467,12 +477,12 @@
     const p = toLatLon(latlng);
     if (window.IS_LOGGED_IN) return journeyFlow.beginWithCoHitchers(p);
     journeyUI.dialog({
-      title: "Track your rides?",
-      body: "Log in to keep your ride history, or just continue anonymously.",
+      title: T("Track your rides?"),
+      body: T("Log in to keep your ride history, or just continue anonymously."),
       centered: true,
       actions: [
         {
-          label: "Log in",
+          label: T("Log in"),
           cls: "inr-go",
           onClick: () => {
             // Stash the chosen pickup so we can resume after the redirect back.
@@ -480,7 +490,7 @@
             window.location.href = "/login?next=/";
           },
         },
-        { label: "Continue anonymously", cls: "inr-grey", onClick: () => journeyFlow.beginWithCoHitchers(p) },
+        { label: T("Continue anonymously"), cls: "inr-grey", onClick: () => journeyFlow.beginWithCoHitchers(p) },
       ],
     });
   };
@@ -544,7 +554,7 @@
   journeyFlow.cancel = function () {
     const j = journeyStore.get();
     if (!j) return;
-    if (!window.confirm("Cancel this journey? Your wait won't be saved.")) return;
+    if (!window.confirm(T("Cancel this journey? Your wait won't be saved."))) return;
     // The silent loss: a started journey that produces no ride at all. Distinct
     // from give-up, which does submit one — so this is the count that says how
     // much real hitchhiking the tracker records but never publishes.
@@ -628,9 +638,9 @@
       // nothing downstream could tell that apart from a real drop-off. The picker opens
       // instantly and locates in the background, so Finish never blocks on GPS.
       journeyUI.pinConfirm({
-        title: "Where did you get out?",
-        hint: "Drag the pin or tap the map, then confirm.",
-        confirmLabel: "Confirm Drop-off",
+        title: T("Where did you get out?"),
+        hint: T("Drag the pin or tap the map, then confirm."),
+        confirmLabel: T("Confirm Drop-off"),
         seed: null,
         color: "orange",
         autoLocate: true,
@@ -665,19 +675,19 @@
     // nextRide (which calls render) or end (which calls teardown again harmlessly).
     journeyUI.teardown();
     journeyUI.dialog({
-      title: "What's next?",
-      body: "Ride saved — dropped off here. Waiting for another ride?",
+      title: T("What's next?"),
+      body: T("Ride saved — dropped off here. Waiting for another ride?"),
       actions: [
-        { label: "Next ride from here", cls: "inr-go", onClick: () => journeyFlow.nextRide(dropoff) },
+        { label: T("Next ride from here"), cls: "inr-go", onClick: () => journeyFlow.nextRide(dropoff) },
         {
-          label: "Wait somewhere else",
+          label: T("Wait somewhere else"),
           cls: "inr-ghost",
           // Dropped at a motorway exit and walking to a better on-ramp: the walked-to
           // spot is the one worth logging, so this must stay reachable.
           onClick: () => journeyUI.pinConfirm({
-            title: "Where are you waiting?",
-            hint: "Drag the pin or tap the map, then confirm.",
-            confirmLabel: "Confirm",
+            title: T("Where are you waiting?"),
+            hint: T("Drag the pin or tap the map, then confirm."),
+            confirmLabel: T("Confirm"),
             seed: dropoff,
             color: "green",
             // The confirmed drop-off is a better default here than a fresh fix.
@@ -688,7 +698,7 @@
             onCancel: () => journeyFlow.whatsNext(dropoff),
           }),
         },
-        { label: "End Hitch", cls: "inr-grey", onClick: () => journeyFlow.end() },
+        { label: T("End Hitch"), cls: "inr-grey", onClick: () => journeyFlow.end() },
       ],
     });
   };
@@ -800,14 +810,14 @@
 
       const label = document.createElement("span");
       label.className = "inr-chip__label";
-      label.textContent = "Waiting · " + fmtHMS(journeyStore.currentWaitMs(j, Date.now()));
+      label.textContent = T("Waiting · {time}", { time: fmtHMS(journeyStore.currentWaitMs(j, Date.now())) });
       chip.appendChild(label);
 
       // Pause pill: wired defensively — journeyFlow.pause is implemented in Task 6;
       // tapping is a no-op until that task lands.
       const pauseBtn = document.createElement("button");
       pauseBtn.className = "inr-pausepill";
-      pauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i> Pause';
+      pauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i> ' + T("Pause");
       pauseBtn.addEventListener("click", function () {
         journeyFlow.pause && journeyFlow.pause();
       });
@@ -820,7 +830,7 @@
       // display stays correct across tab switches, device sleep, and future pauses.
       journeyUI._tickInterval = setInterval(function () {
         const cur = journeyStore.get();
-        label.textContent = "Waiting · " + fmtHMS(journeyStore.currentWaitMs(cur, Date.now()));
+        label.textContent = T("Waiting · {time}", { time: fmtHMS(journeyStore.currentWaitMs(cur, Date.now())) });
       }, 1000);
 
       // ── Docked action bar (button row + a small grey Cancel beneath) ─────────
@@ -833,7 +843,7 @@
       // Give Up (red) — logs a rated spot experience for the wait.
       const giveUpBtn = document.createElement("button");
       giveUpBtn.className = "inr-big inr-big--red";
-      giveUpBtn.innerHTML = '<i class="fa-solid fa-flag"></i> Give Up';
+      giveUpBtn.innerHTML = '<i class="fa-solid fa-flag"></i> ' + T("Give Up");
       giveUpBtn.addEventListener("click", function () {
         journeyFlow.giveUp && journeyFlow.giveUp();
       });
@@ -842,7 +852,7 @@
       // Got a Ride! (green) — opens the ride-details sheet; sheet's Ride On! calls gotRide.
       const gotRideBtn = document.createElement("button");
       gotRideBtn.className = "inr-big inr-big--green";
-      gotRideBtn.innerHTML = '<i class="fa-solid fa-thumbs-up"></i> Got a Ride!';
+      gotRideBtn.innerHTML = '<i class="fa-solid fa-thumbs-up"></i> ' + T("Got a Ride!");
       gotRideBtn.addEventListener("click", function () {
         // Open the slim sheet to capture rating/details; gotRide is called on Ride On!.
         journeyUI.rideDetailsSheet(function (details) {
@@ -867,7 +877,7 @@
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "inr-cancel";
-      btn.setAttribute("aria-label", "Cancel journey");
+      btn.setAttribute("aria-label", T("Cancel journey"));
       btn.innerHTML = '<i class="fa-solid fa-xmark" aria-hidden="true"></i>';
       btn.addEventListener("click", function () { journeyFlow.cancel(); });
       return btn;
@@ -888,13 +898,13 @@
       const label = document.createElement("span");
       label.className = "inr-chip__label";
       // waitSegmentStartMs is null so currentWaitMs equals waitAccumMs — display is frozen.
-      label.textContent = "Paused · waited " + fmtHMS(journeyStore.currentWaitMs(j, Date.now()));
+      label.textContent = T("Paused · waited {time}", { time: fmtHMS(journeyStore.currentWaitMs(j, Date.now())) });
       chip.appendChild(label);
 
       // Resume pill: restarts the wait segment from now.
       const resumeBtn = document.createElement("button");
       resumeBtn.className = "inr-pausepill";
-      resumeBtn.innerHTML = '<i class="fa-solid fa-play"></i> Resume';
+      resumeBtn.innerHTML = '<i class="fa-solid fa-play"></i> ' + T("Resume");
       resumeBtn.addEventListener("click", function () {
         journeyFlow.resume();
       });
@@ -913,7 +923,7 @@
       // Give Up (red) — active even while paused.
       const giveUpBtn = document.createElement("button");
       giveUpBtn.className = "inr-big inr-big--red";
-      giveUpBtn.innerHTML = '<i class="fa-solid fa-flag"></i> Give Up';
+      giveUpBtn.innerHTML = '<i class="fa-solid fa-flag"></i> ' + T("Give Up");
       giveUpBtn.addEventListener("click", function () {
         journeyFlow.giveUp && journeyFlow.giveUp();
       });
@@ -923,7 +933,7 @@
       const gotRideBtn = document.createElement("button");
       gotRideBtn.className = "inr-big inr-big--green inr-disabled";
       gotRideBtn.disabled = true;
-      gotRideBtn.innerHTML = '<i class="fa-solid fa-thumbs-up"></i> Got a Ride!';
+      gotRideBtn.innerHTML = '<i class="fa-solid fa-thumbs-up"></i> ' + T("Got a Ride!");
       row.appendChild(gotRideBtn);
       dock.appendChild(row);
       dock.appendChild(journeyUI._cancelButton());
@@ -950,7 +960,7 @@
 
       const label = document.createElement("span");
       label.className = "inr-chip__label";
-      label.textContent = "In a ride · " + fmtHMS(Date.now() - j.gotRideMs);
+      label.textContent = T("In a ride · {time}", { time: fmtHMS(Date.now() - j.gotRideMs) });
       chip.appendChild(label);
 
       document.body.appendChild(chip);
@@ -959,7 +969,7 @@
       journeyUI._tickInterval = setInterval(function () {
         const cur = journeyStore.get();
         if (cur && cur.gotRideMs) {
-          label.textContent = "In a ride · " + fmtHMS(Date.now() - cur.gotRideMs);
+          label.textContent = T("In a ride · {time}", { time: fmtHMS(Date.now() - cur.gotRideMs) });
         }
       }, 1000);
 
@@ -983,7 +993,7 @@
       const finishBtn = document.createElement("button");
       finishBtn.className = "inr-big";
       finishBtn.style.background = "#ff6b35";
-      finishBtn.innerHTML = '<i class="fa-solid fa-flag-checkered"></i> Finish Ride';
+      finishBtn.innerHTML = '<i class="fa-solid fa-flag-checkered"></i> ' + T("Finish Ride");
       finishBtn.addEventListener("click", function () {
         journeyFlow.finish && journeyFlow.finish();
       });
@@ -1005,8 +1015,8 @@
       const addLabel = document.createElement("span");
       addLabel.className = "inr-demo-add__label";
       addLabel.innerHTML = s.pct >= 100
-        ? '<i class="fa-solid fa-check"></i> Details complete'
-        : '<i class="fa-solid fa-plus"></i> Add details · ' + s.pct + '%';
+        ? '<i class="fa-solid fa-check"></i> ' + T("Details complete")
+        : '<i class="fa-solid fa-plus"></i> ' + T("Add details · {pct}%", { pct: s.pct });
       addBtn.appendChild(addFill); addBtn.appendChild(addLabel);
       addBtn.addEventListener("click", function () {
         journeyUI.detailsSheet(j.details || {}, function (fields) {
@@ -1066,8 +1076,8 @@
       btn.disabled = busy;
       btn.classList.toggle("inr-disabled", busy);
       btn.innerHTML = busy
-        ? '<i class="fa-solid fa-spinner fa-spin"></i> Saving…'
-        : '<i class="fa-solid fa-flag-checkered"></i> Finish Ride';
+        ? '<i class="fa-solid fa-spinner fa-spin"></i> ' + T("Saving…")
+        : '<i class="fa-solid fa-flag-checkered"></i> ' + T("Finish Ride");
     },
 
     // Brief error banner above the dock; auto-removes after 5 s so stale errors
@@ -1170,9 +1180,9 @@
         '<div class="lsel-actions">',
         // "Use my location" is a positive/neutral action — give it confirm styling so it
         // doesn't read as a dismiss button; only Cancel gets the muted lsel-cancel style.
-        opts.myLocation ? '<button class="lsel-confirm" id="inr-pin-myloc">Use my location</button>' : "",
+        opts.myLocation ? '<button class="lsel-confirm" id="inr-pin-myloc">' + T("Use my location") + "</button>" : "",
         '<button class="lsel-confirm" id="inr-pin-confirm">' + opts.confirmLabel + "</button>",
-        '<button class="lsel-cancel" id="inr-pin-cancel">Cancel</button>',
+        '<button class="lsel-cancel" id="inr-pin-cancel">' + T("Cancel") + "</button>",
         "</div>",
       ].join("");
       document.body.appendChild(ui);
@@ -1198,7 +1208,7 @@
       function setLocating(on) {
         if (!locBtn) return;
         locBtn.disabled = on;
-        locBtn.textContent = on ? "Locating…" : "Use my location";
+        locBtn.textContent = on ? T("Locating…") : T("Use my location");
       }
 
       function moveTo(fix) {
@@ -1222,7 +1232,7 @@
             function (fix) { setLocating(false); touch(); moveTo(fix); },
             function () {
               setLocating(false);
-              journeyUI.error("Couldn't get your location — drag the pin instead.");
+              journeyUI.error(T("Couldn't get your location — drag the pin instead."));
             }
           );
         });
@@ -1275,14 +1285,14 @@
       const closeX = document.createElement("button");
       closeX.type = "button";
       closeX.className = "inr-sheet__close";
-      closeX.setAttribute("aria-label", "Close");
+      closeX.setAttribute("aria-label", T("Close"));
       closeX.innerHTML = "&times;";
       closeX.addEventListener("click", function () { close(); });
       sheet.appendChild(closeX);
 
       // Title
       const titleEl = document.createElement("h4");
-      titleEl.textContent = "How was the spot?";
+      titleEl.textContent = T("How was the spot?");
       sheet.appendChild(titleEl);
 
       // ── 5-star rating (required — Ride On! stays disabled until a star is tapped) ──
@@ -1313,14 +1323,14 @@
       const vehicleField = document.createElement("div");
       vehicleField.className = "inr-field";
       const vehicleLabel = document.createElement("label");
-      vehicleLabel.textContent = "Who picked you up?";
+      vehicleLabel.textContent = T("Who picked you up?");
       vehicleField.appendChild(vehicleLabel);
       const vehicleChipsEl = document.createElement("div");
       vehicleChipsEl.className = "inr-chips";
       [
-        { code: "car",   label: "🚗 Car"   },
-        { code: "truck", label: "🚚 Truck" },
-        { code: "van",   label: "🚐 Van"   },
+        { code: "car",   label: "🚗 " + T("Car")   },
+        { code: "truck", label: "🚚 " + T("Truck") },
+        { code: "van",   label: "🚐 " + T("Van")   },
       ].forEach(function (opt) {
         const chip = document.createElement("button");
         chip.type = "button";
@@ -1347,14 +1357,14 @@
       const signalField = document.createElement("div");
       signalField.className = "inr-field";
       const signalLabel = document.createElement("label");
-      signalLabel.textContent = "How did you signal?";
+      signalLabel.textContent = T("How did you signal?");
       signalField.appendChild(signalLabel);
       const signalChipsEl = document.createElement("div");
       signalChipsEl.className = "inr-chips";
       [
-        { code: "thumb", label: "👍 Thumb"  },
-        { code: "sign",  label: "📝 Sign"   },
-        { code: "ask",   label: "🗣 Asking" },
+        { code: "thumb", label: "👍 " + T("Thumb")  },
+        { code: "sign",  label: "📝 " + T("Sign")   },
+        { code: "ask",   label: "🗣 " + T("Asking") },
       ].forEach(function (opt) {
         const chip = document.createElement("button");
         chip.type = "button";
@@ -1375,20 +1385,21 @@
       const commentField = document.createElement("div");
       commentField.className = "inr-field";
       const commentLabel = document.createElement("label");
-      commentLabel.textContent = "Comment (optional)";
+      commentLabel.textContent = T("Comment (optional)");
       commentField.appendChild(commentLabel);
       const textarea = document.createElement("textarea");
       textarea.className = "inr-sheet__textarea";
-      textarea.placeholder = "Anything worth noting about this spot…";
+      textarea.placeholder = T("Anything worth noting about this spot…");
       commentField.appendChild(textarea);
       // Licensing notice: comment + username are published under CC BY-SA 4.0 (the
       // database as a whole is ODbL). Keep users aware of what they agree to on submit.
       const licenseNote = document.createElement("p");
       licenseNote.className = "inr-sheet__license";
       licenseNote.style.cssText = "font-size:11px;color:#999;margin:4px 0 0;line-height:1.4;";
-      licenseNote.innerHTML = 'Published publicly. Your comment and username are licensed ' +
-        '<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>; ' +
-        'the database is <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>.';
+      licenseNote.innerHTML = T("Published publicly. Your comment and username are licensed {ccbysa}; the database is {odbl}.", {
+        ccbysa: '<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>',
+        odbl: '<a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>',
+      });
       commentField.appendChild(licenseNote);
       sheet.appendChild(commentField);
 
@@ -1397,7 +1408,7 @@
       rideOnBtn.type = "button";
       rideOnBtn.className = "inr-big inr-big--green inr-sheet__save inr-disabled";
       rideOnBtn.disabled = true;
-      rideOnBtn.innerHTML = '<i class="fa-solid fa-check"></i> Ride On!';
+      rideOnBtn.innerHTML = '<i class="fa-solid fa-check"></i> ' + T("Ride On!");
       function updateRideOnBtn() {
         const ready = rating > 0;
         rideOnBtn.disabled = !ready;
@@ -1457,18 +1468,18 @@
 
       const grab = document.createElement("div"); grab.className = "inr-sheet__grab"; sheet.appendChild(grab);
       const closeX = document.createElement("button");
-      closeX.type = "button"; closeX.className = "inr-sheet__close"; closeX.setAttribute("aria-label", "Close");
+      closeX.type = "button"; closeX.className = "inr-sheet__close"; closeX.setAttribute("aria-label", T("Close"));
       closeX.innerHTML = "&times;"; closeX.addEventListener("click", function () { close(); });
       sheet.appendChild(closeX);
 
-      const titleEl = document.createElement("h4"); titleEl.textContent = "Driver & vehicle details"; sheet.appendChild(titleEl);
+      const titleEl = document.createElement("h4"); titleEl.textContent = T("Driver & vehicle details"); sheet.appendChild(titleEl);
 
       // ── Two tabs (Driver / Vehicle), each a fill-bar of its own section's
       //    completeness. Only the active panel shows; the fill bars update live. ──
       const tabbar = document.createElement("div"); tabbar.className = "inr-tabbar";
       const driverPanel = document.createElement("div"); driverPanel.className = "inr-tabpanel";
       const vehiclePanel = document.createElement("div"); vehiclePanel.className = "inr-tabpanel";
-      const driverTab = makeTab("Driver"); const vehicleTab = makeTab("Vehicle");
+      const driverTab = makeTab(T("Driver")); const vehicleTab = makeTab(T("Vehicle"));
       tabbar.appendChild(driverTab.el); tabbar.appendChild(vehicleTab.el);
       sheet.appendChild(tabbar); sheet.appendChild(driverPanel); sheet.appendChild(vehiclePanel);
 
@@ -1567,7 +1578,7 @@
       // triples are [iso_alpha2, plate_code, name]; we store the ISO alpha-2.
       function plateSelect(w, triples, getVal, setVal) {
         const input = document.createElement("input"); input.type = "text"; input.className = "inr-cohitch-input";
-        input.placeholder = "License plate code (e.g. D, F, GB)…"; input.setAttribute("autocomplete", "off");
+        input.placeholder = T("License plate code (e.g. D, F, GB)…"); input.setAttribute("autocomplete", "off");
         const cur = triples.find(function (t) { return t[0] === getVal(); });
         if (cur) input.value = cur[1];
         const list = document.createElement("ul"); list.className = "inr-cohitch-suggest"; list.style.display = "none";
@@ -1592,7 +1603,7 @@
         const wrap = document.createElement("div"); wrap.className = "inr-cohitch-inputwrap";
         const tags = document.createElement("div"); tags.className = "inr-tags";
         const input = document.createElement("input"); input.type = "text"; input.className = "inr-cohitch-input";
-        input.placeholder = "Type a language…"; input.setAttribute("autocomplete", "off");
+        input.placeholder = T("Type a language…"); input.setAttribute("autocomplete", "off");
         const list = document.createElement("ul"); list.className = "inr-cohitch-suggest"; list.style.display = "none";
         wrap.appendChild(tags); wrap.appendChild(input); wrap.appendChild(list); w.appendChild(wrap);
         function nameFor(code) { const p = choices.find(function (c) { return c[0] === code; }); return p ? p[1] : code; }
@@ -1600,7 +1611,7 @@
           tags.innerHTML = "";
           arr.forEach(function (code) {
             const t = document.createElement("span"); t.className = "inr-tag"; t.textContent = nameFor(code);
-            const x = document.createElement("button"); x.type = "button"; x.className = "inr-tag__x"; x.setAttribute("aria-label", "Remove"); x.innerHTML = "&times;";
+            const x = document.createElement("button"); x.type = "button"; x.className = "inr-tag__x"; x.setAttribute("aria-label", T("Remove")); x.innerHTML = "&times;";
             x.addEventListener("click", function () { const i = arr.indexOf(code); if (i !== -1) arr.splice(i, 1); renderTags(); refreshMeters(); });
             t.appendChild(x); tags.appendChild(t);
           });
@@ -1624,31 +1635,31 @@
       }
 
       // ── Driver tab ───────────────────────────────────────────────────────────
-      const reasonF = fieldWrap("Why did they pick you up?"); chipMulti(reasonF, ch.reasons, f.driver_reason_to_pick_up); driverPanel.appendChild(reasonF);
-      const genderF = fieldWrap("Driver gender"); chipSingle(genderF, ch.genders, function () { return f.driver_gender; }, function (v) { f.driver_gender = v; }); driverPanel.appendChild(genderF);
-      const ageF = fieldWrap("Approx. driver age");
-      const ageHelp = document.createElement("div"); ageHelp.className = "inr-field__help"; ageHelp.textContent = "A rough guess is fine."; ageF.appendChild(ageHelp);
+      const reasonF = fieldWrap(T("Why did they pick you up?")); chipMulti(reasonF, ch.reasons, f.driver_reason_to_pick_up); driverPanel.appendChild(reasonF);
+      const genderF = fieldWrap(T("Driver gender")); chipSingle(genderF, ch.genders, function () { return f.driver_gender; }, function (v) { f.driver_gender = v; }); driverPanel.appendChild(genderF);
+      const ageF = fieldWrap(T("Approx. driver age"));
+      const ageHelp = document.createElement("div"); ageHelp.className = "inr-field__help"; ageHelp.textContent = T("A rough guess is fine."); ageF.appendChild(ageHelp);
       const age = document.createElement("input"); age.type = "number"; age.min = "0"; age.max = "120"; age.className = "inr-cohitch-input"; age.inputMode = "numeric";
       if (f.driver_age !== "") age.value = f.driver_age;
       age.addEventListener("input", function () { f.driver_age = age.value === "" ? "" : parseInt(age.value, 10); refreshMeters(); });
       ageF.appendChild(age); driverPanel.appendChild(ageF);
-      const originF = fieldWrap("Driver's country"); searchSelect(originF, ch.countries, "Search country…", function () { return f.driver_origin_country; }, function (v) { f.driver_origin_country = v; }); driverPanel.appendChild(originF);
-      const langF = fieldWrap("Languages spoken"); tagAutocomplete(langF, ch.languages, f.driver_languages); driverPanel.appendChild(langF);
+      const originF = fieldWrap(T("Driver's country")); searchSelect(originF, ch.countries, T("Search country…"), function () { return f.driver_origin_country; }, function (v) { f.driver_origin_country = v; }); driverPanel.appendChild(originF);
+      const langF = fieldWrap(T("Languages spoken")); tagAutocomplete(langF, ch.languages, f.driver_languages); driverPanel.appendChild(langF);
 
       // ── Vehicle tab ──────────────────────────────────────────────────────────
-      const kindF = fieldWrap("Vehicle");
+      const kindF = fieldWrap(T("Vehicle"));
       chipSingle(kindF, ch.vehicle_kinds.map(function (p) { return [p[0], p[1] + " " + p[0]]; }), function () { return f.vehicle_kind; }, function (v) { f.vehicle_kind = v; });
       vehiclePanel.appendChild(kindF);
-      const plateF = fieldWrap("Number-plate country"); plateSelect(plateF, ch.plate_countries, function () { return f.vehicle_license_plate_country; }, function (v) { f.vehicle_license_plate_country = v; }); vehiclePanel.appendChild(plateF);
+      const plateF = fieldWrap(T("Number-plate country")); plateSelect(plateF, ch.plate_countries, function () { return f.vehicle_license_plate_country; }, function (v) { f.vehicle_license_plate_country = v; }); vehiclePanel.appendChild(plateF);
       // make/model — passenger vehicles only, optional (not scored). Hidden for other kinds by refreshMeters().
       const makeModelWrap = document.createElement("div");
-      const makeF = fieldWrap("Make (optional)"); const make = document.createElement("input"); make.type = "text"; make.className = "inr-cohitch-input"; make.value = f.vehicle_make; make.addEventListener("input", function () { f.vehicle_make = make.value; refreshMeters(); }); makeF.appendChild(make); makeModelWrap.appendChild(makeF);
-      const modelF = fieldWrap("Model (optional)"); const model = document.createElement("input"); model.type = "text"; model.className = "inr-cohitch-input"; model.value = f.vehicle_model; model.addEventListener("input", function () { f.vehicle_model = model.value; refreshMeters(); }); modelF.appendChild(model); makeModelWrap.appendChild(modelF);
+      const makeF = fieldWrap(T("Make (optional)")); const make = document.createElement("input"); make.type = "text"; make.className = "inr-cohitch-input"; make.value = f.vehicle_make; make.addEventListener("input", function () { f.vehicle_make = make.value; refreshMeters(); }); makeF.appendChild(make); makeModelWrap.appendChild(makeF);
+      const modelF = fieldWrap(T("Model (optional)")); const model = document.createElement("input"); model.type = "text"; model.className = "inr-cohitch-input"; model.value = f.vehicle_model; model.addEventListener("input", function () { f.vehicle_model = model.value; refreshMeters(); }); modelF.appendChild(model); makeModelWrap.appendChild(modelF);
       vehiclePanel.appendChild(makeModelWrap);
 
       const saveBtn = document.createElement("button");
       saveBtn.type = "button"; saveBtn.className = "inr-big inr-big--green inr-sheet__save";
-      saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> Save details';
+      saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> ' + T("Save details");
       saveBtn.addEventListener("click", function () { close(); onSave(f); });
       sheet.appendChild(saveBtn);
 
@@ -1684,20 +1695,20 @@
       const closeX = document.createElement("button");
       closeX.type = "button";
       closeX.className = "inr-sheet__close";
-      closeX.setAttribute("aria-label", "Close");
+      closeX.setAttribute("aria-label", T("Close"));
       closeX.innerHTML = "&times;";
       closeX.addEventListener("click", function () { close(); });
       sheet.appendChild(closeX);
 
       const titleEl = document.createElement("h4");
-      titleEl.textContent = "Anybody hitching with you";
+      titleEl.textContent = T("Anybody hitching with you");
       sheet.appendChild(titleEl);
 
       // Logged-in confirmation line ("You're hitching as @name"); omitted when anonymous.
       if (window.USERNAME) {
         const who = document.createElement("p");
         who.className = "inr-sheet__sub";
-        who.textContent = "You're hitching as @" + window.USERNAME;
+        who.textContent = T("You're hitching as @{username}", { username: window.USERNAME });
         sheet.appendChild(who);
       }
 
@@ -1714,7 +1725,7 @@
       input.className = "inr-cohitch-input";
       input.setAttribute("autocomplete", "off");
       input.setAttribute("maxlength", "32");
-      input.placeholder = "Add co-hitchhiker username…";
+      input.placeholder = T("Add co-hitchhiker username…");
       const suggest = document.createElement("ul");
       suggest.className = "inr-cohitch-suggest";
       suggest.style.display = "none";
@@ -1730,9 +1741,9 @@
       const anonRow = document.createElement("div");
       anonRow.className = "inr-cohitch-anonrow";
       [
-        { gender: "", label: "Add anonymous" },
-        { gender: "male", label: "Anonymous ♂" },
-        { gender: "female", label: "Anonymous ♀" },
+        { gender: "", label: T("Add anonymous") },
+        { gender: "male", label: T("Anonymous ♂") },
+        { gender: "female", label: T("Anonymous ♀") },
       ].forEach(function (opt) {
         const anonBtn = document.createElement("button");
         anonBtn.type = "button";
@@ -1745,8 +1756,8 @@
 
       // Chips show the gender as a symbol; the raw token is what's sent on submit.
       function chipLabel(name) {
-        if (name === "Anonymous:male") return "Anonymous ♂";
-        if (name === "Anonymous:female") return "Anonymous ♀";
+        if (name === "Anonymous:male") return T("Anonymous ♂");
+        if (name === "Anonymous:female") return T("Anonymous ♀");
         return name;
       }
 
@@ -1759,7 +1770,7 @@
           const x = document.createElement("button");
           x.type = "button";
           x.className = "inr-cohitch-chip__x";
-          x.setAttribute("aria-label", "Remove " + chipLabel(name));
+          x.setAttribute("aria-label", T("Remove {name}", { name: chipLabel(name) }));
           x.innerHTML = "&times;";
           x.addEventListener("click", function () {
             const i = selected.indexOf(name);
@@ -1816,7 +1827,7 @@
       const startBtn = document.createElement("button");
       startBtn.type = "button";
       startBtn.className = "inr-big inr-big--green inr-sheet__save";
-      startBtn.innerHTML = '<i class="fa-solid fa-thumbs-up"></i> Start hitching';
+      startBtn.innerHTML = '<i class="fa-solid fa-thumbs-up"></i> ' + T("Start hitching");
       startBtn.addEventListener("click", function () {
         // Fold a half-typed username into the list so it isn't silently lost.
         if (input.value.trim()) addName(input.value);
@@ -1861,18 +1872,18 @@
       const closeX = document.createElement("button");
       closeX.type = "button";
       closeX.className = "inr-sheet__close";
-      closeX.setAttribute("aria-label", "Close");
+      closeX.setAttribute("aria-label", T("Close"));
       closeX.innerHTML = "&times;";
       closeX.addEventListener("click", function () { close(); });
       sheet.appendChild(closeX);
 
       const titleEl = document.createElement("h4");
-      titleEl.textContent = "How was the spot?";
+      titleEl.textContent = T("How was the spot?");
       sheet.appendChild(titleEl);
 
       const subEl = document.createElement("p");
       subEl.className = "inr-sheet__sub";
-      subEl.textContent = "You waited here without a ride — rate the spot so others know.";
+      subEl.textContent = T("You waited here without a ride — rate the spot so others know.");
       sheet.appendChild(subEl);
 
       // ── 5-star rating (required — Save stays disabled until a star is tapped) ──
@@ -1900,20 +1911,21 @@
       const commentField = document.createElement("div");
       commentField.className = "inr-field";
       const commentLabel = document.createElement("label");
-      commentLabel.textContent = "Comment (optional)";
+      commentLabel.textContent = T("Comment (optional)");
       commentField.appendChild(commentLabel);
       const textarea = document.createElement("textarea");
       textarea.className = "inr-sheet__textarea";
-      textarea.placeholder = "e.g. no traffic, bad pull-in spot…";
+      textarea.placeholder = T("e.g. no traffic, bad pull-in spot…");
       commentField.appendChild(textarea);
       // Licensing notice: comment + username are published under CC BY-SA 4.0 (the
       // database as a whole is ODbL). Keep users aware of what they agree to on submit.
       const licenseNote = document.createElement("p");
       licenseNote.className = "inr-sheet__license";
       licenseNote.style.cssText = "font-size:11px;color:#999;margin:4px 0 0;line-height:1.4;";
-      licenseNote.innerHTML = 'Published publicly. Your comment and username are licensed ' +
-        '<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>; ' +
-        'the database is <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>.';
+      licenseNote.innerHTML = T("Published publicly. Your comment and username are licensed {ccbysa}; the database is {odbl}.", {
+        ccbysa: '<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>',
+        odbl: '<a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>',
+      });
       commentField.appendChild(licenseNote);
       sheet.appendChild(commentField);
 
@@ -1922,7 +1934,7 @@
       saveBtn.type = "button";
       saveBtn.className = "inr-big inr-big--green inr-sheet__save inr-disabled";
       saveBtn.disabled = true;
-      saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> Save';
+      saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> ' + T("Save");
       function updateSaveBtn() {
         saveBtn.disabled = rating === 0;
         saveBtn.classList.toggle("inr-disabled", rating === 0);
@@ -1957,17 +1969,17 @@
       // both proceed the finish, exactly once. Routing a scrim-dismiss through dialog's
       // onClose would double-fire on the "Add details" tap (close() runs before onClick).
       journeyUI.dialog({
-        title: "Add driver & vehicle details?",
-        body: "This ride is " + pct + "% complete. Help your fellow hitchers?",
+        title: T("Add driver & vehicle details?"),
+        body: T("This ride is {pct}% complete. Help your fellow hitchers?", { pct }),
         centered: true,
         forced: true,
         actions: [
           // "Add details" opens the details sheet (which closes this dialog via the
           // single-flight guard); its Save fires onAdd, which then continues the finish.
-          { label: "Add details", cls: "inr-go", onClick: function () {
+          { label: T("Add details"), cls: "inr-go", onClick: function () {
             journeyUI.detailsSheet(seed, function (fields) { onAdd(fields); });
           } },
-          { label: "Skip", cls: "inr-grey", onClick: function () { onSkip(); } },
+          { label: T("Skip"), cls: "inr-grey", onClick: function () { onSkip(); } },
         ],
       });
     },
@@ -1977,13 +1989,13 @@
     // capture, independent of the demographic points.
     wouldRideAgainSheet(onAnswer) {
       journeyUI.dialog({
-        title: "Would you accept this ride again?",
-        body: "One quick question before we save this ride.",
+        title: T("Would you accept this ride again?"),
+        body: T("One quick question before we save this ride."),
         centered: true,
         forced: true,
         actions: [
-          { label: "Yes", cls: "inr-go",   onClick: function () { onAnswer(true); } },
-          { label: "No",  cls: "inr-grey", onClick: function () { onAnswer(false); } },
+          { label: T("Yes"), cls: "inr-go",   onClick: function () { onAnswer(true); } },
+          { label: T("No"),  cls: "inr-grey", onClick: function () { onAnswer(false); } },
         ],
       });
     },
@@ -2042,7 +2054,7 @@
         const cancelBtn = document.createElement("button");
         cancelBtn.type = "button";
         cancelBtn.className = "inr-cancel";
-        cancelBtn.setAttribute("aria-label", "Close");
+        cancelBtn.setAttribute("aria-label", T("Close"));
         cancelBtn.innerHTML = '<i class="fa-solid fa-xmark" aria-hidden="true"></i>';
         cancelBtn.addEventListener("click", close);
         card.appendChild(cancelBtn);
@@ -2100,7 +2112,7 @@
       btn.className = "inr-big inr-big--green";
       // fa-thumbs-up is already this app's "start hitching" icon (spot sheet's
       // "Hitch here"); it never shares the screen with the Got a Ride! button.
-      btn.innerHTML = '<i class="fa-solid fa-thumbs-up" aria-hidden="true"></i> ' + tr("Start Hitchhiking");
+      btn.innerHTML = '<i class="fa-solid fa-thumbs-up" aria-hidden="true"></i> ' + T("Start Hitchhiking");
       btn.addEventListener("click", startLauncher.open);
 
       const past = document.createElement("button");
@@ -2109,7 +2121,7 @@
       past.className = "inr-big inr-big--green-light";
       // The 🚗💨 the bottom action pane used for "Add your ride", desaturated: it keeps
       // that entry point recognisable while staying visually secondary to the green half.
-      past.innerHTML = '<span class="inr-emoji-bw" aria-hidden="true">🚗💨</span> ' + tr("Log a past ride");
+      past.innerHTML = '<span class="inr-emoji-bw" aria-hidden="true">🚗💨</span> ' + T("Log a past ride");
       past.addEventListener("click", function () {
         // Same funnel step the bottom action pane used to report, so the
         // add_ride_clicked → ride_form_submitted drop-off stays comparable.
@@ -2155,9 +2167,9 @@
       if (!window.map) return;
       hmTrack("journey_start_button_clicked", {});
       journeyUI.pinConfirm({
-        title: "Where are you waiting?",
-        hint: "Drag the pin or tap the map, then confirm.",
-        confirmLabel: "Confirm",
+        title: T("Where are you waiting?"),
+        hint: T("Drag the pin or tap the map, then confirm."),
+        confirmLabel: T("Confirm"),
         // Seeded at the map centre so Confirm is one tap for someone who already panned
         // to where they are; "Use my location" and dragging stay available.
         seed: null,
@@ -2204,25 +2216,25 @@
     }
 
     journeyUI.dialog({
-      title: "This spot",
-      body: "Track a ride from here now — or log a ride you already got.",
+      title: T("This spot"),
+      body: T("Track a ride from here now — or log a ride you already got."),
       onClose: () => { if (previewPin && window.map) window.map.removeLayer(previewPin); previewPin = null; },
       // Every action here commits to a flow, so the dialog needs a visible dismiss.
       cancelButton: true,
       actions: [
         {
-          label: "Start Hitching",
+          label: T("Start Hitching"),
           cls: "inr-go",
           onClick: () => journeyFlow.startFromChoose(latlng),
         },
         {
-          label: "Log a past ride",
+          label: T("Log a past ride"),
           cls: "inr-ghost",
           // Reuses the existing add-spot flow unchanged; only the label differs.
           onClick: () => window.startAddSpotFromGesture(latlng, containerPoint),
         },
         {
-          label: "Propose a spot",
+          label: T("Propose a spot"),
           cls: "inr-ghost",
           // Flags a promising spot (blue marker) without logging a ride — never
           // published to Nostr, just stored server-side with a short comment.
@@ -2266,8 +2278,8 @@
       }
       outboxUI._chip.classList.toggle("inr-outbox-chip--failed", failed);
       outboxUI._chip.innerHTML = failed
-        ? '<i class="fa-solid fa-triangle-exclamation"></i> ' + all.length + " to upload"
-        : '<i class="fa-solid fa-rotate"></i> ' + all.length + " to upload";
+        ? '<i class="fa-solid fa-triangle-exclamation"></i> ' + T("{n} to upload", { n: all.length })
+        : '<i class="fa-solid fa-rotate"></i> ' + T("{n} to upload", { n: all.length });
     },
 
     // Bottom sheet listing each queued item with per-item status and actions.
@@ -2295,7 +2307,7 @@
         if (!items.length) { close(); return; } // nothing left — dismiss
 
         const titleEl = document.createElement("h4");
-        titleEl.textContent = "Rides to upload";
+        titleEl.textContent = T("Rides to upload");
         sheet.appendChild(titleEl);
 
         const list = document.createElement("div");
@@ -2309,19 +2321,19 @@
           // Build with DOM nodes + textContent, never innerHTML: it.lastError is a
           // server-provided string (persisted in localStorage) and would be an XSS
           // vector if interpolated into markup.
-          const kindLabel = it.kind === "giveup" ? "Gave up" : "Ride";
+          const kindLabel = it.kind === "giveup" ? T("Gave up") : T("Ride");
           const strong = document.createElement("strong");
           strong.textContent = kindLabel;
           info.appendChild(strong);
-          info.appendChild(document.createTextNode(" · " + outboxUI._age(it.createdAt) + " ago"));
+          info.appendChild(document.createTextNode(" · " + T("{age} ago", { age: outboxUI._age(it.createdAt) })));
           info.appendChild(document.createElement("br"));
           const statusEl = document.createElement("span");
           if (it.status === "failed") {
             statusEl.className = "inr-outbox-row__err";
-            statusEl.textContent = "Couldn't save: " + (it.lastError || "rejected");
+            statusEl.textContent = T("Couldn't save: {error}", { error: it.lastError || "rejected" });
           } else {
             statusEl.className = "inr-outbox-row__wait";
-            statusEl.textContent = "Waiting for connection…";
+            statusEl.textContent = T("Waiting for connection…");
           }
           info.appendChild(statusEl);
           row.appendChild(info);
@@ -2333,7 +2345,7 @@
           const details = document.createElement("button");
           details.type = "button";
           details.className = "inr-outbox-row__btn";
-          details.title = "Details / edit";
+          details.title = T("Details / edit");
           details.innerHTML = '<i class="fa-solid fa-pen"></i>';
           details.addEventListener("click", function () {
             close();               // swap the list for the edit sheet (single dialog at a time)
@@ -2345,10 +2357,10 @@
           const del = document.createElement("button");
           del.type = "button";
           del.className = "inr-outbox-row__btn inr-outbox-row__btn--danger";
-          del.title = "Delete";
+          del.title = T("Delete");
           del.innerHTML = '<i class="fa-solid fa-trash"></i>';
           del.addEventListener("click", function () {
-            if (window.confirm("Delete this ride? It won't be uploaded.")) {
+            if (window.confirm(T("Delete this ride? It won't be uploaded."))) {
               outboxStore.remove(it.id);
               outboxUI.refresh();
               rebuild();
@@ -2366,7 +2378,7 @@
           const retry = document.createElement("button");
           retry.type = "button";
           retry.className = "inr-big inr-big--green inr-sheet__save";
-          retry.innerHTML = '<i class="fa-solid fa-rotate"></i> Retry now';
+          retry.innerHTML = '<i class="fa-solid fa-rotate"></i> ' + T("Retry now");
           retry.addEventListener("click", function () {
             outboxStore.get().forEach(function (it) {
               if (it.status === "failed") outboxStore.update(it.id, { status: "pending" });
@@ -2381,7 +2393,7 @@
         const closeBtn = document.createElement("button");
         closeBtn.type = "button";
         closeBtn.className = "inr-sheet__more";
-        closeBtn.textContent = "Close";
+        closeBtn.textContent = T("Close");
         closeBtn.addEventListener("click", close);
         sheet.appendChild(closeBtn);
       }
@@ -2411,7 +2423,7 @@
       sheet.appendChild(grab);
 
       const titleEl = document.createElement("h4");
-      titleEl.textContent = item.kind === "giveup" ? "Gave-up spot" : "Ride details";
+      titleEl.textContent = item.kind === "giveup" ? T("Gave-up spot") : T("Ride details");
       sheet.appendChild(titleEl);
 
       // ── Rating (required) ──
@@ -2454,14 +2466,14 @@
         departureInput.type = "datetime-local";
         departureInput.className = "inr-input";
         departureInput.value = body.datetime_ride;
-        field("Picked up", departureInput);
+        field(T("Picked up"), departureInput);
       }
       if (body.arrival_datetime) {
         arrivalInput = document.createElement("input");
         arrivalInput.type = "datetime-local";
         arrivalInput.className = "inr-input";
         arrivalInput.value = body.arrival_datetime;
-        field("Arrived", arrivalInput);
+        field(T("Arrived"), arrivalInput);
       }
 
       // ── Wait (minutes) ──
@@ -2470,19 +2482,19 @@
       waitInput.min = "0";
       waitInput.className = "inr-input";
       waitInput.value = body.wait || "0";
-      field("Wait (minutes)", waitInput);
+      field(T("Wait (minutes)"), waitInput);
 
       // ── Comment ──
       const textarea = document.createElement("textarea");
       textarea.className = "inr-sheet__textarea";
       textarea.value = body.comment || "";
-      field("Comment (optional)", textarea);
+      field(T("Comment (optional)"), textarea);
 
       // Read-only coordinates for reference.
       const coords = document.createElement("p");
       coords.className = "inr-sheet__sub";
       const hasDest = body.destination_lat !== "" && body.destination_lat != null;
-      coords.textContent = "From " + Number(body.pickup_lat).toFixed(4) + ", " + Number(body.pickup_lon).toFixed(4) +
+      coords.textContent = T("From {from}", { from: Number(body.pickup_lat).toFixed(4) + ", " + Number(body.pickup_lon).toFixed(4) }) +
         (hasDest ? "  →  " + Number(body.destination_lat).toFixed(4) + ", " + Number(body.destination_lon).toFixed(4) : "");
       sheet.appendChild(coords);
 
@@ -2502,14 +2514,14 @@
       const saveBtn = document.createElement("button");
       saveBtn.type = "button";
       saveBtn.className = "inr-big inr-big--green inr-sheet__save";
-      saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> Save changes';
+      saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> ' + T("Save changes");
       saveBtn.addEventListener("click", function () {
-        if (!rating) { errEl.textContent = "Please choose a rating."; errEl.style.display = ""; return; }
+        if (!rating) { errEl.textContent = T("Please choose a rating."); errEl.style.display = ""; return; }
         // Backend asserts arrival > departure when both present — validate here so an edit
         // can't push the item into a permanent 400.
         if (departureInput && arrivalInput && departureInput.value && arrivalInput.value &&
             arrivalInput.value <= departureInput.value) {
-          errEl.textContent = "Arrival must be after the pickup time."; errEl.style.display = ""; return;
+          errEl.textContent = T("Arrival must be after the pickup time."); errEl.style.display = ""; return;
         }
         body.rate = String(rating);
         body.wait = String(Math.max(0, parseInt(waitInput.value, 10) || 0));
@@ -2527,7 +2539,7 @@
       const cancelBtn = document.createElement("button");
       cancelBtn.type = "button";
       cancelBtn.className = "inr-sheet__more";
-      cancelBtn.textContent = "Cancel";
+      cancelBtn.textContent = T("Cancel");
       cancelBtn.addEventListener("click", close);
       sheet.appendChild(cancelBtn);
 
@@ -2591,11 +2603,11 @@
     // user isn't silently dropped into a stale journey after overnight or longer.
     if (Date.now() - lastActiveMs(j) > STALE_MS) {
       journeyUI.dialog({
-        title: "Welcome back!",
-        body: "You have a hitching journey from more than 24 hours ago. Continue where you left off?",
+        title: T("Welcome back!"),
+        body: T("You have a hitching journey from more than 24 hours ago. Continue where you left off?"),
         actions: [
-          { label: "Resume",  cls: "inr-go", onClick: function () { journeyUI.render(j); } },
-          { label: "Discard", cls: "inr-grey",    onClick: function () { journeyFlow.discard(); } },
+          { label: T("Resume"),  cls: "inr-go", onClick: function () { journeyUI.render(j); } },
+          { label: T("Discard"), cls: "inr-grey",    onClick: function () { journeyFlow.discard(); } },
         ],
       });
       return;
