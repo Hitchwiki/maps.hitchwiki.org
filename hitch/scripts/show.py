@@ -1456,7 +1456,14 @@ def generate_heatmap_data():
     }
 
 
-# Generate heatmap data file (unless disabled)
+# Written once every RIDE data file above is on disk, and deliberately BEFORE the optional
+# heatmap step: /pending_rides.json only cares whether the ride files are current, and the
+# heatmap is both unrelated to rides and by far the most likely thing here to die (it peaks
+# ~1.9 GB and has been OOM-killed on this host, which bypasses its try/except and would
+# otherwise leave the timestamp permanently unwritten).
+write_json_file({"ts": snapshot_ts}, "generated_at.json")
+
+# Generate heatmap data file (unless disabled — see GENERATE_HEATMAP in settings.py)
 if current_app.config.get("GENERATE_HEATMAP", True):
     logger.info("Generating heatmap data")
     try:
@@ -1468,10 +1475,6 @@ if current_app.config.get("GENERATE_HEATMAP", True):
         logger.info("Continuing without heatmap data")
 else:
     logger.info("Heatmap generation disabled")
-
-# Written last, so the file never claims a snapshot whose data is not yet on disk.
-# /pending_rides.json reads it to decide which rides the map is still missing.
-write_json_file({"ts": snapshot_ts}, "generated_at.json")
 
 logger.info("All data preparation completed")
 logger.info("SHOW SCRIPT FINISHED")

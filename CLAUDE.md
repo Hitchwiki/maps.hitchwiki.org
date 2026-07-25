@@ -125,6 +125,19 @@ Modelled on OpenStreetMap's `/node/<id>#map=<zoom>/<lat>/<lon>`. Two independent
 - **Email**: Two paths — Flask-Mailman SMTP (defaults to SMTP2GO, `hitch/settings.py`) for Flask-Security mail, and SparkPost (`SPARKPOST_API_KEY` in `.env`) for welcome and nearby-hitchhiker emails (`hitch/blueprints/utils/send_welcome_email.py`, `send_nearby_hitchhikers_email.py`)
 
 ### Deployment
+- **Pushing to `main` IS the deploy — there is no separate deploy step.** `.github/workflows/deploy.yml`
+  fires on every push to `main`, SSHes into the prod host and runs `deploy/deploy.sh`, which does
+  `git reset --hard origin/main` → `docker compose up -d --build` → prunes unused images/build cache
+  → writes `logs/last_deploy.txt`. So don't hand-run `deploy.sh`, `docker compose build`, or
+  `docker restart` after a push; just push and watch `logs/last_deploy.txt` flip to your commit
+  (~1-2 min, a few seconds of 502 while the container swaps).
+  - Because the script **`git reset --hard origin/main`s this checkout**, any uncommitted work another
+    session has in progress here is destroyed by a deploy. Commit your paths before pushing, and note
+    this is the mechanism behind "someone reset my working tree" surprises.
+  - It also means a rebuild is *automatic*, so the "changes under `hitch/scripts/` need a rebuild"
+    caveat elsewhere in this file resolves itself on push. Only reach for a manual
+    `docker restart hitchhiking-map` when you have edited a **mounted** file (a template) and
+    deliberately do *not* want to push.
 - **Docker**: Dockerfile and docker-compose.yml for containerization
 - **Cron**: Automated data fetching via `deploy/cron.sh` with file locking
 - **Static Files**: Served from dist/ directory, includes PWA manifest

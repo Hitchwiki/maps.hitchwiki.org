@@ -75,6 +75,18 @@ class BaseConfig:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
 
+    # Off by default, opt in with GENERATE_HEATMAP=true. The heatmap refits an sklearn
+    # Gaussian Process over the whole ride set and peaks around 1.9 GB RSS; show.py runs
+    # every 10 minutes, and this host has ~7.7 GB shared with other services. Left on, the
+    # kernel OOM-kills the show process partway through (observed 2026-07-25, dmesg
+    # "Killed process ... (flask) anon-rss:1855276kB"), which silently truncates the whole
+    # generate pass — the kill bypasses the try/except around the heatmap block, so
+    # everything after it never runs. This key was previously absent from the config
+    # entirely, so show.py's `config.get("GENERATE_HEATMAP", True)` always fell back to
+    # True and no .env setting could turn it off. With it off, dist/heatmap.json simply
+    # keeps its last generated contents.
+    GENERATE_HEATMAP = os.getenv("GENERATE_HEATMAP", "false").strip().lower() in ("1", "true", "yes", "on")
+
     # Flask-Mailman configuration
     MAIL_SERVER = os.getenv("MAIL_SERVER", "mail.smtp2go.com")
     MAIL_PORT = os.getenv("MAIL_PORT", 587)  # or 2525 if required
