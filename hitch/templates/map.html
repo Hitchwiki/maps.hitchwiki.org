@@ -179,12 +179,21 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
             <span class="share-btn-label">Share this spot</span>
         </button>
     </div>
-    <!-- Start a tracked ride FROM this exact spot. Seeding the in-ride flow with the
-         canonical spot coordinates (instead of wherever the user long-presses) keeps
-         repeat rides on the same anchor, cutting down near-duplicate clustered spots. -->
-    <button type="button" id="spot-hitch-here">
-        <i class="fa-solid fa-thumbs-up" aria-hidden="true"></i> Hitch here
-    </button>
+    <!-- Both halves record a ride from THIS exact spot, differing only in tense: "Hitch
+         here" starts the tracked journey now, "Log a past ride" opens the /ride form.
+         Seeding either with the canonical spot coordinates (instead of wherever the user
+         long-pressed) keeps repeat rides on the same anchor, cutting down near-duplicate
+         clustered spots. Same split as the map's #inr-start-bar. -->
+    <div class="inr-split" id="spot-contribute">
+        <button type="button" id="spot-hitch-here">
+            <i class="fa-solid fa-thumbs-up" aria-hidden="true"></i> Hitch here
+        </button>
+        {% if not hide_add_spot_button %}
+        <button type="button" id="spot-log-past">
+            <span class="inr-emoji-bw" aria-hidden="true">🚗💨</span> Log a past ride
+        </button>
+        {% endif %}
+    </div>
     <div id='spot-summary'></div>
     <div id="spot-rate-prompt">
         <div class="rate-label">Rate this spot</div>
@@ -605,12 +614,9 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
         <i class="fa-solid fa-chart-column"></i>
         <span>Insights</span>
     </a>
-    {% if not hide_add_spot_button %}
-    <button class="action-btn" id="action-add-spot" title="Add your ride">
-        <span class="action-emoji">🚗💨</span>
-        <span>Add your ride</span>
-    </button>
-    {% endif %}
+    {# "Add your ride" used to live here. It moved to the always-visible contribution
+       bar over the map (inride.js startLauncher, "Log a past ride"), where it sits
+       beside "Start Hitchhiking" instead of reading as one more nav destination. #}
     <a class="action-btn" href="/leaderboard" title="Leaderboard" target="_blank" rel="noopener">
         <i class="fa-solid fa-trophy"></i>
         <span>Leaderboard</span>

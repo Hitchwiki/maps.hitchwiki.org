@@ -182,6 +182,12 @@ async function loadMarkers(map) {
     .finally(() => {
       const overlay = document.getElementById("spots-loading-overlay");
       if (overlay) overlay.classList.add("hidden");
+      // The map isn't usable until the markers are on it, so bottom-anchored entry
+      // points (the in-ride "Start Hitchhiking" launcher) stay hidden until now —
+      // offering to start a journey over an empty basemap is noise. Set in `finally`,
+      // not `then`: a failed spots fetch still leaves a working map, and the launcher
+      // does not depend on spot data.
+      document.body.classList.add("spots-loaded");
     });
 }
 
@@ -324,6 +330,10 @@ function populateHeatmapLegend(legendData) {
 (async () => {
   // Create map + geocoder synchronously so zoom/search appear in final position immediately
   map = createMap();
+  // Before loadMarkers: fixed bottom-anchored chrome (in-ride launcher/dock, outbox
+  // chip) is mounted as soon as window.map exists, so --bottom-pane-h has to be known
+  // by then or those elements render over the bottom action pane until spots load.
+  setupBottomPaneVar();
   setupGeocoder();
   // Added before the locate control so it stacks directly above the GPS button.
   setupMapModeControl();
@@ -1851,16 +1861,10 @@ function setupEventListeners() {
   setupFilterEventListeners();
 
   // Bottom action pane handlers
-  var addSpotBtn = document.getElementById('action-add-spot');
-  if (addSpotBtn) {
-    addSpotBtn.addEventListener('click', function() {
-      // Funnel step 2: intent to contribute. The gap between this and
-      // ride_form_submitted is what tells us whether the form (or the login
-      // wall behind it) is where contributors are lost.
-      hmTrack('add_ride_clicked', { source: 'action-pane' });
-      window.location.href = "/ride";
-    });
-  }
+  // The pane's "Add your ride" button is gone; its job (funnel step 2, the
+  // add_ride_clicked → ride_form_submitted drop-off) belongs to the "Log a past ride"
+  // halves in inride.js (#inr-log-past-btn) and the spot sheet (#spot-log-past), which
+  // report the same event with a different `source`.
 
   var menuBtn = document.getElementById('action-menu');
   if (menuBtn) {
@@ -2056,8 +2060,8 @@ function handleHashChange() {
   }
 
   if (window.location.pathname === "/hitchhiking.html") {
-    var actionAddSpot = document.getElementById('action-add-spot');
-    if (actionAddSpot) actionAddSpot.remove();
+    // (The pane's "Add your ride" button used to be removed here too; it no longer
+    // exists — the contribution bar is gated on HIDE_ADD_SPOT_BUTTON instead.)
     var filterPaneEl = document.getElementById('filter-pane');
     if (filterPaneEl) filterPaneEl.remove();
   }
@@ -2413,6 +2417,23 @@ function markerClick(marker) {
     };
   }
 
+  // "Log a past ride" — the other half of the same row: the /ride form, seeded with this
+  // spot's coordinates so a ride logged from here lands on the existing anchor instead of
+  // a new one a few metres off. Same sessionStorage handoff the star rating below uses.
+  const logPastBtn = $$("#spot-log-past");
+  if (logPastBtn) {
+    logPastBtn.onclick = function () {
+      sessionStorage.setItem("rideFormData", JSON.stringify({
+        pickup_lat: data.lat,
+        pickup_lon: data.lon,
+        destination_lat: "",
+        destination_lon: "",
+      }));
+      hmTrack("add_ride_clicked", { source: "spot-sheet" });
+      window.location.href = "/ride";
+    };
+  }
+
   // Show a loading spinner while rides are fetched asynchronously
   $$("#spot-text").innerHTML = '<div class="spot-loading" role="status" aria-live="polite"><i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i><span class="sr-only">Loading rides</span></div>';
   $$("#extra-text").innerHTML = "";
@@ -2600,18 +2621,26 @@ function updateBottomPaneVar() {
   }
 }
 
-function setupSpotSheet() {
-  const sheet = $$(".sidebar.show-spot");
-  const closeBtn = $$("#spot-close");
-  if (!sheet) return;
-  if (closeBtn) closeBtn.onclick = navigateHome;
-
+// Measure the pane once and keep it up to date. Must run BEFORE the spots fetch,
+// not after it with the rest of the UI wiring: everything anchored to
+// --bottom-pane-h (the in-ride launcher and dock, the outbox chip, the toast) falls
+// back to a 0px pane while the var is unset, which put those elements on top of the
+// bottom action pane for the whole of the initial load and then jumped them upwards
+// once markers finished.
+function setupBottomPaneVar() {
   updateBottomPaneVar();
   if (document.fonts && document.fonts.ready) {
     document.fonts.ready.then(updateBottomPaneVar);
   }
   window.addEventListener("resize", updateBottomPaneVar);
   window.addEventListener("orientationchange", updateBottomPaneVar);
+}
+
+function setupSpotSheet() {
+  const sheet = $$(".sidebar.show-spot");
+  const closeBtn = $$("#spot-close");
+  if (!sheet) return;
+  if (closeBtn) closeBtn.onclick = navigateHome;
 
   setupBottomSheet({
     sheet,

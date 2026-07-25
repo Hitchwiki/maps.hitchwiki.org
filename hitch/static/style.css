@@ -716,6 +716,8 @@ body.filters-open .filters-scrim {
   font-size: 20px;
 }
 
+/* No pane button uses an emoji since "Add your ride" moved to the contribution bar;
+   kept so a future emoji entry sizes like the FontAwesome icons beside it. */
 .action-btn .action-emoji {
   font-size: 18px;
   line-height: 1;
@@ -867,6 +869,19 @@ body.inride-active .leaflet-bottom.leaflet-right {
   margin-bottom: calc(150px + var(--bottom-pane-h, 0px));
 }
 
+/* Same problem outside a journey: the permanent contribution bar (#inr-start-bar) now
+   spans the full width at `--bottom-pane-h + 28px`, so without a lift the zoom buttons
+   sit on top of its "Log a past ride" half. The stack's lowest button already carries
+   84px of its own margin, hence the -46px (= the bar's 28px offset + a 10px gap - 84px).
+   --inr-start-bar-h is measured and published by inride.js because the labels wrap to
+   two lines on a narrow screen; the 52px fallback is the one-line height.
+   .has-start-bar so deployments with HIDE_ADD_SPOT_BUTTON (no bar) keep the controls
+   where they were, and :not(.inride-active) so the bigger dock lift above still wins
+   regardless of source order. */
+body.spots-loaded.has-start-bar:not(.inride-active) .leaflet-bottom.leaflet-right {
+  margin-bottom: calc(var(--bottom-pane-h, 0px) + var(--inr-start-bar-h, 52px) - 46px);
+}
+
 .mapmode-btn {
   display: flex !important;
   align-items: center;
@@ -954,26 +969,42 @@ body.inride-active .leaflet-bottom.leaflet-right {
   50%      { transform: translateX(-50%) translateY(-6px); }
 }
 
-/* "Hitch here" CTA in the spot detail sheet — starts a tracked ride from this spot. */
-#spot-hitch-here {
+/* Contribution CTAs in the spot detail sheet: "Hitch here" starts a tracked ride from
+   this spot, "Log a past ride" opens the /ride form seeded with it. Two equal halves
+   via .inr-split (see the map's #inr-start-bar — same pairing, same wording). */
+#spot-contribute {
+  margin: 10px 0 4px;
+}
+#spot-hitch-here,
+#spot-log-past {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  width: 100%;
-  margin: 10px 0 4px;
-  padding: 12px 0;
+  padding: 12px 10px;
   border: none;
   border-radius: 12px;
-  background: #1a9850;
-  color: #fff;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0, 0, 0, .18);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
+#spot-hitch-here {
+  background: #1a9850;
+  color: #fff;
+}
 #spot-hitch-here:hover { background: #157a40; }
+/* Grey rather than white here: the sheet behind it is already white. */
+#spot-log-past {
+  background: #f1f3f4;
+  color: #3c4043;
+}
+#spot-log-past:hover { background: #e4e6e8; }
+/* When a journey is running "Hitch here" is hidden (one at a time) and the past-ride
+   half is left alone — flex:1 1 0 from .inr-split simply lets it take the full row. */
 
 /* Country info bottom sheet (Hitchwiki lead section for a tapped country). */
 .sidebar.country .country-header {
@@ -2743,45 +2774,80 @@ body.showing-insights .heatmap-legend-pane {
 .inr-big--red   { background: #d73027; }
 .inr-big--green { background: #1a9850; }
 
-/* ── Permanent "Start Hitchhiking" launcher (inride.js startLauncher) ─────────
-   Reuses .inr-big/.inr-big--green so it reads as the same family as Give Up /
-   Got a Ride, but centred and content-width: this one is always-on chrome, and a
-   full-width bar sitting on the map forever would cost too much of the view.
-   Bottom offset matches .inr-dock--stack so it clears the fixed OSM attribution
-   (bottom: 64px) the same way the journey dock does. */
-#inr-start-btn {
+/* ── Two-up contribution split ────────────────────────────────────────────────
+   "Start Hitchhiking" (track a ride now) and "Log a past ride" (the /ride form)
+   are the same decision at two tenses, so they share one row of equal halves —
+   on the map launcher and in the spot sheet alike. Equal halves, not
+   content-width: neither tense is the default, and a wider green half would read
+   as one primary action with an afterthought beside it. */
+.inr-split {
+  display: flex;
+  gap: 8px;
+}
+.inr-split > * {
+  /* Equal halves regardless of label length — flex-basis 0, not auto, or the
+     longer label would claim more of the row. min-width:0 lets the label wrap
+     inside its half instead of forcing the row wider than the screen. */
+  flex: 1 1 0;
+  min-width: 0;
+}
+/* Neutral half: the map (and the white spot sheet) both sit behind it, so it needs
+   its own fill plus a hairline border rather than relying on contrast with either. */
+.inr-big--neutral {
+  background: #fff;
+  color: #3c4043;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .2), inset 0 0 0 1px rgba(0, 0, 0, .12);
+}
+.inr-big--neutral:hover { background: #f1f3f4; }
+/* Desaturated 🚗💨 — the emoji the bottom action pane used for "Add your ride",
+   kept for recognition but drained of colour so the green half stays dominant. */
+.inr-emoji-bw {
+  filter: grayscale(1);
+  line-height: 1;
+}
+
+/* ── Permanent contribution bar on the map (inride.js startLauncher) ──────────
+   Full-width (10px insets) like the journey dock it is replaced by, so the two
+   halves have room for their labels. Bottom offset matches .inr-dock--stack so it
+   clears the fixed OSM attribution (bottom: 64px) the same way the dock does. */
+#inr-start-bar {
   position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 10px;
+  right: 10px;
   bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 28px);
   z-index: 2002;
-  /* .inr-big is written for a flex row (flex: 1, padding: 15px 0); this button has
-     no flex parent, so give it its own intrinsic size. */
-  flex: 0 0 auto;
-  width: auto;
-  padding: 13px 22px;
-  /* Stay on one line: the bottom-right control stack (locate/mode/zoom) is only
-     ~13px clear of this button on a 320px screen, so a wrap would grow it into them. */
-  white-space: nowrap;
+  /* Hidden until the spots finish loading (map.js adds .spots-loaded) — the bar is
+     mounted as soon as window.map exists, which is well before the map is usable. */
+  display: none;
+}
+/* Must stay ABOVE the hide rules below: same specificity, so source order decides and
+   a running journey / open sheet still wins over this. */
+body.spots-loaded #inr-start-bar { display: flex; }
+/* .inr-big is written for the dock's flex row and pads 15px 0; the bar's halves are
+   narrower, and their labels wrap, so give them side padding and a tighter rhythm. */
+#inr-start-bar .inr-big {
+  padding: 12px 10px;
+  font-size: 14px;
+  line-height: 1.2;
+  text-align: center;
 }
 #inr-start-btn:hover { background: #157a40; }
-/* Keep the centring translate — a bare scale() would drop it and jump the button. */
-#inr-start-btn:active { transform: translateX(-50%) scale(0.97); }
+#inr-start-bar .inr-big:active { transform: scale(0.97); }
 
-/* Anything that owns the bottom of the screen wins over the launcher: a running
+/* Anything that owns the bottom of the screen wins over the bar: a running
    journey (whose own dock replaces it), an open pin picker, any journey dialog or
    sheet (they all mount an .inride-scrim), an open side/bottom sheet — whose own
    "Hitch here" is the better entry point in that context — or the duplicate-report
-   topbar. Hiding by rule rather than by removing the node keeps the launcher free
+   topbar. Hiding by rule rather than by removing the node keeps the bar free
    of any lifecycle of its own. */
-body.inride-active #inr-start-btn,
-body.inr-picking #inr-start-btn,
-body.selecting-location #inr-start-btn,
-body.adding-spot #inr-start-btn,
-body.reporting-duplicate #inr-start-btn,
-body:has(.inride-scrim) #inr-start-btn,
-body:has(.sidebar.visible) #inr-start-btn,
-body:has(.topbar.visible) #inr-start-btn {
+body.inride-active #inr-start-bar,
+body.inr-picking #inr-start-bar,
+body.selecting-location #inr-start-bar,
+body.adding-spot #inr-start-bar,
+body.reporting-duplicate #inr-start-bar,
+body:has(.inride-scrim) #inr-start-bar,
+body:has(.sidebar.visible) #inr-start-bar,
+body:has(.topbar.visible) #inr-start-bar {
   display: none;
 }
 

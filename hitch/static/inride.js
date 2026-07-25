@@ -1836,17 +1836,24 @@
     },
   };
 
-  // ── Permanent "Start Hitchhiking" launcher ───────────────────────────────────
+  // ── Permanent contribution bar: "Start Hitchhiking" / "Log a past ride" ──────
   // Give Up / Got a Ride only exist once a journey is running, so the tracker had no
   // visible way in: you had to know about the map long-press or find a spot's "Hitch
-  // here". This button is on screen whenever no journey is active and opens the same
+  // here". The green half is on screen whenever no journey is active and opens the same
   // waiting-spot picker used after a drop-off ("Use my location" or drag/tap a pin),
   // then hands the confirmed point to the normal start flow — soft login gate,
   // co-hitchers, then the waiting dock with Give Up / Got a Ride.
   //
+  // The grey half is the /ride form. Both are the same decision — "record a ride I'm
+  // about to take" vs "record one I already took" — so they sit side by side as equal
+  // halves instead of the form hiding in the bottom action pane, where it read as a
+  // navigation item rather than the primary contribution path.
+  //
   // It is mounted once and never removed: every "something else owns the bottom of the
-  // screen" case is a CSS rule on #inr-start-btn (see style.css), so there is no
-  // show/hide lifecycle to keep in sync with render/teardown.
+  // screen" case is a CSS rule on #inr-start-bar (see style.css), so there is no
+  // show/hide lifecycle to keep in sync with render/teardown. That includes the initial
+  // load — the bar is `display: none` until map.js puts `.spots-loaded` on <body>,
+  // since mounting happens as soon as window.map exists, long before the map is usable.
   const startLauncher = {
     _el: null,
 
@@ -1855,21 +1862,65 @@
       // Deployments that hide the contribution entry points must not get a second
       // one back through the journey tracker.
       if (window.HIDE_ADD_SPOT_BUTTON) return;
+
+      const bar = document.createElement("div");
+      bar.id = "inr-start-bar";
+      bar.className = "inr-split";
+
       const btn = document.createElement("button");
       btn.type = "button";
       btn.id = "inr-start-btn";
-      // Same classes as the dock buttons so it inherits their shape/weight/shadow;
-      // the id rule only re-positions it and trims it to content width.
+      // Same classes as the dock buttons so both halves inherit their shape/weight/
+      // shadow; the bar rule only tightens the padding for the narrower halves.
       btn.className = "inr-big inr-big--green";
       // fa-thumbs-up is already this app's "start hitching" icon (spot sheet's
       // "Hitch here"); it never shares the screen with the Got a Ride! button.
       btn.innerHTML = '<i class="fa-solid fa-thumbs-up" aria-hidden="true"></i> Start Hitchhiking';
       btn.addEventListener("click", startLauncher.open);
-      document.body.appendChild(btn);
+
+      const past = document.createElement("button");
+      past.type = "button";
+      past.id = "inr-log-past-btn";
+      past.className = "inr-big inr-big--neutral";
+      // The 🚗💨 the bottom action pane used for "Add your ride", desaturated: it keeps
+      // that entry point recognisable while staying visually secondary to the green half.
+      past.innerHTML = '<span class="inr-emoji-bw" aria-hidden="true">🚗💨</span> Log a past ride';
+      past.addEventListener("click", function () {
+        // Same funnel step the bottom action pane used to report, so the
+        // add_ride_clicked → ride_form_submitted drop-off stays comparable.
+        hmTrack("add_ride_clicked", { source: "start-bar" });
+        window.location.href = "/ride";
+      });
+
+      bar.appendChild(btn);
+      bar.appendChild(past);
+      document.body.appendChild(bar);
       // Same reason as the dock/chip: without this a tap falls through to Leaflet and
-      // opens whatever spot sits under the button.
-      sealTaps(btn);
-      startLauncher._el = btn;
+      // opens whatever spot sits under the bar.
+      sealTaps(bar);
+      startLauncher._el = bar;
+      // The bottom-right map controls are lifted clear of this bar in CSS, which needs
+      // its height — and the height is not a constant: the labels wrap to two lines on
+      // a narrow screen and reflow when the web font lands. Publish the measured value
+      // instead of hardcoding one.
+      startLauncher._trackHeight(bar);
+      // Lets CSS lift the map controls only where the bar actually exists (a
+      // HIDE_ADD_SPOT_BUTTON deployment returns above and never gets here).
+      document.body.classList.add("has-start-bar");
+    },
+
+    _trackHeight(bar) {
+      const publish = () => {
+        const h = bar.getBoundingClientRect().height;
+        // Skip 0: the bar is display:none until spots load, and writing 0 would drop
+        // the map controls back onto it for that window.
+        if (h > 0) document.documentElement.style.setProperty("--inr-start-bar-h", h + "px");
+      };
+      publish();
+      // Fires on the display:none → visible transition too, so the var is right from
+      // the first frame the bar is on screen.
+      if (window.ResizeObserver) new ResizeObserver(publish).observe(bar);
+      else window.addEventListener("resize", publish);
     },
 
     // Opens the same waiting-spot picker used after a drop-off.
