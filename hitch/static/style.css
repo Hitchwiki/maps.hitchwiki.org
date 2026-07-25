@@ -997,12 +997,13 @@ body.spots-loaded.has-start-bar:not(.inride-active) .leaflet-bottom.leaflet-righ
   color: #fff;
 }
 #spot-hitch-here:hover { background: #157a40; }
-/* Grey rather than white here: the sheet behind it is already white. */
+/* Same light tint of #1a9850 as the map bar's half (.inr-big--green-light) — a lighter
+   sibling of "Hitch here" beside it, not a grey opt-out. */
 #spot-log-past {
-  background: #f1f3f4;
-  color: #3c4043;
+  background: #e8f5ec;
+  color: #14653b;
 }
-#spot-log-past:hover { background: #e4e6e8; }
+#spot-log-past:hover { background: #d7ecdd; }
 /* When a journey is running "Hitch here" is hidden (one at a time) and the past-ride
    half is left alone — flex:1 1 0 from .inr-split simply lets it take the full row. */
 
@@ -2791,14 +2792,16 @@ body.showing-insights .heatmap-legend-pane {
   flex: 1 1 0;
   min-width: 0;
 }
-/* Neutral half: the map (and the white spot sheet) both sit behind it, so it needs
-   its own fill plus a hairline border rather than relying on contrast with either. */
-.inr-big--neutral {
-  background: #fff;
-  color: #3c4043;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, .2), inset 0 0 0 1px rgba(0, 0, 0, .12);
+/* Softer half: a light tint of the same #1a9850 as its neighbour, so the pair reads as
+   one family of "record a ride" actions rather than an action and a cancel. Dark green
+   text on the tint is 6.4:1, and the hairline (tinted, not grey) keeps the edge legible
+   over both the map and the white spot sheet. */
+.inr-big--green-light {
+  background: #e8f5ec;
+  color: #14653b;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .2), inset 0 0 0 1px rgba(26, 152, 80, .25);
 }
-.inr-big--neutral:hover { background: #f1f3f4; }
+.inr-big--green-light:hover { background: #d7ecdd; }
 /* Desaturated 🚗💨 — the emoji the bottom action pane used for "Add your ride",
    kept for recognition but drained of colour so the green half stays dominant. */
 .inr-emoji-bw {

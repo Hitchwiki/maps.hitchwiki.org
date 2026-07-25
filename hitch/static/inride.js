@@ -1881,7 +1881,7 @@
       const past = document.createElement("button");
       past.type = "button";
       past.id = "inr-log-past-btn";
-      past.className = "inr-big inr-big--neutral";
+      past.className = "inr-big inr-big--green-light";
       // The 🚗💨 the bottom action pane used for "Add your ride", desaturated: it keeps
       // that entry point recognisable while staying visually secondary to the green half.
       past.innerHTML = '<span class="inr-emoji-bw" aria-hidden="true">🚗💨</span> Log a past ride';
