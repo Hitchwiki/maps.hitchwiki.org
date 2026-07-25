@@ -8,7 +8,7 @@ import sys
 import time as time_module
 
 import click
-from flask import Flask, has_request_context, render_template, request, send_from_directory
+from flask import Flask, g, has_request_context, render_template, request, send_from_directory
 from flask.sessions import SecureCookieSessionInterface
 from flask_security import SQLAlchemyUserDatastore
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -22,6 +22,7 @@ from hitch.extensions import db, mail, security
 from hitch.helpers import convert_km, current_distance_unit, distance_unit_label, format_distance
 from hitch.models import Role, User
 from hitch.settings import config
+from hitch.translations import SUPPORTED_LANGUAGES, t
 
 baseDir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
@@ -85,8 +86,36 @@ def create_app(config_name=None):
     register_commands(app)
     register_routes(app)
     register_template_globals(app)
+    register_i18n(app)
 
     return app
+
+
+def register_i18n(app):
+    app.jinja_env.globals["t"] = t
+    app.jinja_env.globals["SUPPORTED_LANGUAGES"] = SUPPORTED_LANGUAGES
+
+    # The only signal for which language to render: which blueprint registration
+    # served the request (see register_blueprints -- main_bp is registered a second
+    # time under /de, sharing every view function). Nothing to do with Accept-Language
+    # or cookies, so a URL always renders the same language for every visitor/crawler.
+    @app.before_request
+    def set_locale():
+        g.lang = "de" if request.blueprint == "main_de" else "en"
+
+    @app.template_global()
+    def lang_switch_url(lang):
+        """The current page's URL rewritten into `lang`, for the language switcher.
+
+        Every main_bp route is mirrored verbatim under /de (register_blueprints),
+        so switching is just adding/stripping that one prefix -- no per-route
+        translation table to maintain.
+        """
+        path = request.path
+        stripped = path[3:] or "/" if path == "/de" or path.startswith("/de/") else path
+        target = ("/de" if stripped == "/" else "/de" + stripped) if lang == "de" else stripped
+        qs = request.query_string.decode()
+        return target + (f"?{qs}" if qs else "")
 
 
 def register_template_globals(app):
@@ -126,6 +155,11 @@ def register_extensions(app):
 def register_blueprints(app):
     app.register_blueprint(oauth_bp)
     app.register_blueprint(main_bp)
+    # German mirror of every main_bp route under /de, sharing the exact same view
+    # functions -- see CLAUDE.md's URL scheme section: identity lives in the path,
+    # so /de/spot/<id> is simply a different path to the same spot. set_locale()
+    # (register_i18n) tells the two registrations apart by request.blueprint.
+    app.register_blueprint(main_bp, url_prefix="/de", name="main_de")
     app.register_blueprint(user_bp)
     app.register_blueprint(messages_bp)
 

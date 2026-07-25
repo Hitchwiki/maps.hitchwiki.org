@@ -5,10 +5,10 @@
    rating instead of the generic homepage blurb; spot_description is unset when
    the spot has no rides worth summarising, and we fall back to the homepage
    copy. #}
-{% set homepage_blurb = "Interactive hitchhiking map: find spots from Hitchwiki, Hitchmap, and the community. Ratings, heatmaps, route planning, share rides worldwide." %}
+{% set homepage_blurb = t("Interactive hitchhiking map: find spots from Hitchwiki, Hitchmap, and the community. Ratings, heatmaps, route planning, share rides worldwide.") %}
 
-{% block title %}{{ spot_title ~ " | Hitchhiking Map" if spot_title else "Hitchhiking Map – Find & Share Hitchhiking Spots Globally" }}{% endblock %}
-{% block og_title %}{{ spot_title if spot_title else "Hitchhiking Map – Find & Share Hitchhiking Spots Globally" }}{% endblock %}
+{% block title %}{{ spot_title ~ " | Hitchhiking Map" if spot_title else t("Hitchhiking Map – Find & Share Hitchhiking Spots Globally") }}{% endblock %}
+{% block og_title %}{{ spot_title if spot_title else t("Hitchhiking Map – Find & Share Hitchhiking Spots Globally") }}{% endblock %}
 
 {# Override the generic base.html description so the homepage names its key
    features (heatmap, route planning) — this is what lets "/" rank for those

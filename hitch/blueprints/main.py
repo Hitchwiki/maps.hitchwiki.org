@@ -60,6 +60,7 @@ from hitch.extensions import db
 from hitch.helpers import get_db, get_dirs
 from hitch.models import CoHitchhiker, Follow, ProposedSpot, RideEvent, RideReport, SpotName, User
 from hitch.scripts.nostr_ride_parsing import parse_post_to_ride_fields
+from hitch.translations import t
 
 main_bp = Blueprint("main", __name__)
 
@@ -241,13 +242,13 @@ def _spot_description(preview):
     turn them into 30k indexable pages that say nothing."""
     if not preview or preview["rating"] is None:
         return None
-    plural = "ride" if preview["count"] == 1 else "rides"
-    parts = [f"Rated {preview['rating']:.1f}/5 from {preview['count']} {plural}."]
+    plural = t("ride") if preview["count"] == 1 else t("rides")
+    parts = [t("Rated {rating:.1f}/5 from {count} {plural}.", rating=preview["rating"], count=preview["count"], plural=plural)]
     if preview["wait"]:
-        parts.append(f"Typical wait {round(preview['wait'])} min.")
+        parts.append(t("Typical wait {wait} min.", wait=round(preview["wait"])))
     if preview["distance"]:
-        parts.append(f"Rides average {round(preview['distance'])} km.")
-    parts.append("See the spot on the hitchhiking map.")
+        parts.append(t("Rides average {distance} km.", distance=round(preview["distance"])))
+    parts.append(t("See the spot on the hitchhiking map."))
     return " ".join(parts)
 
 
@@ -281,26 +282,26 @@ def _ride_preview_meta(ride, spot_id):
     would need a whole generation pipeline like route_preview.py.
     """
     place = _ride_place_name(spot_id)
-    title = f"Hitchhiking ride from {place}" if place else "A hitchhiking ride"
+    title = t("Hitchhiking ride from {place}", place=place) if place else t("A hitchhiking ride")
     # Truthiness is deliberate here, unlike the wait check below: a 0.0 km ride (pickup
     # and destination coincide) isn't worth putting in the title as "– 0 km".
     if ride.get("distance_km"):
-        title += f" – {round(ride['distance_km'])} km"
+        title += " – " + t("{km} km", km=round(ride["distance_km"]))
 
     parts = []
     if ride.get("rating"):
-        parts.append(f"Rated {ride['rating']}/5.")
+        parts.append(t("Rated {rating}/5.", rating=ride["rating"]))
     # An instant pickup (wait == 0) is a real, good outcome, not a missing value — keep
     # it distinct from "wait never recorded" the same way stop_facts and the template do.
     if ride.get("wait") is not None:
-        parts.append(f"Waited {ride['wait']} min.")
+        parts.append(t("Waited {wait} min.", wait=ride["wait"]))
     comment = (ride.get("comment") or "").strip()
     if comment:
         if len(comment) > RIDE_COMMENT_PREVIEW_CHARS:
             comment = comment[:RIDE_COMMENT_PREVIEW_CHARS].rstrip() + "…"
         parts.append(comment)
     if not parts:
-        parts.append("A hitchhiking ride logged on Hitchwiki Maps.")
+        parts.append(t("A hitchhiking ride logged on Hitchwiki Maps."))
     return title, " ".join(parts)
 
 
@@ -322,7 +323,7 @@ def render_spot(spot_id):
     return render_template(
         "map.html",
         map_variation=None,
-        spot_title=f"{name} — hitchhiking spot" if name else f"Hitchhiking spot at {lat:.5f}, {lon:.5f}",
+        spot_title=t("{name} — hitchhiking spot", name=name) if name else t("Hitchhiking spot at {lat:.5f}, {lon:.5f}", lat=lat, lon=lon),
         spot_description=_spot_description(preview),
         spot_url=_external_https("main.render_spot", spot_id=spot_id),
         hide_add_spot_button=current_app.config.get("HIDE_ADD_SPOT_BUTTON", False),
@@ -460,10 +461,14 @@ def _country_description(name):
     if not wait.get("n"):
         return None
 
-    parts = [f"Median wait {round(wait['median'])} min across {wait['n']} logged rides"]
+    parts = [t("Median wait {wait} min across {n} logged rides", wait=round(wait["median"]), n=wait["n"])]
     if distance.get("median"):
-        parts.append(f"typical ride {round(distance['median'])} km")
-    return f"Hitchhiking in {name}: {', '.join(parts)}. Read what hitchhiking there is like and see waiting-time statistics."
+        parts.append(t("typical ride {km} km", km=round(distance["median"])))
+    return t(
+        "Hitchhiking in {name}: {facts}. Read what hitchhiking there is like and see waiting-time statistics.",
+        name=name,
+        facts=", ".join(parts),
+    )
 
 
 # Country permalink, mirroring /spot/<id>. The name lives in the path rather than
@@ -477,7 +482,7 @@ def render_country(name):
     return render_template(
         "map.html",
         map_variation=None,
-        spot_title=f"Hitchhiking in {name}",
+        spot_title=t("Hitchhiking in {name}", name=name),
         spot_description=description,
         spot_url=_external_https("main.render_country", name=name),
         hide_add_spot_button=current_app.config.get("HIDE_ADD_SPOT_BUTTON", False),
