@@ -2886,6 +2886,11 @@ function takeLastRide() {
 // Whichever happens second does the rendering.
 let lastTripCreated = null;
 
+// Whether the visitor shared before leaving the currently-open success overlay. Read by
+// `close` so that a share followed by the × is not also counted as a dismissal — a
+// dismiss means "left without sharing", which is what makes it the funnel's drop-off.
+let shareCompleted = false;
+
 // `opts` is how a caller that never navigated hands the ride in directly:
 // {ride, dTag}. The /ride form's redirect can't do that (the POST navigates away), so
 // it goes through sessionStorage + ?ride= instead; the in-ride tracker, which submits
@@ -2899,30 +2904,45 @@ function showSuccessOverlay(opts) {
   // an earlier one in this session must not show.
   if (!opts) lastTripCreated = null;
   renderTripCreatedNote();
+  shareCompleted = false;
 
   // Dismissing the overlay returns to the map the user submitted from — no
   // navigation, so the restored viewport stays exactly where they left it. Every
   // exit is available without sharing: the ×, "Not now", the backdrop, and Esc.
-  const close = function () {
+  let closed = false;
+  const close = function (via) {
+    // Guarded because the dismiss below must be counted once per overlay, and the exits
+    // can overlap (Esc while the pointer is going down on the backdrop).
+    if (closed) return;
+    closed = true;
+    // All four exits report, not just "Not now": the ×, the backdrop and Esc used to
+    // close silently, so the dismiss count was an undercount of abandonment rather than
+    // a measure of it. `via` says which one, so the button can still be read on its own.
+    if (!shareCompleted) hmTrack("ride_share", { action: "dismiss", via: via || "other" });
     overlay.style.display = "none";
     document.removeEventListener("keydown", onKey);
     lastTripCreated = null; // the note has been seen; the next journey brings its own
   };
   const onKey = function (e) {
-    if (e.key === "Escape") close();
+    if (e.key === "Escape") close("esc");
   };
   document.addEventListener("keydown", onKey);
   const closeBtn = $$("#success-close-btn");
   if (closeBtn) {
     closeBtn.onclick = function () {
-      hmTrack("ride_share", { action: "dismiss" });
-      close();
+      close("not-now");
     };
   }
   const dismissBtn = $$("#success-dismiss");
-  if (dismissBtn) dismissBtn.onclick = close;
+  // Wrapped rather than passed straight through: the handler's argument is the click
+  // event, which would land in `via` as an object.
+  if (dismissBtn) {
+    dismissBtn.onclick = function () {
+      close("x");
+    };
+  }
   overlay.onclick = function (e) {
-    if (e.target === overlay) close();
+    if (e.target === overlay) close("backdrop");
   };
 
   setupShareCard(opts);
@@ -3024,13 +3044,31 @@ function setupShareCard(opts) {
       payload.files && typeof File === "function"
         ? new File(payload.files, "hitchwiki-ride.png", { type: "image/png" })
         : null;
+    const canShareFile = !!(
+      file &&
+      navigator.canShare &&
+      navigator.canShare({ files: [file] }) &&
+      navigator.share
+    );
+
+    // The click itself, before the OS share sheet opens. Only completed shares were
+    // reported before, and backing out of the sheet is deliberately silent below, so a
+    // visitor who opened it and changed their mind was indistinguishable from one who
+    // never pressed the button. `mode` is the path this click is about to take, so it
+    // pairs with the "shared" event of the same mode; `card` says whether there was a
+    // picture to share or only the text fallback.
+    hmTrack("ride_share", {
+      action: "clicked",
+      mode: canShareFile ? "image" : navigator.share ? "link" : "copy",
+      card: !!card,
+    });
 
     // The URL goes inside the text rather than in `url`: share targets that accept
     // files routinely drop the separate url field, which would strip the link.
-    if (file && navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
+    if (canShareFile) {
       return navigator
         .share({ files: [file], text: message })
-        .then(function () { hmTrack("ride_share", { action: "shared", mode: "image" }); })
+        .then(function () { shareCompleted = true; hmTrack("ride_share", { action: "shared", mode: "image" }); })
         .catch(function (err) {
           if (err && err.name === "AbortError") return; // backing out is not a failure
           return copyFallback(message, payload.files);
@@ -3039,7 +3077,7 @@ function setupShareCard(opts) {
     if (navigator.share) {
       return navigator
         .share({ title: "Hitchwiki Maps", text: payload.text, url: payload.url })
-        .then(function () { hmTrack("ride_share", { action: "shared", mode: "link" }); })
+        .then(function () { shareCompleted = true; hmTrack("ride_share", { action: "shared", mode: "link" }); })
         .catch(function (err) {
           if (err && err.name === "AbortError") return;
           return copyFallback(message, payload.files);
@@ -3056,6 +3094,7 @@ function setupShareCard(opts) {
       a.click();
     }
     const done = function () {
+      shareCompleted = true;
       hmTrack("ride_share", { action: "shared", mode: "copy" });
       shareBtn.textContent = "Copied — paste it anywhere!";
     };
