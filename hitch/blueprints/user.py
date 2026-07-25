@@ -40,11 +40,11 @@ def form():
 
     if form.validate_on_submit():
         updated_user = security.datastore.find_user(username=current_user.username)
-        updated_user.gender = form.gender.data
+        updated_user.gender = form.gender.data or None
         updated_user.year_of_birth = form.year_of_birth.data
         updated_user.hitchhiking_since = form.hitchhiking_since.data
-        updated_user.origin_country = form.origin_country.data
-        updated_user.origin_city = form.origin_city.data
+        updated_user.origin_country = form.origin_country.data or None
+        updated_user.origin_city = form.origin_city.data or None
         updated_user.hitchwiki_username = form.hitchwiki_username.data
         updated_user.trustroots_username = form.trustroots_username.data
         updated_user.email_notifications = form.email_notifications.data

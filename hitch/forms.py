@@ -10,14 +10,14 @@ from wtforms.widgets import NumberInput
 class CountrySelectField(SelectField):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.choices = [(None, "None")] + [(country.name, country.name) for country in pycountry.countries]
+        self.choices = [("", "None")] + [(country.name, country.name) for country in pycountry.countries]
 
 
 class UserEditForm(FlaskForm):
     gender = SelectField(
         "Gender",
         choices=[
-            (None, "None"),
+            ("", "None"),
             ("Female", "Female"),
             ("Male", "Male"),
             ("Non-Binary", "Non-Binary"),

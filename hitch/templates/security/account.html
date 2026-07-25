@@ -167,8 +167,8 @@ Name: {{ user.username }}{% if source_label %} <span class="source-badge">({% if
 <h2>Public Profile</h2>
 {% endif %}
 
-{% set origin = [user.origin_city, user.origin_country]|reject("none")|reject("equalto", "")|reject("undefined")|join(", ") %}
-{% set age_gender = [(age ~ " years") if age else None, user.gender]|reject("none")|reject("equalto", "")|join(". ") %}
+{% set origin = [user.origin_city, user.origin_country]|reject("none")|reject("equalto", "")|reject("equalto", "None")|reject("undefined")|join(", ") %}
+{% set age_gender = [(age ~ " years") if age else None, user.gender]|reject("none")|reject("equalto", "")|reject("equalto", "None")|join(". ") %}
 {% if age_gender %}{{ age_gender }}.<br>{% endif %}
 {% if user.hitchhiking_since %}Hitchhiking since {{ user.hitchhiking_since }}<br>{% endif %}
 {% if origin %}From {{ origin }}<br>{% endif %}
