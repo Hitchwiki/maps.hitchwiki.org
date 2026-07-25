@@ -86,6 +86,11 @@ if not current_app.config.get("FORCE_REGENERATE", False) and not should_regenera
 
 logger.info("Database has been updated, regenerating JSON files")
 logger.info("Fetching rides")
+# Instant every generated file below is derived from. Captured BEFORE the read, not
+# after the writes: /pending_rides.json serves rides created at or after this timestamp,
+# and a ride landing while this script runs must count as pending rather than be
+# silently skipped by a cutoff taken once the files are already on disk.
+snapshot_ts = time.time()
 rides_df = pd.read_sql("select * from ride_event", get_db())
 logger.info(f"Got {len(rides_df)} rides")
 
@@ -1463,6 +1468,10 @@ if current_app.config.get("GENERATE_HEATMAP", True):
         logger.info("Continuing without heatmap data")
 else:
     logger.info("Heatmap generation disabled")
+
+# Written last, so the file never claims a snapshot whose data is not yet on disk.
+# /pending_rides.json reads it to decide which rides the map is still missing.
+write_json_file({"ts": snapshot_ts}, "generated_at.json")
 
 logger.info("All data preparation completed")
 logger.info("SHOW SCRIPT FINISHED")

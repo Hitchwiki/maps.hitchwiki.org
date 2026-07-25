@@ -22,7 +22,7 @@ from flask import (
     url_for,
 )
 from flask_security import current_user
-from sqlalchemy import text
+from sqlalchemy import func, text
 from werkzeug.utils import safe_join
 
 from hitch.blueprints.publish_ride import (
@@ -49,8 +49,8 @@ from hitch.blueprints.utils.iso_country_codes import ISO_3166_1_ALPHA_2
 from hitch.blueprints.utils.license_plate_country_codes import LICENSE_PLATE_COUNTRY_CHOICES
 from hitch.blueprints.utils.notifications import notify_co_hitchhiker_invite, unread_count
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
-from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON, REPORT_REASONS
-from hitch.blueprints.utils.ride_facts import haversine_km, stop_facts
+from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON, REPORT_REASONS, REPORTS_TO_HIDE
+from hitch.blueprints.utils.ride_facts import haversine_km, ride_map_entry, stop_facts
 from hitch.blueprints.utils.ride_ip_log import get_client_ip, log_ride_ip
 from hitch.blueprints.utils.route_request_log import log_route_request
 from hitch.blueprints.utils.search_request_log import log_search_request
@@ -1348,3 +1348,69 @@ def proposed_spots_json():
             for s in spots
         ]
     )
+
+
+def _last_generation_ts():
+    """Epoch seconds of the DB snapshot the generated map files were built from.
+
+    show.py writes dist/generated_at.json as its last act. Before the first run that
+    does so, fall back to the rides index's mtime — that is LATER than the snapshot it
+    was built from, so the fallback under-returns pending rides rather than
+    double-showing rides that are already in the generated files. Returns None when
+    nothing has been generated at all, in which case there is no map data to add to.
+    """
+    dist = get_dirs()["dist"]
+    try:
+        with open(os.path.join(dist, "generated_at.json")) as f:
+            return float(json.load(f)["ts"])
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
+    try:
+        return os.path.getmtime(os.path.join(dist, "rides_index.json"))
+    except OSError:
+        return None
+
+
+def _hidden_ride_dtags(d_tags):
+    """Which of these rides are hidden from the map by reports.
+
+    Same rule show.py applies before generating anything: REPORTS_TO_HIDE distinct
+    reporters agreeing on one reason, or a single owner-deletion row. Scoped to the
+    d tags we are about to serve, since that is only ever a handful of rides.
+    """
+    if not d_tags:
+        return set()
+    rows = (
+        db.session.query(RideReport.ride_d_tag, RideReport.reason, func.count().label("n"))
+        .filter(RideReport.ride_d_tag.in_(list(d_tags)))
+        .group_by(RideReport.ride_d_tag, RideReport.reason)
+        .all()
+    )
+    return {r.ride_d_tag for r in rows if r.n >= REPORTS_TO_HIDE or r.reason == OWNER_DELETE_REASON}
+
+
+@main_bp.route("/pending_rides.json")
+def pending_rides_json():
+    """Rides logged since show.py last generated the map files.
+
+    Served straight from the DB (like /proposed_spots.json) rather than from dist/, so a
+    ride submitted seconds ago is on the map immediately instead of waiting up to 15
+    minutes for the fetch and generate crons. Normally an empty array; at most it holds
+    the last few minutes of rides, so it needs no caching of its own. map.js merges these
+    into the markers and into the spot pane, deduping on the ride's d tag once the
+    generated files catch up.
+    """
+    since = _last_generation_ts()
+    if since is None:
+        return jsonify([])
+
+    rides = db.session.query(RideEvent).filter(RideEvent.created_at >= int(since)).all()
+    hidden = _hidden_ride_dtags([r.d for r in rides if r.d])
+    entries = []
+    for ride in rides:
+        if ride.d in hidden:
+            continue
+        entry = ride_map_entry(ride)
+        if entry is not None:
+            entries.append(entry)
+    return jsonify(entries)
