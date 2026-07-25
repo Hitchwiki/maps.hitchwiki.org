@@ -10,6 +10,7 @@ from hitch.blueprints.utils.ride_facts import (
     spot_id_for,
     stop_facts,
 )
+from hitch.helpers import haversine_np
 
 
 def _stops(with_destination=True):
@@ -124,12 +125,22 @@ class TestRideMapEntry:
         assert entry["dest_lat"] == 52.51739
         assert entry["rating"] == 4
         assert entry["wait"] == 12
-        assert 160 < entry["distance"] < 172
+        # show.py's map distance is the haversine_np road-distance estimate (great-circle
+        # x 1.25 by default), not the ~166 km straight-line figure the ride page shows —
+        # ~166 * 1.25 ~= 208.
+        assert 200 < entry["distance"] < 216
         assert entry["comment"] == "great ride"
         assert entry["hitchhiker_name"] == "kim"
         assert entry["submission_time"] == "2026-07-02T16:35:00"
         assert entry["ride_datetime"] == "2026-07-02T14:00"
         assert entry["arrival_datetime"] == "2026-07-02T16:30"
+
+    def test_distance_matches_haversine_np_exactly(self):
+        # The property that stops ride_map_entry's distance from drifting away from
+        # show.py's: they must be computed with the literal same function.
+        entry = ride_map_entry(self._ride())
+        expected = float(haversine_np(51.08170, 13.73629, 52.51739, 13.39513))
+        assert entry["distance"] == round(expected, 1)
 
     def test_a_ride_with_no_pickup_coordinates_cannot_be_placed(self):
         assert ride_map_entry(self._ride(stops=[])) is None

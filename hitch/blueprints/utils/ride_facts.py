@@ -10,6 +10,8 @@ takes over from the live endpoint.
 import math
 import re
 
+from hitch.helpers import haversine_np
+
 # Only the PT<n>M form our own submit path writes. Anything else (a foreign source
 # using hours, a malformed value) reads as "no recorded wait" rather than a wrong
 # number — an invented wait time would pollute the spot's averages.
@@ -57,10 +59,13 @@ def stop_facts(stops):
 
 
 def haversine_km(lat1, lon1, lat2, lon2):
-    """Great-circle distance in km, or None when either end is missing.
+    """Straight-line great-circle distance in km, or None when either end is missing.
 
-    Same formula show.py applies with `haversine_np`, so a ride's distance does not
-    shift when the generated files take over from the live endpoint.
+    This is what /ride/<d_tag> has always shown and must keep showing. It is
+    deliberately NOT the map's distance: show.py's per-ride `distance` column comes from
+    `haversine_np` (hitch/helpers.py), which inflates the great-circle figure by a 1.25
+    road-distance factor. `ride_map_entry` below calls `haversine_np` directly for that
+    reason — reimplementing the factor here would let the two formulas drift apart.
     """
     if None in (lat1, lon1, lat2, lon2):
         return None
@@ -122,7 +127,14 @@ def ride_map_entry(ride):
     if not is_informative(name, ride.comment, facts["waiting_minutes"]):
         return None
 
-    distance = haversine_km(facts["pickup_lat"], facts["pickup_lon"], facts["dest_lat"], facts["dest_lon"])
+    # show.py's map distance is haversine_np's road-distance estimate (great-circle x
+    # 1.25), not the ride page's straight-line haversine_km — using the same function
+    # here is what keeps a pending ride's distance from jumping the moment show.py
+    # regenerates and takes over.
+    dest_lat, dest_lon = facts["dest_lat"], facts["dest_lon"]
+    distance = None
+    if None not in (dest_lat, dest_lon):
+        distance = float(haversine_np(facts["pickup_lat"], facts["pickup_lon"], dest_lat, dest_lon))
     return {
         # The d tag, not the Nostr event id: show.py uses the d tag as a ride's `id` in
         # the per-spot files, and the spot pane links to /ride/<id>.
