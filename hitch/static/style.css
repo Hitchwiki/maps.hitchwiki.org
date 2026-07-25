@@ -2201,6 +2201,11 @@ ul.no-style {
   margin: 0;
   padding: 6px;
   min-width: 150px;
+  /* 30 languages and counting -- taller than the viewport on most screens, so
+     the list scrolls internally instead of running off the bottom of the page. */
+  max-height: min(60vh, 420px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .lang-picker-item {
   display: flex;
