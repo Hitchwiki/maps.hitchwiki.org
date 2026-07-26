@@ -47,9 +47,10 @@ class TestSpotPreview:
 
 
 class TestSpotDescription:
-    def test_describes_a_rated_spot(self, write_spot):
+    def test_describes_a_rated_spot(self, app, write_spot):
         write_spot({"spot": {"name": "Raststätte Michendorf-Nord", "wait": 51}, "rides": [{"rating": 4}]})
-        description = main_bp._spot_description(main_bp._spot_preview(SPOT_ID))
+        with app.app_context():
+            description = main_bp._spot_description(main_bp._spot_preview(SPOT_ID))
         assert "Rated 4.0/5 from 1 ride." in description
         assert "Typical wait 51 min." in description
 

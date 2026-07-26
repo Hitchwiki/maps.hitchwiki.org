@@ -358,7 +358,9 @@ def render_spot(spot_id):
     return render_template(
         "map.html",
         map_variation=None,
-        spot_title=t("{name} — hitchhiking spot", name=name) if name else t("Hitchhiking spot at {lat:.5f}, {lon:.5f}", lat=lat, lon=lon),
+        spot_title=t("{name} — hitchhiking spot", name=name)
+        if name
+        else t("Hitchhiking spot at {lat:.5f}, {lon:.5f}", lat=lat, lon=lon),
         spot_description=_spot_description(preview),
         spot_url=_external_https("main.render_spot", spot_id=spot_id),
         hide_add_spot_button=current_app.config.get("HIDE_ADD_SPOT_BUTTON", False),

@@ -82,11 +82,13 @@ SOURCE_STRINGS = [
     "View all spots mentioning {city}",
     "Recent reviews mentioning {city}",
     "Hitchhiking Map",
-    "Discover hitchhiking spots worldwide on an interactive map. See community ratings, waiting times, and trip data. Share your own rides.",
+    "Discover hitchhiking spots worldwide on an interactive map. See community ratings, waiting times, and trip data. Share your "
+    "own rides.",
     "Hitchhiking Map – Find & Share Hitchhiking Spots on a Map",
     "Link copied!",
     "Copy this link:",
-    "Interactive hitchhiking map: find spots from Hitchwiki, Hitchmap, and the community. Ratings, heatmaps, route planning, share rides worldwide.",
+    "Interactive hitchhiking map: find spots from Hitchwiki, Hitchmap, and the community. Ratings, heatmaps, route planning, "
+    "share rides worldwide.",
     "Hitchhiking Map – Find & Share Hitchhiking Spots Globally",
     "ride",
     "rides",
@@ -202,7 +204,8 @@ SOURCE_STRINGS = [
     "Failed!",
     "ferry",
     "Filter by user",
-    "For deeper analysis you can grab the full {dataset_link} — it includes hitchhiker and driver demographics and many more details about each ride than are shown here. Share what you find with the {community_link}.",
+    "For deeper analysis you can grab the full {dataset_link} — it includes hitchhiker and driver demographics and many more "
+    "details about each ride than are shown here. Share what you find with the {community_link}.",
     "Full dataset",
     "Gas stations",
     "Go to on Google Maps",
@@ -216,7 +219,9 @@ SOURCE_STRINGS = [
     "Hitchhiking insights – Hitchwiki Maps",
     "Hitchhiking in this country – Hitchwiki Maps",
     "Hitchwiki articles",
-    "Hitchwiki Map software is licensed under {agpl}. The Hitchwiki Maps database is licensed under the {odbl}, the license used by OpenStreetMap. Individual reviews you write — your comment and username — are licensed under {ccbysa}. See {copyright_link} for details.",
+    "Hitchwiki Map software is licensed under {agpl}. The Hitchwiki Maps database is licensed under the {odbl}, the license used "
+    "by OpenStreetMap. Individual reviews you write — your comment and username — are licensed under {ccbysa}. See "
+    "{copyright_link} for details.",
     "horse-cart",
     "If you have ideas for how to push this further, join the conversation in our {link}.",
     "Insights",
@@ -308,14 +313,18 @@ SOURCE_STRINGS = [
     "Visit Hitchwiki.org",
     "Waiting time",
     "Waiting time (minutes)",
-    "Want to remember your trips? With an account your rides stay yours — you can find them again, edit them, and see everywhere you've been.",
+    "Want to remember your trips? With an account your rides stay yours — you can find them again, edit them, and see everywhere "
+    "you've been.",
     "waving",
-    "We don't understand hitchhikers' preferences around anonymity well yet. If you tell us what matters to you, we can build for it — {link}.",
+    "We don't understand hitchhikers' preferences around anonymity well yet. If you tell us what matters to you, we can build "
+    "for it — {link}.",
     "We'll copy an invite link you can send them however you like.",
     "Yes, let's sign up",
-    "You don't have to give up your privacy: pick a username and an email address that can't be traced back to you personally. We never show your email, and nothing forces the name to be your real one.",
+    "You don't have to give up your privacy: pick a username and an email address that can't be traced back to you personally. "
+    "We never show your email, and nothing forces the name to be your real one.",
     "You have unread notifications",
-    "You hitchhiked with someone anonymous. Invite them to sign up and the ride shows up on their map too — and you can log future rides together.",
+    "You hitchhiked with someone anonymous. Invite them to sign up and the ride shows up on their map too — and you can log "
+    "future rides together.",
     "Your duplicate report will be subject to a manual review, or it will be merged automatically within 10 minutes.",
     "You're registered and logged in.",
     "Your hitchhiking ride as a shareable image",
@@ -340,7 +349,8 @@ SOURCE_STRINGS = [
     "User",
     "The 10 longest rides by start-to-destination distance",
     "No rides with a destination yet.",
-    "Most distance covered within a single 24-hour window — only named hitchhikers and rides with both a departure and arrival time count. Each entry lists every ride in that window.",
+    "Most distance covered within a single 24-hour window — only named hitchhikers and rides with both a departure and arrival "
+    "time count. Each entry lists every ride in that window.",
     "{n} ride",
     "{n} rides",
     "No qualifying rides yet.",
@@ -537,11 +547,16 @@ SOURCE_STRINGS = [
     "{n} spot on the way",
     "{n} spots on the way",
     "No repeatable route — checking one-off rides…",
-    "No route found: both your start and destination are in areas where too few people have hitchhiked. Try points nearer to major roads or cities.",
-    "No route found: your destination is in an area where too few people have hitchhiked. Move it closer to a major road or city, or search just the earlier part of your trip.",
-    "No route found: your starting point is in an area where too few people have hitchhiked. Move it closer to a major road or city, or search just the later part of your trip.",
-    "No route found: we couldn't connect these two points, even using rides only one person has logged. Try searching for part of the route — e.g. between larger cities along the way.",
-    "No route found: we couldn't connect these two points with repeatable rides. Try searching for part of the route — e.g. between larger cities along the way.",
+    "No route found: both your start and destination are in areas where too few people have hitchhiked. Try points nearer to "
+    "major roads or cities.",
+    "No route found: your destination is in an area where too few people have hitchhiked. Move it closer to a major road or "
+    "city, or search just the earlier part of your trip.",
+    "No route found: your starting point is in an area where too few people have hitchhiked. Move it closer to a major road or "
+    "city, or search just the later part of your trip.",
+    "No route found: we couldn't connect these two points, even using rides only one person has logged. Try searching for part "
+    "of the route — e.g. between larger cities along the way.",
+    "No route found: we couldn't connect these two points with repeatable rides. Try searching for part of the route — e.g. "
+    "between larger cities along the way.",
     "Routes",
     "Start hitchhiking here — tap for rides",
     "{time} walk",
@@ -603,7 +618,8 @@ SOURCE_STRINGS = [
     "log in",
     "Login",
     "Login with Hitchwiki",
-    "Log in with your Hitchwiki account. If you don't have one yet, you can {link}. A new account on the Hitchhiking Map will be created for you automatically on first login.",
+    "Log in with your Hitchwiki account. If you don't have one yet, you can {link}. A new account on the Hitchhiking Map will be "
+    "created for you automatically on first login.",
     "Logout",
     "Longest wait",
     "Messages",
@@ -642,7 +658,10 @@ SOURCE_STRINGS = [
     "Signed in",
     "Signed in. You can close this window.",
     "Successful action",
-    "The Hitchhiking Map is made for all hitchhikers to learn from each others experiences. Thus all your rides and personal information (except your email address) will be publicly available. Only share as much as you are comfortable with. Keep in mind that hitchhikers are a vulnerable group and may face risks while traveling. Read our {link} for more information on how we handle your data and what you can do to protect yourself.",
+    "The Hitchhiking Map is made for all hitchhikers to learn from each others experiences. Thus all your rides and personal "
+    "information (except your email address) will be publicly available. Only share as much as you are comfortable with. Keep in "
+    "mind that hitchhikers are a vulnerable group and may face risks while traveling. Read our {link} for more "
+    "information on how we handle your data and what you can do to protect yourself.",
     "This personal information will be shown publicly.",
     "This trip has no rides yet.",
     "Trip name",
