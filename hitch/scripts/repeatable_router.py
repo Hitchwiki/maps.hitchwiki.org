@@ -1,5 +1,10 @@
 """Routing engine over the repeatable hitchhiking routes.
 
+License: AGPL 3.0
+Author: Till Wenke
+Github: @tillwenke
+Website: https://tillwenke.github.io/
+
 TL;DR
 -----
 Construct a graph of of ride we think are repeatable (that is a route that was taken by at least two rides

@@ -1,5 +1,10 @@
 /* Hitchhiking route planner for the main map.
  *
+ * License: AGPL 3.0
+ * Author: Till Wenke
+ * Github: @tillwenke
+ * Website: https://tillwenke.github.io/
+ *
  * Self-contained: ports the corridor-aware routing engine (see
  * hitch/scripts/repeatable_router.py) into the browser, and drives a
  * Google-Maps-style start/destination UI that transforms the search bar.
