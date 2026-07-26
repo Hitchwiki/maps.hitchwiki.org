@@ -165,6 +165,15 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     margin-bottom: 1rem;
     font-size: 0.95em;
 }
+.no-ride-notice {
+    background: #d73027;
+    color: #fff;
+    border-radius: 6px;
+    padding: 0.7rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 1em;
+    font-weight: 600;
+}
 .report-confirm {
     background: #d4edda;
     border: 1px solid #28a745;
@@ -246,6 +255,12 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
 {% block main %}
 <div class="ride-detail-page">
     <a href="/" class="back-link">← Back to map</a>
+
+    {% if ride.no_ride %}
+    <div class="no-ride-notice">
+        <i class="fa fa-ban"></i> No ride was taken — the hitchhiker gave up waiting.
+    </div>
+    {% endif %}
 
     <div class="ride-header">
         <div>

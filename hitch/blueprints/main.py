@@ -863,6 +863,7 @@ def ride_detail(d_tag):
 
     ride_view = {
         "d_tag": d_tag,
+        "no_ride": bool(ride.no_ride) or content.get("no_ride") is not None,
         "rating": ride.rating,
         "comment": ride.comment,
         "wait": waiting_minutes,

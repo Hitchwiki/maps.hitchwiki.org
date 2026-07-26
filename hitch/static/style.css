@@ -3694,6 +3694,21 @@ body.routing-active .leaflet-control-container .leaflet-control-geocoder { displ
 /* Lives inline in the route, where the destination should have been. */
 .acct-ride__arrow { color: #bbb; }
 .acct-ride__gaveup { color: #999; font-weight: 500; font-style: italic; }
+
+/* Badge for a ride that was logged but never actually happened (hitchhiker gave up
+   waiting). Used both in the per-spot ride-card list and on the /ride/<d_tag> page. */
+.ride-card--no-ride { border-left: 3px solid #d73027; }
+.no-ride-badge {
+  display: inline-block;
+  color: #fff;
+  background: #d73027;
+  font-weight: 600;
+  font-size: 0.8em;
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-right: 4px;
+  vertical-align: middle;
+}
 .acct-ride__warn {
   color: #e0a800;
   font-size: 13px;

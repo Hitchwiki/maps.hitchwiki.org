@@ -1127,6 +1127,7 @@ for _, ride in rides_df.iterrows():
         "vehicle_kind": ride["vehicle_kind"] if pd.notna(ride.get("vehicle_kind")) else None,
         "signal_methods": ride.get("signal_methods") if isinstance(ride.get("signal_methods"), list) else None,
         "source": ride["source"] if pd.notna(ride.get("source")) else None,
+        "no_ride": bool(ride["no_ride"]) if pd.notna(ride.get("no_ride")) else False,
     }
     rides_data.append(ride_data)
 
@@ -1217,6 +1218,7 @@ for r in rides_data:
             "submission_time": r["submission_time"],
             "ride_datetime": r["ride_datetime"],
             "arrival_datetime": r["arrival_datetime"],
+            "no_ride": r["no_ride"],
         }
     )
 

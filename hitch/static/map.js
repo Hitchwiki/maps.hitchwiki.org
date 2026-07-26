@@ -2315,9 +2315,11 @@ function renderRideCards(rides) {
     const comment = r.comment ? `<div class="ride-comment">${escapeHtml(r.comment)}</div>` : "";
     const href = r.id ? `/ride/${encodeURIComponent(r.id)}` : "";
     const clickable = href ? ` data-ride-href="${href}" role="link" tabindex="0" style="cursor:pointer;"` : "";
+    const noRideBadge = r.no_ride ? `<span class="no-ride-badge">🚫 ${tr("No ride")}</span>` : "";
+    const cardClass = r.no_ride ? "ride-card ride-card--no-ride" : "ride-card";
     return `
-      <div class="ride-card"${clickable}>
-        <div class="ride-meta">${metaBits}${rating} &mdash; ${name}</div>
+      <div class="${cardClass}"${clickable}>
+        <div class="ride-meta">${noRideBadge}${metaBits}${rating} &mdash; ${name}</div>
         ${timesLine}
         ${comment}
       </div>`;
