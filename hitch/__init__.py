@@ -16,7 +16,6 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import safe_join
 
 from hitch.blueprints.main import main_bp
-from hitch.blueprints.mcp import mcp_bp
 from hitch.blueprints.messages import messages_bp
 from hitch.blueprints.oauth import oauth_bp
 from hitch.blueprints.user import user_bp
@@ -180,10 +179,6 @@ def register_blueprints(app):
     app.register_blueprint(main_bp)
     app.register_blueprint(user_bp)
     app.register_blueprint(messages_bp)
-    # The MCP server (JSON-RPC for AI assistants) is deliberately left out of the
-    # per-language mirror below: it carries no rendered text, so a /de/mcp would
-    # be a second URL for a byte-identical API.
-    app.register_blueprint(mcp_bp)
     # Every non-English language in SUPPORTED_LANGUAGES gets a /<lang> mirror of
     # main_bp and user_bp, sharing the exact same view functions -- see CLAUDE.md's
     # URL scheme section: identity lives in the path, so /de/spot/<id> is simply a
