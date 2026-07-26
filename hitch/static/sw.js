@@ -4,6 +4,8 @@ const cacheName = 'hitchhiking-map-v1';
 const TWM = 'https://tinyworldmap.com/dist/tiny-world-all-10000.json';
 const precacheResources = ['/', '/light.html', '/static/icon.png', '/favicon.ico', 'https://a.tile.openstreetmap.org/0/0/0.png',TWM];
 const REGEXP = /tile\.openstreetmap\.org\/(?<z>\d+)\/(?<x>\d+)\/(?<y>\d+)/
+// Downloads that must bypass the cache entirely — see the fetch handler.
+const NEVER_CACHE = /\/(spots\.gpx|me\/rides\.(gpx|json))(\?|$)/
 const TILESIZE = 256
 
 // When the service worker is installing, open the cache and add the precache resources to it
@@ -126,6 +128,14 @@ async function handleTileRequest(request, match) {
 
 self.addEventListener('fetch', (event) => {
     if (event.request.method != 'GET')
+        return
+
+    // File downloads never go through the cache. /spots.gpx is several MB, and storing
+    // it would push the map data and tiles this cache exists for towards the origin's
+    // storage quota; the /me/ exports are private ride data that must not sit in a
+    // shared browser's cache after a logout. Not calling respondWith leaves the request
+    // to the browser, which is exactly the behaviour we want here.
+    if (NEVER_CACHE.test(event.request.url))
         return
 
     let match = REGEXP.exec(event.request.url)

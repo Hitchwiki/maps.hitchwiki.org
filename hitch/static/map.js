@@ -2436,7 +2436,8 @@ function renderSpotSummary(data) {
   drawSpotHistograms();
 }
 
-// `hists` is omitted by the GPX export, which wants the plain summary lines only.
+// `hists` defaults to nothing so a caller that only wants the plain summary lines
+// (no canvases to paint) can leave them out.
 function summaryText(data, hists = { wait: null, distance: null }) {
   const osmLink = data.osm_id ? `<div>🚏 <a href="https://www.openstreetmap.org/node/${data.osm_id}" target="_blank" rel="noopener noreferrer">${tr("Official hitchhiking spot")}</a></div>` : '';
   const carPoolingLink = data.car_pooling
@@ -3379,52 +3380,11 @@ function storageAvailable(type) {
   }
 }
 
-function exportAsGPX() {
-  var script = document.createElement("script");
-  script.src = "https://cdn.jsdelivr.net/npm/togpx@0.5.4/togpx.js";
-  script.onload = function () {
-    let features = allMarkers.map((m) => ({
-      type: "Feature",
-      properties: {
-        text: summaryText(m.options._data) + "\n\n" + m.options._data.text,
-        url: `https://maps.hitchwiki.org/${m.options._data.lat},${m.options._data.lon}`,
-      },
-      geometry: {
-        coordinates: [m.options._data.lon, m.options._data.lat],
-        type: "Point",
-      },
-    }));
-    let geojson = {
-      type: "FeatureCollection",
-      features,
-    };
-
-    let div = document.createElement("div");
-    function toPlainText(html) {
-      div.innerHTML = html.replace(/\<(b|h)r\>/g, "\n");
-      return div.textContent;
-    }
-
-    let gpxStr = togpx(geojson, {
-      creator: "Hitchwiki Maps",
-      featureDescription: (f) => toPlainText(f.text),
-      featureLink: (f) => f.url,
-    });
-
-    function downloadGPX(data) {
-      const blob = new Blob([data], { type: "application/gpx+xml" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "hitchhiking.gpx";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-
-    downloadGPX(gpxStr);
-  };
-  document.body.appendChild(script);
-}
+// The GPX export used to be built here from `allMarkers` via a CDN copy of togpx.
+// It is now the pre-generated /spots.gpx (hitch/scripts/show.py, write_spots_gpx),
+// linked directly from the menu: the browser only ever holds spots.json, which
+// carries no spot name, waiting time or ride distance, so every description this
+// produced read "Waiting time: -" and no marker had a name.
 
 const recentToggle = document.getElementById("recent-toggle");
 const osmToggle = document.getElementById("osm-toggle");

@@ -32,6 +32,10 @@ if ENVIRONMENT not in ["prod", "dev"]:
     print("ENVIRONMENT variable must be 'prod' or 'dev'")
     sys.exit(1)
 
+# Not in the system mime table on a slim container image, so dist/spots.gpx would be
+# served as application/octet-stream and some phones would offer to "open with" nothing.
+mimetypes.add_type("application/gpx+xml", ".gpx")
+
 
 # The endpoints set_public_cache_headers marks publicly cacheable. Their responses are
 # identical for every visitor and must never carry per-user state.

@@ -1,0 +1,69 @@
+{% extends "security/base.html" %}
+
+{% set title = t("Download your rides") %}
+
+{% block content %}
+<style>
+.download-card {
+    border: 1px solid #e2e2e2;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin: 14px 0;
+    background: #fafafa;
+}
+.download-card h2 { margin: 0 0 6px; font-size: 1.1em; }
+.download-card p { margin: 6px 0; font-size: 0.9em; color: #555; }
+.download-btn {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 8px 14px;
+    background: #333;
+    color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 0.9em;
+}
+.download-btn:hover { background: #000; }
+.download-note { font-size: 0.8em; color: #888; }
+</style>
+
+<h1>{{ t("Download your rides") }}</h1>
+<p style="color:#666;">
+    {{ t("Everything logged under the name {name}: {n} rides.", name=user.username, n=ride_count) }}
+    {{ t("This page is only visible to you.") }}
+</p>
+
+{% if ride_count == 0 %}
+<p>{{ t("You have not logged any rides yet.") }} <a href="/ride">{{ t("Log a ride") }}</a></p>
+{% else %}
+
+<div class="download-card">
+    <h2>{{ t("GPX (for offline maps)") }}</h2>
+    <p>
+        {{ t("Import into OsmAnd, Organic Maps, Garmin or anything else that reads GPX.") }}
+    </p>
+    <p>
+        {{ t("{n} rides that recorded where you got to become routes; the other {m} become single waypoints.", n=route_count, m=waypoint_count) }}
+    </p>
+    <p class="download-note">
+        {{ t("Every detail of a ride — rating, waiting time, driver, vehicle, signals, your comment — is written into the file, both as readable text and as structured data.") }}
+    </p>
+    <a class="download-btn" href="/me/rides.gpx">{{ t("Download GPX") }}</a>
+</div>
+
+<div class="download-card">
+    <h2>{{ t("JSON (the raw records)") }}</h2>
+    <p>
+        {{ t("The signed Nostr events exactly as they were published, signatures included. Nothing is left out, and anyone can verify them.") }}
+    </p>
+    <a class="download-btn" href="/me/rides.json">{{ t("Download JSON") }}</a>
+</div>
+
+{% endif %}
+
+<p class="download-note">
+    {{ t("Looking for everyone's rides instead? The {link} covers the whole map.", link='<a href="https://huggingface.co/datasets/Hitchwiki/hitchhiking-rides-dataset">' ~ t("full public dataset") ~ '</a>')|safe }}
+</p>
+
+<p><a href="/me">← {{ t("Back to your account") }}</a></p>
+{% endblock %}

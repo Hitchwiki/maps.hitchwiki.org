@@ -409,7 +409,20 @@ The `show.py` script runs every 10 minutes and generates map data files from the
    - Captured as `snapshot_ts` before any table is read, but written last, so the file never claims a snapshot whose data isn't on disk yet
    - Read by `/pending_rides.json` (see below) to know which rides the generated files are still missing
 
+8. **`spots.gpx`** (+ `.gz` sidecar) - every spot as a GPX 1.1 waypoint, ~18 MB / 1.7 MB gzipped, for the menu's "Download rides → As GPX" link
+   - Built by `hitch/scripts/spots_gpx.py` (a pure library, called by `show.py` once `spots_data`/`spot_details` exist — kept out of `show.py` for the same reason as `spot_naming.py`: that module does all its work at import time, so nothing defined there can be imported or tested)
+   - **Pre-generated rather than built in the browser.** The menu used to assemble it client-side from `allMarkers` via a CDN copy of `togpx`; the browser only ever holds `spots.json`, which has no spot name, waiting time or ride distance, so every description read "Waiting time: -" and no waypoint had a name. Each waypoint now carries the name, rating, ride count, typical wait/distance, last-ride date and the OSM / car-pooling / fuel / Hitchwiki links — as `<desc>` lines *and* as `<hw:spot>` extensions
+   - **Streamed a waypoint at a time** (`GpxStream`, `hitch/gpx.py`), never built as one tree: 35k waypoints of ElementTree objects is ~100 MB arriving at the very end of a run that already holds the whole ride table in pandas, and this host has been OOM-killed before. Written to `.tmp` and renamed so a download mid-regeneration never sees a half-written file
+   - It is in `should_regenerate_json`'s file list despite not being JSON, so a deploy that adds it (or a `dist/` that lost it) regenerates instead of leaving the menu link 404ing until the next ride lands
+
 **Note**: JSON regeneration is optimized - files are only rebuilt when database modification time is newer than existing JSON files (unless `--force` flag is used).
+
+#### Per-user export (`/me/downloads`, private)
+The other half of the download story: a logged-in user's own rides, linked from their account page and from the menu. There is deliberately no `/account/<username>` counterpart — a person's full ride records are theirs to export, even though each ride is public on the map.
+- **`/me/rides.gpx`** — built by `hitch/blueprints/utils/ride_gpx.py`. A ride with a recorded destination becomes a **`<rte>`** (pickup → destination); one without becomes a single **`<wpt>`**, because inventing an endpoint would draw a line on the user's map that no car ever drove. Waypoint/route names come from the same spot names the map shows, read out of `dist/rides/by-spot/<id>.json`
+- **"all information about the ride" is the point**: a readable `<desc>` (rating, wait, times, distance, signals, vehicle, driver, give-up reasons, hitchhikers, source, licence, comment) *plus* the verbatim Nostr `content` mirrored into `<extensions>` under the `hw:` namespace, so fields this app has no UI for yet still survive the export
+- **`/me/rides.json`** — the signed Nostr events as published, signature included, for anyone who wants to verify or re-import them
+- Both are `Cache-Control: private, no-store`, and `sw.js` skips them (and `spots.gpx`) entirely: private data must not sit in a shared browser's cache after a logout, and an 18 MB file must not eat the offline map's storage quota
 
 #### Live-from-DB endpoints (bypass `dist/` entirely)
 A couple of routes in `main.py` read the database directly on every request instead of serving pre-generated files, because their whole purpose is to show something newer than the last `show.py` run:

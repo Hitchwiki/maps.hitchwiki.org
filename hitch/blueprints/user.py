@@ -8,7 +8,7 @@ from urllib.parse import quote
 
 import pandas as pd
 import requests
-from flask import Blueprint, current_app, jsonify, redirect, render_template, request, send_file, url_for
+from flask import Blueprint, Response, current_app, jsonify, redirect, render_template, request, send_file, url_for
 from flask_security import current_user
 from sqlalchemy import text
 
@@ -17,6 +17,7 @@ from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import Hitc
 from hitch.blueprints.utils.notifications import notify_new_follower
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON
+from hitch.blueprints.utils.ride_gpx import rides_gpx
 from hitch.blueprints.utils.ride_score import score_fields
 from hitch.extensions import db, security
 from hitch.forms import UserEditForm
@@ -1442,6 +1443,90 @@ def reject_co_hitchhiker(ride_d_tag: str):
 @user_bp.route("/my-rides", methods=["GET"])
 def my_rides():
     return redirect("/me")
+
+
+def _download_filename(username, extension):
+    """A safe download filename. The username reaches a Content-Disposition header, and
+    nicknames are free text — anything outside this set would let a crafted name inject
+    header syntax or path separators."""
+    safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in username) or "rides"
+    return f"hitchwiki-maps-{safe}.{extension}"
+
+
+@user_bp.route("/me/downloads", methods=["GET"])
+def my_downloads():
+    """Private export page: your own rides, in formats you can take elsewhere.
+
+    Only ever renders for the logged-in user's own data — there is no
+    /account/<username>/downloads counterpart, because a person's full ride
+    records (exact coordinates, times, driver details) are theirs to export,
+    even though each individual ride is public on the map.
+    """
+    if current_user.is_anonymous:
+        return redirect("/login")
+
+    rides = _rides_by_hitchhiker(current_user.username)
+    with_destination = sum(1 for r in rides if len((r.content or {}).get("stops") or []) > 1)
+    return render_template(
+        "security/downloads.html",
+        user=current_user,
+        ride_count=len(rides),
+        route_count=with_destination,
+        waypoint_count=len(rides) - with_destination,
+    )
+
+
+@user_bp.route("/me/rides.gpx", methods=["GET"])
+def my_rides_gpx():
+    """Every ride logged under the current user's name, as GPX."""
+    if current_user.is_anonymous:
+        return redirect("/login")
+
+    rides = _rides_by_hitchhiker(current_user.username)
+    body = rides_gpx(rides, current_user.username)
+    return Response(
+        body,
+        mimetype="application/gpx+xml",
+        headers={
+            "Content-Disposition": f'attachment; filename="{_download_filename(current_user.username, "gpx")}"',
+            # Private data behind a login — never let a shared proxy hold a copy.
+            "Cache-Control": "private, no-store",
+        },
+    )
+
+
+@user_bp.route("/me/rides.json", methods=["GET"])
+def my_rides_json():
+    """The same rides as the raw signed Nostr events.
+
+    The lossless companion to the GPX: GPX can only carry what fits a waypoint or
+    a route (plus our extensions), while this is byte-for-byte what was published,
+    signature included, so it can be verified or re-imported elsewhere.
+    """
+    if current_user.is_anonymous:
+        return redirect("/login")
+
+    rides = _rides_by_hitchhiker(current_user.username)
+    payload = [
+        {
+            "id": r.id,
+            "kind": r.kind,
+            "pubkey": r.pubkey,
+            "sig": r.sig,
+            "created_at": r.created_at,
+            "tags": r.tags,
+            "content": r.content,
+        }
+        for r in rides
+    ]
+    return Response(
+        json.dumps(payload, ensure_ascii=False, indent=1),
+        mimetype="application/json",
+        headers={
+            "Content-Disposition": f'attachment; filename="{_download_filename(current_user.username, "json")}"',
+            "Cache-Control": "private, no-store",
+        },
+    )
 
 
 def _read_leaderboard_json(filename):

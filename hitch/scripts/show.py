@@ -22,6 +22,7 @@ from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON, REPORTS_TO_H
 from hitch.helpers import e, get_bearing, get_db, get_dirs, haversine_np, write_json_file
 from hitch.scripts.races import build_races, estimate_arrival
 from hitch.scripts.spot_naming import resolve_spot_name
+from hitch.scripts.spots_gpx import spot_waypoint, write_spots_gpx
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger(__name__)
@@ -47,7 +48,17 @@ def should_regenerate_json():
     # Check each JSON file
     # races.json is deliberately absent: it is rebuilt on its own hourly schedule further
     # down, so its age must not decide whether the rest of the map data is regenerated.
-    json_files = ["spots.json", "rides_index.json", "spots_recent.json", "longest_rides.json", "longest_24h.json"]
+    # spots.gpx is in the list (despite the name) so that a deploy that adds it, or a
+    # dist/ that lost it, regenerates on the next run instead of leaving the menu's
+    # download link 404ing until the next ride lands.
+    json_files = [
+        "spots.json",
+        "rides_index.json",
+        "spots_recent.json",
+        "longest_rides.json",
+        "longest_24h.json",
+        "spots.gpx",
+    ]
 
     # Per-spot ride directory — treat the dir itself as the canary.
     by_spot_dir = os.path.join(dirs["dist"], "rides", "by-spot")
@@ -1213,6 +1224,20 @@ for sid, spot_rides in rides_by_spot.items():
     with open(os.path.join(by_spot_dir, f"{sid}.json"), "w") as f:
         json.dump({"spot": spot_details.get(sid, {}), "rides": spot_rides}, f)
 logger.info(f"Wrote {len(rides_by_spot)} per-spot ride files")
+
+
+# dist/spots.gpx: the whole map as GPX, for the menu's download link. Streamed so the
+# 35k waypoints never exist as one tree (see hitch/scripts/spots_gpx.py).
+def _spot_waypoints():
+    for spot in spots_data:
+        spot_id = generate_spot_id(spot["lat"], spot["lon"])
+        last_ride = pd.Timestamp(spot["latest_ms"], unit="ms", tz="UTC").strftime("%Y-%m-%d") if spot.get("latest_ms") else None
+        yield spot_waypoint(spot, spot_details.get(spot_id, {}), spot_id, last_ride)
+
+
+gpx_path = os.path.join(dirs["dist"], "spots.gpx")
+gpx_size = write_spots_gpx(gpx_path, _spot_waypoints(), len(spots_data), pd.Timestamp.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"))
+logger.info(f"Wrote {gpx_path} ({gpx_size / 1e6:.1f} MB, {len(spots_data)} spots) (+ .gz sidecar)")
 
 # TODO: Remove spots_with_destination.json - replaced by spots.json with ride filtering
 # places_with_destination = places[~places.distance.isnull()]

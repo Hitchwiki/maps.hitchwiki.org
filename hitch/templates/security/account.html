@@ -194,6 +194,8 @@ a.notif-item:hover { border-color: #c7ced3; }
 
 {% if is_me %}
 <a href="/messages">{{ t("Messages") }}</a><br>
+{# Private to the owner: /me/downloads has no /account/<username> counterpart. #}
+<a href="/me/downloads">{{ t("Download your rides (GPX)") }}</a><br>
 <a href="/edit-user">{{ t("Edit your personal data") }}</a><br>
 <a href="/logout">{{ t("Logout") }}</a><br>
 <a href="/delete-user" style="color: red;">{{ t("Delete my account") }}</a>
