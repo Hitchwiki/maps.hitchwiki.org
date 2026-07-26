@@ -64,6 +64,23 @@ LANGUAGE_NAMES = {
 # in sync by hand -- there's no extraction tool, and duplicating the audit here
 # is deliberate: it's the same list of user-facing strings by design.
 SOURCE_STRINGS = [
+    # Per-city SEO pages (city_template.html, rendered per language by cities.py).
+    # These carry the search query itself -- "Trampen in Berlin" only matches the
+    # German page because "Hitchhiking in {place}" is translated here -- so keep
+    # the hitchhiking verb natural in each language rather than literal.
+    "{city} - Hitchhiking - Hitchwiki Map",
+    "Hitchhiking spots, community ratings and recent rides for {place}. See where drivers pick up and how long the wait is.",
+    "Hitchhiking in {place} – Hitchwiki Map",
+    "Community hitchhiking spots, ratings and recent rides for {place} on the Hitchwiki Map.",
+    "All cities",
+    "Hitchhiking guides to cities worldwide",
+    "Browse hitchhiking guides by city: spots, community ratings, waiting times and recent rides.",
+    "{city} on Hitchwiki",
+    "Hitchhiking from {city}",
+    "Hitchhiking to {city}",
+    "{city} on Hitchhiking Map",
+    "View all spots mentioning {city}",
+    "Recent reviews mentioning {city}",
     "Hitchhiking Map",
     "Discover hitchhiking spots worldwide on an interactive map. See community ratings, waiting times, and trip data. Share your own rides.",
     "Hitchhiking Map – Find & Share Hitchhiking Spots on a Map",

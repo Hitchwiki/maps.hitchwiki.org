@@ -71,6 +71,15 @@
     <link rel="alternate" hreflang="{{ code }}" href="{{ request.host_url.rstrip('/') }}{{ lang_switch_url(code) }}" />
     {% endfor %}
     <link rel="alternate" hreflang="x-default" href="{{ request.host_url.rstrip('/') }}{{ lang_switch_url('en') }}" />
+    {# Statically generated pages (cities.py) have no request to derive the sibling
+       URLs from, so the generator passes them in explicitly. Without these the 31
+       language versions of a city page compete with each other as duplicates
+       instead of being understood as translations of one page. #}
+    {% elif alternate_urls %}
+    {% for code, href in alternate_urls %}
+    <link rel="alternate" hreflang="{{ code }}" href="{{ href }}" />
+    {% endfor %}
+    <link rel="alternate" hreflang="x-default" href="{{ alternate_urls[0][1] }}" />
     {% endif %}
     {# Only pages that can render a picture of themselves (currently a shared route)
        set og_image. Without an image a messenger shows a text-only card, which is
