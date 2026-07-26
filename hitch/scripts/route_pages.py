@@ -65,7 +65,7 @@ SITE_URL = "https://maps.hitchwiki.org"
 # ordered pairs, most of which the distance band drops before routing.
 MAX_CITIES = 80
 DISTANCE_BAND_KM = (80, 1500)
-MAX_PAGES = 300
+MAX_PAGES = 400
 # Two "cities" closer together than this are one metro area, and only its largest
 # member gets pages. See the dedupe in main() — without it the published set fills
 # up with suburb pairs and the routes people search for lose their slot.
@@ -238,7 +238,11 @@ def main():
     top_path = os.path.join(dist_dir, "city", "top_cities.json")
     try:
         with open(top_path, encoding="utf-8") as f:
-            cities = json.load(f)[:MAX_CITIES]
+            # Deliberately NOT truncated to MAX_CITIES here: the ride-volume head is
+            # dominated by suburbs of a few metros, so cutting first and clustering
+            # second collapsed 80 entries into 11 distinct places. Cluster the whole
+            # ranking, then take the top MAX_CITIES *metros*.
+            cities = json.load(f)
     except (OSError, ValueError):
         logger.warning("No %s yet — run `flask generate cities` first. Skipping route pages.", top_path)
         return
@@ -286,8 +290,18 @@ def main():
             continue
         candidates.append((a, b, info))
 
-    # Best-evidenced first: corroboration, then how much riders actually wrote.
-    candidates.sort(key=lambda c: (-c[2]["min_support"], -len(c[2]["quotes"]), c[2]["core_minutes"]))
+    # Rank by *demand* first, then evidence. Every candidate has already cleared the
+    # quality bar (MIN_SUPPORT, MIN_COMMENTS, MAX_WALK_KM), so sorting purely by
+    # corroboration just picked well-documented obscure pairs and let the cap drop
+    # Berlin -> Hamburg, which passes every filter and is a route people genuinely
+    # search for. Combined endpoint population is the demand proxy available here.
+    candidates.sort(
+        key=lambda c: (
+            -(c[0].get("population", 0) + c[1].get("population", 0)),
+            -c[2]["min_support"],
+            -len(c[2]["quotes"]),
+        )
+    )
     chosen = candidates[:MAX_PAGES]
     logger.info("%d pairs routable and well-evidenced; publishing %d", len(candidates), len(chosen))
 
