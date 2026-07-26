@@ -77,5 +77,11 @@
 # OSM tile cache (dist/tiles) is deliberately kept forever and is NOT touched here.
 30 1 * * * find /app/dist/dir -type f -mtime +7 -delete > logs/prune_dir_previews.log 2>&1
 
+# every day at 1:35 AM — prune the MCP route cache (dist/mcp), same reasoning as dist/dir above:
+# an AI assistant can ask to fetch any coordinate pair, so the key space is unbounded. Entries are
+# already ignored once build_ride_routes.py rebuilds the graph (the blueprint compares mtimes),
+# so this only reclaims the disk they sit on; a pruned route is rebuilt on the next fetch.
+35 1 * * * find /app/dist/mcp -type f -mtime +7 -delete > logs/prune_mcp_cache.log 2>&1
+
 # every day at 00:30 — remind signed-up users who still have zero logged rides (7- and 30-day nudge)
 30 0 * * * cd /app && /usr/bin/flock -n /tmp/remind_inactive_users.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate remind_inactive_users' > logs/remind_inactive_users.log 2>&1
