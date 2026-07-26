@@ -342,6 +342,13 @@ def register_routes(app):
                 response = send_from_directory(dist_dir, path + ".gz", mimetype=mimetype)
                 response.headers["Content-Encoding"] = "gzip"
                 response.headers["Vary"] = "Accept-Encoding"
+                # send_from_directory names the attachment after the file it actually
+                # read (spots.gpx.gz), and a filename in Content-Disposition outranks
+                # the bare `download` attribute on the menu link. The browser decodes
+                # the gzip layer, so that would save plain XML under a .gz name — which
+                # won't gunzip and which GPX viewers reject on extension. Report the
+                # requested name instead.
+                response.headers["Content-Disposition"] = f"inline; filename={os.path.basename(path)}"
                 return response
 
         return send_from_directory(os.path.join(baseDir, "dist"), path)
