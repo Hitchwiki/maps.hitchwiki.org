@@ -34,6 +34,17 @@
 .wra-btn:hover { color: #555; border-color: #999; }
 .wra-btn--yes[aria-pressed="true"] { color: #2e7d32; border-color: #2e7d32; background: #eaf5eb; }
 .wra-btn--no[aria-pressed="true"] { color: #c62828; border-color: #c62828; background: #fbeaea; }
+.ride-photo-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+.ride-photo-existing, .ride-photo-pending { width: 120px; }
+.ride-photo-grid img {
+    width: 120px; height: 90px; object-fit: cover;
+    border-radius: 4px; border: 1px solid #ddd; display: block;
+}
+.ride-photo-remove { display: block; font-weight: normal; font-size: 0.85em; color: #b02a37; margin-top: 2px; }
+.ride-photo-pending .ride-photo-name {
+    font-size: 0.75em; color: #888; margin-top: 2px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 </style>
 {% endblock %}
 
@@ -108,7 +119,9 @@
         </div>
     </div>
 
-    <form id="ride-form" action="/ride" method="post" onsubmit="return validateForm()">
+    {# enctype is required for the photo upload at the bottom of this form; without it the
+       browser posts filenames only and request.files is empty. #}
+    <form id="ride-form" action="/ride" method="post" enctype="multipart/form-data" onsubmit="return validateForm()">
         <input type="hidden" name="edit_d_tag" value="{{ ride_data.d_tag if ride_data else '' }}">
         <input type="hidden" name="pickup_lat" id="pickup_lat" value="{{ ride_data.pickup_lat if ride_data else '' }}">
         <input type="hidden" name="pickup_lon" id="pickup_lon" value="{{ ride_data.pickup_lon if ride_data else '' }}">
@@ -299,6 +312,37 @@
             </div>
         </div>
 
+        {# Photos sit at the very bottom of the form, in both the new-ride and the edit
+           case. They are stored on this server and linked to the ride by its Nostr d tag;
+           nothing about them is published to the relays (see utils/ride_images.py). #}
+        <div class="form-group" id="ride-photos-group">
+            <label>Photos (optional, up to {{ max_ride_images }})</label>
+            {% if ride_images %}
+            <div class="ride-photo-grid">
+                {% for img in ride_images %}
+                <div class="ride-photo-existing">
+                    <img src="{{ img.url }}" alt="Photo of this ride">
+                    <label class="ride-photo-remove">
+                        <input type="checkbox" name="remove_image" value="{{ img.id }}"> Remove
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            <input type="file" id="ride_images" name="ride_images" class="form-control"
+                   accept="image/jpeg,image/png,image/webp,image/gif" multiple
+                   data-existing-count="{{ ride_images|length }}" data-max-images="{{ max_ride_images }}">
+            <div id="ride-photos-preview" class="ride-photo-grid" style="margin-top:8px;"></div>
+            <span id="ride-photos-error" class="error text-danger" style="display:block; font-size:0.85em;"></span>
+            <p style="margin-top:6px; font-size:0.8rem; color:#888;">
+                Photos you upload here are published under
+                <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>
+                &mdash; anyone may reuse them, including commercially, as long as they credit you and share
+                any adaptation under the same licence. Only upload pictures you took yourself, and please
+                avoid recognisable people and license plates. Location data (EXIF) is stripped on upload.
+            </p>
+        </div>
+
         <p style="margin-top: 2rem; font-size: 0.85rem; color: #888;">
             Is there anything else you want to remember about your rides? <a href="https://github.com/Hitchwiki/hitchhiking-data-standard/blob/main/STANDARD.md" target="_blank" rel="noopener">Let us know here</a>.
         </p>
@@ -306,7 +350,7 @@
         <p style="margin-top: 1rem; font-size: 0.8rem; color: #888;">
             Your ride is published publicly. The database is licensed under the
             <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>;
-            your comment and username are licensed under
+            your comment, username and any photos you upload are licensed under
             <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>.
             By submitting you agree to this. See the <a href="/copyright" target="_blank" rel="noopener">Copyright and License</a> page.
         </p>
@@ -586,6 +630,14 @@
         if (dep && arr && new Date(arr) <= new Date(dep)) {
             hmTrack('ride_form_blocked', { reason: 'arrival-before-departure' });
             errSpan.textContent = 'Arrival must be later than the pickup time.';
+            return false;
+        }
+
+        // Too many / too large photos would be a 400 from the server, which on this
+        // full-page POST means an error page with the whole filled-in form lost. Catch
+        // the two foreseeable mistakes here instead.
+        if (!validateRidePhotos()) {
+            hmTrack('ride_form_blocked', { reason: 'photos' });
             return false;
         }
 
@@ -1067,6 +1119,81 @@
         window._wouldRideAgainRender = render;
     }
     initWouldRideAgain();
+
+    // Photo picker. The server is the authority on all of these limits (ride_images.py);
+    // this only spares the user a 400 that would take the rest of the filled-in form with
+    // it. "How many may I still add" counts the existing photos they have NOT ticked for
+    // removal, exactly as the server does.
+    const RIDE_PHOTO_MAX_BYTES = 12 * 1024 * 1024;
+
+    function ridePhotoAllowance() {
+        const input = document.getElementById('ride_images');
+        if (!input) return 0;
+        const max = parseInt(input.dataset.maxImages || '3', 10);
+        const existing = parseInt(input.dataset.existingCount || '0', 10);
+        const removing = document.querySelectorAll('input[name="remove_image"]:checked').length;
+        return max - (existing - removing);
+    }
+
+    function validateRidePhotos() {
+        const input = document.getElementById('ride_images');
+        const errSpan = document.getElementById('ride-photos-error');
+        if (!input || !errSpan) return true;
+        errSpan.textContent = '';
+        const files = Array.from(input.files || []);
+        if (!files.length) return true;
+
+        const allowance = ridePhotoAllowance();
+        if (allowance <= 0) {
+            errSpan.textContent = 'This ride already has the maximum number of photos. Tick "Remove" on one first.';
+            return false;
+        }
+        if (files.length > allowance) {
+            errSpan.textContent = 'You can add ' + allowance + ' more photo(s) — ' + files.length + ' are selected.';
+            return false;
+        }
+        const tooBig = files.find(f => f.size > RIDE_PHOTO_MAX_BYTES);
+        if (tooBig) {
+            errSpan.textContent = '"' + tooBig.name + '" is larger than 12 MB.';
+            return false;
+        }
+        return true;
+    }
+
+    function initRidePhotos() {
+        const input = document.getElementById('ride_images');
+        const preview = document.getElementById('ride-photos-preview');
+        if (!input || !preview) return;
+
+        function render() {
+            // Revoke the previous batch's object URLs, or every re-pick leaks the
+            // decoded image until the page is closed.
+            preview.querySelectorAll('img').forEach(img => URL.revokeObjectURL(img.src));
+            preview.innerHTML = '';
+            Array.from(input.files || []).forEach(file => {
+                if (!file.type.startsWith('image/')) return;
+                const cell = document.createElement('div');
+                cell.className = 'ride-photo-pending';
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(file);
+                img.alt = file.name;
+                const name = document.createElement('div');
+                name.className = 'ride-photo-name';
+                name.textContent = file.name;
+                cell.appendChild(img);
+                cell.appendChild(name);
+                preview.appendChild(cell);
+            });
+            validateRidePhotos();
+        }
+
+        input.addEventListener('change', render);
+        // Ticking "Remove" frees a slot, so the count message has to be re-evaluated.
+        document.querySelectorAll('input[name="remove_image"]').forEach(box => {
+            box.addEventListener('change', validateRidePhotos);
+        });
+    }
+    initRidePhotos();
 
     // Expose re-render hooks so sessionStorage restore can refresh the chip rows after editing the hidden inputs.
     if (signalChip) window._signalRenderTags = signalChip.renderTags;

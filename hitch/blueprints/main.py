@@ -57,6 +57,14 @@ from hitch.blueprints.utils.notifications import (
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON, REPORT_REASONS, REPORTS_TO_HIDE
 from hitch.blueprints.utils.ride_facts import haversine_km, ride_map_entry, spot_id_for, stop_facts
+from hitch.blueprints.utils.ride_images import (
+    MAX_IMAGES_PER_RIDE,
+    delete_ride_images,
+    image_url,
+    images_for_ride,
+    prepare_uploads,
+    store_ride_images,
+)
 from hitch.blueprints.utils.ride_ip_log import get_client_ip, log_ride_ip
 from hitch.blueprints.utils.route_request_log import log_route_request
 from hitch.blueprints.utils.search_request_log import log_search_request
@@ -920,9 +928,11 @@ def ride_detail(d_tag):
     # base.html's site-wide blurb.
     spot_id = spot_id_for(pickup_lat, pickup_lon) if pickup_lat is not None and pickup_lon is not None else None
     og_title, og_description = _ride_preview_meta(ride_view, spot_id)
+    ride_images = [{"url": image_url(img.filename), "width": img.width, "height": img.height} for img in images_for_ride(d_tag)]
     return render_template(
         "ride_detail.html",
         ride=ride_view,
+        ride_images=ride_images,
         already_reported=already_reported,
         owner_deleted=owner_deleted,
         report_confirmed=request.args.get("reported") == "1",
@@ -1083,6 +1093,10 @@ def ride_form():
     if request.method == "GET":
         edit_d_tag = request.args.get("edit")
         ride_data = None
+        # Photos of the ride being edited, so the form can show them with a "remove" box.
+        # Filled only inside the ownership check below — a stranger passing ?edit=<d_tag>
+        # gets a blank new-ride form and must not see that ride's pictures listed as theirs.
+        ride_images = []
 
         if edit_d_tag:
             # Load existing ride data for editing
@@ -1214,9 +1228,13 @@ def ride_form():
                 ride_data["co_hitchhiker"] = ",".join(all_co)
                 ride_data["co_hitchhiker_locked"] = ",".join(locked_co_hitchhikers)
 
+                ride_images = [{"id": img.id, "url": image_url(img.filename)} for img in images_for_ride(edit_d_tag)]
+
         return render_template(
             "ride_form.html",
             ride_data=ride_data,
+            ride_images=ride_images,
+            max_ride_images=MAX_IMAGES_PER_RIDE,
             vehicle_kinds=VEHICLE_KIND_CHOICES,
             country_codes=ISO_3166_1_ALPHA_2,
             country_choices=COUNTRY_CHOICES,
@@ -1360,6 +1378,7 @@ def ride_form():
 
         ### Check if this is an edit operation
         edit_d_tag = data.get("edit_d_tag", "").strip()
+        existing_ride = None
         if edit_d_tag:
             existing_ride = db.session.query(RideEvent).filter_by(d=edit_d_tag).first()
             # Inride requests use fetch (no navigation), so return JSON instead of redirecting.
@@ -1368,6 +1387,17 @@ def ride_form():
                     return jsonify({"ok": False, "error": "unauthorized"}), 400
                 return redirect("/#error")  # User doesn't own this ride
 
+        ### Photos (stored on this server, never published to Nostr — see ride_images.py)
+        # Decoded and re-encoded here: after the ownership check above, so a stranger's
+        # POST is rejected before we spend CPU on their files, and before anything reaches
+        # the relays, so an unreadable or oversized file is a rejected submission rather
+        # than a failure discovered once the ride is live and unrecallable. The photos are
+        # written to disk further down, when the d tag they hang off finally exists.
+        remove_image_ids = [int(v) for v in request.form.getlist("remove_image") if v.strip().lstrip("-").isdigit()]
+        kept_image_count = sum(1 for img in images_for_ride(edit_d_tag) if img.id not in remove_image_ids)
+        prepared_images = prepare_uploads(request.files.getlist("ride_images"), MAX_IMAGES_PER_RIDE - kept_image_count)
+
+        if edit_d_tag:
             # Create new record with updated form data to get updated fields
             # TODO: define license properly instead of using "xxx"
             updated_record = create_record_from_custom_object(
@@ -1397,6 +1427,15 @@ def ride_form():
         # fake rides can be traced back to one source. Edits are logged too, since an
         # abuser can also vandalise a ride they own by editing it.
         log_ride_ip(d_tag)
+
+        ### Photos
+        # Both calls are scoped to this ride's d tag, and we only get here once the edit
+        # branch above has confirmed the user may edit it — so a hand-crafted
+        # remove_image id belonging to another ride simply matches nothing.
+        if remove_image_ids:
+            delete_ride_images(remove_image_ids, d_tag)
+        if prepared_images:
+            store_ride_images(d_tag, prepared_images, None if current_user.is_anonymous else current_user.id)
 
         ### Co-hitchhikers
         # Requirement: co-hitchhikers already on a ride cannot be removed when editing, only new

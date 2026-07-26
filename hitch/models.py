@@ -195,6 +195,34 @@ class RideComment(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=db.func.now())
 
 
+class RideImage(db.Model):
+    """A photo a hitchhiker attached to their ride, identified by its Nostr `d` tag.
+
+    Deliberately local-only: the image bytes live on this server (under
+    `dist/ride-images/`, see blueprints/utils/ride_images.py) and the *only* link back to
+    the ride is this table's `ride_d_tag`. Nothing about a photo is published to Nostr —
+    the hitchhiking data standard has no image field we could fill without inventing one,
+    and a relay is the wrong place for binary payloads. A ride therefore keeps its photos
+    across edits, which republish the Nostr event under the same `d`.
+
+    `user_id` is nullable because the ride form can be submitted anonymously; the abuse
+    trail for such an upload is the ride's own entry in logs/ride_ips.csv (log_ride_ip),
+    which keeps IP addresses out of the database and its off-site backups.
+    """
+
+    __tablename__ = "ride_image"
+
+    id = db.Column(db.Integer, primary_key=True)
+    ride_d_tag = db.Column(db.String(255), nullable=False, index=True)
+    # Path relative to dist/ride-images/, e.g. "2026/07/<uuid>.jpg". Stored rather than
+    # derived so the on-disk layout can change without rewriting existing rows.
+    filename = db.Column(db.String(255), nullable=False, unique=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
+    width = db.Column(db.Integer, nullable=True)
+    height = db.Column(db.Integer, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=db.func.now())
+
+
 class RideEvent(db.Model):
     id = db.Column(db.String(64), primary_key=True)
     kind = db.Column(db.Integer, nullable=False)

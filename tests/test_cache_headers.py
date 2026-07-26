@@ -44,6 +44,26 @@ def test_dist_data_is_swr_cached(client):
         os.remove(marker)
 
 
+def test_ride_photos_are_immutably_cached(client):
+    # A ride photo's filename is a uuid, so the bytes at that URL never change — unlike
+    # the rest of dist/, which is regenerated every ~10 minutes under stable names.
+    photo_dir = os.path.join(baseDir, "dist", "ride-images", "_cache_test")
+    os.makedirs(photo_dir, exist_ok=True)
+    photo = os.path.join(photo_dir, "deadbeef.jpg")
+    with open(photo, "wb") as fh:
+        fh.write(b"\xff\xd8\xff\xd9")  # shortest thing a browser accepts as a JPEG
+    try:
+        resp = client.get("/ride-images/_cache_test/deadbeef.jpg")
+        assert resp.status_code == 200
+        cc = resp.headers.get("Cache-Control", "")
+        assert "max-age=31536000" in cc
+        assert "immutable" in cc
+        assert "Cookie" not in resp.headers.get("Vary", "")
+    finally:
+        os.remove(photo)
+        os.rmdir(photo_dir)
+
+
 def test_html_is_not_long_cached(client):
     # HTML must stay revalidate so new ?v= asset links propagate on the next load.
     resp = client.get("/copyright")

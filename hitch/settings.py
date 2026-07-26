@@ -67,6 +67,14 @@ class BaseConfig:
     REMEMBER_COOKIE_SAMESITE = "Lax"
     REMEMBER_COOKIE_HTTPONLY = True
 
+    # Hard ceiling on any request body, enforced by Werkzeug (413 past it). The only
+    # endpoint that legitimately receives a big one is the ride form's photo upload
+    # (MAX_IMAGES_PER_RIDE x MAX_UPLOAD_BYTES = 36 MB, see utils/ride_images.py);
+    # everything else posts a handful of form fields. Without a cap, one unauthenticated
+    # POST can make waitress buffer an unbounded amount of memory on a host that the
+    # kernel OOM killer has already visited.
+    MAX_CONTENT_LENGTH = 40 * 1024 * 1024
+
     # Database Config
     DATABASE_NAME = os.getenv("DATABASE_NAME", "hitchhiking.sqlite")
     DATABASE_URI = os.getenv("DATABASE_URI", os.path.join(baseDir, "db", DATABASE_NAME))

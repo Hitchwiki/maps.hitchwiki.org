@@ -249,6 +249,24 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     color: #888;
     font-size: 0.9em;
 }
+.ride-photos {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.5rem;
+}
+.ride-photos img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #e5e5e5;
+    display: block;
+}
+.photo-license {
+    font-size: 0.8rem;
+    color: #888;
+    margin: 0.6rem 0 0;
+}
 </style>
 {% endblock %}
 
@@ -504,11 +522,34 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     </div>
     {% endif %}
 
+    {# Photos live on this server only — they are never published to Nostr, so they are
+       looked up by d tag rather than read out of the ride event (see ride_images.py). #}
+    {% if ride_images %}
+    <div class="detail-section">
+        <p class="section-title">Photos</p>
+        <div class="ride-photos">
+            {% for img in ride_images %}
+            {# Links to the full-size file: the grid crops to a uniform tile, and a
+               hitchhiker checking what a spot looks like needs the whole picture. #}
+            <a href="{{ img.url }}" target="_blank" rel="noopener">
+                <img src="{{ img.url }}" alt="Photo attached to this ride" loading="lazy"
+                     {% if img.width %}width="{{ img.width }}"{% endif %}
+                     {% if img.height %}height="{{ img.height }}"{% endif %}>
+            </a>
+            {% endfor %}
+        </div>
+        <p class="photo-license">
+            Photos are published by their uploader under
+            <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>.
+        </p>
+    </div>
+    {% endif %}
+
     {# Downstream license notice: the review (comment + username) is an individual content
        licensed CC BY-SA 4.0; the database as a whole is ODbL (see /copyright, ODbL §2.4). #}
     <div class="detail-section">
         <p style="font-size: 0.8rem; color: #888; line-height: 1.5;">
-            This review (comment and username) is licensed under
+            This review (comment, username and photos) is licensed under
             <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>.
             The map database as a whole is licensed under the
             <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>.

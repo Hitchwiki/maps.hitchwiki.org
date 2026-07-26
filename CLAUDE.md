@@ -88,6 +88,7 @@ Modelled on OpenStreetMap's `/node/<id>#map=<zoom>/<lat>/<lon>`. Two independent
 - **Follow** / **Notification**: User following and notifications
 - **Trip** / **TripRide**: Trips grouping multiple rides. `Trip.user_id` is **nullable**: a multi-ride journey logged anonymously through the in-ride tracker is auto-grouped into an ownerless trip (see the in-ride tracker section). An ownerless trip is reachable only by its link — every trip-mutating route compares `trip.user_id` to a logged-in id, which `None` never equals — and any `db.session.get(User, trip.user_id)` must be guarded, since `session.get` with a `None` pk raises rather than returning `None`
 - **RideReport**: User-reported issues on rides
+- **RideImage**: A photo attached to a ride, keyed by the ride's Nostr `d` tag. Local-only — never published to Nostr (see the ride-photos section below)
 - **SpotName**: Cached reverse-geocoded street name per spot id (see `spot_names.py`)
 - **ServiceArea** / **RoadIsland** / **RoutingSearch**: Routing-support data
 
@@ -230,7 +231,12 @@ Failure to do this causes `sqlalchemy.exc.OperationalError: no such column: <tab
 ```bash
 sudo docker exec hitchhiking-map python3 /app/hitch/scripts/migrate_trip_user_nullable.py --db /app/db/hitchhiking-prod.sqlite
 ```
-Run the migration **before** pushing the code that depends on it: a deploy is a push, so the new code is live within a minute or two and would otherwise hit an `IntegrityError` on the old constraint.
+**A whole new table needs a migration too.** `db.create_all()` only runs at `flask init`, which nothing on a deploy invokes, so a model added to `hitch/models.py` has no table in prod until someone creates it — and every route touching it 500s with `no such table: <name>`. `hitch/scripts/migrate_ride_images.py` is the worked example (it created `ride_image`): standalone stdlib script, literal `CREATE TABLE` kept in step with the model, idempotent.
+```bash
+sudo docker exec hitchhiking-map python3 /app/hitch/scripts/migrate_ride_images.py --db /app/db/hitchhiking-prod.sqlite
+```
+
+Run the migration **before** pushing the code that depends on it: a deploy is a push, so the new code is live within a minute or two and would otherwise hit an `IntegrityError` on the old constraint (or a missing table).
 
 ### Container killed by OOM (exit code 137)
 If the `hitchhiking-map` container is down with exit code 137 (`Exited (137)`), it was killed by the Linux OOM killer. This happened on 2026-04-07.
@@ -423,6 +429,17 @@ The other half of the download story: a logged-in user's own rides, linked from 
 - **"all information about the ride" is the point**: a readable `<desc>` (rating, wait, times, distance, signals, vehicle, driver, give-up reasons, hitchhikers, source, licence, comment) *plus* the verbatim Nostr `content` mirrored into `<extensions>` under the `hw:` namespace, so fields this app has no UI for yet still survive the export
 - **`/me/rides.json`** — the signed Nostr events as published, signature included, for anyone who wants to verify or re-import them
 - Both are `Cache-Control: private, no-store`, and `sw.js` skips them (and `spots.gpx`) entirely: private data must not sit in a shared browser's cache after a logout, and an 18 MB file must not eat the offline map's storage quota
+
+#### Ride photos (`dist/ride-images/`, uploaded not generated)
+Up to **3 photos per ride**, added at the very bottom of the `/ride` form (both the new-ride and the `?edit=<d_tag>` variant) and displayed in a "Photos" section on `/ride/<d_tag>`. Code: `hitch/blueprints/utils/ride_images.py`, model `RideImage`.
+- **Not wired to Nostr, on purpose.** The hitchhiking data standard has no image field we could fill without inventing one, and a relay is the wrong place for binary payloads. The only link between a photo and its ride is `ride_image.ride_d_tag`, so photos survive an edit (which republishes the event under the same `d`) and can be attached to a ride imported from elsewhere. `RideEvent.images` is a column from the standard and stays untouched.
+- **Every upload is decoded and re-encoded through Pillow** (max 1600 px, JPEG q82) rather than stored as received. That *is* the security model: the bytes served back are ones Pillow wrote, so a file that is simultaneously a valid image and a valid HTML/script payload cannot survive the round trip. It also strips EXIF — a phone photo carries GPS coordinates and a device serial, which someone photographing a slip road is not choosing to publish. `Image.MAX_IMAGE_PIXELS` is pinned to 50 Mpx against decompression bombs.
+- **Validated before the Nostr publish, stored after it.** `prepare_uploads()` runs while the submission can still be rejected; `store_ride_images()` runs once the `d` tag exists (it can't before) and never raises — by then the ride is on the relays and unrecallable, so a full disk must cost the photo, not the ride.
+- **Files live in `dist/`** because that directory is bind-mounted (uploads survive an image rebuild, and a deploy's `git reset --hard` cannot touch them), entirely gitignored (nothing a visitor uploads can reach the repo), and already served by `catch_all` — so no upload-serving endpoint exists. Layout is `dist/ride-images/<yyyy>/<mm>/<uuid>.jpg`; the uploaded filename is never reused (attacker-controlled, may collide, can itself carry personal data). `set_public_cache_headers` gives `/ride-images/*` a year of `immutable` caching, since a uuid URL's bytes can never change.
+- **Licence:** photos are published under **CC BY-SA 4.0**, stated next to the upload field and again under the gallery, matching how comments/usernames are already licensed (the database as a whole stays ODbL).
+- **Anonymous uploads are allowed**, because the ride form itself is. `ride_image.user_id` is then NULL and the abuse trail is the ride's row in `logs/ride_ips.csv` (`log_ride_ip`) — deliberately not an IP column, which would put personal data in the DB and its off-site backups.
+- `MAX_CONTENT_LENGTH` (settings.py, 40 MB) is the outer guard on request size; without it any unauthenticated POST could make waitress buffer unbounded memory on a host the OOM killer has already visited.
+- **New table → run `hitch/scripts/migrate_ride_images.py` on prod before deploying** (see the migrations section; `db.create_all()` only runs at `flask init`). Applied to `hitchhiking-prod.sqlite` on 2026-07-26.
 
 #### Live-from-DB endpoints (bypass `dist/` entirely)
 A couple of routes in `main.py` read the database directly on every request instead of serving pre-generated files, because their whole purpose is to show something newer than the last `show.py` run:
