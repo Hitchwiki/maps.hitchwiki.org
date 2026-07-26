@@ -174,6 +174,72 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     margin-bottom: 1rem;
     font-size: 0.95em;
 }
+.like-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    color: #555;
+    font: inherit;
+    font-size: 0.85em;
+    cursor: pointer;
+}
+.like-btn:hover { background: #fdf2f3; border-color: #f3b6c0; }
+.like-btn.liked { background: #fdf2f3; border-color: #e0839a; color: #c2185b; }
+.header-actions form.like-form { margin: 0; }
+.comment {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+.comment:last-child { border-bottom: none; }
+.comment-body { flex: 1; }
+.comment-meta {
+    font-size: 0.85em;
+    color: #888;
+    margin-bottom: 0.15rem;
+}
+.comment-meta a { color: #555; }
+.comment-text { white-space: pre-wrap; color: #333; font-size: 0.95em; }
+.comment-delete {
+    background: none;
+    border: none;
+    color: #b02a37;
+    cursor: pointer;
+    font-size: 0.85em;
+    padding: 0;
+    align-self: flex-start;
+}
+.comment-form textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 0.5rem;
+    font: inherit;
+    font-size: 0.9em;
+    resize: vertical;
+    min-height: 60px;
+}
+.comment-form button {
+    margin-top: 0.5rem;
+    padding: 6px 14px;
+    background: #28a745;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+.comment-locked {
+    color: #888;
+    font-size: 0.9em;
+}
 </style>
 {% endblock %}
 
@@ -207,6 +273,19 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                 <span class="share-btn-label">Share</span>
             </button>
+            {% if is_logged_in %}
+                <form method="post" action="/like-ride/{{ ride.d_tag }}" class="like-form">
+                    <button type="submit" class="like-btn{% if liked_by_me %} liked{% endif %}">
+                        <i class="fa{% if liked_by_me %}-solid{% else %}-regular{% endif %} fa-heart"></i>
+                        <span>{{ likes_count }}</span>
+                    </button>
+                </form>
+            {% else %}
+                <a href="/login?next=/ride/{{ ride.d_tag }}" class="like-btn">
+                    <i class="fa-regular fa-heart"></i>
+                    <span>{{ likes_count }}</span>
+                </a>
+            {% endif %}
             {% if ride.can_delete %}
                 {% if not owner_deleted %}
                     {# Only rides published by this site can be edited (a foreign-source event
@@ -420,6 +499,45 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
             <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>.
             See <a href="/copyright" target="_blank" rel="noopener">Copyright and License</a>.
         </p>
+    </div>
+
+    <div class="detail-section" id="comments">
+        <p class="section-title">Comments ({{ comments|length }})</p>
+
+        {% for c in comments %}
+        <div class="comment">
+            <div class="comment-body">
+                <div class="comment-meta">
+                    <a href="/account/{{ c.username }}">{{ c.username }}</a>
+                    · {{ c.created_at.strftime('%Y-%m-%d %H:%M') }}
+                </div>
+                <div class="comment-text">{{ c.body }}</div>
+            </div>
+            {% if c.is_own %}
+            <form method="post" action="/delete-ride-comment/{{ c.id }}"
+                  onsubmit="return confirm('Delete this comment?');">
+                <button type="submit" class="comment-delete"><i class="fa fa-trash"></i></button>
+            </form>
+            {% endif %}
+        </div>
+        {% else %}
+        <p style="color:#888; font-size:0.9em;">No comments yet.</p>
+        {% endfor %}
+
+        {% if can_comment %}
+        <form method="post" action="/comment-ride/{{ ride.d_tag }}" class="comment-form" style="margin-top:1rem;">
+            <textarea name="body" maxlength="2000" placeholder="Write a comment…" required></textarea>
+            <button type="submit">Post comment</button>
+        </form>
+        {% elif is_logged_in %}
+        <p class="comment-locked" style="margin-top:1rem;">
+            <i class="fa fa-lock"></i> This ride's hitchhiker(s) need to follow you before you can comment.
+        </p>
+        {% else %}
+        <p class="comment-locked" style="margin-top:1rem;">
+            <a href="/login?next=/ride/{{ ride.d_tag }}#comments">Log in</a> to comment (if this ride's hitchhiker follows you).
+        </p>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

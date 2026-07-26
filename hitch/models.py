@@ -160,6 +160,41 @@ class RideReport(db.Model):
     __table_args__ = (db.UniqueConstraint("ride_d_tag", "user_id", name="uq_ride_report_dtag_user"),)
 
 
+class RideLike(db.Model):
+    """A logged-in user's like on a ride, identified by its Nostr `d` tag.
+
+    One like per (ride, user) via the unique constraint, so liking twice is a no-op and
+    unliking is a plain delete rather than a toggle counter.
+    """
+
+    __tablename__ = "ride_like"
+
+    id = db.Column(db.Integer, primary_key=True)
+    ride_d_tag = db.Column(db.String(255), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=db.func.now())
+
+    __table_args__ = (db.UniqueConstraint("ride_d_tag", "user_id", name="uq_ride_like_dtag_user"),)
+
+
+class RideComment(db.Model):
+    """A logged-in user's comment on a ride, identified by its Nostr `d` tag.
+
+    Write access is restricted in main.py's comment_ride(): only allowed on your own
+    ride, or when the ride's owner already follows you (mirrors the ask that comments
+    require a one-sided follow from the person whose ride it is, so a ride can't be
+    flooded with comments from strangers the owner has never engaged with).
+    """
+
+    __tablename__ = "ride_comment"
+
+    id = db.Column(db.Integer, primary_key=True)
+    ride_d_tag = db.Column(db.String(255), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=db.func.now())
+
+
 class RideEvent(db.Model):
     id = db.Column(db.String(64), primary_key=True)
     kind = db.Column(db.Integer, nullable=False)

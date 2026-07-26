@@ -73,6 +73,26 @@ def notify_co_hitchhiker_invite(invited_user_id, inviter_username):
     )
 
 
+def notify_ride_like(owner_id, liker_username, ride_d_tag):
+    """Tell a user that `liker_username` liked one of their rides."""
+    add_notification(
+        owner_id,
+        f"{liker_username} liked your ride.",
+        link=f"/ride/{ride_d_tag}",
+        kind="ride_like",
+    )
+
+
+def notify_ride_comment(owner_id, commenter_username, ride_d_tag):
+    """Tell a user that `commenter_username` commented on one of their rides."""
+    add_notification(
+        owner_id,
+        f"{commenter_username} commented on your ride.",
+        link=f"/ride/{ride_d_tag}#comments",
+        kind="ride_comment",
+    )
+
+
 def notify_new_message(recipient_id, sender_username):
     """Tell a user they received a new chat message from `sender_username`.
 

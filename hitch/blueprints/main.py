@@ -48,7 +48,12 @@ from hitch.blueprints.utils.driver_info_choices import (
 from hitch.blueprints.utils.filter_request_log import FILTER_FIELDS, log_filter_request
 from hitch.blueprints.utils.iso_country_codes import ISO_3166_1_ALPHA_2
 from hitch.blueprints.utils.license_plate_country_codes import LICENSE_PLATE_COUNTRY_CHOICES
-from hitch.blueprints.utils.notifications import notify_co_hitchhiker_invite, unread_count
+from hitch.blueprints.utils.notifications import (
+    notify_co_hitchhiker_invite,
+    notify_ride_comment,
+    notify_ride_like,
+    unread_count,
+)
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON, REPORT_REASONS, REPORTS_TO_HIDE
 from hitch.blueprints.utils.ride_facts import haversine_km, ride_map_entry, spot_id_for, stop_facts
@@ -58,7 +63,7 @@ from hitch.blueprints.utils.search_request_log import log_search_request
 from hitch.blueprints.utils.signup_prompt_log import PROMPT_ACTIONS, log_signup_prompt
 from hitch.extensions import db
 from hitch.helpers import get_db, get_dirs
-from hitch.models import CoHitchhiker, Follow, ProposedSpot, RideEvent, RideReport, SpotName, User
+from hitch.models import CoHitchhiker, Follow, ProposedSpot, RideComment, RideEvent, RideLike, RideReport, SpotName, User
 from hitch.scripts.nostr_ride_parsing import parse_post_to_ride_fields
 from hitch.translations import t
 
@@ -163,6 +168,36 @@ def _user_can_delete_ride(ride, user):
     those rides already show up as theirs on their profile page.
     """
     return _user_is_hitchhiker(ride, user)
+
+
+def _ride_owner_users(ride):
+    """Registered users among this ride's listed hitchhikers, matched by nickname.
+
+    A ride can list several hitchhikers (co-hitchhiking); any of them counts as "the
+    person whose ride it is" for the follow-gated comment permission below.
+    """
+    content = ride.content or {}
+    nicknames = [h.get("nickname") for h in (content.get("hitchhikers") or []) if h.get("nickname")]
+    if not nicknames:
+        return []
+    return db.session.query(User).filter(User.username.in_(nicknames)).all()
+
+
+def _user_can_comment_on_ride(ride, user):
+    """A user may comment on a ride if it's their own, or if any of its owners follows them.
+
+    Comments are follow-gated (like DMs) so a ride can't be flooded with comments from
+    strangers its owner has never engaged with; owners can always comment on their own ride.
+    """
+    if user.is_anonymous:
+        return False
+    owners = _ride_owner_users(ride)
+    if any(owner.id == user.id for owner in owners):
+        return True
+    if not owners:
+        return False
+    owner_ids = [owner.id for owner in owners]
+    return Follow.query.filter(Follow.follower_id.in_(owner_ids), Follow.followed_id == user.id).first() is not None
 
 
 # TODO: renamed function from map() to render_map() to avoid conflict with map() builtin
@@ -855,6 +890,29 @@ def ride_detail(d_tag):
     # instead of a delete button (the ride page itself stays reachable via its permalink).
     owner_deleted = RideReport.query.filter_by(ride_d_tag=d_tag, reason=OWNER_DELETE_REASON).first() is not None
 
+    likes_count = RideLike.query.filter_by(ride_d_tag=d_tag).count()
+    liked_by_me = (
+        not current_user.is_anonymous and RideLike.query.filter_by(ride_d_tag=d_tag, user_id=current_user.id).first() is not None
+    )
+    comment_rows = (
+        db.session.query(RideComment, User.username)
+        .join(User, RideComment.user_id == User.id)
+        .filter(RideComment.ride_d_tag == d_tag)
+        .order_by(RideComment.created_at.asc())
+        .all()
+    )
+    comments = [
+        {
+            "id": comment.id,
+            "username": username,
+            "body": comment.body,
+            "created_at": comment.created_at,
+            "is_own": not current_user.is_anonymous and comment.user_id == current_user.id,
+        }
+        for comment, username in comment_rows
+    ]
+    can_comment = _user_can_comment_on_ride(ride, current_user)
+
     # The share card links here, so the page needs its own preview rather than
     # base.html's site-wide blurb.
     spot_id = spot_id_for(pickup_lat, pickup_lon) if pickup_lat is not None and pickup_lon is not None else None
@@ -867,6 +925,11 @@ def ride_detail(d_tag):
         report_confirmed=request.args.get("reported") == "1",
         og_title=og_title,
         og_description=og_description,
+        likes_count=likes_count,
+        liked_by_me=liked_by_me,
+        comments=comments,
+        can_comment=can_comment,
+        is_logged_in=not current_user.is_anonymous,
     )
 
 
@@ -938,6 +1001,72 @@ def report_ride(d_tag):
         selected=existing.reason if existing else None,
         error=None,
     )
+
+
+@main_bp.route("/like-ride/<d_tag>", methods=["POST"])
+def like_ride(d_tag):
+    """Toggle the current user's like on a ride."""
+    if current_user.is_anonymous:
+        return redirect(f"/login?next=/ride/{d_tag}")
+
+    ride = db.session.query(RideEvent).filter_by(d=d_tag).first()
+    if not ride:
+        abort(404)
+
+    existing = RideLike.query.filter_by(ride_d_tag=d_tag, user_id=current_user.id).first()
+    if existing:
+        db.session.delete(existing)
+    else:
+        db.session.add(RideLike(ride_d_tag=d_tag, user_id=current_user.id))
+        for owner in _ride_owner_users(ride):
+            if owner.id != current_user.id:
+                notify_ride_like(owner.id, current_user.username, d_tag)
+    db.session.commit()
+    return redirect(f"/ride/{d_tag}")
+
+
+@main_bp.route("/comment-ride/<d_tag>", methods=["POST"])
+def comment_ride(d_tag):
+    """Add a comment to a ride.
+
+    Only allowed if it's the commenter's own ride, or if the ride's owner already
+    follows the commenter — see `_user_can_comment_on_ride`.
+    """
+    if current_user.is_anonymous:
+        return redirect(f"/login?next=/ride/{d_tag}#comments")
+
+    ride = db.session.query(RideEvent).filter_by(d=d_tag).first()
+    if not ride:
+        abort(404)
+    if not _user_can_comment_on_ride(ride, current_user):
+        abort(403)
+
+    body = (request.form.get("body") or "").strip()[:2000]
+    if body:
+        db.session.add(RideComment(ride_d_tag=d_tag, user_id=current_user.id, body=body))
+        db.session.commit()
+        for owner in _ride_owner_users(ride):
+            if owner.id != current_user.id:
+                notify_ride_comment(owner.id, current_user.username, d_tag)
+    return redirect(f"/ride/{d_tag}#comments")
+
+
+@main_bp.route("/delete-ride-comment/<int:comment_id>", methods=["POST"])
+def delete_ride_comment(comment_id):
+    """Let a comment's author delete it."""
+    if current_user.is_anonymous:
+        abort(403)
+
+    comment = db.session.get(RideComment, comment_id)
+    if not comment:
+        abort(404)
+    if comment.user_id != current_user.id:
+        abort(403)
+
+    d_tag = comment.ride_d_tag
+    db.session.delete(comment)
+    db.session.commit()
+    return redirect(f"/ride/{d_tag}#comments")
 
 
 @main_bp.route("/ride", methods=["GET", "POST"])
