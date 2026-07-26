@@ -1017,10 +1017,15 @@ def like_ride(d_tag):
     if existing:
         db.session.delete(existing)
     else:
+        # Only the first like on a ride notifies its owner — every later liker would just
+        # push the owner's other notifications out of their 10-row window (notify_ride_like
+        # dedupes on top of this, so an unlike/relike can't re-trigger it either).
+        is_first_like = RideLike.query.filter_by(ride_d_tag=d_tag).count() == 0
         db.session.add(RideLike(ride_d_tag=d_tag, user_id=current_user.id))
-        for owner in _ride_owner_users(ride):
-            if owner.id != current_user.id:
-                notify_ride_like(owner.id, current_user.username, d_tag)
+        if is_first_like:
+            for owner in _ride_owner_users(ride):
+                if owner.id != current_user.id:
+                    notify_ride_like(owner.id, current_user.username, d_tag)
     db.session.commit()
     return redirect(f"/ride/{d_tag}")
 

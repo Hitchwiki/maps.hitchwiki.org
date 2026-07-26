@@ -17,6 +17,7 @@ from shapely.wkt import loads as wkt_loads
 from sklearn.cluster import DBSCAN
 from sklearn.exceptions import InconsistentVersionWarning
 
+from hitch.blueprints.utils.notifications import load_race_podiums, notify_new_race_podiums
 from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON, REPORTS_TO_HIDE
 from hitch.helpers import e, get_bearing, get_db, get_dirs, haversine_np, write_json_file
 from hitch.scripts.races import build_races, estimate_arrival
@@ -1379,7 +1380,13 @@ else:
                 "estimated": estimated,
             }
         )
-    write_json_file(build_races(races_md_path, race_rides_by_name), "races.json")
+    # Read the outgoing podiums before overwriting the file: whoever is on a podium now
+    # but wasn't on the previous one just entered the top 3, and that is the moment worth
+    # a notification.
+    previous_podiums = load_race_podiums(races_path)
+    new_races = build_races(races_md_path, race_rides_by_name)
+    write_json_file(new_races, "races.json")
+    notify_new_race_podiums(previous_podiums, new_races)
 
 # duplicates["from_url"] = "#" + duplicates.from_lat.astype(str) + "," + duplicates.from_lon.astype(str)
 # duplicates["to_url"] = "#" + duplicates.to_lat.astype(str) + "," + duplicates.to_lon.astype(str)
