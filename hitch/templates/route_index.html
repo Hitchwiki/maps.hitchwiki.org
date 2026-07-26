@@ -1,0 +1,23 @@
+{% extends "security/base.html" %}
+{% block title %}{{ t("Hitchhiking routes between cities") }}{% endblock %}
+{% block meta_description %}{{ t("Hitchhiking routes between cities: how long each takes, how many rides, where to stand and how long people waited.") }}{% endblock %}
+{% block og_title %}{{ t("Hitchhiking routes between cities") }}{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+  <div class="bg-white rounded-lg shadow-lg p-6">
+    <h1>{{ t("Hitchhiking routes between cities") }}</h1>
+    <p>{{ t("Each route below is built from rides hitchhikers actually logged on this map — the spots to stand at, how many rides it takes and how long people waited.") }}</p>
+    {% for origin, routes in grouped %}
+    <h2>{{ t("From {city}", city=origin) }}</h2>
+    <ul>
+      {% for r in routes %}
+      <li><a href="{{ r.filename }}">{{ t("{origin} to {destination}", origin=r.origin, destination=r.destination) }}</a>
+        — {{ r.core_time }}, {{ r.rides }} {{ t("ride(s)") }}</li>
+      {% endfor %}
+    </ul>
+    {% endfor %}
+  </div>
+  <br>
+  <small>&copy; <a id="copyright" href="/copyright.html">Hitchwiki Map</a> contributors</small>
+</div>
+{% endblock %}

@@ -54,6 +54,13 @@
 30 4 * * * cd /app && /usr/bin/flock -n /tmp/spot_names.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/python3 /app/hitch/scripts/spot_names.py' > logs/spot_names.log 2>&1
 # every day at 5 AM
 0 5 * * * cd /app && /usr/bin/flock -n /tmp/dashboard.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate dashboard' > logs/dashboard.log 2>&1
+# every day at 5:30 AM — "Hitchhiking from X to Y" SEO pages for well-evidenced city pairs.
+# Runs BEFORE cities (6 AM) on purpose: cities.py writes sitemap.xml at the end of its run
+# and picks up dist/route/index.json, so a route page generated now is advertised the same
+# night rather than a day later. It reads dist/city/top_cities.json from the PREVIOUS cities
+# run (a day-old ride ranking is fine) and dist/repeatable_routes.json from the 2 AM routing
+# rebuild. Builds the ~190 MB routing graph once for the whole batch — never in a web worker.
+30 5 * * * cd /app && /usr/bin/flock -n /tmp/route_pages.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate route_pages' > logs/route_pages.log 2>&1
 # every day at 6 AM
 0 6 * * * cd /app && /usr/bin/flock -n /tmp/cities.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate cities' > logs/cities.log 2>&1
 # every Sunday at 1 AM — off-site backup of the SQLite DB to Google Drive, PII scrubbed.

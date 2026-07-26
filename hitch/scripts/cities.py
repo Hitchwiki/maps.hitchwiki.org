@@ -233,6 +233,25 @@ logger.info(
     f"top {len(translated_positions)} also get all {len(SUPPORTED_LANGUAGES)} languages"
 )
 
+# Hand the ranking to route_pages.py. Matching rides to 48k cities is the slow part
+# of this script (~25 min); the route generator needs exactly the same ranking to
+# choose which city pairs deserve a page, so it reads this instead of recomputing it.
+top_cities = [
+    {
+        "city": matched[pos][0].city,
+        "country": matched[pos][0].country,
+        "lat": float(matched[pos][0].lat),
+        "lon": float(matched[pos][0].lng),
+        "rides": matched[pos][2],
+        "url": _city_loc(matched[pos][0].country, matched[pos][0].city),
+    }
+    for pos in sorted(renderable, key=lambda pos: -matched[pos][2])[:TOP_N_TRANSLATED]
+]
+os.makedirs(os.path.join(dist_dir, "city"), exist_ok=True)
+with open(os.path.join(dist_dir, "city", "top_cities.json"), "w", encoding="utf-8") as f:
+    json.dump(top_cities, f)
+logger.info(f"Wrote top_cities.json ({len(top_cities)} cities) for route page generation")
+
 translated_locs = []  # sitemap entries for the non-English versions
 for pos in renderable:
     city, ride_idx, _total = matched[pos]
@@ -385,14 +404,31 @@ for loc in translated_locs:
     sitemap_parts.append(_sitemap_url(loc, "0.6"))
 for loc in index_locs:
     sitemap_parts.append(_sitemap_url(loc, "0.5"))
+# Route pages (route_pages.py, which runs just before this job). Read from its
+# manifest rather than globbed off disk, so a half-finished run can't put URLs in
+# the sitemap. Absent on a fresh install or if that job failed — skipped quietly,
+# exactly like the country URLs above.
+route_locs = []
+try:
+    with open(os.path.join(dist_dir, "route", "index.json"), encoding="utf-8") as f:
+        route_locs = json.load(f)
+except (OSError, ValueError):
+    logger.warning("No dist/route/index.json — skipping route URLs in sitemap")
+# Highest per-page priority we assign: a "hitchhiking from X to Y" page answers a
+# more specific question than a city page and is the harder query to rank for.
+for loc in route_locs:
+    sitemap_parts.append(_sitemap_url(loc, "0.8"))
 sitemap_parts.append("</urlset>\n")
 
 with open(os.path.join(dist_dir, "sitemap.xml"), "w", encoding="utf-8") as f:
     f.write("".join(sitemap_parts))
-_sitemap_total = sum(rendered_cities) + len(STATIC_PAGES) + len(country_locs) + len(translated_locs) + len(index_locs)
+_sitemap_total = (
+    sum(rendered_cities) + len(STATIC_PAGES) + len(country_locs) + len(translated_locs) + len(index_locs) + len(route_locs)
+)
 logger.info(
     f"Wrote sitemap.xml with {_sitemap_total} URLs "
-    f"({len(country_locs)} countries, {len(translated_locs)} translated city pages, {len(index_locs)} translated indexes)"
+    f"({len(country_locs)} countries, {len(translated_locs)} translated city pages, "
+    f"{len(index_locs)} translated indexes, {len(route_locs)} route pages)"
 )
 
 # Open access so search engines and AI crawlers can discover the city pages.
