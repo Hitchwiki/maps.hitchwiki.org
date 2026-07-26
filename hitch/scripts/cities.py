@@ -243,6 +243,9 @@ top_cities = [
         "lat": float(matched[pos][0].lat),
         "lon": float(matched[pos][0].lng),
         "rides": matched[pos][2],
+        # Population stands in for search demand: route_pages.py uses it to pick
+        # which city represents a metro area, so "Paris" wins over "Meudon".
+        "population": int(matched[pos][0].population) if pd.notna(matched[pos][0].population) else 0,
         "url": _city_loc(matched[pos][0].country, matched[pos][0].city),
     }
     for pos in sorted(renderable, key=lambda pos: -matched[pos][2])[:TOP_N_TRANSLATED]

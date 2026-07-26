@@ -66,6 +66,10 @@ SITE_URL = "https://maps.hitchwiki.org"
 MAX_CITIES = 80
 DISTANCE_BAND_KM = (80, 1500)
 MAX_PAGES = 300
+# Two "cities" closer together than this are one metro area, and only its largest
+# member gets pages. See the dedupe in main() — without it the published set fills
+# up with suburb pairs and the routes people search for lose their slot.
+CLUSTER_KM = 45
 
 # Every leg corroborated by at least this many logged rides. 1 means a single
 # hitchhiker reported it once, which is not enough to publish as advice.
@@ -238,6 +242,24 @@ def main():
     except (OSError, ValueError):
         logger.warning("No %s yet — run `flask generate cities` first. Skipping route pages.", top_path)
         return
+
+    # Collapse metro areas to one city each.
+    #
+    # worldcities.csv lists every town over 50k as its own city, and cities.py
+    # matches rides within 20-50 km, so a Paris suburb inherits Paris's rides and
+    # ranks just as highly. Left alone the published set fills with pairs like
+    # Écully -> Bourg-la-Reine (Lyon -> Paris under other names): nobody searches
+    # for them, they route over the identical corridors, and they crowd out the
+    # journeys people do search for — Berlin -> Munich lost its page to exactly
+    # this. Keep the largest city in each cluster and drop the rest.
+    cities.sort(key=lambda c: -c.get("population", 0))
+    kept = []
+    for c in cities:
+        if any(haversine_km(c["lat"], c["lon"], k["lat"], k["lon"]) < CLUSTER_KM for k in kept):
+            continue
+        kept.append(c)
+    logger.info("%d cities after collapsing metro areas within %d km (from %d)", len(kept), CLUSTER_KM, len(cities))
+    cities = kept[:MAX_CITIES]
 
     logger.info("Loading routing graph…")
     router = load_router()
