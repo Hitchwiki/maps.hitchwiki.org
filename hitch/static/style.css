@@ -2924,6 +2924,7 @@ body.inr-picking #inr-start-bar,
 body.selecting-location #inr-start-bar,
 body.adding-spot #inr-start-bar,
 body.reporting-duplicate #inr-start-bar,
+body.showing-insights #inr-start-bar,
 body:has(.inride-scrim) #inr-start-bar,
 body:has(.sidebar.visible) #inr-start-bar,
 body:has(.topbar.visible) #inr-start-bar {
