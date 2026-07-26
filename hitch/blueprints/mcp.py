@@ -128,6 +128,29 @@ def _haversine_km(lat1, lon1, lat2, lon2):
     return EARTH_RADIUS_KM * 2 * math.asin(math.sqrt(a))
 
 
+# Settlement types, best first. Photon ranks "Lisbon" the *county* (lat 38.995)
+# above "Lisbon" the *city* (lat 38.708) — 32 km apart, and the county centroid
+# is farmland with no hitchhiking spot near it, which turned the first leg into
+# a 27 km walk. A traveller naming a place means the town, so prefer one.
+_SETTLEMENT_PRIORITY = ("city", "town", "village", "municipality", "locality", "hamlet")
+
+
+def _pick_settlement(features):
+    """The candidate a traveller most likely meant, else Photon's own top hit.
+
+    Falls back to features[0] when nothing is a settlement, so searching a
+    street, a service area or a region still resolves to what was asked for.
+    """
+
+    def rank(item):
+        idx, feat = item
+        ftype = (feat.get("properties") or {}).get("type")
+        priority = _SETTLEMENT_PRIORITY.index(ftype) if ftype in _SETTLEMENT_PRIORITY else len(_SETTLEMENT_PRIORITY)
+        return priority, idx  # ties keep Photon's own ordering
+
+    return min(enumerate(features), key=rank)[1]
+
+
 def _geocode(place):
     """A place name (or 'lat,lon') → (lat, lon, label), or None if unresolvable.
 
@@ -148,7 +171,9 @@ def _geocode(place):
     try:
         r = requests.get(
             "https://photon.komoot.io/api",
-            params={"q": place, "limit": 1, "lang": "en"},
+            # Several candidates, because the top hit is not always the one a
+            # traveller means — see _pick_settlement.
+            params={"q": place, "limit": 5, "lang": "en"},
             headers={"User-Agent": USER_AGENT},
             timeout=8,
         )
@@ -159,7 +184,7 @@ def _geocode(place):
     if not features:
         return None
 
-    feat = features[0]
+    feat = _pick_settlement(features)
     lon, lat = feat["geometry"]["coordinates"][:2]
     props = feat.get("properties", {})
     label = ", ".join(str(props[k]) for k in ("name", "state", "country") if props.get(k)) or place

@@ -486,6 +486,37 @@ def test_unknown_tool_is_a_protocol_error(client):
 
 
 # ---------------------------------------------------------------------------
+# Geocoding candidate choice
+# ---------------------------------------------------------------------------
+def _feature(ftype, name, lat, lon):
+    return {"geometry": {"coordinates": [lon, lat]}, "properties": {"type": ftype, "name": name, "country": "Portugal"}}
+
+
+def test_prefers_the_city_over_an_administrative_area():
+    """Photon ranks 'Lisbon' the county (38.995) above 'Lisbon' the city
+    (38.708). The county centroid is farmland with no spot near it, which turned
+    the first leg of a real route into a 27 km walk."""
+    features = [_feature("county", "Lisbon", 38.9952, -9.1436), _feature("city", "Lisbon", 38.7078, -9.1366)]
+    assert mcp_mod._pick_settlement(features)["properties"]["type"] == "city"
+
+
+def test_prefers_the_larger_settlement_type():
+    features = [_feature("village", "Springfield", 1.0, 1.0), _feature("town", "Springfield", 2.0, 2.0)]
+    assert mcp_mod._pick_settlement(features)["properties"]["type"] == "town"
+
+
+def test_falls_back_to_photons_ranking_when_nothing_is_a_settlement():
+    """Searching a service area or a street must still resolve to what was asked."""
+    features = [_feature("street", "Raststätte Pratteln", 47.5, 7.7), _feature("house", "Other", 1.0, 1.0)]
+    assert mcp_mod._pick_settlement(features)["properties"]["name"] == "Raststätte Pratteln"
+
+
+def test_settlement_choice_keeps_photon_order_within_a_type():
+    features = [_feature("city", "First", 1.0, 1.0), _feature("city", "Second", 2.0, 2.0)]
+    assert mcp_mod._pick_settlement(features)["properties"]["name"] == "First"
+
+
+# ---------------------------------------------------------------------------
 # Identity
 # ---------------------------------------------------------------------------
 def test_spot_id_matches_map_convention():
