@@ -34,16 +34,43 @@
 .wra-btn:hover { color: #555; border-color: #999; }
 .wra-btn--yes[aria-pressed="true"] { color: #2e7d32; border-color: #2e7d32; background: #eaf5eb; }
 .wra-btn--no[aria-pressed="true"] { color: #c62828; border-color: #c62828; background: #fbeaea; }
-.ride-photo-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
-.ride-photo-existing, .ride-photo-pending { width: 120px; }
-.ride-photo-grid img {
-    width: 120px; height: 90px; object-fit: cover;
-    border-radius: 4px; border: 1px solid #ddd; display: block;
+/* Photo tiles: uploaded pictures and a trailing "+" tile, all the same square, so the
+   row reads as one strip of slots rather than a file field with a preview bolted on. */
+.ride-photo-tiles { display: flex; flex-wrap: wrap; gap: 10px; margin: 6px 0 4px; }
+.ride-photo-tile, .ride-photo-add {
+    position: relative; width: 104px; height: 104px;
+    border-radius: 8px; overflow: hidden; flex: 0 0 auto;
 }
-.ride-photo-remove { display: block; font-weight: normal; font-size: 0.85em; color: #b02a37; margin-top: 2px; }
-.ride-photo-pending .ride-photo-name {
-    font-size: 0.75em; color: #888; margin-top: 2px;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+.ride-photo-tile { border: 1px solid #ddd; background: #f2f2f2; }
+.ride-photo-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ride-photo-add {
+    display: flex; align-items: center; justify-content: center;
+    border: 2px dashed #bbb; background: #fafafa; color: #999;
+    cursor: pointer; padding: 0; transition: border-color .12s ease, color .12s ease, background-color .12s ease;
+}
+.ride-photo-add:hover { border-color: #28a745; color: #28a745; background: #f4fbf5; }
+.ride-photo-plus { font-size: 2.2em; line-height: 1; font-weight: 300; }
+/* The x sits on the image, so it needs its own contrast rather than the page's. */
+.ride-photo-x {
+    position: absolute; top: 4px; right: 4px;
+    width: 22px; height: 22px; border-radius: 50%;
+    border: none; padding: 0;
+    background: rgba(0, 0, 0, 0.55); color: #fff;
+    font-size: 14px; line-height: 22px; text-align: center;
+    cursor: pointer;
+}
+.ride-photo-x:hover { background: rgba(176, 42, 55, 0.9); }
+/* Uploading state: the tile exists immediately (with a local preview) and dims until the
+   server confirms, so a slow phone upload never looks like nothing happened. */
+.ride-photo-tile--uploading img { opacity: 0.45; }
+.ride-photo-spinner {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: #333; font-size: 0.75em; font-weight: 600;
+}
+/* Visually hidden but still focusable/clickable via the + tile. */
+.sr-only-file {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;
 }
 </style>
 {% endblock %}
@@ -119,9 +146,10 @@
         </div>
     </div>
 
-    {# enctype is required for the photo upload at the bottom of this form; without it the
-       browser posts filenames only and request.files is empty. #}
-    <form id="ride-form" action="/ride" method="post" enctype="multipart/form-data" onsubmit="return validateForm()">
+    {# No enctype: photos never travel with this POST. They are uploaded as they are
+       picked (see the photo tiles at the bottom) and the form carries only the
+       draft_token that claims them. #}
+    <form id="ride-form" action="/ride" method="post" onsubmit="return validateForm()">
         <input type="hidden" name="edit_d_tag" value="{{ ride_data.d_tag if ride_data else '' }}">
         <input type="hidden" name="pickup_lat" id="pickup_lat" value="{{ ride_data.pickup_lat if ride_data else '' }}">
         <input type="hidden" name="pickup_lon" id="pickup_lon" value="{{ ride_data.pickup_lon if ride_data else '' }}">
@@ -314,25 +342,26 @@
 
         {# Photos sit at the very bottom of the form, in both the new-ride and the edit
            case. They are stored on this server and linked to the ride by its Nostr d tag;
-           nothing about them is published to the relays (see utils/ride_images.py). #}
-        <div class="form-group" id="ride-photos-group">
+           nothing about them is published to the relays (see utils/ride_images.py).
+
+           Each photo uploads the moment it is picked, into the draft below, and the
+           submit only claims them. Keeping files in the <input> until submit cannot work
+           here: picking a pickup location navigates the page away to the map, and
+           re-opening the file picker replaces the whole previous FileList. #}
+        <div class="form-group" id="ride-photos-group"
+             data-max-images="{{ max_ride_images }}"
+             data-images="{{ ride_images|tojson|forceescape }}">
             <label>Photos (optional, up to {{ max_ride_images }})</label>
-            {% if ride_images %}
-            <div class="ride-photo-grid">
-                {% for img in ride_images %}
-                <div class="ride-photo-existing">
-                    <img src="{{ img.url }}" alt="Photo of this ride">
-                    <label class="ride-photo-remove">
-                        <input type="checkbox" name="remove_image" value="{{ img.id }}"> Remove
-                    </label>
-                </div>
-                {% endfor %}
+            <input type="hidden" name="draft_token" id="draft_token" value="">
+            <div id="ride-photo-tiles" class="ride-photo-tiles">
+                <button type="button" id="ride-photo-add" class="ride-photo-add" aria-label="Add a photo">
+                    <span class="ride-photo-plus" aria-hidden="true">+</span>
+                </button>
             </div>
-            {% endif %}
-            <input type="file" id="ride_images" name="ride_images" class="form-control"
-                   accept="image/jpeg,image/png,image/webp,image/gif" multiple
-                   data-existing-count="{{ ride_images|length }}" data-max-images="{{ max_ride_images }}">
-            <div id="ride-photos-preview" class="ride-photo-grid" style="margin-top:8px;"></div>
+            {# The real input is offscreen; the + tile is what the user clicks. `multiple`
+               still helps for picking several at once, which we then upload one by one. #}
+            <input type="file" id="ride_images" class="sr-only-file"
+                   accept="image/jpeg,image/png,image/webp,image/gif" multiple>
             <span id="ride-photos-error" class="error text-danger" style="display:block; font-size:0.85em;"></span>
             <p style="margin-top:6px; font-size:0.8rem; color:#888;">
                 Photos you upload here are published under
@@ -457,9 +486,14 @@
             driver_origin_country: document.getElementById('driver_origin_country')?.value || '',
             driver_age: document.getElementById('driver_age')?.value || '',
             driver_gender: document.getElementById('driver_gender')?.value || '',
-            driver_languages: document.getElementById('driver_languages')?.value || ''
+            driver_languages: document.getElementById('driver_languages')?.value || '',
+            // Photos are already uploaded and live under this token on the server, so
+            // carrying the token is all that is needed to get the tiles back — which is
+            // exactly why they are uploaded on pick rather than held in the file input,
+            // whose selection this navigation would destroy.
+            draft_token: document.getElementById('draft_token')?.value || ''
         };
-        
+
         sessionStorage.setItem('rideFormData', JSON.stringify(formData));
         
         // Get coordinates for initial map position
@@ -520,6 +554,8 @@
                 if (window._signalRenderTags) window._signalRenderTags();
             }
             if (data.no_ride !== undefined) document.getElementById('no_ride').checked = !!data.no_ride;
+            // Re-adopt the photo draft and pull its tiles back from the server.
+            if (data.draft_token && ridePhotos) ridePhotos.restore(data.draft_token);
             if (data.datetime_ride) document.querySelector('input[name="datetime_ride"]').value = data.datetime_ride;
             if (data.arrival_datetime) document.querySelector('input[name="arrival_datetime"]').value = data.arrival_datetime;
             if (data.vehicle_kind !== undefined) document.getElementById('vehicle_kind').value = data.vehicle_kind;
@@ -630,14 +666,6 @@
         if (dep && arr && new Date(arr) <= new Date(dep)) {
             hmTrack('ride_form_blocked', { reason: 'arrival-before-departure' });
             errSpan.textContent = 'Arrival must be later than the pickup time.';
-            return false;
-        }
-
-        // Too many / too large photos would be a 400 from the server, which on this
-        // full-page POST means an error page with the whole filled-in form lost. Catch
-        // the two foreseeable mistakes here instead.
-        if (!validateRidePhotos()) {
-            hmTrack('ride_form_blocked', { reason: 'photos' });
             return false;
         }
 
@@ -1120,80 +1148,163 @@
     }
     initWouldRideAgain();
 
-    // Photo picker. The server is the authority on all of these limits (ride_images.py);
-    // this only spares the user a 400 that would take the rest of the filled-in form with
-    // it. "How many may I still add" counts the existing photos they have NOT ticked for
-    // removal, exactly as the server does.
+    // Photo tiles.
+    //
+    // Every photo is uploaded the moment it is picked, into a server-side draft keyed by
+    // #draft_token; the submit only claims that draft. Anything else loses pictures:
+    // choosing a pickup location navigates the whole page to the map (selectLocation),
+    // and re-opening the file picker replaces the entire previous FileList — so files
+    // parked in the <input> until submit disappear both ways.
+    //
+    // The server is the authority on every limit (ride_images.py); the checks here only
+    // save a round trip.
     const RIDE_PHOTO_MAX_BYTES = 12 * 1024 * 1024;
 
-    function ridePhotoAllowance() {
+    const ridePhotos = (function () {
+        const group = document.getElementById('ride-photos-group');
+        const tiles = document.getElementById('ride-photo-tiles');
+        const addBtn = document.getElementById('ride-photo-add');
         const input = document.getElementById('ride_images');
-        if (!input) return 0;
-        const max = parseInt(input.dataset.maxImages || '3', 10);
-        const existing = parseInt(input.dataset.existingCount || '0', 10);
-        const removing = document.querySelectorAll('input[name="remove_image"]:checked').length;
-        return max - (existing - removing);
-    }
-
-    function validateRidePhotos() {
-        const input = document.getElementById('ride_images');
+        const tokenInput = document.getElementById('draft_token');
         const errSpan = document.getElementById('ride-photos-error');
-        if (!input || !errSpan) return true;
-        errSpan.textContent = '';
-        const files = Array.from(input.files || []);
-        if (!files.length) return true;
+        if (!group || !tiles || !addBtn || !input || !tokenInput) return null;
 
-        const allowance = ridePhotoAllowance();
-        if (allowance <= 0) {
-            errSpan.textContent = 'This ride already has the maximum number of photos. Tick "Remove" on one first.';
-            return false;
-        }
-        if (files.length > allowance) {
-            errSpan.textContent = 'You can add ' + allowance + ' more photo(s) — ' + files.length + ' are selected.';
-            return false;
-        }
-        const tooBig = files.find(f => f.size > RIDE_PHOTO_MAX_BYTES);
-        if (tooBig) {
-            errSpan.textContent = '"' + tooBig.name + '" is larger than 12 MB.';
-            return false;
-        }
-        return true;
-    }
+        const MAX = parseInt(group.dataset.maxImages || '3', 10);
+        // Photos already on the ride being edited. They belong to the ride, not to the
+        // draft, so their x deletes server-side straight away.
+        let photos = [];
+        try { photos = JSON.parse(group.dataset.images || '[]'); } catch (e) { photos = []; }
 
-    function initRidePhotos() {
-        const input = document.getElementById('ride_images');
-        const preview = document.getElementById('ride-photos-preview');
-        if (!input || !preview) return;
+        function token() {
+            if (!tokenInput.value) {
+                tokenInput.value = (crypto.randomUUID ? crypto.randomUUID()
+                    : String(Date.now()) + '-' + Math.random().toString(36).slice(2));
+            }
+            return tokenInput.value;
+        }
 
-        function render() {
-            // Revoke the previous batch's object URLs, or every re-pick leaks the
-            // decoded image until the page is closed.
-            preview.querySelectorAll('img').forEach(img => URL.revokeObjectURL(img.src));
-            preview.innerHTML = '';
-            Array.from(input.files || []).forEach(file => {
-                if (!file.type.startsWith('image/')) return;
-                const cell = document.createElement('div');
-                cell.className = 'ride-photo-pending';
-                const img = document.createElement('img');
-                img.src = URL.createObjectURL(file);
-                img.alt = file.name;
-                const name = document.createElement('div');
-                name.className = 'ride-photo-name';
-                name.textContent = file.name;
-                cell.appendChild(img);
-                cell.appendChild(name);
-                preview.appendChild(cell);
+        function setError(message) {
+            if (errSpan) errSpan.textContent = message || '';
+        }
+
+        function renderAddButton() {
+            // At the cap the + tile goes away rather than erroring on click; deleting a
+            // photo brings it straight back.
+            addBtn.style.display = tiles.querySelectorAll('.ride-photo-tile').length >= MAX ? 'none' : 'flex';
+        }
+
+        function makeTile(photo, objectUrl) {
+            const tile = document.createElement('div');
+            tile.className = 'ride-photo-tile';
+            const img = document.createElement('img');
+            img.src = objectUrl || photo.url;
+            img.alt = 'Ride photo';
+            tile.appendChild(img);
+
+            const x = document.createElement('button');
+            x.type = 'button';
+            x.className = 'ride-photo-x';
+            x.setAttribute('aria-label', 'Remove this photo');
+            x.textContent = '×';
+            x.addEventListener('click', function () {
+                const id = tile.dataset.imageId;
+                // A tile still uploading has no id yet; dropping it locally is all we can
+                // do, and the orphan draft row is swept server-side.
+                if (!id) { tile.remove(); renderAddButton(); return; }
+                x.disabled = true;
+                const body = new FormData();
+                body.append('draft_token', token());
+                fetch('/ride-image/' + encodeURIComponent(id) + '/delete', { method: 'POST', body: body })
+                    .then(r => { if (!r.ok) throw new Error('delete failed'); tile.remove(); renderAddButton(); setError(''); })
+                    .catch(() => { x.disabled = false; setError('Could not remove that photo. Please try again.'); });
             });
-            validateRidePhotos();
+            tile.appendChild(x);
+
+            // Insert before the + so the add tile always trails the strip.
+            tiles.insertBefore(tile, addBtn);
+            renderAddButton();
+            return tile;
         }
 
-        input.addEventListener('change', render);
-        // Ticking "Remove" frees a slot, so the count message has to be re-evaluated.
-        document.querySelectorAll('input[name="remove_image"]').forEach(box => {
-            box.addEventListener('change', validateRidePhotos);
+        function upload(file) {
+            if (!file.type.startsWith('image/')) {
+                setError('"' + file.name + '" is not an image.');
+                return;
+            }
+            if (file.size > RIDE_PHOTO_MAX_BYTES) {
+                setError('"' + file.name + '" is larger than 12 MB.');
+                return;
+            }
+            if (tiles.querySelectorAll('.ride-photo-tile').length >= MAX) {
+                setError('A ride can have at most ' + MAX + ' photos.');
+                return;
+            }
+            setError('');
+
+            // Show the tile from the local file immediately: on a phone the upload can
+            // take seconds, and an empty slot reads as "nothing happened".
+            const objectUrl = URL.createObjectURL(file);
+            const tile = makeTile(null, objectUrl);
+            tile.classList.add('ride-photo-tile--uploading');
+            const spinner = document.createElement('div');
+            spinner.className = 'ride-photo-spinner';
+            spinner.textContent = 'Uploading…';
+            tile.appendChild(spinner);
+
+            const body = new FormData();
+            body.append('image', file);
+            body.append('draft_token', token());
+            fetch('/ride-image', { method: 'POST', body: body })
+                .then(r => r.json().then(data => ({ ok: r.ok, data })))
+                .then(({ ok, data }) => {
+                    if (!ok || !data.ok) throw new Error(data.error || 'Upload failed.');
+                    tile.dataset.imageId = data.id;
+                    // Swap the local preview for the stored (rotated, EXIF-stripped) file
+                    // so what the tile shows is what the ride page will show.
+                    tile.querySelector('img').src = data.url;
+                    URL.revokeObjectURL(objectUrl);
+                    tile.classList.remove('ride-photo-tile--uploading');
+                    spinner.remove();
+                })
+                .catch(err => {
+                    URL.revokeObjectURL(objectUrl);
+                    tile.remove();
+                    renderAddButton();
+                    setError(err.message || 'Upload failed.');
+                });
+        }
+
+        addBtn.addEventListener('click', function () { input.click(); });
+        input.addEventListener('change', function () {
+            // One request per file: a batch pick uploads them all, and re-opening the
+            // picker adds to the strip instead of replacing it.
+            Array.from(input.files || []).forEach(upload);
+            input.value = '';  // so picking the same file again still fires `change`
         });
-    }
-    initRidePhotos();
+
+        // Photos of the ride being edited, rendered with the same tile + x as new ones.
+        photos.forEach(photo => { makeTile(photo).dataset.imageId = photo.id; });
+        renderAddButton();
+
+        return {
+            // Called by restoreFormData: the draft survives the trip to the map, so
+            // re-adopt its token and re-render the tiles it already holds.
+            restore(savedToken) {
+                if (!savedToken) return;
+                tokenInput.value = savedToken;
+                fetch('/ride-image/draft/' + encodeURIComponent(savedToken))
+                    .then(r => r.json())
+                    .then(data => {
+                        (data.images || []).forEach(photo => {
+                            if (tiles.querySelector('[data-image-id="' + photo.id + '"]')) return;
+                            makeTile(photo).dataset.imageId = photo.id;
+                        });
+                    })
+                    .catch(() => {});
+            },
+            token: () => tokenInput.value,
+        };
+    })();
 
     // Expose re-render hooks so sessionStorage restore can refresh the chip rows after editing the hidden inputs.
     if (signalChip) window._signalRenderTags = signalChip.renderTags;

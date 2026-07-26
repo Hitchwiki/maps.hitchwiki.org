@@ -208,12 +208,23 @@ class RideImage(db.Model):
     `user_id` is nullable because the ride form can be submitted anonymously; the abuse
     trail for such an upload is the ride's own entry in logs/ride_ips.csv (log_ride_ip),
     which keeps IP addresses out of the database and its off-site backups.
+
+    Exactly one of `ride_d_tag` / `draft_token` is set. A photo is uploaded the moment it
+    is picked, which is *before* the ride exists — the d tag only comes back from the
+    relay publish — so it lands under the form's `draft_token` and is claimed by the
+    submit. It has to work this way: the form navigates away to the map to pick a pickup
+    point, and no file input survives a navigation, so anything still held in the browser
+    at submit time would silently vanish.
     """
 
     __tablename__ = "ride_image"
 
     id = db.Column(db.Integer, primary_key=True)
-    ride_d_tag = db.Column(db.String(255), nullable=False, index=True)
+    # NULL while the photo is still attached to an unsubmitted form.
+    ride_d_tag = db.Column(db.String(255), nullable=True, index=True)
+    # The submitting form's random token, NULL once the photo belongs to a ride. Unclaimed
+    # rows are swept after ride_images.DRAFT_TTL so an abandoned form leaves no litter.
+    draft_token = db.Column(db.String(64), nullable=True, index=True)
     # Path relative to dist/ride-images/, e.g. "2026/07/<uuid>.jpg". Stored rather than
     # derived so the on-disk layout can change without rewriting existing rows.
     filename = db.Column(db.String(255), nullable=False, unique=True)

@@ -59,11 +59,16 @@ from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON, REPORT_REASO
 from hitch.blueprints.utils.ride_facts import haversine_km, ride_map_entry, spot_id_for, stop_facts
 from hitch.blueprints.utils.ride_images import (
     MAX_IMAGES_PER_RIDE,
-    delete_ride_images,
+    RideImageError,
+    claim_draft_images,
+    delete_ride_image,
     image_url,
+    images_for_draft,
     images_for_ride,
-    prepare_uploads,
-    store_ride_images,
+    prepare_upload,
+    store_draft_image,
+    sweep_stale_drafts,
+    valid_draft_token,
 )
 from hitch.blueprints.utils.ride_ip_log import get_client_ip, log_ride_ip
 from hitch.blueprints.utils.route_request_log import log_route_request
@@ -71,7 +76,18 @@ from hitch.blueprints.utils.search_request_log import log_search_request
 from hitch.blueprints.utils.signup_prompt_log import PROMPT_ACTIONS, log_signup_prompt
 from hitch.extensions import db
 from hitch.helpers import get_db, get_dirs
-from hitch.models import CoHitchhiker, Follow, ProposedSpot, RideComment, RideEvent, RideLike, RideReport, SpotName, User
+from hitch.models import (
+    CoHitchhiker,
+    Follow,
+    ProposedSpot,
+    RideComment,
+    RideEvent,
+    RideImage,
+    RideLike,
+    RideReport,
+    SpotName,
+    User,
+)
 from hitch.scripts.nostr_ride_parsing import parse_post_to_ride_fields
 from hitch.translations import t
 
@@ -1087,6 +1103,80 @@ def delete_ride_comment(comment_id):
     return redirect(f"/ride/{d_tag}#comments")
 
 
+@main_bp.route("/ride-image", methods=["POST"])
+def upload_ride_image():
+    """Store one photo the moment the user picks it, before the ride exists.
+
+    Uploading on pick rather than on submit is what makes the picker work at all: the
+    ride form navigates the whole page away to the map to choose a pickup point, and a
+    file input's selection cannot survive that — nor can a second trip to the file picker
+    keep the first trip's files, since opening it replaces the entire FileList.
+
+    The photo lands under the form's `draft_token` and is claimed by the submit
+    (claim_draft_images). Editing an existing ride uses the same path, so cancelling an
+    edit leaves the ride's photos exactly as they were.
+    """
+    draft_token = valid_draft_token(request.form.get("draft_token"))
+    if not draft_token:
+        return jsonify({"ok": False, "error": "Missing upload token."}), 400
+
+    # Counted per draft, so no form can ever hold more than a ride is allowed. The submit
+    # re-checks against the ride's own photos, which is the number that finally matters.
+    if len(images_for_draft(draft_token)) >= MAX_IMAGES_PER_RIDE:
+        return jsonify({"ok": False, "error": f"A ride can have at most {MAX_IMAGES_PER_RIDE} photos."}), 400
+
+    try:
+        prepared = prepare_upload(request.files.get("image"))
+        row = store_draft_image(draft_token, prepared, None if current_user.is_anonymous else current_user.id)
+    except RideImageError as err:
+        return jsonify({"ok": False, "error": str(err)}), 400
+
+    # Opportunistic housekeeping: an upload is the only thing that creates drafts, so it
+    # is also the natural moment to clear out the ones nobody ever submitted.
+    sweep_stale_drafts()
+
+    return jsonify({"ok": True, "id": row.id, "url": image_url(row.filename)})
+
+
+@main_bp.route("/ride-image/draft/<token>")
+def draft_ride_images(token):
+    """The photos held under one draft token, so the form can redraw its tiles.
+
+    Needed because picking a pickup location navigates the page away and comes back: the
+    token survives in sessionStorage, but the tiles have to be rebuilt from the server.
+    Not under /ride-images/ — that prefix is the uploaded files themselves, served from
+    dist/ by the catch-all route.
+    """
+    images = images_for_draft(token)
+    return jsonify({"images": [{"id": img.id, "url": image_url(img.filename)} for img in images]})
+
+
+@main_bp.route("/ride-image/<int:image_id>/delete", methods=["POST"])
+def remove_ride_image(image_id):
+    """Delete one photo — the little x on its tile.
+
+    Two kinds of photo can be deleted, with a different key for each: one still under a
+    draft token (the caller must present that token, which only the form that uploaded it
+    has), and one already attached to a ride (the caller must be able to edit that ride).
+    """
+    row = db.session.get(RideImage, image_id)
+    if row is None:
+        # Idempotent on purpose: the tile is already gone from the user's point of view,
+        # and a double-click must not surface an error.
+        return jsonify({"ok": True})
+
+    if row.draft_token:
+        if valid_draft_token(request.form.get("draft_token")) != row.draft_token:
+            abort(403)
+    else:
+        ride = db.session.query(RideEvent).filter_by(d=row.ride_d_tag).first()
+        if not ride or not _user_owns_ride(ride, current_user):
+            abort(403)
+
+    delete_ride_image(row)
+    return jsonify({"ok": True})
+
+
 @main_bp.route("/ride", methods=["GET", "POST"])
 def ride_form():
     """Dedicated ride form page."""
@@ -1387,15 +1477,9 @@ def ride_form():
                     return jsonify({"ok": False, "error": "unauthorized"}), 400
                 return redirect("/#error")  # User doesn't own this ride
 
-        ### Photos (stored on this server, never published to Nostr — see ride_images.py)
-        # Decoded and re-encoded here: after the ownership check above, so a stranger's
-        # POST is rejected before we spend CPU on their files, and before anything reaches
-        # the relays, so an unreadable or oversized file is a rejected submission rather
-        # than a failure discovered once the ride is live and unrecallable. The photos are
-        # written to disk further down, when the d tag they hang off finally exists.
-        remove_image_ids = [int(v) for v in request.form.getlist("remove_image") if v.strip().lstrip("-").isdigit()]
-        kept_image_count = sum(1 for img in images_for_ride(edit_d_tag) if img.id not in remove_image_ids)
-        prepared_images = prepare_uploads(request.files.getlist("ride_images"), MAX_IMAGES_PER_RIDE - kept_image_count)
+        # Photos were already uploaded and stored while the form was being filled in (see
+        # upload_ride_image); all the submit carries is the token to claim them under.
+        draft_token = valid_draft_token(data.get("draft_token"))
 
         if edit_d_tag:
             # Create new record with updated form data to get updated fields
@@ -1429,13 +1513,11 @@ def ride_form():
         log_ride_ip(d_tag)
 
         ### Photos
-        # Both calls are scoped to this ride's d tag, and we only get here once the edit
-        # branch above has confirmed the user may edit it — so a hand-crafted
-        # remove_image id belonging to another ride simply matches nothing.
-        if remove_image_ids:
-            delete_ride_images(remove_image_ids, d_tag)
-        if prepared_images:
-            store_ride_images(d_tag, prepared_images, None if current_user.is_anonymous else current_user.id)
+        # The d tag exists for the first time here, so this is the earliest moment the
+        # form's already-uploaded photos can be attached to a ride. On an edit we only
+        # reach this line once ownership was confirmed above.
+        if draft_token:
+            claim_draft_images(draft_token, d_tag)
 
         ### Co-hitchhikers
         # Requirement: co-hitchhikers already on a ride cannot be removed when editing, only new
