@@ -1738,6 +1738,21 @@ def _hidden_ride_dtags(d_tags):
     return {r.ride_d_tag for r in rows if r.n >= REPORTS_TO_HIDE or r.reason == OWNER_DELETE_REASON}
 
 
+def _images_by_ride(d_tags):
+    """Photo URLs keyed by ride d tag, for the handful of rides we are about to serve.
+
+    Ordered by id so the strip shows photos in upload order, the same order the
+    per-spot files and the ride page use.
+    """
+    if not d_tags:
+        return {}
+    rows = db.session.query(RideImage).filter(RideImage.ride_d_tag.in_(list(d_tags))).order_by(RideImage.id.asc()).all()
+    by_d_tag = {}
+    for row in rows:
+        by_d_tag.setdefault(row.ride_d_tag, []).append(image_url(row.filename))
+    return by_d_tag
+
+
 @main_bp.route("/pending_rides.json")
 def pending_rides_json():
     """Rides logged since show.py last generated the map files.
@@ -1755,11 +1770,15 @@ def pending_rides_json():
 
     rides = db.session.query(RideEvent).filter(RideEvent.created_at >= int(since)).all()
     hidden = _hidden_ride_dtags([r.d for r in rides if r.d])
+    # One query for the whole pending set: a photo uploaded minutes ago is not in the
+    # per-spot files yet, so without this the spot pane's image strip would lag a ride
+    # by up to a show.py cycle even though the ride card itself is already there.
+    images_by_d_tag = _images_by_ride([r.d for r in rides if r.d])
     entries = []
     for ride in rides:
         if ride.d in hidden:
             continue
-        entry = ride_map_entry(ride)
+        entry = ride_map_entry(ride, images_by_d_tag.get(ride.d))
         if entry is not None:
             entries.append(entry)
     return jsonify(entries)

@@ -142,6 +142,18 @@ class TestRideMapEntry:
         expected = float(haversine_np(51.08170, 13.73629, 52.51739, 13.39513))
         assert entry["distance"] == round(expected, 1)
 
+    def test_photos_ride_along_so_the_spot_strip_does_not_lag_the_ride_card(self):
+        # A photo uploaded minutes ago is not in the per-spot files yet, so the pending
+        # entry has to carry it or the strip would trail the card by a show.py cycle.
+        entry = ride_map_entry(self._ride(), ["/ride-images/2026/07/a.jpg"])
+        assert entry["images"] == ["/ride-images/2026/07/a.jpg"]
+
+    def test_a_ride_with_no_photos_ships_no_images_key(self):
+        # Matching the per-spot files: an empty list on every entry is payload for a
+        # field almost no ride has.
+        assert "images" not in ride_map_entry(self._ride())
+        assert "images" not in ride_map_entry(self._ride(), [])
+
     def test_a_ride_with_no_pickup_coordinates_cannot_be_placed(self):
         assert ride_map_entry(self._ride(stops=[])) is None
 

@@ -2335,6 +2335,36 @@ document.addEventListener("click", (e) => {
   window.location.href = card.dataset.rideHref;
 });
 
+// Photos attached to the rides logged at this spot, as one horizontally scrollable
+// strip at the top of the pane. Flattened across rides in the order the cards are shown
+// (newest ride first), each thumbnail linking to the ride it belongs to — a photo is
+// only meaningful next to the report it came with.
+function renderSpotPhotos(rides) {
+  const strip = $$("#spot-photos");
+  if (!strip) return;
+  const photos = [];
+  (rides || []).forEach((r) => {
+    (r.images || []).forEach((url) => photos.push({ url, rideId: r.id }));
+  });
+
+  // hidden rather than empty: an empty flex row still occupies its gap and padding,
+  // which would push every spot pane down for a feature almost no spot uses yet.
+  strip.hidden = photos.length === 0;
+  if (!photos.length) {
+    strip.innerHTML = "";
+    return;
+  }
+
+  strip.innerHTML = photos.map((p) => {
+    const href = p.rideId ? `/ride/${encodeURIComponent(p.rideId)}` : "";
+    const open = href ? `<a class="spot-photo" href="${href}">` : `<span class="spot-photo">`;
+    const close = href ? "</a>" : "</span>";
+    // loading=lazy: only the first couple of thumbnails are on screen in the strip,
+    // and the rest shouldn't cost a phone its data to scroll past.
+    return `${open}<img src="${encodeURI(p.url)}" alt="${tr("Photo of this spot")}" loading="lazy">${close}`;
+  }).join("");
+}
+
 // A spot needs at least this many rides carrying a value before its distribution is
 // worth drawing — below that the bars say nothing the average doesn't already say.
 const SPOT_HIST_MIN_SAMPLES = 10;
@@ -2549,6 +2579,7 @@ async function handleMarkerClick(marker, point, e) {
   renderSpotSummary(marker.options._data);
 
   // Update rides content now that the fetch is complete
+  renderSpotPhotos(spotRides);
   $$("#spot-text").innerHTML = renderRideCards(spotRides);
   if (spotRides.length === 0 && (!marker.options._data.distance || Number.isNaN(marker.options._data.distance)))
     $$("#extra-text").innerHTML = tr("No comments/ride info.");
@@ -2570,6 +2601,9 @@ function markerClick(marker) {
   const nameEl = $$("#spot-name");
   nameEl.textContent = "";
   nameEl.hidden = true;
+  // Same reason as the name: photos arrive with handleMarkerClick's fetch, so the
+  // previous spot's must not still be on screen while this one's are in flight.
+  renderSpotPhotos(data.rides);
   $$("#share-spot-btn").dataset.shareTitle = tr("Hitchhiking spot on Hitchwiki Maps");
   $$("#spot-google-link").href = window.ontouchstart
     ? `geo:${data.lat},${data.lon}`

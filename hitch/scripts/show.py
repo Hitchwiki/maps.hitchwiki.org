@@ -19,6 +19,7 @@ from sklearn.exceptions import InconsistentVersionWarning
 
 from hitch.blueprints.utils.notifications import load_race_podiums, notify_new_race_podiums
 from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON, REPORTS_TO_HIDE
+from hitch.blueprints.utils.ride_images import image_url
 from hitch.helpers import e, get_bearing, get_db, get_dirs, haversine_np, write_json_file
 from hitch.scripts.races import build_races, estimate_arrival
 from hitch.scripts.spot_naming import resolve_spot_name
@@ -1202,12 +1203,40 @@ if os.path.exists(by_spot_dir):
     shutil.rmtree(by_spot_dir)
 os.makedirs(by_spot_dir, exist_ok=True)
 
+
+def get_ride_image_urls():
+    """Photo URLs per ride d tag, for the spot pane's image strip.
+
+    Only photos already claimed by a ride count — a draft_token row belongs to a form
+    nobody has submitted yet. Returns an empty dict if the ride_image table doesn't
+    exist (a DB predating the feature), like get_reported_dtags does.
+    """
+    try:
+        images = pd.read_sql(
+            "select ride_d_tag, filename from ride_image where ride_d_tag is not null order by id",
+            get_db(),
+        )
+    except pd.errors.DatabaseError:
+        return {}
+    urls: dict[str, list] = {}
+    for d_tag, filename in zip(images["ride_d_tag"], images["filename"]):
+        urls.setdefault(d_tag, []).append(image_url(filename))
+    return urls
+
+
+ride_image_urls = get_ride_image_urls()
+logger.info(f"Got photos for {len(ride_image_urls)} ride(s)")
+
 logger.info(f"Writing per-spot ride files to {by_spot_dir}")
 rides_by_spot: dict[str, list] = {}
 for r in rides_data:
+    # Omitted entirely for the ~all rides with no photo, rather than shipping an empty
+    # list on every entry of every per-spot file.
+    images = ride_image_urls.get(r["id"])
     rides_by_spot.setdefault(r["spot_id"], []).append(
         {
             "id": r["id"],
+            **({"images": images} if images else {}),
             "rating": r["rating"],
             "wait": r["wait"],
             # Per-ride distance (not just the spot average) so the spot pane can plot a

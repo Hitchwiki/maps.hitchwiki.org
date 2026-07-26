@@ -501,6 +501,23 @@ class TestRideSubmit:
         assert f"/ride-images/{filename}" in page
         assert "ride-photo-tiles" in page
 
+    def test_a_fresh_rides_photos_reach_the_spot_pane_before_show_py_runs(
+        self, app, client, monkeypatch, image_dir, clean_rides, tmp_path
+    ):
+        # The spot pane's image strip is fed by the per-spot files, which regenerate
+        # every ~10 min; /pending_rides.json is what closes that gap for the ride card,
+        # so it has to carry the photos too or the strip trails the card.
+        monkeypatch.setattr(main, "_last_generation_ts", lambda: 0)
+        monkeypatch.setattr(main, "HitchhikingDataStandardToNostrPoster", _RecordingPoster)
+        _upload(client)
+        _submit(client)
+
+        entries = client.get("/pending_rides.json").get_json()
+
+        entry = next(e for e in entries if e["id"] == D_TAG)
+        assert len(entry["images"]) == 1
+        assert entry["images"][0].startswith("/ride-images/")
+
     def test_photos_are_not_published_to_nostr(self, app, client, monkeypatch, image_dir, clean_rides):
         # The whole point of storing them locally: the ride event must be byte-identical
         # to one submitted without photos.

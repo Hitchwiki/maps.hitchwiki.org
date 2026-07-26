@@ -1757,6 +1757,43 @@ a:hover {
   background-color: none !important;
   text-decoration: none;
 }
+/* Photos of the spot, as a left/right scrollable strip at the top of the spot pane.
+   A row rather than a grid so it costs one thumbnail's height however many there are —
+   the pane is a bottom sheet on a phone, and vertical space above the ride cards is the
+   scarcest thing in it. */
+.spot-photos {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin-bottom: 16px;
+  padding-bottom: 4px;
+  /* Snap so a swipe lands on a photo edge instead of mid-image. */
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  /* The strip scrolls sideways inside the sheet; without this a horizontal swipe on it
+     is claimed by the sheet's own drag/pan handling. */
+  touch-action: pan-x;
+}
+.spot-photos .spot-photo {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  display: block;
+  line-height: 0;
+}
+.spot-photos img {
+  height: 120px;
+  /* Auto width keeps each photo's own aspect ratio — a portrait shot of a slip road
+     shouldn't be cropped to a landscape box. max-width stops a panorama taking the
+     whole strip. */
+  width: auto;
+  max-width: 240px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #e5e5e5;
+  background: #f2f2f2;
+}
 /* Spot sheet header */
 #spot-header-row {
   position: relative;

@@ -186,6 +186,11 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
             <span class="share-btn-label">{{ t("Share this spot") }}</span>
         </button>
     </div>
+    <!-- Photos hitchhikers attached to rides logged at this spot, newest ride first, as a
+         horizontally scrollable strip. Sits at the top of the pane because a picture of
+         the shoulder answers "is this spot any good" faster than any of the numbers
+         below it. Empty and hidden for the ~all spots with no photo. -->
+    <div id="spot-photos" class="spot-photos" hidden></div>
     <!-- Both halves record a ride from THIS exact spot, differing only in tense: "Hitch
          here" starts the tracked journey now, "Log a past ride" opens the /ride form.
          Seeding either with the canonical spot coordinates (instead of wherever the user

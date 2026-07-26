@@ -111,13 +111,16 @@ def spot_id_for(lat, lon):
     return f"{round(float(lat), 5):.5f}_{round(float(lon), 5):.5f}"
 
 
-def ride_map_entry(ride):
+def ride_map_entry(ride, images=None):
     """One /pending_rides.json entry, or None when the ride does not belong on the map.
 
     `ride` is any object with the RideEvent columns (`d`, `stops`, `hitchhikers`,
     `comment`, `rating`, `submission_time`). The keys match what show.py writes into
     rides/by-spot/<id>.json plus the marker fields from spots.json, so map.js can feed
     the entry straight into the paths that already render both.
+
+    `images` is the ride's photo URLs, passed in rather than looked up here so the
+    caller can batch one query for the whole pending set.
     """
     facts = stop_facts(ride.stops)
     if facts["pickup_lat"] is None or facts["pickup_lon"] is None:
@@ -152,4 +155,6 @@ def ride_map_entry(ride):
         "submission_time": ride.submission_time,
         "ride_datetime": facts["departure_time"],
         "arrival_datetime": facts["arrival_time"],
+        # Omitted when there are none, matching the per-spot files show.py writes.
+        **({"images": list(images)} if images else {}),
     }
