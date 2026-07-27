@@ -6,18 +6,22 @@ scheme; the app exchanges it at /api/auth/token for a Flask-Security bearer toke
 """
 
 import secrets
+from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
-from flask import Blueprint, current_app, redirect, session
+from flask import Blueprint, current_app, jsonify, redirect, request, session
 
 from hitch.blueprints.oauth import _redirect_uri, _wiki_base
 from hitch.extensions import db
-from hitch.models import AppAuthCode
+from hitch.models import AppAuthCode, User
 
 api_auth_bp = Blueprint("api_auth", __name__)
 
 # The app registers an intent-filter for this scheme and captures the ?code=.
 APP_CALLBACK = "hitchwiki-app://oauth-callback"
+
+# A code older than this is treated as expired (still consumed, so it can't be retried).
+CODE_TTL = timedelta(minutes=5)
 
 
 def create_app_auth_code(user):
@@ -49,3 +53,27 @@ def api_login():
         "state": state,
     }
     return redirect(f"{_wiki_base()}/rest.php/oauth2/authorize?{urlencode(params)}")
+
+
+def consume_app_auth_code(code):
+    """Return the code's user if the code exists and is fresh, else None. Always deletes the
+    row (single-use), so neither a replay nor an expired retry can mint a token."""
+    row = AppAuthCode.query.filter_by(code=code).first()
+    if row is None:
+        return None
+    fresh = datetime.utcnow() - row.created_at < CODE_TTL
+    user = db.session.get(User, row.user_id) if fresh else None
+    db.session.delete(row)
+    db.session.commit()
+    return user
+
+
+@api_auth_bp.route("/api/auth/token", methods=["POST"])
+def api_token():
+    code = (request.get_json(silent=True) or {}).get("code")
+    if not code:
+        return jsonify(error="missing code"), 400
+    user = consume_app_auth_code(code)
+    if user is None:
+        return jsonify(error="invalid or expired code"), 400
+    return jsonify(token=user.get_auth_token(), username=user.username)
