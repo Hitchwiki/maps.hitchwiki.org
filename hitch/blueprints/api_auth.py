@@ -10,9 +10,10 @@ from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
 from flask import Blueprint, current_app, jsonify, redirect, request, session
+from flask_security.utils import parse_auth_token
 
 from hitch.blueprints.oauth import _redirect_uri, _wiki_base
-from hitch.extensions import db
+from hitch.extensions import db, security
 from hitch.models import AppAuthCode, User
 
 api_auth_bp = Blueprint("api_auth", __name__)
@@ -77,3 +78,32 @@ def api_token():
     if user is None:
         return jsonify(error="invalid or expired code"), 400
     return jsonify(token=user.get_auth_token(), username=user.username)
+
+
+def user_from_bearer():
+    """Resolve the user from an `Authorization: Bearer <token>` header, or None.
+
+    Flask-Security's own header is `Authentication-Token`, not `Authorization: Bearer`, so we
+    verify the token directly: parse_auth_token validates the signature/expiry and yields the
+    fs_uniquifier (`uid`); find_user resolves it. Logout rotates fs_uniquifier, so a revoked
+    token's uid no longer matches any user and this returns None.
+    """
+    header = request.headers.get("Authorization", "")
+    if not header.startswith("Bearer "):
+        return None
+    try:
+        tdata = parse_auth_token(header[len("Bearer ") :])
+    except Exception:
+        return None
+    user = security.datastore.find_user(fs_uniquifier=tdata["uid"])
+    if user is None or not user.active:
+        return None
+    return user
+
+
+@api_auth_bp.route("/api/auth/me")
+def api_me():
+    user = user_from_bearer()
+    if user is None:
+        return jsonify(error="unauthorized"), 401
+    return jsonify(username=user.username)
