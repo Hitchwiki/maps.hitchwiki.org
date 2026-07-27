@@ -3,7 +3,6 @@ import json
 import logging
 import math
 import os
-import shutil
 import sqlite3
 import time
 import warnings
@@ -20,7 +19,7 @@ from sklearn.exceptions import InconsistentVersionWarning
 from hitch.blueprints.utils.notifications import load_race_podiums, notify_new_race_podiums
 from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON, REPORTS_TO_HIDE
 from hitch.blueprints.utils.ride_images import image_url
-from hitch.helpers import e, get_bearing, get_db, get_dirs, haversine_np, write_json_file
+from hitch.helpers import e, get_bearing, get_db, get_dirs, haversine_np, write_json_file, write_json_if_changed
 from hitch.scripts.races import build_races, estimate_arrival
 from hitch.scripts.spot_naming import resolve_spot_name
 from hitch.scripts.spots_gpx import spot_waypoint, write_spots_gpx
@@ -1227,11 +1226,9 @@ write_json_file(rides_index, "rides_index.json")
 # Per-spot detail files for lazy popup loading: {"spot": {...}, "rides": [...]}.
 # "spot" holds the click-time spot info that was slimmed out of spots.json
 # (wait/distance averages, OSM / car-pooling / Hitchwiki links); "rides" holds
-# the fields the popup ride cards render. Wipe-and-rewrite ensures spots that
-# lost all their rides don't leave stale files behind.
+# the fields the popup ride cards render. Files are only rewritten when their
+# payload changes; spots that disappeared are removed below.
 by_spot_dir = os.path.join(dirs["dist"], "rides", "by-spot")
-if os.path.exists(by_spot_dir):
-    shutil.rmtree(by_spot_dir)
 os.makedirs(by_spot_dir, exist_ok=True)
 
 
@@ -1300,10 +1297,22 @@ for r in rides_data:
         }
     )
 
+written_spot_files = 0
 for sid, spot_rides in rides_by_spot.items():
-    with open(os.path.join(by_spot_dir, f"{sid}.json"), "w") as f:
-        json.dump({"spot": spot_details.get(sid, {}), "rides": spot_rides}, f)
-logger.info(f"Wrote {len(rides_by_spot)} per-spot ride files")
+    if write_json_if_changed(os.path.join(by_spot_dir, f"{sid}.json"), {"spot": spot_details.get(sid, {}), "rides": spot_rides}):
+        written_spot_files += 1
+
+current_spot_filenames = {f"{sid}.json" for sid in rides_by_spot}
+removed_spot_files = 0
+for entry in os.scandir(by_spot_dir):
+    if entry.is_file() and entry.name.endswith(".json") and entry.name not in current_spot_filenames:
+        os.unlink(entry.path)
+        removed_spot_files += 1
+
+logger.info(
+    f"Per-spot ride files: {written_spot_files} written, "
+    f"{len(rides_by_spot) - written_spot_files} unchanged, {removed_spot_files} stale files removed"
+)
 
 
 # dist/spots.gpx: the whole map as GPX, for the menu's download link. Streamed so the
