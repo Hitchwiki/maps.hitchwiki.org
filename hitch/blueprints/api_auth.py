@@ -107,3 +107,14 @@ def api_me():
     if user is None:
         return jsonify(error="unauthorized"), 401
     return jsonify(username=user.username)
+
+
+@api_auth_bp.route("/api/auth/logout", methods=["POST"])
+def api_logout():
+    user = user_from_bearer()
+    if user is None:
+        return jsonify(error="unauthorized"), 401
+    # Rotating fs_uniquifier invalidates every bearer token minted for this user.
+    security.datastore.set_uniquifier(user)
+    db.session.commit()
+    return jsonify(status="ok")
