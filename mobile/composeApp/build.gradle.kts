@@ -54,6 +54,9 @@ kotlin {
             implementation(libs.androidx.activityCompose)
             implementation(libs.maplibre.android)
             implementation(libs.play.services.location)
+            // Custom Tabs for the OAuth browser leg; security-crypto for the encrypted token store.
+            implementation("androidx.browser:browser:1.8.0")
+            implementation("androidx.security:security-crypto:1.1.0-alpha06")
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)

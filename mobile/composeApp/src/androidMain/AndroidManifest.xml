@@ -21,6 +21,20 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- Catches the hitchwiki-app://oauth-callback?code=… redirect that ends the mobile
+             OAuth flow; hands the one-time code to AuthRedirectBus and finishes immediately. -->
+        <activity
+            android:name="org.hitchwiki.maps.auth.OAuthRedirectActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="hitchwiki-app" android:host="oauth-callback" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>
