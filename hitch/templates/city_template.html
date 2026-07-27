@@ -1,22 +1,39 @@
 {% extends "security/base.html" %}
 
-{% block title %}
-{{title}} - Hitchhiking - Hitchwiki Map
-{% endblock %}
+{# Every visible string goes through t(): a /de/ page whose text is still English
+   would neither rank for "Trampen in Berlin" nor read as anything but a duplicate
+   of the English page. City and country names are NOT translated -- they are data,
+   and a searcher types the local or English name, not a translated one. #}
+{# "Berlin, Germany" (or just "Berlin" when the country is missing), built once so
+   every string below interpolates the same label. #}
+{% set place_label = city.city ~ (", " ~ city.country if city.country else "") %}
+
+{% block title %}{{ t("{city} - Hitchhiking - Hitchwiki Map", city=city.city) }}{% endblock %}
+
+{% block meta_description %}{{ t("Hitchhiking spots, community ratings and recent rides for {place}. See where drivers pick up and how long the wait is.", place=place_label) }}{% endblock %}
+
+{% block og_title %}{{ t("Hitchhiking in {place} – Hitchwiki Map", place=place_label) }}{% endblock %}
+
+{% block og_description %}{{ t("Community hitchhiking spots, ratings and recent rides for {place} on the Hitchwiki Map.", place=place_label) }}{% endblock %}
+
+{% from "_share.html" import share_button %}
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <div class="bg-white rounded-lg shadow-lg p-6">
-        <nav><br><a href="/city/index.html" id="back">&lt; All cities</a> | <a href="https://hitchwiki.org/en/index.php?title={{city.city | urlencode}}" target="_blank" rel="noopener" id="hitchwiki-link">{{city.city}} on Hitchwiki</a><br></nav>
+        <nav><br><a href="{{ '/city/index.html' if g.lang == 'en' else '/' ~ g.lang ~ '/city/index.html' }}" id="back">&lt; {{ t("All cities") }}</a> | <a href="https://hitchwiki.org/en/index.php?title={{city.city | urlencode}}" target="_blank" rel="noopener" id="hitchwiki-link">{{ t("{city} on Hitchwiki", city=city.city) }}</a><br></nav>
         <article class="mt-6">
-            <h2>Hitchhiking from {{city.city}}</h2>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+                <h2 style="margin:0;">{{ t("Hitchhiking from {city}", city=city.city) }}</h2>
+                {{ share_button(url=canonical_url, title=t("Hitchhiking in {place} – Hitchwiki Map", place=place_label)) }}
+            </div>
 
-            <a class="map-link" href="/#location,{{city.lat}},{{city.lng}},12"><div id="static-map"></div><span class="map-overlay">{{city.city}} on Hitchhiking Map</span> </a>
+            <a class="map-link" href="/#location,{{city.lat}},{{city.lng}},12"><div id="static-map"></div><span class="map-overlay">{{ t("{city} on Hitchhiking Map", city=city.city) }}</span> </a>
 
-            <h2>Hitchhiking to {{city.city}}</h2>
+            <h2>{{ t("Hitchhiking to {city}", city=city.city) }}</h2>
 
-            <a class="map-link" href="/?text={{city.city}}#location,{{city.lat}},{{city.lng}},8"><div id="static-map-zoomed-out"></div><span class="map-overlay">View all spots mentioning {{city.city}}</span> </a>
+            <a class="map-link" href="/?text={{city.city}}#location,{{city.lat}},{{city.lng}},8"><div id="static-map-zoomed-out"></div><span class="map-overlay">{{ t("View all spots mentioning {city}", city=city.city) }}</span> </a>
 
-            <h3>Recent reviews mentioning {{city.city}}</h3>
+            <h3>{{ t("Recent reviews mentioning {city}", city=city.city) }}</h3>
 
             {% for review in reviews.itertuples() %}
             <h4><a href="/#{{ review.lat }},{{review.lon}}">{{ review.lat | round(5) }}, {{review.lon | round(5) }}</a></h4>

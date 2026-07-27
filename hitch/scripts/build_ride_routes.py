@@ -106,6 +106,20 @@ def load_derived_destinations(conn):
     return {r["d"]: (float(r["latitude"]), float(r["longitude"])) for r in rows if r["latitude"] is not None}
 
 
+def load_derived_waits(conn):
+    """Waiting times we mined from comment text, keyed by the ride's Nostr `d` tag.
+
+    Same source show.py merges: hitch/scripts/extract_wait_times.py extracts the minutes a
+    ride's comment says the hitchhiker waited and stores them in derived_ride_wait. Returns
+    {} on a DB that predates the table so the router still works without the enrichment.
+    """
+    try:
+        rows = conn.execute("SELECT d, waiting_minutes FROM derived_ride_wait").fetchall()
+    except sqlite3.OperationalError:
+        return {}
+    return {r["d"]: int(r["waiting_minutes"]) for r in rows if r["waiting_minutes"] is not None}
+
+
 def load_rides(db_path):
     """Return every ride that has a valid start location.
 
@@ -119,6 +133,7 @@ def load_rides(db_path):
     conn.row_factory = sqlite3.Row
     rows = conn.execute("SELECT id, d, stops FROM ride_event").fetchall()
     derived = load_derived_destinations(conn)
+    derived_waits = load_derived_waits(conn)
     conn.close()
 
     rides = []
@@ -154,14 +169,18 @@ def load_rides(db_path):
             dlat, dlon = derived[r["d"]]
             if not (abs(slat - dlat) < 1e-6 and abs(slon - dlon) < 1e-6):
                 dest = (dlat, dlon)
+        # Waiting time (minutes) the hitchhiker waited to get this ride, from the first
+        # stop — same field show.py reads. Fall back to a comment-derived wait when the
+        # ride logged none itself, exactly as show.py merges them. None when unknown.
+        wait = parse_wait(stops[0].get("waiting_duration"))
+        if wait is None:
+            wait = derived_waits.get(r["d"])
         rides.append(
             {
                 "id": r["id"],
                 "start": (float(slat), float(slon)),
                 "dest": dest,
-                # Waiting time (minutes) the hitchhiker waited to get this ride, from
-                # the first stop — same field show.py reads. None when not recorded.
-                "wait": parse_wait(stops[0].get("waiting_duration")),
+                "wait": wait,
             }
         )
     return rides

@@ -34,6 +34,44 @@
 .wra-btn:hover { color: #555; border-color: #999; }
 .wra-btn--yes[aria-pressed="true"] { color: #2e7d32; border-color: #2e7d32; background: #eaf5eb; }
 .wra-btn--no[aria-pressed="true"] { color: #c62828; border-color: #c62828; background: #fbeaea; }
+/* Photo tiles: uploaded pictures and a trailing "+" tile, all the same square, so the
+   row reads as one strip of slots rather than a file field with a preview bolted on. */
+.ride-photo-tiles { display: flex; flex-wrap: wrap; gap: 10px; margin: 6px 0 4px; }
+.ride-photo-tile, .ride-photo-add {
+    position: relative; width: 104px; height: 104px;
+    border-radius: 8px; overflow: hidden; flex: 0 0 auto;
+}
+.ride-photo-tile { border: 1px solid #ddd; background: #f2f2f2; }
+.ride-photo-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ride-photo-add {
+    display: flex; align-items: center; justify-content: center;
+    border: 2px dashed #bbb; background: #fafafa; color: #999;
+    cursor: pointer; padding: 0; transition: border-color .12s ease, color .12s ease, background-color .12s ease;
+}
+.ride-photo-add:hover { border-color: #28a745; color: #28a745; background: #f4fbf5; }
+.ride-photo-plus { font-size: 2.2em; line-height: 1; font-weight: 300; }
+/* The x sits on the image, so it needs its own contrast rather than the page's. */
+.ride-photo-x {
+    position: absolute; top: 4px; right: 4px;
+    width: 22px; height: 22px; border-radius: 50%;
+    border: none; padding: 0;
+    background: rgba(0, 0, 0, 0.55); color: #fff;
+    font-size: 14px; line-height: 22px; text-align: center;
+    cursor: pointer;
+}
+.ride-photo-x:hover { background: rgba(176, 42, 55, 0.9); }
+/* Uploading state: the tile exists immediately (with a local preview) and dims until the
+   server confirms, so a slow phone upload never looks like nothing happened. */
+.ride-photo-tile--uploading img { opacity: 0.45; }
+.ride-photo-spinner {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: #333; font-size: 0.75em; font-weight: 600;
+}
+/* Visually hidden but still focusable/clickable via the + tile. */
+.sr-only-file {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;
+}
 </style>
 {% endblock %}
 
@@ -45,6 +83,9 @@
 {% endif %}
 <div class="container" style="max-width: 800px; margin: 2rem auto; padding: 2rem;">
     <a href="/" style="color: #555; text-decoration: none; font-size: 0.9em;">← Back to map</a>
+    <div id="test-mode-banner" style="display:none; background:#fff3cd; border:1px solid #ffe08a; color:#664d03; padding:10px 14px; border-radius:6px; margin:12px 0; font-size:0.95em;">
+        🧪 <strong>Test mode is on.</strong> Rides submitted here will <strong>not</strong> be saved or published to the map.
+    </div>
     <h2>Submit Your Ride Experience</h2>
     
     <div class="ride-info" style="background-color: #f8f9fa; padding: 1rem; margin-bottom: 2rem; border-radius: 5px;">
@@ -105,6 +146,9 @@
         </div>
     </div>
 
+    {# No enctype: photos never travel with this POST. They are uploaded as they are
+       picked (see the photo tiles at the bottom) and the form carries only the
+       draft_token that claims them. #}
     <form id="ride-form" action="/ride" method="post" onsubmit="return validateForm()">
         <input type="hidden" name="edit_d_tag" value="{{ ride_data.d_tag if ride_data else '' }}">
         <input type="hidden" name="pickup_lat" id="pickup_lat" value="{{ ride_data.pickup_lat if ride_data else '' }}">
@@ -158,7 +202,14 @@
                 <ul id="co-hitchhiker-suggestions" style="display:none; position:absolute; z-index:1000; background:#fff; border:1px solid #ccc; border-top:none; list-style:none; padding:0; margin:0; width:100%; max-height:200px; overflow-y:auto;"></ul>
             </div>
             <span id="co-hitchhiker-error-message" class="error text-danger"></span>
-            <button type="button" id="add-anonymous-hitchhiker" class="btn btn-outline-secondary btn-sm" style="margin-top:6px;">+1 Anonymous hitchhiker</button>
+            {# Anonymous co-hitchhikers can optionally carry a gender, which is published as
+               the hitchhiker's `gender` on Nostr. The value rides along in the hidden field
+               as "Anonymous:male" / "Anonymous:female" (see publish_ride.py). #}
+            <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">
+                <button type="button" id="add-anonymous-hitchhiker" class="btn btn-outline-secondary btn-sm" data-anon-gender="">+1 Anonymous hitchhiker</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-anon-gender="male">+1 Anonymous ♂</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-anon-gender="female">+1 Anonymous ♀</button>
+            </div>
         </div>
             
         <div class="form-group">
@@ -289,6 +340,38 @@
             </div>
         </div>
 
+        {# Photos sit at the very bottom of the form, in both the new-ride and the edit
+           case. They are stored on this server and linked to the ride by its Nostr d tag;
+           nothing about them is published to the relays (see utils/ride_images.py).
+
+           Each photo uploads the moment it is picked, into the draft below, and the
+           submit only claims them. Keeping files in the <input> until submit cannot work
+           here: picking a pickup location navigates the page away to the map, and
+           re-opening the file picker replaces the whole previous FileList. #}
+        <div class="form-group" id="ride-photos-group"
+             data-max-images="{{ max_ride_images }}"
+             data-images="{{ ride_images|tojson|forceescape }}">
+            <label>Photos (optional, up to {{ max_ride_images }})</label>
+            <input type="hidden" name="draft_token" id="draft_token" value="">
+            <div id="ride-photo-tiles" class="ride-photo-tiles">
+                <button type="button" id="ride-photo-add" class="ride-photo-add" aria-label="Add a photo">
+                    <span class="ride-photo-plus" aria-hidden="true">+</span>
+                </button>
+            </div>
+            {# The real input is offscreen; the + tile is what the user clicks. `multiple`
+               still helps for picking several at once, which we then upload one by one. #}
+            <input type="file" id="ride_images" class="sr-only-file"
+                   accept="image/jpeg,image/png,image/webp,image/gif" multiple>
+            <span id="ride-photos-error" class="error text-danger" style="display:block; font-size:0.85em;"></span>
+            <p style="margin-top:6px; font-size:0.8rem; color:#888;">
+                Photos you upload here are published under
+                <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>
+                &mdash; anyone may reuse them, including commercially, as long as they credit you and share
+                any adaptation under the same licence. Only upload pictures you took yourself, and please
+                avoid recognisable people and license plates. Location data (EXIF) is stripped on upload.
+            </p>
+        </div>
+
         <p style="margin-top: 2rem; font-size: 0.85rem; color: #888;">
             Is there anything else you want to remember about your rides? <a href="https://github.com/Hitchwiki/hitchhiking-data-standard/blob/main/STANDARD.md" target="_blank" rel="noopener">Let us know here</a>.
         </p>
@@ -296,7 +379,7 @@
         <p style="margin-top: 1rem; font-size: 0.8rem; color: #888;">
             Your ride is published publicly. The database is licensed under the
             <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>;
-            your comment and username are licensed under
+            your comment, username and any photos you upload are licensed under
             <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>.
             By submitting you agree to this. See the <a href="/copyright" target="_blank" rel="noopener">Copyright and License</a> page.
         </p>
@@ -307,6 +390,10 @@
         </div>
     </form>
 </div>
+{# `scripts` must close `main` first: a named block nested inside another is
+   rendered at its definition site AND again where base.html calls it, which
+   emitted this entire script section (Leaflet included) twice per page. #}
+{% endblock %}
 
 {% block scripts %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -399,9 +486,14 @@
             driver_origin_country: document.getElementById('driver_origin_country')?.value || '',
             driver_age: document.getElementById('driver_age')?.value || '',
             driver_gender: document.getElementById('driver_gender')?.value || '',
-            driver_languages: document.getElementById('driver_languages')?.value || ''
+            driver_languages: document.getElementById('driver_languages')?.value || '',
+            // Photos are already uploaded and live under this token on the server, so
+            // carrying the token is all that is needed to get the tiles back — which is
+            // exactly why they are uploaded on pick rather than held in the file input,
+            // whose selection this navigation would destroy.
+            draft_token: document.getElementById('draft_token')?.value || ''
         };
-        
+
         sessionStorage.setItem('rideFormData', JSON.stringify(formData));
         
         // Get coordinates for initial map position
@@ -462,6 +554,8 @@
                 if (window._signalRenderTags) window._signalRenderTags();
             }
             if (data.no_ride !== undefined) document.getElementById('no_ride').checked = !!data.no_ride;
+            // Re-adopt the photo draft and pull its tiles back from the server.
+            if (data.draft_token && ridePhotos) ridePhotos.restore(data.draft_token);
             if (data.datetime_ride) document.querySelector('input[name="datetime_ride"]').value = data.datetime_ride;
             if (data.arrival_datetime) document.querySelector('input[name="arrival_datetime"]').value = data.arrival_datetime;
             if (data.vehicle_kind !== undefined) document.getElementById('vehicle_kind').value = data.vehicle_kind;
@@ -544,11 +638,23 @@
         }
     }
     
+    // Funnel step 3: the form actually rendered. Split by edit vs. new, because a
+    // stalled edit and a stalled first-time submission are different problems.
+    {# Quote in JS, not in the expression: Jinja autoescaping turns emitted
+       quote characters into &#34;, which is a syntax error inside <script>. #}
+    hmTrack('ride_form_started', {
+        mode: '{{ "edit" if request.args.get("edit") else "new" }}',
+        auth: '{{ "anon" if current_user.is_anonymous else "user" }}'
+    });
+
     // Add form validation
     function validateForm() {
         const coords = getCoordinates();
 
         if (!coords.pickup) {
+            // Funnel drop-off we can act on: they tried to submit without ever
+            // picking a location, i.e. the map-thumbnail affordance was missed.
+            hmTrack('ride_form_blocked', { reason: 'no-pickup' });
             alert('Please select a pickup location by clicking on the pickup map thumbnail.');
             return false;
         }
@@ -558,10 +664,16 @@
         const errSpan = document.getElementById('arrival-error-message');
         errSpan.textContent = '';
         if (dep && arr && new Date(arr) <= new Date(dep)) {
+            hmTrack('ride_form_blocked', { reason: 'arrival-before-departure' });
             errSpan.textContent = 'Arrival must be later than the pickup time.';
             return false;
         }
 
+        // Funnel step 4: the submission is on its way to the server. Fired here
+        // rather than on the success page because the post redirects to
+        // /?ride=<d_tag>#success on the map, where a pageview alone can't be told
+        // apart from a normal visit.
+        hmTrack('ride_form_submitted', { destination: coords.destination ? 'yes' : 'no' });
         return true;
     }
     
@@ -658,13 +770,29 @@
             return val ? val.split(',').map(s => s.trim()).filter(Boolean) : [];
         }
 
+        // "Anonymous", "Anonymous:male", "Anonymous:female" — the wire tokens for a
+        // co-hitchhiker with no account (publish_ride.py turns them into hitchhikers).
+        function isAnonymousTag(name) {
+            return name.split(':')[0] === 'Anonymous';
+        }
+
+        // Show the gender as a symbol; the raw "Anonymous:female" token stays in the
+        // hidden field, which is what gets posted.
+        function tagLabel(name) {
+            if (!isAnonymousTag(name)) return name;
+            const gender = name.split(':')[1];
+            if (gender === 'male') return 'Anonymous ♂';
+            if (gender === 'female') return 'Anonymous ♀';
+            return 'Anonymous';
+        }
+
         function renderTags() {
             tagsContainer.innerHTML = '';
             getTags().forEach((name, idx) => {
                 const tag = document.createElement('span');
                 const isLocked = getLockedTags().includes(name);
                 tag.style.cssText = 'display:inline-flex; align-items:center; background:#e0e0e0; border-radius:3px; padding:2px 6px; font-size:0.9em; gap:4px;';
-                tag.textContent = name;
+                tag.textContent = tagLabel(name);
                 if (!isLocked) {
                     const remove = document.createElement('button');
                     remove.type = 'button';
@@ -688,8 +816,8 @@
             name = name.trim();
             if (!name) return;
             const tags = getTags();
-            // Allow duplicate "Anonymous" entries but not duplicate real usernames
-            if (name !== 'Anonymous' && tags.includes(name)) {
+            // Allow duplicate anonymous entries but not duplicate real usernames
+            if (!isAnonymousTag(name) && tags.includes(name)) {
                 input.value = '';
                 suggestions.style.display = 'none';
                 return;
@@ -764,9 +892,12 @@
             if (suggestions.children.length > 0) suggestions.style.display = 'block';
         });
 
-        // +1 Anonymous hitchhiker button
-        document.getElementById('add-anonymous-hitchhiker').addEventListener('click', () => {
-            addTag('Anonymous');
+        // +1 Anonymous hitchhiker buttons (plain / male / female)
+        document.querySelectorAll('#co-hitchhiker-container [data-anon-gender]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const gender = btn.dataset.anonGender;
+                addTag(gender ? 'Anonymous:' + gender : 'Anonymous');
+            });
         });
 
         // Expose for sessionStorage save/restore
@@ -775,8 +906,27 @@
     })();
 
     // Validate co-hitchhiker on form submit
+    // Test mode (the 9-tap heatmap easter egg, key set in map.js) must suppress the
+    // real publish here too, not only in the in-ride flow (inride.js). This classic
+    // "Add a ride" form is a full-page POST to /ride, so it never saw that flag —
+    // rides created in test mode were published to the relay and appeared on the map.
+    // Short-circuit before validation/submission: nothing is sent, and we land on the
+    // same /#success the server would have redirected to.
+    const IN_TEST_MODE = localStorage.getItem('inride.testMode') === '1';
+    if (IN_TEST_MODE) {
+        const banner = document.getElementById('test-mode-banner');
+        if (banner) banner.style.display = 'block';
+    }
+
     const originalValidateForm = validateForm;
     validateForm = function() {
+        if (IN_TEST_MODE) {
+            console.log('[test mode] skipped /ride form submit');
+            alert('🧪 Test mode is on — this ride was NOT saved or published.');
+            window.location.href = '/#success';
+            return false;
+        }
+
         if (!originalValidateForm()) return false;
 
         const input = document.getElementById('co-hitchhiker-input');
@@ -797,6 +947,24 @@
                 (document.getElementById('co-hitchhiker-hidden').value
                     ? document.getElementById('co-hitchhiker-hidden').value + ',' : '') + partial;
         }
+
+        // Hand the facts of this ride to the success overlay on the map. The POST
+        // redirects to /?ride=<d_tag>#success, but that only carries the d tag — the
+        // pickup/destination coords still need this stash, or the share card would have
+        // nothing to draw. sessionStorage survives the navigation; map.js consumes and
+        // clears the entry the first time it shows the overlay.
+        try {
+            const c = getCoordinates();
+            sessionStorage.setItem('hmLastRide', JSON.stringify({
+                pickupLat: c.pickup ? c.pickup[0] : '',
+                pickupLon: c.pickup ? c.pickup[1] : '',
+                destLat: c.destination ? c.destination[0] : '',
+                destLon: c.destination ? c.destination[1] : '',
+                waitMin: document.querySelector('input[name="wait"]')?.value || '',
+                departedAt: document.getElementById('datetime_ride')?.value || '',
+                arrivedAt: document.getElementById('arrival_datetime')?.value || '',
+            }));
+        } catch (e) {}
 
         // Disable submit button to prevent duplicate submissions during the ~5s Nostr publish
         const submitBtn = document.querySelector('button[type="submit"]');
@@ -980,6 +1148,164 @@
     }
     initWouldRideAgain();
 
+    // Photo tiles.
+    //
+    // Every photo is uploaded the moment it is picked, into a server-side draft keyed by
+    // #draft_token; the submit only claims that draft. Anything else loses pictures:
+    // choosing a pickup location navigates the whole page to the map (selectLocation),
+    // and re-opening the file picker replaces the entire previous FileList — so files
+    // parked in the <input> until submit disappear both ways.
+    //
+    // The server is the authority on every limit (ride_images.py); the checks here only
+    // save a round trip.
+    const RIDE_PHOTO_MAX_BYTES = 12 * 1024 * 1024;
+
+    const ridePhotos = (function () {
+        const group = document.getElementById('ride-photos-group');
+        const tiles = document.getElementById('ride-photo-tiles');
+        const addBtn = document.getElementById('ride-photo-add');
+        const input = document.getElementById('ride_images');
+        const tokenInput = document.getElementById('draft_token');
+        const errSpan = document.getElementById('ride-photos-error');
+        if (!group || !tiles || !addBtn || !input || !tokenInput) return null;
+
+        const MAX = parseInt(group.dataset.maxImages || '3', 10);
+        // Photos already on the ride being edited. They belong to the ride, not to the
+        // draft, so their x deletes server-side straight away.
+        let photos = [];
+        try { photos = JSON.parse(group.dataset.images || '[]'); } catch (e) { photos = []; }
+
+        function token() {
+            if (!tokenInput.value) {
+                tokenInput.value = (crypto.randomUUID ? crypto.randomUUID()
+                    : String(Date.now()) + '-' + Math.random().toString(36).slice(2));
+            }
+            return tokenInput.value;
+        }
+
+        function setError(message) {
+            if (errSpan) errSpan.textContent = message || '';
+        }
+
+        function renderAddButton() {
+            // At the cap the + tile goes away rather than erroring on click; deleting a
+            // photo brings it straight back.
+            addBtn.style.display = tiles.querySelectorAll('.ride-photo-tile').length >= MAX ? 'none' : 'flex';
+        }
+
+        function makeTile(photo, objectUrl) {
+            const tile = document.createElement('div');
+            tile.className = 'ride-photo-tile';
+            const img = document.createElement('img');
+            img.src = objectUrl || photo.url;
+            img.alt = 'Ride photo';
+            tile.appendChild(img);
+
+            const x = document.createElement('button');
+            x.type = 'button';
+            x.className = 'ride-photo-x';
+            x.setAttribute('aria-label', 'Remove this photo');
+            x.textContent = '×';
+            x.addEventListener('click', function () {
+                const id = tile.dataset.imageId;
+                // A tile still uploading has no id yet; dropping it locally is all we can
+                // do, and the orphan draft row is swept server-side.
+                if (!id) { tile.remove(); renderAddButton(); return; }
+                x.disabled = true;
+                const body = new FormData();
+                body.append('draft_token', token());
+                fetch('/ride-image/' + encodeURIComponent(id) + '/delete', { method: 'POST', body: body })
+                    .then(r => { if (!r.ok) throw new Error('delete failed'); tile.remove(); renderAddButton(); setError(''); })
+                    .catch(() => { x.disabled = false; setError('Could not remove that photo. Please try again.'); });
+            });
+            tile.appendChild(x);
+
+            // Insert before the + so the add tile always trails the strip.
+            tiles.insertBefore(tile, addBtn);
+            renderAddButton();
+            return tile;
+        }
+
+        function upload(file) {
+            if (!file.type.startsWith('image/')) {
+                setError('"' + file.name + '" is not an image.');
+                return;
+            }
+            if (file.size > RIDE_PHOTO_MAX_BYTES) {
+                setError('"' + file.name + '" is larger than 12 MB.');
+                return;
+            }
+            if (tiles.querySelectorAll('.ride-photo-tile').length >= MAX) {
+                setError('A ride can have at most ' + MAX + ' photos.');
+                return;
+            }
+            setError('');
+
+            // Show the tile from the local file immediately: on a phone the upload can
+            // take seconds, and an empty slot reads as "nothing happened".
+            const objectUrl = URL.createObjectURL(file);
+            const tile = makeTile(null, objectUrl);
+            tile.classList.add('ride-photo-tile--uploading');
+            const spinner = document.createElement('div');
+            spinner.className = 'ride-photo-spinner';
+            spinner.textContent = 'Uploading…';
+            tile.appendChild(spinner);
+
+            const body = new FormData();
+            body.append('image', file);
+            body.append('draft_token', token());
+            fetch('/ride-image', { method: 'POST', body: body })
+                .then(r => r.json().then(data => ({ ok: r.ok, data })))
+                .then(({ ok, data }) => {
+                    if (!ok || !data.ok) throw new Error(data.error || 'Upload failed.');
+                    tile.dataset.imageId = data.id;
+                    // Swap the local preview for the stored (rotated, EXIF-stripped) file
+                    // so what the tile shows is what the ride page will show.
+                    tile.querySelector('img').src = data.url;
+                    URL.revokeObjectURL(objectUrl);
+                    tile.classList.remove('ride-photo-tile--uploading');
+                    spinner.remove();
+                })
+                .catch(err => {
+                    URL.revokeObjectURL(objectUrl);
+                    tile.remove();
+                    renderAddButton();
+                    setError(err.message || 'Upload failed.');
+                });
+        }
+
+        addBtn.addEventListener('click', function () { input.click(); });
+        input.addEventListener('change', function () {
+            // One request per file: a batch pick uploads them all, and re-opening the
+            // picker adds to the strip instead of replacing it.
+            Array.from(input.files || []).forEach(upload);
+            input.value = '';  // so picking the same file again still fires `change`
+        });
+
+        // Photos of the ride being edited, rendered with the same tile + x as new ones.
+        photos.forEach(photo => { makeTile(photo).dataset.imageId = photo.id; });
+        renderAddButton();
+
+        return {
+            // Called by restoreFormData: the draft survives the trip to the map, so
+            // re-adopt its token and re-render the tiles it already holds.
+            restore(savedToken) {
+                if (!savedToken) return;
+                tokenInput.value = savedToken;
+                fetch('/ride-image/draft/' + encodeURIComponent(savedToken))
+                    .then(r => r.json())
+                    .then(data => {
+                        (data.images || []).forEach(photo => {
+                            if (tiles.querySelector('[data-image-id="' + photo.id + '"]')) return;
+                            makeTile(photo).dataset.imageId = photo.id;
+                        });
+                    })
+                    .catch(() => {});
+            },
+            token: () => tokenInput.value,
+        };
+    })();
+
     // Expose re-render hooks so sessionStorage restore can refresh the chip rows after editing the hidden inputs.
     if (signalChip) window._signalRenderTags = signalChip.renderTags;
     if (reasonChip) window._reasonRenderTags = reasonChip.renderTags;
@@ -995,6 +1321,4 @@
     });
 </script>
 <!-- End of scripts block -->
-{% endblock %}
-<!-- End of main content block -->
 {% endblock %}

@@ -136,10 +136,7 @@ def main():
 
     conn.executemany(
         "INSERT OR REPLACE INTO ride_place (d_tag, from_place, from_cc, to_place, to_cc) VALUES (?, ?, ?, ?, ?)",
-        [
-            (d_tag, e.get("from"), e.get("from_cc"), e.get("to"), e.get("to_cc"))
-            for d_tag, e in places.items()
-        ],
+        [(d_tag, e.get("from"), e.get("from_cc"), e.get("to"), e.get("to_cc")) for d_tag, e in places.items()],
     )
     conn.commit()
     logger.info("Wrote %d ride_place rows (%d total)", len(places), len(known) + len(places))

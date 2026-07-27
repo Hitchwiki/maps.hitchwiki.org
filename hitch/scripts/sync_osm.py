@@ -1,4 +1,5 @@
 """Script to get official hitchhiking spots from OpenStreetMap using Overpass API and store them in the database."""
+
 import logging
 
 import requests
@@ -6,11 +7,7 @@ import requests
 from hitch.extensions import db
 from hitch.models import OsmHitchhikingSpot
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger(__name__)
 
 overpass_url = "https://overpass-api.de/api/interpreter"

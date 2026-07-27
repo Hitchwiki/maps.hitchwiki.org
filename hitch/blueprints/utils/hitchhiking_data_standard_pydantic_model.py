@@ -72,6 +72,7 @@ class ReasonToPickUpEnum(str, Enum):
     safety_concern = "safety_concern"
     opposed = "opposed"
 
+
 class PositiveExperienceEnum(str, Enum):
     friendly = "friendly"
     good_conversation = "good_conversation"
@@ -92,6 +93,7 @@ class NegativeExperienceEnum(str, Enum):
     aggressive = "aggressive"
     expected_something_in_return = "expected_something_in_return"
     felt_unsafe = "felt_unsafe"
+
 
 class Occupant(Person, use_enum_values=True):
     # Upstream narrowed this to a single enum; we keep a list because our driver-info
@@ -182,6 +184,7 @@ class NoRideReasonEnum(str, Enum):
     changed_plans = "changed_plans"
     took_alternative_transport = "took_alternative_transport"
     gave_up = "gave_up"
+
 
 class NoRide(BaseModel, use_enum_values=True):
     reasons: Optional[list[NoRideReasonEnum]] = None

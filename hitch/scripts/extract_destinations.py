@@ -38,6 +38,7 @@ import sqlite3
 import sys
 import time
 import unicodedata
+from collections import Counter
 
 # ---------------------------------------------------------------------------
 # Shared name normalisation + gazetteer
@@ -114,6 +115,14 @@ def _haversine(a_lat, a_lon, b_lat, b_lon):
     dp, dl = math.radians(b_lat - a_lat), math.radians(b_lon - a_lon)
     h = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
     return 2 * r * math.asin(math.sqrt(h))
+
+
+# A comment-mined city farther than this from the ride start is almost always a
+# same-name mis-geocode (e.g. "Odessa" in Moldova resolving to Odessa, Texas because
+# the gazetteer stores the Ukrainian city as "Odesa"). Real hitchhiking legs don't span
+# continents, so reject anything beyond this rather than store a phantom 12,000 km ride
+# that then dominates the "longest ride" leaderboard.
+MAX_DERIVED_DISTANCE_KM = 2000
 
 
 def geocode(name, start_lat, start_lon, gaz):
@@ -356,7 +365,7 @@ def cmd_geocode_store(args):
         for o in _read_jsonl(path):
             cand[o["d"]] = o
 
-    rows, unresolved = [], []
+    rows, unresolved, reject_ds = [], [], []
     now = int(time.time())
     for o in _read_jsonl(args.extractions):
         d, dest = o["d"], o.get("destination")
@@ -371,9 +380,20 @@ def cmd_geocode_store(args):
             unresolved.append((dest, "no-gazetteer-match"))
             continue
         lat, lon, canon = g
+        # Drop implausibly distant matches: a same-name city on another continent means we
+        # geocoded the wrong place, not that the ride was that long (see MAX_DERIVED_DISTANCE_KM).
+        dist_km = _haversine(c["start_lat"], c["start_lon"], lat, lon)
+        if dist_km > MAX_DERIVED_DISTANCE_KM:
+            unresolved.append((dest, f"too-far-{int(dist_km)}km"))
+            # The upsert below only touches d's we store, so a previously-stored bad row for
+            # this ride would survive re-running. Delete it explicitly so the cap heals the DB.
+            reject_ds.append(d)
+            continue
         rows.append((d, lat, lon, 0, canon, c.get("comment"), "derived-comment-city", now))
 
-    print(f"resolved {len(rows)}, unresolved {len(unresolved)}")
+    # Bucket "too-far-<n>km" reasons together so the summary stays readable.
+    reason_counts = Counter("too-far" if why.startswith("too-far") else why for _, why in unresolved)
+    print(f"resolved {len(rows)}, unresolved {len(unresolved)} " + dict(reason_counts).__repr__())
     if args.dry_run:
         for dest, why in unresolved[:40]:
             print(f"  UNRESOLVED [{why}] {dest!r}")
@@ -381,6 +401,14 @@ def cmd_geocode_store(args):
 
     conn = sqlite3.connect(args.db)
     _ensure_table(conn)
+    # Remove now-rejected comment-derived rows (keep other kinds, e.g. derived-consecutive-ride).
+    # total_changes gives a reliable count across drivers where executemany().rowcount does not.
+    _before = conn.total_changes
+    conn.executemany(
+        "DELETE FROM derived_ride_location WHERE d=? AND kind='derived-comment-city'",
+        [(d,) for d in reject_ds],
+    )
+    deleted = conn.total_changes - _before
     conn.executemany(
         """INSERT INTO derived_ride_location
              (d, latitude, longitude, is_exact, location_name, source_comment, kind, created_at)
@@ -394,7 +422,7 @@ def cmd_geocode_store(args):
     conn.commit()
     total = conn.execute("SELECT COUNT(*) FROM derived_ride_location").fetchone()[0]
     conn.close()
-    print(f"stored/updated {len(rows)} rows; table now has {total}")
+    print(f"stored/updated {len(rows)} rows; removed {deleted} too-far row(s); table now has {total}")
 
 
 # ---------------------------------------------------------------------------

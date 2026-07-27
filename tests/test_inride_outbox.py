@@ -53,6 +53,7 @@ class _CapturingPoster:
     construction, so two POSTs with the same client_d_tag yield the same server d."""
 
     calls = []
+    last_event = None
 
     def post(self, ride_record, tags=None, d_tag=None):
         result = build_ride_d_tag("hitchmap", tags, d_tag)

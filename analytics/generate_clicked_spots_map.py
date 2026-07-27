@@ -38,17 +38,14 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 CONTAINER = "hitchhiking-map"
 CLICKS_CSV = os.path.join(HERE, "clicked_spots.csv")
 GEOJSON_PATH = os.path.join(HERE, "ne_50m_admin_0_countries.geojson")
-GEOJSON_URL = (
-    "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/"
-    "master/geojson/ne_50m_admin_0_countries.geojson"
-)
+GEOJSON_URL = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson"
 OUTPUT_PNG = os.path.join(HERE, "clicked_spots_map.png")
 
 # Matches the access-log timestamp and the clicked spot's coordinates in one go,
 # e.g. ... [29/May/2026 22:44:12] "GET /rides/by-spot/30.8705_57.8576.json ...
 CLICK_RE = re.compile(
     r"\[(\d{2}/[A-Za-z]{3}/\d{4} \d{2}:\d{2}:\d{2})\]"
-    r'.*?GET /rides/by-spot/(-?[\d.]+)_(-?[\d.]+)\.json'
+    r".*?GET /rides/by-spot/(-?[\d.]+)_(-?[\d.]+)\.json"
 )
 LOG_TIME_FMT = "%d/%b/%Y %H:%M:%S"
 
@@ -210,8 +207,7 @@ def main():
 
     total_clicks = int(counts.sum())
     ax.set_title(
-        f"Clicked hitchhiking spots — {len(spots)} unique spots, "
-        f"{total_clicks} clicks (1 km circles)",
+        f"Clicked hitchhiking spots — {len(spots)} unique spots, {total_clicks} clicks (1 km circles)",
         color="#e0e0e0",
         fontsize=22,
         pad=20,

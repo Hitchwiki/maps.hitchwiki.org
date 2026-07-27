@@ -1,14 +1,17 @@
 {% extends "security/base.html" %}
-{% block title %}
-Hitchhiking tips for European cities
-{% endblock %}
+{% block title %}{{ t("Hitchhiking guides to cities worldwide") }}{% endblock %}
+{% block meta_description %}{{ t("Browse hitchhiking guides by city: spots, community ratings, waiting times and recent rides.") }}{% endblock %}
+{% block og_title %}{{ t("Hitchhiking guides to cities worldwide") }}{% endblock %}
 {% block content %}
-<h1>Hitchhiking guides to European cities</h1>
+<h1>{{ t("Hitchhiking guides to cities worldwide") }}</h1>
 {% for country, places in grouped_cities %}
 <h2>{{ country }}</h2>
 <ul>
     {% for place in places.itertuples() %}
-    <li><a href="{{country}}/{{ place.city }}.html">{{ place.city }}</a></li>
+    {# Relative link: this index sits at /city/ (or /<lang>/city/), so the sibling
+       country folder resolves correctly in every language without rebuilding the
+       prefix. Filename must match _city_slug() in cities.py, hence the "/" swap. #}
+    <li><a href="{{ country }}/{{ place.city.replace('/', '-') }}.html">{{ place.city }}</a></li>
     {% endfor %}
 </ul>
 {% endfor %}

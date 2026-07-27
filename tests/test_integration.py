@@ -43,9 +43,7 @@ def test_nostr_relays_have_at_least_one_ride_event():
         except Exception as exc:
             errors.append(f"{relay_url}: {exc}")
 
-    pytest.fail(
-        f"No ride events (kind 36820) found on any Nostr relay. Details: {'; '.join(errors)}"
-    )
+    pytest.fail(f"No ride events (kind 36820) found on any Nostr relay. Details: {'; '.join(errors)}")
 
 
 def test_at_least_one_spot_on_map(tmp_path):

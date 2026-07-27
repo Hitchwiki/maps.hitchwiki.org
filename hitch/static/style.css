@@ -353,6 +353,30 @@ html {
   box-shadow: 0 2px 10px rgba(0,0,0,0.4);
 }
 
+/* Floating "share this map view" button: a circular control stacked just under
+   the account button. Overrides the pill .share-btn box into a round icon. */
+.share-view-btn {
+  position: fixed;
+  top: 100px;
+  right: 12px;
+  z-index: 1001;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  gap: 0;
+  background: white;
+  border: none;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  color: #555;
+  justify-content: center;
+}
+/* No account button on this page → take its slot at the top instead. */
+.share-view-btn.no-account { top: 48px; }
+.share-view-btn:hover { background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.4); }
+/* Keep the "copied" green flash for desktop clipboard feedback (label is sr-only). */
+.share-view-btn.copied { background: #d4edda; color: #155724; }
+
 /* Red bell badge on the account icon when there are unread notifications. */
 .top-account-btn .notif-bell {
   position: absolute;
@@ -692,6 +716,8 @@ body.filters-open .filters-scrim {
   font-size: 20px;
 }
 
+/* No pane button uses an emoji since "Add your ride" moved to the contribution bar;
+   kept so a future emoji entry sizes like the FontAwesome icons beside it. */
 .action-btn .action-emoji {
   font-size: 18px;
   line-height: 1;
@@ -843,6 +869,19 @@ body.inride-active .leaflet-bottom.leaflet-right {
   margin-bottom: calc(150px + var(--bottom-pane-h, 0px));
 }
 
+/* Same problem outside a journey: the permanent contribution bar (#inr-start-bar) now
+   spans the full width at `--bottom-pane-h + 28px`, so without a lift the zoom buttons
+   sit on top of its "Log a past ride" half. The stack's lowest button already carries
+   84px of its own margin, hence the -46px (= the bar's 28px offset + a 10px gap - 84px).
+   --inr-start-bar-h is measured and published by inride.js because the labels wrap to
+   two lines on a narrow screen; the 52px fallback is the one-line height.
+   .has-start-bar so deployments with HIDE_ADD_SPOT_BUTTON (no bar) keep the controls
+   where they were, and :not(.inride-active) so the bigger dock lift above still wins
+   regardless of source order. */
+body.spots-loaded.has-start-bar:not(.inride-active) .leaflet-bottom.leaflet-right {
+  margin-bottom: calc(var(--bottom-pane-h, 0px) + var(--inr-start-bar-h, 52px) - 46px);
+}
+
 .mapmode-btn {
   display: flex !important;
   align-items: center;
@@ -855,9 +894,14 @@ body.inride-active .leaflet-bottom.leaflet-right {
   text-decoration: none;
 }
 
-.mapmode-btn:hover {
-  background: #f5f5f5 !important;
-  color: #1a73e8;
+/* Scoped to real pointer devices so a tap doesn't leave the button stuck in its
+   hover shade after the finger lifts. (This is cosmetic only — the two-tap bug
+   these buttons had was a URL race in setMapMode, not a touch-hover artifact.) */
+@media (hover: hover) and (pointer: fine) {
+  .mapmode-btn:hover {
+    background: #f5f5f5 !important;
+    color: #1a73e8;
+  }
 }
 
 /* Active mode reads as a filled blue chip. */
@@ -930,26 +974,43 @@ body.inride-active .leaflet-bottom.leaflet-right {
   50%      { transform: translateX(-50%) translateY(-6px); }
 }
 
-/* "Hitch here" CTA in the spot detail sheet — starts a tracked ride from this spot. */
-#spot-hitch-here {
+/* Contribution CTAs in the spot detail sheet: "Hitch here" starts a tracked ride from
+   this spot, "Log a past ride" opens the /ride form seeded with it. Two equal halves
+   via .inr-split (see the map's #inr-start-bar — same pairing, same wording). */
+#spot-contribute {
+  margin: 10px 0 4px;
+}
+#spot-hitch-here,
+#spot-log-past {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  width: 100%;
-  margin: 10px 0 4px;
-  padding: 12px 0;
+  padding: 12px 10px;
   border: none;
   border-radius: 12px;
-  background: #1a9850;
-  color: #fff;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0, 0, 0, .18);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
+#spot-hitch-here {
+  background: #1a9850;
+  color: #fff;
+}
 #spot-hitch-here:hover { background: #157a40; }
+/* Same light tint of #1a9850 as the map bar's half (.inr-big--green-light) — a lighter
+   sibling of "Hitch here" beside it, not a grey opt-out. */
+#spot-log-past {
+  background: #e8f5ec;
+  color: #14653b;
+}
+#spot-log-past:hover { background: #d7ecdd; }
+/* When a journey is running "Hitch here" is hidden (one at a time) and the past-ride
+   half is left alone — flex:1 1 0 from .inr-split simply lets it take the full row. */
 
 /* Country info bottom sheet (Hitchwiki lead section for a tapped country). */
 .sidebar.country .country-header {
@@ -1015,6 +1076,46 @@ body.inride-active .leaflet-bottom.leaflet-right {
 }
 .sidebar.country .country-source a:hover {
   text-decoration: underline;
+}
+
+/* "Read on at Hitchwiki" call to action, shared by the country and event sheets.
+   Wiki text shown on the map is only an excerpt; this is the hand-off that sends
+   readers (and potential editors) to Hitchwiki itself, so it reads as an action
+   rather than as the small-print source credit that sits below it. */
+.wiki-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid #cfe0fb;
+  border-radius: 10px;
+  background: #f2f7ff;
+  color: #1558c0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-decoration: none;
+}
+/* `display: flex` above would otherwise defeat the `hidden` attribute we use to
+   keep the CTA out of the sheet until an article has actually loaded. */
+.wiki-cta[hidden] {
+  display: none;
+}
+.wiki-cta:hover,
+.wiki-cta:focus-visible {
+  background: #e6f0ff;
+  border-color: #a9c9f6;
+  text-decoration: none;
+}
+.wiki-cta-arrow {
+  flex: none;
+  font-size: 1.05rem;
+  transition: transform 0.15s ease;
+}
+.wiki-cta:hover .wiki-cta-arrow {
+  transform: translateX(2px);
 }
 
 /* Hitchwiki event markers and their bottom sheet. */
@@ -1188,11 +1289,9 @@ body.inr-picking .event-marker {
   transform: rotate(180deg);
 }
 
-@media only screen and (max-width: 500px) {
-  .heatmap-legend-pane {
-    right: 16px;
-  }
-}
+/* No mobile override here: the base rule's left:16px/right:68px already
+   matches the search bar exactly. A narrower right inset used to widen the
+   pane past the fixed share button (right:12px, same top band), overlapping it. */
 
 .legend-scale {
   position: relative;
@@ -1615,18 +1714,15 @@ body.adding-spot .horizontal-button {
 .leaflet-arrowlines-pane {
   pointer-events: none;
 }
-body.zoomed-out .leaflet-overlay-pane {
+/* Below zoom 9 a selected spot's destination arrows span half a continent, so the
+   spot circles and their arrows are faded back to keep a wide view readable. Both
+   panes are listed because the arrow heads live in their own pane — the fade must
+   not split a single drawing across two opacities. Filtering deliberately does NOT
+   appear here: filtered spots are the same circleMarkers in the same overlay pane
+   as unfiltered ones, so they dim identically, which is the point. */
+body.zoomed-out .leaflet-overlay-pane,
+body.zoomed-out .leaflet-arrowlines-pane {
   opacity: 0.3;
-}
-body.has-points .leaflet-overlay-pane {
-  opacity: 0.3;
-}
-body.filtering .leaflet-overlay-pane,
-body.filtering .leaflet-marker-pane {
-  display: none;
-}
-body:not(.filtering) .leaflet-filtering-pane {
-  display: none;
 }
 @media only screen and (max-width: 700px) {
   .topbar {
@@ -1661,6 +1757,43 @@ a:hover {
   background-color: none !important;
   text-decoration: none;
 }
+/* Photos of the spot, as a left/right scrollable strip at the top of the spot pane.
+   A row rather than a grid so it costs one thumbnail's height however many there are —
+   the pane is a bottom sheet on a phone, and vertical space above the ride cards is the
+   scarcest thing in it. */
+.spot-photos {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin-bottom: 16px;
+  padding-bottom: 4px;
+  /* Snap so a swipe lands on a photo edge instead of mid-image. */
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  /* The strip scrolls sideways inside the sheet; without this a horizontal swipe on it
+     is claimed by the sheet's own drag/pan handling. */
+  touch-action: pan-x;
+}
+.spot-photos .spot-photo {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  display: block;
+  line-height: 0;
+}
+.spot-photos img {
+  height: 120px;
+  /* Auto width keeps each photo's own aspect ratio — a portrait shot of a slip road
+     shouldn't be cropped to a landscape box. max-width stops a panorama taking the
+     whole strip. */
+  width: auto;
+  max-width: 240px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #e5e5e5;
+  background: #f2f2f2;
+}
 /* Spot sheet header */
 #spot-header-row {
   position: relative;
@@ -1668,6 +1801,20 @@ a:hover {
   border-bottom: 1px solid #eee;
   margin-bottom: 16px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+#spot-name {
+  font-size: 1.15em;
+  font-weight: 700;
+  color: #1a1a1a;
+  line-height: 1.25;
+  margin-bottom: 4px;
+  overflow-wrap: anywhere;
+}
+/* With a name above it the coordinate line is secondary; without one it stays the
+   title it has always been, so an unnamed spot looks unchanged. */
+#spot-name:not([hidden]) + #spot-coords-line {
+  font-size: 0.85em;
+  color: #666;
 }
 #spot-coords-line {
   font-size: 1em;
@@ -1691,22 +1838,22 @@ a:hover {
   text-decoration: underline;
 }
 
-/* Inline share submenu (revealed on tap) */
-#share-spot-menu {
-  margin: 4px 0 0 16px;
-  padding: 4px 0;
-  border-left: 2px solid #eee;
+/* Share button inside the spot sheet sits below the stacked action links. */
+#share-spot-btn { margin-top: 10px; }
+
+/* Route results sheet: title on the left, Share on the right. */
+.rp-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
-#share-spot-menu a {
-  display: block;
-  padding: 4px 12px;
-  color: #1a73e8;
-  text-decoration: none;
-  font-size: 0.9em;
-}
-#share-spot-menu a:hover {
-  text-decoration: underline;
-}
+.rp-sheet-head .rp-sheet-title { margin: 4px 0 10px; }
+
+/* Country / event / insights sheet share buttons get a little breathing room. */
+#share-country-btn,
+#share-event-btn { margin: 4px 0 12px; }
+.insights-header .share-btn { margin-top: 10px; }
 .leaflet-control-geocoder-form:not(:has(:focus))
   ~ .leaflet-control-geocoder-alternatives {
   display: none;
@@ -1812,6 +1959,7 @@ ul.no-style {
   color: #000;
 }
 
+
 .make-invisible {
   display: none;
 }
@@ -1902,6 +2050,132 @@ ul.no-style {
   background: #218838;
 }
 
+/* Secondary ("no thanks") action on the sign-up nudges. Deliberately quiet next to
+   the green primary, but a real button — an opt-out people can't find reads as a
+   dark pattern, and we want the decline logged rather than the overlay dismissed
+   by clicking the backdrop. */
+.success-secondary-btn {
+  background: none;
+  color: #666;
+  border: 1px solid #ccc;
+  padding: 12px 30px;
+  border-radius: 6px;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.success-secondary-btn:hover {
+  background: #f0f0f0;
+}
+
+.signup-prompt-note {
+  font-size: 0.95em !important;
+  color: #666 !important;
+}
+
+.signup-prompt-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* Share-the-ride success overlay. The card preview is the point of the screen, so
+   the box is allowed to fill the viewport height and scroll internally on short
+   phones rather than pushing the buttons out of reach. */
+.success-share-content {
+  position: relative;
+  padding: 26px 26px 22px;
+  max-height: 92vh;
+  overflow-y: auto;
+}
+
+.success-dismiss {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 30px;
+  line-height: 1;
+  color: #999;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.success-dismiss:hover {
+  color: #333;
+}
+
+.success-feedback {
+  font-size: 0.95em !important;
+  color: #666 !important;
+  margin: 0 24px 18px 0 !important;
+}
+
+/* The auto-grouped-trip line. Tinted rather than plain grey like .success-feedback:
+   it is the one piece of news on this overlay the user did not ask for, so it has to
+   read as a notice instead of blending into the feedback ask above it. */
+.success-trip-note {
+  font-size: 0.95em !important;
+  color: #2f6b3a !important;
+  background: #eaf5ec;
+  border-radius: 8px;
+  padding: 10px 12px !important;
+  margin: 0 0 18px 0 !important;
+}
+
+.success-share-content h2 {
+  margin-bottom: 6px;
+}
+
+.success-share-sub {
+  color: #666 !important;
+  margin-bottom: 16px !important;
+}
+
+/* Fixed 4:5 box so the layout doesn't jump when the generated image drops in. */
+.share-card-frame {
+  position: relative;
+  width: min(260px, 60vw);
+  aspect-ratio: 4 / 5;
+  margin: 0 auto;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #eceeed;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.share-card-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9em;
+  color: #777;
+  padding: 10px;
+}
+
+.share-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.share-card-caption {
+  font-size: 0.95em !important;
+  color: #444 !important;
+  margin: 14px 0 0 !important;
+}
+
+.signup-prompt-actions .success-close-btn {
+  margin-top: 0;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -1926,7 +2200,67 @@ ul.no-style {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 14px;
+}
+
+/* Language picker: flag + name button, top-right of the yellow brand bar. */
+.lang-picker {
+  position: relative;
+  flex-shrink: 0;
+}
+.lang-picker-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 14px;
+  padding: 4px 10px;
+  font: inherit;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+}
+.lang-picker-btn:hover { background: rgba(255, 255, 255, 0.85); }
+.lang-picker-btn .fa-chevron-down { font-size: 0.7em; opacity: 0.7; }
+.lang-picker-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 1002;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  min-width: 150px;
+  /* 30 languages and counting -- taller than the viewport on most screens, so
+     the list scrolls internally instead of running off the bottom of the page. */
+  max-height: min(60vh, 420px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.lang-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  color: #333;
+  text-decoration: none;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.lang-picker-item:hover { background: #f0f0f0; }
+.lang-picker-item.active { background: #333; color: #fff; }
+
+@media only screen and (max-width: 700px) {
+  .lang-picker-btn { font-size: 12px; padding: 3px 8px; }
+  .lang-picker-name { display: none; }
 }
 
 .top-brand-bar a {
@@ -2369,7 +2703,11 @@ body.showing-insights .heatmap-legend-pane {
   font-size: 12px;
   line-height: 1.35;
   color: #666;
-  max-width: 260px;
+  /* 260px broke one-sentence bodies mid-clause ("...Waiting for / another ride?").
+     340px fits every current body on one line down to ~360px-wide phones; `balance`
+     keeps the wrap even (no lonely trailing word) when it still has to happen. */
+  max-width: 340px;
+  text-wrap: balance;
 }
 
 .inride-dialog .inr-actions {
@@ -2407,6 +2745,13 @@ body.showing-insights .heatmap-legend-pane {
   background: #f1f3f4;
   color: #3c4043;
   border: none;
+}
+
+/* Dismiss: the same round red × as the journey dock's Cancel, centered below the
+   actions row. The card is block-flow (the dock is flex), so `align-self` from
+   .inr-cancel does nothing here — auto side margins do the centering. */
+.inride-dialog .inr-cancel {
+  margin: 14px auto 0;
 }
 
 /* ── Waiting-state persistent chrome (Task 5) ───────────────────────────────
@@ -2542,6 +2887,86 @@ body.showing-insights .heatmap-legend-pane {
 
 .inr-big--red   { background: #d73027; }
 .inr-big--green { background: #1a9850; }
+
+/* ── Two-up contribution split ────────────────────────────────────────────────
+   "Start Hitchhiking" (track a ride now) and "Log a past ride" (the /ride form)
+   are the same decision at two tenses, so they share one row of equal halves —
+   on the map launcher and in the spot sheet alike. Equal halves, not
+   content-width: neither tense is the default, and a wider green half would read
+   as one primary action with an afterthought beside it. */
+.inr-split {
+  display: flex;
+  gap: 8px;
+}
+.inr-split > * {
+  /* Equal halves regardless of label length — flex-basis 0, not auto, or the
+     longer label would claim more of the row. min-width:0 lets the label wrap
+     inside its half instead of forcing the row wider than the screen. */
+  flex: 1 1 0;
+  min-width: 0;
+}
+/* Softer half: a light tint of the same #1a9850 as its neighbour, so the pair reads as
+   one family of "record a ride" actions rather than an action and a cancel. Dark green
+   text on the tint is 6.4:1, and the hairline (tinted, not grey) keeps the edge legible
+   over both the map and the white spot sheet. */
+.inr-big--green-light {
+  background: #e8f5ec;
+  color: #14653b;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .2), inset 0 0 0 1px rgba(26, 152, 80, .25);
+}
+.inr-big--green-light:hover { background: #d7ecdd; }
+/* Desaturated 🚗💨 — the emoji the bottom action pane used for "Add your ride",
+   kept for recognition but drained of colour so the green half stays dominant. */
+.inr-emoji-bw {
+  filter: grayscale(1);
+  line-height: 1;
+}
+
+/* ── Permanent contribution bar on the map (inride.js startLauncher) ──────────
+   Full-width (10px insets) like the journey dock it is replaced by, so the two
+   halves have room for their labels. Bottom offset matches .inr-dock--stack so it
+   clears the fixed OSM attribution (bottom: 64px) the same way the dock does. */
+#inr-start-bar {
+  position: fixed;
+  left: 10px;
+  right: 10px;
+  bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 28px);
+  z-index: 2002;
+  /* Hidden until the spots finish loading (map.js adds .spots-loaded) — the bar is
+     mounted as soon as window.map exists, which is well before the map is usable. */
+  display: none;
+}
+/* Must stay ABOVE the hide rules below: same specificity, so source order decides and
+   a running journey / open sheet still wins over this. */
+body.spots-loaded #inr-start-bar { display: flex; }
+/* .inr-big is written for the dock's flex row and pads 15px 0; the bar's halves are
+   narrower, and their labels wrap, so give them side padding and a tighter rhythm. */
+#inr-start-bar .inr-big {
+  padding: 12px 10px;
+  font-size: 14px;
+  line-height: 1.2;
+  text-align: center;
+}
+#inr-start-btn:hover { background: #157a40; }
+#inr-start-bar .inr-big:active { transform: scale(0.97); }
+
+/* Anything that owns the bottom of the screen wins over the bar: a running
+   journey (whose own dock replaces it), an open pin picker, any journey dialog or
+   sheet (they all mount an .inride-scrim), an open side/bottom sheet — whose own
+   "Hitch here" is the better entry point in that context — or the duplicate-report
+   topbar. Hiding by rule rather than by removing the node keeps the bar free
+   of any lifecycle of its own. */
+body.inride-active #inr-start-bar,
+body.inr-picking #inr-start-bar,
+body.selecting-location #inr-start-bar,
+body.adding-spot #inr-start-bar,
+body.reporting-duplicate #inr-start-bar,
+body.showing-insights #inr-start-bar,
+body:has(.inride-scrim) #inr-start-bar,
+body:has(.sidebar.visible) #inr-start-bar,
+body:has(.topbar.visible) #inr-start-bar {
+  display: none;
+}
 
 /* Non-blocking "saved offline" confirmation toast — sits above the dock stack. */
 .inr-toast {
@@ -2968,6 +3393,15 @@ body.showing-insights .heatmap-legend-pane {
 .inr-cohitch-suggest li { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee; }
 .inr-cohitch-suggest li:hover { background: #f0f0f0; }
 /* "Add anonymous" secondary action under the username field. */
+/* Row of "add anonymous" buttons (plain / ♂ / ♀) — wraps on narrow sheets. */
+.inr-cohitch-anonrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.inr-cohitch-anonrow .inr-cohitch-anon { margin-top: 0; }
+
 .inr-cohitch-anon {
   margin-top: 10px;
   display: inline-flex;
@@ -3297,6 +3731,21 @@ body.routing-active .leaflet-control-container .leaflet-control-geocoder { displ
 /* Lives inline in the route, where the destination should have been. */
 .acct-ride__arrow { color: #bbb; }
 .acct-ride__gaveup { color: #999; font-weight: 500; font-style: italic; }
+
+/* Badge for a ride that was logged but never actually happened (hitchhiker gave up
+   waiting). Used both in the per-spot ride-card list and on the /ride/<d_tag> page. */
+.ride-card--no-ride { border-left: 3px solid #d73027; }
+.no-ride-badge {
+  display: inline-block;
+  color: #fff;
+  background: #d73027;
+  font-weight: 600;
+  font-size: 0.8em;
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-right: 4px;
+  vertical-align: middle;
+}
 .acct-ride__warn {
   color: #e0a800;
   font-size: 13px;

@@ -73,6 +73,11 @@ class HitchhikingDataStandardToNostrPoster:
 
         self.event_kind = int(os.getenv("NOSTR_EVENT_KIND"))
 
+        # The most recently published signed event. The caller writes it straight into
+        # the local ride_event table so the ride is live before the fetch cron runs;
+        # post() still returns only the d tag, which every existing caller relies on.
+        self.last_event = None
+
     def post(self, ride_record: HitchhikingRecord, tags: list = None, d_tag: str = None) -> str:
         """Post a ride in the standardized format to Nostr and return the d tag.
 
@@ -106,18 +111,20 @@ class HitchhikingDataStandardToNostrPoster:
             created_at=unix_timestamp_now,
             content=content,
             pubkey=self.pubkey_hex,
-            id=None, # ID will be computed when signing
+            id=None,  # ID will be computed when signing
             sig=None,  # Signature will be added later
             tags=[
-                ["d", d_tag ],  # Use existing d tag if updating, otherwise create a new one
-                *geohash_tags, # geohash is always updated in case the ride's location changes
+                ["d", d_tag],  # Use existing d tag if updating, otherwise create a new one
+                *geohash_tags,  # geohash is always updated in case the ride's location changes
                 # published_at stays the same across versions of the same ride,
                 # so that we can identify updates to the same ride across versions
                 ["published_at", published_at_tag],
-            ]
+            ],
         )
 
         event.sign(self.private_key_hex)
+
+        self.last_event = event
 
         _append_event_to_temporary_json(event)
 
@@ -130,7 +137,6 @@ class HitchhikingDataStandardToNostrPoster:
         while self.relay_manager.message_pool.has_ok_notices():
             ok_msg = self.relay_manager.message_pool.get_ok_notice()
             print(ok_msg)
-
 
         return d_tag
 

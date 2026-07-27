@@ -1,6 +1,6 @@
 {% extends "security/base.html" %}
 
-{% set title = "Leaderboard" %}
+{% set title = t("Leaderboard") %}
 
 {% block head %}
 {{ super() }}
@@ -26,7 +26,7 @@
         {{ ride.created }}
         {% if ride.rating > 0 %}&nbsp;{{ "⭐" * ride.rating }}{% endif %}
         &mdash; <span class="hitchhiker-name">{{ ride.hitchhiker_name }}</span>
-        {% if ride.distance is not none %}&mdash; {{ ride.distance }} km{% endif %}
+        {% if ride.distance is not none %}&mdash; {{ format_distance(ride.distance) }}{% endif %}
     </div>
     {% if ride.pickup_lat and ride.pickup_lon %}
     <div class="map-thumbnail" id="{{ thumb_prefix }}-{{ idx }}" style="height:100px;"></div>
@@ -38,26 +38,31 @@
 </{{ tag }}>
 {% endmacro %}
 
+{% from "_share.html" import share_button %}
 {% block content %}
-<h1>Leaderboard</h1>
+<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+  <h1 style="margin:0;">{{ t("Leaderboard") }}</h1>
+  {# data-share-url is filled in / kept in sync with the active tab by the tab JS. #}
+  {{ share_button(title=t("Hitchhiking leaderboard – Hitchwiki Maps")) }}
+</div>
 
 <div class="leaderboard-tabs">
-  <button class="leaderboard-tab active" data-pane="most-rides">Most rides</button>
-  <button class="leaderboard-tab" data-pane="longest-ride">Longest ride</button>
-  <button class="leaderboard-tab" data-pane="longest-24h">Longest 24h</button>
+  <button class="leaderboard-tab active" data-pane="most-rides">{{ t("Most rides") }}</button>
+  <button class="leaderboard-tab" data-pane="longest-ride">{{ t("Longest ride") }}</button>
+  <button class="leaderboard-tab" data-pane="longest-24h">{{ t("Longest 24h") }}</button>
 </div>
 
 <div class="leaderboard-pane active" id="pane-most-rides">
-  <p style="color:#666; font-size:0.85em;">All users ranked by number of rides logged</p>
+  <p style="color:#666; font-size:0.85em;">{{ t("All users ranked by number of rides logged") }}</p>
   {% if not current_user.is_authenticated %}
-  <p style="color:#999; font-size:0.8em;">Want to show up here? <a href="{{ url_for_security('login') }}">Log in</a> and start logging your rides.</p>
+  <p style="color:#999; font-size:0.8em;">{{ t("Want to show up here? {link} and start logging your rides.", link='<a href="' ~ url_for_security('login') ~ '">' ~ t("Log in") ~ '</a>')|safe }}</p>
   {% endif %}
   <table style="width:100%; border-collapse:collapse; font-size:0.9em;">
     <thead>
       <tr style="border-bottom:2px solid #ccc; text-align:left;">
         <th style="padding:0.4rem 0.6rem;">#</th>
-        <th style="padding:0.4rem 0.6rem;">User</th>
-        <th style="padding:0.4rem 0.6rem; text-align:right;">Rides</th>
+        <th style="padding:0.4rem 0.6rem;">{{ t("User") }}</th>
+        <th style="padding:0.4rem 0.6rem; text-align:right;">{{ t("Rides") }}</th>
       </tr>
     </thead>
     <tbody>
@@ -75,18 +80,18 @@
 </div>
 
 <div class="leaderboard-pane" id="pane-longest-ride">
-  <p style="color:#666; font-size:0.85em;">The 10 longest rides by start-to-destination distance</p>
+  <p style="color:#666; font-size:0.85em;">{{ t("The 10 longest rides by start-to-destination distance") }}</p>
   {% if longest_rides %}
     {% for ride in longest_rides %}
     {{ ride_card(ride, "longest-thumb", loop.index0) }}
     {% endfor %}
   {% else %}
-    <p style="color:#666; font-size:0.9em;">No rides with a destination yet.</p>
+    <p style="color:#666; font-size:0.9em;">{{ t("No rides with a destination yet.") }}</p>
   {% endif %}
 </div>
 
 <div class="leaderboard-pane" id="pane-longest-24h">
-  <p style="color:#666; font-size:0.85em;">Most distance covered within a single 24-hour window &mdash; only named hitchhikers and rides with both a departure and arrival time count. Each entry lists every ride in that window.</p>
+  <p style="color:#666; font-size:0.85em;">{{ t("Most distance covered within a single 24-hour window — only named hitchhikers and rides with both a departure and arrival time count. Each entry lists every ride in that window.") }}</p>
   {% if longest_24h %}
     {% for entry in longest_24h %}
     {% set entry_idx = loop.index0 %}
@@ -94,10 +99,10 @@
       <div class="h24-head" style="display:flex; align-items:baseline; gap:0.5rem; border-bottom:2px solid #ccc; padding:0.3rem 0;">
         <span style="color:#999; min-width:1.5em;">{{ loop.index }}</span>
         <a href="/account/{{ entry.hitchhiker_name }}" style="font-weight:600;">{{ entry.hitchhiker_name }}</a>
-        <span style="margin-left:auto; font-weight:600;">{{ entry.total_distance }} km</span>
+        <span style="margin-left:auto; font-weight:600;">{{ format_distance(entry.total_distance) }}</span>
       </div>
       <div style="color:#888; font-size:0.8em; margin:0.2rem 0 0.5rem;">
-        {{ entry.rides|length }} ride{{ "s" if entry.rides|length != 1 else "" }} &middot; {{ entry.window_start }} &rarr; {{ entry.window_end }}
+        {{ t("{n} ride" if entry.rides|length == 1 else "{n} rides", n=entry.rides|length) }} &middot; {{ entry.window_start }} &rarr; {{ entry.window_end }}
       </div>
       {% for ride in entry.rides %}
       {{ ride_card(ride, "h24-thumb-" ~ entry_idx, loop.index0) }}
@@ -105,7 +110,7 @@
     </div>
     {% endfor %}
   {% else %}
-    <p style="color:#666; font-size:0.9em;">No qualifying rides yet.</p>
+    <p style="color:#666; font-size:0.9em;">{{ t("No qualifying rides yet.") }}</p>
   {% endif %}
 </div>
 {% endblock %}
@@ -159,21 +164,34 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Tab switching between the leaderboard panes.
+    // Tab switching between the leaderboard panes. Each tab is deep-linkable via
+    // a #<pane> hash, so the Share button always points at the tab you're viewing.
     const tabs = document.querySelectorAll('.leaderboard-tab');
+    const shareBtn = document.querySelector('.share-btn');
+
+    function activateTab(pane, pushHash) {
+        const tab = document.querySelector('.leaderboard-tab[data-pane="' + pane + '"]');
+        if (!tab) return;
+        tabs.forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.leaderboard-pane').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('pane-' + pane).classList.add('active');
+        if (pane === 'longest-ride') initLongestThumbnails();
+        else if (pane === 'longest-24h') initH24Thumbnails();
+        // Reflect the tab in the URL + Share button without adding history entries.
+        if (pushHash) history.replaceState(null, '', location.pathname + '#' + pane);
+        if (shareBtn) shareBtn.dataset.shareUrl = location.origin + location.pathname + '#' + pane;
+    }
+
     tabs.forEach(tab => {
-        tab.addEventListener('click', function() {
-            tabs.forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.leaderboard-pane').forEach(p => p.classList.remove('active'));
-            tab.classList.add('active');
-            document.getElementById('pane-' + tab.dataset.pane).classList.add('active');
-            if (tab.dataset.pane === 'longest-ride') {
-                initLongestThumbnails();
-            } else if (tab.dataset.pane === 'longest-24h') {
-                initH24Thumbnails();
-            }
-        });
+        tab.addEventListener('click', function() { activateTab(tab.dataset.pane, true); });
     });
+
+    // Open the tab named in the URL hash on load (e.g. /leaderboard#longest-ride);
+    // otherwise seed the Share button with the default (Most rides) tab.
+    const initialPane = location.hash.replace(/^#/, '');
+    if (document.getElementById('pane-' + initialPane)) activateTab(initialPane, false);
+    else activateTab('most-rides', false);
 });
 </script>
 {% endblock %}

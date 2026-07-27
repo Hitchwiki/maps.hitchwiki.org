@@ -1,6 +1,8 @@
 {% extends 'base.html' %}
 
-{% block title %}Ride Details | Hitchhiking Map{% endblock %}
+{% block title %}{{ og_title }} | Hitchhiking Map{% endblock %}
+{% block og_title %}{{ og_title }}{% endblock %}
+{% block og_description %}{{ og_description }}{% endblock %}
 
 {% block head %}
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
@@ -136,22 +138,7 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     gap: 10px;
     flex-wrap: wrap;
 }
-.share-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    background: #f0f0f0;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    color: #333;
-    font: inherit;
-    font-size: 0.85em;
-    cursor: pointer;
-    text-decoration: none;
-}
-.share-btn:hover { background: #e4e4e4; }
-.share-btn.copied { background: #d4edda; border-color: #28a745; color: #155724; }
+/* .share-btn styling + click handler are shared globally from base.html */
 .report-btn {
     display: inline-flex;
     align-items: center;
@@ -178,6 +165,15 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     margin-bottom: 1rem;
     font-size: 0.95em;
 }
+.no-ride-notice {
+    background: #d73027;
+    color: #fff;
+    border-radius: 6px;
+    padding: 0.7rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 1em;
+    font-weight: 600;
+}
 .report-confirm {
     background: #d4edda;
     border: 1px solid #28a745;
@@ -187,12 +183,102 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     margin-bottom: 1rem;
     font-size: 0.95em;
 }
+.like-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    color: #555;
+    font: inherit;
+    font-size: 0.85em;
+    cursor: pointer;
+}
+.like-btn:hover { background: #fdf2f3; border-color: #f3b6c0; }
+.like-btn.liked { background: #fdf2f3; border-color: #e0839a; color: #c2185b; }
+.header-actions form.like-form { margin: 0; }
+.comment {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+.comment:last-child { border-bottom: none; }
+.comment-body { flex: 1; }
+.comment-meta {
+    font-size: 0.85em;
+    color: #888;
+    margin-bottom: 0.15rem;
+}
+.comment-meta a { color: #555; }
+.comment-text { white-space: pre-wrap; color: #333; font-size: 0.95em; }
+.comment-delete {
+    background: none;
+    border: none;
+    color: #b02a37;
+    cursor: pointer;
+    font-size: 0.85em;
+    padding: 0;
+    align-self: flex-start;
+}
+.comment-form textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 0.5rem;
+    font: inherit;
+    font-size: 0.9em;
+    resize: vertical;
+    min-height: 60px;
+}
+.comment-form button {
+    margin-top: 0.5rem;
+    padding: 6px 14px;
+    background: #28a745;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+.comment-locked {
+    color: #888;
+    font-size: 0.9em;
+}
+.ride-photos {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.5rem;
+}
+.ride-photos img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #e5e5e5;
+    display: block;
+}
+.photo-license {
+    font-size: 0.8rem;
+    color: #888;
+    margin: 0.6rem 0 0;
+}
 </style>
 {% endblock %}
 
 {% block main %}
 <div class="ride-detail-page">
     <a href="/" class="back-link">← Back to map</a>
+
+    {% if ride.no_ride %}
+    <div class="no-ride-notice">
+        <i class="fa fa-ban"></i> No ride was taken — the hitchhiker gave up waiting.
+    </div>
+    {% endif %}
 
     <div class="ride-header">
         <div>
@@ -220,6 +306,19 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                 <span class="share-btn-label">Share</span>
             </button>
+            {% if is_logged_in %}
+                <form method="post" action="/like-ride/{{ ride.d_tag }}" class="like-form">
+                    <button type="submit" class="like-btn{% if liked_by_me %} liked{% endif %}">
+                        <i class="fa{% if liked_by_me %}-solid{% else %}-regular{% endif %} fa-heart"></i>
+                        <span>{{ likes_count }}</span>
+                    </button>
+                </form>
+            {% else %}
+                <a href="/login?next=/ride/{{ ride.d_tag }}" class="like-btn">
+                    <i class="fa-regular fa-heart"></i>
+                    <span>{{ likes_count }}</span>
+                </a>
+            {% endif %}
             {% if ride.can_delete %}
                 {% if not owner_deleted %}
                     {# Only rides published by this site can be edited (a foreign-source event
@@ -282,7 +381,7 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
         {% if ride.distance_km is not none %}
         <div class="detail-row">
             <div class="detail-label"><i class="fa fa-route"></i> Distance</div>
-            <div class="detail-value">{{ "%.0f km"|format(ride.distance_km) }}</div>
+            <div class="detail-value">{{ format_distance(ride.distance_km) }}</div>
         </div>
         {% endif %}
 
@@ -328,7 +427,7 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
                     {% if h.nickname and h.nickname != 'Anonymous' %}
                         <a class="hitchhiker-chip" href="/account/{{ h.nickname }}">{% if sign %}{{ sign }} {% endif %}{{ h.nickname }}</a>
                     {% else %}
-                        <span class="hitchhiker-chip">Anonymous</span>
+                        <span class="hitchhiker-chip">{% if sign %}{{ sign }} {% endif %}Anonymous</span>
                     {% endif %}
                 {% endfor %}
             </div>
@@ -423,16 +522,78 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     </div>
     {% endif %}
 
+    {# Photos live on this server only — they are never published to Nostr, so they are
+       looked up by d tag rather than read out of the ride event (see ride_images.py). #}
+    {% if ride_images %}
+    <div class="detail-section">
+        <p class="section-title">Photos</p>
+        <div class="ride-photos">
+            {% for img in ride_images %}
+            {# Links to the full-size file: the grid crops to a uniform tile, and a
+               hitchhiker checking what a spot looks like needs the whole picture. #}
+            <a href="{{ img.url }}" target="_blank" rel="noopener">
+                <img src="{{ img.url }}" alt="Photo attached to this ride" loading="lazy"
+                     {% if img.width %}width="{{ img.width }}"{% endif %}
+                     {% if img.height %}height="{{ img.height }}"{% endif %}>
+            </a>
+            {% endfor %}
+        </div>
+        <p class="photo-license">
+            Photos are published by their uploader under
+            <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>.
+        </p>
+    </div>
+    {% endif %}
+
     {# Downstream license notice: the review (comment + username) is an individual content
        licensed CC BY-SA 4.0; the database as a whole is ODbL (see /copyright, ODbL §2.4). #}
     <div class="detail-section">
         <p style="font-size: 0.8rem; color: #888; line-height: 1.5;">
-            This review (comment and username) is licensed under
+            This review (comment, username and photos) is licensed under
             <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>.
             The map database as a whole is licensed under the
             <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>.
             See <a href="/copyright" target="_blank" rel="noopener">Copyright and License</a>.
         </p>
+    </div>
+
+    <div class="detail-section" id="comments">
+        <p class="section-title">Comments ({{ comments|length }})</p>
+
+        {% for c in comments %}
+        <div class="comment">
+            <div class="comment-body">
+                <div class="comment-meta">
+                    <a href="/account/{{ c.username }}">{{ c.username }}</a>
+                    · {{ c.created_at.strftime('%Y-%m-%d %H:%M') }}
+                </div>
+                <div class="comment-text">{{ c.body }}</div>
+            </div>
+            {% if c.is_own %}
+            <form method="post" action="/delete-ride-comment/{{ c.id }}"
+                  onsubmit="return confirm('Delete this comment?');">
+                <button type="submit" class="comment-delete"><i class="fa fa-trash"></i></button>
+            </form>
+            {% endif %}
+        </div>
+        {% else %}
+        <p style="color:#888; font-size:0.9em;">No comments yet.</p>
+        {% endfor %}
+
+        {% if can_comment %}
+        <form method="post" action="/comment-ride/{{ ride.d_tag }}" class="comment-form" style="margin-top:1rem;">
+            <textarea name="body" maxlength="2000" placeholder="Write a comment…" required></textarea>
+            <button type="submit">Post comment</button>
+        </form>
+        {% elif is_logged_in %}
+        <p class="comment-locked" style="margin-top:1rem;">
+            <i class="fa fa-lock"></i> This ride's hitchhiker(s) need to follow you before you can comment.
+        </p>
+        {% else %}
+        <p class="comment-locked" style="margin-top:1rem;">
+            <a href="/login?next=/ride/{{ ride.d_tag }}#comments">Log in</a> to comment (if this ride's hitchhiker follows you).
+        </p>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
@@ -449,29 +610,7 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     initMapThumbnail('dest-map', {{ ride.dest_lat }}, {{ ride.dest_lon }}, 7);
     {% endif %}
 
-    const shareBtn = document.getElementById('share-btn');
-    if (shareBtn) {
-        shareBtn.addEventListener('click', async () => {
-            const url = shareBtn.dataset.shareUrl;
-            const title = shareBtn.dataset.shareTitle;
-            try {
-                if (navigator.share) {
-                    await navigator.share({ title: title, url: url });
-                    return;
-                }
-            } catch (e) { if (e.name === 'AbortError') return; }
-            try {
-                await navigator.clipboard.writeText(url);
-                const label = shareBtn.querySelector('.share-btn-label');
-                const prev = label.textContent;
-                shareBtn.classList.add('copied');
-                label.textContent = 'Link copied!';
-                setTimeout(() => { shareBtn.classList.remove('copied'); label.textContent = prev; }, 1800);
-            } catch (e) {
-                window.prompt('Copy this link:', url);
-            }
-        });
-    }
+    // The #share-btn click is handled by the shared delegated handler in base.html.
 })();
 </script>
 {% endblock %}

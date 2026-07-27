@@ -92,8 +92,13 @@ def register():
 
 @oauth_bp.route("/logout")
 def logout():
-    logout_user()
+    # Clear our own session data first, THEN call logout_user(). logout_user() doesn't
+    # delete the remember-me cookie inline -- it sets session["_remember"] = "clear", a
+    # marker Flask-Login reads at response time to expire the cookie. Calling
+    # session.clear() afterwards would wipe that marker, leaving the remember cookie alive
+    # so the next request re-authenticates the user (the "logout didn't log me out" bug).
     session.clear()
+    logout_user()
     return redirect("/")
 
 

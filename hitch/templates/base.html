@@ -1,21 +1,41 @@
 <!DOCTYPE html>
-<html lang="en" {% block html_attribs %}{% endblock html_attribs %}>
+<html lang="{{ g.lang }}" {% block html_attribs %}{% endblock html_attribs %}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- Google Analytics 4 — cookieless mode (client_storage: 'none' disables all cookies) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-84G3GNXSME"></script>
+    {# Umami (self-hosted at 1p.hitchhiking.org, shared with the other Hitchwiki
+       sites). It identifies visitors by a daily-rotating salted hash of IP+UA,
+       so it sets no cookie and touches no browser storage — no consent banner
+       is required, and a visitor cannot be followed across days. That also means
+       every funnel we measure is session-scoped by construction.
+
+       Loaded from /1p/ on our own origin, not from 1p.hitchhiking.org: blocklists
+       match the analytics hostname, and this audience blocks more than most. Caddy
+       proxies /1p/* to the Umami container (umami_first_party snippet in the
+       hitchwiki-private repo); the tracker derives its collect URL from its own
+       script src, so it posts to /1p/api/send without further configuration. #}
+    {# Must load before the (deferred) tracker: it defines the before-send hook,
+       which is what lets a consented visitor's very first pageview carry their
+       durable id. Calling identify() after load would leave that pageview in a
+       different session from the rest of the visit. #}
+    <script src="/static/visitor_consent.js"></script>
+    <script
+      defer
+      src="/1p/script.js"
+      data-website-id="f3576395-def8-4d09-9725-7f74dde89c72"
+      data-before-send="hmVisitorBeforeSend"
+    ></script>
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-84G3GNXSME', {
-        'anonymize_ip': true,
-        'client_storage': 'none',
-        'allow_google_signals': false,
-        'allow_ad_personalization_signals': false
-      });
+      // Funnel events are fired from map.js / the ride form through this one
+      // helper. It must never throw: the tracker is `defer`, so early clicks can
+      // land before it loads, and ad-blockers stop it loading at all — in both
+      // cases the product feature has to carry on working untracked.
+      window.hmTrack = function (name, data) {
+        try {
+          if (window.umami) window.umami.track(name, data || {});
+        } catch (e) {}
+      };
     </script>
 
     {# Root-relative: a relative "favicon.ico" resolves against the current path,
@@ -24,21 +44,70 @@
     <link rel="apple-touch-icon" href="/static/logo_192.png" />
     <link rel="manifest" href="/manifest.json" />
 
-    <title>{% block title %}{{ "%s | Hitchhiking Map"|format(title) if title else "Hitchhiking Map" }}{% endblock %}</title>
-    <meta name="description" content="{% block meta_description %}Discover hitchhiking spots worldwide on an interactive map. See community ratings, waiting times, and trip data. Share your own rides.{% endblock %}" />
-    <meta property="og:title" content="{% block og_title %}Hitchhiking Map – Find & Share Hitchhiking Spots on a Map{% endblock %}" />
-    <meta property="og:description" content="{% block og_description %}Discover hitchhiking spots worldwide on an interactive map. See community ratings, waiting times, and trip data. Share your own rides.{% endblock %}" />
+    <title>{% block title %}{{ "%s | Hitchhiking Map"|format(title) if title else t("Hitchhiking Map") }}{% endblock %}</title>
+    {# Self-referencing canonical, emitted only when a page passes canonical_url
+       (the per-city SEO pages). Prevents 14k near-identical <head>s from being
+       clustered as duplicates. Omitted (not left empty) for pages without one. #}
+    {% block canonical %}{% if canonical_url %}<link rel="canonical" href="{{ canonical_url }}" />{% endif %}{% endblock %}
+    <meta name="description" content="{% block meta_description %}{{ t('Discover hitchhiking spots worldwide on an interactive map. See community ratings, waiting times, and trip data. Share your own rides.') }}{% endblock %}" />
+    <meta property="og:title" content="{% block og_title %}{{ t('Hitchhiking Map – Find & Share Hitchhiking Spots on a Map') }}{% endblock %}" />
+    <meta property="og:description" content="{% block og_description %}{{ t('Discover hitchhiking spots worldwide on an interactive map. See community ratings, waiting times, and trip data. Share your own rides.') }}{% endblock %}" />
     <meta property="og:type" content="website" />
     {# Site label shown by link-preview unfurlers; without it they fall back to the
        bare domain, which renders as "Hitchwiki". #}
     <meta property="og:site_name" content="Hitchwiki Maps" />
     {# base_url drops the query and fragment, so a link shared with filters or a
        #map= viewport still previews as the page it actually is. #}
-    <meta property="og:url" content="{% block og_url %}{{ request.base_url }}{% endblock %}" />
+    {# `request` exists only when Flask serves the page live; during static
+       generation (cities.py) it is undefined, so guard it with `is defined` or
+       the whole render aborts. Static city pages supply canonical_url instead. #}
+    <meta property="og:url" content="{% block og_url %}{{ canonical_url if canonical_url else (request.base_url if request is defined else '') }}{% endblock %}" />
+    {# Tells search engines each /<lang>/... mirror is a translation of this exact
+       page, not a duplicate -- see lang_switch_url (hitch/__init__.py) for how the
+       paths relate. Guarded the same way as og_url above: absent during cities.py's
+       static generation, which has no request. #}
+    {% if request is defined %}
+    {% for code in SUPPORTED_LANGUAGES %}
+    <link rel="alternate" hreflang="{{ code }}" href="{{ request.host_url.rstrip('/') }}{{ lang_switch_url(code) }}" />
+    {% endfor %}
+    <link rel="alternate" hreflang="x-default" href="{{ request.host_url.rstrip('/') }}{{ lang_switch_url('en') }}" />
+    {# Statically generated pages (cities.py) have no request to derive the sibling
+       URLs from, so the generator passes them in explicitly. Without these the 31
+       language versions of a city page compete with each other as duplicates
+       instead of being understood as translations of one page. #}
+    {% elif alternate_urls %}
+    {% for code, href in alternate_urls %}
+    <link rel="alternate" hreflang="{{ code }}" href="{{ href }}" />
+    {% endfor %}
+    <link rel="alternate" hreflang="x-default" href="{{ alternate_urls[0][1] }}" />
+    {% endif %}
     {# Only pages that can render a picture of themselves (currently a shared route)
        set og_image. Without an image a messenger shows a text-only card, which is
        the honest result for pages that have no single representative view. #}
     {% block og_image %}{% endblock %}
+
+    {# Shared "Share" button, used across every page (ride detail, account,
+       activities, leaderboard, city pages) and every map bottom-sheet. The
+       click handler lives once at the bottom of <body>; see share-btn script. #}
+    <style>
+      .share-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: #f0f0f0;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        color: #333;
+        font: inherit;
+        font-size: 0.85em;
+        cursor: pointer;
+        text-decoration: none;
+        line-height: 1.2;
+      }
+      .share-btn:hover { background: #e4e4e4; text-decoration: none; }
+      .share-btn.copied { background: #d4edda; border-color: #28a745; color: #155724; }
+    </style>
 
     {% block head %}{% endblock %}
   </head>
@@ -46,5 +115,34 @@
   <body {% block body_attribs %}{% endblock body_attribs %}>
     {% block main %}{% endblock %}
     {% block scripts %}{% endblock %}
+
+    {# One delegated handler for every .share-btn on the page. Native share sheet
+       when available (mobile / installed PWA — where there's no address bar to
+       copy from, which is the whole reason these exist), else copy to clipboard
+       with a "Link copied!" confirmation on the button's .share-btn-label.
+       The URL to share is data-share-url; falling back to the current location
+       lets filter/zoom-dependent views (map view, insights) share "as-is". #}
+    <script>
+      document.addEventListener('click', async function (e) {
+        var btn = e.target.closest && e.target.closest('.share-btn');
+        if (!btn) return;
+        e.preventDefault();
+        var url = btn.dataset.shareUrl || window.location.href;
+        var title = btn.dataset.shareTitle || document.title;
+        try {
+          if (navigator.share) { await navigator.share({ title: title, url: url }); return; }
+        } catch (err) { if (err && err.name === 'AbortError') return; }
+        try {
+          await navigator.clipboard.writeText(url);
+          var label = btn.querySelector('.share-btn-label');
+          if (label) {
+            var prev = label.textContent;
+            btn.classList.add('copied');
+            label.textContent = '{{ t("Link copied!") }}';
+            setTimeout(function () { btn.classList.remove('copied'); label.textContent = prev; }, 1800);
+          }
+        } catch (err) { window.prompt('Copy this link:', url); }
+      });
+    </script>
   </body>
 </html>

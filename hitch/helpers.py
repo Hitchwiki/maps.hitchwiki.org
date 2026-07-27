@@ -13,6 +13,48 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+KM_PER_MILE = 1.609344
+
+
+def current_distance_unit():
+    """The logged-in user's display unit ("metric" | "imperial"), "metric" for anonymous.
+
+    Everything we store and compute is in km; this only decides how a number is rendered,
+    so it is safe to fall back to metric whenever there is no user (crawlers, logged-out
+    visitors, generated pages).
+    """
+    try:
+        from flask_security import current_user
+
+        if current_user and not current_user.is_anonymous:
+            return current_user.distance_unit or "metric"
+    except Exception:
+        pass
+    return "metric"
+
+
+def convert_km(km, unit=None):
+    """km in the given (or current user's) display unit, as a float."""
+    if km is None:
+        return None
+    return km / KM_PER_MILE if (unit or current_distance_unit()) == "imperial" else km
+
+
+def distance_unit_label(unit=None):
+    return "mi" if (unit or current_distance_unit()) == "imperial" else "km"
+
+
+def format_distance(km, decimals=0, unit=None):
+    """Render a km value as e.g. "412 km" / "256 mi" in the user's chosen unit.
+
+    Returns "" for None so templates can drop it into text without a guard.
+    """
+    if km is None:
+        return ""
+    unit = unit or current_distance_unit()
+    return f"{convert_km(km, unit):,.{decimals}f} {distance_unit_label(unit)}"
+
+
 def get_db():
     # db = getattr(g, "_database", None)
     # if db is None:
@@ -88,7 +130,9 @@ def e(s):
 
 
 dirs = get_dirs()
-def write_json_file(data:pd.DataFrame | dict, filename):
+
+
+def write_json_file(data: pd.DataFrame | dict, filename):
     """Writes a JSON file into the dist folder containing data for the map
 
     Args:

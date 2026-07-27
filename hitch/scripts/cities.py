@@ -10,9 +10,11 @@ from datetime import date
 
 import numpy as np
 import pandas as pd
+from flask import g
 from jinja2 import Environment, FileSystemLoader
 
 from hitch.helpers import get_db, get_dirs
+from hitch.translations import SUPPORTED_LANGUAGES, t
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -20,10 +22,70 @@ logger = logging.getLogger(__name__)
 dirs = get_dirs()
 dist_dir = dirs["dist"]
 
-# Load template environment
-env = Environment(loader=FileSystemLoader('hitch/templates'))
-city_template = env.get_template('city_template.html')
-city_index = env.get_template('city_index.html')
+# Canonical site origin + per-city URL builder. Defined here (before the render
+# loop) so each city page can embed a self-referencing canonical that matches,
+# byte for byte, the sitemap entry built later.
+SITE_URL = "https://maps.hitchwiki.org"
+
+
+# How many cities get a page in every supported language. Deliberately not "all
+# of them": 14.5k cities x 31 languages is ~450k pages (~7 GB) on a host that has
+# run out of disk, and — the bigger reason — translating only the page furniture
+# around user reviews that stay in their original language is thin, near-duplicate
+# content at that scale, which search engines penalise across the whole domain.
+# The cities anyone actually searches ("Trampen in Berlin") are all in the head of
+# the ride-volume distribution, so a few hundred captures essentially all the value.
+TOP_N_TRANSLATED = 400
+
+
+def _city_slug(city_name):
+    # cities.py writes "/" as "-" on disk; URLs must match byte for byte.
+    return city_name.replace("/", "-")
+
+
+def _city_loc(country, city_name, lang="en"):
+    """Canonical URL of a city page in one language.
+
+    English keeps the historical /city/... path (it is the canonical version and
+    is already indexed under it); other languages take the /<lang> prefix every
+    other translated route on the site uses — see register_blueprints.
+    """
+    country_seg = urllib.parse.quote(country)
+    city_seg = urllib.parse.quote(f"{_city_slug(city_name)}.html")
+    prefix = "" if lang == "en" else f"/{lang}"
+    return f"{SITE_URL}{prefix}/city/{country_seg}/{city_seg}"
+
+
+def _city_path(country, city_name, lang="en"):
+    """Where that page lands under dist/, mirroring _city_loc's URL exactly.
+
+    catch_all serves any dist/ path, so dist/de/city/... is reachable at
+    /de/city/... with no routing change.
+    """
+    parts = [dist_dir] + ([] if lang == "en" else [lang]) + ["city", country]
+    return os.path.join(*parts), f"{_city_slug(city_name)}.html"
+
+
+# Load template environment.
+#
+# These pages extend the site's base.html, which is written for Flask's own Jinja
+# environment and so reaches for globals a bare Environment doesn't have. `request`
+# is already guarded with `is defined` in the template (it genuinely doesn't exist
+# during static generation), but `{{ g.lang }}` and `t()` are not — and an
+# UndefinedError there aborts the render of *every* page. That is exactly what
+# happened when the i18n work landed: this script died on `'g' is undefined`, which
+# stopped city pages regenerating AND stopped sitemap.xml/robots.txt being rewritten,
+# since both are produced at the end of this run.
+#
+# Passing Flask's real `g` (rather than a stand-in) is what makes per-language
+# rendering work: translations.current_lang() reads g.lang, so setting it once per
+# language makes every t() in the templates resolve to that language.
+env = Environment(loader=FileSystemLoader("hitch/templates"))
+env.globals["t"] = t
+env.globals["g"] = g
+env.globals["SUPPORTED_LANGUAGES"] = SUPPORTED_LANGUAGES
+city_template = env.get_template("city_template.html")
+city_index = env.get_template("city_index.html")
 
 # Load rides directly from the ride_event table (rides.json may not exist yet on a
 # fresh install; the DB is the canonical source — see CLAUDE.md "Database Storage").
@@ -36,11 +98,7 @@ rides["hitchhikers"] = rides["hitchhikers"].apply(lambda x: json.loads(x) if isi
 def _hitchhiker_name(hitchhikers):
     if isinstance(hitchhikers, list) and hitchhikers:
         first = hitchhikers[0]
-        if (
-            isinstance(first, dict)
-            and isinstance(first.get("nickname"), str)
-            and first["nickname"].strip() != ""
-        ):
+        if isinstance(first, dict) and isinstance(first.get("nickname"), str) and first["nickname"].strip() != "":
             return first["nickname"]
     return "Anonymous"
 
@@ -56,8 +114,7 @@ def _coords(row):
     if len(stops) > 1:
         end = stops[-1]["location"]
         return pd.Series(
-            {"lat": start["latitude"], "lon": start["longitude"],
-             "dest_lat": end["latitude"], "dest_lon": end["longitude"]}
+            {"lat": start["latitude"], "lon": start["longitude"], "dest_lat": end["latitude"], "dest_lon": end["longitude"]}
         )
     return pd.Series({"lat": start["latitude"], "lon": start["longitude"], "dest_lat": None, "dest_lon": None})
 
@@ -78,8 +135,7 @@ rides["ride_datetime"] = pd.to_datetime(rides["stops"].apply(_ride_datetime), er
 # Build the HTML "text" the city template renders for each review.
 rides["hitchhiker_name"] = rides["hitchhiker_name"].fillna("Anonymous")
 rides["text"] = (
-    rides["comment"].fillna("").map(html.escape).str.replace("\n", "<br>")
-    + "<br>―" + rides["hitchhiker_name"].map(html.escape)
+    rides["comment"].fillna("").map(html.escape).str.replace("\n", "<br>") + "<br>―" + rides["hitchhiker_name"].map(html.escape)
 )
 rides = rides.dropna(subset=["lat", "lon"])
 logger.info(f"Loaded {len(rides)} rides")
@@ -134,11 +190,15 @@ def haversine_km(lat1, lon1, lat2, lon2):
 total_cities = len(cities)
 # Log progress every ~10% so cron logs show forward motion without spamming a line per city
 log_every = max(1, total_cities // 10)
+
+# Pass 1: match rides to cities. Nothing is written yet, because which languages a
+# city gets depends on how it ranks against every other city — unknowable mid-loop.
+# Only the matched ride *indices* are kept (<=20 ints each); holding 14.5k
+# DataFrames instead would cost hundreds of MB for data we can re-slice for free.
+matched = []  # (city namedtuple, ride index array, total matching rides)
 for i, city in enumerate(cities.itertuples(), start=1):
     if i % log_every == 0 or i == total_cities:
-        logger.info(f"Rendering city pages: {i}/{total_cities} ({i * 100 // total_cities}%)")
-    country_folder = os.path.join(dist_dir, "city", city.country)
-    os.makedirs(country_folder, exist_ok=True)
+        logger.info(f"Matching rides to cities: {i}/{total_cities} ({i * 100 // total_cities}%)")
 
     # Scale radius by population: log10(50k)≈4.7, log10(10M)≈7 → range ~4.7-7
     pop = city.population if pd.notna(city.population) and city.population > 0 else 50000
@@ -157,30 +217,112 @@ for i, city in enumerate(cities.itertuples(), start=1):
         dest_dist = haversine_km(city_lat, city_lon, dest_lats, dest_lons)
         near_dest = has_dest.values & (dest_dist <= radius_km)
 
-    city_rides = rides[near_pickup | near_dest].iloc[:20]
+    hits = near_pickup | near_dest
+    # Rank on the UNCAPPED count: the page shows at most 20 reviews, so capping
+    # first would tie thousands of cities at 20 and make the ranking meaningless.
+    matched.append((city, rides.index[hits][:20], int(hits.sum())))
 
-    rendered_cities.append(len(city_rides) >= 3)
-    if rendered_cities[-1]:
-        # logger.info(f"Rendering city page for {city.city}, {city.country} ({len(city_rides)} rides)")
-        rendered = city_template.render(city=city, title=city.city, reviews=city_rides)
-        # Replace "/" with "-" to avoid filesystem issues
-        safe_filename = city.city.replace("/", "-")
-        with open(os.path.join(country_folder, f"{safe_filename}.html"), "w") as f:
-            f.write(rendered)
+rendered_cities = [total >= 3 for _, _, total in matched]
+# The cities that earn every language: best-evidenced first. Keyed by position in
+# `matched` rather than by the row object, since pandas hands out a fresh namedtuple
+# per iteration and identity comparisons on those are a trap.
+renderable = [pos for pos, keep in enumerate(rendered_cities) if keep]
+translated_positions = set(sorted(renderable, key=lambda pos: -matched[pos][2])[:TOP_N_TRANSLATED])
+logger.info(
+    f"{len(renderable)} cities have enough rides to render; "
+    f"top {len(translated_positions)} also get all {len(SUPPORTED_LANGUAGES)} languages"
+)
 
-logger.info(f"Rendered {sum(rendered_cities)} city pages out of {len(cities)} cities")
-
-# Create city index page
+# Hand the ranking to route_pages.py. Matching rides to 48k cities is the slow part
+# of this script (~25 min); the route generator needs exactly the same ranking to
+# choose which city pairs deserve a page, so it reads this instead of recomputing it.
+top_cities = [
+    {
+        "city": matched[pos][0].city,
+        "country": matched[pos][0].country,
+        "lat": float(matched[pos][0].lat),
+        "lon": float(matched[pos][0].lng),
+        "rides": matched[pos][2],
+        # Population stands in for search demand: route_pages.py uses it to pick
+        # which city represents a metro area, so "Paris" wins over "Meudon".
+        "population": int(matched[pos][0].population) if pd.notna(matched[pos][0].population) else 0,
+        "url": _city_loc(matched[pos][0].country, matched[pos][0].city),
+    }
+    for pos in sorted(renderable, key=lambda pos: -matched[pos][2])[:TOP_N_TRANSLATED]
+]
 os.makedirs(os.path.join(dist_dir, "city"), exist_ok=True)
-index_rendered = city_index.render(grouped_cities=cities[rendered_cities].groupby("country"))
-with open(os.path.join(dist_dir, "city", "index.html"), "w") as f:
-    f.write(index_rendered)
+with open(os.path.join(dist_dir, "city", "top_cities.json"), "w", encoding="utf-8") as f:
+    json.dump(top_cities, f)
+logger.info(f"Wrote top_cities.json ({len(top_cities)} cities) for route page generation")
+
+translated_locs = []  # sitemap entries for the non-English versions
+for pos in renderable:
+    city, ride_idx, _total = matched[pos]
+    city_rides = rides.loc[ride_idx]
+    langs = SUPPORTED_LANGUAGES if pos in translated_positions else ("en",)
+    # Every version points at every other (and at the English x-default) so the
+    # set reads as one page in 31 languages rather than 31 competing pages.
+    alternates = [(code, _city_loc(city.country, city.city, code)) for code in langs] if len(langs) > 1 else []
+
+    for lang in langs:
+        g.lang = lang  # translations.current_lang() reads this; drives every t()
+        folder, filename = _city_path(city.country, city.city, lang)
+        os.makedirs(folder, exist_ok=True)
+        canonical = _city_loc(city.country, city.city, lang)
+        with open(os.path.join(folder, filename), "w") as f:
+            f.write(
+                city_template.render(
+                    city=city,
+                    title=city.city,
+                    reviews=city_rides,
+                    canonical_url=canonical,
+                    alternate_urls=alternates,
+                )
+            )
+        if lang != "en":
+            translated_locs.append(canonical)
+    g.lang = "en"  # leave the index/sitemap rendering below in English
+
+logger.info(
+    f"Rendered {sum(rendered_cities)} English city pages out of {len(cities)} cities, "
+    f"plus {len(translated_locs)} translated versions"
+)
+
+# Create the city index, once per language. A translated city page's nav links to
+# /<lang>/city/index.html, so without this every one of them would 404.
+#
+# The English index lists every rendered city; a translated index lists only the
+# cities that actually have a page in that language (TOP_N_TRANSLATED), because
+# linking /de/city/<Country>/<SmallTown>.html when only the English version exists
+# would point a whole index full of links at 404s.
+translated_mask = [pos in translated_positions for pos in range(len(matched))]
+index_locs = []
+for lang in SUPPORTED_LANGUAGES:
+    g.lang = lang
+    listed = cities[rendered_cities if lang == "en" else translated_mask]
+    folder = os.path.join(*([dist_dir] + ([] if lang == "en" else [lang]) + ["city"]))
+    os.makedirs(folder, exist_ok=True)
+    prefix = "" if lang == "en" else f"/{lang}"
+    canonical = f"{SITE_URL}{prefix}/city/index.html"
+    with open(os.path.join(folder, "index.html"), "w") as f:
+        f.write(
+            city_index.render(
+                grouped_cities=listed.groupby("country"),
+                canonical_url=canonical,
+                alternate_urls=[
+                    (code, f"{SITE_URL}{'' if code == 'en' else '/' + code}/city/index.html") for code in SUPPORTED_LANGUAGES
+                ],
+            )
+        )
+    if lang != "en":
+        index_locs.append(canonical)
+g.lang = "en"
+logger.info(f"Wrote {len(SUPPORTED_LANGUAGES)} city index pages ({len(index_locs)} translated)")
 
 # Generate sitemap.xml + robots.txt so search engines can discover the per-city
 # SEO pages (the rest of the site is the SPA map / JSON data, not worth indexing).
 # Built here because this is the only place that knows which cities actually got a
 # page (the rendered_cities mask) — pointing the sitemap at unrendered cities 404s.
-SITE_URL = "https://maps.hitchwiki.org"
 lastmod = date.today().isoformat()
 
 
@@ -195,15 +337,6 @@ def _sitemap_url(loc, priority):
     )
 
 
-def _city_loc(country, city_name):
-    # Match the on-disk filename (cities.py replaces "/" with "-"), then
-    # percent-encode each path segment so spaces/diacritics produce valid URLs.
-    safe_filename = city_name.replace("/", "-")
-    country_seg = urllib.parse.quote(country)
-    city_seg = urllib.parse.quote(f"{safe_filename}.html")
-    return f"{SITE_URL}/city/{country_seg}/{city_seg}"
-
-
 # Static, server-rendered pages reachable from the map's menu / action buttons.
 # These are real distinct URLs (own HTML), so listing them helps crawlers find
 # pages the JS-driven UI would otherwise hide behind buttons.
@@ -213,11 +346,44 @@ def _city_loc(country, city_name):
 #   - "?heatmap=true" is a query-param view of "/" whose server HTML is identical
 #     to "/" (the heatmap is drawn client-side). We still list it so the heatmap
 #     view is explicitly advertised, but it intentionally shares "/"'s content.
+def _country_locs():
+    """Sitemap URLs for /country/<name>, one per country we can actually describe.
+
+    Only countries with waiting-time stats are listed: main.render_country emits
+    a description (and therefore stays indexable) exactly when country_insights
+    has them, so listing the rest would point the sitemap at noindex pages — the
+    same mistake as pointing it at cities that never got rendered.
+
+    The country view used to be reachable only as "#country/<name>". Crawlers drop
+    everything after "#", so all ~90 countries were the single URL "/" and none of
+    them could be listed here at all.
+    """
+    geo_path = os.path.join(dirs["base"], "static", "countries.geojson")
+    insights_path = os.path.join(dist_dir, "country_insights.json")
+    try:
+        with open(geo_path) as f:
+            features = json.load(f).get("features", [])
+        with open(insights_path) as f:
+            insights = json.load(f)
+    except (OSError, ValueError):
+        logger.warning("No country insights/geojson — skipping country URLs in sitemap")
+        return []
+
+    locs = []
+    for feature in features:
+        props = feature.get("properties") or {}
+        stats = ((insights.get(props.get("cc")) or {}).get("wait") or {}).get("stats") or {}
+        if stats.get("n"):
+            locs.append(f"{SITE_URL}/country/{urllib.parse.quote(props['name'])}")
+    return sorted(locs)
+
+
 STATIC_PAGES = [
     (f"{SITE_URL}/", "1.0"),
     (f"{SITE_URL}/?heatmap=true", "0.6"),
     (f"{SITE_URL}/recent", "0.6"),
     (f"{SITE_URL}/leaderboard", "0.6"),
+    (f"{SITE_URL}/races", "0.6"),
     (f"{SITE_URL}/dashboard.html", "0.5"),
     (f"{SITE_URL}/city/index.html", "0.5"),
 ]
@@ -228,13 +394,45 @@ sitemap_parts = [
 ]
 for loc, priority in STATIC_PAGES:
     sitemap_parts.append(_sitemap_url(loc, priority))
+country_locs = _country_locs()
+# Above the per-city priority: a country page aggregates every city in it, and
+# "hitchhiking in <country>" is the broader query we can realistically rank for.
+for loc in country_locs:
+    sitemap_parts.append(_sitemap_url(loc, "0.8"))
 for city in cities[rendered_cities].itertuples():
     sitemap_parts.append(_sitemap_url(_city_loc(city.country, city.city), "0.7"))
+# Translated versions sit just below their English original: same content, but the
+# English page is the one we nominate as x-default in the hreflang set above.
+for loc in translated_locs:
+    sitemap_parts.append(_sitemap_url(loc, "0.6"))
+for loc in index_locs:
+    sitemap_parts.append(_sitemap_url(loc, "0.5"))
+# Route pages (route_pages.py, which runs just before this job). Read from its
+# manifest rather than globbed off disk, so a half-finished run can't put URLs in
+# the sitemap. Absent on a fresh install or if that job failed — skipped quietly,
+# exactly like the country URLs above.
+route_locs = []
+try:
+    with open(os.path.join(dist_dir, "route", "index.json"), encoding="utf-8") as f:
+        route_locs = json.load(f)
+except (OSError, ValueError):
+    logger.warning("No dist/route/index.json — skipping route URLs in sitemap")
+# Highest per-page priority we assign: a "hitchhiking from X to Y" page answers a
+# more specific question than a city page and is the harder query to rank for.
+for loc in route_locs:
+    sitemap_parts.append(_sitemap_url(loc, "0.8"))
 sitemap_parts.append("</urlset>\n")
 
 with open(os.path.join(dist_dir, "sitemap.xml"), "w", encoding="utf-8") as f:
     f.write("".join(sitemap_parts))
-logger.info(f"Wrote sitemap.xml with {sum(rendered_cities) + len(STATIC_PAGES)} URLs")
+_sitemap_total = (
+    sum(rendered_cities) + len(STATIC_PAGES) + len(country_locs) + len(translated_locs) + len(index_locs) + len(route_locs)
+)
+logger.info(
+    f"Wrote sitemap.xml with {_sitemap_total} URLs "
+    f"({len(country_locs)} countries, {len(translated_locs)} translated city pages, "
+    f"{len(index_locs)} translated indexes, {len(route_locs)} route pages)"
+)
 
 # Open access so search engines and AI crawlers can discover the city pages.
 # Discovery is opt-in by NOT disallowing, so AI training/search bots (GPTBot,

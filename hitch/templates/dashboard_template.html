@@ -1,7 +1,43 @@
 <html>
-<head><meta charset="utf-8" /></head>
+<head><meta charset="utf-8" />
+<style>
+  .share-btn {
+    display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px;
+    background: #f0f0f0; border: 1px solid #ccc; border-radius: 6px; color: #333;
+    font: inherit; font-size: 0.85em; cursor: pointer; text-decoration: none;
+  }
+  .share-btn:hover { background: #e4e4e4; }
+  .share-btn.copied { background: #d4edda; border-color: #28a745; color: #155724; }
+</style>
+</head>
 <body>
-<h1>Dashboard</h1>
+<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+  <h1 style="margin:0;">Dashboard</h1>
+  <!-- Standalone page (not served through base.html), so it carries its own
+       share handler. No data-share-url: shares the current page URL. -->
+  <button type="button" class="share-btn" id="share-btn" data-share-title="Hitchwiki Maps dashboard">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+    <span class="share-btn-label">Share</span>
+  </button>
+</div>
+<script>
+  document.getElementById('share-btn').addEventListener('click', async function () {
+    var btn = this;
+    var url = btn.dataset.shareUrl || window.location.href;
+    var title = btn.dataset.shareTitle || document.title;
+    try {
+      if (navigator.share) { await navigator.share({ title: title, url: url }); return; }
+    } catch (err) { if (err && err.name === 'AbortError') return; }
+    try {
+      await navigator.clipboard.writeText(url);
+      var label = btn.querySelector('.share-btn-label');
+      var prev = label.textContent;
+      btn.classList.add('copied');
+      label.textContent = 'Link copied!';
+      setTimeout(function () { btn.classList.remove('copied'); label.textContent = prev; }, 1800);
+    } catch (err) { window.prompt('Copy this link:', url); }
+  });
+</script>
 <h2>Rides</h2>
 $timeline
 <h2>User Accounts</h2>

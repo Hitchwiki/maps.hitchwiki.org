@@ -7,6 +7,8 @@ import subprocess
 import sys
 import time
 from datetime import datetime
+from functools import lru_cache
+from urllib.parse import quote
 
 import pandas as pd
 from flask import (
@@ -21,10 +23,15 @@ from flask import (
     url_for,
 )
 from flask_security import current_user
-from sqlalchemy import text
+from sqlalchemy import func, text
 from werkzeug.utils import safe_join
 
-from hitch.blueprints.publish_ride import ALLOWED_VEHICLE_KINDS, create_record_from_custom_object
+from hitch.blueprints.publish_ride import (
+    ALLOWED_VEHICLE_KINDS,
+    anonymous_co_hitchhiker_token,
+    create_record_from_custom_object,
+    is_anonymous_co_hitchhiker,
+)
 from hitch.blueprints.utils.driver_info_choices import (
     ALLOWED_GENDERS,
     ALLOWED_REASONS_TO_PICK_UP,
@@ -38,15 +45,51 @@ from hitch.blueprints.utils.driver_info_choices import (
     REASON_DESCRIPTION_BY_CODE,
     REASON_TO_PICK_UP_CHOICES,
 )
+from hitch.blueprints.utils.filter_request_log import FILTER_FIELDS, log_filter_request
 from hitch.blueprints.utils.iso_country_codes import ISO_3166_1_ALPHA_2
 from hitch.blueprints.utils.license_plate_country_codes import LICENSE_PLATE_COUNTRY_CHOICES
-from hitch.blueprints.utils.notifications import notify_co_hitchhiker_invite, unread_count
+from hitch.blueprints.utils.notifications import (
+    notify_co_hitchhiker_invite,
+    notify_ride_comment,
+    notify_ride_like,
+    unread_count,
+)
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
-from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON, REPORT_REASONS
+from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON, REPORT_REASONS, REPORTS_TO_HIDE
+from hitch.blueprints.utils.ride_facts import haversine_km, ride_map_entry, spot_id_for, stop_facts
+from hitch.blueprints.utils.ride_images import (
+    MAX_IMAGES_PER_RIDE,
+    RideImageError,
+    claim_draft_images,
+    delete_ride_image,
+    image_url,
+    images_for_draft,
+    images_for_ride,
+    prepare_upload,
+    store_draft_image,
+    sweep_stale_drafts,
+    valid_draft_token,
+)
 from hitch.blueprints.utils.ride_ip_log import get_client_ip, log_ride_ip
+from hitch.blueprints.utils.route_request_log import log_route_request
+from hitch.blueprints.utils.search_request_log import log_search_request
+from hitch.blueprints.utils.signup_prompt_log import PROMPT_ACTIONS, log_signup_prompt
 from hitch.extensions import db
 from hitch.helpers import get_db, get_dirs
-from hitch.models import CoHitchhiker, Follow, ProposedSpot, RideEvent, RideReport, User
+from hitch.models import (
+    CoHitchhiker,
+    Follow,
+    ProposedSpot,
+    RideComment,
+    RideEvent,
+    RideImage,
+    RideLike,
+    RideReport,
+    SpotName,
+    User,
+)
+from hitch.scripts.nostr_ride_parsing import parse_post_to_ride_fields
+from hitch.translations import t
 
 main_bp = Blueprint("main", __name__)
 
@@ -98,6 +141,48 @@ def _user_owns_ride(ride, user):
     return _user_is_hitchhiker(ride, user)
 
 
+def _store_published_ride(event):
+    """Write a ride we just published to Nostr straight into the local ride_event table.
+
+    Without this the ride exists only on the relays until fetch_nostr_incremental runs
+    (up to 5 min), so /ride/<d_tag> 404s and the author's own ride is missing from their
+    profile. We parse our own signed event with parse_post_to_ride_fields — the exact
+    function both fetch scripts use — so the row is identical to the one the cron would
+    have written, and the cron's upsert then classifies it "unchanged".
+
+    Upsert keyed on the addressable coordinate (pubkey, d), as in
+    fetch_nostr_incremental.py. `>=` rather than `>` on created_at: we are the publisher,
+    so our event is by definition the newest revision even if an edit lands in the same
+    second as the original.
+
+    Known gap: pynostr does not check the relay's OK notice, so a silently rejected event
+    leaves a row here that no fetch will ever confirm, and the weekly full fetch_nostr
+    (delete-and-recreate) drops it. That is still better than today, where such a ride is
+    lost immediately — and it is the same gap dist/temporary.json exists to record.
+
+    Never raises: the ride is already on the relay by the time we get here, so a local DB
+    problem must not turn a successful publish into a 500.
+    """
+    if event is None:
+        return
+    try:
+        fields = parse_post_to_ride_fields(event.to_dict())
+        if fields is None or not fields.get("d"):
+            return
+        row = db.session.query(RideEvent).filter_by(pubkey=fields["pubkey"], d=fields["d"]).first()
+        if row is None:
+            db.session.add(RideEvent(**fields))
+        elif fields["created_at"] >= (row.created_at or 0):
+            # An edit publishes a new event id under the same (pubkey, d), so every
+            # column is overwritten — including the primary key.
+            for column, value in fields.items():
+                setattr(row, column, value)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception("Could not store the published ride locally; the Nostr fetch cron will import it")
+
+
 def _user_can_delete_ride(ride, user):
     """Check if the current user may hide this ride from the map.
 
@@ -107,6 +192,36 @@ def _user_can_delete_ride(ride, user):
     those rides already show up as theirs on their profile page.
     """
     return _user_is_hitchhiker(ride, user)
+
+
+def _ride_owner_users(ride):
+    """Registered users among this ride's listed hitchhikers, matched by nickname.
+
+    A ride can list several hitchhikers (co-hitchhiking); any of them counts as "the
+    person whose ride it is" for the follow-gated comment permission below.
+    """
+    content = ride.content or {}
+    nicknames = [h.get("nickname") for h in (content.get("hitchhikers") or []) if h.get("nickname")]
+    if not nicknames:
+        return []
+    return db.session.query(User).filter(User.username.in_(nicknames)).all()
+
+
+def _user_can_comment_on_ride(ride, user):
+    """A user may comment on a ride if it's their own, or if any of its owners follows them.
+
+    Comments are follow-gated (like DMs) so a ride can't be flooded with comments from
+    strangers its owner has never engaged with; owners can always comment on their own ride.
+    """
+    if user.is_anonymous:
+        return False
+    owners = _ride_owner_users(ride)
+    if any(owner.id == user.id for owner in owners):
+        return True
+    if not owners:
+        return False
+    owner_ids = [owner.id for owner in owners]
+    return Follow.query.filter(Follow.follower_id.in_(owner_ids), Follow.followed_id == user.id).first() is not None
 
 
 # TODO: renamed function from map() to render_map() to avoid conflict with map() builtin
@@ -164,27 +279,89 @@ def _spot_preview(spot_id):
 
     rides = payload.get("rides") or []
     ratings = [r["rating"] for r in rides if r.get("rating")]
-    if not ratings:
-        return None
     spot = payload.get("spot") or {}
+    name = spot.get("name")
+    # A name alone is worth a preview — it gives the tab and the messenger card a real
+    # place instead of coordinates — so the rating fields are optional from here on.
+    if not ratings and not name:
+        return None
     return {
-        "rating": sum(ratings) / len(ratings),
-        "count": len(rides),
+        "name": name,
+        "rating": sum(ratings) / len(ratings) if ratings else None,
+        "count": len(rides) if ratings else None,
         "wait": spot.get("wait"),
         "distance": spot.get("distance"),
     }
 
 
 def _spot_description(preview):
-    """One sentence a messenger/crawler can show under the link."""
-    plural = "ride" if preview["count"] == 1 else "rides"
-    parts = [f"Rated {preview['rating']:.1f}/5 from {preview['count']} {plural}."]
+    """One sentence a messenger/crawler can show under the link, or None if we have
+    nothing to say. Returning None for a named-but-unrated spot is deliberate: the
+    template's robots meta keys off the description, and naming ~30k spots must not
+    turn them into 30k indexable pages that say nothing."""
+    if not preview or preview["rating"] is None:
+        return None
+    plural = t("ride") if preview["count"] == 1 else t("rides")
+    parts = [t("Rated {rating:.1f}/5 from {count} {plural}.", rating=preview["rating"], count=preview["count"], plural=plural)]
     if preview["wait"]:
-        parts.append(f"Typical wait {round(preview['wait'])} min.")
+        parts.append(t("Typical wait {wait} min.", wait=round(preview["wait"])))
     if preview["distance"]:
-        parts.append(f"Rides average {round(preview['distance'])} km.")
-    parts.append("See the spot on the hitchhiking map.")
+        parts.append(t("Rides average {distance} km.", distance=round(preview["distance"])))
+    parts.append(t("See the spot on the hitchhiking map."))
     return " ".join(parts)
+
+
+# Roughly what a messenger card shows before it truncates. Long ride comments are
+# common, so trim rather than let the preview run into an ellipsis mid-sentence.
+RIDE_COMMENT_PREVIEW_CHARS = 200
+
+
+def _ride_place_name(spot_id):
+    """Display name of the spot a ride started from, or None.
+
+    Prefers the per-spot file, which holds the fully-cascaded name the map itself shows
+    (OSM feature, then service area, then fuel, then car-pooling, then geocode). A ride
+    logged minutes ago has no such file yet — exactly the ride whose link gets shared —
+    so fall back to the cached geocode in spot_name.
+    """
+    if not spot_id:
+        return None
+    preview = _spot_preview(spot_id)
+    if preview and preview.get("name"):
+        return preview["name"]
+    row = db.session.get(SpotName, spot_id)
+    return row.name if row else None
+
+
+def _ride_preview_meta(ride, spot_id):
+    """(title, description) for a ride's tab title and link preview.
+
+    /ride/<d_tag> is what the success overlay's share card now links to, so a shared
+    ride must not unfurl with the generic site blurb. Text only — a per-ride map image
+    would need a whole generation pipeline like route_preview.py.
+    """
+    place = _ride_place_name(spot_id)
+    title = t("Hitchhiking ride from {place}", place=place) if place else t("A hitchhiking ride")
+    # Truthiness is deliberate here, unlike the wait check below: a 0.0 km ride (pickup
+    # and destination coincide) isn't worth putting in the title as "– 0 km".
+    if ride.get("distance_km"):
+        title += " – " + t("{km} km", km=round(ride["distance_km"]))
+
+    parts = []
+    if ride.get("rating"):
+        parts.append(t("Rated {rating}/5.", rating=ride["rating"]))
+    # An instant pickup (wait == 0) is a real, good outcome, not a missing value — keep
+    # it distinct from "wait never recorded" the same way stop_facts and the template do.
+    if ride.get("wait") is not None:
+        parts.append(t("Waited {wait} min.", wait=ride["wait"]))
+    comment = (ride.get("comment") or "").strip()
+    if comment:
+        if len(comment) > RIDE_COMMENT_PREVIEW_CHARS:
+            comment = comment[:RIDE_COMMENT_PREVIEW_CHARS].rstrip() + "…"
+        parts.append(comment)
+    if not parts:
+        parts.append(t("A hitchhiking ride logged on Hitchwiki Maps."))
+    return title, " ".join(parts)
 
 
 # OSM-style permalink for a single spot, mirroring /node/<id>#map=z/lat/lon.
@@ -201,11 +378,14 @@ def render_spot(spot_id):
         abort(404)
     lat, lon = (float(v) for v in spot_id.split("_"))
     preview = _spot_preview(spot_id)
+    name = preview["name"] if preview else None
     return render_template(
         "map.html",
         map_variation=None,
-        spot_title=f"Hitchhiking spot at {lat:.5f}, {lon:.5f}",
-        spot_description=_spot_description(preview) if preview else None,
+        spot_title=t("{name} — hitchhiking spot", name=name)
+        if name
+        else t("Hitchhiking spot at {lat:.5f}, {lon:.5f}", lat=lat, lon=lon),
+        spot_description=_spot_description(preview),
         spot_url=_external_https("main.render_spot", spot_id=spot_id),
         hide_add_spot_button=current_app.config.get("HIDE_ADD_SPOT_BUTTON", False),
         hide_account_button=current_app.config.get("HIDE_ACCOUNT_BUTTON", False),
@@ -300,6 +480,79 @@ def _route_preview(start, dest, build=True):
     return _route_preview(start, dest, build=False)
 
 
+@lru_cache(maxsize=1)
+def _country_cc_by_name():
+    """Country name -> ISO-2 code, from the same geojson the map's Countries mode uses.
+
+    Cached for the process: the file is small but this runs on every crawler hit,
+    and the mapping only changes when the geojson is redeployed.
+    """
+    path = os.path.join(current_app.root_path, "static", "countries.geojson")
+    try:
+        with open(path) as f:
+            geo = json.load(f)
+    except (OSError, ValueError):
+        return {}
+    return {f["properties"]["name"]: f["properties"]["cc"] for f in geo.get("features", [])}
+
+
+def _country_description(name):
+    """One sentence of real statistics for a country, or None if we have none.
+
+    Built from dist/country_insights.json (median wait/distance, keyed by ISO code)
+    — the same numbers the country sheet draws as histograms. A country with no
+    entry gets no description, which makes the page noindex: an empty country view
+    is a soft 404 and would only dilute the site.
+    """
+    cc = _country_cc_by_name().get(name)
+    if not cc:
+        return None
+    path = safe_join(get_dirs()["dist"], "country_insights.json")
+    if not path or not os.path.isfile(path):
+        return None
+    try:
+        with open(path) as f:
+            insights = json.load(f).get(cc) or {}
+    except (OSError, ValueError):
+        return None
+
+    wait = (insights.get("wait") or {}).get("stats") or {}
+    distance = (insights.get("distance") or {}).get("stats") or {}
+    # n is the sample size behind the median; without it there is no claim to make.
+    if not wait.get("n"):
+        return None
+
+    parts = [t("Median wait {wait} min across {n} logged rides", wait=round(wait["median"]), n=wait["n"])]
+    if distance.get("median"):
+        parts.append(t("typical ride {km} km", km=round(distance["median"])))
+    return t(
+        "Hitchhiking in {name}: {facts}. Read what hitchhiking there is like and see waiting-time statistics.",
+        name=name,
+        facts=", ".join(parts),
+    )
+
+
+# Country permalink, mirroring /spot/<id>. The name lives in the path rather than
+# the older #country/<name> fragment because crawlers discard everything after
+# "#": every country shared one indexable URL ("/"), so none of them could rank,
+# carry its own description, or appear in the sitemap. map.js reads the path back
+# and opens the same country sheet; the legacy hash is still accepted.
+@main_bp.route("/country/<name>")
+def render_country(name):
+    description = _country_description(name)
+    return render_template(
+        "map.html",
+        map_variation=None,
+        spot_title=t("Hitchhiking in {name}", name=name),
+        spot_description=description,
+        spot_url=_external_https("main.render_country", name=name),
+        hide_add_spot_button=current_app.config.get("HIDE_ADD_SPOT_BUTTON", False),
+        hide_account_button=current_app.config.get("HIDE_ACCOUNT_BUTTON", False),
+        is_logged_in=not current_user.is_anonymous,
+        unread_notifications=unread_count(current_user),
+    )
+
+
 # Shareable route permalink, mirroring /spot/<id>: the endpoints live in the path
 # rather than the old #dir/<from>/<to> fragment because a fragment never reaches
 # the server, so a pasted route link could never carry its own preview. routing.js
@@ -324,6 +577,76 @@ def render_directions(start, dest):
     )
 
 
+# Fire-and-forget beacon from routing.js each time the in-app planner runs a
+# search. Route planning is entirely client-side, so this is the only place the
+# server learns which corridors people ask for. Always returns 204 — the client
+# uses navigator.sendBeacon and never reads the response.
+@main_bp.route("/log-route-request", methods=["POST"])
+def log_route_request_endpoint():
+    data = request.get_json(silent=True) or {}
+    try:
+        slat, slon = float(data["slat"]), float(data["slon"])
+        dlat, dlon = float(data["dlat"]), float(data["dlon"])
+    except (KeyError, TypeError, ValueError):
+        return ("", 204)
+    if -90 <= slat <= 90 and -180 <= slon <= 180 and -90 <= dlat <= 90 and -180 <= dlon <= 180:
+        log_route_request(slat, slon, dlat, dlon, data.get("sname", ""), data.get("dname", ""))
+    return ("", 204)
+
+
+# Fire-and-forget beacon from map.js each time a place is picked from the search
+# bar. The geocoder runs client-side, so this is the only place the server learns
+# which places people search for. Always returns 204 (client uses sendBeacon).
+@main_bp.route("/log-search-request", methods=["POST"])
+def log_search_request_endpoint():
+    data = request.get_json(silent=True) or {}
+    try:
+        lat, lon = float(data["lat"]), float(data["lon"])
+    except (KeyError, TypeError, ValueError):
+        return ("", 204)
+    if -90 <= lat <= 90 and -180 <= lon <= 180:
+        log_search_request(data.get("name", ""), lat, lon)
+    return ("", 204)
+
+
+# Fire-and-forget beacon from map.js once a filter combination settles (the
+# client debounces, so this is one row per intent rather than one per keystroke).
+# Filtering is entirely client-side, so this is the only place the server learns
+# which filters people use. `matches` records how many spots survived, which is
+# what separates a useful filter from one people try and abandon. Always returns
+# 204 (client uses sendBeacon).
+@main_bp.route("/log-filter-request", methods=["POST"])
+def log_filter_request_endpoint():
+    data = request.get_json(silent=True) or {}
+    filters = data.get("filters")
+    if not isinstance(filters, dict):
+        return ("", 204)
+    # Only ever record the filters we know about — the client is untrusted, and
+    # unknown keys would not have a column to land in anyway.
+    known = {k: filters[k] for k in FILTER_FIELDS if filters.get(k) not in (None, "", False)}
+    if not known:
+        return ("", 204)
+    try:
+        matches = int(data["matches"])
+    except (KeyError, TypeError, ValueError):
+        matches = None
+    log_filter_request(known, matches)
+    return ("", 204)
+
+
+# Fire-and-forget beacon from map.js for the post-submit sign-up nudges. The
+# overlays are client-side (shown at most once per browser), so this is the only
+# place the server learns whether they convert. Always returns 204 (client uses
+# sendBeacon).
+@main_bp.route("/log-signup-prompt", methods=["POST"])
+def log_signup_prompt_endpoint():
+    data = request.get_json(silent=True) or {}
+    prompt, action = data.get("prompt"), data.get("action")
+    if action in PROMPT_ACTIONS.get(prompt, ()):
+        log_signup_prompt(prompt, action)
+    return ("", 204)
+
+
 @main_bp.route("/dir/<start>/<dest>/preview.png")
 def render_directions_preview(start, dest):
     s, d = _parse_dir_point(start), _parse_dir_point(dest)
@@ -337,21 +660,24 @@ def render_directions_preview(start, dest):
     # a way a crawler would notice; let the CDN and the messenger keep it.
     return send_file(path, mimetype="image/png", max_age=604800)
 
+
 @main_bp.route("/driver_info_choices.json")
 def driver_info_choices_json():
     """Choice lists for the in-ride details sheet — same options as the /ride form,
     delivered as JSON so the client renders them without duplicating the data."""
     from hitch.blueprints.utils.ride_score import WEIGHTS
 
-    return jsonify({
-        "reasons": REASON_TO_PICK_UP_CHOICES,
-        "genders": GENDER_CHOICES,
-        "languages": LANGUAGE_CHOICES,
-        "countries": COUNTRY_CHOICES,
-        "plate_countries": LICENSE_PLATE_COUNTRY_CHOICES,
-        "vehicle_kinds": VEHICLE_KIND_CHOICES,
-        "passenger_kinds": WEIGHTS["passenger_kinds"],
-    })
+    return jsonify(
+        {
+            "reasons": REASON_TO_PICK_UP_CHOICES,
+            "genders": GENDER_CHOICES,
+            "languages": LANGUAGE_CHOICES,
+            "countries": COUNTRY_CHOICES,
+            "plate_countries": LICENSE_PLATE_COUNTRY_CHOICES,
+            "vehicle_kinds": VEHICLE_KIND_CHOICES,
+            "passenger_kinds": WEIGHTS["passenger_kinds"],
+        }
+    )
 
 
 def _ride_to_card(ride):
@@ -479,28 +805,14 @@ def ride_detail(d_tag):
         abort(404)
 
     content = ride.content or {}
-    stops = content.get("stops") or []
-    pickup_lat = pickup_lon = dest_lat = dest_lon = None
-    departure_time = None
-    arrival_time = None
-    waiting_minutes = None
-    if stops:
-        first = stops[0]
-        loc = first.get("location") or {}
-        pickup_lat = loc.get("latitude")
-        pickup_lon = loc.get("longitude")
-        departure_time = first.get("departure_time")
-        wd = first.get("waiting_duration")
-        if wd:
-            m = re.match(r"PT(\d+)M", wd)
-            if m:
-                waiting_minutes = int(m.group(1))
-        if len(stops) > 1:
-            last_stop = stops[-1]
-            last_loc = last_stop.get("location") or {}
-            dest_lat = last_loc.get("latitude")
-            dest_lon = last_loc.get("longitude")
-            arrival_time = last_stop.get("arrival_time")
+    facts = stop_facts(content.get("stops"))
+    pickup_lat = facts["pickup_lat"]
+    pickup_lon = facts["pickup_lon"]
+    dest_lat = facts["dest_lat"]
+    dest_lon = facts["dest_lon"]
+    departure_time = facts["departure_time"]
+    arrival_time = facts["arrival_time"]
+    waiting_minutes = facts["waiting_minutes"]
 
     signal_methods = []
     for sig in content.get("signals") or []:
@@ -512,14 +824,7 @@ def ride_detail(d_tag):
         {"nickname": h.get("nickname") or "Anonymous", "gender": h.get("gender")} for h in (content.get("hitchhikers") or [])
     ]
 
-    distance_km = None
-    if pickup_lat is not None and dest_lat is not None and pickup_lon is not None and dest_lon is not None:
-        # Haversine
-        lat1, lon1, lat2, lon2 = map(math.radians, [pickup_lat, pickup_lon, dest_lat, dest_lon])
-        dlat = lat2 - lat1
-        dlon = lon2 - lon1
-        a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
-        distance_km = 2 * 6371 * math.asin(math.sqrt(a))
+    distance_km = haversine_km(pickup_lat, pickup_lon, dest_lat, dest_lon)
 
     submission_dt = ride.submission_time or None
 
@@ -582,6 +887,7 @@ def ride_detail(d_tag):
 
     ride_view = {
         "d_tag": d_tag,
+        "no_ride": bool(ride.no_ride) or content.get("no_ride") is not None,
         "rating": ride.rating,
         "comment": ride.comment,
         "wait": waiting_minutes,
@@ -610,12 +916,49 @@ def ride_detail(d_tag):
     # An owner deletion hides the ride from the map, so the owner sees "hidden" state
     # instead of a delete button (the ride page itself stays reachable via its permalink).
     owner_deleted = RideReport.query.filter_by(ride_d_tag=d_tag, reason=OWNER_DELETE_REASON).first() is not None
+
+    likes_count = RideLike.query.filter_by(ride_d_tag=d_tag).count()
+    liked_by_me = (
+        not current_user.is_anonymous and RideLike.query.filter_by(ride_d_tag=d_tag, user_id=current_user.id).first() is not None
+    )
+    comment_rows = (
+        db.session.query(RideComment, User.username)
+        .join(User, RideComment.user_id == User.id)
+        .filter(RideComment.ride_d_tag == d_tag)
+        .order_by(RideComment.created_at.asc())
+        .all()
+    )
+    comments = [
+        {
+            "id": comment.id,
+            "username": username,
+            "body": comment.body,
+            "created_at": comment.created_at,
+            "is_own": not current_user.is_anonymous and comment.user_id == current_user.id,
+        }
+        for comment, username in comment_rows
+    ]
+    can_comment = _user_can_comment_on_ride(ride, current_user)
+
+    # The share card links here, so the page needs its own preview rather than
+    # base.html's site-wide blurb.
+    spot_id = spot_id_for(pickup_lat, pickup_lon) if pickup_lat is not None and pickup_lon is not None else None
+    og_title, og_description = _ride_preview_meta(ride_view, spot_id)
+    ride_images = [{"url": image_url(img.filename), "width": img.width, "height": img.height} for img in images_for_ride(d_tag)]
     return render_template(
         "ride_detail.html",
         ride=ride_view,
+        ride_images=ride_images,
         already_reported=already_reported,
         owner_deleted=owner_deleted,
         report_confirmed=request.args.get("reported") == "1",
+        og_title=og_title,
+        og_description=og_description,
+        likes_count=likes_count,
+        liked_by_me=liked_by_me,
+        comments=comments,
+        can_comment=can_comment,
+        is_logged_in=not current_user.is_anonymous,
     )
 
 
@@ -689,12 +1032,161 @@ def report_ride(d_tag):
     )
 
 
+@main_bp.route("/like-ride/<d_tag>", methods=["POST"])
+def like_ride(d_tag):
+    """Toggle the current user's like on a ride."""
+    if current_user.is_anonymous:
+        return redirect(f"/login?next=/ride/{d_tag}")
+
+    ride = db.session.query(RideEvent).filter_by(d=d_tag).first()
+    if not ride:
+        abort(404)
+
+    existing = RideLike.query.filter_by(ride_d_tag=d_tag, user_id=current_user.id).first()
+    if existing:
+        db.session.delete(existing)
+    else:
+        # Only the first like on a ride notifies its owner — every later liker would just
+        # push the owner's other notifications out of their 10-row window (notify_ride_like
+        # dedupes on top of this, so an unlike/relike can't re-trigger it either).
+        is_first_like = RideLike.query.filter_by(ride_d_tag=d_tag).count() == 0
+        db.session.add(RideLike(ride_d_tag=d_tag, user_id=current_user.id))
+        if is_first_like:
+            for owner in _ride_owner_users(ride):
+                if owner.id != current_user.id:
+                    notify_ride_like(owner.id, current_user.username, d_tag)
+    db.session.commit()
+    return redirect(f"/ride/{d_tag}")
+
+
+@main_bp.route("/comment-ride/<d_tag>", methods=["POST"])
+def comment_ride(d_tag):
+    """Add a comment to a ride.
+
+    Only allowed if it's the commenter's own ride, or if the ride's owner already
+    follows the commenter — see `_user_can_comment_on_ride`.
+    """
+    if current_user.is_anonymous:
+        return redirect(f"/login?next=/ride/{d_tag}#comments")
+
+    ride = db.session.query(RideEvent).filter_by(d=d_tag).first()
+    if not ride:
+        abort(404)
+    if not _user_can_comment_on_ride(ride, current_user):
+        abort(403)
+
+    body = (request.form.get("body") or "").strip()[:2000]
+    if body:
+        db.session.add(RideComment(ride_d_tag=d_tag, user_id=current_user.id, body=body))
+        db.session.commit()
+        for owner in _ride_owner_users(ride):
+            if owner.id != current_user.id:
+                notify_ride_comment(owner.id, current_user.username, d_tag)
+    return redirect(f"/ride/{d_tag}#comments")
+
+
+@main_bp.route("/delete-ride-comment/<int:comment_id>", methods=["POST"])
+def delete_ride_comment(comment_id):
+    """Let a comment's author delete it."""
+    if current_user.is_anonymous:
+        abort(403)
+
+    comment = db.session.get(RideComment, comment_id)
+    if not comment:
+        abort(404)
+    if comment.user_id != current_user.id:
+        abort(403)
+
+    d_tag = comment.ride_d_tag
+    db.session.delete(comment)
+    db.session.commit()
+    return redirect(f"/ride/{d_tag}#comments")
+
+
+@main_bp.route("/ride-image", methods=["POST"])
+def upload_ride_image():
+    """Store one photo the moment the user picks it, before the ride exists.
+
+    Uploading on pick rather than on submit is what makes the picker work at all: the
+    ride form navigates the whole page away to the map to choose a pickup point, and a
+    file input's selection cannot survive that — nor can a second trip to the file picker
+    keep the first trip's files, since opening it replaces the entire FileList.
+
+    The photo lands under the form's `draft_token` and is claimed by the submit
+    (claim_draft_images). Editing an existing ride uses the same path, so cancelling an
+    edit leaves the ride's photos exactly as they were.
+    """
+    draft_token = valid_draft_token(request.form.get("draft_token"))
+    if not draft_token:
+        return jsonify({"ok": False, "error": "Missing upload token."}), 400
+
+    # Counted per draft, so no form can ever hold more than a ride is allowed. The submit
+    # re-checks against the ride's own photos, which is the number that finally matters.
+    if len(images_for_draft(draft_token)) >= MAX_IMAGES_PER_RIDE:
+        return jsonify({"ok": False, "error": f"A ride can have at most {MAX_IMAGES_PER_RIDE} photos."}), 400
+
+    try:
+        prepared = prepare_upload(request.files.get("image"))
+        row = store_draft_image(draft_token, prepared, None if current_user.is_anonymous else current_user.id)
+    except RideImageError as err:
+        return jsonify({"ok": False, "error": str(err)}), 400
+
+    # Opportunistic housekeeping: an upload is the only thing that creates drafts, so it
+    # is also the natural moment to clear out the ones nobody ever submitted.
+    sweep_stale_drafts()
+
+    return jsonify({"ok": True, "id": row.id, "url": image_url(row.filename)})
+
+
+@main_bp.route("/ride-image/draft/<token>")
+def draft_ride_images(token):
+    """The photos held under one draft token, so the form can redraw its tiles.
+
+    Needed because picking a pickup location navigates the page away and comes back: the
+    token survives in sessionStorage, but the tiles have to be rebuilt from the server.
+    Not under /ride-images/ — that prefix is the uploaded files themselves, served from
+    dist/ by the catch-all route.
+    """
+    images = images_for_draft(token)
+    return jsonify({"images": [{"id": img.id, "url": image_url(img.filename)} for img in images]})
+
+
+@main_bp.route("/ride-image/<int:image_id>/delete", methods=["POST"])
+def remove_ride_image(image_id):
+    """Delete one photo — the little x on its tile.
+
+    Two kinds of photo can be deleted, with a different key for each: one still under a
+    draft token (the caller must present that token, which only the form that uploaded it
+    has), and one already attached to a ride (the caller must be able to edit that ride).
+    """
+    row = db.session.get(RideImage, image_id)
+    if row is None:
+        # Idempotent on purpose: the tile is already gone from the user's point of view,
+        # and a double-click must not surface an error.
+        return jsonify({"ok": True})
+
+    if row.draft_token:
+        if valid_draft_token(request.form.get("draft_token")) != row.draft_token:
+            abort(403)
+    else:
+        ride = db.session.query(RideEvent).filter_by(d=row.ride_d_tag).first()
+        if not ride or not _user_owns_ride(ride, current_user):
+            abort(403)
+
+    delete_ride_image(row)
+    return jsonify({"ok": True})
+
+
 @main_bp.route("/ride", methods=["GET", "POST"])
 def ride_form():
     """Dedicated ride form page."""
     if request.method == "GET":
         edit_d_tag = request.args.get("edit")
         ride_data = None
+        # Photos of the ride being edited, so the form can show them with a "remove" box.
+        # Filled only inside the ownership check below — a stranger passing ?edit=<d_tag>
+        # gets a blank new-ride form and must not see that ride's pictures listed as theirs.
+        ride_images = []
 
         if edit_d_tag:
             # Load existing ride data for editing
@@ -811,20 +1303,28 @@ def ride_form():
                     if h.get("nickname") and h.get("nickname") != current_nickname and h.get("nickname") != "Anonymous"
                 }
                 # Anonymous hitchhikers are always co-hitchhikers (creator must be
-                # logged in to edit, so they are never "Anonymous" themselves)
-                anon_count = sum(1 for h in all_hitchhikers if h.get("nickname") == "Anonymous")
+                # logged in to edit, so they are never "Anonymous" themselves). Their
+                # gender round-trips through the form token so re-saving an edited ride
+                # doesn't silently drop it.
+                anon_tokens = [
+                    anonymous_co_hitchhiker_token(h.get("gender")) for h in all_hitchhikers if h.get("nickname") == "Anonymous"
+                ]
                 pending_invites = {
                     c.co_hitchhiker
                     for c in db.session.query(CoHitchhiker).filter_by(nostr_ride_event_d_tag=edit_d_tag, accepted="open").all()
                 }
                 locked_co_hitchhikers = sorted(hitchhikers_on_nostr | pending_invites)
-                all_co = locked_co_hitchhikers + ["Anonymous"] * anon_count
+                all_co = locked_co_hitchhikers + anon_tokens
                 ride_data["co_hitchhiker"] = ",".join(all_co)
                 ride_data["co_hitchhiker_locked"] = ",".join(locked_co_hitchhikers)
+
+                ride_images = [{"id": img.id, "url": image_url(img.filename)} for img in images_for_ride(edit_d_tag)]
 
         return render_template(
             "ride_form.html",
             ride_data=ride_data,
+            ride_images=ride_images,
+            max_ride_images=MAX_IMAGES_PER_RIDE,
             vehicle_kinds=VEHICLE_KIND_CHOICES,
             country_codes=ISO_3166_1_ALPHA_2,
             country_choices=COUNTRY_CHOICES,
@@ -968,6 +1468,7 @@ def ride_form():
 
         ### Check if this is an edit operation
         edit_d_tag = data.get("edit_d_tag", "").strip()
+        existing_ride = None
         if edit_d_tag:
             existing_ride = db.session.query(RideEvent).filter_by(d=edit_d_tag).first()
             # Inride requests use fetch (no navigation), so return JSON instead of redirecting.
@@ -976,6 +1477,11 @@ def ride_form():
                     return jsonify({"ok": False, "error": "unauthorized"}), 400
                 return redirect("/#error")  # User doesn't own this ride
 
+        # Photos were already uploaded and stored while the form was being filled in (see
+        # upload_ride_image); all the submit carries is the token to claim them under.
+        draft_token = valid_draft_token(data.get("draft_token"))
+
+        if edit_d_tag:
             # Create new record with updated form data to get updated fields
             # TODO: define license properly instead of using "xxx"
             updated_record = create_record_from_custom_object(
@@ -986,6 +1492,7 @@ def ride_form():
             poster = HitchhikingDataStandardToNostrPoster()
             _ = poster.post(ride_record=updated_record, tags=existing_ride.tags)
             poster.close()
+            _store_published_ride(poster.last_event)
             d_tag = edit_d_tag  # Keep the same d_tag
         else:
             # This is a new ride - normal flow
@@ -998,11 +1505,19 @@ def ride_form():
             client_d_tag = (data.get("client_d_tag") or "").strip() or None
             d_tag = poster.post(ride_record=record, d_tag=client_d_tag)
             poster.close()
+            _store_published_ride(poster.last_event)
 
         # Abuse trail: pair the saved ride's d tag with the submitter's IP so a flood of
         # fake rides can be traced back to one source. Edits are logged too, since an
         # abuser can also vandalise a ride they own by editing it.
         log_ride_ip(d_tag)
+
+        ### Photos
+        # The d tag exists for the first time here, so this is the earliest moment the
+        # form's already-uploaded photos can be attached to a ride. On an edit we only
+        # reach this line once ownership was confirmed above.
+        if draft_token:
+            claim_draft_images(draft_token, d_tag)
 
         ### Co-hitchhikers
         # Requirement: co-hitchhikers already on a ride cannot be removed when editing, only new
@@ -1013,7 +1528,7 @@ def ride_form():
             invited_user_ids = []
             for ch in data["co_hitchhiker"].split(","):
                 username = ch.strip()
-                if username == "" or username == "Anonymous":
+                if username == "" or is_anonymous_co_hitchhiker(username):
                     continue  # anonymous hitchhikers are handled in the Nostr event, not in CoHitchhiker
                 if username == current_username:
                     continue  # skip self
@@ -1038,7 +1553,20 @@ def ride_form():
 
         if wants_json:
             return jsonify({"ok": True, "d_tag": d_tag}), 200
-        return redirect("/#success")
+
+        # A nudge only makes sense for a ride just created — an edit is not the moment to
+        # ask someone to sign up, and the ride's anonymity was already decided. The client
+        # shows each overlay at most once per browser and then falls through to #success.
+        # The d tag travels in the URL because the full-page POST navigates away: the
+        # success overlay's share card links to /ride/<d_tag>, which now resolves
+        # immediately (see _store_published_ride). map.js strips the param once read.
+        success_query = f"/?ride={quote(d_tag)}"
+        if not edit_d_tag:
+            if current_user.is_anonymous:
+                return redirect(f"{success_query}#success-anon")
+            if any(is_anonymous_co_hitchhiker(ch) for ch in data.get("co_hitchhiker", "").split(",")):
+                return redirect(f"{success_query}#success-invite")
+        return redirect(f"{success_query}#success")
 
     except (AssertionError, ValueError, KeyError) as err:
         # Bad input — permanent. 400 with no `transient` flag; the offline outbox flags it
@@ -1148,3 +1676,109 @@ def proposed_spots_json():
             for s in spots
         ]
     )
+
+
+def _last_generation_ts():
+    """Epoch seconds of the DB snapshot the generated map files were built from.
+
+    show.py writes dist/generated_at.json as its last act. Before the first run that
+    does so, fall back to the rides index's mtime — that is LATER than the snapshot it
+    was built from, so the fallback under-returns pending rides rather than
+    double-showing rides that are already in the generated files. Returns None when
+    nothing has been generated at all, in which case there is no map data to add to.
+
+    generated_at.json is written ~400 lines after spots.json/rides_index.json/the
+    per-spot files, so a run killed in between (this host OOM-kills the container — see
+    CLAUDE.md) leaves it pointing at a STALE snapshot while the generated files already
+    hold newer rides. Trusting that stale ts would let /pending_rides.json add those
+    same rides' counts on top of a review_count that already includes them. In a healthy
+    run generated_at.json is always the file written last, so if it is *older* than
+    rides_index.json the previous run did not finish — treat it as absent and fall
+    through to the mtime fallback, which under-returns and is therefore safe.
+    """
+    dist = get_dirs()["dist"]
+    generated_at_path = os.path.join(dist, "generated_at.json")
+    generated_at_ts = generated_at_mtime = None
+    try:
+        with open(generated_at_path) as f:
+            generated_at_ts = float(json.load(f)["ts"])
+        generated_at_mtime = os.path.getmtime(generated_at_path)
+    except (OSError, ValueError, KeyError, TypeError):
+        generated_at_ts = generated_at_mtime = None
+
+    try:
+        rides_index_mtime = os.path.getmtime(os.path.join(dist, "rides_index.json"))
+    except OSError:
+        rides_index_mtime = None
+
+    if generated_at_ts is not None and rides_index_mtime is not None and generated_at_mtime < rides_index_mtime:
+        return rides_index_mtime
+    if generated_at_ts is not None:
+        # Either healthy (newer than rides_index.json) or there is no rides_index.json
+        # to compare against at all — nothing to detect staleness with, so trust it.
+        return generated_at_ts
+    return rides_index_mtime
+
+
+def _hidden_ride_dtags(d_tags):
+    """Which of these rides are hidden from the map by reports.
+
+    Same rule show.py applies before generating anything: REPORTS_TO_HIDE distinct
+    reporters agreeing on one reason, or a single owner-deletion row. Scoped to the
+    d tags we are about to serve, since that is only ever a handful of rides.
+    """
+    if not d_tags:
+        return set()
+    rows = (
+        db.session.query(RideReport.ride_d_tag, RideReport.reason, func.count().label("n"))
+        .filter(RideReport.ride_d_tag.in_(list(d_tags)))
+        .group_by(RideReport.ride_d_tag, RideReport.reason)
+        .all()
+    )
+    return {r.ride_d_tag for r in rows if r.n >= REPORTS_TO_HIDE or r.reason == OWNER_DELETE_REASON}
+
+
+def _images_by_ride(d_tags):
+    """Photo URLs keyed by ride d tag, for the handful of rides we are about to serve.
+
+    Ordered by id so the strip shows photos in upload order, the same order the
+    per-spot files and the ride page use.
+    """
+    if not d_tags:
+        return {}
+    rows = db.session.query(RideImage).filter(RideImage.ride_d_tag.in_(list(d_tags))).order_by(RideImage.id.asc()).all()
+    by_d_tag = {}
+    for row in rows:
+        by_d_tag.setdefault(row.ride_d_tag, []).append(image_url(row.filename))
+    return by_d_tag
+
+
+@main_bp.route("/pending_rides.json")
+def pending_rides_json():
+    """Rides logged since show.py last generated the map files.
+
+    Served straight from the DB (like /proposed_spots.json) rather than from dist/, so a
+    ride submitted seconds ago is on the map immediately instead of waiting up to 15
+    minutes for the fetch and generate crons. Normally an empty array; at most it holds
+    the last few minutes of rides, so it needs no caching of its own. map.js merges these
+    into the markers and into the spot pane, deduping on the ride's d tag once the
+    generated files catch up.
+    """
+    since = _last_generation_ts()
+    if since is None:
+        return jsonify([])
+
+    rides = db.session.query(RideEvent).filter(RideEvent.created_at >= int(since)).all()
+    hidden = _hidden_ride_dtags([r.d for r in rides if r.d])
+    # One query for the whole pending set: a photo uploaded minutes ago is not in the
+    # per-spot files yet, so without this the spot pane's image strip would lag a ride
+    # by up to a show.py cycle even though the ride card itself is already there.
+    images_by_d_tag = _images_by_ride([r.d for r in rides if r.d])
+    entries = []
+    for ride in rides:
+        if ride.d in hidden:
+            continue
+        entry = ride_map_entry(ride, images_by_d_tag.get(ride.d))
+        if entry is not None:
+            entries.append(entry)
+    return jsonify(entries)

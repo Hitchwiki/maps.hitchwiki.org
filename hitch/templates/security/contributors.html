@@ -1,7 +1,7 @@
 {% extends "security/base.html" %}
 
 
-{% set title = Contributors %}
+{% set title = t("Contributors") %}
 
 {% block head %}
 {{ super() }}
@@ -30,10 +30,10 @@
 {% endblock %}
 
 {% block content %}
-<h1>Contributors</h1>
+<h1>{{ t("Contributors") }}</h1>
 <div class="container">
     <div class="left">
-        <h4>Overall contributions</h4>
+        <h4>{{ t("Overall contributions") }}</h4>
         {% if is_logged_in %}
         {{ overall_contributions|safe }}
         {% else %}
@@ -41,7 +41,7 @@
         {% endif %}
     </div>
     <div class="right">
-        <h4>Contributions this month</h4>
+        <h4>{{ t("Contributions this month") }}</h4>
         {% if is_logged_in %}
         {{ monthly_contributions|safe }}
         {% else %}
@@ -50,6 +50,6 @@
     </div>
 </div>
 {% if not is_logged_in %}
-<p style="text-align: center;"><a href="/login">Log in</a> to see all contributions</p>
+<p style="text-align: center;">{{ t("{link} to see all contributions", link='<a href="/login">' ~ t("Log in") ~ '</a>')|safe }}</p>
 {% endif %}
 {% endblock %}

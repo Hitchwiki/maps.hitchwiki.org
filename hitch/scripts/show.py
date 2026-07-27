@@ -17,8 +17,13 @@ from shapely.wkt import loads as wkt_loads
 from sklearn.cluster import DBSCAN
 from sklearn.exceptions import InconsistentVersionWarning
 
+from hitch.blueprints.utils.notifications import load_race_podiums, notify_new_race_podiums
 from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON, REPORTS_TO_HIDE
+from hitch.blueprints.utils.ride_images import image_url
 from hitch.helpers import e, get_bearing, get_db, get_dirs, haversine_np, write_json_file
+from hitch.scripts.races import build_races, estimate_arrival
+from hitch.scripts.spot_naming import resolve_spot_name
+from hitch.scripts.spots_gpx import spot_waypoint, write_spots_gpx
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger(__name__)
@@ -42,12 +47,32 @@ def should_regenerate_json():
     db_mtime = os.path.getmtime(db_path)
 
     # Check each JSON file
-    json_files = ["spots.json", "rides_index.json", "spots_recent.json", "longest_rides.json", "longest_24h.json"]
+    # races.json is deliberately absent: it is rebuilt on its own hourly schedule further
+    # down, so its age must not decide whether the rest of the map data is regenerated.
+    # spots.gpx is in the list (despite the name) so that a deploy that adds it, or a
+    # dist/ that lost it, regenerates on the next run instead of leaving the menu's
+    # download link 404ing until the next ride lands.
+    json_files = [
+        "spots.json",
+        "rides_index.json",
+        "spots_recent.json",
+        "longest_rides.json",
+        "longest_24h.json",
+        "spots.gpx",
+    ]
 
     # Per-spot ride directory — treat the dir itself as the canary.
     by_spot_dir = os.path.join(dirs["dist"], "rides", "by-spot")
     if not os.path.isdir(by_spot_dir):
         logger.info("Regeneration needed: rides/by-spot directory is missing")
+        return True
+
+    # A new or retuned race in RACES.md must reach the page without waiting for the next
+    # ride to land: the DB mtime alone would never notice a config-only change.
+    races_json = os.path.join(dirs["dist"], "races.json")
+    races_md = os.path.join(dirs["root"], "RACES.md")
+    if os.path.exists(races_md) and (not os.path.exists(races_json) or os.path.getmtime(races_md) > os.path.getmtime(races_json)):
+        logger.info("Regeneration needed: RACES.md is newer than races.json")
         return True
 
     # Only check heatmap if it's enabled
@@ -74,6 +99,11 @@ if not current_app.config.get("FORCE_REGENERATE", False) and not should_regenera
 
 logger.info("Database has been updated, regenerating JSON files")
 logger.info("Fetching rides")
+# Instant every generated file below is derived from. Captured BEFORE the read, not
+# after the writes: /pending_rides.json serves rides created at or after this timestamp,
+# and a ride landing while this script runs must count as pending rather than be
+# silently skipped by a cutoff taken once the files are already on disk.
+snapshot_ts = time.time()
 rides_df = pd.read_sql("select * from ride_event", get_db())
 logger.info(f"Got {len(rides_df)} rides")
 
@@ -138,6 +168,11 @@ def merge_derived_destinations(df):
     are inferred from prose, not logged GPS fixes, so they carry is_exact=False. Doing it
     here means every downstream view (spots dest lines, distance, routing input) treats a
     derived destination exactly like a real last stop. See hitch/scripts/extract_destinations.py."""
+    # Flag rides whose destination we inferred from prose rather than one the user logged, so
+    # leaderboards that rank by distance can exclude them — a mis-geocoded derived destination
+    # must never win "longest ride". Downstream map views still treat it like a real last stop.
+    # Set unconditionally (even on the early returns below) so the column always exists.
+    df["dest_is_derived"] = False
     try:
         derived = pd.read_sql("select d, latitude, longitude, is_exact from derived_ride_location", get_db())
     except pd.errors.DatabaseError:
@@ -155,12 +190,48 @@ def merge_derived_destinations(df):
             continue  # need a start stop to anchor the ride
         stops.append({"location": {"latitude": loc[0], "longitude": loc[1], "is_exact": loc[2]}})
         df.at[i, "stops"] = stops
+        df.at[i, "dest_is_derived"] = True
         merged += 1
     return merged
 
 
 _merged = merge_derived_destinations(rides_df)
 logger.info(f"Merged {_merged} derived destination(s) from comment text")
+
+
+def merge_derived_waits(df):
+    """Fill in waiting times we mined from comment text (derived_ride_wait, keyed by the
+    ride's Nostr `d` tag) on rides that reached Nostr without a `waiting_duration`. Written
+    as ISO 8601 on the first stop, exactly the shape get_wait() already reads, so every
+    downstream wait view (spot averages, heatmap, routing) treats a derived wait like a
+    logged one. Never overwrites a wait the ride already carries. See
+    hitch/scripts/extract_wait_times.py."""
+    try:
+        derived = pd.read_sql("select d, waiting_minutes from derived_ride_wait", get_db())
+    except pd.errors.DatabaseError:
+        return 0  # table absent on DBs that predate the enrichment
+    by_d = {r.d: int(r.waiting_minutes) for r in derived.itertuples()}
+    if not by_d:
+        return 0
+    merged = 0
+    for i, row in df.iterrows():
+        minutes = by_d.get(row["d"])
+        if minutes is None:
+            continue
+        stops = list(row["stops"]) if isinstance(row["stops"], list) else []
+        if not stops or not isinstance(stops[0], dict):
+            continue  # need a first stop to attach the wait to
+        # Only fill a gap — a wait already logged on the ride always wins.
+        if stops[0].get("waiting_duration"):
+            continue
+        stops[0] = {**stops[0], "waiting_duration": f"PT{minutes}M"}
+        df.at[i, "stops"] = stops
+        merged += 1
+    return merged
+
+
+_merged_waits = merge_derived_waits(rides_df)
+logger.info(f"Merged {_merged_waits} derived wait time(s) from comment text")
 
 
 def get_vehicle_kind(mot):
@@ -437,6 +508,13 @@ stat_updates = [
     )
     for name, row in user_stats.iterrows()
 ]
+# Zero everyone first, then re-apply the surviving totals. A user who hid/removed
+# ALL their rides drops out of user_stats entirely, so a plain per-nickname UPDATE
+# would never touch their row and their cached totals would freeze at the last
+# non-zero value (their profile then shows "0 rides" from the live query but stale
+# rides/km/min in Insights and achievements). The reset + re-apply run in one
+# transaction, so no user ever observes a transient zero.
+stats_conn.execute("UPDATE user SET total_rides = 0, total_distance_km = 0, total_waiting_time_min = 0")
 stats_conn.executemany(
     "UPDATE user SET total_rides = ?, total_distance_km = ?, total_waiting_time_min = ? WHERE lower(username) = ?",
     stat_updates,
@@ -524,8 +602,13 @@ if len(unique_coords) > 1:
 # remap every ride to a single busiest-member anchor per polygon — exactly the anchor
 # trick the 5 m merge uses, so the spot id / per-spot files stay stable.
 t_group = time.perf_counter()
+
+# Names of the service-area polygons, keyed by the anchor coordinate of the spot they
+# swallowed. Populated below; feeds the spot's display name, so the name a spot shows
+# always describes the polygon it was actually merged into.
+service_area_name_by_anchor = {}
 try:
-    service_areas_df = pd.read_sql("select geom_id, geometry_wkt from service_area", get_db())
+    service_areas_df = pd.read_sql("select geom_id, name, geometry_wkt from service_area", get_db())
     road_islands_df = pd.read_sql("select id, geometry_wkt from road_island", get_db())
 except (pd.errors.DatabaseError, sqlite3.OperationalError):
     # Tables absent (sync scripts never run, e.g. fresh/dev DB): keep the 5 m merge only.
@@ -587,6 +670,15 @@ if service_areas_df is not None and (len(service_areas_df) or len(road_islands_d
     anchors = unique_pts.groupby("label", sort=False)[["lat", "lon"]].first()
     anchors.columns = ["anchor_lat", "anchor_lon"]
     unique_pts = unique_pts.merge(anchors, on="label", how="left")
+
+    # Carry each service area's name onto the anchor it produced, so the spot can be
+    # titled after the rest area / filling station it sits in. Read from the same label
+    # the merge used, never re-derived, or the name could describe a different polygon
+    # than the one the spot was folded into.
+    sa_name_by_id = dict(zip(service_areas_df["geom_id"], service_areas_df["name"]))
+    for label, a_lat, a_lon in zip(unique_pts["label"], unique_pts["anchor_lat"], unique_pts["anchor_lon"]):
+        if label.startswith("sa:"):
+            service_area_name_by_anchor[(a_lat, a_lon)] = sa_name_by_id.get(int(label[3:]))
 
     anchor_lat = dict(zip(zip(unique_pts["lat"], unique_pts["lon"]), unique_pts["anchor_lat"]))
     anchor_lon = dict(zip(zip(unique_pts["lat"], unique_pts["lon"]), unique_pts["anchor_lon"]))
@@ -857,9 +949,7 @@ places["nearby_car_pooling"] = places.apply(
 logger.info(f"Found {places['nearby_car_pooling'].notnull().sum()} places with nearby car pooling spots")
 
 logger.info("Finding nearby OSM fuel stations")
-places["nearby_fuel"] = places.apply(
-    lambda row: find_nearby_fuel_station(row["lat"], row["lon"], fuel_grid), axis=1
-)
+places["nearby_fuel"] = places.apply(lambda row: find_nearby_fuel_station(row["lat"], row["lon"], fuel_grid), axis=1)
 logger.info(f"Found {places['nearby_fuel'].notnull().sum()} places at a fuel station")
 
 logger.info("Finding nearby Hitchwiki articles")
@@ -873,6 +963,45 @@ places["hitchwiki_map_link"] = places.apply(
     lambda row: find_hitchwiki_map_for_spot(row["lat"], row["lon"], hitchwiki_maps_df), axis=1
 )
 logger.info(f"Found {places['hitchwiki_map_link'].notnull().sum()} places visible in Hitchwiki maps")
+
+
+def fetch_osm_tags(table, ids):
+    """{osm_id: tags} for just the features that matched a spot.
+
+    Deliberately NOT part of the bulk reads above: `tags` is a JSON blob, and pulling it
+    for all 406k fuel stations costs roughly 200 MB resident on a host the OOM killer has
+    already visited (CLAUDE.md). Only ~5.5k of them are ever within 100 m of a spot.
+    """
+    ids = sorted({int(i) for i in ids if pd.notna(i)})
+    if not ids:
+        return {}
+    tags = {}
+    # SQLite allows 999 bound variables per statement by default; chunk under that.
+    for start in range(0, len(ids), 900):
+        chunk = ids[start : start + 900]
+        placeholders = ",".join("?" * len(chunk))
+        rows = pd.read_sql(f"select id, tags from {table} where id in ({placeholders})", get_db(), params=chunk)
+        for _, row in rows.iterrows():
+            value = row["tags"]
+            with contextlib.suppress(ValueError, TypeError):
+                tags[int(row["id"])] = json.loads(value) if isinstance(value, str) else value
+    return tags
+
+
+logger.info("Fetching OSM tags for matched features")
+osm_spot_tags = fetch_osm_tags("osm_hitchhiking_spot", places["nearby_osm_id"])
+fuel_tags = fetch_osm_tags("osm_fuel_station_spot", [f["id"] for f in places["nearby_fuel"] if f])
+car_pooling_tags = fetch_osm_tags("osm_car_pooling_spot", [c["id"] for c in places["nearby_car_pooling"] if c])
+
+# Reverse-geocoded street names for the ~84% of spots no OSM feature can name, cached by
+# hitch/scripts/spot_names.py. Absent on a fresh/dev DB that has never run it.
+try:
+    spot_names_df = pd.read_sql("select spot_id, name from spot_name", get_db())
+    geocoded_names = dict(zip(spot_names_df["spot_id"], spot_names_df["name"]))
+except (pd.errors.DatabaseError, sqlite3.OperationalError):
+    logger.info("spot_name table not found — spots with no OSM feature will stay unnamed")
+    geocoded_names = {}
+logger.info(f"Loaded {len(geocoded_names)} cached geocoded spot names")
 
 logger.info("Generating JSON data files")
 
@@ -920,6 +1049,19 @@ for _, place in places.iterrows():
     spots_data.append(spot_data)
 
     detail = {}
+    # Human-readable title for the spot pane, in place of bare coordinates. Lives in the
+    # per-spot file rather than spots.json: ~30k name strings would add roughly a
+    # megabyte to the file every visitor downloads on map load, and nothing needs the
+    # name before a marker is clicked.
+    name = resolve_spot_name(
+        hitchhiking_tags=osm_spot_tags.get(int(place["nearby_osm_id"])) if pd.notna(place["nearby_osm_id"]) else None,
+        service_area_name=service_area_name_by_anchor.get((place["lat"], place["lon"])),
+        fuel_tags=fuel_tags.get(place["nearby_fuel"]["id"]) if place["nearby_fuel"] else None,
+        car_pooling_tags=car_pooling_tags.get(place["nearby_car_pooling"]["id"]) if place["nearby_car_pooling"] else None,
+        geocoded_name=geocoded_names.get(spot_id),
+    )
+    if name:
+        detail["name"] = name
     # The popup only ever shows these as whole numbers (toFixed(0)), so store
     # them rounded to ints — smaller payload, no precision the UI would use.
     if pd.notna(place["wait"]):
@@ -986,6 +1128,7 @@ for _, ride in rides_df.iterrows():
         "vehicle_kind": ride["vehicle_kind"] if pd.notna(ride.get("vehicle_kind")) else None,
         "signal_methods": ride.get("signal_methods") if isinstance(ride.get("signal_methods"), list) else None,
         "source": ride["source"] if pd.notna(ride.get("source")) else None,
+        "no_ride": bool(ride["no_ride"]) if pd.notna(ride.get("no_ride")) else False,
     }
     rides_data.append(ride_data)
 
@@ -1060,12 +1203,40 @@ if os.path.exists(by_spot_dir):
     shutil.rmtree(by_spot_dir)
 os.makedirs(by_spot_dir, exist_ok=True)
 
+
+def get_ride_image_urls():
+    """Photo URLs per ride d tag, for the spot pane's image strip.
+
+    Only photos already claimed by a ride count — a draft_token row belongs to a form
+    nobody has submitted yet. Returns an empty dict if the ride_image table doesn't
+    exist (a DB predating the feature), like get_reported_dtags does.
+    """
+    try:
+        images = pd.read_sql(
+            "select ride_d_tag, filename from ride_image where ride_d_tag is not null order by id",
+            get_db(),
+        )
+    except pd.errors.DatabaseError:
+        return {}
+    urls: dict[str, list] = {}
+    for d_tag, filename in zip(images["ride_d_tag"], images["filename"]):
+        urls.setdefault(d_tag, []).append(image_url(filename))
+    return urls
+
+
+ride_image_urls = get_ride_image_urls()
+logger.info(f"Got photos for {len(ride_image_urls)} ride(s)")
+
 logger.info(f"Writing per-spot ride files to {by_spot_dir}")
 rides_by_spot: dict[str, list] = {}
 for r in rides_data:
+    # Omitted entirely for the ~all rides with no photo, rather than shipping an empty
+    # list on every entry of every per-spot file.
+    images = ride_image_urls.get(r["id"])
     rides_by_spot.setdefault(r["spot_id"], []).append(
         {
             "id": r["id"],
+            **({"images": images} if images else {}),
             "rating": r["rating"],
             "wait": r["wait"],
             # Per-ride distance (not just the spot average) so the spot pane can plot a
@@ -1076,6 +1247,7 @@ for r in rides_data:
             "submission_time": r["submission_time"],
             "ride_datetime": r["ride_datetime"],
             "arrival_datetime": r["arrival_datetime"],
+            "no_ride": r["no_ride"],
         }
     )
 
@@ -1083,6 +1255,20 @@ for sid, spot_rides in rides_by_spot.items():
     with open(os.path.join(by_spot_dir, f"{sid}.json"), "w") as f:
         json.dump({"spot": spot_details.get(sid, {}), "rides": spot_rides}, f)
 logger.info(f"Wrote {len(rides_by_spot)} per-spot ride files")
+
+
+# dist/spots.gpx: the whole map as GPX, for the menu's download link. Streamed so the
+# 35k waypoints never exist as one tree (see hitch/scripts/spots_gpx.py).
+def _spot_waypoints():
+    for spot in spots_data:
+        spot_id = generate_spot_id(spot["lat"], spot["lon"])
+        last_ride = pd.Timestamp(spot["latest_ms"], unit="ms", tz="UTC").strftime("%Y-%m-%d") if spot.get("latest_ms") else None
+        yield spot_waypoint(spot, spot_details.get(spot_id, {}), spot_id, last_ride)
+
+
+gpx_path = os.path.join(dirs["dist"], "spots.gpx")
+gpx_size = write_spots_gpx(gpx_path, _spot_waypoints(), len(spots_data), pd.Timestamp.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"))
+logger.info(f"Wrote {gpx_path} ({gpx_size / 1e6:.1f} MB, {len(spots_data)} spots) (+ .gz sidecar)")
 
 # TODO: Remove spots_with_destination.json - replaced by spots.json with ride filtering
 # places_with_destination = places[~places.distance.isnull()]
@@ -1101,7 +1287,12 @@ write_json_file(recent[["url", "submission_time", "hitchhiker_name", "rating", "
 # Precompute the 10 longest rides for the leaderboard so the /leaderboard route can
 # just read this file instead of scanning and haversine-ing every ride on each request.
 # Card fields mirror main._ride_to_card so the recent-style ride_card template renders them.
-longest = rides_df.dropna(subset=["distance"]).sort_values("distance", ascending=False).iloc[:10].copy()
+# Only rank rides the hitchhiker actually logged a destination for: a destination we mined
+# from comment text can be mis-geocoded (a same-named city on another continent), which would
+# otherwise fabricate a "12,000 km" ride at the top of the board. See merge_derived_destinations.
+longest = (
+    rides_df[~rides_df["dest_is_derived"]].dropna(subset=["distance"]).sort_values("distance", ascending=False).iloc[:10].copy()
+)
 longest["d_tag"] = longest["d"]
 longest["created"] = pd.to_datetime(longest["created_at"], unit="s").dt.strftime("%Y-%m-%d %H:%M")
 longest["rating"] = longest["rating"].fillna(0).astype(int)
@@ -1146,6 +1337,9 @@ qualifying_24h = window_df[
     & window_df["start_dt"].notna()
     & window_df["end_dt"].notna()
     & window_df["distance"].notna()
+    # Same rule as the longest-ride board: rank only logged destinations, never mined ones.
+    # (A derived destination has no arrival_time so end_dt is already NaN, but be explicit.)
+    & ~window_df["dest_is_derived"]
 ]
 
 leaderboard_24h = []
@@ -1189,6 +1383,66 @@ for name, group in qualifying_24h.groupby("hitchhiker_name"):
 
 leaderboard_24h.sort(key=lambda e: e["total_distance"], reverse=True)
 write_json_file(leaderboard_24h[:10], "longest_24h.json")
+
+# Precompute the race standings (see RACES.md for the definition and rules) so /races is
+# a file read. Qualifying rides: a named hitchhiker, a logged destination (never a mined
+# one — a mis-geocoded city would fabricate an impossible finish) and a departure time.
+# An arrival time is used when present and estimated from the leg distance otherwise;
+# see races.estimate_arrival for why insisting on a real arrival is not an option.
+#
+# Rebuilt at most hourly, not on every 10-minute show run: a podium barely moves within an
+# hour, and this is the only output here that scans every hitchhiker's rides per race.
+# Deliberately NOT in should_regenerate_json's canary list — an hour-old races.json there
+# would drag a whole show run out of its skip path even when no ride changed.
+RACES_MAX_AGE_S = 3600
+races_path = os.path.join(dirs["dist"], "races.json")
+races_md_path = os.path.join(dirs["root"], "RACES.md")
+races_mtime = os.path.getmtime(races_path) if os.path.exists(races_path) else None
+races_stale = (
+    current_app.config.get("FORCE_REGENERATE", False)
+    or races_mtime is None
+    or (time.time() - races_mtime) >= RACES_MAX_AGE_S
+    # An edited RACES.md is a deliberate change (a race added, a date retuned) and should
+    # not wait out the hour.
+    or (os.path.exists(races_md_path) and os.path.getmtime(races_md_path) > races_mtime)
+)
+
+if not races_stale:
+    logger.info(f"races.json is {int(time.time() - races_mtime)}s old (< {RACES_MAX_AGE_S}s), skipping race standings")
+else:
+    race_df = window_df[
+        (window_df["hitchhiker_name"] != "Anonymous")
+        & window_df["start_dt"].notna()
+        & window_df["dest_lat"].notna()
+        & window_df["dest_lon"].notna()
+        & window_df["distance"].notna()
+        & ~window_df["dest_is_derived"]
+    ]
+    race_rides_by_name: dict[str, list] = {}
+    for _, row in race_df.iterrows():
+        start = row["start_dt"].to_pydatetime()
+        end = row["end_dt"].to_pydatetime() if pd.notna(row["end_dt"]) else None
+        estimated = end is None or end < start
+        if estimated:
+            end = estimate_arrival(start, row["lat"], row["lon"], row["dest_lat"], row["dest_lon"])
+        race_rides_by_name.setdefault(row["hitchhiker_name"], []).append(
+            {
+                "lat": row["lat"],
+                "lon": row["lon"],
+                "dest_lat": row["dest_lat"],
+                "dest_lon": row["dest_lon"],
+                "start": start,
+                "end": end,
+                "estimated": estimated,
+            }
+        )
+    # Read the outgoing podiums before overwriting the file: whoever is on a podium now
+    # but wasn't on the previous one just entered the top 3, and that is the moment worth
+    # a notification.
+    previous_podiums = load_race_podiums(races_path)
+    new_races = build_races(races_md_path, race_rides_by_name)
+    write_json_file(new_races, "races.json")
+    notify_new_race_podiums(previous_podiums, new_races)
 
 # duplicates["from_url"] = "#" + duplicates.from_lat.astype(str) + "," + duplicates.from_lon.astype(str)
 # duplicates["to_url"] = "#" + duplicates.to_lat.astype(str) + "," + duplicates.to_lon.astype(str)
@@ -1265,7 +1519,14 @@ def generate_heatmap_data():
     }
 
 
-# Generate heatmap data file (unless disabled)
+# Written once every RIDE data file above is on disk, and deliberately BEFORE the optional
+# heatmap step: /pending_rides.json only cares whether the ride files are current, and the
+# heatmap is both unrelated to rides and by far the most likely thing here to die (it peaks
+# ~1.9 GB and has been OOM-killed on this host, which bypasses its try/except and would
+# otherwise leave the timestamp permanently unwritten).
+write_json_file({"ts": snapshot_ts}, "generated_at.json")
+
+# Generate heatmap data file (unless disabled — see GENERATE_HEATMAP in settings.py)
 if current_app.config.get("GENERATE_HEATMAP", True):
     logger.info("Generating heatmap data")
     try:

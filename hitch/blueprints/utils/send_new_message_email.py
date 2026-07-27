@@ -27,12 +27,8 @@ def send_new_message_email(recipient, sender_username, preview):
         return
     name = recipient.username or "there"
     try:
-        html = render_template(
-            "email/new_message.html", name=name, sender=sender_username, preview=preview
-        )
-        text = render_template(
-            "email/new_message.txt", name=name, sender=sender_username, preview=preview
-        )
+        html = render_template("email/new_message.html", name=name, sender=sender_username, preview=preview)
+        text = render_template("email/new_message.txt", name=name, sender=sender_username, preview=preview)
         _send_via_sparkpost(email, name, MESSAGE_SUBJECT, html, text, transactional=False)
     except Exception:
         current_app.logger.exception("Failed to send new-message email to %s", email)
