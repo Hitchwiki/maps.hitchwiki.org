@@ -8,6 +8,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.lifecycle.lifecycleScope
 import io.ktor.client.engine.okhttp.OkHttp
 import kotlinx.coroutines.launch
+import org.hitchwiki.maps.auth.AndroidAuthController
+import org.hitchwiki.maps.auth.AuthRedirectBus
 import org.hitchwiki.maps.data.*
 import org.hitchwiki.maps.db.HitchwikiDb
 import org.hitchwiki.maps.location.LocationProvider
@@ -15,6 +17,15 @@ import org.hitchwiki.maps.ui.AppNav
 import org.hitchwiki.maps.ui.map.MapViewModel
 
 class MainActivity : ComponentActivity() {
+    /** We regain focus either because the OAuth redirect came back (OAuthRedirectActivity has
+     *  already cleared the flag, so this is a no-op) or because the user dismissed the Custom
+     *  Tab. In the latter case the suspended signIn() must be released, otherwise the Account
+     *  screen stays stuck in `loading` with its button disabled for the rest of the process. */
+    override fun onResume() {
+        super.onResume()
+        AuthRedirectBus.cancelIfDismissed()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -33,6 +44,11 @@ class MainActivity : ComponentActivity() {
         val repository = SpotRepository(api, SqlDelightSpotCache(db))
         val details = ApiSpotDetailSource(api)
         val recentSource = ApiRecentRidesSource(api)
+        val authRepository = AuthRepository(
+            controller = AndroidAuthController(this, HitchwikiApi.BASE_URL),
+            store = EncryptedTokenStore(applicationContext),
+            api = api,
+        )
         val viewModel = MapViewModel(repository, details, lifecycleScope)
         val locationProvider = LocationProvider(applicationContext)
 
@@ -61,6 +77,7 @@ class MainActivity : ComponentActivity() {
                     mapViewModel = viewModel,
                     detailSource = details,
                     recentSource = recentSource,
+                    authRepository = authRepository,
                     scope = lifecycleScope,
                     onRequestLocation = { permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) },
                 )

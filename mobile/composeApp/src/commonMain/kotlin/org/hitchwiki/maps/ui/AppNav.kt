@@ -8,8 +8,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import kotlinx.coroutines.CoroutineScope
+import org.hitchwiki.maps.data.AuthRepository
 import org.hitchwiki.maps.data.RecentRidesSource
 import org.hitchwiki.maps.data.SpotDetailSource
+import org.hitchwiki.maps.ui.account.AccountScreen
+import org.hitchwiki.maps.ui.account.AccountViewModel
 import org.hitchwiki.maps.ui.detail.SpotDetailScreen
 import org.hitchwiki.maps.ui.detail.SpotDetailViewModel
 import org.hitchwiki.maps.ui.map.MapScreen
@@ -28,6 +31,7 @@ fun AppNav(
     mapViewModel: MapViewModel,
     detailSource: SpotDetailSource,
     recentSource: RecentRidesSource,
+    authRepository: AuthRepository,
     scope: CoroutineScope,
     onRequestLocation: () -> Unit,
 ) {
@@ -39,7 +43,12 @@ fun AppNav(
                 onRequestLocation = onRequestLocation,
                 onOpenDetail = { sid, rating, count -> nav.navigate("spot/$sid?rating=$rating&count=$count") },
                 onOpenSearch = { nav.navigate("search") },
+                onOpenAccount = { nav.navigate("account") },
             )
+        }
+        composable("account") {
+            val vm = remember { AccountViewModel(authRepository, scope) }
+            AccountScreen(viewModel = vm, onBack = { nav.popBackStack() })
         }
         composable("search") {
             val vm = remember { SearchViewModel(recentSource, scope) }

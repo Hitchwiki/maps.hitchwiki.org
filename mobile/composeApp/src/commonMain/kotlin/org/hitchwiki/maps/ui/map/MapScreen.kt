@@ -29,6 +29,7 @@ fun MapScreen(
     onRequestLocation: () -> Unit,
     onOpenDetail: (String, Float, Int) -> Unit,
     onOpenSearch: () -> Unit,
+    onOpenAccount: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsState()
@@ -82,9 +83,13 @@ fun MapScreen(
                 .height(48.dp),
         ) {
             Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+                // Account button — full 48dp touch target, left of the search field.
+                IconButton(onClick = onOpenAccount, modifier = Modifier.size(48.dp)) {
+                    PersonIcon(IconBlue)
+                }
                 // Search field region — its own hit target.
                 Row(
-                    Modifier.weight(1f).fillMaxHeight().clickable(onClick = onOpenSearch).padding(start = 16.dp),
+                    Modifier.weight(1f).fillMaxHeight().clickable(onClick = onOpenSearch).padding(start = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     MagnifierIcon(IconBlue)
@@ -159,5 +164,23 @@ private fun SlidersIcon(tint: Color, active: Boolean) {
             drawCircle(tint, radius = knobR, center = Offset(w * knobX[i], y))
         }
         if (active) drawCircle(IconBlue, radius = h * 0.12f, center = Offset(w * 0.9f, h * 0.12f))
+    }
+}
+
+/** Simple person glyph (head + shoulders) drawn with Canvas — dependency-free, matches the
+ *  magnifier/sliders icons. */
+@Composable
+private fun PersonIcon(tint: Color) {
+    Canvas(Modifier.size(22.dp)) {
+        val w = size.width
+        val h = size.height
+        drawCircle(tint, radius = h * 0.17f, center = Offset(w * 0.5f, h * 0.30f))
+        // Shoulders: a wide arc approximated by a filled half-disc band.
+        drawArc(
+            color = tint,
+            startAngle = 180f, sweepAngle = 180f, useCenter = true,
+            topLeft = Offset(w * 0.18f, h * 0.52f),
+            size = androidx.compose.ui.geometry.Size(w * 0.64f, h * 0.62f),
+        )
     }
 }
