@@ -1,3 +1,5 @@
+import stat
+
 from hitch.helpers import write_json_if_changed
 
 
@@ -17,3 +19,14 @@ def test_write_json_if_changed_replaces_changed_contents(tmp_path):
 
     assert write_json_if_changed(path, {"spot": {"name": "Changed"}, "rides": []}) is True
     assert path.read_text() == '{"spot": {"name": "Changed"}, "rides": []}'
+
+
+def test_write_json_if_changed_preserves_public_file_permissions(tmp_path):
+    path = tmp_path / "spot.json"
+
+    assert write_json_if_changed(path, {"rides": []}) is True
+    assert stat.S_IMODE(path.stat().st_mode) == 0o644
+
+    path.chmod(0o664)
+    assert write_json_if_changed(path, {"rides": [1]}) is True
+    assert stat.S_IMODE(path.stat().st_mode) == 0o664

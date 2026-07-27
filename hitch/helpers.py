@@ -4,6 +4,7 @@ import html
 import logging
 import os
 import sqlite3
+import stat
 import tempfile
 
 import numpy as np
@@ -174,8 +175,14 @@ def write_json_if_changed(filepath, data):
     except FileNotFoundError:
         pass
 
+    try:
+        mode = stat.S_IMODE(os.stat(filepath).st_mode)
+    except FileNotFoundError:
+        mode = 0o644
+
     fd, temporary_path = tempfile.mkstemp(dir=os.path.dirname(filepath), prefix=".tmp-")
     try:
+        os.fchmod(fd, mode)
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(payload)
         os.replace(temporary_path, filepath)
