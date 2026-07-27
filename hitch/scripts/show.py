@@ -1,4 +1,5 @@
 import contextlib
+import gc
 import json
 import logging
 import math
@@ -1023,11 +1024,22 @@ osm_spot_tags = fetch_osm_tags("osm_hitchhiking_spot", places["nearby_osm_id"])
 fuel_tags = fetch_osm_tags("osm_fuel_station_spot", [f["id"] for f in places["nearby_fuel"] if f])
 car_pooling_tags = fetch_osm_tags("osm_car_pooling_spot", [c["id"] for c in places["nearby_car_pooling"] if c])
 
+# These bulk lookup structures have served their purpose: `places` now carries their
+# matches and the small tag dictionaries above retain only matched OSM features. Drop
+# the large source tables *and* the grids built from them (build_point_grid now backs
+# all four lookups, not just fuel) before constructing the remaining JSON, GPX and race
+# outputs.
+osm_spots_df = car_pooling_df = hitchwiki_df = hitchwiki_maps_df = None
+osm_spot_grid = car_pooling_grid = fuel_grid = hitchwiki_grid = None
+gc.collect()
+logger.info("Released bulk OSM and Hitchwiki lookup tables")
+
 # Reverse-geocoded street names for the ~84% of spots no OSM feature can name, cached by
 # hitch/scripts/spot_names.py. Absent on a fresh/dev DB that has never run it.
 try:
     spot_names_df = pd.read_sql("select spot_id, name from spot_name", get_db())
     geocoded_names = dict(zip(spot_names_df["spot_id"], spot_names_df["name"]))
+    del spot_names_df
 except (pd.errors.DatabaseError, sqlite3.OperationalError):
     logger.info("spot_name table not found — spots with no OSM feature will stay unnamed")
     geocoded_names = {}
