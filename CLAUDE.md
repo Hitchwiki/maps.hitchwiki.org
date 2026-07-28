@@ -361,7 +361,8 @@ We use the sqlite tables as a canonical format to easily translate between the n
 
 **Legacy Tables:**
 - **`points`**, **`duplicates`**
-  - Historical hitchmap.com data, now maintained locally by the app: `duplicates` is written by user duplicate reports (`main.py`, `to_sql("duplicates", ...)`), `points` backs the review-moderation queue (`user.py`). Both already resident in the prod DB.
+  - Historical hitchmap.com data: `duplicates` is written by user duplicate reports (`main.py`, `to_sql("duplicates", ...)`), `points` backed the review-moderation queue (`user.py`).
+  - **Neither table exists in `hitchhiking-prod.sqlite` any more** (verified 2026-07-28 — the DB has no `points` and no `duplicates`). Anything that reads them 500s: that is what killed `/contributors`, which is now a 301 to `/leaderboard`. `main.py`'s duplicate report survives only because pandas `to_sql(..., if_exists="append")` creates the table it writes to. `claim-review/<id>` (`user.py`) still reads `points` and will 500 — it is behind auth, so no crawler finds it, but do not assume the table is there.
   - There was a `sync_upstream.py` that pulled these (plus unused legacy `service_areas`/`road_islands`) from a nomadwiki.org dump daily; it was removed 2026-07-19 — the dump URL 404s (301s to the wiki home page) and the runtime routing tables are the singular `service_area`/`road_island` built from OSM by `sync_service_areas.py`/`sync_road_islands.py`, not these.
 
 ### Generated JSON Files
