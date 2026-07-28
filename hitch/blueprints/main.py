@@ -15,6 +15,7 @@ from flask import (
     Blueprint,
     abort,
     current_app,
+    g,
     jsonify,
     redirect,
     render_template,
@@ -235,6 +236,11 @@ def render_map(map_variation):
     return render_template(
         "map.html",
         map_variation=map_variation,
+        # "/", "/index.html", "/light", "/light.html", "/with_destination" and
+        # "/with_destination.html" are six URLs onto one map (times 31 languages, times
+        # the ?heatmap=true toggle). They are variants of the same page, not pages, so
+        # they all name "/" as canonical instead of each defending itself.
+        canonical_url=_external_https("main.render_map", map_variation=None),
         hide_add_spot_button=current_app.config.get("HIDE_ADD_SPOT_BUTTON", False),
         hide_account_button=current_app.config.get("HIDE_ACCOUNT_BUTTON", False),
         is_logged_in=not current_user.is_anonymous,
@@ -255,7 +261,18 @@ def _external_https(endpoint, **values):
     search engines discard an insecure og:image or canonical on an https page, so
     state the scheme rather than inferring it. The OAuth redirect_uri has the same
     problem and solves it separately, in oauth._redirect_uri().
+
+    Resolved against the language that served this request. main_bp is registered once
+    per language as "main_<lang>" (register_blueprints), and a bare "main.render_spot"
+    always resolves to the English registration -- so /de/spot/<id> would name the
+    English URL as its own canonical while the hreflang block next to it declares the
+    two as translations. Search Console reads that as "Alternate page with proper
+    canonical tag" and drops the translated page.
     """
+    lang = getattr(g, "lang", "en")
+    blueprint, _, view = endpoint.rpartition(".")
+    if lang != "en" and blueprint:
+        endpoint = f"{blueprint}_{lang}.{view}"
     return url_for(endpoint, _external=True, _scheme="https", **values)
 
 

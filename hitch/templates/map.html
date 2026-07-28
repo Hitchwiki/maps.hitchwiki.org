@@ -16,6 +16,12 @@
 {% block meta_description %}{{ spot_description or homepage_blurb }}{% endblock %}
 {% block og_description %}{{ spot_description or homepage_blurb }}{% endblock %}
 {% block og_url %}{{ spot_url if spot_url else super() }}{% endblock %}
+{# Every well-formed coordinate resolves to a 200, so /spot/<lat>_<lon> is an
+   unbounded URL space. Only let crawlers index the ones that describe a real spot;
+   the rest are soft 404s that would dilute the site. A /dir/ route is a shared link
+   rather than a page anyone should find in search, and its space is the square of the
+   spot space, so it is never indexed (noindex=True). #}
+{% block robots %}{% if noindex or (spot_url and not spot_description) %}<meta name="robots" content="noindex" />{% endif %}{% endblock %}
 {# A shared route (/dir/<from>/<to>) previews as a basemap with the route drawn on
    it; the 600x315 size is what makes messengers use the large card layout. #}
 {% block og_image %}{% if og_image %}<meta property="og:image" content="{{ og_image }}" />
@@ -25,15 +31,11 @@
     <meta name="twitter:card" content="summary_large_image" />{% endif %}{% endblock %}
 
 {% block head %}
-{# Legacy /?lat=&lon= links and the #map= viewport are all views of one spot —
-   point search engines at the single canonical path. #}
-{% if spot_url %}<link rel="canonical" href="{{ spot_url }}" />{% endif %}
-{# Every well-formed coordinate resolves to a 200, so /spot/<lat>_<lon> is an
-   unbounded URL space. Only let crawlers index the ones that describe a real
-   spot; the rest are soft 404s that would dilute the site. A /dir/ route is a
-   shared link rather than a page anyone should find in search, and its space is
-   the square of the spot space, so it is never indexed. #}
-{% if noindex or (spot_url and not spot_description) %}<meta name="robots" content="noindex" />{% endif %}
+{# The canonical tag lives in base.html's {% block canonical %}: it defaults to a
+   self-referencing URL (inject_canonical_url, hitch/__init__.py), which is already
+   what a /spot/ or /country/ permalink wants, and render_map overrides it so the
+   ".html" and light/with_destination variants all point at "/". Emitting one here
+   too would put two canonicals in one <head>, which makes Google ignore both. #}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.css" />

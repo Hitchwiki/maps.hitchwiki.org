@@ -45,10 +45,19 @@
     <link rel="manifest" href="/manifest.json" />
 
     <title>{% block title %}{{ "%s | Hitchhiking Map"|format(title) if title else t("Hitchhiking Map") }}{% endblock %}</title>
-    {# Self-referencing canonical, emitted only when a page passes canonical_url
-       (the per-city SEO pages). Prevents 14k near-identical <head>s from being
-       clustered as duplicates. Omitted (not left empty) for pages without one. #}
+    {# Self-referencing canonical. Statically generated pages (cities.py, route_pages.py)
+       pass canonical_url explicitly; live-rendered pages get it from the
+       inject_canonical_url context processor (hitch/__init__.py), which defaults it to
+       the current URL. Every route is mirrored under 31 language prefixes, so a page
+       without one exists at 31 uncanonicalised URLs -- what Search Console reports as
+       "Duplicate without user-selected canonical". Still guarded, because a page that
+       genuinely has no canonical (an error page) should omit the tag, not emit an empty one. #}
     {% block canonical %}{% if canonical_url %}<link rel="canonical" href="{{ canonical_url }}" />{% endif %}{% endblock %}
+    {# Any view can pass noindex=True to keep a page out of the index. Links on it are
+       still followed (that is robots' default, so it is left unstated). Used for pages
+       that exist for whoever typed the URL but sit in an unbounded URL space, where
+       indexing them would only produce soft 404s -- see show_account's empty stubs. #}
+    {% block robots %}{% if noindex %}<meta name="robots" content="noindex" />{% endif %}{% endblock %}
     <meta name="description" content="{% block meta_description %}{{ t('Discover hitchhiking spots worldwide on an interactive map. See community ratings, waiting times, and trip data. Share your own rides.') }}{% endblock %}" />
     <meta property="og:title" content="{% block og_title %}{{ t('Hitchhiking Map – Find & Share Hitchhiking Spots on a Map') }}{% endblock %}" />
     <meta property="og:description" content="{% block og_description %}{{ t('Discover hitchhiking spots worldwide on an interactive map. See community ratings, waiting times, and trip data. Share your own rides.') }}{% endblock %}" />
@@ -66,11 +75,16 @@
        page, not a duplicate -- see lang_switch_url (hitch/__init__.py) for how the
        paths relate. Guarded the same way as og_url above: absent during cities.py's
        static generation, which has no request. #}
+    {# https:// is stated rather than taken from request.host_url, which yields http://
+       in production (waitress strips the X-Forwarded-Proto that ProxyFix would need --
+       same trap as main._external_https). An hreflang pointing at http:// names a URL
+       that only redirects, so the cluster does not reciprocate and search engines
+       discount the whole set of translations. #}
     {% if request is defined %}
     {% for code in SUPPORTED_LANGUAGES %}
-    <link rel="alternate" hreflang="{{ code }}" href="{{ request.host_url.rstrip('/') }}{{ lang_switch_url(code) }}" />
+    <link rel="alternate" hreflang="{{ code }}" href="https://{{ request.host }}{{ lang_switch_url(code) }}" />
     {% endfor %}
-    <link rel="alternate" hreflang="x-default" href="{{ request.host_url.rstrip('/') }}{{ lang_switch_url('en') }}" />
+    <link rel="alternate" hreflang="x-default" href="https://{{ request.host }}{{ lang_switch_url('en') }}" />
     {# Statically generated pages (cities.py) have no request to derive the sibling
        URLs from, so the generator passes them in explicitly. Without these the 31
        language versions of a city page compete with each other as duplicates

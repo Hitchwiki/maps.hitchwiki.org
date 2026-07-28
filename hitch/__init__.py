@@ -7,6 +7,7 @@ import os
 import resource
 import sys
 import time as time_module
+from urllib.parse import quote
 
 import click
 from flask import Flask, g, has_request_context, render_template, request, send_from_directory
@@ -124,6 +125,30 @@ def register_i18n(app):
         bp = request.blueprint or ""
         lang = bp.rsplit("_", 1)[1] if "_" in bp else "en"
         g.lang = lang if lang in SUPPORTED_LANGUAGES else "en"
+
+    # Every main_bp/user_bp route is mirrored under 31 language prefixes, so a live
+    # page with no canonical exists at 31 indistinguishable URLs -- which is what
+    # Search Console reports as "Duplicate without user-selected canonical". Default
+    # every page to a self-referencing canonical; the hreflang block in base.html
+    # declares the mirrors as translations of each other, and self-referencing is the
+    # pattern that pairs with it (canonicalising a mirror onto the English original
+    # instead tells Google to drop the mirror -- "Alternate page with proper canonical
+    # tag"). A context processor rather than a template global because Flask re-applies
+    # the explicit render_template() context on top of context processors, so a view
+    # with a better answer (a .html twin, a map variation) just passes canonical_url=.
+    @app.context_processor
+    def inject_canonical_url():
+        if not request:
+            return {}
+        # https is stated, not read off the request: waitress strips the
+        # X-Forwarded-Proto that ProxyFix would need, so the scheme reads as http in
+        # production and search engines discard an insecure canonical on an https page
+        # (see main._external_https). request.path drops the query string on purpose --
+        # /?heatmap=true is a client-side toggle over the same HTML, not a page.
+        # request.path is percent-DEcoded, so it has to be re-encoded: /country/United
+        # States and /account/Hélia would otherwise emit a canonical containing a raw
+        # space / non-ASCII byte, which is not a valid URL and is ignored.
+        return {"canonical_url": f"https://{request.host}{quote(request.path)}"}
 
     @app.template_global()
     def lang_switch_url(lang):
@@ -353,15 +378,20 @@ def register_routes(app):
 
         return send_from_directory(os.path.join(baseDir, "dist"), path)
 
+    # Both pages answer to a bare path and a ".html" twin (the twin is the historical
+    # hitchmap.com URL, kept so old links resolve). Two URLs, one page -- so the twin
+    # names the bare path as canonical rather than competing with it. These are
+    # app-level routes, not blueprint ones, so they exist only in English and the
+    # canonical needs no language prefix.
     @app.route("/copyright")
     @app.route("/copyright.html")
     def copyright():
-        return render_template("copyright.html")
+        return render_template("copyright.html", canonical_url=f"https://{request.host}/copyright")
 
     @app.route("/privacy")
     @app.route("/privacy.html")
     def privacy():
-        return render_template("privacy.html")
+        return render_template("privacy.html", canonical_url=f"https://{request.host}/privacy")
 
     # These files are manually served in such a way to conform to web standards of them being in the root
     @app.route("/favicon.ico")

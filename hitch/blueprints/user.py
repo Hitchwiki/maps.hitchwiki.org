@@ -355,6 +355,13 @@ def show_account(username, is_me: bool = False):
         can_follow=can_follow,
         is_following=is_following,
         can_message=can_message,
+        # /account/<anything> answers 200 by design (see the stub above), which makes it
+        # an unbounded URL space a crawler can wander forever -- and each page costs a
+        # couple of seconds of database work. A name that belongs to no registered user
+        # AND has no rides has nothing on it, so it is a soft 404: keep serving it to
+        # whoever typed the URL, but keep it out of the index. Pages with rides on them,
+        # registered or not, stay indexable -- those are real contributor profiles.
+        noindex=not user_known and not rides_data,
     )
 
 
@@ -597,41 +604,17 @@ def unfollow_user(username):
 
 @user_bp.route("/contributors", methods=["GET"])
 def contributors():
-    query = """select
-            u.username AS hitchhiker,
-            COUNT(*) AS total_contributions
-        from points p left join user u on p.user_id = u.id
-        where p.user_id is not null
-        group by p.user_id
-        order by total_contributions desc"""
-    overall_contributions = pd.read_sql(
-        query,
-        get_db(),
-    )
-    overall_contributions.index = overall_contributions.index + 1
+    """Legacy contributor ranking, superseded by /leaderboard.
 
-    query = """select
-            u.username AS hitchhiker,
-            COUNT(*) AS total_contributions
-        from points p left join user u on p.user_id = u.id
-        where p.user_id is not null
-            and strftime('%Y-%m', p.datetime) = strftime('%Y-%m', 'now')
-        group by p.user_id
-        order by total_contributions desc;"""
-    monthly_contributions = pd.read_sql(
-        query,
-        get_db(),
-    )
-    monthly_contributions.index = monthly_contributions.index + 1
+    It counted rows in `points` -- the legacy hitchmap.com review table, which no
+    longer exists in the production database, so every request 500s (Search Console
+    reports these under "Server error (5xx)", once per language mirror). The page is
+    linked from nowhere and cannot be repaired without the table; /leaderboard is the
+    ranking built from the ride data we actually hold, so send callers there. A 301
+    rather than a 404 because the URL is old enough to have inbound links.
+    """
+    return redirect(url_for(f"{request.blueprint}.leaderboard"), code=301)
 
-    return render_template(
-        "security/contributors.html",
-        is_logged_in=not current_user.is_anonymous,
-        overall_contributions=overall_contributions.to_html(),
-        short_overall_contributions=overall_contributions.head(10).to_html(),
-        monthly_contributions=monthly_contributions.to_html(),
-        short_monthly_contributions=monthly_contributions.head(10).to_html(),
-    )
 
 
 @user_bp.route("/claim-review/<review_id>", methods=["GET", "POST"])
