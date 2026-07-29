@@ -40,6 +40,11 @@ import time
 import unicodedata
 from collections import Counter
 
+if __package__:
+    from hitch.scripts.map_revision import dist_dir_for_database, mark_map_data_dirty
+else:
+    from map_revision import dist_dir_for_database, mark_map_data_dirty
+
 # ---------------------------------------------------------------------------
 # Shared name normalisation + gazetteer
 # ---------------------------------------------------------------------------
@@ -422,6 +427,8 @@ def cmd_geocode_store(args):
     conn.commit()
     total = conn.execute("SELECT COUNT(*) FROM derived_ride_location").fetchone()[0]
     conn.close()
+    if rows or deleted:
+        mark_map_data_dirty(dist_dir_for_database(args.db))
     print(f"stored/updated {len(rows)} rows; removed {deleted} too-far row(s); table now has {total}")
 
 

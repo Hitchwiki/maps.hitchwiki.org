@@ -6,6 +6,7 @@ import requests
 
 from hitch.extensions import db
 from hitch.models import OsmHitchhikingSpot
+from hitch.scripts.map_revision import mark_map_data_dirty
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger(__name__)
@@ -58,6 +59,7 @@ for node in nodes:
     )
     db.session.add(spot)
 db.session.commit()
+mark_map_data_dirty()
 
 final_count = db.session.query(OsmHitchhikingSpot).count()
 logger.info(f"SYNC OSM SCRIPT FINISHED — {final_count} spots saved (prior: {prior_count})")

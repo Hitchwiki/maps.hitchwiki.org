@@ -103,6 +103,7 @@ from hitch.models import (
     SpotName,
     User,
 )
+from hitch.scripts.map_revision import mark_map_data_dirty
 from hitch.translations import t
 from hitch.translations.weekdays import weekday_names
 from hitch.usernames import find_user_ci, same_username, username_key
@@ -1184,6 +1185,7 @@ def delete_ride(d_tag):
     else:
         db.session.add(RideReport(ride_d_tag=d_tag, user_id=current_user.id, reason=OWNER_DELETE_REASON))
     db.session.commit()
+    mark_map_data_dirty()
     return redirect(f"/ride/{d_tag}")
 
 
@@ -1280,6 +1282,7 @@ def report_ride(d_tag):
         else:
             db.session.add(RideReport(ride_d_tag=d_tag, user_id=current_user.id, reason=reason))
         db.session.commit()
+        mark_map_data_dirty()
         return redirect(f"/ride/{d_tag}?reported=1")
 
     return render_template(

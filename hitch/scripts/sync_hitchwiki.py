@@ -12,6 +12,7 @@ from tqdm import tqdm
 from hitch.extensions import db
 from hitch.helpers import get_dirs
 from hitch.models import HitchwikiArticleLocation, HitchwikiArticleMap
+from hitch.scripts.map_revision import mark_map_data_dirty
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger(__name__)
@@ -314,6 +315,7 @@ for _, row in valid_maps_df.iterrows():
     )
     db.session.add(map_entry)
 db.session.commit()
+mark_map_data_dirty()
 
 logger.info(f"Saved {len(valid_maps_df)} Hitchwiki article maps into the database.")
 logger.info("SYNC HITCHWIKI SCRIPT FINISHED")

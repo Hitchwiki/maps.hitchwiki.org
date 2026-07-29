@@ -21,6 +21,7 @@ from hitch.blueprints.utils.notifications import load_race_podiums, notify_new_r
 from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON, REPORTS_TO_HIDE
 from hitch.blueprints.utils.ride_images import image_url
 from hitch.helpers import e, get_bearing, get_db, get_dirs, haversine_np, write_json_file, write_json_if_changed
+from hitch.scripts.map_revision import mark_map_data_generated, read_generated_map_revision, read_map_data_revision
 from hitch.scripts.races import build_races, estimate_arrival
 from hitch.scripts.spot_naming import resolve_spot_name
 from hitch.scripts.spots_gpx import spot_waypoint, write_spots_gpx
@@ -36,7 +37,7 @@ os.makedirs(dirs["dist"], exist_ok=True)
 
 # Check if we need to regenerate JSON files
 def should_regenerate_json():
-    """Check if JSON files need regeneration based on database modification time."""
+    """Check whether generated files are missing or map inputs have changed."""
     db_path = current_app.config["DATABASE_URI"]
 
     # Check if database exists
@@ -44,7 +45,17 @@ def should_regenerate_json():
         logger.warning(f"Database file not found: {db_path}")
         return True
 
-    db_mtime = os.path.getmtime(db_path)
+    map_revision = read_map_data_revision(dirs["dist"])
+    if map_revision is None:
+        # Backward-compatible rollout: before the first marker-aware map write, retain
+        # the old whole-database mtime behaviour so a deploy cannot leave stale output.
+        db_mtime = os.path.getmtime(db_path)
+    else:
+        db_mtime = None
+        generated_revision = read_generated_map_revision(dirs["dist"])
+        if generated_revision != map_revision:
+            logger.info("Regeneration needed: map-data revision changed")
+            return True
 
     # Check each JSON file
     # races.json is deliberately absent: it is rebuilt on its own hourly schedule further
@@ -84,7 +95,7 @@ def should_regenerate_json():
         if not os.path.exists(json_path):
             logger.info(f"Regeneration needed: {json_file} is missing")
             return True
-        elif os.path.getmtime(json_path) < db_mtime:
+        elif db_mtime is not None and os.path.getmtime(json_path) < db_mtime:
             logger.info(f"Regeneration needed: {json_file} is outdated")
             return True
 
@@ -99,6 +110,10 @@ if not current_app.config.get("FORCE_REGENERATE", False) and not should_regenera
 
 logger.info("Database has been updated, regenerating JSON files")
 logger.info("Fetching rides")
+# Capture the revision before reading. If a writer publishes a newer token while this
+# long run is in progress, the generated token below stays old and the next cron tick
+# regenerates from the newer database state.
+snapshot_map_revision = read_map_data_revision(dirs["dist"])
 # Instant every generated file below is derived from. Captured BEFORE the read, not
 # after the writes: /pending_rides.json serves rides created at or after this timestamp,
 # and a ride landing while this script runs must count as pending rather than be
@@ -1606,6 +1621,15 @@ def generate_heatmap_data():
 # ~1.9 GB and has been OOM-killed on this host, which bypasses its try/except and would
 # otherwise leave the timestamp permanently unwritten).
 write_json_file({"ts": snapshot_ts}, "generated_at.json")
+
+# Mark this snapshot's revision as generated right alongside generated_at.json, for the
+# same reason: everything the revision token actually gates (spots/rides/etc.) is on disk
+# by this point, and heatmap generation must not be able to block it. Gating this on
+# heatmap success would mean a heatmap OOM (see above) leaves the generated-revision
+# token permanently behind the current one, so should_regenerate_json() would decide
+# every future run is dirty and do a full regeneration forever — the opposite of what
+# the revision system exists for.
+mark_map_data_generated(snapshot_map_revision, dirs["dist"])
 
 # Generate heatmap data file (unless disabled — see GENERATE_HEATMAP in settings.py)
 if current_app.config.get("GENERATE_HEATMAP", True):

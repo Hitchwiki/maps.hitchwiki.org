@@ -6,6 +6,7 @@ import requests
 
 from hitch.extensions import db
 from hitch.models import OsmCarPoolingSpot
+from hitch.scripts.map_revision import mark_map_data_dirty
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger(__name__)
@@ -71,6 +72,7 @@ for el in elements:
         )
     )
 db.session.commit()
+mark_map_data_dirty()
 
 final_count = db.session.query(OsmCarPoolingSpot).count()
 logger.info(f"SYNC CAR POOLING SCRIPT FINISHED — {final_count} spots saved (prior: {prior_count}, skipped: {skipped})")

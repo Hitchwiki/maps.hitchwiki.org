@@ -8,6 +8,7 @@ from sqlalchemy import func, tuple_
 from hitch.extensions import db
 from hitch.helpers import get_dirs
 from hitch.models import RideEvent
+from hitch.scripts.map_revision import mark_map_data_dirty
 from hitch.scripts.nostr_ride_parsing import parse_post_to_ride_fields
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
@@ -101,6 +102,7 @@ for fields in parsed:
 
 if inserted or updated:
     db.session.commit()
+    mark_map_data_dirty(dirs["dist"])
     logger.info(f"Upsert complete: {inserted} inserted, {updated} updated, {unchanged} unchanged")
 else:
     logger.info(f"Skipping upsert commit: no rides inserted or updated ({unchanged} boundary event(s) unchanged)")
@@ -130,6 +132,7 @@ if authorised_pubkeys_by_id:
             removed += 1
     if removed:
         db.session.commit()
+        mark_map_data_dirty(dirs["dist"])
         logger.info(f"Committed {removed} authorised NIP-09 deletion(s)")
     else:
         logger.info("Skipping deletion commit: no authorised rides were removed")

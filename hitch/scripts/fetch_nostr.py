@@ -6,6 +6,7 @@ import subprocess
 from hitch.extensions import db
 from hitch.helpers import get_dirs
 from hitch.models import RideEvent
+from hitch.scripts.map_revision import mark_map_data_dirty
 from hitch.scripts.nostr_ride_parsing import parse_post_to_ride_fields
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
@@ -62,6 +63,7 @@ db.session.commit()
 
 db.session.add_all(ride_events)
 db.session.commit()
+mark_map_data_dirty(dirs["dist"])
 
 logger.info(f"Saved {fetched_count} rides into the database")
 logger.info("FETCH NOSTR SCRIPT FINISHED")
