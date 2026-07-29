@@ -7,6 +7,7 @@ generated tokens make a write that lands during a long generation visible to the
 run instead of being hidden by output-file mtimes.
 """
 
+import contextlib
 import os
 import tempfile
 import uuid
@@ -39,10 +40,8 @@ def _atomic_write(filename, token, dist_dir=None):
             f.write(token)
         os.replace(temporary_path, _path(filename, target_dir))
     except Exception:
-        try:
+        with contextlib.suppress(FileNotFoundError):
             os.unlink(temporary_path)
-        except FileNotFoundError:
-            pass
         raise
 
 
