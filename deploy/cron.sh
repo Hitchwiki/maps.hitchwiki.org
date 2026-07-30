@@ -9,12 +9,18 @@
 # within ~5 min, not a week. Shares fetch_nostr.lockfile with the weekly full job (flock -n) so
 # the two never overlap — if a 5-min tick lands during the weekly full run it simply skips.
 */5 * * * * cd /app && /usr/bin/flock -n /tmp/fetch_nostr.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate fetch_nostr_incremental' > logs/fetch_nostr.log 2>&1
-# every Monday at 00:50 — FULL Nostr fetch (delete-and-recreate). The incremental job now
+# every Monday at 00:51 — FULL Nostr fetch (delete-and-recreate). The incremental job now
 # handles deletions too, so this is only needed to (a) catch back-dated events an incremental
 # `since` query skips, and (b) regenerate the public dist/allPosts.json / allPosts.csv exports.
 # Runs weekly, a few hours before the Monday 08:00 Hugging Face dataset push that reads
 # allPosts.json, so that export is always fresh for the push.
-50 0 * * 1 cd /app && /usr/bin/flock -n /tmp/fetch_nostr.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate fetch_nostr' > logs/fetch_nostr_full.log 2>&1
+# The minute MUST NOT be a multiple of 5. This was 00:50, which cron starts in the same second
+# as the */5 incremental tick above; they share fetch_nostr.lockfile, so whichever loses the
+# race dies to `flock -n` — and it was always this one. The job silently never ran between
+# 2026-07-19 and 2026-07-30 (its log is 0 bytes: flock exits before even the echo), during which
+# 3598 back-dated rides accumulated unfetched and allPosts.json went 11 days stale. :51 leaves
+# the ~2 s incremental finished and the lock free.
+51 0 * * 1 cd /app && /usr/bin/flock -n /tmp/fetch_nostr.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate fetch_nostr' > logs/fetch_nostr_full.log 2>&1
 # every 10 minutes
 */10 * * * * cd /app && /usr/bin/flock -n /tmp/show.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate show' > logs/show.log 2>&1
 
