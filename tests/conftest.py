@@ -2,12 +2,21 @@ import os
 
 # Set required env vars before importing the app
 os.environ.setdefault("RELAYS", '["wss://relay.example.com"]')
-os.environ.setdefault("NSEC", "test_key")
+# A real (throwaway, all-0x11) nsec rather than a placeholder string: whether a ride can be
+# edited or claimed depends on it being signed by *our* key (ride_sources.ride_is_replaceable),
+# so a key that can't be parsed would make every ride read-only in the tests. Fixtures that
+# build an owned ride must stamp it with TEST_PUBKEY.
+os.environ.setdefault("NSEC", "nsec1zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs4rm7hz")
 
 import pytest
+from pynostr.key import PrivateKey
 
 from hitch import create_app
 from hitch.extensions import db as _db
+
+# Derived, not hardcoded: setdefault leaves a real NSEC alone when the suite runs inside
+# the container, and the fixtures still have to match whatever key is actually in use.
+TEST_PUBKEY = PrivateKey.from_nsec(os.environ["NSEC"]).public_key.hex()
 
 
 @pytest.fixture(scope="session")

@@ -29,8 +29,11 @@ from hitch.blueprints.utils.ride_images import (
 )
 from hitch.extensions import db as _db
 from hitch.models import RideEvent, RideImage, User
+from tests.conftest import TEST_PUBKEY
 
-PUBKEY = "b" * 64
+# Our own key: a ride is only editable when we could actually replace its Nostr event,
+# which means it has to be signed by the key this app runs with (see ride_sources.py).
+PUBKEY = TEST_PUBKEY
 D_TAG = "maps.hitchwiki.org-photo"
 OWNER_USERNAME = "photohitcher"
 TOKEN = "d3b07384-d113-4ec3-9e33-000000000001"
@@ -254,7 +257,9 @@ class _RecordingPoster:
                 "sig": "s" * 128,
                 "created_at": 1_800_000_000,
                 "content": json.dumps(content),
-                "tags": [["d", tag]],
+                # published_at as well as d: a real event always carries both, and a ride
+                # missing either is treated as unreplaceable (see ride_sources.py).
+                "tags": [["d", tag], ["published_at", "1800000000"]],
             }
         )
         return tag

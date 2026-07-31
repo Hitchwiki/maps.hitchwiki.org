@@ -276,3 +276,45 @@ sudo python3 hitch/scripts/derive_consecutive_destinations.py --db db/hitchhikin
 sudo docker exec hitchhiking-map /usr/local/bin/flask --app hitch generate show --force
 sudo docker exec hitchhiking-map python3 /app/hitch/scripts/build_ride_routes.py --skip-detailed
 ```
+
+## Ride sources — who may edit a ride
+
+Not every ride on the map was logged here. Each ride carries a `source` naming the platform it was recorded on, and that decides whether our users can change it. The list lives in `hitch/blueprints/utils/ride_sources.py`.
+
+| Source | Editable / claimable here? | Why |
+|---|---|---|
+| `maps.hitchwiki.org` (`THIS_NOSTR_SOURCE`) | yes | logged on this site |
+| `hitchmap.com` | yes | legacy dataset imported and published to Nostr by this project |
+| `hitchwiki.org` | yes | same |
+| `liftershalte.info` | no | another platform's ride |
+| `triphopping.com` | no | another platform's ride |
+| anything else | no | unknown source, treated as foreign |
+
+A ride is only writable when **both** hold:
+
+1. **Its source is one of ours** — a policy call. Someone who logged a ride on triphopping.com edits it on triphopping.com, even if they are also a user here.
+2. **The stored event carries our own Nostr pubkey** — a mechanical one. Editing republishes the ride as a kind-36820 event under our `NSEC` with the ride's original `d` tag. Kind 36820 is parameterized-replaceable per `(pubkey, kind, d)`, so a rewrite only *replaces* the ride when the original was signed by us; otherwise it lands as a second competing event and the ride shows up twice.
+
+The second condition matters in practice: `hitchmap.com` rides exist under both our key (the ones we imported) and a third party's, and only the first group can actually be rewritten. Editing keeps the original `source`, so correcting an imported ride does not re-label it as one recorded here.
+
+Deleting is not restricted this way — it writes a local `RideReport` row and never touches the relays, so anyone listed on a ride can hide it whatever its source (`_user_can_delete_ride` in `hitch/blueprints/main.py`).
+
+## Easter eggs
+
+Two hidden tap gestures. Both are deliberately undocumented in the UI; this is the list.
+
+### Tap the heatmap button 9× — test mode
+
+Tapping the heatmap button in the map-mode switcher nine times toggles a client-side **test mode**: in-ride submissions are short-circuited (`submitBody` in `hitch/static/inride.js`), so you can walk through the whole "Start hitchhiking" flow on a real phone without writing anything to the DB or the Nostr relays. From the fourth tap a toast counts down. While it is on, a draggable amber warning button sits under the search bar; tap it for an explanation and an exit. The flag is `inride.testMode` in `localStorage` — it survives reloads until you turn it off.
+
+### Tap an anonymous ride 5× on a spot page — claim it
+
+On `/spot/<spot_id>`, tapping a ride card that says **Anonymous** five times attaches that ride to your account. Much of the map was logged without an account — people submitted anonymously before registering, and the whole hitchmap.com import arrived that way — so a hitchhiker who recognises their own ride can take it back. The claimed ride then counts on their profile, in their stats and trips, and becomes editable.
+
+- You must be logged in; the gesture is only wired up on cards with no named hitchhiker.
+- A single tap still opens the ride, just 300 ms later on those cards so a second tap can arrive. From the second tap a toast counts down; the streak lapses after 2 s of no tapping.
+- The claim republishes the Nostr event with you as its hitchhiker, keeping the `d` tag, the `published_at` tag, the original `source` and any anonymous co-hitchhikers.
+- The server (`POST /claim-ride/<d_tag>`) re-checks everything: you must be logged in, the ride must still have no named hitchhiker, and it must be from a source we can republish (see the table above) — so a ride from another platform is refused with a toast saying where to edit it instead.
+- There is no proof that the claimer is the person who logged the ride: an anonymous ride carries no identity to check against. This is a convenience, not an ownership claim, and claims are written to the same `logs/ride_ips.csv` trail as a submission.
+
+Code: `registerClaimTap` / `claimRide` in `hitch/static/map.js`, `claim_ride` in `hitch/blueprints/main.py`.

@@ -24,12 +24,14 @@ from flask import (
     url_for,
 )
 from flask_security import current_user
+from pydantic import ValidationError
 from sqlalchemy import func, text
 from werkzeug.utils import safe_join
 
 from hitch.blueprints.publish_ride import (
     ALLOWED_VEHICLE_KINDS,
     anonymous_co_hitchhiker_token,
+    construct_hitchhiker_from_current_user,
     create_record_from_custom_object,
     is_anonymous_co_hitchhiker,
 )
@@ -47,6 +49,7 @@ from hitch.blueprints.utils.driver_info_choices import (
     REASON_TO_PICK_UP_CHOICES,
 )
 from hitch.blueprints.utils.filter_request_log import FILTER_FIELDS, log_filter_request
+from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import HitchhikingRecord
 from hitch.blueprints.utils.iso_country_codes import ISO_3166_1_ALPHA_2
 from hitch.blueprints.utils.license_plate_country_codes import LICENSE_PLATE_COUNTRY_CHOICES
 from hitch.blueprints.utils.notifications import (
@@ -72,6 +75,7 @@ from hitch.blueprints.utils.ride_images import (
     valid_draft_token,
 )
 from hitch.blueprints.utils.ride_ip_log import get_client_ip, log_ride_ip
+from hitch.blueprints.utils.ride_sources import THIS_NOSTR_SOURCE, ride_is_replaceable, ride_source
 from hitch.blueprints.utils.route_request_log import log_route_request
 from hitch.blueprints.utils.search_request_log import log_search_request
 from hitch.blueprints.utils.signup_prompt_log import PROMPT_ACTIONS, log_signup_prompt
@@ -94,7 +98,6 @@ from hitch.translations import t
 
 main_bp = Blueprint("main", __name__)
 
-THIS_NOSTR_SOURCE = os.getenv("THIS_NOSTR_SOURCE", "yourdomain.com")
 THIS_DATA_LICENSE = os.getenv("THIS_DATA_LICENSE", "odbl")
 
 VEHICLE_KIND_EMOJIS = {
@@ -131,15 +134,27 @@ def _user_owns_ride(ride, user):
     """Check if the current user may *edit* this ride.
 
     Editing republishes the event under this app's Nostr key with the same `d` tag, which
-    only replaces the original when we published it in the first place (kind 36820 is
-    replaceable per (pubkey, kind, d)). A foreign-source ride is signed by another key, so
-    re-publishing would fork it into a second event rather than update it — hence editing
-    stays restricted to rides we authored. Deletion has no such constraint, see
-    `_user_can_delete_ride`.
+    only replaces the original when we published it in the first place. That covers rides
+    logged here *and* the datasets this project imported and republished itself — a
+    hitchhiker whose old hitchmap.com rides are on this map can fix them. A ride another
+    platform put on the relays stays read-only however it got here; see
+    `hitch/blueprints/utils/ride_sources.py` for both halves of that rule. Deletion has no
+    such constraint, see `_user_can_delete_ride`.
     """
-    if (ride.content or {}).get("source") != "maps.hitchwiki.org":
+    if not ride_is_replaceable(ride):
         return False
     return _user_is_hitchhiker(ride, user)
+
+
+def _ride_is_unclaimed(ride):
+    """Whether this ride has no named hitchhiker, i.e. nobody has put their name to it.
+
+    Both shapes count: an empty hitchhikers list (some imports carry none) and one whose
+    entries are all the anonymous placeholder — including the "Anonymous:<gender>" tokens
+    an anonymous co-hitchhiker is recorded as.
+    """
+    nicknames = [(h or {}).get("nickname") for h in ((ride.content or {}).get("hitchhikers") or [])]
+    return all(not n or is_anonymous_co_hitchhiker(n) for n in nicknames)
 
 
 def _store_published_ride(event):
@@ -1025,6 +1040,65 @@ def delete_ride(d_tag):
     return redirect(f"/ride/{d_tag}")
 
 
+@main_bp.route("/claim-ride/<d_tag>", methods=["POST"])
+def claim_ride(d_tag):
+    """Easter egg: put the logged-in user's name on an unattributed ride (5 taps, see README).
+
+    A lot of the map was logged without an account — people submitted anonymously before
+    they registered, or their rides arrived in the hitchmap.com import. Claiming
+    republishes the event with the user as its hitchhiker, so it counts on their profile,
+    in their stats and their trips, and becomes editable from then on.
+
+    Two guards, both necessary:
+    * the ride must have no named hitchhiker — otherwise this would be a way to take
+      someone else's ride off them;
+    * the ride must be one we can replace on Nostr (`ride_is_replaceable`) — a foreign
+      platform's ride would fork into a duplicate instead of changing hands.
+
+    There is deliberately no proof that the claimer is the person who logged it: an
+    anonymous ride carries no identity to check against, so the honest answer is that this
+    is a low-stakes convenience. It is logged to the same IP trail as a submission.
+
+    JSON in both directions — the spot pane calls it with fetch and patches the card.
+    """
+    if current_user.is_anonymous:
+        return jsonify({"ok": False, "error": "not_logged_in"}), 401
+
+    ride = db.session.query(RideEvent).filter_by(d=d_tag).first()
+    if not ride:
+        return jsonify({"ok": False, "error": "not_found"}), 404
+    if not _ride_is_unclaimed(ride):
+        return jsonify({"ok": False, "error": "already_claimed"}), 409
+    if not ride_is_replaceable(ride):
+        return jsonify({"ok": False, "error": "foreign_source", "source": ride_source(ride)}), 403
+
+    try:
+        record = HitchhikingRecord.model_validate(ride.content or {})
+    except ValidationError:
+        # Content we can't re-serialise can't be republished without losing fields.
+        current_app.logger.exception("claim-ride: unparseable content for %s", d_tag)
+        return jsonify({"ok": False, "error": "unparseable"}), 409
+
+    # Replace the first hitchhiker slot (the submitter's) and keep the rest: a ride logged
+    # with anonymous co-hitchhikers still had that many people in the car.
+    claimer = construct_hitchhiker_from_current_user()
+    record.hitchhikers = [claimer, *(record.hitchhikers or [])[1:]]
+
+    poster = HitchhikingDataStandardToNostrPoster()
+    try:
+        # Original tags → same `d` and the original published_at, so this replaces the
+        # ride rather than adding one.
+        poster.post(ride_record=record, tags=ride.tags)
+    finally:
+        poster.close()
+    _store_published_ride(poster.last_event)
+
+    # Same abuse trail as a submission: claiming is a write to public data.
+    log_ride_ip(d_tag)
+
+    return jsonify({"ok": True, "hitchhiker_name": current_user.username, "url": f"/ride/{d_tag}"})
+
+
 @main_bp.route("/report-ride/<d_tag>", methods=["GET", "POST"])
 def report_ride(d_tag):
     """Let a logged-in user report a ride for a reason (advertising / non-existing spot).
@@ -1519,8 +1593,11 @@ def ride_form():
         if edit_d_tag:
             # Create new record with updated form data to get updated fields
             # TODO: define license properly instead of using "xxx"
+            # Keep the ride's original source: editing a ride imported from hitchmap.com
+            # corrects it, it does not turn it into a ride that was recorded here. The
+            # source is also what decides whether it stays editable (see ride_sources).
             updated_record = create_record_from_custom_object(
-                custom_object=data, source=THIS_NOSTR_SOURCE, license=THIS_DATA_LICENSE
+                custom_object=data, source=ride_source(existing_ride) or THIS_NOSTR_SOURCE, license=THIS_DATA_LICENSE
             )
 
             # post the updated event (maintaining all original tags including d tag)

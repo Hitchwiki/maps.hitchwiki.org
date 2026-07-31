@@ -31,6 +31,7 @@ from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDat
 from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON
 from hitch.blueprints.utils.ride_gpx import rides_gpx
 from hitch.blueprints.utils.ride_score import score_fields
+from hitch.blueprints.utils.ride_sources import ride_is_replaceable
 from hitch.extensions import db, security
 from hitch.forms import UserEditForm
 from hitch.helpers import get_db, get_dirs, haversine_np
@@ -39,8 +40,6 @@ from hitch.scripts.races import current_races
 from hitch.translations import t
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
-
-THIS_NOSTR_SOURCE = os.getenv("THIS_NOSTR_SOURCE", "maps.hitchwiki.org")
 
 user_bp = Blueprint("user", __name__)
 
@@ -857,8 +856,10 @@ def _get_rides_for_user(user, include_pending_co=True, display_only=False):
     username = user.username
     own_rides = []
     for ride in _rides_by_hitchhiker(username):
-        content = ride.content if ride.content else {}
-        ride_type = "own_external" if display_only or content.get("source") != THIS_NOSTR_SOURCE else "own"
+        # "own" is what puts an Edit link on the card, so it tracks what we can actually
+        # republish — rides logged here plus the imports we own the Nostr key for — not
+        # just rides whose source is this site. `display_only` is someone else's profile.
+        ride_type = "own" if not display_only and ride_is_replaceable(ride) else "own_external"
         own_rides.append(_extract_ride_info(ride, ride_type))
 
     co_rides = []
