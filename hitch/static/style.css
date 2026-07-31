@@ -3692,6 +3692,13 @@ body.routing-active .leaflet-control-container .leaflet-control-geocoder { displ
 .acct-username { margin: 2px 0 10px; font-size: 20px; }
 .acct-pitch { color: #555; font-size: 14px; margin: 0 0 14px; }
 .acct-loading, .acct-error { color: #888; font-size: 14px; }
+
+/* The /login disclaimer, repeated under the login button: fine print, so it must not
+   compete with the CTA above it — smaller and greyer than .acct-pitch. */
+.acct-legal { margin-top: 14px; color: #777; font-size: 12px; line-height: 1.45; }
+.acct-legal p { margin: 0 0 8px; }
+.acct-legal p:last-child { margin-bottom: 0; }
+.acct-legal a { color: #2e7d32; }
 .acct-nudge {
   display: block;
   background: #fff8e1;

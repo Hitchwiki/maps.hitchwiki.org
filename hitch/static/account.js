@@ -292,6 +292,41 @@
     btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> ' + T("Log in with Hitchwiki");
     btn.addEventListener("click", startLogin);
     body.appendChild(btn);
+
+    // The same disclaimer /login carries (security/login_user.html): someone signing up from
+    // the map must learn that their rides become public *before* they log in, not only on the
+    // route they happen not to take. Kept below the button because the modal's job is the CTA;
+    // the fine print sits under it. Links open in a new tab -- this modal exists precisely so
+    // the map (and any in-progress ride) is not unloaded.
+    const notes = el("div", "acct-legal");
+    [
+      T(
+        "The Hitchhiking Map is made for all hitchhikers to learn from each others experiences. Thus all your rides and " +
+          "personal information (except your email address) will be publicly available. Only share as much as you are " +
+          "comfortable with. Keep in mind that hitchhikers are a vulnerable group and may face risks while traveling. Read " +
+          "our {link} for more information on how we handle your data and what you can do to protect yourself.",
+        { link: '<a href="/privacy" target="_blank" rel="noopener">' + T("privacy policy") + "</a>" }
+      ),
+      T(
+        "Log in with your Hitchwiki account. If you don't have one yet, you can {link}. A new account on the Hitchhiking " +
+          "Map will be created for you automatically on first login.",
+        {
+          link:
+            '<a href="https://hitchwiki.org/en/Special:CreateAccount" target="_blank" rel="noopener">' +
+            T("create one on hitchwiki.org") +
+            "</a>",
+        }
+      ),
+      T(
+        "If you used other hitchhiking applications such as Hitchmap before whose data can also be seen here, just use " +
+          "the same username to sign up to claim those rides for you."
+      ),
+    ].forEach(function (html) {
+      const p = el("p");
+      p.innerHTML = html;
+      notes.appendChild(p);
+    });
+    body.appendChild(notes);
   }
 
   function renderLoggedIn(body, data, needsProfile) {

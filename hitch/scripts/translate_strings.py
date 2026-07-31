@@ -618,6 +618,8 @@ SOURCE_STRINGS = [
     "Login with Hitchwiki",
     "Log in with your Hitchwiki account. If you don't have one yet, you can {link}. A new account on the Hitchhiking Map will be "
     "created for you automatically on first login.",
+    "If you used other hitchhiking applications such as Hitchmap before whose data can also be seen here, just use the same "
+    "username to sign up to claim those rides for you.",
     "Logout",
     "Longest wait",
     "Messages",
