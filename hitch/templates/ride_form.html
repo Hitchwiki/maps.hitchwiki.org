@@ -87,7 +87,17 @@
         🧪 <strong>Test mode is on.</strong> Rides submitted here will <strong>not</strong> be saved or published to the map.
     </div>
     <h2>Submit Your Ride Experience</h2>
-    
+
+    {# Asked first because it reframes everything below it: a give-up has no ride to time,
+       so the pickup question right underneath changes wording when this is ticked. The
+       input lives outside <form> (like the datetime fields) and is bound with form=. #}
+    <div class="form-group" style="margin-top:1rem;">
+        <label style="font-weight:normal;">
+            <input form="ride-form" type="checkbox" id="no_ride" name="no_ride" value="1" onchange="syncNoRideLabels()" {% if ride_data and ride_data.no_ride %}checked{% endif %}>
+            I did not get a ride here
+        </label>
+    </div>
+
     <div class="ride-info" style="background-color: #f8f9fa; padding: 1rem; margin-bottom: 2rem; border-radius: 5px;">
         <div class="row">
             <div class="col-md-6">
@@ -111,7 +121,7 @@
                         <span id="pickup-gps-status" style="margin-left:0.5rem; font-size:0.85em; color:#666;"></span>
                     </div>
                     <div style="margin-top:0.6rem;">
-                        <label for="datetime_ride" style="display:block; font-size:0.9em; color:#555; margin-bottom:2px;">When did you get the ride?</label>
+                        <label for="datetime_ride" id="datetime_ride_label" style="display:block; font-size:0.9em; color:#555; margin-bottom:2px;">When did you get the ride?</label>
                         <input form="ride-form" id="datetime_ride" type="datetime-local" name="datetime_ride" class="form-control" min="2020-01-01T00:00" value="{{ ride_data.datetime_ride if ride_data and ride_data.datetime_ride else '' }}">
                     </div>
                 </div>
@@ -170,13 +180,6 @@
                 <input type="radio" id="star1" name="rate" value="1" {% if ride_data and ride_data.rating == 1 %}checked{% endif %} />
                 <label for="star1" title="1 star">1 star</label>
             </div>
-        </div>
-
-        <div class="form-group">
-            <label style="font-weight:normal;">
-                <input type="checkbox" id="no_ride" name="no_ride" value="1" {% if ride_data and ride_data.no_ride %}checked{% endif %}>
-                I did not get a ride here
-            </label>
         </div>
 
         <div class="form-group">
@@ -462,6 +465,14 @@
         }
     }
     
+    // "I did not get a ride here" means the pickup time is not the moment a car stopped —
+    // it's the moment the hitchhiker gave up on the spot. Same field, different question.
+    function syncNoRideLabels() {
+        const noRide = document.getElementById('no_ride')?.checked;
+        const label = document.getElementById('datetime_ride_label');
+        if (label) label.textContent = noRide ? 'When did you stop soliciting rides here?' : 'When did you get the ride?';
+    }
+
     // Function to handle location selection
     function selectLocation(type) {
         // Store current form data in sessionStorage including coordinates
@@ -558,7 +569,10 @@
                 document.getElementById('signal').value = signalStr;
                 if (window._signalRenderTags) window._signalRenderTags();
             }
-            if (data.no_ride !== undefined) document.getElementById('no_ride').checked = !!data.no_ride;
+            if (data.no_ride !== undefined) {
+                document.getElementById('no_ride').checked = !!data.no_ride;
+                syncNoRideLabels();
+            }
             // Re-adopt the photo draft and pull its tiles back from the server.
             if (data.draft_token && ridePhotos) ridePhotos.restore(data.draft_token);
             if (data.datetime_ride) document.querySelector('input[name="datetime_ride"]').value = data.datetime_ride;
@@ -1319,6 +1333,8 @@
     // Initialize when page loads
     document.addEventListener('DOMContentLoaded', function() {
         restoreFormData();
+        // Covers the edit case, where the box is checked server-side and never fires change.
+        syncNoRideLabels();
         setTimeout(() => {
             initThumbnailMaps();
             updateCoordinateDisplays();
