@@ -75,7 +75,12 @@ from hitch.blueprints.utils.ride_images import (
     valid_draft_token,
 )
 from hitch.blueprints.utils.ride_ip_log import get_client_ip, log_ride_ip
-from hitch.blueprints.utils.ride_sources import THIS_NOSTR_SOURCE, ride_is_replaceable, ride_source
+from hitch.blueprints.utils.ride_sources import (
+    THIS_NOSTR_SOURCE,
+    needs_supersede,
+    ride_is_replaceable,
+    ride_source,
+)
 from hitch.blueprints.utils.route_request_log import log_route_request
 from hitch.blueprints.utils.search_request_log import log_search_request
 from hitch.blueprints.utils.signup_prompt_log import PROMPT_ACTIONS, log_signup_prompt
@@ -91,6 +96,7 @@ from hitch.models import (
     RideLike,
     RideReport,
     SpotName,
+    SupersededRideEvent,
     User,
 )
 from hitch.scripts.nostr_ride_parsing import parse_post_to_ride_fields
@@ -197,6 +203,45 @@ def _store_published_ride(event):
     except Exception:
         db.session.rollback()
         current_app.logger.exception("Could not store the published ride locally; the Nostr fetch cron will import it")
+
+
+def _retire_superseded_event(old_pubkey, d_tag):
+    """Drop the pre-rewrite copy of a ride and make sure no fetch brings it back.
+
+    Rides from the bulk imports are signed by an older key of ours, so republishing them
+    under the current one adds an event rather than replacing it (kind 36820 is addressable
+    per (pubkey, kind, d)). Both copies then satisfy the fetch scripts' (pubkey, d) upsert
+    and the ride would appear twice on the map — once with the edit, once without.
+
+    We cannot delete the old event from the relays: NIP-09 honours only a deletion signed
+    by the author, and that nsec is not ours to use. So we record the coordinate in
+    `superseded_ride_event`, which both fetch scripts skip, and delete the local row. The
+    record has to outlive the weekly delete-and-recreate of ride_event, which is precisely
+    why it lives in its own table.
+
+    The coordinate is recorded even when the local row cannot be dropped, because the
+    record is the part that must not be missed: a missing local delete shows the ride
+    twice until the next fetch, a missing record brings the old copy back forever.
+
+    Never raises: the rewrite is already on the relays by the time we get here, and a
+    bookkeeping failure must not turn a successful edit into a 500. The cost of failing is
+    a duplicated ride, not a lost one.
+    """
+    if not old_pubkey or not d_tag:
+        return
+    try:
+        if db.session.get(SupersededRideEvent, (old_pubkey, d_tag)) is None:
+            db.session.add(SupersededRideEvent(pubkey=old_pubkey, d=d_tag, superseded_at=int(time.time())))
+        # Only drop the old row once the rewrite is actually in the table. _store_published_ride
+        # swallows its own failures, and deleting on that path would take the ride off the map
+        # until the next incremental fetch re-imports it — worse than briefly showing it twice.
+        rewritten = db.session.query(RideEvent).filter_by(d=d_tag).filter(RideEvent.pubkey != old_pubkey).first()
+        if rewritten is not None:
+            db.session.query(RideEvent).filter_by(pubkey=old_pubkey, d=d_tag).delete()
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception("Could not retire the superseded event %s/%s; the ride may show twice", old_pubkey, d_tag)
 
 
 def _user_can_delete_ride(ride, user):
@@ -1084,14 +1129,19 @@ def claim_ride(d_tag):
     claimer = construct_hitchhiker_from_current_user()
     record.hitchhikers = [claimer, *(record.hitchhikers or [])[1:]]
 
+    # Captured before the republish: _store_published_ride writes the new event under our
+    # current key, and if that differs from this one the old row has to go afterwards.
+    old_pubkey = ride.pubkey if needs_supersede(ride) else None
+
     poster = HitchhikingDataStandardToNostrPoster()
     try:
-        # Original tags → same `d` and the original published_at, so this replaces the
-        # ride rather than adding one.
+        # Original tags → same `d` and the original published_at, so this lands on the
+        # same ride rather than minting a new one.
         poster.post(ride_record=record, tags=ride.tags)
     finally:
         poster.close()
     _store_published_ride(poster.last_event)
+    _retire_superseded_event(old_pubkey, d_tag)
 
     # Same abuse trail as a submission: claiming is a write to public data.
     log_ride_ip(d_tag)
@@ -1600,11 +1650,16 @@ def ride_form():
                 custom_object=data, source=ride_source(existing_ride) or THIS_NOSTR_SOURCE, license=THIS_DATA_LICENSE
             )
 
+            # An imported ride was signed by an older key of ours, so the edit sits beside
+            # the original rather than replacing it; captured here to retire it below.
+            old_pubkey = existing_ride.pubkey if needs_supersede(existing_ride) else None
+
             # post the updated event (maintaining all original tags including d tag)
             poster = HitchhikingDataStandardToNostrPoster()
             _ = poster.post(ride_record=updated_record, tags=existing_ride.tags)
             poster.close()
             _store_published_ride(poster.last_event)
+            _retire_superseded_event(old_pubkey, edit_d_tag)
             d_tag = edit_d_tag  # Keep the same d_tag
         else:
             # This is a new ride - normal flow

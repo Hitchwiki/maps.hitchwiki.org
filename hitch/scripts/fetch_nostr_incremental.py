@@ -7,7 +7,7 @@ from sqlalchemy import func, tuple_
 
 from hitch.extensions import db
 from hitch.helpers import get_dirs
-from hitch.models import RideEvent
+from hitch.models import RideEvent, SupersededRideEvent
 from hitch.scripts.nostr_ride_parsing import parse_post_to_ride_fields
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
@@ -55,17 +55,30 @@ logger.info("Node.js script finished.")
 with open(out_file) as f:
     fetched_posts = json.load(f)
 
+# Coordinates a user has rewritten under our current key: the old event still exists on the
+# relays under an older key of ours and must never be re-imported, or the ride shows twice.
+# See SupersededRideEvent. Only a re-broadcast of an old event reaches this `since` query,
+# which is rare — but the guard is cheap and the failure is a visible duplicate.
+superseded = {(row.pubkey, row.d) for row in db.session.query(SupersededRideEvent).all()}
+
 # Parse first, so a malformed post can't leave a half-applied batch.
 skipped = 0
+dropped_superseded = 0
 parsed = []
 for post in fetched_posts:
     fields = parse_post_to_ride_fields(post)
     if fields is None:
         skipped += 1
         continue
+    if (fields["pubkey"], fields["d"]) in superseded:
+        dropped_superseded += 1
+        continue
     parsed.append(fields)
 
-logger.info(f"Fetched {len(fetched_posts)} events ({skipped} skipped for empty/invalid content, {len(parsed)} parsable)")
+logger.info(
+    f"Fetched {len(fetched_posts)} events ({skipped} skipped for empty/invalid content, "
+    f"{dropped_superseded} superseded by a local rewrite, {len(parsed)} parsable)"
+)
 
 # Preload the existing rows for exactly the (pubkey, d) coordinates we just fetched, in one query,
 # so the upsert is O(batch) DB lookups rather than one round-trip per event.

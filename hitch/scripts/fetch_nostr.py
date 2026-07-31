@@ -5,7 +5,7 @@ import subprocess
 
 from hitch.extensions import db
 from hitch.helpers import get_dirs
-from hitch.models import RideEvent
+from hitch.models import RideEvent, SupersededRideEvent
 from hitch.scripts.nostr_ride_parsing import parse_post_to_ride_fields
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
@@ -22,18 +22,29 @@ logger.info("Node.js script finished.")
 with open(os.path.join(dirs["dist"], "allPosts.json")) as f:
     all_posts = json.load(f)
 
+# Rides a user has since rewritten under our current key. The pre-edit event is still on
+# the relays under the old key and always will be (we cannot sign a NIP-09 delete for a key
+# we no longer hold), so this full re-fetch is exactly where it would come back and show
+# the ride a second time. See SupersededRideEvent.
+superseded = {(row.pubkey, row.d) for row in db.session.query(SupersededRideEvent).all()}
+
 # Parse all posts BEFORE touching the database. We need the valid-ride count up front
 # so we can decide whether to trust this fetch — see the guard below.
 ride_events = []
 skipped = 0
+dropped_superseded = 0
 for post in all_posts:
     fields = parse_post_to_ride_fields(post)
     if fields is None:
         skipped += 1
         continue
+    if (fields["pubkey"], fields["d"]) in superseded:
+        dropped_superseded += 1
+        continue
     ride_events.append(RideEvent(**fields))
 
 logger.info(f"Skipped {skipped} posts with empty or invalid content")
+logger.info(f"Skipped {dropped_superseded} events superseded by a local rewrite")
 
 ### Saving into database to efficiently query the rides later
 logger.info("Saving fetched rides into the database...")

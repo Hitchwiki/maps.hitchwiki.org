@@ -284,18 +284,35 @@ Not every ride on the map was logged here. Each ride carries a `source` naming t
 | Source | Editable / claimable here? | Why |
 |---|---|---|
 | `maps.hitchwiki.org` (`THIS_NOSTR_SOURCE`) | yes | logged on this site |
-| `hitchmap.com` | yes | legacy dataset imported and published to Nostr by this project |
+| `hitchmap.com` | yes | legacy dataset imported by this project |
 | `hitchwiki.org` | yes | same |
-| `liftershalte.info` | no | another platform's ride |
+| `liftershalte.info` | yes | same |
 | `triphopping.com` | no | another platform's ride |
 | anything else | no | unknown source, treated as foreign |
 
 A ride is only writable when **both** hold:
 
 1. **Its source is one of ours** — a policy call. Someone who logged a ride on triphopping.com edits it on triphopping.com, even if they are also a user here.
-2. **The stored event carries our own Nostr pubkey** — a mechanical one. Editing republishes the ride as a kind-36820 event under our `NSEC` with the ride's original `d` tag. Kind 36820 is parameterized-replaceable per `(pubkey, kind, d)`, so a rewrite only *replaces* the ride when the original was signed by us; otherwise it lands as a second competing event and the ride shows up twice.
+2. **The event was signed by one of our Nostr keys** (`OUR_RIDE_PUBKEYS`). That is more than the key we publish with today: the bulk imports went out under an earlier key, and those rides are just as much ours to rewrite. Anything signed by a platform we are not stays read-only however it got here. Override the historical set with `OUR_IMPORT_PUBKEYS` (comma-separated hex) — a fork inherits neither our key nor our imports.
 
-The second condition matters in practice: `hitchmap.com` rides exist under both our key (the ones we imported) and a third party's, and only the first group can actually be rewritten. Editing keeps the original `source`, so correcting an imported ride does not re-label it as one recorded here.
+Editing keeps the ride's original `source`, so correcting an imported ride does not re-label it as one recorded here.
+
+### The catch: rewriting a ride signed by an old key leaves a copy behind
+
+Editing republishes the ride as a kind-36820 event under the **current** `NSEC` with the ride's original `d` tag. Kind 36820 is addressable per `(pubkey, kind, d)`, so a rewrite only *replaces* the original when both were signed by the same key. For an imported ride it is not: the rewrite lands **beside** the original on the relays, and we cannot delete the original — NIP-09 honours only a deletion signed by its author, and that nsec is not one we publish with.
+
+Both copies would then satisfy the fetch scripts' `(pubkey, d)` upsert and the ride would appear twice on the map, once with the edit and once without. So the old coordinate is filtered on the way in:
+
+- `superseded_ride_event` (model `SupersededRideEvent`) records the retired `(pubkey, d)` and `_retire_superseded_event` deletes the stale local row;
+- `fetch_nostr` and `fetch_nostr_incremental` skip any event listed there — this is what stops the **weekly full re-fetch** resurrecting the pre-edit copy;
+- the table is never truncated, unlike `ride_event`, which is delete-and-recreated weekly. That is the whole reason it is a table rather than a flag on the ride.
+
+**This table needs a migration on prod before the code that uses it is deployed** (`db.create_all()` only runs at `flask init`):
+
+```bash
+sudo docker exec hitchhiking-map python3 \
+    /app/hitch/scripts/migrate_superseded_ride_events.py --db /app/db/hitchhiking-prod.sqlite
+```
 
 Deleting is not restricted this way — it writes a local `RideReport` row and never touches the relays, so anyone listed on a ride can hide it whatever its source (`_user_can_delete_ride` in `hitch/blueprints/main.py`).
 
