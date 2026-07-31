@@ -2,8 +2,6 @@ services:
   hitchhiking-map:
     build: .
     container_name: hitchhiking-map
-    ports:
-      - "4242:4242"
     volumes:
       - ./db:/app/db
       - ./logs:/app/logs
