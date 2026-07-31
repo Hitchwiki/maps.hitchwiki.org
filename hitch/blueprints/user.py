@@ -190,7 +190,7 @@ def me_json():
         places = _ride_places([r.get("d_tag") for r in visible])
         shown = []
         for ride in visible:
-            entry = {k: v for k, v in ride.items() if k != "submission_sort_key"}
+            entry = {k: v for k, v in ride.items() if k not in ("submission_sort_key", "start_sort_key")}
             place = places.get(entry.get("d_tag"))
             entry["from_place"] = place.from_place if place else None
             entry["to_place"] = place.to_place if place else None
@@ -628,7 +628,6 @@ def contributors():
     return redirect(url_for(f"{request.blueprint}.leaderboard"), code=301)
 
 
-
 @user_bp.route("/claim-review/<review_id>", methods=["GET", "POST"])
 def claim_review(review_id: int):
     """Endpoint to claim a review."""
@@ -702,11 +701,22 @@ def _extract_ride_info(ride, ride_type):
     submission_dt = pd.to_datetime(ride.submission_time, errors="coerce", utc=True) if ride.submission_time else None
     submission_display = submission_dt.strftime("%Y-%m-%d %H:%M") if submission_dt is not None and pd.notna(submission_dt) else ""
     submission_sort_key = submission_dt.value if submission_dt is not None and pd.notna(submission_dt) else None
+    # When the ride actually happened (first stop's departure_time, RFC 9557) — a different
+    # concept from submission_time, which is when the record was written. Trips are ordered
+    # by this one, so a journey logged days afterwards still reads in the order it was
+    # hitched, and a batch of rides typed in one sitting doesn't collapse into upload order.
+    # None when the ride never recorded a start time; such a ride can't join a trip at all.
+    departure = stops[0].get("departure_time") if stops else None
+    start_dt = pd.to_datetime(departure, errors="coerce", utc=True) if departure else None
+    start_display = start_dt.strftime("%Y-%m-%d %H:%M") if start_dt is not None and pd.notna(start_dt) else ""
+    start_sort_key = start_dt.value if start_dt is not None and pd.notna(start_dt) else None
     info = {
         "type": ride_type,
         "d_tag": ride.d,
         "created": submission_display,
         "submission_sort_key": submission_sort_key,
+        "start": start_display,
+        "start_sort_key": start_sort_key,
         "rating": int(ride.rating) if ride.rating else 0,
         "comment": ride.comment or "",
         "pickup_lat": pickup_lat,
@@ -871,16 +881,22 @@ def _get_rides_for_user(user, include_pending_co=True, display_only=False):
     )
     for r in combined:
         del r["submission_sort_key"]
+    # `start_sort_key` deliberately survives: the trip builder filters on it to decide
+    # which rides may be picked at all (see _selectable_rides_for_current_user).
     return combined
 
 
 def _rides_for_trip(trip_id):
     """Resolve a trip's member d-tags into ride-info dicts, newest first.
 
+    Ordered by when each ride was *hitched* (`start_sort_key`), not by when it was
+    submitted: legs of one journey are often typed up afterwards in whatever order they
+    come to mind, and only the ride's own start time puts them back in travel order.
     Rides whose d-tag no longer resolves to a RideEvent (e.g. deleted on Nostr) and rides
-    their author deleted are omitted. The internal `submission_sort_key` is kept here
-    (unlike _get_rides_for_user) because the trip route/date-span helpers need it to order
-    rides chronologically.
+    their author deleted are omitted. The internal `start_sort_key` is kept here (unlike
+    `submission_sort_key` in _get_rides_for_user) because the trip route/date-span helpers
+    need it to order rides chronologically. A ride with no start time can no longer be
+    added to a trip, but rows predating that rule may still exist, so it is still handled.
     """
     members = TripRide.query.filter_by(trip_id=trip_id).all()
     deleted = _owner_deleted_dtags()
@@ -893,7 +909,7 @@ def _rides_for_trip(trip_id):
         by_dtag.setdefault(ride.d, ride)
     rides = [_extract_ride_info(ride, "trip") for d_tag in wanted if (ride := by_dtag.get(d_tag))]
     rides.sort(
-        key=lambda r: (r["submission_sort_key"] is not None, r["submission_sort_key"] or 0),
+        key=lambda r: (r["start_sort_key"] is not None, r["start_sort_key"] or 0),
         reverse=True,
     )
     return rides
@@ -902,8 +918,8 @@ def _rides_for_trip(trip_id):
 def _trip_date_span(rides):
     """Human-readable date range covering a trip's rides, or '' if none are dated.
 
-    submission_sort_key is epoch nanoseconds (pandas Timestamp.value)."""
-    keys = [r["submission_sort_key"] for r in rides if r.get("submission_sort_key")]
+    start_sort_key is epoch nanoseconds (pandas Timestamp.value)."""
+    keys = [r["start_sort_key"] for r in rides if r.get("start_sort_key")]
     if not keys:
         return ""
     start, end = pd.Timestamp(min(keys)), pd.Timestamp(max(keys))
@@ -921,7 +937,7 @@ def _trip_route_points(rides):
 
     Each ride contributes its pickup then destination (when present); consecutive
     duplicate coordinates are collapsed so a shared spot isn't drawn twice."""
-    ordered = sorted(rides, key=lambda r: (r.get("submission_sort_key") is not None, r.get("submission_sort_key") or 0))
+    ordered = sorted(rides, key=lambda r: (r.get("start_sort_key") is not None, r.get("start_sort_key") or 0))
     pts = []
     for r in ordered:
         for lat, lon in ((r["pickup_lat"], r["pickup_lon"]), (r["destination_lat"], r["destination_lon"])):
@@ -968,9 +984,18 @@ def _get_trips_for_user(user):
 
 
 def _selectable_rides_for_current_user():
-    """Rides the current user may put in a trip: their own logged rides (incl. external),
-    excluding pending co-hitchhiker invitations they haven't accepted."""
-    return [r for r in _get_rides_for_user(current_user) if r["type"] in ("own", "own_external")]
+    """Rides the current user may put in a trip, plus how many were held back.
+
+    Their own logged rides (incl. external), excluding pending co-hitchhiker invitations
+    they haven't accepted — and excluding any ride with no recorded start time. A trip is
+    ordered and drawn by when each ride was hitched, so a ride that never recorded that
+    has no place in the sequence: it would land at one end of the list and pull the route
+    line to whichever spot happened to sort first. The count of held-back rides is
+    returned so the builder can say why a ride is missing instead of silently dropping it.
+    """
+    own = [r for r in _get_rides_for_user(current_user) if r["type"] in ("own", "own_external")]
+    selectable = [r for r in own if r["start_sort_key"] is not None]
+    return selectable, len(own) - len(selectable)
 
 
 @user_bp.route("/create-trip", methods=["GET"])
@@ -978,7 +1003,8 @@ def create_trip():
     """Render the trip builder for a brand-new trip."""
     if current_user.is_anonymous:
         return redirect("/login")
-    return render_template("security/edit_trip.html", trip=None, rides=_selectable_rides_for_current_user(), selected_dtags=[])
+    rides, undated = _selectable_rides_for_current_user()
+    return render_template("security/edit_trip.html", trip=None, rides=rides, undated_count=undated, selected_dtags=[])
 
 
 @user_bp.route("/edit-trip/<int:trip_id>", methods=["GET"])
@@ -990,9 +1016,8 @@ def edit_trip(trip_id):
     if trip is None or trip.user_id != current_user.id:
         return redirect("/me")
     selected = [tr.ride_d_tag for tr in TripRide.query.filter_by(trip_id=trip.id).all()]
-    return render_template(
-        "security/edit_trip.html", trip=trip, rides=_selectable_rides_for_current_user(), selected_dtags=selected
-    )
+    rides, undated = _selectable_rides_for_current_user()
+    return render_template("security/edit_trip.html", trip=trip, rides=rides, undated_count=undated, selected_dtags=selected)
 
 
 @user_bp.route("/save-trip", methods=["POST"])
@@ -1008,7 +1033,11 @@ def save_trip():
     # Only accept d-tags that actually belong to the current user's rides, so a crafted
     # POST can't attach someone else's ride to a trip. dict.fromkeys de-dupes while
     # preserving order (the unique (trip_id, d_tag) constraint would otherwise trip up).
-    valid_dtags = {r["d_tag"] for r in _selectable_rides_for_current_user()}
+    # The same set also enforces the start-time rule (a ride with no recorded start time
+    # is not selectable), so a hand-rolled POST can't smuggle an undated ride in either.
+    # An older trip that already held one loses it on the next save — deliberate: the
+    # membership rule is the same one everywhere rather than grandfathered per trip.
+    valid_dtags = {r["d_tag"] for r in _selectable_rides_for_current_user()[0]}
     selected = [d for d in dict.fromkeys(request.form.getlist("ride_d_tags")) if d in valid_dtags]
 
     if trip_id:
@@ -1085,13 +1114,13 @@ def _auto_trip_name(rides):
     nothing reverse-geocodes (Photon down, or a coordinate far from any settlement). The
     owner can rename it afterwards — this only has to beat "Untitled trip".
     """
-    ordered = sorted(rides, key=lambda r: (r.get("submission_sort_key") is not None, r.get("submission_sort_key") or 0))
+    ordered = sorted(rides, key=lambda r: (r.get("start_sort_key") is not None, r.get("start_sort_key") or 0))
     points = _trip_route_points(ordered)
     start = _place_label(points[0]["lat"], points[0]["lon"]) if points else None
     end = _place_label(points[-1]["lat"], points[-1]["lon"]) if len(points) > 1 else None
 
     where = f"{start} → {end}" if start and end and end != start else (start or "Hitchhiking trip")
-    keys = [r["submission_sort_key"] for r in ordered if r.get("submission_sort_key")]
+    keys = [r["start_sort_key"] for r in ordered if r.get("start_sort_key")]
     when = pd.Timestamp(min(keys)) if keys else pd.Timestamp.now()
     # Trip.name is VARCHAR(255); place names are short but the cap keeps a pathological
     # Photon answer from being silently truncated by the database instead.
@@ -1149,13 +1178,19 @@ def auto_trip():
         and (ride.created_at or 0) >= cutoff
         and _may_auto_group(ride, current_user)
     ]
+    # Same rule the manual builder enforces: a trip is ordered by when each ride was
+    # hitched, so a ride with no start time can't be in one. The tracker records a start
+    # time for every leg it logs, so this only bites a leg whose clock data went missing.
+    infos = [info for ride in rides if (info := _extract_ride_info(ride, "trip"))["start_sort_key"] is not None]
+    dated = {info["d_tag"] for info in infos}
+    rides = [ride for ride in rides if ride.d in dated]
     if len(rides) < 2:
         return jsonify({"ok": False, "error": "no groupable rides"}), 400
 
     trip = Trip(
         # None for an anonymous journey: there is no account to own it. See models.Trip.
         user_id=None if current_user.is_anonymous else current_user.id,
-        name=_auto_trip_name([_extract_ride_info(ride, "trip") for ride in rides]),
+        name=_auto_trip_name(infos),
         description=None,
     )
     db.session.add(trip)

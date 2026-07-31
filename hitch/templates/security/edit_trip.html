@@ -52,6 +52,7 @@ textarea {
               placeholder="{{ t('A few words about this trip…') }}">{{ trip.description if trip and trip.description else '' }}</textarea>
 
     <label>{{ t("Select the rides that belong to this trip") }}</label>
+    <p style="color:#666; font-size:0.85em; margin:2px 0 6px;">{{ t("Rides are listed and shown by their start time.") }}</p>
     {% if rides %}
     <div class="trip-rides-list">
         {% for ride in rides %}
@@ -59,15 +60,26 @@ textarea {
             <input type="checkbox" name="ride_d_tags" value="{{ ride.d_tag }}"
                    {% if ride.d_tag in selected_dtags %}checked{% endif %}>
             <span class="opt-body">
-                <span class="opt-meta">{{ ride.created or t("No date") }}{% if ride.rating > 0 %} · {{ "⭐" * ride.rating }}{% endif %}</span>
+                <span class="opt-meta">{{ ride.start }}{% if ride.rating > 0 %} · {{ "⭐" * ride.rating }}{% endif %}</span>
                 {% if ride.comment %}<br><span class="opt-comment">{{ ride.comment[:120] }}{% if ride.comment|length > 120 %}…{% endif %}</span>{% endif %}
                 {% if ride.pickup_lat and ride.pickup_lon %}<br><span class="opt-meta">{{ "%.4f, %.4f"|format(ride.pickup_lat, ride.pickup_lon) }}</span>{% endif %}
             </span>
         </label>
         {% endfor %}
     </div>
-    {% else %}
+    {% elif not undated_count %}
+    {# Only "no rides yet" when there really are none — when every ride was held back for
+       having no start time, the note below is the accurate explanation. #}
     <p style="color:#666; font-size:0.9em;">{{ t("You have no rides to add yet.") }}</p>
+    {% endif %}
+
+    {# A ride with no start time has no place in the ordered sequence, so it isn't offered.
+       Say so rather than leaving the rider hunting for a ride that silently isn't listed. #}
+    {% if undated_count %}
+    <p style="color:#666; font-size:0.85em;">
+        {{ t("{n} of your rides are not listed because they have no start time — a trip is ordered by when each ride was hitched. Edit a ride and answer “When did you get the ride?” to bring it into a trip.", n=undated_count) if undated_count > 1
+           else t("One of your rides is not listed because it has no start time — a trip is ordered by when each ride was hitched. Edit the ride and answer “When did you get the ride?” to bring it into a trip.") }}
+    </p>
     {% endif %}
 
     <input type="submit" value="{{ t('Save trip') if trip else t('Create trip') }}">

@@ -12,9 +12,26 @@ from hitch.models import RideEvent, Trip, TripRide, User
 _UNIQUIFIER = "auto-trip-test-uniquifier"
 
 
-def _make_ride(d_tag, nickname, lat, lon, dest_lat, dest_lon, created_at=None, submitted="2026-07-20T10:00:00Z"):
-    """A RideEvent shaped the way the Nostr parser writes them (content is what we read)."""
+def _make_ride(
+    d_tag,
+    nickname,
+    lat,
+    lon,
+    dest_lat,
+    dest_lon,
+    created_at=None,
+    submitted="2026-07-20T10:00:00Z",
+    departed="2026-07-18T09:00:00Z",
+):
+    """A RideEvent shaped the way the Nostr parser writes them (content is what we read).
+
+    `departed` is the first stop's departure_time — the ride's start time, which is what
+    trips are ordered by and what a ride needs before it may join one. Pass None to build
+    a ride that never recorded when it happened.
+    """
     stops = [{"location": {"latitude": lat, "longitude": lon}}]
+    if departed:
+        stops[0]["departure_time"] = departed
     if dest_lat is not None:
         stops.append({"location": {"latitude": dest_lat, "longitude": dest_lon}})
     content = {
@@ -59,10 +76,11 @@ def rides(app):
     with app.app_context():
         _db.session.add_all(
             [
-                _make_ride("anon-1", "Anonymous", 51.05, 13.73, 51.5, 13.4),
-                _make_ride("anon-2", "Anonymous", 51.5, 13.4, 52.52, 13.40),
-                _make_ride("mine-1", "autotripper", 48.20, 16.37, 48.3, 16.0),
-                _make_ride("mine-2", "autotripper", 48.30, 16.00, 47.07, 15.44),
+                # Departure times ascend with the legs, as they do on a real journey.
+                _make_ride("anon-1", "Anonymous", 51.05, 13.73, 51.5, 13.4, departed="2026-07-18T09:00:00Z"),
+                _make_ride("anon-2", "Anonymous", 51.5, 13.4, 52.52, 13.40, departed="2026-07-18T13:00:00Z"),
+                _make_ride("mine-1", "autotripper", 48.20, 16.37, 48.3, 16.0, departed="2026-07-18T09:00:00Z"),
+                _make_ride("mine-2", "autotripper", 48.30, 16.00, 47.07, 15.44, departed="2026-07-18T14:00:00Z"),
                 _make_ride("theirs-1", "someoneelse", 45.0, 9.0, 45.5, 9.5),
                 _make_ride("theirs-2", "someoneelse", 45.5, 9.5, 46.0, 10.0),
             ]
@@ -181,6 +199,57 @@ def test_unknown_and_stale_rides_are_dropped(client, app, rides, logged_in):
 def test_single_ride_is_not_a_trip(client, rides, logged_in):
     assert _post(client, ["mine-1"]).status_code == 400
     assert _post(client, ["mine-1", "mine-1"]).status_code == 400  # de-duped, so still one
+
+
+# ── Start time (what a trip is ordered by) ────────────────────────────────────
+
+
+def test_ride_without_a_start_time_cannot_be_grouped(client, app, rides, logged_in):
+    # A trip is ordered and drawn by each ride's start time, so a ride that never
+    # recorded one has no place in the sequence. Dropping it leaves one ride, which is
+    # not a trip — a 400 the client treats as permanent rather than retrying forever.
+    with app.app_context():
+        undated = RideEvent.query.filter_by(d="mine-2").one()
+        stops = [{k: v for k, v in stop.items() if k != "departure_time"} for stop in undated.content["stops"]]
+        undated.content = {**undated.content, "stops": stops}
+        undated.stops = stops
+        _db.session.commit()
+    assert _post(client, ["mine-1", "mine-2"]).status_code == 400
+    with app.app_context():
+        assert Trip.query.count() == 0
+
+
+def test_trip_rides_are_ordered_by_start_time_not_submission(client, app, rides, logged_in):
+    # The legs were typed up in the wrong order (mine-2 submitted first), which is exactly
+    # what ordering by submission_time used to get wrong: the trip has to read in the
+    # order it was hitched.
+    with app.app_context():
+        first, second = RideEvent.query.filter_by(d="mine-1").one(), RideEvent.query.filter_by(d="mine-2").one()
+        first.submission_time, second.submission_time = "2026-07-20T18:00:00Z", "2026-07-20T09:00:00Z"
+        _db.session.commit()
+    trip_id = _post(client, ["mine-1", "mine-2"]).get_json()["trip_id"]
+    with app.app_context():
+        # _rides_for_trip lists newest first; _trip_route_points traces oldest → newest.
+        ordered = user_module._rides_for_trip(trip_id)
+        assert [r["d_tag"] for r in ordered] == ["mine-2", "mine-1"]
+        assert user_module._trip_route_points(ordered)[0] == {"lat": 48.20, "lon": 16.37}
+
+
+def test_undated_rides_are_not_offered_by_the_trip_builder(client, app, rides, logged_in):
+    with app.app_context():
+        undated = RideEvent.query.filter_by(d="mine-2").one()
+        stops = [{k: v for k, v in stop.items() if k != "departure_time"} for stop in undated.content["stops"]]
+        undated.content = {**undated.content, "stops": stops}
+        undated.stops = stops
+        _db.session.commit()
+    page = client.get("/create-trip").get_data(as_text=True)
+    assert 'value="mine-1"' in page
+    assert 'value="mine-2"' not in page
+    assert "no start time" in page
+    # And a hand-rolled POST can't smuggle it in either.
+    client.post("/save-trip", data={"name": "Typed by hand", "ride_d_tags": ["mine-1", "mine-2"]})
+    with app.app_context():
+        assert {tr.ride_d_tag for tr in TripRide.query.all()} == {"mine-1"}
 
 
 # ── Idempotency ───────────────────────────────────────────────────────────────
