@@ -8,7 +8,19 @@ from urllib.parse import quote
 
 import pandas as pd
 import requests
-from flask import Blueprint, Response, current_app, jsonify, redirect, render_template, request, send_file, url_for
+from flask import (
+    Blueprint,
+    Response,
+    current_app,
+    g,
+    has_request_context,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    url_for,
+)
 from flask_security import current_user
 from sqlalchemy import text
 
@@ -725,6 +737,26 @@ def _norm_nickname(s):
     return (s[:1].upper() + s[1:]) if s else s
 
 
+def _request_cached(key, build):
+    """Memoize `build()` under `key` for the lifetime of one request.
+
+    The profile views ask the same expensive question more than once per request:
+    /account/<username> resolves _rides_by_hitchhiker twice (the ride list and the
+    external-source badge), and _owner_deleted_dtags once per trip on top of that.
+
+    Safe because nothing here is written and re-read within a single request — deleting a
+    ride (main.py `delete_ride`) commits and redirects, so the next read of the deleted
+    set is already a new request. Outside a request context the value is simply rebuilt,
+    so scripts and tests importing these helpers are unaffected.
+    """
+    if not has_request_context():
+        return build()
+    cache = g.setdefault("_profile_query_cache", {})
+    if key not in cache:
+        cache[key] = build()
+    return cache[key]
+
+
 def _owner_deleted_dtags():
     """D-tags of rides their author deleted.
 
@@ -733,14 +765,27 @@ def _owner_deleted_dtags():
     OWNER_DELETE_REASON). show.py drops these from the map data; every profile-side view
     has to drop them too, or the owner keeps seeing a ride they deleted.
     """
-    rows = db.session.query(RideReport.ride_d_tag).filter_by(reason=OWNER_DELETE_REASON).all()
-    return {d_tag for (d_tag,) in rows}
+
+    def build():
+        rows = db.session.query(RideReport.ride_d_tag).filter_by(reason=OWNER_DELETE_REASON).all()
+        return {d_tag for (d_tag,) in rows}
+
+    return _request_cached("owner_deleted_dtags", build)
 
 
 def _rides_by_hitchhiker(username):
     """RideEvent rows listing `username` among their hitchhikers, newest first.
 
-    Rides deleted by their author are excluded."""
+    Rides deleted by their author are excluded.
+
+    Cached per request: the json_each pre-filter below cannot use an index (it walks the
+    `hitchhikers` array of every one of ~79k rides, ~2 s), and a single account page needs
+    the answer more than once.
+    """
+    return _request_cached(("rides_by_hitchhiker", username), lambda: _query_rides_by_hitchhiker(username))
+
+
+def _query_rides_by_hitchhiker(username):
     # Pre-filter in SQL using JSON1 so we don't load and JSON-parse every RideEvent in Python.
     # This is a permissive case-insensitive match; the Python filter below still applies the
     # exact MediaWiki-style _norm_nickname comparison for correctness.
@@ -839,11 +884,14 @@ def _rides_for_trip(trip_id):
     """
     members = TripRide.query.filter_by(trip_id=trip_id).all()
     deleted = _owner_deleted_dtags()
-    rides = [
-        _extract_ride_info(ride, "trip")
-        for member in members
-        if member.ride_d_tag not in deleted and (ride := db.session.query(RideEvent).filter_by(d=member.ride_d_tag).first())
-    ]
+    wanted = [member.ride_d_tag for member in members if member.ride_d_tag not in deleted]
+    # One query for the whole trip rather than one per member ride: a long trip is dozens
+    # of rides, and a round trip to SQLite each is what made /account/<user> take 20 s for
+    # the site's biggest trip (before `ride_event.d` was indexed, ~0.3 s apiece).
+    by_dtag = {}
+    for ride in db.session.query(RideEvent).filter(RideEvent.d.in_(wanted)).all() if wanted else []:
+        by_dtag.setdefault(ride.d, ride)
+    rides = [_extract_ride_info(ride, "trip") for d_tag in wanted if (ride := by_dtag.get(d_tag))]
     rides.sort(
         key=lambda r: (r["submission_sort_key"] is not None, r["submission_sort_key"] or 0),
         reverse=True,

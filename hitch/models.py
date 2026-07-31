@@ -269,7 +269,13 @@ class RideEvent(db.Model):
 
     # Tag keys as columns
     expiration = db.Column(db.String(32), nullable=True)
-    d = db.Column(db.String(255), nullable=True)
+    # Indexed: `d` is the addressable id every profile-side view resolves a ride by
+    # (/ride/<d_tag>, trip membership, co-hitchhiker invitations), and without an index
+    # each lookup is a full scan of a 79k-row table whose rows carry several JSON blobs
+    # — ~0.3 s apiece. A trip page doing that once per member ride cost 19 s of the 22 s
+    # /account/Ecureuil took (64 rides). Creating the index on the production DB is a
+    # separate deploy step — see CLAUDE.md's migration section.
+    d = db.Column(db.String(255), nullable=True, index=True)
     published_at = db.Column(db.String(32), nullable=True)
 
     # Store all tags as JSON for flexibility
