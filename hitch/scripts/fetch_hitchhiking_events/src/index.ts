@@ -7,8 +7,12 @@ import { dirname } from "path";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const nHoursAgo = (hrs: number): number =>
-  Math.floor((Date.now() - hrs * 60 * 60 * 1000) / 1000);
+// No nHoursAgo helper on purpose: this script is the FULL fetch, and fetch_nostr.py
+// delete-and-recreates the whole ride_event table from whatever it returns. Any lower
+// bound here therefore does not "skip old events", it DELETES them — the window that
+// used to sit here (10000 hours ≈ 417 days) silently dropped 13,398 pre-2025-06 rides
+// on 2026-07-31, mostly the hitchwiki.org and liftershalte.info imports. Bounding the
+// range is the incremental script's job (index_incremental.ts), which upserts.
 
 const fetcher = NostrFetcher.init({
   webSocketConstructor: WebSocket,
@@ -49,7 +53,7 @@ for (const relay of relayUrls) {
         const events = await fetcher.fetchAllEvents(
             [relay],
             { kinds: [eventKind] },
-            { since: nHoursAgo(10000) },
+            {}, // unbounded time range — see the note above
             { sort: true }
         );
         console.log(`${events.length} events from ${relay}`);
