@@ -1971,7 +1971,9 @@ ul.no-style {
   border-radius: 6px;
   background: #f6f9f6;
   padding: 12px 14px;
-  margin: 0 0 14px;
+  /* .sheet-body has no top padding, so without this the card butts straight up
+     against the hero image above it. */
+  margin: 16px 0 14px;
   text-decoration: none;
 }
 .sidebar.menu a.menu-help-cta:hover {
