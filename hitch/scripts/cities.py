@@ -381,6 +381,7 @@ def _country_locs():
 STATIC_PAGES = [
     (f"{SITE_URL}/", "1.0"),
     (f"{SITE_URL}/?heatmap=true", "0.6"),
+    (f"{SITE_URL}/help", "0.7"),
     (f"{SITE_URL}/recent", "0.6"),
     (f"{SITE_URL}/leaderboard", "0.6"),
     (f"{SITE_URL}/races", "0.6"),

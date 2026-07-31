@@ -260,9 +260,15 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
     <div class="sheet-body">
     {# The language switcher moved to the top brand bar (flag + name, top-right) --
        see the .lang-picker in the "Top brand bar" block below. #}
-    <p></p>
-    <p>{{ t("Do you want to help with anything on this map or help the hitchhiking community in another way?") }}</p>
-    <p>{{ t("Join our {link}", link='<a href="https://signal.group/#CjQKIFSj0oaPjMY_eB1uHfXEuxH459W6gtfEke0krGgTabZBEhB1ZK3YP53QSPBuviWzHO_F">Signal Chat</a>')|safe }}</p>
+    {# The volunteer call sits at the very top of the menu, above every other link:
+       this sheet is the only place a visitor goes looking for "who is behind this",
+       and /help is where that curiosity is supposed to land. #}
+    <a class="menu-help-cta" href="/help">
+        <span class="menu-help-cta-title">{{ t("Help us map hitchhiking") }}</span>
+        <span class="menu-help-cta-text">{{ t("We are volunteers. We especially need people in regions we know little about, hitchhikers who log their rides, and anyone who wants to analyse our open data.") }}</span>
+        <span class="menu-help-cta-more">{{ t("See how you can help") }} →</span>
+    </a>
+    <p>{{ t("Or come straight to our {link} — that is where the community talks.", link='<a href="' ~ SIGNAL_CHAT_URL ~ '" target="_blank" rel="noopener">Signal Chat</a>')|safe }}</p>
     <p></p>
     <ul class="no-style">
         <li><i class="fab fa-github"></i><a href="https://github.com/Hitchwiki/maps.hitchwiki.org">{{ t("Contribute") }}</a></li>
@@ -514,7 +520,7 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
         <h3>{{ t("Route Planning") }}</h3>
         <p>{{ t("Route planning is under development.") }}</p>
         <p>{{ t("If you have ideas for how to push this further, join the conversation in our {link}.",
-                link='<a href="https://signal.group/#CjQKIFSj0oaPjMY_eB1uHfXEuxH459W6gtfEke0krGgTabZBEhB1ZK3YP53QSPBuviWzHO_F" target="_blank" rel="noopener noreferrer">Signal Chat</a>')|safe }}</p>
+                link='<a href="' ~ SIGNAL_CHAT_URL ~ '" target="_blank" rel="noopener noreferrer">Signal Chat</a>')|safe }}</p>
     </div>
 </div>
 <!-- Country info sheet: Hitchwiki lead section for a country tapped in Countries mode.

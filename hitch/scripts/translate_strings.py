@@ -199,7 +199,6 @@ SOURCE_STRINGS = [
     "Data certainty:",
     "Dismiss",
     "Download rides",
-    "Do you want to help with anything on this map or help the hitchhiking community in another way?",
     "Drawing your ride…",
     "Failed!",
     "ferry",
@@ -228,7 +227,6 @@ SOURCE_STRINGS = [
     "Install",
     "invited",
     "I want to stay anonymous",
-    "Join our {link}",
     "Just your own rides",
     "kilometres",
     "Last 24h",
@@ -691,6 +689,80 @@ SOURCE_STRINGS = [
     "Male",
     "Non-Binary",
     "Prefer not to say",
+    # /help -- the volunteer landing page (help.html) and the menu card that links to it
+    # (map.html). These carry the whole recruiting pitch, so they matter most in exactly the
+    # languages of the regions we are trying to reach.
+    "Help us",
+    "Hitchwiki Maps is built by hitchhikers. Help us map regions we know little about, get more hitchhikers logging rides, "
+    "or dig into our open hitchhiking dataset.",
+    "Help us map hitchhiking — Hitchwiki Maps",
+    "Hitchwiki Maps is made by hitchhikers, in their spare time, for free. There is no company behind it — every spot, "
+    "every ride and every line of code was added by someone who wanted hitchhiking to be easier for the next person.",
+    "If you want to be one of those people: welcome. Below are the three things that would help us most right now. You do "
+    "not need to be a developer, and you do not need to commit to anything — most volunteers help with one small thing that "
+    "fits their life.",
+    "Join our Signal chat",
+    "That is where everything happens. Say hi, tell us where you are from, and we will point you at something useful.",
+    "Where we need help most",
+    "Biggest gap",
+    "Put your region on the map",
+    "Our map is thick with data in Europe and nearly empty across much of Africa, Latin America, Central, South and "
+    "Southeast Asia, the Caucasus and beyond — not because nobody hitchhikes there, but because hardly anyone there has "
+    "heard of us. In many of these places catching a ride is completely normal, for travellers and for people going about "
+    "their daily lives.",
+    "If you are from such a region, or have hitchhiked there a lot, you can change that faster than any of us can. What helps:",
+    "Tell local hitchhikers, travellers, backpacker and road-trip communities that this map exists — groups, forums, "
+    "hostels, meetups, anywhere people already talk about getting around.",
+    "Log the rides you take, and add the spots you know — a handful of good spots in a country with none is a huge difference.",
+    "Explain how hitchhiking actually works where you live: how you signal, what is polite, whether money is expected, "
+    "where to stand, what is unsafe. This is exactly the knowledge that never leaves a region.",
+    "Translate the map, or improve a translation, into a language spoken there.",
+    "Introduce us to local groups and communities so we can reach them properly instead of guessing.",
+    "Mostly Europe",
+    "Get more hitchhikers to log their rides",
+    "In Europe the problem is the opposite: plenty of people hitchhike, very few of them record what happened. Every "
+    "unlogged ride is a waiting time, a spot and a piece of advice that the next hitchhiker at that on-ramp never gets.",
+    "Nudging that ratio up is the single cheapest way to make the map better, and anyone can do it:",
+    "Log your own rides — it takes under a minute per ride, and you can do it from the roadside.",
+    "Mention the map to the hitchhikers you meet at the on-ramp, at gatherings, and in hitchhiking groups and forums.",
+    "Bring it up at hitchhiking gatherings, races and events, or bring stickers and cards to hand out.",
+    "Write about it — a post, a video, a thread — wherever the hitchhikers you know already hang out.",
+    "Research & thesis",
+    "Dig into the data",
+    "We hold over {count} logged rides — waiting times, ratings, distances, spots and free-text reports from hitchhikers "
+    "all over the world. It is, as far as we know, the largest open dataset on hitchhiking that exists, and it is barely "
+    "analysed.",
+    "We hold tens of thousands of logged rides — waiting times, ratings, distances, spots and free-text reports from "
+    "hitchhikers all over the world. It is, as far as we know, the largest open dataset on hitchhiking that exists, and it "
+    "is barely analysed.",
+    "What makes a good spot? How long do you really wait, and where? How has hitchhiking changed over the decades? We would "
+    "love to know, and we are happy to support you if you want to find out — this fits a university project, a seminar "
+    "paper or a full thesis in mobility, geography, data science or the social sciences.",
+    "The full dataset is open and downloadable: {link}.",
+    "hitchhiking-rides-dataset on Hugging Face",
+    "See what we already chart on the {link}.",
+    "charts and graphs page",
+    "Re-use terms are on our {link} page — in short, it is yours to work with.",
+    "Copyright and License",
+    "Other ways to help",
+    "Those are our priorities, not the whole list. Hitchwiki has many more roles — writing and moderating wiki articles, "
+    "design, translation, outreach, community, code and more. They are all described here: {link}.",
+    "Roles on Hitchwiki",
+    "If you would rather work on the map itself, the code is open source: {contribute} and {bugs}.",
+    "contribute on GitHub",
+    "report a bug",
+    "How to start",
+    "Join the {link}.",
+    "Signal chat",
+    "Say hi, and tell us where you are from and what you would enjoy doing.",
+    "We will find something concrete for you — and answer every question you have along the way.",
+    "No commitment, no minimum, no experience needed. Even one message from you helps.",
+    "Prefer email? Reach out to {a} or {b}.",
+    "Help us map hitchhiking",
+    "We are volunteers. We especially need people in regions we know little about, hitchhikers who log their rides, and "
+    "anyone who wants to analyse our open data.",
+    "See how you can help",
+    "Or come straight to our {link} — that is where the community talks.",
 ]
 
 
@@ -725,7 +797,7 @@ def _translate_batch(strings, lang_name, api_key):
         "- Use the informal register throughout (e.g. German 'du', not the formal 'Sie') "
         "-- this is a volunteer hitchhiking community site, not a corporate/government one, "
         "and every string must agree with every other string's register.\n"
-        "- Return ONLY a JSON object: {\"<source string>\": \"<translation>\", ...} "
+        '- Return ONLY a JSON object: {"<source string>": "<translation>", ...} '
         "with exactly one entry per input string, no other keys, no commentary."
     )
     resp = requests.post(

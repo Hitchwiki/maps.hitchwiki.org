@@ -789,6 +789,24 @@ def _suggested_hitchhikers(ride_cards, limit=3):
     return [{"username": name, "ride_count": count} for name, count in ranked]
 
 
+@main_bp.route("/help")
+def help_volunteers():
+    """Volunteer landing page — the one link the menu points at for "how do I help?".
+
+    Linked from the menu sheet, so it inherits the 31 language mirrors every main_bp
+    route gets. The ride count is read live rather than baked into the copy: a concrete,
+    current number is what makes "we already collect this data" credible to someone
+    weighing up a thesis, and a stale hardcoded one would quietly become a lie.
+    """
+    ride_count = db.session.query(func.count(RideEvent.id)).scalar() or 0
+    return render_template(
+        "help.html",
+        # Rounded down to a round thousand: the exact figure changes every few minutes
+        # and nobody reading a call for volunteers needs that precision.
+        ride_count=ride_count // 1000 * 1000,
+    )
+
+
 @main_bp.route("/recent")
 def recent_spots():
     """Activities page: rides from people you follow, then the last 100 added rides."""

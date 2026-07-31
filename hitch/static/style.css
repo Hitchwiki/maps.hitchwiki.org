@@ -1959,6 +1959,43 @@ ul.no-style {
   color: #000;
 }
 
+/* Volunteer call-to-action at the top of the menu sheet. A card rather than another
+   line in the link list: it is the one thing on this sheet we want people to click,
+   and the list below it (GitHub, downloads, licences) is reference material.
+   Selector is qualified with .sidebar.menu so it outranks that rule's blue underline
+   on every anchor in this sheet, which would otherwise draw across the whole card. */
+.sidebar.menu a.menu-help-cta {
+  display: block;
+  border: 1px solid #cfd8dc;
+  border-left: 4px solid #2e7d32;
+  border-radius: 6px;
+  background: #f6f9f6;
+  padding: 12px 14px;
+  margin: 0 0 14px;
+  text-decoration: none;
+}
+.sidebar.menu a.menu-help-cta:hover {
+  background: #eef4ee;
+}
+.menu-help-cta-title {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.menu-help-cta-text {
+  display: block;
+  font-size: 0.9em;
+  line-height: 1.4;
+  color: #444;
+}
+.menu-help-cta-more {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.9em;
+  font-weight: 600;
+  color: #2e7d32;
+}
+
 
 .make-invisible {
   display: none;
