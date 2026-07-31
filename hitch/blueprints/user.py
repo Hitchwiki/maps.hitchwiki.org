@@ -887,11 +887,13 @@ def _get_rides_for_user(user, include_pending_co=True, display_only=False):
 
 
 def _rides_for_trip(trip_id):
-    """Resolve a trip's member d-tags into ride-info dicts, newest first.
+    """Resolve a trip's member d-tags into ride-info dicts, oldest first.
 
     Ordered by when each ride was *hitched* (`start_sort_key`), not by when it was
     submitted: legs of one journey are often typed up afterwards in whatever order they
     come to mind, and only the ride's own start time puts them back in travel order.
+    Oldest first, because a trip is read the way it was travelled — first leg at the top,
+    matching the route line drawn above it, which runs start → finish.
     Rides whose d-tag no longer resolves to a RideEvent (e.g. deleted on Nostr) and rides
     their author deleted are omitted. The internal `start_sort_key` is kept here (unlike
     `submission_sort_key` in _get_rides_for_user) because the trip route/date-span helpers
@@ -908,10 +910,9 @@ def _rides_for_trip(trip_id):
     for ride in db.session.query(RideEvent).filter(RideEvent.d.in_(wanted)).all() if wanted else []:
         by_dtag.setdefault(ride.d, ride)
     rides = [_extract_ride_info(ride, "trip") for d_tag in wanted if (ride := by_dtag.get(d_tag))]
-    rides.sort(
-        key=lambda r: (r["start_sort_key"] is not None, r["start_sort_key"] or 0),
-        reverse=True,
-    )
+    # `is None` ranks False (dated) before True, so undated legacy rides trail the
+    # sequence instead of claiming the "first leg" slot at the top.
+    rides.sort(key=lambda r: (r["start_sort_key"] is None, r["start_sort_key"] or 0))
     return rides
 
 
@@ -936,8 +937,11 @@ def _trip_route_points(rides):
     """Ordered [{lat, lon}] tracing the trip oldest→newest.
 
     Each ride contributes its pickup then destination (when present); consecutive
-    duplicate coordinates are collapsed so a shared spot isn't drawn twice."""
-    ordered = sorted(rides, key=lambda r: (r.get("start_sort_key") is not None, r.get("start_sort_key") or 0))
+    duplicate coordinates are collapsed so a shared spot isn't drawn twice.
+
+    Same ordering as the ride list (_rides_for_trip), so the line and the cards below it
+    tell the story in the same direction; undated legacy rides sort last either way."""
+    ordered = sorted(rides, key=lambda r: (r.get("start_sort_key") is None, r.get("start_sort_key") or 0))
     pts = []
     for r in ordered:
         for lat, lon in ((r["pickup_lat"], r["pickup_lon"]), (r["destination_lat"], r["destination_lon"])):
@@ -1114,7 +1118,7 @@ def _auto_trip_name(rides):
     nothing reverse-geocodes (Photon down, or a coordinate far from any settlement). The
     owner can rename it afterwards — this only has to beat "Untitled trip".
     """
-    ordered = sorted(rides, key=lambda r: (r.get("start_sort_key") is not None, r.get("start_sort_key") or 0))
+    ordered = sorted(rides, key=lambda r: (r.get("start_sort_key") is None, r.get("start_sort_key") or 0))
     points = _trip_route_points(ordered)
     start = _place_label(points[0]["lat"], points[0]["lon"]) if points else None
     end = _place_label(points[-1]["lat"], points[-1]["lon"]) if len(points) > 1 else None

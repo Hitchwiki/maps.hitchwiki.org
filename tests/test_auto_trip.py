@@ -229,10 +229,12 @@ def test_trip_rides_are_ordered_by_start_time_not_submission(client, app, rides,
         _db.session.commit()
     trip_id = _post(client, ["mine-1", "mine-2"]).get_json()["trip_id"]
     with app.app_context():
-        # _rides_for_trip lists newest first; _trip_route_points traces oldest → newest.
+        # Both the list and the route line read first leg → last leg.
         ordered = user_module._rides_for_trip(trip_id)
-        assert [r["d_tag"] for r in ordered] == ["mine-2", "mine-1"]
-        assert user_module._trip_route_points(ordered)[0] == {"lat": 48.20, "lon": 16.37}
+        assert [r["d_tag"] for r in ordered] == ["mine-1", "mine-2"]
+        points = user_module._trip_route_points(ordered)
+        assert points[0] == {"lat": 48.20, "lon": 16.37}
+        assert points[-1] == {"lat": 47.07, "lon": 15.44}
 
 
 def test_undated_rides_are_not_offered_by_the_trip_builder(client, app, rides, logged_in):
@@ -250,6 +252,23 @@ def test_undated_rides_are_not_offered_by_the_trip_builder(client, app, rides, l
     client.post("/save-trip", data={"name": "Typed by hand", "ride_d_tags": ["mine-1", "mine-2"]})
     with app.app_context():
         assert {tr.ride_d_tag for tr in TripRide.query.all()} == {"mine-1"}
+
+
+def test_a_legacy_undated_member_sorts_last_not_first(client, app, rides, logged_in):
+    # Rides added to a trip before the start-time rule may have none. The list now reads
+    # oldest first, so an undated ride must trail the sequence rather than take the top
+    # slot and claim to be the first leg.
+    with app.app_context():
+        undated = RideEvent.query.filter_by(d="mine-1").one()
+        stops = [{k: v for k, v in stop.items() if k != "departure_time"} for stop in undated.content["stops"]]
+        undated.content = {**undated.content, "stops": stops}
+        undated.stops = stops
+        trip = Trip(user_id=logged_in, name="Legacy trip")
+        _db.session.add(trip)
+        _db.session.flush()
+        _db.session.add_all([TripRide(trip_id=trip.id, ride_d_tag=d) for d in ("mine-1", "mine-2")])
+        _db.session.commit()
+        assert [r["d_tag"] for r in user_module._rides_for_trip(trip.id)] == ["mine-2", "mine-1"]
 
 
 # ── Idempotency ───────────────────────────────────────────────────────────────
