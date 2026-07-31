@@ -10,21 +10,22 @@ Not every ride on this map is ours. `ride_event` holds three kinds of row:
 Editing or claiming a ride republishes it as a kind-36820 event with the ride's original
 `d` tag, signed with our ``NSEC``. Kind 36820 is parameterized-replaceable per
 ``(pubkey, kind, d)``, so it only *replaces* the ride when the original carried the same
-pubkey.
+pubkey — otherwise the rewrite lands on the relays as a second, competing event and the
+next fetch upsert (also keyed on ``(pubkey, d)``) stores it as a second row, i.e. the same
+ride twice on the map. There is no way to withdraw the original either: NIP-09 honours
+only a deletion signed by the author.
 
 Hence the two conditions in `ride_is_replaceable`:
 
 * **policy** — the source is one of ours. Someone who logged a ride on triphopping.com
   changes it there; we are not that platform's editor even if the hitchhiker is our user.
-* **ownership** — the event was signed by a key of ours (`OUR_RIDE_PUBKEYS`). That is more
-  than the key we publish with today: the bulk imports went out under an earlier key, and
-  those rides are just as much ours to rewrite.
+* **ownership** — the event was signed by a key we hold the nsec for (`our_ride_pubkeys`).
+  Holding the nsec is the whole point: it is what makes a replacement possible rather than
+  a fork. A key we merely recognise is not enough.
 
-Rewriting a ride signed by one of the *older* keys cannot replace the original on the
-relays — we don't hold that nsec, and NIP-09 only honours a deletion signed by the author,
-so the pre-edit event is out there for good. `SupersededRideEvent` is how the old copy is
-kept off this map: the coordinate is recorded on rewrite and both fetch scripts skip it,
-which is what stops the weekly full re-fetch showing the ride twice.
+The two are separate on purpose: rides carrying one of our source names exist under keys
+we do not hold — the bulk imports went out under a key whose nsec we no longer have — and
+those stay read-only.
 """
 
 import os
@@ -67,10 +68,16 @@ def ride_source(ride):
     return (ride.content or {}).get("source") or ride.source
 
 
-# Keys this project has published rides under in the past but no longer signs with. The
-# bulk imports (hitchmap.com, hitchwiki.org, liftershalte.info) went out under this one.
-# Rides signed by it are ours to rewrite; see the module docstring for what that costs.
-DEFAULT_IMPORT_PUBKEYS = ("d17ff51bfc32d49217e8cb5bfa558a5a78e6cbe3ea4d947acbc7f11ca5c5dbd5",)
+def our_nsecs():
+    """Every Nostr secret key this deployment holds, most important first.
+
+    A list because more than one is conceivable — an old signing key whose nsec we still
+    have would belong here — but today it is exactly ``NSEC``. Note that `post()` always
+    signs with ``NSEC``, so adding a second entry also means teaching the poster to pick
+    the key matching the ride being rewritten; until then a second entry would let a user
+    "edit" a ride into a duplicate.
+    """
+    return [nsec for nsec in [os.getenv("NSEC")] if nsec]
 
 
 @lru_cache(maxsize=1)
@@ -92,14 +99,15 @@ def our_pubkey_hex():
 
 @lru_cache(maxsize=1)
 def our_ride_pubkeys():
-    """Every Nostr key whose rides this project may rewrite: today's plus our old ones.
-
-    Override the historical set with OUR_IMPORT_PUBKEYS (comma-separated hex) — a fork
-    inherits neither our signing key nor our imports, and must not treat ours as its own.
-    """
-    raw = os.getenv("OUR_IMPORT_PUBKEYS")
-    imported = [k.strip().lower() for k in raw.split(",")] if raw is not None else list(DEFAULT_IMPORT_PUBKEYS)
-    return frozenset(k for k in [our_pubkey_hex(), *imported] if k)
+    """Pubkeys of the keys we hold the nsec for — the events we can actually replace."""
+    keys = set()
+    for nsec in our_nsecs():
+        try:
+            keys.add(PrivateKey.from_nsec(nsec).public_key.hex())
+        except Exception:
+            # An unusable key contributes nothing; it must not take the whole page down.
+            continue
+    return frozenset(keys)
 
 
 def ride_is_replaceable(ride):
@@ -118,12 +126,3 @@ def ride_is_replaceable(ride):
     tags = ride.tags or []
     tag_values = {t[0]: t[1] for t in tags if isinstance(t, (list, tuple)) and len(t) >= 2}
     return tag_values.get("d") == ride.d and "published_at" in tag_values
-
-
-def needs_supersede(ride):
-    """Whether rewriting this ride leaves a stale copy behind that must be filtered out.
-
-    True exactly when the ride is ours but was signed by an older key: the new event goes
-    out under the current one, so it sits *beside* the original instead of replacing it.
-    """
-    return (ride.pubkey or "").lower() != our_pubkey_hex()

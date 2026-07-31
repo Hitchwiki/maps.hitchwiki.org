@@ -282,33 +282,6 @@ class RideEvent(db.Model):
     tags = db.Column(db.JSON, nullable=True)
 
 
-class SupersededRideEvent(db.Model):
-    """A (pubkey, d) coordinate we have rewritten under our own signing key.
-
-    Rides imported by this project sit on the relays under an older key of ours
-    (`ride_sources.IMPORT_PUBKEYS`) whose nsec we no longer publish with. When a user edits
-    or claims one, the new event necessarily carries the *current* key, so the original is
-    not replaced — kind 36820 is addressable per (pubkey, kind, d) — and both versions stay
-    on the relays forever. Nothing can delete the old one: NIP-09 only honours a deletion
-    signed by the original author.
-
-    So the old event is filtered out on the way in instead. This table is that filter:
-    `fetch_nostr` and `fetch_nostr_incremental` skip any event whose (pubkey, d) is listed,
-    which is what stops the weekly full re-fetch resurrecting the pre-edit copy and showing
-    the ride twice on the map. It must therefore outlive the ride_event table it protects —
-    that table is delete-and-recreated weekly, this one is never truncated.
-
-    Rows are only ever written for keys we own; a foreign platform's event can never be
-    superseded because it can never be edited here in the first place.
-    """
-
-    # Composite PK: the coordinate is the identity, and it must be unique.
-    pubkey = db.Column(db.String(64), primary_key=True)
-    d = db.Column(db.String(255), primary_key=True)
-    # Unix seconds, for debugging "when did this ride change hands" — nothing reads it.
-    superseded_at = db.Column(db.Integer, nullable=True)
-
-
 class OsmHitchhikingSpot(db.Model):
     id = db.Column(db.BigInteger, primary_key=True)
     latitude = db.Column(db.Float, nullable=False)
