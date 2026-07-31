@@ -15,9 +15,6 @@ import { dirname } from "path";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const nHoursAgo = (hrs: number): number =>
-  Math.floor((Date.now() - hrs * 60 * 60 * 1000) / 1000);
-
 const fetcher = NostrFetcher.init({
   webSocketConstructor: WebSocket,
 });
@@ -37,9 +34,16 @@ const eventKind = parseInt(process.env.NOSTR_EVENT_KIND, 10);
 
 // `since` is inclusive in the Nostr filter. The caller passes the newest created_at already in
 // the DB; re-seeing the boundary event(s) is harmless because the Python side upserts. With no
-// SINCE (empty DB / first run) fall back to the full-history window index.ts uses.
-const since = process.env.SINCE ? parseInt(process.env.SINCE, 10) : nHoursAgo(10000);
-console.log(`Fetching Nostr event kind ${eventKind} since ${since} (${new Date(since * 1000).toISOString()})`);
+// SINCE (empty DB / first run) fetch the FULL history — unbounded, as index.ts is. A lower
+// bound here used to be 10000 hours (~417 days), which would silently seed a brand-new table
+// with only the recent part of the relay and leave every older ride off the map until a full
+// fetch happened to correct it.
+const since = process.env.SINCE ? parseInt(process.env.SINCE, 10) : undefined;
+console.log(
+  since === undefined
+    ? `Fetching Nostr event kind ${eventKind} (no SINCE given — full history)`
+    : `Fetching Nostr event kind ${eventKind} since ${since} (${new Date(since * 1000).toISOString()})`
+);
 
 // Fetch from each relay individually to track which relays have each event (mirrors index.ts).
 const eventMap = new Map<string, { event: any; relays: string[] }>();
@@ -49,7 +53,7 @@ for (const relay of relayUrls) {
     const events = await fetcher.fetchAllEvents(
       [relay],
       { kinds: [eventKind] },
-      { since },
+      since === undefined ? {} : { since },
       { sort: true }
     );
     console.log(`${events.length} events from ${relay}`);
