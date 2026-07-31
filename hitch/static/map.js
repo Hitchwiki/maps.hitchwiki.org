@@ -1890,6 +1890,11 @@ const FEATURE_HINTS = [
   { key: "hintSeen.routes", el: () => $$(".geocoder-route-btn"), placement: "below" },
   { key: "hintSeen.filters", el: () => $$(".geocoder-filter-btn"), placement: "below" },
   { key: "hintSeen.activities", el: () => $$("#action-activities"), placement: "above" },
+  // Last in the queue on purpose: the four above point at map features someone came
+  // here to use, while this one points at the menu, whose first card is the call for
+  // volunteers (/help). Anyone who has already worked through the other hints sees it
+  // on their next load, which is exactly the returning user worth asking.
+  { key: "hintSeen.menu", el: () => $$("#action-menu"), placement: "above" },
 ];
 
 const HINT_ARROW_ICON = { left: "fa-arrow-right", below: "fa-arrow-up", above: "fa-arrow-down" };
