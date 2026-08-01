@@ -57,7 +57,7 @@
   }
 
   function rideLabel(ride) {
-    const when = (ride.created || "").slice(0, 10);
+    const when = (ride.when || ride.created || "").slice(0, 10);
     const stars = ride.rating ? "★".repeat(ride.rating) : "";
     return { when: when, stars: stars, comment: (ride.comment || "").trim() };
   }
@@ -68,8 +68,9 @@
   ];
 
   // "2026-07-28 12:00" -> "28 - July - 26 12:00". Parsed by hand rather than with Date():
-  // `created` is already the user's local submission time, and new Date("...") would
-  // re-interpret it against the browser's zone and shift the day.
+  // the stamp is already a local wall-clock time (the ride's own time, or the submission
+  // time when it has none), and new Date("...") would re-interpret it against the
+  // browser's zone and shift the day.
   function formatRideDate(created) {
     const match = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/.exec(created || "");
     if (!match) return "";
@@ -82,7 +83,7 @@
   // What identifies a ride in the list. Place names when we have them; otherwise the
   // date, which is the only other thing that distinguishes one ride from another.
   function rideTitle(ride) {
-    return rideRoute(ride) || formatRideDate(ride.created) || T("Unknown ride");
+    return rideRoute(ride) || formatRideDate(ride.when || ride.created) || T("Unknown ride");
   }
 
   // The route split into its two ends, so the row can render the destination as a real
@@ -100,7 +101,7 @@
     const toFlag = flagEmoji(ride.to_cc);
 
     // With no origin name the date carries the row, and the arrow would dangle.
-    const start = from ? (fromFlag ? fromFlag + " " + from : from) : formatRideDate(ride.created) || T("Unknown ride");
+    const start = from ? (fromFlag ? fromFlag + " " + from : from) : formatRideDate(ride.when || ride.created) || T("Unknown ride");
 
     if (to) return { start: start, end: toFlag ? toFlag + " " + to : to, endKind: "place" };
     if (ride.gave_up) return { start: start, end: T("gave up"), endKind: "gaveup" };
@@ -121,7 +122,7 @@
   // misleading "0 min" / "0 km". A real zero is data, though, and still renders.
   function rideStats(ride, includeDate) {
     const out = [];
-    const when = includeDate === false ? "" : (ride.created || "").slice(0, 10);
+    const when = includeDate === false ? "" : (ride.when || ride.created || "").slice(0, 10);
     if (when) out.push({ text: when, dot: null });
     if (ride.wait_min != null) out.push({ text: durationText(ride.wait_min), dot: "stopped" });
     if (ride.ride_min != null) out.push({ text: durationText(ride.ride_min), dot: "going" });

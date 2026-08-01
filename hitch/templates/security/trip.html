@@ -85,7 +85,7 @@
           {# The start time is what the list is ordered by, so it is what the card shows.
              Rides added before that rule may still have none; fall back to the submission
              date rather than printing an empty line. #}
-          {{ ride.start or ride.created }}
+          {{ ride.when }}
           {% if ride.rating > 0 %}&nbsp;{{ "⭐" * ride.rating }}{% endif %}
       </div>
       {% if ride.pickup_lat and ride.pickup_lon %}

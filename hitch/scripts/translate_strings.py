@@ -669,6 +669,7 @@ SOURCE_STRINGS = [
     "{unit} travelled",
     "View on map ↗",
     "View spot on map",
+    "You have no notifications yet.",
     "You have no rides to add yet.",
     "Your Rides",
     "Your Trips",

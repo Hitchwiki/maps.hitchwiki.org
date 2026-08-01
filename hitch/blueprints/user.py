@@ -26,7 +26,7 @@ from sqlalchemy import text
 
 from hitch.blueprints.publish_ride import ANONYMOUS_NICKNAME, construct_hitchhiker_from_current_user
 from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import HitchhikingRecord
-from hitch.blueprints.utils.notifications import notify_new_follower
+from hitch.blueprints.utils.notifications import notify_new_follower, unread_count
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON
 from hitch.blueprints.utils.ride_gpx import rides_gpx
@@ -305,19 +305,11 @@ def show_account(username, is_me: bool = False):
             trustroots_username=None,
         )
 
-    # In-app notifications are private, so only load them when viewing your own page.
-    # Capture them (newest first) before marking unread ones read, so the red bell on
-    # the account button clears once the user has actually seen the list.
-    notifications = []
-    if is_me:
-        notifications = (
-            Notification.query.filter_by(user_id=current_user.id)
-            .order_by(Notification.created_at.desc(), Notification.id.desc())
-            .all()
-        )
-        if any(not n.is_read for n in notifications):
-            Notification.query.filter_by(user_id=current_user.id, is_read=False).update({"is_read": True})
-            db.session.commit()
+    # The list itself lives on /notifications now; the account page only carries the bell
+    # icon, so all it needs is whether there is anything to see. Unread ones are marked
+    # read on the notifications page, not here — otherwise merely opening the profile would
+    # clear the mark on messages the user never actually looked at.
+    unread_notifications = unread_count(current_user) if is_me else 0
 
     if is_me:
         rides_data = _get_rides_for_user(current_user)
@@ -357,7 +349,7 @@ def show_account(username, is_me: bool = False):
         is_me=is_me,
         rides=rides_data,
         trips=trips_data,
-        notifications=notifications,
+        unread_notifications=unread_notifications,
         user_known=user_known,
         source_label=source_label,
         source_url=source_url,
@@ -716,6 +708,10 @@ def _extract_ride_info(ride, ride_type):
         "submission_sort_key": submission_sort_key,
         "start": start_display,
         "start_sort_key": start_sort_key,
+        # What a ride list should print: when it was hitched, falling back to when it was
+        # typed up. "2026-08-01 11:32" on a ride from last summer is the record's birthday,
+        # not the ride's, and reads as wrong to the person who was there.
+        "when": start_display or submission_display,
         "rating": int(ride.rating) if ride.rating else 0,
         "comment": ride.comment or "",
         "pickup_lat": pickup_lat,
@@ -848,7 +844,7 @@ def _single_external_source(username):
 
 
 def _get_rides_for_user(user, include_pending_co=True, display_only=False):
-    """Return merged list of own rides and pending co-hitchhiker rides, newest first.
+    """Return merged list of own rides and pending co-hitchhiker rides, newest ride first.
 
     `user` may be a real User object or any object with a `.username` attribute
     (e.g. a stub for an unregistered hitchhiker name found only in ride events).
@@ -874,10 +870,18 @@ def _get_rides_for_user(user, include_pending_co=True, display_only=False):
                 co_rides.append(_extract_ride_info(ride, "co_hitchhiker"))
 
     combined = own_rides + co_rides
-    # Rides without a submission_time sort to the bottom regardless of direction:
-    # `has_time=False` ranks before `True` when reverse=True, so those entries land last.
+    # Ordered by when the ride was actually hitched, newest first — a batch of old rides
+    # typed up in one sitting otherwise jumps to the top of the list purely because it was
+    # entered today. Rides that never recorded a start time can't join that ordering, so
+    # they form a second block below it, newest submission first. `is not None` ranks False
+    # before True under reverse=True, so each "no time" group lands after its dated group.
     combined.sort(
-        key=lambda r: (r["submission_sort_key"] is not None, r["submission_sort_key"] or 0),
+        key=lambda r: (
+            r["start_sort_key"] is not None,
+            r["start_sort_key"] or 0,
+            r["submission_sort_key"] is not None,
+            r["submission_sort_key"] or 0,
+        ),
         reverse=True,
     )
     for r in combined:
@@ -1522,6 +1526,30 @@ def _download_filename(username, extension):
     header syntax or path separators."""
     safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in username) or "rides"
     return f"hitchwiki-maps-{safe}.{extension}"
+
+
+@user_bp.route("/notifications", methods=["GET"])
+def show_notifications():
+    """The user's in-app notifications, on their own page.
+
+    Private, hence noindex: the list is only ever the logged-in user's own. Opening this
+    page is what marks unread notifications read (and so clears the red mark on the
+    account button and the profile's bell) — the notifications are captured before the
+    update so this render still shows which ones were new.
+    """
+    if current_user.is_anonymous:
+        return redirect("/login")
+
+    notifications = (
+        Notification.query.filter_by(user_id=current_user.id)
+        .order_by(Notification.created_at.desc(), Notification.id.desc())
+        .all()
+    )
+    if any(not n.is_read for n in notifications):
+        Notification.query.filter_by(user_id=current_user.id, is_read=False).update({"is_read": True})
+        db.session.commit()
+
+    return render_template("security/notifications.html", notifications=notifications, noindex=True)
 
 
 @user_bp.route("/me/downloads", methods=["GET"])
