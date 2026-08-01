@@ -516,3 +516,5 @@ deploy/rclone.conf
 
 # Google OAuth client secret JSON downloaded from Google Cloud Console
 client_secret_*.json
+
+*.csv
