@@ -261,3 +261,25 @@ class TestClaimEndpoint:
         second = client.post("/claim-ride/maps.hitchwiki.org-anon")
         assert second.status_code == 409
         assert len(stub_poster.posted) == 1
+
+
+class TestTheRidePageArmsTheGesture:
+    """The Share button on /ride/<d_tag> only carries data-claim-dtag when the ride
+    really looks claimable — that attribute is the whole trigger for the 5-tap easter
+    egg, and offering the gesture on a ride the server will refuse is just a dead end."""
+
+    def test_a_claimable_ride_arms_the_share_button(self, client, rides, claimer):
+        html = client.get("/ride/maps.hitchwiki.org-anon").get_data(as_text=True)
+        assert 'data-claim-dtag="maps.hitchwiki.org-anon"' in html
+
+    def test_a_logged_out_visitor_never_gets_it(self, client, rides):
+        html = client.get("/ride/maps.hitchwiki.org-anon").get_data(as_text=True)
+        assert "data-claim-dtag" not in html
+
+    def test_a_ride_with_a_name_on_it_is_not_armed(self, client, rides, claimer):
+        html = client.get("/ride/maps.hitchwiki.org-named").get_data(as_text=True)
+        assert "data-claim-dtag" not in html
+
+    def test_another_platforms_ride_is_not_armed(self, client, rides, claimer):
+        html = client.get("/ride/triphopping.com-anon").get_data(as_text=True)
+        assert "data-claim-dtag" not in html

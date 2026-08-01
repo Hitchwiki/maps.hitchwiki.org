@@ -1009,6 +1009,9 @@ def ride_detail(d_tag):
         comments=comments,
         can_comment=can_comment,
         is_logged_in=not current_user.is_anonymous,
+        # Whether the 5-tap claim easter egg is wired up on this page's Share button.
+        # Only a hint for the UI — /claim-ride re-checks all three conditions itself.
+        can_claim=(not current_user.is_anonymous and _ride_is_unclaimed(ride) and ride_is_replaceable(ride)),
     )
 
 
@@ -1042,7 +1045,10 @@ def delete_ride(d_tag):
 
 @main_bp.route("/claim-ride/<d_tag>", methods=["POST"])
 def claim_ride(d_tag):
-    """Easter egg: put the logged-in user's name on an unattributed ride (5 taps, see README).
+    """Easter egg: put the logged-in user's name on an unattributed ride.
+
+    Triggered by tapping the Share button on /ride/<d_tag> five times and confirming (see
+    README).
 
     A lot of the map was logged without an account — people submitted anonymously before
     they registered, or their rides arrived in the hitchmap.com import. Claiming
@@ -1059,7 +1065,7 @@ def claim_ride(d_tag):
     anonymous ride carries no identity to check against, so the honest answer is that this
     is a low-stakes convenience. It is logged to the same IP trail as a submission.
 
-    JSON in both directions — the spot pane calls it with fetch and patches the card.
+    JSON in both directions — the ride page calls it with fetch and reloads on success.
     """
     if current_user.is_anonymous:
         return jsonify({"ok": False, "error": "not_logged_in"}), 401

@@ -1800,7 +1800,7 @@ function toggleTestModeCallout() {
 }
 
 let _testToastTimer = null;
-// Small centred toast, shared by the tap easter eggs (test mode, claiming a ride).
+// Small centred toast used by the test-mode tap easter egg.
 // `ms` overrides the default lifetime for a message that has to outlast a slow request.
 function showTapToast(msg, ms) {
   let t = document.getElementById("test-mode-toast");
@@ -2322,11 +2322,7 @@ function renderRideCards(rides) {
       : `<a class="hitchhiker-name" href="/account/${encodeURIComponent(r.hitchhiker_name)}">${escapeHtml(r.hitchhiker_name)}</a>`;
     const comment = r.comment ? `<div class="ride-comment">${escapeHtml(r.comment)}</div>` : "";
     const href = r.id ? `/ride/${encodeURIComponent(r.id)}` : "";
-    // Marks the card as a target for the claim easter egg below. Only a hint: whether the
-    // ride can really be claimed depends on which platform published it, which the
-    // frontend never sees — the server has the last word.
-    const claimable = href && anonymous && window.USERNAME ? ` data-claim-dtag="${escapeHtml(r.id)}"` : "";
-    const clickable = href ? ` data-ride-href="${href}"${claimable} role="link" tabindex="0" style="cursor:pointer;"` : "";
+    const clickable = href ? ` data-ride-href="${href}" role="link" tabindex="0" style="cursor:pointer;"` : "";
     const noRideBadge = r.no_ride ? `<span class="no-ride-badge">🚫 ${tr("No ride")}</span>` : "";
     const cardClass = r.no_ride ? "ride-card ride-card--no-ride" : "ride-card";
     return `
@@ -2344,119 +2340,8 @@ document.addEventListener("click", (e) => {
   const card = e.target.closest(".ride-card[data-ride-href]");
   if (!card) return;
   if (e.target.closest("a")) return;
-  // Claim easter egg: swallows the click while a tap streak is running, and defers the
-  // very first tap so a second one can arrive.
-  if (registerClaimTap(card)) return;
   window.location.href = card.dataset.rideHref;
 });
-
-// ── Claim-an-anonymous-ride easter egg ──────────────────────────────────────
-// Tap an "Anonymous" ride card 5× in the spot pane to put your name on it. Much of this
-// map was logged without an account — people submitted anonymously before registering,
-// and the whole hitchmap.com import arrived that way — so a hitchhiker recognising their
-// own ride should be able to take it back. A claimed ride counts on their profile and
-// becomes editable. The server re-checks everything, and refuses rides another platform
-// published (see hitch/blueprints/utils/ride_sources.py).
-const CLAIM_RIDE_TAPS = 5;
-const CLAIM_TAP_WINDOW_MS = 2000; // streak lapses if taps stop, as with the test-mode egg
-// A single tap must still just open the ride. This is how long it waits to find out
-// whether a second tap is coming — long enough for a deliberate double tap, short enough
-// that opening a ride doesn't feel laggy. Only paid on cards that carry the marker.
-const CLAIM_FIRST_TAP_MS = 300;
-
-let _claimTaps = 0;
-let _claimTapCard = null;
-let _claimResetTimer = null;
-let _claimNavTimer = null;
-
-function resetClaimTaps() {
-  _claimTaps = 0;
-  _claimTapCard = null;
-  clearTimeout(_claimResetTimer);
-}
-
-// Returns true when this click has been consumed by the easter egg (navigation deferred,
-// suppressed, or turned into a claim), false to let the normal navigation happen.
-function registerClaimTap(card) {
-  if (!card.dataset.claimDtag) return false;
-
-  // Streaks are per card: tapping three different rides is not three taps.
-  if (card !== _claimTapCard) resetClaimTaps();
-  _claimTapCard = card;
-  _claimTaps++;
-  clearTimeout(_claimNavTimer);
-  clearTimeout(_claimResetTimer);
-
-  if (_claimTaps >= CLAIM_RIDE_TAPS) {
-    const dTag = card.dataset.claimDtag;
-    resetClaimTaps();
-    claimRide(dTag);
-    return true;
-  }
-
-  if (_claimTaps === 1) {
-    const href = card.dataset.rideHref;
-    _claimNavTimer = setTimeout(() => { window.location.href = href; }, CLAIM_FIRST_TAP_MS);
-  } else {
-    // From the second tap on, say what is happening — otherwise a card that refuses to
-    // open reads as a bug rather than as a secret.
-    const remaining = CLAIM_RIDE_TAPS - _claimTaps;
-    showTapToast(
-      remaining === 1
-        ? tr("1 more tap to claim this ride…")
-        : tr("{n} more taps to claim this ride…", { n: remaining }),
-    );
-  }
-  _claimResetTimer = setTimeout(resetClaimTaps, CLAIM_TAP_WINDOW_MS);
-  return true;
-}
-
-function claimErrorMessage(error, source) {
-  if (error === "not_logged_in") return tr("Log in to claim a ride");
-  if (error === "already_claimed") return tr("This ride already has a hitchhiker");
-  if (error === "foreign_source") {
-    return source
-      ? tr("This ride was recorded on {source} — claim it there", { source: source })
-      : tr("This ride comes from another site and can't be claimed here");
-  }
-  return tr("Couldn't claim this ride — try again");
-}
-
-// Publishing the claim goes through Nostr, which takes a few seconds; the toast has to
-// stay up for the whole wait so the tap streak doesn't look like it did nothing.
-async function claimRide(dTag) {
-  showTapToast(tr("Claiming this ride…"), 15000);
-  let data = {};
-  let ok = false;
-  try {
-    const resp = await fetch(`/claim-ride/${encodeURIComponent(dTag)}`, {
-      method: "POST",
-      headers: { "X-Requested-With": "fetch" },
-    });
-    data = await resp.json().catch(() => ({}));
-    ok = resp.ok && data.ok;
-  } catch (err) {
-    console.error("claim-ride failed", err);
-  }
-  if (!ok) {
-    showTapToast(claimErrorMessage(data.error, data.source), 4000);
-    return;
-  }
-  applyClaimToOpenSpot(dTag, data.hitchhiker_name);
-  showTapToast(tr("This ride is yours now 🎉"), 3000);
-}
-
-// Patch the open spot pane in place. show.py only regenerates the per-spot files every
-// ten minutes, so re-fetching would show the ride as anonymous again.
-function applyClaimToOpenSpot(dTag, name) {
-  const marker = active && active[0];
-  const rides = marker && marker.options._data && marker.options._data.rides;
-  if (!rides) return;
-  const ride = rides.find((r) => r.id === dTag);
-  if (!ride) return;
-  ride.hitchhiker_name = name;
-  $$("#spot-text").innerHTML = renderRideCards(rides);
-}
 
 // Photos attached to the rides logged at this spot, as one horizontally scrollable
 // strip at the top of the pane. Flattened across rides in the order the cards are shown

@@ -139,6 +139,22 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     flex-wrap: wrap;
 }
 /* .share-btn styling + click handler are shared globally from base.html */
+/* Countdown / status toast for the 5-tap claim easter egg (script at page bottom). */
+#claim-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    transform: translateX(-50%);
+    z-index: 10000;
+    max-width: 88vw;
+    padding: 10px 16px;
+    border-radius: 20px;
+    background: rgba(0, 0, 0, 0.82);
+    color: #fff;
+    font-size: 0.9em;
+    text-align: center;
+    pointer-events: none;
+}
 .report-btn {
     display: inline-flex;
     align-items: center;
@@ -302,7 +318,10 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
             </h1>
         </div>
         <div class="header-actions">
-            <button type="button" class="share-btn" id="share-btn" data-share-url="{{ url_for('main.ride_detail', d_tag=ride.d_tag, _external=True) }}" data-share-title="Hitchhiking ride on Hitchwiki Maps">
+            {# data-claim-dtag arms the 5-tap claim easter egg (see the script block at the
+               bottom of this page, and the README). Only set when the ride looks claimable;
+               /claim-ride re-checks it anyway. #}
+            <button type="button" class="share-btn" id="share-btn" data-share-url="{{ url_for('main.ride_detail', d_tag=ride.d_tag, _external=True) }}" data-share-title="Hitchhiking ride on Hitchwiki Maps"{% if can_claim %} data-claim-dtag="{{ ride.d_tag }}"{% endif %}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                 <span class="share-btn-label">Share</span>
             </button>
@@ -616,6 +635,97 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     {% endif %}
 
     // The #share-btn click is handled by the shared delegated handler in base.html.
+    var shareBtn = document.getElementById('share-btn');
+
+    // ── Claim-an-unattributed-ride easter egg ───────────────────────────────────
+    // Tapping Share 5× on a ride nobody put their name to claims it for you. Much of
+    // this map was logged without an account — people submitted anonymously before they
+    // registered, and the whole hitchmap.com import arrived that way — so a hitchhiker
+    // recognising their own ride can take it back; it then counts on their profile and
+    // becomes editable. The server re-checks every condition (hitch/blueprints/main.py,
+    // claim_ride) and refuses rides another platform published.
+    var claimDTag = shareBtn && shareBtn.dataset.claimDtag;
+    if (!claimDTag) return;
+
+    var CLAIM_TAPS = 5;
+    // Generous window: the first tap really shares, which on a phone opens the native
+    // share sheet the user has to dismiss before tapping again.
+    var CLAIM_WINDOW_MS = 4000;
+    var taps = 0;
+    var resetTimer = null;
+
+    function resetTaps() { taps = 0; clearTimeout(resetTimer); }
+
+    shareBtn.addEventListener('click', function (e) {
+        taps++;
+        clearTimeout(resetTimer);
+        // Listeners on the button itself run before base.html's delegated one on
+        // document, so stopping propagation here is what suppresses the share.
+        if (taps > 1) { e.preventDefault(); e.stopPropagation(); }
+        if (taps >= CLAIM_TAPS) {
+            resetTaps();
+            // Irreversible: the claim republishes the ride on Nostr under this user's
+            // name, and there is no unclaim. Ask before doing it.
+            if (!confirm({{ t("Do you really want to claim this ride for yourself? It will be published under your name and this cannot be undone.")|tojson }})) return;
+            claimRide();
+            return;
+        }
+        if (taps > 1) {
+            // From the second tap on, say what is happening — a Share button that stops
+            // sharing otherwise reads as a bug rather than as a secret.
+            var remaining = CLAIM_TAPS - taps;
+            showToast(remaining === 1
+                ? {{ t("1 more tap to claim this ride…")|tojson }}
+                : {{ t("{n} more taps to claim this ride…")|tojson }}.replace('{n}', remaining));
+        }
+        resetTimer = setTimeout(resetTaps, CLAIM_WINDOW_MS);
+    });
+
+    // Publishing the claim goes through Nostr, which takes a few seconds; the toast has
+    // to stay up for the whole wait so the tap streak doesn't look like it did nothing.
+    async function claimRide() {
+        showToast({{ t("Claiming this ride…")|tojson }}, 20000);
+        var data = {};
+        var ok = false;
+        try {
+            var resp = await fetch('/claim-ride/' + encodeURIComponent(claimDTag), {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'fetch' },
+            });
+            data = await resp.json().catch(function () { return {}; });
+            ok = resp.ok && data.ok;
+        } catch (err) {
+            console.error('claim-ride failed', err);
+        }
+        if (!ok) { showToast(claimErrorMessage(data.error, data.source), 5000); return; }
+        // Reload rather than patch: the claim changes the byline, the edit link and the
+        // delete button, all rendered server-side.
+        window.location.reload();
+    }
+
+    function claimErrorMessage(error, source) {
+        if (error === 'not_logged_in') return {{ t("Log in to claim a ride")|tojson }};
+        if (error === 'already_claimed') return {{ t("This ride already has a hitchhiker")|tojson }};
+        if (error === 'foreign_source') {
+            return source
+                ? {{ t("This ride was recorded on {source} — claim it there")|tojson }}.replace('{source}', source)
+                : {{ t("This ride comes from another site and can't be claimed here")|tojson }};
+        }
+        return {{ t("Couldn't claim this ride — try again")|tojson }};
+    }
+
+    var toastTimer = null;
+    function showToast(msg, ms) {
+        var t = document.getElementById('claim-toast');
+        if (!t) {
+            t = document.createElement('div');
+            t.id = 'claim-toast';
+            document.body.appendChild(t);
+        }
+        t.textContent = msg;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { if (t.parentNode) t.remove(); }, ms || 1500);
+    }
 })();
 </script>
 {% endblock %}

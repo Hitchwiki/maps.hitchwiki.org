@@ -311,14 +311,15 @@ Two hidden tap gestures. Both are deliberately undocumented in the UI; this is t
 
 Tapping the heatmap button in the map-mode switcher nine times toggles a client-side **test mode**: in-ride submissions are short-circuited (`submitBody` in `hitch/static/inride.js`), so you can walk through the whole "Start hitchhiking" flow on a real phone without writing anything to the DB or the Nostr relays. From the fourth tap a toast counts down. While it is on, a draggable amber warning button sits under the search bar; tap it for an explanation and an exit. The flag is `inride.testMode` in `localStorage` — it survives reloads until you turn it off.
 
-### Tap an anonymous ride 5× on a spot page — claim it
+### Tap Share 5× on a ride page — claim it
 
-On `/spot/<spot_id>`, tapping a ride card that says **Anonymous** five times attaches that ride to your account. Much of the map was logged without an account — people submitted anonymously before registering, and the whole hitchmap.com import arrived that way — so a hitchhiker who recognises their own ride can take it back. The claimed ride then counts on their profile, in their stats and trips, and becomes editable.
+On `/ride/<d_tag>`, tapping the **Share** button five times offers to attach that ride to your account. Much of the map was logged without an account — people submitted anonymously before registering, and the whole hitchmap.com import arrived that way — so a hitchhiker who recognises their own ride can take it back. The claimed ride then counts on their profile, in their stats and trips, and becomes editable.
 
-- You must be logged in; the gesture is only wired up on cards with no named hitchhiker.
-- A single tap still opens the ride, just 300 ms later on those cards so a second tap can arrive. From the second tap a toast counts down; the streak lapses after 2 s of no tapping.
-- The claim republishes the Nostr event with you as its hitchhiker, keeping the `d` tag, the `published_at` tag, the original `source` and any anonymous co-hitchhikers.
-- The server (`POST /claim-ride/<d_tag>`) re-checks everything: you must be logged in, the ride must still have no named hitchhiker, and it must be from a source we can republish (see the table above) — so a ride from another platform is refused with a toast saying where to edit it instead.
+- The gesture only exists on rides that look claimable: you must be logged in, the ride must have no named hitchhiker, and it must come from a source we can republish (see the table above). Otherwise the button is a plain Share button (`can_claim` in `ride_detail`).
+- The **first** tap still shares normally — the sheet or the clipboard copy, as ever. From the second tap the share is suppressed and a toast counts down; the streak lapses after 4 s of no tapping, which is long enough to dismiss the native share sheet the first tap opened.
+- The fifth tap asks for confirmation before anything is published, because a claim cannot be undone.
+- The claim republishes the Nostr event with you as its hitchhiker, keeping the `d` tag, the `published_at` tag, the original `source` and any anonymous co-hitchhikers. The page reloads afterwards, since the byline, the edit link and the delete button all change.
+- The server (`POST /claim-ride/<d_tag>`) re-checks all three conditions itself — the attribute on the button is only a hint — so a ride from another platform is refused with a toast saying where to edit it instead.
 - There is no proof that the claimer is the person who logged the ride: an anonymous ride carries no identity to check against. This is a convenience, not an ownership claim, and claims are written to the same `logs/ride_ips.csv` trail as a submission.
 
-Code: `registerClaimTap` / `claimRide` in `hitch/static/map.js`, `claim_ride` in `hitch/blueprints/main.py`.
+Code: the script block at the bottom of `hitch/templates/ride_detail.html`, `claim_ride` in `hitch/blueprints/main.py`.
