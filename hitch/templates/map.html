@@ -92,39 +92,61 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
 // Install-to-homescreen hint logic. Self-contained — no dependency on map.js.
 // Storage key holds the dismissal timestamp (ms); reappears after 30 days.
 (function () {
-    var HINT_KEY = 'installHintDismissedAt';
+    var PLAY_URL = 'https://play.google.com/apps/testing/org.hitchwiki.maps.twa';
     var REAPPEAR_MS = 30 * 24 * 60 * 60 * 1000;
     var hint = document.getElementById('install-hint');
     if (!hint) return;
 
-    // Don't pester users who already installed the PWA.
+    // Don't pester users who already installed the PWA (or who are inside the TWA,
+    // which also runs in standalone display mode).
     var standalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
     if (standalone || window.navigator.standalone) return;
+
+    var ua = navigator.userAgent || '';
+    var isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+    var isAndroid = /Android/.test(ua);
+
+    // Now that there's a real Play Store app, Android users get a different pitch —
+    // and their own dismissal key, so a dismissal of the old "add to home screen"
+    // hint doesn't suppress the announcement of the app.
+    var HINT_KEY = isAndroid ? 'androidAppHintDismissedAt' : 'installHintDismissedAt';
 
     try {
         var dismissedAt = parseInt(localStorage.getItem(HINT_KEY) || '0', 10);
         if (dismissedAt && Date.now() - dismissedAt < REAPPEAR_MS) return;
     } catch (e) { /* localStorage may be unavailable; show anyway */ }
 
-    var ua = navigator.userAgent || '';
-    var isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
     var textEl = document.getElementById('install-hint-text');
+    var titleEl = document.getElementById('install-hint-title');
     var actionBtn = document.getElementById('install-hint-action');
     var deferredPrompt = null;
 
     if (isIOS) {
         textEl.innerHTML = '{{ t("Tap the <strong>Share</strong> button, then <strong>Add to Home Screen</strong>.")|safe }}';
+    } else if (isAndroid) {
+        titleEl.textContent = '{{ t("Hitchhiking Map is now an Android app") }}';
+        textEl.textContent = '{{ t("It is in its testing phase — join the test on Google Play and get it on your phone.") }}';
+        actionBtn.textContent = '{{ t("Get it on Google Play") }}';
+        actionBtn.hidden = false;
     }
 
     // Chromium fires beforeinstallprompt when the PWA is installable — capture it
     // so the user can install with one tap via the Install button.
+    // On Android the button links to the Play Store instead, so don't let the
+    // PWA prompt take over the one action slot.
     window.addEventListener('beforeinstallprompt', function (e) {
         e.preventDefault();
+        if (isAndroid) return;
         deferredPrompt = e;
         actionBtn.hidden = false;
     });
 
     actionBtn.addEventListener('click', function () {
+        if (isAndroid) {
+            window.open(PLAY_URL, '_blank', 'noopener');
+            dismiss();
+            return;
+        }
         if (!deferredPrompt) return;
         deferredPrompt.prompt();
         deferredPrompt.userChoice.finally(function () {
@@ -142,6 +164,18 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
     // Small delay so the hint doesn't fight with map load.
     setTimeout(function () { hint.hidden = false; }, 1500);
 })();
+
+// Play Store button: Android only, and not inside the installed app itself. Kept
+// separate from the hint logic above, which returns early once dismissed — the
+// permanent link should stay regardless.
+(function () {
+    var btn = document.getElementById('play-store-btn');
+    if (!btn) return;
+    var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone;
+    if (standalone) return;
+    if (!/Android/.test(navigator.userAgent || '')) return;
+    btn.hidden = false;
+})();
 </script>
 {% endblock %}
 
@@ -155,7 +189,7 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
         <i class="fa-solid fa-mobile-screen"></i>
     </div>
     <div class="install-hint-body">
-        <div class="install-hint-title">{{ t("Add Hitchhiking Map to your home screen") }}</div>
+        <div class="install-hint-title" id="install-hint-title">{{ t("Add Hitchhiking Map to your home screen") }}</div>
         <div class="install-hint-text" id="install-hint-text">{{ t("Use it like a normal app right from your home screen.") }}</div>
     </div>
     <button type="button" id="install-hint-action" class="install-hint-action" hidden>{{ t("Install") }}</button>
@@ -632,6 +666,22 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
     <span class="share-btn-label sr-only">{{ t("Share view") }}</span>
 </button>
+
+<!-- Play Store link, stacked under the share button. Android only: the TWA is an
+     Android app, so the badge is meaningless (and confusing) anywhere else — the
+     inline script below unhides it after a UA check. Not shown inside the installed
+     app itself, which runs in standalone display mode. -->
+<a class="play-store-btn{% if hide_account_button %} no-account{% endif %}" id="play-store-btn" hidden
+   href="https://play.google.com/apps/testing/org.hitchwiki.maps.twa" target="_blank" rel="noopener"
+   title="{{ t('Get the Android app (testing)') }}" aria-label="{{ t('Get the Android app (testing)') }}">
+    <svg width="20" height="20" viewBox="0 0 512 512" aria-hidden="true">
+        <path fill="#2196F3" d="M47 0C34 6.8 25.3 19.2 25.3 35.3v441.4c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0z"/>
+        <path fill="#4CAF50" d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1z"/>
+        <path fill="#FFC107" d="M472.2 225.6l-58.9-34.1-65.7 64.5 65.7 64.5 60-34.1c18-14.3 18-46.5-1.1-60.8z"/>
+        <path fill="#F44336" d="M104.6 499l220.7-221.3 60.1 60.1L104.6 499z"/>
+    </svg>
+    <span class="sr-only">{{ t("Get the Android app (testing)") }}</span>
+</a>
 
 <!-- Bottom action pane -->
 <div class="bottom-action-pane" id="bottom-action-pane">

@@ -377,6 +377,27 @@ html {
 /* Keep the "copied" green flash for desktop clipboard feedback (label is sr-only). */
 .share-view-btn.copied { background: #d4edda; color: #155724; }
 
+/* Play Store link: same circular control as .share-view-btn, one slot below it. */
+.play-store-btn {
+  position: fixed;
+  top: 152px;
+  right: 12px;
+  z-index: 1001;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  border-bottom: none !important;
+}
+/* Follows the share button up when there's no account button on this page. */
+.play-store-btn.no-account { top: 100px; }
+.play-store-btn:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.4); }
+.play-store-btn[hidden] { display: none; }
+
 /* Red bell badge on the account icon when there are unread notifications. */
 .top-account-btn .notif-bell {
   position: absolute;
