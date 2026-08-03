@@ -30,6 +30,7 @@ from hitch.blueprints.utils.notifications import notify_new_follower, unread_cou
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON
 from hitch.blueprints.utils.ride_gpx import rides_gpx
+from hitch.blueprints.utils.ride_images import attach_ride_images
 from hitch.blueprints.utils.ride_score import score_fields
 from hitch.blueprints.utils.ride_sources import ride_is_replaceable
 from hitch.extensions import db, security
@@ -673,7 +674,14 @@ def claim_review(review_id: int):
 
 
 def _extract_ride_info(ride, ride_type):
-    """Extract display info from a RideEvent row."""
+    """Extract display info from a RideEvent row.
+
+    The keys here are the ride-card contract the shared `_ride_card.html` macro renders
+    (see its docstring): every server-side ride list — profile, trip, activities feed,
+    leaderboard — feeds it the same dict, so a ride reads the same wherever it is shown.
+    `images` is not filled in here: it needs one query per *list*, not per ride, so the
+    callers batch it through attach_ride_images.
+    """
     content = ride.content if ride.content else {}
     stops = content.get("stops") or []
     pickup_lat, pickup_lon = None, None
@@ -701,9 +709,18 @@ def _extract_ride_info(ride, ride_type):
     start_dt = pd.to_datetime(departure, errors="coerce", utc=True) if departure else None
     start_display = start_dt.strftime("%Y-%m-%d %H:%M") if start_dt is not None and pd.notna(start_dt) else ""
     start_sort_key = start_dt.value if start_dt is not None and pd.notna(start_dt) else None
+    hitchhikers = content.get("hitchhikers") or []
+    nickname = (hitchhikers[0].get("nickname") if hitchhikers else None) or ANONYMOUS_NICKNAME
+    # An anonymous rider may be stored with a gender suffix ("Anonymous:female"); a card
+    # shows the plain sentinel, and must not link it as if it were a username.
+    if nickname.split(":", 1)[0] == ANONYMOUS_NICKNAME:
+        nickname = ANONYMOUS_NICKNAME
     info = {
         "type": ride_type,
         "d_tag": ride.d,
+        # Who logged it. Lists showing one person's rides pass show_name=false to the card
+        # macro, but the activities feed and the leaderboards mix authors and need it.
+        "hitchhiker_name": nickname,
         "created": submission_display,
         "submission_sort_key": submission_sort_key,
         "start": start_display,
@@ -733,6 +750,9 @@ def _extract_ride_info(ride, ride_type):
     # UI still labels it, just as a fact rather than a problem — hence both flags.
     gave_up = content.get("no_ride") is not None
     info["gave_up"] = gave_up
+    # Same fact under the name the card macro and the spot pane both use, so a give-up is
+    # badged identically in a profile list and on the map.
+    info["no_ride"] = gave_up
     info["missing_destination"] = destination_lat is None and not gave_up
     return info
 
@@ -888,7 +908,7 @@ def _get_rides_for_user(user, include_pending_co=True, display_only=False):
         del r["submission_sort_key"]
     # `start_sort_key` deliberately survives: the trip builder filters on it to decide
     # which rides may be picked at all (see _selectable_rides_for_current_user).
-    return combined
+    return attach_ride_images(combined)
 
 
 def _rides_for_trip(trip_id):
@@ -918,7 +938,7 @@ def _rides_for_trip(trip_id):
     # `is None` ranks False (dated) before True, so undated legacy rides trail the
     # sequence instead of claiming the "first leg" slot at the top.
     rides.sort(key=lambda r: (r["start_sort_key"] is None, r["start_sort_key"] or 0))
-    return rides
+    return attach_ride_images(rides)
 
 
 def _trip_date_span(rides):

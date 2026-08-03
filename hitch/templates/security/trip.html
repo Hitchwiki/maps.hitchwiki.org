@@ -22,6 +22,8 @@
 <link rel="stylesheet" href="/static/ride_card.css" />
 {% endblock %}
 
+{% from "_ride_card.html" import ride_card %}
+
 {% block content %}
 <style>
 .trip-detail-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -79,27 +81,12 @@
 <hr>
 
 {% if rides %}
+  {# Every leg belongs to the trip's owner, named once in the byline above, so the cards
+     leave the hitchhiker name off. The card's date is `when`: the ride's own start time,
+     which this list is ordered by, falling back to the submission date for legacy rides
+     that recorded none. #}
   {% for ride in rides %}
-  <div class="ride-card"{% if ride.d_tag %} data-ride-href="/ride/{{ ride.d_tag }}"{% endif %}>
-      <div class="ride-meta">
-          {# The start time is what the list is ordered by, so it is what the card shows.
-             Rides added before that rule may still have none; fall back to the submission
-             date rather than printing an empty line. #}
-          {{ ride.when }}
-          {% if ride.rating > 0 %}&nbsp;{{ "⭐" * ride.rating }}{% endif %}
-      </div>
-      {% if ride.pickup_lat and ride.pickup_lon %}
-      <a href="/#{{ ride.pickup_lat }},{{ ride.pickup_lon }}" title="{{ t('View spot on map') }}" style="display:block; text-decoration:none;">
-        <div class="map-thumbnail" id="ride-thumb-{{ loop.index0 }}" style="height:100px;">
-          <div class="map-thumbnail-overlay">{{ t("View on map ↗") }}</div>
-        </div>
-        <div style="color:#888; font-size:0.8em;">{{ "%.4f, %.4f"|format(ride.pickup_lat, ride.pickup_lon) }}</div>
-      </a>
-      {% endif %}
-      {% if ride.comment %}
-      <div class="ride-comment">{{ ride.comment }}</div>
-      {% endif %}
-  </div>
+  {{ ride_card(ride, "ride-thumb", loop.index0, show_name=false) }}
   {% endfor %}
 {% else %}
   <p style="color:#666; font-size:0.9em;">{{ t("This trip has no rides yet.") }}</p>
@@ -119,12 +106,7 @@ document.addEventListener('DOMContentLoaded', function() {
         initTripMap('trip-map', tripPoints, { interactive: true });
     }
 
-    const rides = {{ rides | tojson }};
-    rides.forEach((ride, i) => {
-        if (ride.pickup_lat && ride.pickup_lon) {
-            initMapThumbnail(`ride-thumb-${i}`, ride.pickup_lat, ride.pickup_lon);
-        }
-    });
+    initThumbnailsIn(document);
 
     // Whole-card navigation to ride detail; ignore clicks on the nested map link.
     document.querySelectorAll('.ride-card[data-ride-href]').forEach((card) => {

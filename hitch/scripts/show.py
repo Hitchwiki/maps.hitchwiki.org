@@ -1284,26 +1284,50 @@ recent["submission_time"] = recent["submission_time"].astype(str)
 recent["submission_time"] += np.where(~recent.ride_datetime.isnull(), " 🕒", "")
 write_json_file(recent[["url", "submission_time", "hitchhiker_name", "rating", "distance", "text"]], "spots_recent.json")
 
+
+def _card_when(row):
+    """The date a ride card prints: when the ride was hitched, falling back to when it
+    was typed up. Same rule as user._extract_ride_info's `when` — "2026-08-01" on a ride
+    from last summer is the record's birthday, not the ride's."""
+    for value in (row.get("ride_datetime"), row.get("submission_time")):
+        if pd.notna(value):
+            return pd.Timestamp(value).strftime("%Y-%m-%d %H:%M")
+    return ""
+
+
+def _build_ride_card(row):
+    """A ride-card dict for one rides_df row.
+
+    The keys are the contract the shared hitch/templates/_ride_card.html macro renders,
+    the same one user._extract_ride_info and main._ride_to_card emit, so a ride on the
+    leaderboard looks exactly like the same ride on a profile.
+    """
+    return {
+        "d_tag": row["d"],
+        "when": _card_when(row),
+        "rating": int(row["rating"]) if pd.notna(row["rating"]) else 0,
+        "comment": row["comment"] if pd.notna(row["comment"]) else "",
+        "hitchhiker_name": row["hitchhiker_name"],
+        "pickup_lat": row["lat"],
+        "pickup_lon": row["lon"],
+        # Both ends are sent so the card's map thumbnail can mark where the ride started
+        # and where it ended, as the route planner does.
+        "destination_lat": row["dest_lat"] if pd.notna(row["dest_lat"]) else None,
+        "destination_lon": row["dest_lon"] if pd.notna(row["dest_lon"]) else None,
+        "wait_min": int(row["wait"]) if pd.notna(row["wait"]) else None,
+        "distance_km": round(float(row["distance"]), 1) if pd.notna(row["distance"]) else None,
+        "images": ride_image_urls.get(row["d"], []),
+        "no_ride": bool(row["no_ride"]) if pd.notna(row.get("no_ride")) else False,
+    }
+
+
 # Precompute the 10 longest rides for the leaderboard so the /leaderboard route can
 # just read this file instead of scanning and haversine-ing every ride on each request.
-# Card fields mirror main._ride_to_card so the recent-style ride_card template renders them.
 # Only rank rides the hitchhiker actually logged a destination for: a destination we mined
 # from comment text can be mis-geocoded (a same-named city on another continent), which would
 # otherwise fabricate a "12,000 km" ride at the top of the board. See merge_derived_destinations.
-longest = (
-    rides_df[~rides_df["dest_is_derived"]].dropna(subset=["distance"]).sort_values("distance", ascending=False).iloc[:10].copy()
-)
-longest["d_tag"] = longest["d"]
-longest["created"] = pd.to_datetime(longest["created_at"], unit="s").dt.strftime("%Y-%m-%d %H:%M")
-longest["rating"] = longest["rating"].fillna(0).astype(int)
-longest["comment"] = longest["comment"].fillna("")
-longest["pickup_lat"] = longest["lat"]
-longest["pickup_lon"] = longest["lon"]
-longest["distance"] = longest["distance"].round().astype(int)
-write_json_file(
-    longest[["d_tag", "created", "rating", "comment", "pickup_lat", "pickup_lon", "hitchhiker_name", "distance"]],
-    "longest_rides.json",
-)
+longest = rides_df[~rides_df["dest_is_derived"]].dropna(subset=["distance"]).sort_values("distance", ascending=False).iloc[:10]
+write_json_file([_build_ride_card(row) for _, row in longest.iterrows()], "longest_rides.json")
 
 # Precompute the "longest distance in 24h" leaderboard. Per named hitchhiker, find the
 # best contiguous sequence of their rides whose span (first departure -> last arrival)
@@ -1311,21 +1335,6 @@ write_json_file(
 # departure and arrival time qualify. The leaderboard then ranks users by that total and
 # lists every ride in the winning window. Done here (not per-request) to keep /leaderboard fast.
 WINDOW_24H = pd.Timedelta(hours=24)
-
-
-def _build_ride_card(row):
-    """A recent-style ride_card dict for one rides_df row."""
-    return {
-        "d_tag": row["d"],
-        "created": pd.to_datetime(row["created_at"], unit="s").strftime("%Y-%m-%d %H:%M"),
-        "rating": int(row["rating"]) if pd.notna(row["rating"]) else 0,
-        "comment": row["comment"] if pd.notna(row["comment"]) else "",
-        "pickup_lat": row["lat"],
-        "pickup_lon": row["lon"],
-        "hitchhiker_name": row["hitchhiker_name"],
-        "distance": int(round(row["distance"])),
-    }
-
 
 # Normalize departure/arrival to UTC so windows can be compared regardless of the
 # timezone offsets stored in the original event timestamps.

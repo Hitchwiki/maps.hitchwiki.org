@@ -12,6 +12,8 @@
 <link rel="stylesheet" href="/static/ride_card.css" />
 {% endblock %}
 
+{% from "_ride_card.html" import ride_card %}
+
 {% block content %}
 <style>
 /* .share-btn styling + click handler are shared globally from base.html */
@@ -234,37 +236,23 @@
 <h2>{{ t("Your Rides") if is_me else t("Rides") }}</h2>
 {% if rides %}
   {% for ride in rides %}
-  <div class="ride-card {% if ride.type == 'co_hitchhiker' %}co-hitchhiker-card{% endif %}"{% if ride.d_tag %} data-ride-href="/ride/{{ ride.d_tag }}"{% endif %}>
-      <div class="ride-meta">
-          {{ ride.when }}
-          {% if ride.rating > 0 %}&nbsp;{{ "⭐" * ride.rating }}{% endif %}
-          {% if ride.type == 'co_hitchhiker' %}<span class="co-label">{{ t("co-hitchhiker") }}</span>{% endif %}
-      </div>
-      {% if ride.pickup_lat and ride.pickup_lon %}
-      <a href="/#{{ ride.pickup_lat }},{{ ride.pickup_lon }}" title="{{ t('View spot on map') }}" style="display:block; text-decoration:none;">
-        <div class="map-thumbnail" id="ride-thumb-{{ loop.index0 }}" style="height:100px;">
-          <div class="map-thumbnail-overlay">{{ t("View on map ↗") }}</div>
-        </div>
-        <div style="color:#888; font-size:0.8em;">{{ "%.4f, %.4f"|format(ride.pickup_lat, ride.pickup_lon) }}</div>
-      </a>
+  {# The name is left off here: every card in this list belongs to the profile's owner,
+     so repeating it on each one says nothing. #}
+  {% call ride_card(ride, "ride-thumb", loop.index0, show_name=false,
+                    extra_class="co-hitchhiker-card" if ride.type == 'co_hitchhiker' else "",
+                    badge='<span class="co-label">' ~ t("co-hitchhiker") ~ '</span>' if ride.type == 'co_hitchhiker' else "") %}
+      {% if ride.type == 'own' %}
+      <a class="btn-edit" href="/ride?edit={{ ride.d_tag }}">{{ t("Edit") }}</a>
+      {% elif ride.type == 'own_external' %}
+      {% else %}
+      <form method="post" action="/accept-co-hitchhiking-ride/{{ ride.d_tag }}" style="display:inline;">
+          <button type="submit" class="btn-accept">{{ t("Accept") }}</button>
+      </form>
+      <form method="post" action="/reject-co-hitchhiking-ride/{{ ride.d_tag }}" style="display:inline;">
+          <button type="submit" class="btn-reject">{{ t("Reject") }}</button>
+      </form>
       {% endif %}
-      {% if ride.comment %}
-      <div class="ride-comment">{{ ride.comment }}</div>
-      {% endif %}
-      <div class="ride-actions">
-          {% if ride.type == 'own' %}
-          <a class="btn-edit" href="/ride?edit={{ ride.d_tag }}">{{ t("Edit") }}</a>
-          {% elif ride.type == 'own_external' %}
-          {% else %}
-          <form method="post" action="/accept-co-hitchhiking-ride/{{ ride.d_tag }}" style="display:inline;">
-              <button type="submit" class="btn-accept">{{ t("Accept") }}</button>
-          </form>
-          <form method="post" action="/reject-co-hitchhiking-ride/{{ ride.d_tag }}" style="display:inline;">
-              <button type="submit" class="btn-reject">{{ t("Reject") }}</button>
-          </form>
-          {% endif %}
-      </div>
-  </div>
+  {% endcall %}
   {% endfor %}
 {% else %}
   <p style="color:#666; font-size:0.9em;">{{ t("No rides yet.") }}</p>
@@ -278,12 +266,7 @@
 <script src="/static/trip_map.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const rides = {{ rides | tojson }};
-    rides.forEach((ride, i) => {
-        if (ride.pickup_lat && ride.pickup_lon) {
-            initMapThumbnail(`ride-thumb-${i}`, ride.pickup_lat, ride.pickup_lon);
-        }
-    });
+    initThumbnailsIn(document);
 
     // Trip thumbnails: a small route map (markers + road-following line) per trip.
     document.querySelectorAll('.trip-thumb').forEach((el) => {

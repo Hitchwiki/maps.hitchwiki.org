@@ -35,6 +35,7 @@ from hitch.blueprints.publish_ride import (
     create_record_from_custom_object,
     is_anonymous_co_hitchhiker,
 )
+from hitch.blueprints.user import _extract_ride_info
 from hitch.blueprints.utils.driver_info_choices import (
     ALLOWED_GENDERS,
     ALLOWED_REASONS_TO_PICK_UP,
@@ -64,6 +65,7 @@ from hitch.blueprints.utils.ride_facts import haversine_km, ride_map_entry, spot
 from hitch.blueprints.utils.ride_images import (
     MAX_IMAGES_PER_RIDE,
     RideImageError,
+    attach_ride_images,
     claim_draft_images,
     delete_ride_image,
     image_url,
@@ -713,25 +715,17 @@ def driver_info_choices_json():
 
 
 def _ride_to_card(ride):
-    """Build the card dict the activities/recent template renders for a RideEvent."""
-    content = ride.content if ride.content else {}
-    stops = content.get("stops") or []
-    pickup_lat, pickup_lon = None, None
-    if stops:
-        coords = stops[0].get("location", {})
-        pickup_lat = coords.get("latitude")
-        pickup_lon = coords.get("longitude")
-    hitchhikers = content.get("hitchhikers") or []
-    nickname = hitchhikers[0].get("nickname", "Anonymous") if hitchhikers else "Anonymous"
-    return {
-        "d_tag": ride.d,
-        "created": pd.to_datetime(ride.created_at, unit="s").strftime("%Y-%m-%d %H:%M") if ride.created_at else "N/A",
-        "rating": int(ride.rating) if ride.rating else 0,
-        "comment": ride.comment or "",
-        "pickup_lat": pickup_lat,
-        "pickup_lon": pickup_lon,
-        "hitchhiker_name": nickname,
-    }
+    """Build the card dict the activities/recent template renders for a RideEvent.
+
+    Shares _extract_ride_info with the profile and trip ride lists rather than deriving
+    its own subset, so every ride card in the app carries the same facts — waiting time,
+    distance, destination, give-up flag — and the one _ride_card.html macro can render
+    all of them identically. Photos are attached per list, not per ride (see the caller).
+
+    Importing it from user.py is safe in this direction only: user.py imports nothing
+    from here, so there is no cycle to break.
+    """
+    return _extract_ride_info(ride, "recent")
 
 
 def _followed_usernames():
@@ -832,10 +826,10 @@ def recent_spots():
         .limit(100)
         .all()
     )
-    ride_list = [_ride_to_card(ride) for ride in rides]
+    ride_list = attach_ride_images([_ride_to_card(ride) for ride in rides])
 
     followed_usernames = _followed_usernames()
-    followed_rides = _followed_rides(followed_usernames)
+    followed_rides = attach_ride_images(_followed_rides(followed_usernames))
     # When the user follows nobody yet, suggest active hitchhikers to follow instead.
     follow_suggestions = _suggested_hitchhikers(ride_list) if (not current_user.is_anonymous and not followed_usernames) else []
     return render_template(

@@ -2310,8 +2310,11 @@ function renderRideCards(rides) {
   return rides.map((r) => {
     const rating = r.rating > 0 ? "&nbsp;" + "⭐".repeat(r.rating) : "";
     const wait = r.wait != null && !Number.isNaN(r.wait) ? tr("{wait} min wait", { wait: r.wait }) : "";
+    // How far the ride got, next to how long the wait was — the same two facts, in the
+    // same order, that the server-rendered cards put at the top (_ride_card.html).
+    const distance = r.distance != null && !Number.isNaN(r.distance) ? formatDistance(r.distance) : "";
     const date = formatRideDate(r.ride_datetime || r.submission_time);
-    const metaBits = [date, wait].filter(Boolean).join(" · ");
+    const metaBits = [date, wait, distance].filter(Boolean).join(" · ");
     const startTime = r.ride_datetime ? formatRideDateTime(r.ride_datetime) : "";
     const timesLine = startTime
       ? `<div class="ride-times" style="font-size:0.85em; color:#666;">▶ ${startTime}</div>`

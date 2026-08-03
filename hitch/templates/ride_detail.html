@@ -631,7 +631,8 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     initMapThumbnail('pickup-map', {{ ride.pickup_lat }}, {{ ride.pickup_lon }}, 7);
     {% endif %}
     {% if ride.dest_lat is not none and ride.dest_lon is not none %}
-    initMapThumbnail('dest-map', {{ ride.dest_lat }}, {{ ride.dest_lon }}, 7);
+    {# Its own map, so it gets the checkered flag rather than the pickup thumb. #}
+    initMapThumbnail('dest-map', {{ ride.dest_lat }}, {{ ride.dest_lon }}, 7, { kind: 'dest' });
     {% endif %}
 
     // The #share-btn click is handled by the shared delegated handler in base.html.

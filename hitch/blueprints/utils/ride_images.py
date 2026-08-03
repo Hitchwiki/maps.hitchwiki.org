@@ -120,6 +120,25 @@ def images_for_ride(d_tag):
     return db.session.query(RideImage).filter_by(ride_d_tag=d_tag).order_by(RideImage.id.asc()).all()
 
 
+def attach_ride_images(ride_cards):
+    """Fill each ride card's `images` with its photo URLs, in one query for the whole list.
+
+    The shared _ride_card.html macro shows a ride's photos, and a list renders up to a
+    hundred cards — asking per card would be a hundred round trips for a feature most
+    rides don't use yet. Cards with no photos get an empty list, so the template can test
+    the key without a guard.
+    """
+    tags = [d for d in dict.fromkeys(card.get("d_tag") for card in ride_cards) if d]
+    urls = {}
+    if tags:
+        rows = db.session.query(RideImage).filter(RideImage.ride_d_tag.in_(tags)).order_by(RideImage.id.asc()).all()
+        for row in rows:
+            urls.setdefault(row.ride_d_tag, []).append(image_url(row.filename))
+    for card in ride_cards:
+        card["images"] = urls.get(card.get("d_tag"), [])
+    return ride_cards
+
+
 def images_for_draft(draft_token):
     """Photos uploaded by a form that has not been submitted yet, oldest first."""
     token = valid_draft_token(draft_token)

@@ -19,25 +19,7 @@
 </style>
 {% endblock %}
 
-{% macro ride_card(ride, thumb_prefix, idx) %}
-{% set tag = "a" if ride.d_tag else "div" %}
-<{{ tag }} class="ride-card"{% if ride.d_tag %} href="/ride/{{ ride.d_tag }}"{% endif %}>
-    <div class="ride-meta">
-        {{ ride.created }}
-        {% if ride.rating > 0 %}&nbsp;{{ "⭐" * ride.rating }}{% endif %}
-        &mdash; <span class="hitchhiker-name">{{ ride.hitchhiker_name }}</span>
-        {% if ride.distance is not none %}&mdash; {{ format_distance(ride.distance) }}{% endif %}
-    </div>
-    {% if ride.pickup_lat and ride.pickup_lon %}
-    <div class="map-thumbnail" id="{{ thumb_prefix }}-{{ idx }}" style="height:100px;"></div>
-    <div style="color:#888; font-size:0.8em;">{{ "%.4f, %.4f"|format(ride.pickup_lat, ride.pickup_lon) }}</div>
-    {% endif %}
-    {% if ride.comment %}
-    <div class="ride-comment">{{ ride.comment }}</div>
-    {% endif %}
-</{{ tag }}>
-{% endmacro %}
-
+{% from "_ride_card.html" import ride_card %}
 {% from "_share.html" import share_button %}
 {% block content %}
 <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
@@ -121,47 +103,20 @@
 <script src="/static/map_thumbnail.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const longestRides = {{ longest_rides | tojson }};
-    const longestMaps = [];
-    let longestInitialized = false;
-
-    // Leaflet can't size a map inside a display:none container, so the longest-ride
+    // Leaflet can't size a map inside a display:none container, so each pane's
     // thumbnails are built only once the pane is first shown, then invalidated so
-    // tiles fill the now-visible container.
-    function initLongestThumbnails() {
-        if (longestInitialized) {
-            longestMaps.forEach(m => m.invalidateSize());
+    // tiles fill the now-visible container. initThumbnailsIn skips the ones it
+    // already built, hence the remembered maps list per pane.
+    const paneMaps = {};
+
+    function initPaneThumbnails(pane) {
+        const el = document.getElementById('pane-' + pane);
+        if (!el) return;
+        if (paneMaps[pane]) {
+            paneMaps[pane].forEach(m => m.invalidateSize());
             return;
         }
-        longestInitialized = true;
-        longestRides.forEach((ride, i) => {
-            if (ride.pickup_lat && ride.pickup_lon) {
-                const m = initMapThumbnail(`longest-thumb-${i}`, ride.pickup_lat, ride.pickup_lon);
-                if (m) longestMaps.push(m);
-            }
-        });
-    }
-
-    const longest24h = {{ longest_24h | tojson }};
-    const h24Maps = [];
-    let h24Initialized = false;
-
-    // Same deferred-init dance for the 24h pane: each entry's ride thumbnails use the
-    // id prefix `h24-thumb-<entryIdx>-<rideIdx>` produced by the template.
-    function initH24Thumbnails() {
-        if (h24Initialized) {
-            h24Maps.forEach(m => m.invalidateSize());
-            return;
-        }
-        h24Initialized = true;
-        longest24h.forEach((entry, ei) => {
-            entry.rides.forEach((ride, ri) => {
-                if (ride.pickup_lat && ride.pickup_lon) {
-                    const m = initMapThumbnail(`h24-thumb-${ei}-${ri}`, ride.pickup_lat, ride.pickup_lon);
-                    if (m) h24Maps.push(m);
-                }
-            });
-        });
+        paneMaps[pane] = initThumbnailsIn(el);
     }
 
     // Tab switching between the leaderboard panes. Each tab is deep-linkable via
@@ -176,8 +131,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.leaderboard-pane').forEach(p => p.classList.remove('active'));
         tab.classList.add('active');
         document.getElementById('pane-' + pane).classList.add('active');
-        if (pane === 'longest-ride') initLongestThumbnails();
-        else if (pane === 'longest-24h') initH24Thumbnails();
+        initPaneThumbnails(pane);
         // Reflect the tab in the URL + Share button without adding history entries.
         if (pushHash) history.replaceState(null, '', location.pathname + '#' + pane);
         if (shareBtn) shareBtn.dataset.shareUrl = location.origin + location.pathname + '#' + pane;
@@ -192,6 +146,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const initialPane = location.hash.replace(/^#/, '');
     if (document.getElementById('pane-' + initialPane)) activateTab(initialPane, false);
     else activateTab('most-rides', false);
+
+    // Whole-card navigation to ride detail; ignore clicks on nested links (the
+    // hitchhiker name and the thumbnail's "View on map" overlay).
+    document.querySelectorAll('.ride-card[data-ride-href]').forEach((card) => {
+        card.addEventListener('click', (e) => {
+            if (e.target.closest('a, button, form')) return;
+            window.location.href = card.dataset.rideHref;
+        });
+    });
 });
 </script>
 {% endblock %}

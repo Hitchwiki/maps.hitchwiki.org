@@ -63,3 +63,27 @@
     color: #fff;
     text-decoration: none;
 }
+
+/* The two ends of a ride on a thumbnail: thumb where it started, checkered flag where
+   it ended. Same filled-circle treatment the route planner gives the ends of a
+   hitchhiking leg (.route-stop-first / .route-stop-last in style.css), so the symbols
+   mean the same thing wherever they appear. Green start / red finish matches the
+   planner's own start and destination pins. */
+.ride-stop-marker > div {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+.ride-stop-marker svg {
+    width: 13px;
+    height: 13px;
+    display: block;
+}
+.ride-stop-marker--start > div { background: #188038; }
+.ride-stop-marker--dest > div { background: #d93025; }
