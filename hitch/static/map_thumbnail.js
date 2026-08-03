@@ -81,23 +81,74 @@ function initMapThumbnail(containerId, lat, lon, zoom = 7, opts = {}) {
     return map;
 }
 
-// Build every thumbnail the shared ride-card macro rendered inside `root` (default: the
-// whole document) and return the maps, so a caller that revealed a hidden container can
-// invalidateSize() them — Leaflet cannot size a map inside a display:none parent, which
-// is why the leaderboard's tabs defer their panes' thumbnails until first shown.
-// Already-built thumbnails are skipped, so calling this twice is harmless.
-function initThumbnailsIn(root) {
-    const maps = [];
-    (root || document).querySelectorAll('.map-thumbnail[data-thumb-lat]').forEach((el) => {
-        if (el.dataset.thumbReady) return;
-        el.dataset.thumbReady = '1';
-        const map = initMapThumbnail(el.id, parseFloat(el.dataset.thumbLat), parseFloat(el.dataset.thumbLon), 7, {
-            destLat: el.dataset.thumbDestLat !== undefined ? parseFloat(el.dataset.thumbDestLat) : null,
-            destLon: el.dataset.thumbDestLon !== undefined ? parseFloat(el.dataset.thumbDestLon) : null,
-        });
-        if (map) maps.push(map);
+// A thumbnail is built only once it is near the viewport, never on page load.
+//
+// A ride list is long — the busiest profile here renders 120 cards — and building every
+// map up front meant 120 Leaflet instances and several hundred tile requests before the
+// visitor had scrolled past the first three. It is the single biggest cost of these
+// pages, and it is bulk traffic aimed at OSM's tile servers for maps nobody looks at.
+// Rendering the cards themselves stays eager: the list must remain complete markup, so
+// in-page search, deep links and "save page" keep working.
+//
+// LAZY_MARGIN is generous on purpose — the map should already be drawn by the time the
+// card reaches the screen, so lazy loading is invisible rather than a flash of grey.
+const LAZY_MARGIN = '600px 0px';
+let thumbObserver = null;
+
+function buildThumbnail(el) {
+    if (el.dataset.thumbReady) return null;
+    el.dataset.thumbReady = '1';
+    if (thumbObserver) thumbObserver.unobserve(el);
+    return initMapThumbnail(el.id, parseFloat(el.dataset.thumbLat), parseFloat(el.dataset.thumbLon), 7, {
+        destLat: el.dataset.thumbDestLat !== undefined ? parseFloat(el.dataset.thumbDestLat) : null,
+        destLon: el.dataset.thumbDestLon !== undefined ? parseFloat(el.dataset.thumbDestLon) : null,
     });
-    return maps;
+}
+
+function pendingThumbnails(root) {
+    return Array.from((root || document).querySelectorAll('.map-thumbnail[data-thumb-lat]'))
+        .filter((el) => !el.dataset.thumbReady);
+}
+
+// Register every thumbnail the ride-card macro rendered inside `root` (default: the whole
+// document) for lazy building. Idempotent: already-built ones are skipped and re-observing
+// an element is a no-op, so a page may call this again after adding cards.
+function initThumbnailsIn(root) {
+    const pending = pendingThumbnails(root);
+    // Without IntersectionObserver, build everything at once — the old behaviour, and
+    // still correct, just not lazy.
+    if (typeof IntersectionObserver === 'undefined') {
+        pending.forEach(buildThumbnail);
+        return;
+    }
+    if (!thumbObserver) {
+        thumbObserver = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) buildThumbnail(entry.target);
+            });
+        }, { rootMargin: LAZY_MARGIN });
+    }
+    pending.forEach((el) => thumbObserver.observe(el));
+    // The observer's first callback is asynchronous, so paint the thumbnails that are
+    // already on screen synchronously instead of leaving them blank for a frame.
+    buildVisibleThumbnails(root);
+}
+
+// Build the thumbnails inside `root` that are on (or just off) the screen right now.
+//
+// The leaderboard's tabs need this explicitly: their panes are display:none until
+// selected, and an element in one has no box for the observer to intersect. Rather than
+// trust the observer to re-evaluate the moment `display` changes, the tab handler calls
+// this on the pane it just revealed, which is deterministic.
+function buildVisibleThumbnails(root) {
+    const height = (typeof window !== 'undefined' && window.innerHeight) || 0;
+    const margin = parseInt(LAZY_MARGIN, 10) || 0;
+    pendingThumbnails(root).forEach((el) => {
+        const box = el.getBoundingClientRect();
+        // Zero-sized means it is still inside a hidden container: leave it to the observer.
+        if (!box.height && !box.width) return;
+        if (box.top < height + margin && box.bottom > -margin) buildThumbnail(el);
+    });
 }
 
 // Initialize thumbnails for a list of rides

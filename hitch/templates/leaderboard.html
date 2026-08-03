@@ -103,21 +103,10 @@
 <script src="/static/map_thumbnail.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Leaflet can't size a map inside a display:none container, so each pane's
-    // thumbnails are built only once the pane is first shown, then invalidated so
-    // tiles fill the now-visible container. initThumbnailsIn skips the ones it
-    // already built, hence the remembered maps list per pane.
-    const paneMaps = {};
-
-    function initPaneThumbnails(pane) {
-        const el = document.getElementById('pane-' + pane);
-        if (!el) return;
-        if (paneMaps[pane]) {
-            paneMaps[pane].forEach(m => m.invalidateSize());
-            return;
-        }
-        paneMaps[pane] = initThumbnailsIn(el);
-    }
+    // Thumbnails build themselves as they scroll into view (map_thumbnail.js). Register
+    // them all once; the panes that are display:none simply have nothing to intersect
+    // until their tab is picked, which is what the explicit sweep below handles.
+    initThumbnailsIn(document);
 
     // Tab switching between the leaderboard panes. Each tab is deep-linkable via
     // a #<pane> hash, so the Share button always points at the tab you're viewing.
@@ -131,7 +120,10 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.leaderboard-pane').forEach(p => p.classList.remove('active'));
         tab.classList.add('active');
         document.getElementById('pane-' + pane).classList.add('active');
-        initPaneThumbnails(pane);
+        // Leaflet cannot size a map inside a display:none parent, so this pane's visible
+        // thumbnails are built now that it has a box — the ones further down wait for the
+        // observer, as on every other page.
+        buildVisibleThumbnails(document.getElementById('pane-' + pane));
         // Reflect the tab in the URL + Share button without adding history entries.
         if (pushHash) history.replaceState(null, '', location.pathname + '#' + pane);
         if (shareBtn) shareBtn.dataset.shareUrl = location.origin + location.pathname + '#' + pane;
