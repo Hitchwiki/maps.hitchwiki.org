@@ -260,6 +260,65 @@ async function loadHeatmapData() {
   }
 }
 
+// Borders drawn on top of the heatmap. Without them the overlay is a field of colour
+// with no landmarks — it covers the base map's own boundaries at 0.7 opacity, so
+// "is this Poland or Belarus" was unanswerable without switching the heatmap off.
+//
+// Every line is drawn twice: a light casing underneath, the dark line on top. A single
+// dark line disappears into the dark-green and dark-red ends of the scale and a single
+// white one into the yellow middle, so neither colour works alone over this palette.
+const HEATMAP_BORDER_LINE = "#1f2933";
+const HEATMAP_BORDER_CASING = "#ffffff";
+
+let heatmapBorderLayer = null;
+let heatmapBorderPromise = null;
+
+// Country outlines everywhere + first-level admin borders (states, provinces, federal
+// subjects) inside the few countries big enough for a national outline to leave most of
+// the heatmap unlabelled — see hitch/scripts/build_admin1_borders.py. The admin lines are
+// dashed and fainter so they never read as national borders.
+function loadHeatmapBorderLayer() {
+  if (!heatmapBorderPromise) {
+    heatmapBorderPromise = (async () => {
+      // Canvas, not SVG: these are ~15k vertices of pure decoration that nothing clicks,
+      // and the pane is pointer-events: none anyway.
+      const renderer = L.canvas({ pane: "heatmapborders" });
+      // pane/renderer belong in the layer options rather than in `style` — resetStyle()
+      // rebuilds a layer's options from the ones it was constructed with.
+      const borders = (data, style) =>
+        L.geoJSON(data, {
+          pane: "heatmapborders",
+          renderer,
+          interactive: false,
+          style: { fill: false, ...style },
+        });
+      const [countries, admin1] = await Promise.all([
+        loadCountriesGeoJson(),
+        fetch("/static/admin1_borders.geojson")
+          .then((r) => (r.ok ? r.json() : null))
+          // The admin lines are a nicety; a missing file must still leave the countries drawn.
+          .catch(() => null),
+      ]);
+
+      const layers = [];
+      if (admin1) {
+        layers.push(borders(admin1, { color: HEATMAP_BORDER_CASING, weight: 2.5, opacity: 0.5 }));
+        layers.push(borders(admin1, { color: HEATMAP_BORDER_LINE, weight: 0.8, opacity: 0.55, dashArray: "4,3" }));
+      }
+      // Added last so a national border always wins where the two run side by side.
+      layers.push(borders(countries, { color: HEATMAP_BORDER_CASING, weight: 3, opacity: 0.6 }));
+      layers.push(borders(countries, { color: HEATMAP_BORDER_LINE, weight: 1.1, opacity: 0.85 }));
+      return L.layerGroup(layers);
+    })().catch((error) => {
+      console.warn("Could not load heatmap borders:", error);
+      // Reset so a later switch into heatmap mode retries instead of inheriting the failure.
+      heatmapBorderPromise = null;
+      return null;
+    });
+  }
+  return heatmapBorderPromise;
+}
+
 // Apply or remove the heatmap layer/legend without touching the URL.
 // Returns true if the requested state was reached.
 async function setHeatmapActive(active) {
@@ -269,6 +328,7 @@ async function setHeatmapActive(active) {
 
   if (!active) {
     if (heatmapLayer) map.removeLayer(heatmapLayer);
+    if (heatmapBorderLayer) map.removeLayer(heatmapBorderLayer);
     if (legendPane) legendPane.style.display = 'none';
     setTestBtnBelowLegend(false);
     positionLegendPane();
@@ -299,6 +359,15 @@ async function setHeatmapActive(active) {
   positionLegendPane();
 
   heatmapLayer.addTo(map);
+  // Awaited after the overlay is up: the borders are a second fetch, and holding the
+  // heatmap back for them would leave the user on a blank map for the round trip.
+  loadHeatmapBorderLayer().then((layer) => {
+    heatmapBorderLayer = layer;
+    // The overlay itself is the condition, not `mapMode`: the fetch can land after the
+    // user has left heatmap mode, and on a cached second activation it resolves before
+    // applyMapMode has even assigned the new mode.
+    if (layer && map.hasLayer(heatmapLayer) && !map.hasLayer(layer)) layer.addTo(map);
+  });
   if (btn) btn.classList.add('active');
   if (text) text.textContent = tr('Normal');
   return true;
@@ -724,11 +793,22 @@ function countryStyle(feature) {
 
 let countryRatings = null;
 
+// The country boundaries, fetched at most once per page: three unrelated things want
+// them (the choropleth, the name→ISO lookup, the heatmap outlines) and the file is
+// ~250 KB, so each of them holding its own fetch was a download per map mode.
+let countriesGeoJsonPromise = null;
+function loadCountriesGeoJson() {
+  if (!countriesGeoJsonPromise) {
+    countriesGeoJsonPromise = fetch("/static/countries.geojson").then((r) => r.json());
+  }
+  return countriesGeoJsonPromise;
+}
+
 // Build the country choropleth layer once (fetches boundaries + ratings).
 async function loadCountryLayer() {
   if (countryLayer) return countryLayer;
   const [geo, ratings] = await Promise.all([
-    fetch("/static/countries.geojson").then((r) => r.json()),
+    loadCountriesGeoJson(),
     fetch("/country_ratings.json").then((r) => (r.ok ? r.json() : {})).catch(() => ({})),
   ]);
   countryRatings = ratings;
@@ -893,7 +973,7 @@ let countryCcByName = null;
 async function getCountryCc(name) {
   try {
     if (!countryCcByName) {
-      const geo = await fetch("/static/countries.geojson").then((r) => r.json());
+      const geo = await loadCountriesGeoJson();
       countryCcByName = {};
       for (const f of geo.features) countryCcByName[f.properties.name] = f.properties.cc;
     }
@@ -2072,6 +2152,14 @@ function setupEventListeners() {
   // so spot markers and routes always draw on top of it.
   let heatmapPane = map.createPane("heatmap");
   heatmapPane.style.zIndex = 350;
+
+  // Country/state outlines drawn over the heatmap (see loadHeatmapBorderLayer).
+  // Directly above the heatmap image (350) and below everything else, so the lines
+  // read the heatmap without ever covering a marker. Nothing here is clickable —
+  // pointer-events off, or the canvas would swallow taps meant for the map.
+  let bordersPane = map.createPane("heatmapborders");
+  bordersPane.style.zIndex = 360;
+  bordersPane.style.pointerEvents = "none";
 
   // Country-choropleth pane. Sits above the default overlay pane (z 400) so its
   // SVG paths receive clicks — the map uses preferCanvas, and an empty overlay
