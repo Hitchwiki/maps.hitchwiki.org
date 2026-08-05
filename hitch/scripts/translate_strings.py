@@ -140,6 +140,9 @@ SOURCE_STRINGS = [
     "Loading from Hitchwiki…",
     "No comments/ride info.",
     "No description available.",
+    # Shown above the spot pane's ride list when a ride-level filter hid some of them.
+    "No ride here matches your filters (of {total}).",
+    "Showing {shown} of {total} rides that match your filters.",
     "No Hitchwiki summary could be loaded for {name}.",
     "Normal",
     "No summary text available for {name}.",

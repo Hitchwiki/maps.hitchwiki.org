@@ -1438,6 +1438,17 @@ body.inr-picking .event-marker {
   font-size: 24px;
   color: #888;
 }
+/* Why this spot is showing fewer rides than its marker counted. Shown only when a
+   filter actually hid something, so it reads as an explanation rather than a label. */
+.spot-filter-note {
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #eef4fd;
+  border: 1px solid #cfe0fa;
+  font-size: 12px;
+  color: #40536b;
+}
 .sr-only {
   position: absolute;
   width: 1px;

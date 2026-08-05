@@ -111,13 +111,40 @@ def spot_id_for(lat, lon):
     return f"{round(float(lat), 5):.5f}_{round(float(lon), 5):.5f}"
 
 
+def vehicle_kind(mode_of_transportation):
+    """The vehicle a ride was taken in, or None. Twin of show.py's get_vehicle_kind."""
+    if isinstance(mode_of_transportation, dict):
+        return mode_of_transportation.get("kind") or None
+    return None
+
+
+def signal_methods(signals):
+    """Unique signal methods used on a ride (["thumb", "sign"]), or None.
+
+    Twin of show.py's get_signal_methods — order of first appearance, deduplicated.
+    """
+    if not isinstance(signals, list):
+        return None
+    seen = []
+    for approach in signals:
+        if not isinstance(approach, dict):
+            continue
+        for method in approach.get("methods") or []:
+            if method and method not in seen:
+                seen.append(method)
+    return seen or None
+
+
 def ride_map_entry(ride, images=None):
     """One /pending_rides.json entry, or None when the ride does not belong on the map.
 
     `ride` is any object with the RideEvent columns (`d`, `stops`, `hitchhikers`,
-    `comment`, `rating`, `submission_time`). The keys match what show.py writes into
-    rides/by-spot/<id>.json plus the marker fields from spots.json, so map.js can feed
-    the entry straight into the paths that already render both.
+    `comment`, `rating`, `submission_time`, `mode_of_transportation`, `signals`). The
+    keys match what show.py writes into rides/by-spot/<id>.json plus the marker fields
+    from spots.json, so map.js can feed the entry straight into the paths that already
+    render both. Attributes are read directly rather than through getattr defaults: a
+    caller whose shape drifts should fail here, not quietly report every ride as having
+    recorded no vehicle.
 
     `images` is the ride's photo URLs, passed in rather than looked up here so the
     caller can batch one query for the whole pending set.
@@ -138,6 +165,8 @@ def ride_map_entry(ride, images=None):
     distance = None
     if None not in (dest_lat, dest_lon):
         distance = float(haversine_np(facts["pickup_lat"], facts["pickup_lon"], dest_lat, dest_lon))
+    vehicle = vehicle_kind(ride.mode_of_transportation)
+    methods = signal_methods(ride.signals)
     return {
         # The d tag, not the Nostr event id: show.py uses the d tag as a ride's `id` in
         # the per-spot files, and the spot pane links to /ride/<id>.
@@ -157,4 +186,8 @@ def ride_map_entry(ride, images=None):
         "arrival_datetime": facts["arrival_time"],
         # Omitted when there are none, matching the per-spot files show.py writes.
         **({"images": list(images)} if images else {}),
+        # Same two filter facts, omitted the same way, so the spot pane can decide
+        # about a pending ride with exactly the rules it applies to a generated one.
+        **({"vehicle_kind": vehicle} if vehicle else {}),
+        **({"signal_methods": methods} if methods else {}),
     }

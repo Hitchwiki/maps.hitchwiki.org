@@ -143,3 +143,42 @@ class TestExclusions:
         ride.stops[0].pop("waiting_duration")
         _add(app, ride)
         assert client.get("/pending_rides.json").get_json() == []
+
+
+class TestFilterFacts:
+    """The vehicle and signal method travel with a pending ride.
+
+    Without them the spot pane could not apply an active vehicle/signal filter to a ride
+    show.py has not picked up yet, so a just-logged ride would show through a filter that
+    excludes it — the one ride on the page the filter demonstrably got wrong.
+    """
+
+    def test_vehicle_and_signal_methods_are_included(self, app, client, dist):
+        _write_generated_at(dist)
+        ride = _ride("fresh", GENERATED_TS + 60)
+        ride.mode_of_transportation = {"kind": "truck"}
+        ride.signals = [{"methods": ["thumb", "sign"]}, {"methods": ["thumb"]}]
+        _add(app, ride)
+        entry = client.get("/pending_rides.json").get_json()[0]
+        assert entry["vehicle_kind"] == "truck"
+        # Deduplicated, in order of first appearance — same as show.py's column.
+        assert entry["signal_methods"] == ["thumb", "sign"]
+
+    def test_they_are_omitted_when_the_ride_records_neither(self, app, client, dist):
+        # Omitted rather than null, matching the per-spot files: "absent" and "not
+        # recorded" are the same thing here, and the client already reads them that way.
+        _write_generated_at(dist)
+        _add(app, _ride("fresh", GENERATED_TS + 60))
+        entry = client.get("/pending_rides.json").get_json()[0]
+        assert "vehicle_kind" not in entry
+        assert "signal_methods" not in entry
+
+    def test_malformed_values_read_as_not_recorded(self, app, client, dist):
+        _write_generated_at(dist)
+        ride = _ride("fresh", GENERATED_TS + 60)
+        ride.mode_of_transportation = "car"  # a string where the standard has an object
+        ride.signals = [{"methods": []}, {}]
+        _add(app, ride)
+        entry = client.get("/pending_rides.json").get_json()[0]
+        assert "vehicle_kind" not in entry
+        assert "signal_methods" not in entry

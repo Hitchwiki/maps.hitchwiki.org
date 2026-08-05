@@ -1247,6 +1247,14 @@ for r in rides_data:
             "submission_time": r["submission_time"],
             "ride_datetime": r["ride_datetime"],
             "arrival_datetime": r["arrival_datetime"],
+            # The two filter-pane facts the pane can't otherwise see: with them here it
+            # can hide the rides an active vehicle/signal filter excludes, using only its
+            # own data (map.js buildRideFilter) instead of the multi-MB rides index.
+            # Omitted when absent, like images above: only ~2% of rides record a vehicle
+            # and ~20% a signal method, so shipping nulls would grow every one of the
+            # ~35k files for nothing.
+            **({"vehicle_kind": r["vehicle_kind"]} if r.get("vehicle_kind") else {}),
+            **({"signal_methods": r["signal_methods"]} if r.get("signal_methods") else {}),
             "no_ride": r["no_ride"],
         }
     )

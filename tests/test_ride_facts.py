@@ -112,6 +112,9 @@ class TestRideMapEntry:
             comment="great ride",
             rating=4,
             submission_time="2026-07-02T16:35:00",
+            # The spot pane filters on these two, so they travel with a pending ride.
+            mode_of_transportation=None,
+            signals=None,
         )
         fields.update(overrides)
         return SimpleNamespace(**fields)
@@ -153,6 +156,32 @@ class TestRideMapEntry:
         # field almost no ride has.
         assert "images" not in ride_map_entry(self._ride())
         assert "images" not in ride_map_entry(self._ride(), [])
+
+    def test_the_vehicle_and_signal_the_spot_pane_filters_on_travel_along(self):
+        # Without them the pane could not apply a vehicle/signal filter to a ride
+        # show.py has not picked up yet, and that one ride would show through a filter
+        # that excludes it.
+        entry = ride_map_entry(
+            self._ride(
+                mode_of_transportation={"kind": "truck"},
+                signals=[{"methods": ["thumb", "sign"]}, {"methods": ["thumb"]}],
+            )
+        )
+        assert entry["vehicle_kind"] == "truck"
+        # Deduplicated in order of first appearance, like show.py's column.
+        assert entry["signal_methods"] == ["thumb", "sign"]
+
+    def test_an_unrecorded_vehicle_or_signal_is_omitted_not_null(self):
+        # Same convention as images above, and the one map.js reads: a key that isn't
+        # there means "not recorded", so nulls would be payload for nothing.
+        entry = ride_map_entry(self._ride())
+        assert "vehicle_kind" not in entry
+        assert "signal_methods" not in entry
+        # Malformed values (a bare string where the standard has an object, an approach
+        # with no methods) read as not recorded rather than raising.
+        entry = ride_map_entry(self._ride(mode_of_transportation="car", signals=[{"methods": []}, {}]))
+        assert "vehicle_kind" not in entry
+        assert "signal_methods" not in entry
 
     def test_a_ride_with_no_pickup_coordinates_cannot_be_placed(self):
         assert ride_map_entry(self._ride(stops=[])) is None

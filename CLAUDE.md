@@ -88,6 +88,17 @@ Every ride date the site displays is prefixed with a localized weekday abbreviat
 - **The weekday filter keys on `rd ?? t`** in `rides_index.json` — the ride's own datetime, falling back to its submission time, which is exactly the rule the card's printed date follows, so the filter always agrees with what you see. Keying on `rd` alone would be purer but hides ~87% of rides (only ~10k of 74k records carry a ride datetime).
 - The picker's option labels come from the weekday table, and the grouped options are written as ranges of abbreviations ("Mo.–Fr.", "сб–вс") so they need no translated string. Only the field label `t("Day of week")` is translated — **not** "Weekday", which every model renders as *workday* (Будний день / 工作日 / giorno feriale), the opposite of the weekend.
 
+### Filters reach the spot pane, not just the markers
+A filter that describes a *ride* also decides which rides the open spot pane lists. A spot survives a "Saturdays only" filter because *some* ride there matched; listing its Tuesday rides next to that one answers a question nobody asked.
+
+- **One predicate, `map.js` `buildRideFilter()`**, is the single owner of "does this ride match": user, vehicle, signal method, ride-date range, weekday, comment search, min distance, Last 24h. Returns `null` when nothing is active, so callers skip the pass. Three callers — `applyParams` (which spots stay on the map), `applyRideFilters` (`#insights`), `applySpotRideFilter` (the pane). They used to be three near-copies that had already drifted.
+- **`buildRideFilter({attributesOnly: true})`** is what `applyParams` uses. It drops min-distance and Last-24h, which that path answers at *marker* level instead (against the spot's whole destination list, and its newest ride) — keep it that way or spot selection changes.
+- **It takes both ride shapes.** `rides_index.json` is short-keyed (`u`/`v`/`m`/`km`/`c`/`rd`/`t`), the per-spot files and `/pending_rides.json` are not (`hitchhiker_name`/`vehicle_kind`/…). The `rideUser`/`rideVehicle`/… accessors are the only place that knows both names; they test `undefined`, not null, because the index always carries its keys while the per-spot files omit sparse ones. Accessors rather than one normalised object on purpose: the predicate runs over all ~74k index entries on every keystroke in the search box.
+- **Spot-level filters never hide a ride in the pane** (min rides per spot, min rating, official spot, car pooling, gas station) — they aren't facts about a ride, and the marker already passed them.
+- **The summary is recomputed from the filtered subset** (`spotAverages`), because a filtered histogram under an unfiltered average is two different claims about one spot. The marker's own `_data` keeps the unfiltered values; the filtered ones go into a throwaway copy. `_data.allRides` holds everything fetched, so clearing a filter puts rides *back*.
+- `applyParams` ends by calling `refreshOpenSpotRides()` — filters can be changed with a pane open (on `#insights` the pane is mounted right above the charts), and both branches must re-derive it.
+- Known asymmetry: the map's comment search runs on the index's 200-char excerpt, the pane's on the whole comment, so a needle past that cut matches in the pane but not on the map. That's the right way round for a search box.
+
 ### Key Models
 `hitch/models.py` defines ~15 models; the most relevant:
 - **RideEvent**: Stores Nostr ride events with JSON content and extracted columns
@@ -404,6 +415,7 @@ The `show.py` script runs every 10 minutes and generates map data files from the
    - One JSON file per spot, written under `dist/rides/by-spot/`
    - Shape: `{"spot": {name, wait, distance, osm_id, car_pooling, hitchwiki_article, hitchwiki_map}, "rides": [{id, rating, wait, comment, hitchhiker_name, submission_time, ride_datetime}, ...]}` — `spot` holds the click-time info slimmed out of spots.json (keys omitted when absent). `name` is the spot's display name (see `spot_names.py`); it lives here rather than in `spots.json` because ~30k name strings would add ~1 MB to the file every visitor downloads on map load
    - Fetched lazily by the frontend only when a marker is clicked (`map.js` handleMarkerClick merges `spot` into the marker data and re-renders the summary)
+   - Each ride also carries `distance`, `arrival_datetime`, `no_ride`, and — omitted when the ride recorded neither, like `images` — `vehicle_kind` / `signal_methods`. Those last two exist so the spot pane can apply a vehicle or signal filter from its own data (see the filter section below) instead of pulling the multi-MB rides index; only ~2% of rides record a vehicle and ~20% a signal method, so shipping nulls would grow all ~37k files for nothing
    - The `by-spot` directory is wiped and rewritten on each `show.py` run so deleted spots don't leave stale files
 
 4. **`spots_recent.json`** - Latest 1000 rides

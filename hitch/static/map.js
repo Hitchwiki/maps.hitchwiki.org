@@ -2623,10 +2623,14 @@ function summaryText(data, hists = { wait: null, distance: null }) {
 
   const wait = !data.wait || Number.isNaN(data.wait) ? "-" : tr("{n} min", { n: data.wait.toFixed(0) });
   const distance = !data.distance || Number.isNaN(data.distance) ? "-" : formatDistance(data.distance);
+  // "-" like the two above rather than the bare value: with a filter active the subset
+  // may contain no rated ride at all, and `undefined.toFixed` / a printed "undefined"
+  // is not an answer.
+  const rating = !data.rating || Number.isNaN(data.rating) ? "-" : data.rating.toFixed(0);
 
   // Lines are <div>s rather than <br>-separated text: each histogram is a block
   // element, and a <br> after one would open an empty line under the chart.
-  return `<div>${tr("Rating: {rating}/5", { rating: data.rating && data.rating.toFixed(0) })}</div>
+  return `<div>${tr("Rating: {rating}/5", { rating })}</div>
     <div>${tr("Waiting time: {wait}", { wait })}</div>
     ${spotHistogramMarkup(hists.wait, "spot-wait-hist", "min")}
     <div>${tr("Ride distance: {distance}", { distance })}</div>
@@ -2694,7 +2698,10 @@ async function handleMarkerClick(marker, point, e) {
     return tb - ta;
   });
 
-  marker.options._data.rides = spotRides;
+  // Kept unfiltered: applySpotRideFilter re-derives the visible subset from this every
+  // time the filters change, and a spot pane left open across a filter change must be
+  // able to get rides *back*, not just lose them.
+  marker.options._data.allRides = spotRides;
 
   // The spot's name arrives with this fetch, not with spots.json. Guard on the pane
   // still showing this marker: clicking a second spot while the first is in flight
@@ -2707,17 +2714,59 @@ async function handleMarkerClick(marker, point, e) {
     $$("#share-spot-btn").dataset.shareTitle = `${spotName} – Hitchwiki Maps`;
   }
 
-  // Re-render the summary now that the fetched spot details and rides are merged in
-  // (the first render in markerClick only had the slim spots.json fields, so it could
-  // show the averages but not the distributions).
-  renderSpotSummary(marker.options._data);
+  // Renders the summary (now that the fetched spot details and rides are merged in —
+  // the first render in markerClick only had the slim spots.json fields, so it could
+  // show the averages but not the distributions), the photos and the ride list.
+  applySpotRideFilter(marker);
+}
 
-  // Update rides content now that the fetch is complete
-  renderSpotPhotos(spotRides);
-  $$("#spot-text").innerHTML = renderRideCards(spotRides);
-  if (spotRides.length === 0 && (!marker.options._data.distance || Number.isNaN(marker.options._data.distance)))
+// Which of the open spot's rides the pane shows, and everything drawn from them.
+//
+// A ride-level filter that let this spot onto the map did so because *some* ride here
+// matched; listing the rest alongside it answers a question nobody asked. So the pane
+// lists only the matching rides — and the summary above them is recomputed from the
+// same subset, because a filtered histogram under an unfiltered average would be two
+// different claims about one spot. Spot-level filters (min rides, min rating, official
+// spot, gas station) are not ride facts and never hide a ride here.
+function applySpotRideFilter(marker) {
+  const data = marker.options._data;
+  const all = data.allRides || [];
+  const rideFilter = buildRideFilter();
+  const shown = rideFilter ? all.filter(rideFilter) : all;
+  data.rides = shown;
+
+  // The per-spot file's averages are the server's, over every ride here; once a filter
+  // narrows the set they describe rides the pane is no longer showing. `data` itself is
+  // the marker's own state and must keep the unfiltered values for the next open.
+  const view = rideFilter ? { ...data, ...spotAverages(shown) } : data;
+  renderSpotSummary(view);
+  renderSpotPhotos(shown);
+
+  const hidden = all.length - shown.length;
+  const note = hidden > 0 ? `<div class="spot-filter-note">${spotFilterNote(shown.length, all.length)}</div>` : "";
+  $$("#spot-text").innerHTML = note + renderRideCards(shown);
+  // "No comments/ride info" is about the spot having nothing to say. A spot whose rides
+  // were all filtered out has plenty to say — the note above already explains itself.
+  if (all.length === 0 && (!data.distance || Number.isNaN(data.distance)))
     $$("#extra-text").innerHTML = tr("No comments/ride info.");
   else $$("#extra-text").innerHTML = "";
+}
+
+function spotFilterNote(shown, total) {
+  if (shown === 0) return tr("No ride here matches your filters (of {total}).", { total });
+  return tr("Showing {shown} of {total} rides that match your filters.", { shown, total });
+}
+
+// Mean rating / waiting time / distance over a set of rides, in the shape summaryText
+// reads them. Only used when a filter is active — unfiltered, the per-spot file's
+// server-computed averages stay authoritative. A stat no ride in the subset recorded
+// comes back null, which summaryText prints as "-" rather than inventing a zero.
+function spotAverages(rides) {
+  const mean = (key) => {
+    const values = rides.map((r) => r[key]).filter((v) => typeof v === "number" && !Number.isNaN(v));
+    return values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
+  };
+  return { rating: mean("rating"), wait: mean("wait"), distance: mean("distance") };
 }
 
 function markerClick(marker) {
@@ -3598,14 +3647,137 @@ function selectedWeekdays() {
   return i < 0 ? null : new Set([i]);
 }
 
-// The weekday of a rides_index entry, or null when it carries no usable date.
-// Read off `rd` (when the ride happened) falling back to `t` (when it was logged) —
-// the same rule the ride card's date follows, so the filter always agrees with the
-// date printed on the cards. Keying on `rd` alone would be purer but would hide 87%
-// of rides, since only a minority of records carry a ride datetime at all.
-function rideWeekday(ride) {
-  const ms = ride.rd != null ? ride.rd : ride.t;
+// ---------------------------------------------------------------------------
+// Ride-level filters
+//
+// A filter that describes a *ride* — who logged it, what it was, when it happened —
+// answers two questions: which spots stay on the map, and which rides the open spot
+// pane lists. Both come from the one predicate below, or a spot would survive a
+// "Saturdays only" filter and then show you its Tuesday rides.
+// ---------------------------------------------------------------------------
+
+// The rides in a spot pane (rides/by-spot/<id>.json and /pending_rides.json) and the
+// entries in rides_index.json describe the same rides under different key names — the
+// index is short-keyed because every visitor downloads it. These accessors are the one
+// place that knows both names, so the predicate below doesn't care which shape it was
+// handed. Written as accessors rather than one normalising object because the predicate
+// runs over all ~74k index entries on every keystroke in the search box: each check
+// then costs only the field it actually reads, and nothing is allocated per ride.
+//
+// Tested on `undefined`, not null: the index always carries its keys (null when the
+// ride lacks the fact), while the per-spot files omit the sparse ones entirely.
+function rideUser(r) {
+  return r.u !== undefined ? r.u : r.hitchhiker_name;
+}
+function rideVehicle(r) {
+  return r.v !== undefined ? r.v : r.vehicle_kind;
+}
+function rideMethods(r) {
+  return r.m !== undefined ? r.m : r.signal_methods;
+}
+function rideKm(r) {
+  return r.km !== undefined ? r.km : r.distance;
+}
+// The index ships a 200-char excerpt, the per-spot file the whole comment, so a needle
+// past that cut matches in the pane but not on the map. Erring towards showing the ride
+// is the right way round for a search box.
+function rideComment(r) {
+  return r.c !== undefined ? r.c : r.comment;
+}
+// Epoch ms from either an already-parsed index timestamp or an ISO string; null when
+// the ride has no such time.
+function rideStampMs(v) {
+  if (typeof v === "number") return v;
+  if (!v) return null;
+  const ms = Date.parse(v);
+  return Number.isNaN(ms) ? null : ms;
+}
+function rideDatetimeMs(r) {
+  return rideStampMs(r.rd !== undefined ? r.rd : r.ride_datetime);
+}
+function rideSubmittedMs(r) {
+  return rideStampMs(r.t !== undefined ? r.t : r.submission_time);
+}
+
+// The weekday a ride counts as, or null when it carries no usable date. Read off the
+// ride's own datetime, falling back to when it was logged — the same rule the ride
+// card's printed date follows, so the filter always agrees with what you see. Keying
+// on the ride datetime alone would be purer but would hide 87% of rides, since only a
+// minority of records carry one at all.
+function rideWeekday(r) {
+  const ms = rideDatetimeMs(r) != null ? rideDatetimeMs(r) : rideSubmittedMs(r);
   return ms == null ? null : weekdayIndex(new Date(ms));
+}
+
+// One predicate for every filter that describes the ride itself, or null when none of
+// them is active (so callers can skip the work entirely rather than filter by a
+// tautology). MediaWiki-style username match: only the first letter is
+// case-insensitive, the rest matches as typed.
+//
+// `attributesOnly` leaves out min-distance and Last-24h, which applyParams answers at
+// marker level instead — against the spot's whole destination list and its newest
+// ride — so that path keeps choosing spots exactly as it did before.
+function buildRideFilter({ attributesOnly = false } = {}) {
+  const normalizeFirstLetter = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+  const username = userFilter.value ? normalizeFirstLetter(userFilter.value) : null;
+  const wantedKind = vehicleFilter.value || null;
+  const wantedMethod = methodFilter.value || null;
+  const minMs = minDateFilter.value ? Date.parse(minDateFilter.value + "T00:00:00Z") : null;
+  // The max bound covers the end of its day so a user-entered max date is inclusive.
+  const maxMs = maxDateFilter.value ? Date.parse(maxDateFilter.value + "T23:59:59.999Z") : null;
+  const wantedWeekdays = selectedWeekdays();
+  const commentNeedle = textFilter.value ? textFilter.value.toLowerCase() : null;
+  // The box is typed in the user's unit; ride distances are always km, so convert
+  // before comparing.
+  const minKm = !attributesOnly && distanceFilter.value ? fromDisplayDistance(parseFloat(distanceFilter.value)) : null;
+  const recentCutoffMs = !attributesOnly && recentToggle.checked ? Date.now() - 24 * 60 * 60 * 1000 : null;
+
+  if (
+    !username && !wantedKind && !wantedMethod && minMs == null && maxMs == null &&
+    !wantedWeekdays && !commentNeedle && minKm == null && recentCutoffMs == null
+  ) {
+    return null;
+  }
+
+  return (ride) => {
+    if (username) {
+      const user = rideUser(ride);
+      if (!(user && normalizeFirstLetter(user).includes(username))) return false;
+    }
+    // Treat rides with unspecified vehicle as cars, since most rides are cars.
+    if (wantedKind) {
+      const vehicle = rideVehicle(ride);
+      if (vehicle !== wantedKind && !(wantedKind === "car" && vehicle == null)) return false;
+    }
+    // Method filter: keep rides whose method list contains the selected method.
+    if (wantedMethod) {
+      const methods = rideMethods(ride);
+      if (!(Array.isArray(methods) && methods.includes(wantedMethod))) return false;
+    }
+    if (minMs != null || maxMs != null) {
+      const ms = rideDatetimeMs(ride);
+      if (ms == null) return false;
+      if (minMs != null && ms < minMs) return false;
+      if (maxMs != null && ms > maxMs) return false;
+    }
+    if (wantedWeekdays) {
+      const wd = rideWeekday(ride);
+      if (wd == null || !wantedWeekdays.has(wd)) return false;
+    }
+    if (commentNeedle) {
+      const comment = rideComment(ride);
+      if (!(comment && comment.toLowerCase().includes(commentNeedle))) return false;
+    }
+    if (minKm != null) {
+      const km = rideKm(ride);
+      if (!(km != null && km >= minKm)) return false;
+    }
+    if (recentCutoffMs != null) {
+      const submitted = rideSubmittedMs(ride);
+      if (!(submitted != null && submitted >= recentCutoffMs)) return false;
+    }
+    return true;
+  };
 }
 
 // Write several query parameters in ONE history entry and ONE navigate().
@@ -3871,50 +4043,11 @@ async function applyParams() {
     // and intersecting spot IDs would falsely match a spot when one ride
     // satisfies one filter and a *different* ride at the same spot satisfies
     // another.
-    const hasRideAttrFilter =
-      userFilter.value ||
-      vehicleFilter.value ||
-      methodFilter.value ||
-      minDateFilter.value ||
-      maxDateFilter.value ||
-      weekdayFilter.value ||
-      textFilter.value;
-    if (hasRideAttrFilter) {
+    const rideAttrFilter = buildRideFilter({ attributesOnly: true });
+    if (rideAttrFilter) {
       const rides = await loadRidesIndex();
-      // MediaWiki-style match: only the first letter is case-insensitive, rest matches as-is
-      const normalizeFirstLetter = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
-      const username = userFilter.value ? normalizeFirstLetter(userFilter.value) : null;
-      const wantedKind = vehicleFilter.value || null;
-      const wantedMethod = methodFilter.value || null;
-      const minMs = minDateFilter.value ? Date.parse(minDateFilter.value + "T00:00:00Z") : null;
-      // The max bound covers the end of its day so a user-entered max date is inclusive.
-      const maxMs = maxDateFilter.value ? Date.parse(maxDateFilter.value + "T23:59:59.999Z") : null;
-      const wantedWeekdays = selectedWeekdays();
-      // Comment search runs against the truncated excerpt (`c`) in rides_index.json,
-      // so matches deep in long comments may be missed.
-      const commentNeedle = textFilter.value ? textFilter.value.toLowerCase() : null;
-
       const matchingSpotIds = new Set(
-        rides
-          .filter(ride => {
-            if (username && !(ride.u && normalizeFirstLetter(ride.u).includes(username))) return false;
-            // Treat rides with unspecified vehicle as cars, since most rides are cars.
-            if (wantedKind && ride.v !== wantedKind && !(wantedKind === "car" && ride.v == null)) return false;
-            // Method filter: keep rides whose method list contains the selected method.
-            if (wantedMethod && !(Array.isArray(ride.m) && ride.m.includes(wantedMethod))) return false;
-            if (minMs != null || maxMs != null) {
-              if (ride.rd == null) return false;
-              if (minMs != null && ride.rd < minMs) return false;
-              if (maxMs != null && ride.rd > maxMs) return false;
-            }
-            if (wantedWeekdays) {
-              const wd = rideWeekday(ride);
-              if (wd == null || !wantedWeekdays.has(wd)) return false;
-            }
-            if (commentNeedle && !(ride.c && ride.c.toLowerCase().includes(commentNeedle))) return false;
-            return true;
-          })
-          .map(ride => ride.sid)
+        rides.filter(rideAttrFilter).map(ride => ride.sid)
       );
       filterMarkers = filterMarkers.filter(marker =>
         matchingSpotIds.has(marker.options.spotId)
@@ -4000,6 +4133,21 @@ async function applyParams() {
     // filters later counts as a fresh intent rather than a duplicate.
     clearTimeout(filterLogTimer);
     lastLoggedFilters = null;
+  }
+
+  // Filters can be changed with a spot pane open (on #insights the pane is mounted
+  // right above the charts), so the list behind it has to be re-derived here too —
+  // otherwise the map moves and the open spot keeps showing the previous selection.
+  // Both branches: clearing the filters must put the hidden rides back.
+  refreshOpenSpotRides();
+}
+
+// Re-apply the ride filter to whichever spot pane is open, if any. No-op before its
+// rides have been fetched — handleMarkerClick renders them once they land.
+function refreshOpenSpotRides() {
+  const marker = active && active[0];
+  if (marker && marker.options && marker.options._data && marker.options._data.allRides) {
+    applySpotRideFilter(marker);
   }
 }
 
@@ -4131,55 +4279,21 @@ const INSIGHTS_BAR_COLOR_TOP = "#4a9bff";
 const INSIGHTS_OUTLIER_STDEVS = 3;
 
 function applyRideFilters(rides) {
-  const normalizeFirstLetter = (s) =>
-    s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
-  const username = userFilter.value ? normalizeFirstLetter(userFilter.value) : null;
-  const wantedKind = vehicleFilter.value || null;
-  const wantedMethod = methodFilter.value || null;
-  const minMs = minDateFilter.value
-    ? Date.parse(minDateFilter.value + "T00:00:00Z")
-    : null;
-  const maxMs = maxDateFilter.value
-    ? Date.parse(maxDateFilter.value + "T23:59:59.999Z")
-    : null;
-  const wantedWeekdays = selectedWeekdays();
-  const commentNeedle = textFilter.value ? textFilter.value.toLowerCase() : null;
-  // The box is typed in the user's unit; ride.km is always km, so convert before comparing.
-  const minDistanceKm = distanceFilter.value ? fromDisplayDistance(parseFloat(distanceFilter.value)) : null;
   const minRides = minRidesFilter.value ? parseInt(minRidesFilter.value, 10) : null;
   const minRating = minRatingFilter.value ? parseFloat(minRatingFilter.value) : null;
-  const recentCutoffMs = recentToggle.checked
-    ? Date.now() - 24 * 60 * 60 * 1000
-    : null;
   const osmOnly = osmToggle.checked;
   const wikiOnly = hitchwikiToggle.checked;
   const cpOnly = carPoolingToggle.checked;
   const fuelOnly = fuelToggle.checked;
+  // Everything that can be decided about a ride on its own — the same predicate the
+  // map and the spot pane use, so all three describe one set of rides.
+  const rideFilter = buildRideFilter();
 
+  // The spot-presence flags are layered on here rather than in the shared predicate:
+  // they describe the ride's *spot*, so every ride at one spot answers alike, and the
+  // spot pane (whose marker already passed them) would only pay to re-check them.
   let filtered = rides.filter((ride) => {
-    if (username && !(ride.u && normalizeFirstLetter(ride.u).includes(username)))
-      return false;
-    // Match the map's vehicle filter: rides with no vehicle counted as cars.
-    if (wantedKind && ride.v !== wantedKind && !(wantedKind === "car" && ride.v == null))
-      return false;
-    // Method filter: keep rides whose method list contains the selected method.
-    if (wantedMethod && !(Array.isArray(ride.m) && ride.m.includes(wantedMethod)))
-      return false;
-    if (minMs != null || maxMs != null) {
-      if (ride.rd == null) return false;
-      if (minMs != null && ride.rd < minMs) return false;
-      if (maxMs != null && ride.rd > maxMs) return false;
-    }
-    if (wantedWeekdays) {
-      const wd = rideWeekday(ride);
-      if (wd == null || !wantedWeekdays.has(wd)) return false;
-    }
-    if (commentNeedle && !(ride.c && ride.c.toLowerCase().includes(commentNeedle)))
-      return false;
-    if (minDistanceKm != null && !(ride.km != null && ride.km >= minDistanceKm))
-      return false;
-    if (recentCutoffMs != null && !(ride.t != null && ride.t >= recentCutoffMs))
-      return false;
+    if (rideFilter && !rideFilter(ride)) return false;
     if (osmOnly && !ride.osm) return false;
     if (wikiOnly && !ride.wiki) return false;
     if (cpOnly && !ride.cp) return false;
