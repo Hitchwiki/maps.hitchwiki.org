@@ -266,6 +266,11 @@ SOURCE_STRINGS = [
     "reviews {license}",
     "Ride date from",
     "Ride date to",
+    # Label of the filter pane's weekday picker. Deliberately not "Weekday", which every
+    # model reads as "workday" (Будний день / 工作日 / giorno feriale) -- the opposite of
+    # the weekend, not "which day of the week". The option labels under it aren't here:
+    # they come from the CLDR tables in hitch/translations/weekdays.py.
+    "Day of week",
     "Ride distance",
     "Ride saved!",
     "Ride saved — thank you! We'd love to hear your thoughts: {link}.",

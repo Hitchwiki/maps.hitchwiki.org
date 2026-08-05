@@ -55,7 +55,7 @@
       {% for q in info.quotes %}
       <blockquote>
         “{{ q.text }}”<br>
-        <small>― {{ q.who }}{% if q.when %}, {{ q.when }}{% endif %} · <a href="{{ q.spot_url }}">{{ q.spot }}</a></small>
+        <small>― {{ q.who }}{% if q.when %}, {{ with_weekday(q.when) }}{% endif %} · <a href="{{ q.spot_url }}">{{ q.spot }}</a></small>
       </blockquote>
       {% endfor %}
       {% endif %}

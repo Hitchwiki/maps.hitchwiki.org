@@ -30,6 +30,34 @@ function tr(text, vars) {
   return s;
 }
 
+// --- Weekdays ---------------------------------------------------------------
+// Every ride date the site shows is prefixed with its weekday: which day of the
+// week a ride happened is a hitchhiking fact in its own right (a Sunday service
+// area is a different place than a Tuesday one), and nobody reads that off a bare
+// date. Both lists are Monday-first and come from the server (window.__WEEKDAYS__,
+// see client_weekdays_json in hitch/__init__.py) rather than from
+// toLocaleDateString: a server-rendered ride card and a client-rendered one sit on
+// the same page, and browser ICU data for the smaller languages this site speaks
+// (Georgian, Mongolian) is not something we can assume. English is the fallback for
+// a page that never injected the blob.
+const WEEKDAY_ABBR_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const WEEKDAY_NAMES_EN = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+function weekdayAbbrs() {
+  const w = window.__WEEKDAYS__;
+  return (w && w.abbr && w.abbr.length === 7) ? w.abbr : WEEKDAY_ABBR_EN;
+}
+
+function weekdayNames() {
+  const w = window.__WEEKDAYS__;
+  return (w && w.names && w.names.length === 7) ? w.names : WEEKDAY_NAMES_EN;
+}
+
+// JS weeks start on Sunday (getDay() === 0); the tables start on Monday.
+function weekdayIndex(date) {
+  return (date.getDay() + 6) % 7;
+}
+
 // --- Distance units -------------------------------------------------------
 // Every distance in the data (spots, rides, routing graph) is in kilometres; the user's
 // profile setting only changes how we render it. These helpers are global on purpose so
@@ -2272,6 +2300,9 @@ function setupFilterEventListeners() {
   maxDateFilter.addEventListener("change", () =>
     setQueryParameter("maxdate", maxDateFilter.value)
   );
+  weekdayFilter.addEventListener("change", () =>
+    setQueryParameter("weekday", weekdayFilter.value)
+  );
 }
 
 // Handle changes in the URL hash; used for initialization of the map
@@ -2377,14 +2408,18 @@ function formatRideDate(iso) {
   if (!iso) return "";
   const d = new Date(iso);
   if (isNaN(d)) return "";
-  return d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+  return weekdayAbbrs()[weekdayIndex(d)] + " " + d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 }
 
 function formatRideDateTime(iso) {
   if (!iso) return "";
   const d = new Date(iso);
   if (isNaN(d)) return "";
-  return d.toLocaleString(undefined, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  return (
+    weekdayAbbrs()[weekdayIndex(d)] +
+    " " +
+    d.toLocaleString(undefined, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+  );
 }
 
 function highlightStars(stars, upTo) {
@@ -3545,7 +3580,33 @@ const vehicleFilter = document.getElementById("vehicle-filter");
 const methodFilter = document.getElementById("method-filter");
 const minDateFilter = document.getElementById("min-date-filter");
 const maxDateFilter = document.getElementById("max-date-filter");
+const weekdayFilter = document.getElementById("weekday-filter");
 const clearFilters = document.getElementById("clear-filters");
+
+// Values of #weekday-filter, in the same Monday-first order as the weekday tables.
+// Stable English keys rather than indices so a shared ?weekday=sat link stays readable
+// and means the same day whatever language the recipient opens it in.
+const WEEKDAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+
+// The Monday-0 weekday indices the filter currently selects, or null when it's off.
+function selectedWeekdays() {
+  const v = weekdayFilter.value;
+  if (!v) return null;
+  if (v === "weekdays") return new Set([0, 1, 2, 3, 4]);
+  if (v === "weekend") return new Set([5, 6]);
+  const i = WEEKDAY_KEYS.indexOf(v);
+  return i < 0 ? null : new Set([i]);
+}
+
+// The weekday of a rides_index entry, or null when it carries no usable date.
+// Read off `rd` (when the ride happened) falling back to `t` (when it was logged) —
+// the same rule the ride card's date follows, so the filter always agrees with the
+// date printed on the cards. Keying on `rd` alone would be purer but would hide 87%
+// of rides, since only a minority of records carry a ride datetime at all.
+function rideWeekday(ride) {
+  const ms = ride.rd != null ? ride.rd : ride.t;
+  return ms == null ? null : weekdayIndex(new Date(ms));
+}
 
 // Write several query parameters in ONE history entry and ONE navigate().
 // Writing them one at a time makes the URL pass through a state that describes a
@@ -3779,6 +3840,7 @@ async function applyParams() {
   methodFilter.value = getQueryParameter("method") || "";
   minDateFilter.value = getQueryParameter("mindate") || "";
   maxDateFilter.value = getQueryParameter("maxdate") || "";
+  weekdayFilter.value = getQueryParameter("weekday") || "";
 
   if (
     recentToggle.checked ||
@@ -3794,7 +3856,8 @@ async function applyParams() {
     vehicleFilter.value ||
     methodFilter.value ||
     minDateFilter.value ||
-    maxDateFilter.value
+    maxDateFilter.value ||
+    weekdayFilter.value
   ) {
     let filterMarkers = distanceFilter.value
         ? destinationMarkers
@@ -3809,7 +3872,13 @@ async function applyParams() {
     // satisfies one filter and a *different* ride at the same spot satisfies
     // another.
     const hasRideAttrFilter =
-      userFilter.value || vehicleFilter.value || methodFilter.value || minDateFilter.value || maxDateFilter.value || textFilter.value;
+      userFilter.value ||
+      vehicleFilter.value ||
+      methodFilter.value ||
+      minDateFilter.value ||
+      maxDateFilter.value ||
+      weekdayFilter.value ||
+      textFilter.value;
     if (hasRideAttrFilter) {
       const rides = await loadRidesIndex();
       // MediaWiki-style match: only the first letter is case-insensitive, rest matches as-is
@@ -3820,6 +3889,7 @@ async function applyParams() {
       const minMs = minDateFilter.value ? Date.parse(minDateFilter.value + "T00:00:00Z") : null;
       // The max bound covers the end of its day so a user-entered max date is inclusive.
       const maxMs = maxDateFilter.value ? Date.parse(maxDateFilter.value + "T23:59:59.999Z") : null;
+      const wantedWeekdays = selectedWeekdays();
       // Comment search runs against the truncated excerpt (`c`) in rides_index.json,
       // so matches deep in long comments may be missed.
       const commentNeedle = textFilter.value ? textFilter.value.toLowerCase() : null;
@@ -3836,6 +3906,10 @@ async function applyParams() {
               if (ride.rd == null) return false;
               if (minMs != null && ride.rd < minMs) return false;
               if (maxMs != null && ride.rd > maxMs) return false;
+            }
+            if (wantedWeekdays) {
+              const wd = rideWeekday(ride);
+              if (wd == null || !wantedWeekdays.has(wd)) return false;
             }
             if (commentNeedle && !(ride.c && ride.c.toLowerCase().includes(commentNeedle))) return false;
             return true;
@@ -3914,6 +3988,7 @@ async function applyParams() {
         method: methodFilter.value,
         mindate: minDateFilter.value,
         maxdate: maxDateFilter.value,
+        weekday: weekdayFilter.value,
       },
       filterMarkers.length
     );
@@ -4067,6 +4142,7 @@ function applyRideFilters(rides) {
   const maxMs = maxDateFilter.value
     ? Date.parse(maxDateFilter.value + "T23:59:59.999Z")
     : null;
+  const wantedWeekdays = selectedWeekdays();
   const commentNeedle = textFilter.value ? textFilter.value.toLowerCase() : null;
   // The box is typed in the user's unit; ride.km is always km, so convert before comparing.
   const minDistanceKm = distanceFilter.value ? fromDisplayDistance(parseFloat(distanceFilter.value)) : null;
@@ -4093,6 +4169,10 @@ function applyRideFilters(rides) {
       if (ride.rd == null) return false;
       if (minMs != null && ride.rd < minMs) return false;
       if (maxMs != null && ride.rd > maxMs) return false;
+    }
+    if (wantedWeekdays) {
+      const wd = rideWeekday(ride);
+      if (wd == null || !wantedWeekdays.has(wd)) return false;
     }
     if (commentNeedle && !(ride.c && ride.c.toLowerCase().includes(commentNeedle)))
       return false;
@@ -4147,6 +4227,7 @@ function anyFilterActive() {
       methodFilter.value ||
       minDateFilter.value ||
       maxDateFilter.value ||
+      weekdayFilter.value ||
       recentToggle.checked ||
       osmToggle.checked ||
       carPoolingToggle.checked ||

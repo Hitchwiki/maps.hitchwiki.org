@@ -32,7 +32,7 @@ test("formatInsights survives a missing/empty insights object", () => {
 
 test("rideLabel extracts date, stars and trimmed comment", () => {
   const r = A.rideLabel({ created: "2026-07-01T12:00:00", rating: 4, comment: "  nice driver " });
-  assert.strictEqual(r.when, "2026-07-01");
+  assert.strictEqual(r.when, "Wed 2026-07-01");
   assert.strictEqual(r.stars, "★★★★");
   assert.strictEqual(r.comment, "nice driver");
 });
@@ -124,9 +124,9 @@ test("rideRoute labels a ride by where it went, degrading gracefully", () => {
 test("rideStats leads with the date, then wait and distance", () => {
   assert.deepStrictEqual(
     texts(A.rideStats({ created: "2026-07-28 12:00", wait_min: 45, distance_km: 138.9 })),
-    ["2026-07-28", "45 min", "139 km"]
+    ["Tue 2026-07-28", "45 min", "139 km"]
   );
-  assert.deepStrictEqual(texts(A.rideStats({ created: "2026-07-28 12:00" })), ["2026-07-28"]);
+  assert.deepStrictEqual(texts(A.rideStats({ created: "2026-07-28 12:00" })), ["Tue 2026-07-28"]);
 });
 
 test("flagEmoji maps an ISO alpha-2 code to regional indicators", () => {
@@ -150,10 +150,10 @@ test("rideRoute prefixes each place with its country flag", () => {
 });
 
 test("formatRideDate renders dd - month - yy hh:mm", () => {
-  assert.strictEqual(A.formatRideDate("2026-07-28 12:00"), "28 - July - 26 12:00");
-  assert.strictEqual(A.formatRideDate("2026-01-05T09:30:00Z"), "5 - January - 26 09:30");
+  assert.strictEqual(A.formatRideDate("2026-07-28 12:00"), "Tue 28 - July - 26 12:00");
+  assert.strictEqual(A.formatRideDate("2026-01-05T09:30:00Z"), "Mon 5 - January - 26 09:30");
   // Date only, no time component.
-  assert.strictEqual(A.formatRideDate("2026-12-31"), "31 - December - 26");
+  assert.strictEqual(A.formatRideDate("2026-12-31"), "Thu 31 - December - 26");
   // Garbage in, nothing out — never "NaN - undefined".
   assert.strictEqual(A.formatRideDate(""), "");
   assert.strictEqual(A.formatRideDate(null), "");
@@ -164,8 +164,8 @@ test("formatRideDate renders dd - month - yy hh:mm", () => {
 test("formatRideDate does not shift the day across timezones", () => {
   // new Date("2026-07-28 00:30") would be re-read in the browser's zone and could land on
   // the 27th. `created` is already local submission time, so it is parsed literally.
-  assert.strictEqual(A.formatRideDate("2026-07-28 00:30"), "28 - July - 26 00:30");
-  assert.strictEqual(A.formatRideDate("2026-07-28 23:45"), "28 - July - 26 23:45");
+  assert.strictEqual(A.formatRideDate("2026-07-28 00:30"), "Tue 28 - July - 26 00:30");
+  assert.strictEqual(A.formatRideDate("2026-07-28 23:45"), "Tue 28 - July - 26 23:45");
 });
 
 test("rideTitle falls back to the date when no place names exist yet", () => {
@@ -174,14 +174,14 @@ test("rideTitle falls back to the date when no place names exist yet", () => {
     "🇫🇷 Metzeral → 🇩🇪 Mitte"
   );
   // Not geocoded yet -> the date identifies the ride.
-  assert.strictEqual(A.rideTitle({ created: "2026-07-28 12:00" }), "28 - July - 26 12:00");
+  assert.strictEqual(A.rideTitle({ created: "2026-07-28 12:00" }), "Tue 28 - July - 26 12:00");
   // Neither -> a last-resort label, never an empty row.
   assert.strictEqual(A.rideTitle({}), "Unknown ride");
 });
 
 test("rideStats omits the date when the date is already the title", () => {
   const ride = { created: "2026-07-28 12:00", wait_min: 45, distance_km: 138.9 };
-  assert.deepStrictEqual(texts(A.rideStats(ride, true)), ["2026-07-28", "45 min", "139 km"]);
+  assert.deepStrictEqual(texts(A.rideStats(ride, true)), ["Tue 2026-07-28", "45 min", "139 km"]);
   // Date serving as the title -> don't repeat it below.
   assert.deepStrictEqual(texts(A.rideStats(ride, false)), ["45 min", "139 km"]);
 });
@@ -213,7 +213,7 @@ test("routeSegments falls back to the date when the origin isn't geocoded", () =
   // No place names yet: the date carries the row, and the arrow must not dangle.
   assert.deepStrictEqual(
     A.routeSegments({ created: "2026-07-28 12:00" }),
-    { start: "28 - July - 26 12:00", end: "", endKind: null }
+    { start: "Tue 28 - July - 26 12:00", end: "", endKind: null }
   );
   // Still flags a missing destination even without an origin name.
   assert.strictEqual(
@@ -236,7 +236,7 @@ test("rideViewUrl links every ride, editable or not", () => {
 test("rideStats tags wait as stopped (red) and ride time as going (green)", () => {
   const entries = A.rideStats({ created: "2026-07-28 12:00", wait_min: 45, ride_min: 140, distance_km: 138.9 });
   assert.deepStrictEqual(entries, [
-    { text: "2026-07-28", dot: null },
+    { text: "Tue 2026-07-28", dot: null },
     { text: "45 min", dot: "stopped" },
     { text: "2 h 20 m", dot: "going" },
     { text: "139 km", dot: null },

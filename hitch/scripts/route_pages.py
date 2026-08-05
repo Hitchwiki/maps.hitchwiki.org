@@ -52,6 +52,7 @@ from jinja2 import Environment, FileSystemLoader
 from hitch.helpers import get_dirs
 from hitch.scripts.repeatable_router import load_router
 from hitch.translations import SUPPORTED_LANGUAGES, t
+from hitch.translations.weekdays import with_weekday
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -309,6 +310,9 @@ def main():
     env.globals["t"] = t
     env.globals["g"] = g
     env.globals["SUPPORTED_LANGUAGES"] = SUPPORTED_LANGUAGES
+    # Quote dates carry their weekday, like every other ride date the site shows.
+    # This Environment is bare (see cities.py's), so app-registered globals aren't here.
+    env.globals["with_weekday"] = with_weekday
     template = env.get_template("route_template.html")
 
     out_dir = os.path.join(dist_dir, "route")

@@ -78,6 +78,10 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
 <script>
 window.__LANG__ = {{ g.lang|tojson }};
 window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
+// {abbr, names}, Monday first — the weekday prepended to every ride date the client
+// renders, and the labels of the weekday filter. Same table the server uses, so a
+// client-drawn ride card and a server-drawn one never disagree.
+window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
 </script>
 <script src="{{ asset_url('/static/map.js') }}"></script>
 <script src="{{ asset_url('/static/routing.js') }}"></script>
@@ -439,6 +443,12 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
                     <option value="prearranged">📅 {{ t("prearranged") }}</option>
                 </select>
             </label>
+        </div>
+        <!-- The "when" filters get their own row rather than a fifth slot next to
+             vehicle/method: the pane is only min(600px, 100vw - 32px) wide, and five
+             fields across leaves a native date picker too narrow to render its
+             "dd/mm/yyyy". (Below 500px a media query stacks every field anyway.) -->
+        <div class="filter-pane-row">
             <label class="filter-field">
                 <span>{{ t("Ride date from") }}</span>
                 <input id="min-date-filter" type="date" value="" />
@@ -446,6 +456,26 @@ window.__TRANSLATIONS__ = {{ client_translations_json()|safe }};
             <label class="filter-field">
                 <span>{{ t("Ride date to") }}</span>
                 <input id="max-date-filter" type="date" value="" />
+            </label>
+            <!-- Which day of the week the ride happened. A Sunday motorway and a Tuesday
+                 one are different places to stand, so "how does this spot do at the
+                 weekend" is a question the date range can't answer. The two grouped
+                 options come first because that is the split people actually ask about,
+                 and both are written as a range of localized weekday abbreviations
+                 ("Mo.–Fr.") rather than a translated word — that needs no new string in
+                 31 languages and says exactly which days are meant. Option values are
+                 stable English keys, so a shared ?weekday= link means the same day
+                 whatever language the recipient opens it in. -->
+            <label class="filter-field">
+                <span>{{ t("Day of week") }}</span>
+                <select id="weekday-filter">
+                    <option value="">{{ t("Any") }}</option>
+                    <option value="weekdays">{{ weekday_abbrs()[0] }}–{{ weekday_abbrs()[4] }}</option>
+                    <option value="weekend">{{ weekday_abbrs()[5] }}–{{ weekday_abbrs()[6] }}</option>
+                    {% for name in weekday_names() %}
+                    <option value="{{ ["mon", "tue", "wed", "thu", "fri", "sat", "sun"][loop.index0] }}">{{ name }}</option>
+                    {% endfor %}
+                </select>
             </label>
         </div>
         <div class="filter-pane-row filter-toggles">

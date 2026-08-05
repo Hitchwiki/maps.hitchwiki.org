@@ -25,6 +25,7 @@ from hitch.helpers import convert_km, current_distance_unit, distance_unit_label
 from hitch.models import Role, User
 from hitch.settings import config
 from hitch.translations import LANGUAGE_ENDONYMS, LANGUAGE_FLAGS, SUPPORTED_LANGUAGES, client_translations, t
+from hitch.translations.weekdays import weekday_abbrs, weekday_index, weekday_names, with_weekday
 
 baseDir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
@@ -109,6 +110,16 @@ def register_i18n(app):
     app.jinja_env.globals["SUPPORTED_LANGUAGES"] = SUPPORTED_LANGUAGES
     app.jinja_env.globals["LANGUAGE_ENDONYMS"] = LANGUAGE_ENDONYMS
     app.jinja_env.globals["LANGUAGE_FLAGS"] = LANGUAGE_FLAGS
+    # Every displayed ride date carries its weekday in front ("Fri 2026-08-01 11:32") --
+    # which day of the week a ride happened is a first-class hitchhiking fact (a Sunday
+    # motorway is a different place than a Tuesday one), so it should not need counting
+    # back from a date. The ride-card dicts store plain stamps, so the weekday is added
+    # at render time rather than baked in: show.py writes its cards once, from cron, for
+    # pages that are then rendered in all 31 languages.
+    app.jinja_env.globals["with_weekday"] = with_weekday
+    app.jinja_env.globals["weekday_names"] = weekday_names
+    app.jinja_env.globals["weekday_abbrs"] = weekday_abbrs
+    app.jinja_env.globals["weekday_index"] = weekday_index
 
     @app.template_global()
     def client_translations_json():
@@ -121,6 +132,16 @@ def register_i18n(app):
         the surrounding <script> tag.
         """
         return json.dumps(client_translations(), ensure_ascii=False).replace("</", "<\\/")
+
+    @app.template_global()
+    def client_weekdays_json():
+        """The current language's weekday names as a JSON literal, for map.js/account.js
+        (window.__WEEKDAYS__). Injected rather than left to toLocaleDateString() so a
+        client-rendered ride card prints the same weekday as the server-rendered card
+        beside it, on every browser -- ICU data for the smaller languages here (Georgian,
+        Mongolian) is not something we can assume. Same `</` guard as above."""
+        payload = {"abbr": list(weekday_abbrs()), "names": list(weekday_names())}
+        return json.dumps(payload, ensure_ascii=False).replace("</", "<\\/")
 
     # The only signal for which language to render: which blueprint registration
     # served the request (see register_blueprints -- main_bp and user_bp are each

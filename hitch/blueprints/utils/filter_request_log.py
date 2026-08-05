@@ -39,6 +39,7 @@ FILTER_FIELDS = [
     "method",
     "mindate",
     "maxdate",
+    "weekday",
 ]
 
 _HEADER = ["timestamp"] + FILTER_FIELDS + ["matches"]

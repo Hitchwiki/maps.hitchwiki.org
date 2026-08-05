@@ -23,8 +23,13 @@
    so right after a deploy the leaderboard is still being served cards written to the
    previous shape, and a missing key must render as "no value" rather than blow the page
    up. Zero is a real answer for both fields, so neither may be tested by truthiness. #}
+{# with_weekday() prepends the localized weekday abbreviation ("Fri 2026-08-01 11:32").
+   Which day of the week a ride happened is a hitchhiking fact in its own right — a
+   Sunday service area is a different place than a Tuesday one — and nobody counts that
+   back from a bare date. Done here rather than in the card dicts because show.py bakes
+   its cards once from cron, for pages that are then rendered in all 31 languages. #}
 {% set meta_bits = [
-     ride.when or ride.created,
+     with_weekday(ride.when or ride.created),
      t("{wait} min wait", wait=ride.wait_min) if (ride.wait_min is defined and ride.wait_min is not none) else none,
      format_distance(ride.distance_km) if (ride.distance_km is defined and ride.distance_km is not none) else none,
    ] | reject("none") | reject("equalto", "") | join(" · ") %}

@@ -56,8 +56,37 @@
     return T(n === 1 ? "{n} award earned" : "{n} awards earned", { n });
   }
 
+  // ── Weekdays ───────────────────────────────────────────────────────────────
+  // Every ride date here leads with its weekday, as everywhere else on the site:
+  // which day of the week a ride happened is a hitchhiking fact of its own, and a
+  // bare "2026-07-28" makes you count it out. The localized table is map.js's
+  // weekdayAbbrs() (fed by the server, see client_weekdays_json); English is the
+  // fallback for the standalone node tests, which load this module without map.js.
+  const WEEKDAY_ABBR_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+  // Derived from the y/m/d digits via Date.UTC, never from new Date(stamp): the stamp
+  // is already the ride's own local wall-clock time, and letting the browser reinterpret
+  // it against its own zone would shift the weekday for a ride near midnight. Same
+  // reason formatRideDate below parses by hand.
+  function weekdayAbbr(stamp) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(stamp || "");
+    if (!match) return "";
+    const d = new Date(Date.UTC(+match[1], +match[2] - 1, +match[3]));
+    // Reject an out-of-range date ("2026-13-01") rather than let it roll into next month.
+    if (isNaN(d) || d.getUTCMonth() !== +match[2] - 1) return "";
+    const table = typeof weekdayAbbrs === "function" ? weekdayAbbrs() : WEEKDAY_ABBR_EN;
+    // JS weeks start on Sunday (getUTCDay() === 0); the table starts on Monday.
+    return table[(d.getUTCDay() + 6) % 7];
+  }
+
+  // "2026-07-28" -> "Tue 2026-07-28". Unparseable stamps come back untouched.
+  function withWeekday(stamp) {
+    const abbr = weekdayAbbr(stamp);
+    return abbr ? abbr + " " + stamp : (stamp || "");
+  }
+
   function rideLabel(ride) {
-    const when = (ride.when || ride.created || "").slice(0, 10);
+    const when = withWeekday((ride.when || ride.created || "").slice(0, 10));
     const stars = ride.rating ? "★".repeat(ride.rating) : "";
     return { when: when, stars: stars, comment: (ride.comment || "").trim() };
   }
@@ -77,7 +106,8 @@
     const month = MONTHS[Number(match[2]) - 1];
     if (!month) return "";
     const stamp = match[1].slice(2) + (match[4] ? " " + match[4] + ":" + match[5] : "");
-    return Number(match[3]) + " - " + T(month) + " - " + stamp;
+    const abbr = weekdayAbbr(created);
+    return (abbr ? abbr + " " : "") + Number(match[3]) + " - " + T(month) + " - " + stamp;
   }
 
   // What identifies a ride in the list. Place names when we have them; otherwise the
@@ -122,7 +152,7 @@
   // misleading "0 min" / "0 km". A real zero is data, though, and still renders.
   function rideStats(ride, includeDate) {
     const out = [];
-    const when = includeDate === false ? "" : (ride.when || ride.created || "").slice(0, 10);
+    const when = includeDate === false ? "" : withWeekday((ride.when || ride.created || "").slice(0, 10));
     if (when) out.push({ text: when, dot: null });
     if (ride.wait_min != null) out.push({ text: durationText(ride.wait_min), dot: "stopped" });
     if (ride.ride_min != null) out.push({ text: durationText(ride.ride_min), dot: "going" });
@@ -621,6 +651,8 @@
     rideRoute: rideRoute,
     flagEmoji: flagEmoji,
     formatRideDate: formatRideDate,
+    weekdayAbbr: weekdayAbbr,
+    withWeekday: withWeekday,
     rideTitle: rideTitle,
     routeSegments: routeSegments,
     rideViewUrl: rideViewUrl,
