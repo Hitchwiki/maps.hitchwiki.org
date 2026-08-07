@@ -11,6 +11,7 @@ import math
 import re
 
 from hitch.helpers import haversine_np
+from hitch.usernames import canonical_username
 
 # Only the PT<n>M form our own submit path writes. Anything else (a foreign source
 # using hours, a malformed value) reads as "no recorded wait" rather than a wrong
@@ -80,14 +81,17 @@ def hitchhiker_name(hitchhikers):
     """Display name for a ride: the first hitchhiker's nickname, else "Anonymous".
 
     Mirrors get_hitchhiker_name in show.py — the literal string "Anonymous" is what the
-    frontend tests against to decide whether to link to a profile.
+    frontend tests against to decide whether to link to a profile — including its
+    canonicalisation onto the registered account's own spelling, so a ride the map is
+    showing live from the DB doesn't name its author differently from the same ride once
+    show.py has written it into the generated files.
     """
     if isinstance(hitchhikers, list) and hitchhikers:
         first = hitchhikers[0]
         if isinstance(first, dict):
             nickname = first.get("nickname")
             if isinstance(nickname, str) and nickname.strip():
-                return nickname
+                return canonical_username(nickname)
     return "Anonymous"
 
 

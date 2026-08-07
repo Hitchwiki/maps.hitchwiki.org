@@ -14,6 +14,7 @@ from flask_security import login_user, logout_user
 from hitch.blueprints.utils.notifications import ensure_welcome_notification
 from hitch.blueprints.utils.send_welcome_email import maybe_send_welcome_email
 from hitch.extensions import db, security
+from hitch.usernames import find_user_ci
 
 oauth_bp = Blueprint("oauth", __name__)
 
@@ -155,8 +156,10 @@ def _handle_callback(code):
     if not hitchwiki_username:
         return "Login failed: Hitchwiki did not return a username.", 400
 
-    # Find or create local user
-    user = security.datastore.find_user(username=hitchwiki_username)
+    # Find or create local user. Matched case-insensitively (hitch/usernames.py): an
+    # account created here from an earlier import or a differently-cased spelling is the
+    # same person, and an exact match would silently create them a second, empty account.
+    user = find_user_ci(hitchwiki_username)
     if user is None:
         user = security.datastore.create_user(
             username=hitchwiki_username,

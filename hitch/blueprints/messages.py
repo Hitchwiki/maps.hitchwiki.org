@@ -12,8 +12,9 @@ from sqlalchemy import and_, or_
 
 from hitch.blueprints.utils.notifications import notify_new_message
 from hitch.blueprints.utils.send_new_message_email import send_new_message_email
-from hitch.extensions import db, security
+from hitch.extensions import db
 from hitch.models import Message, Notification, User
+from hitch.usernames import find_user_ci
 
 messages_bp = Blueprint("messages", __name__)
 
@@ -85,7 +86,7 @@ def thread(username):
     if current_user.is_anonymous:
         return redirect("/login")
 
-    other = security.datastore.find_user(username=username)
+    other = find_user_ci(username)
     if other is None:
         return redirect("/messages")
     # A conversation with yourself is meaningless.
@@ -124,7 +125,7 @@ def send(username):
     if current_user.is_anonymous:
         return jsonify({"error": "login_required"}), 401
 
-    other = security.datastore.find_user(username=username)
+    other = find_user_ci(username)
     if other is None:
         return jsonify({"error": "user_not_found"}), 404
     if other.id == current_user.id:
@@ -171,7 +172,7 @@ def poll(username):
     """
     if current_user.is_anonymous:
         return jsonify({"error": "login_required"}), 401
-    other = security.datastore.find_user(username=username)
+    other = find_user_ci(username)
     if other is None:
         return jsonify({"error": "user_not_found"}), 404
 

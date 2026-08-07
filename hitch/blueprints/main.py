@@ -98,6 +98,7 @@ from hitch.models import (
 from hitch.scripts.nostr_ride_parsing import parse_post_to_ride_fields
 from hitch.translations import t
 from hitch.translations.weekdays import weekday_names
+from hitch.usernames import find_user_ci, same_username, username_key
 
 main_bp = Blueprint("main", __name__)
 
@@ -123,14 +124,18 @@ VEHICLE_KIND_CHOICES = [(k, VEHICLE_KIND_EMOJIS[k]) for k in ALLOWED_VEHICLE_KIN
 
 
 def _user_is_hitchhiker(ride, user):
-    """Check if the current user is listed among this ride's hitchhikers, whatever its source."""
+    """Check if the current user is listed among this ride's hitchhikers, whatever its source.
+
+    Names are compared case-insensitively (hitch/usernames.py) — the rides someone imported
+    from another platform carry the spelling they used there, and an exact match would lock
+    them out of editing their own ride history.
+    """
     if user.is_anonymous:
         return False
 
     content = ride.content or {}
     hitchhikers = content.get("hitchhikers", [])
-    user_nicknames = [hitchhiker.get("nickname") for hitchhiker in hitchhikers]
-    return user.username in user_nicknames
+    return any(same_username(user.username, h.get("nickname")) for h in hitchhikers)
 
 
 def _user_owns_ride(ride, user):
@@ -220,10 +225,11 @@ def _ride_owner_users(ride):
     person whose ride it is" for the follow-gated comment permission below.
     """
     content = ride.content or {}
-    nicknames = [h.get("nickname") for h in (content.get("hitchhikers") or []) if h.get("nickname")]
-    if not nicknames:
+    keys = [username_key(h.get("nickname")) for h in (content.get("hitchhikers") or []) if h.get("nickname")]
+    if not keys:
         return []
-    return db.session.query(User).filter(User.username.in_(nicknames)).all()
+    # Case-insensitive: a ride logged under another spelling of someone's name is still theirs.
+    return db.session.query(User).filter(func.lower(User.username).in_(keys)).all()
 
 
 def _user_can_comment_on_ride(ride, user):
@@ -748,13 +754,15 @@ def _followed_rides(followed_usernames, limit=10):
     Rides link to users by hitchhiker nickname (name-based, not a foreign key), so we
     match the followed users' usernames against the nicknames stored in the ride's
     content JSON. A json_each subquery does the filtering in SQL so we only load the
-    newest `limit` matching rides instead of scanning every ride in Python.
+    newest `limit` matching rides instead of scanning every ride in Python. The match is
+    case-insensitive (SQL `lower()` = hitch/usernames.username_key), so a followed user's
+    imported rides reach the feed under whatever spelling they carry.
     """
     if not followed_usernames:
         return []
 
     placeholders = ",".join(f":n{i}" for i in range(len(followed_usernames)))
-    params = {f"n{i}": name for i, name in enumerate(followed_usernames)}
+    params = {f"n{i}": username_key(name) for i, name in enumerate(followed_usernames)}
     params["lim"] = limit
     sql = text(
         f"""
@@ -762,7 +770,7 @@ def _followed_rides(followed_usernames, limit=10):
         WHERE re.submission_time IS NOT NULL
           AND EXISTS (
             SELECT 1 FROM json_each(json_extract(re.content, '$.hitchhikers')) je
-            WHERE json_extract(je.value, '$.nickname') IN ({placeholders})
+            WHERE lower(json_extract(je.value, '$.nickname')) IN ({placeholders})
           )
         ORDER BY re.submission_time DESC
         LIMIT :lim
@@ -785,14 +793,20 @@ def _suggested_hitchhikers(ride_cards, limit=3):
     for ride in ride_cards:
         name = ride.get("hitchhiker_name")
         # Skip anonymous rides and the viewer themselves (can't follow yourself).
-        if not name or name == "Anonymous" or name == me:
+        if not name or name == "Anonymous" or same_username(name, me):
             continue
         counts[name] = counts.get(name, 0) + 1
     if not counts:
         return []
-    registered = {row[0] for row in db.session.query(User.username).filter(User.username.in_(counts.keys())).all()}
+    # Cards already print the account's own spelling, but match case-insensitively anyway so
+    # a name this app never canonicalised (an unregistered stub that later registered) still
+    # resolves to the one suggestion it should be.
+    registered = {
+        username_key(row[0])
+        for row in db.session.query(User.username).filter(func.lower(User.username).in_([username_key(n) for n in counts])).all()
+    }
     ranked = sorted(
-        ((name, count) for name, count in counts.items() if name in registered),
+        ((name, count) for name, count in counts.items() if username_key(name) in registered),
         key=lambda kv: kv[1],
         reverse=True,
     )[:limit]
@@ -1439,10 +1453,15 @@ def ride_form():
                 # (b) in the CoHitchhiker table with accepted="open" (invited, pending response).
                 current_nickname = current_user.username if not current_user.is_anonymous else None
                 all_hitchhikers = content.get("hitchhikers", [])
+                # The editor themselves is excluded case-insensitively: their ride may list
+                # them under the spelling they used on the platform it was imported from, and
+                # an exact compare would offer them to themselves as a locked co-hitchhiker.
                 hitchhikers_on_nostr = {
                     h.get("nickname")
                     for h in all_hitchhikers
-                    if h.get("nickname") and h.get("nickname") != current_nickname and h.get("nickname") != "Anonymous"
+                    if h.get("nickname")
+                    and not same_username(h.get("nickname"), current_nickname)
+                    and h.get("nickname") != "Anonymous"
                 }
                 # Anonymous hitchhikers are always co-hitchhikers (creator must be
                 # logged in to edit, so they are never "Anonymous" themselves). Their
@@ -1669,22 +1688,27 @@ def ride_form():
         # ones can be added. We achieve this by only inserting co-hitchhikers not already in the DB.
         if "co_hitchhiker" in data and data["co_hitchhiker"] != "":
             current_username = current_user.username if not current_user.is_anonymous else None
-            existing_co = {c.co_hitchhiker for c in db.session.query(CoHitchhiker).filter_by(nostr_ride_event_d_tag=d_tag).all()}
+            existing_co = {
+                username_key(c.co_hitchhiker)
+                for c in db.session.query(CoHitchhiker).filter_by(nostr_ride_event_d_tag=d_tag).all()
+            }
             invited_user_ids = []
             for ch in data["co_hitchhiker"].split(","):
                 username = ch.strip()
                 if username == "" or is_anonymous_co_hitchhiker(username):
                     continue  # anonymous hitchhikers are handled in the Nostr event, not in CoHitchhiker
-                if username == current_username:
+                if same_username(username, current_username):
                     continue  # skip self
-                if username in existing_co:
+                if username_key(username) in existing_co:
                     continue  # already present, cannot be removed so no need to re-add
-                invited_user = User.query.filter_by(username=username).first()
+                invited_user = find_user_ci(username)
                 if not invited_user:
                     continue  # skip non-existent users
                 co_hitchhiker = CoHitchhiker(
                     nostr_ride_event_d_tag=d_tag,
-                    co_hitchhiker=username,
+                    # Stored under the invited account's own spelling, since that is the name
+                    # their accept/reject and their profile's pending list look themselves up by.
+                    co_hitchhiker=invited_user.username,
                     accepted="open",
                 )
                 db.session.add(co_hitchhiker)

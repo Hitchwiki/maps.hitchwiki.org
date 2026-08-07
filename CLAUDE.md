@@ -109,6 +109,17 @@ A filter that describes a *ride* also decides which rides the open spot pane lis
 - `applyParams` ends by calling `refreshOpenSpotRides()` — filters can be changed with a pane open (on `#insights` the pane is mounted right above the charts), and both branches must re-derive it.
 - Known asymmetry: the map's comment search runs on the index's 200-char excerpt, the pane's on the whole comment, so a needle past that cut matches in the pane but not on the map. That's the right way round for a search box.
 
+### A hitchhiker's name is a case-insensitive identity
+Rides carry a free-text `nickname`, not a foreign key to `user`, so "is this ride mine", "whose profile is this" and "who do I notify" are all string comparisons. **`hitch/usernames.py` owns that comparison** — `username_key` / `same_username` / `find_user_ci` / `canonical_username`. Never compare two hitchhiker names with `==`.
+
+- **The whole name is compared case-insensitively**, not MediaWiki's first-letter rule (the old `_norm_nickname`). A Hitchwiki account arrives through OAuth spelled the way the wiki stores it ("Germanytoindia") while the same person's imported hitchmap.com rides carry what they typed there ("GermanyToIndia"); under the first-letter rule those were two people, and the rides sat on a stub page their own author could not edit, be credited for, or be followed on. 18 of 216 accounts had rides under a differently-cased spelling.
+- **Display and links use the registered account's spelling** (`canonical_username`): applied in `show.py` right after `get_hitchhiker_name` — before anything groups on the name, so the per-user lifetime stats stop splitting one person in two — and identically in `ride_facts.hitchhiker_name` (the live `/pending_rides.json` path) and `user.py` `_extract_ride_info` (every server-rendered ride card). An unregistered nickname passes through exactly as logged.
+- **`/account/<other spelling>` 301s onto the account's own URL**, keeping the `/<lang>` prefix (`url_for(request.endpoint, …)`) — one person must not have two profile pages, each holding half their rides.
+- **"Anonymous" is a sentinel, not a person** — never canonicalised, in either implementation, or an account registered under that name would capture every unattributed ride.
+- **In SQL the rule is `lower(...)`**, which SQLite applies to ASCII only, so a name differing in a non-ASCII letter past the first ("Hélia"/"HÉLIA") stays two names. Known and accepted; fixing it needs a custom collation.
+- `CoHitchhiker` rows are written under the invited account's own spelling (that is what their accept/reject looks up), but read case-insensitively, since older rows carry whatever the inviter typed.
+- Tests: `tests/test_username_case.py`.
+
 ### Key Models
 `hitch/models.py` defines ~15 models; the most relevant:
 - **RideEvent**: Stores Nostr ride events with JSON content and extracted columns

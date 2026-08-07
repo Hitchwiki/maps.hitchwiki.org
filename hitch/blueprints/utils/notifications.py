@@ -8,8 +8,11 @@ small and the profile only ever shows a recent, relevant list.
 import json
 import os
 
+from sqlalchemy import func
+
 from hitch.extensions import db
 from hitch.models import Notification, User
+from hitch.usernames import username_key
 
 # Keep at most this many notifications per user; older rows are trimmed on insert.
 MAX_NOTIFICATIONS_PER_USER = 10
@@ -159,21 +162,23 @@ def notify_new_race_podiums(previous_podiums, new_races):
 
     Hitchhikers are matched to accounts by nickname (User.username), the same way
     main.py's _ride_owner_users does it: race entries are keyed on the hitchhiker name
-    logged on the ride, and an unregistered name simply has nobody to notify.
+    logged on the ride, and an unregistered name simply has nobody to notify. Matching is
+    case-insensitive (hitch/usernames.py) — including "was already on the podium", so a
+    standings file written before names were canonicalised doesn't re-notify everyone.
     """
     if previous_podiums is None:
         return
-    entered = {}  # username -> [(race title, position)]
+    entered = {}  # username key -> [(race title, position)]
     for race in new_races:
-        was_on = set(previous_podiums.get(race.get("name")) or [])
+        was_on = {username_key(n) for n in (previous_podiums.get(race.get("name")) or [])}
         for position, entry in enumerate(race.get("entries") or [], start=1):
             name = entry.get("hitchhiker_name")
-            if name and name not in was_on:
-                entered.setdefault(name, []).append((race.get("title") or race.get("name"), position))
+            if name and username_key(name) not in was_on:
+                entered.setdefault(username_key(name), []).append((race.get("title") or race.get("name"), position))
     if not entered:
         return
-    for user in db.session.query(User).filter(User.username.in_(list(entered))).all():
-        for title, position in entered[user.username]:
+    for user in db.session.query(User).filter(func.lower(User.username).in_(list(entered))).all():
+        for title, position in entered[username_key(user.username)]:
             notify_race_podium(user.id, title, position)
 
 

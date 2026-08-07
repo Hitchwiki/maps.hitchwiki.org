@@ -463,6 +463,26 @@ def get_hitchhiker_name(hitchhikers):
 
 rides_df["hitchhiker_name"] = rides_df["hitchhikers"].apply(get_hitchhiker_name)
 
+# Print every name the way its owner's account is spelled. A ride carries whatever nickname
+# its author typed on whichever platform it came from, so one person appears as
+# "GermanyToIndia" on their imported hitchmap.com rides and "Germanytoindia" (the spelling
+# Hitchwiki stores) on the ones logged here — two names on the map, two ride counts, two
+# profile links, for one hitchhiker. Registered accounts are the authority on their own
+# spelling; unregistered nicknames pass through untouched. See hitch/usernames.py for the
+# rule, which the live endpoints (ride_facts.hitchhiker_name) apply identically.
+# Applied here, before anything groups or aggregates on the name, so the per-user lifetime
+# stats below also stop splitting one person's rides across two spellings.
+canonical_usernames = {
+    name.lower(): name
+    for (name,) in get_db().execute("SELECT username FROM user WHERE username IS NOT NULL")
+    # "Anonymous" is the no-name sentinel every downstream filter tests for, not a person;
+    # an account registered under that name must never capture unattributed rides.
+    if name and name.lower() != "anonymous"
+}
+rides_df["hitchhiker_name"] = rides_df["hitchhiker_name"].map(
+    lambda n: canonical_usernames.get(n.lower(), n) if isinstance(n, str) else n
+)
+
 # A ride is "low-value" when it is anonymous and carries no information beyond a
 # bare rating: no written comment and no recorded waiting time. These (mostly
 # legacy single-rating imports, e.g. 51.6816, 9.1609) clutter the map, so we drop

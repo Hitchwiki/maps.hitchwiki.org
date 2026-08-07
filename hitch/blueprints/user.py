@@ -22,7 +22,7 @@ from flask import (
     url_for,
 )
 from flask_security import current_user
-from sqlalchemy import text
+from sqlalchemy import func, text
 
 from hitch.blueprints.publish_ride import ANONYMOUS_NICKNAME, construct_hitchhiker_from_current_user
 from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import HitchhikingRecord
@@ -39,6 +39,7 @@ from hitch.helpers import get_db, get_dirs, haversine_np
 from hitch.models import CoHitchhiker, Follow, Notification, RideEvent, RidePlace, RideReport, Trip, TripRide, User
 from hitch.scripts.races import current_races
 from hitch.translations import t
+from hitch.usernames import canonical_username, find_user_ci, same_username, username_key
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
 
@@ -245,7 +246,8 @@ def is_username_used(username):
     """Endpoint to check if a username is already used."""
     current_app.logger.info(f"Received request to check if username {username} is used.")
 
-    user = security.datastore.find_user(username=username)
+    # Case-insensitive: "germanytoindia" is used if "Germanytoindia" exists.
+    user = find_user_ci(username)
 
     if user:
         return jsonify({"used": True})
@@ -281,7 +283,19 @@ def show_account(username, is_me: bool = False):
     if is_me and current_user.is_anonymous:
         return redirect("/login")
 
-    user = current_user if is_me else security.datastore.find_user(username=username)
+    user = current_user if is_me else find_user_ci(username)
+
+    # One person, one profile URL. A ride imported from hitchmap.com links here under the
+    # spelling its author typed there ("GermanyToIndia") while their account is spelled the
+    # way Hitchwiki stores it ("Germanytoindia"); serving both would be two pages for one
+    # person, each with half their rides in the eyes of anything that keys on the URL.
+    # Redirect onto the account's own spelling, keeping the language prefix (url_for resolves
+    # the mirrored endpoint we were reached through) and any query string.
+    if not is_me and user is not None and user.username != username:
+        target = url_for(request.endpoint, username=user.username)
+        if request.query_string:
+            target = f"{target}?{request.query_string.decode()}"
+        return redirect(target, code=301)
 
     current_app.logger.info(
         f"Received request to show user account for {current_user.username}"
@@ -547,7 +561,7 @@ def show_insights(username):
     Only registered users have the precomputed lifetime totals (show.py writes them onto
     the `user` row), so an unknown hitchhiker nickname has nothing to show here.
     """
-    user = security.datastore.find_user(username=username)
+    user = find_user_ci(username)
     if user is None:
         return redirect(url_for("user.show_account", username=username))
 
@@ -573,7 +587,7 @@ def _toggle_follow(username, follow):
     if current_user.is_anonymous:
         return jsonify({"error": "login_required"}), 401
 
-    target = security.datastore.find_user(username=username)
+    target = find_user_ci(username)
     if target is None:
         return jsonify({"error": "user_not_found"}), 404
     # Following yourself is meaningless; reject it so it never lands in the table.
@@ -715,6 +729,11 @@ def _extract_ride_info(ride, ride_type):
     # shows the plain sentinel, and must not link it as if it were a username.
     if nickname.split(":", 1)[0] == ANONYMOUS_NICKNAME:
         nickname = ANONYMOUS_NICKNAME
+    # Print (and link) the name the way its owner's account is spelled: the nickname on the
+    # ride is whatever they typed on whichever platform it came from, and one person showing
+    # up as "GermanyToIndia" on an imported ride and "Germanytoindia" on a ride logged here
+    # reads as two hitchhikers. Unregistered nicknames are left exactly as logged.
+    nickname = canonical_username(nickname)
     info = {
         "type": ride_type,
         "d_tag": ride.d,
@@ -755,11 +774,6 @@ def _extract_ride_info(ride, ride_type):
     info["no_ride"] = gave_up
     info["missing_destination"] = destination_lat is None and not gave_up
     return info
-
-
-def _norm_nickname(s):
-    """MediaWiki-style: first letter is case-insensitive so "John" matches "john" and vice versa."""
-    return (s[:1].upper() + s[1:]) if s else s
 
 
 def _request_cached(key, build):
@@ -807,13 +821,15 @@ def _rides_by_hitchhiker(username):
     `hitchhikers` array of every one of ~79k rides, ~2 s), and a single account page needs
     the answer more than once.
     """
-    return _request_cached(("rides_by_hitchhiker", username), lambda: _query_rides_by_hitchhiker(username))
+    # Keyed on the case-insensitive identity, so the two spellings of one person that a
+    # profile page can hold at once (the account's and a ride's) share the one answer.
+    return _request_cached(("rides_by_hitchhiker", username_key(username)), lambda: _query_rides_by_hitchhiker(username))
 
 
 def _query_rides_by_hitchhiker(username):
     # Pre-filter in SQL using JSON1 so we don't load and JSON-parse every RideEvent in Python.
-    # This is a permissive case-insensitive match; the Python filter below still applies the
-    # exact MediaWiki-style _norm_nickname comparison for correctness.
+    # SQL `lower()` is how hitch/usernames.username_key is expressed in the database; the
+    # Python pass below re-applies it (and drops author-deleted rides) on the candidates.
     candidates = (
         db.session.query(RideEvent)
         .filter(
@@ -826,13 +842,13 @@ def _query_rides_by_hitchhiker(username):
         .order_by(RideEvent.created_at.desc())
         .all()
     )
-    normalized_username = _norm_nickname(username)
+    key = username_key(username)
     deleted = _owner_deleted_dtags()
     return [
         ride
         for ride in candidates
         if ride.d not in deleted
-        and normalized_username in [_norm_nickname(h.get("nickname")) for h in ((ride.content or {}).get("hitchhikers") or [])]
+        and key in [username_key(h.get("nickname")) for h in ((ride.content or {}).get("hitchhikers") or [])]
     ]
 
 
@@ -880,7 +896,11 @@ def _get_rides_for_user(user, include_pending_co=True, display_only=False):
 
     co_rides = []
     if include_pending_co:
-        pending = CoHitchhiker.query.filter_by(co_hitchhiker=username, accepted="open").all()
+        # Invites are stored under the invited account's own spelling, but rows written
+        # before that rule may carry whatever the inviter typed — match case-insensitively.
+        pending = CoHitchhiker.query.filter(
+            func.lower(CoHitchhiker.co_hitchhiker) == username_key(username), CoHitchhiker.accepted == "open"
+        ).all()
         deleted = _owner_deleted_dtags()
         for ch in pending:
             if ch.nostr_ride_event_d_tag in deleted:
@@ -1172,7 +1192,7 @@ def _may_auto_group(ride, user):
     nicknames = _ride_hitchhiker_nicknames(ride)
     if user.is_anonymous:
         return bool(nicknames) and all(n == ANONYMOUS_NICKNAME for n in nicknames)
-    return _norm_nickname(user.username) in [_norm_nickname(n) for n in nicknames if n]
+    return any(same_username(user.username, n) for n in nicknames if n)
 
 
 def _trip_payload(trip, created):
@@ -1498,8 +1518,8 @@ def accept_co_hitchhiker(ride_d_tag: str):
 
     # TODO: only allow if the current user is actually listed as co-hitchhiker
     cursor.execute(
-        "UPDATE co_hitchhiker SET accepted = 'yes' WHERE nostr_ride_event_d_tag = ? and co_hitchhiker = ?",
-        (ride_d_tag, current_user.username),
+        "UPDATE co_hitchhiker SET accepted = 'yes' WHERE nostr_ride_event_d_tag = ? and lower(co_hitchhiker) = ?",
+        (ride_d_tag, username_key(current_user.username)),
     )
     conn.commit()
     conn.close()
@@ -1527,9 +1547,10 @@ def reject_co_hitchhiker(ride_d_tag: str):
     if current_user.is_anonymous:
         return redirect("/login")
 
-    CoHitchhiker.query.filter_by(nostr_ride_event_d_tag=ride_d_tag, co_hitchhiker=current_user.username).update(
-        {"accepted": "no"}
-    )
+    CoHitchhiker.query.filter(
+        CoHitchhiker.nostr_ride_event_d_tag == ride_d_tag,
+        func.lower(CoHitchhiker.co_hitchhiker) == username_key(current_user.username),
+    ).update({"accepted": "no"}, synchronize_session=False)
     db.session.commit()
 
     return redirect("/me")
