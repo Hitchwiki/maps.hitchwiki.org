@@ -123,10 +123,60 @@
       .share-btn.copied { background: #d4edda; border-color: #28a745; color: #155724; }
     </style>
 
+    {# Portrait-only on phones. `orientation: portrait` in manifest.json is a real
+       lock, but only for the installed PWA -- a phone browsing in an ordinary tab
+       has no API that can refuse rotation, so landscape is blocked visually here
+       instead. Inline rather than in style.css because not every template that
+       extends this one loads style.css, and a gate that only covers some pages
+       is worse than none.
+
+       The query is deliberately narrow: `pointer: coarse` keeps every mouse-driven
+       browser out (a short laptop window is landscape under 500px tall too), and
+       max-height 500px keeps tablets out -- an iPad in landscape is 768px tall.
+       z-index sits an order of magnitude above the highest in style.css (10001,
+       the test-mode button), since nothing on the page may show through. #}
+    <style>
+      #rotate-gate { display: none; }
+      @media (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
+        #rotate-gate {
+          display: flex;
+          position: fixed;
+          inset: 0;
+          z-index: 100000;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 14px;
+          padding: 24px;
+          background: #fff;
+          color: #333;
+          text-align: center;
+          font-size: 1.05rem;
+          line-height: 1.4;
+        }
+        /* The gate covers the page, but a landscape phone can still scroll the
+           document behind it, which moves content the user cannot see. */
+        body { overflow: hidden; }
+      }
+      #rotate-gate svg { width: 56px; height: 56px; stroke: #666; }
+    </style>
+
     {% block head %}{% endblock %}
   </head>
 
   <body {% block body_attribs %}{% endblock body_attribs %}>
+    {# Hidden at every size except a landscape phone -- see the #rotate-gate style
+       above. First child of <body> so it paints before the map does. #}
+    <div id="rotate-gate" role="alertdialog" aria-live="assertive">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="7" y="2" width="10" height="20" rx="2" />
+        <path d="M3 8a9 9 0 0 1 3-4" />
+        <path d="M21 16a9 9 0 0 1-3 4" />
+        <path d="M3 4v4h4" />
+        <path d="M21 20v-4h-4" />
+      </svg>
+      <div>{{ t("Please rotate your phone back to portrait") }}</div>
+    </div>
     {% block main %}{% endblock %}
     {% block scripts %}{% endblock %}
 

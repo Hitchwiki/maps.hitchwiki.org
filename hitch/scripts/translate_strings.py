@@ -87,6 +87,7 @@ SOURCE_STRINGS = [
     "Hitchhiking Map – Find & Share Hitchhiking Spots on a Map",
     "Link copied!",
     "Copy this link:",
+    "Please rotate your phone back to portrait",
     "Interactive hitchhiking map: find spots from Hitchwiki, Hitchmap, and the community. Ratings, heatmaps, route planning, "
     "share rides worldwide.",
     "Hitchhiking Map – Find & Share Hitchhiking Spots Globally",

@@ -4,7 +4,7 @@
   "dir": "ltr",
   "display": "standalone",
   "name": "Hitchhiking Map",
-  "orientation": "any",
+  "orientation": "portrait",
   "scope": "/",
   "short_name": "Hitchhiking Map",
   "start_url": "/",
