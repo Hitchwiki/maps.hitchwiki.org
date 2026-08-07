@@ -1,27 +1,66 @@
+# The web server and the batch jobs run from the SAME image but in SEPARATE containers, so
+# they share this volume set. Keep it as one anchor: when the two lists were maintained
+# separately the cron half is the one that silently loses a mount (it has no page to 500 on).
+x-app-volumes: &app-volumes
+  - ./db:/app/db
+  - ./logs:/app/logs
+  - ./dist:/app/dist
+  - ./hitch/static:/app/hitch/static
+  - ./hitch/templates:/app/hitch/templates
+  # The cron jobs run `flask ... generate <script>` with a stripped environment, so they
+  # never see the vars Docker injects from `env_file`. Flask loads /app/.env via
+  # python-dotenv instead. Without this mount that would be the stale copy baked into the
+  # image at build time, so cron and the web app would resolve DATABASE_NAME differently
+  # and write to two different databases.
+  - ./.env:/app/.env:ro
+  # Google Drive OAuth token for the weekly backup job (see deploy/rclone.conf.example).
+  # Mounted rather than baked into the image so the refresh token never lands in a layer.
+  - ./deploy/rclone.conf:/root/.config/rclone/rclone.conf
+
 services:
   hitchhiking-map:
     build: .
     container_name: hitchhiking-map
-    volumes:
-      - ./db:/app/db
-      - ./logs:/app/logs
-      - ./dist:/app/dist
-      - ./hitch/static:/app/hitch/static
-      - ./hitch/templates:/app/hitch/templates
-      # The in-container cron jobs run `flask ... generate <script>` with a stripped
-      # environment, so they never see the vars Docker injects from `env_file`. Flask
-      # loads /app/.env via python-dotenv instead. Without this mount that would be the
-      # stale copy baked into the image at build time, so cron and the web app would
-      # resolve DATABASE_NAME differently and write to two different databases.
-      - ./.env:/app/.env:ro
-      # Google Drive OAuth token for the weekly backup job (see deploy/rclone.conf.example).
-      # Mounted rather than baked into the image so the refresh token never lands in a layer.
-      - ./deploy/rclone.conf:/root/.config/rclone/rclone.conf
+    volumes: *app-volumes
     environment:
       - FLASK_RUN_PORT=4242
     env_file:
       - .env
     restart: unless-stopped
+    # Well above the ~230 MB this normally holds and the 826 MB it had grown to when the
+    # kernel OOM-killed it on 2026-08-07, but low enough that a runaway web process gets a
+    # container restart instead of taking the whole host down with it.
+    #
+    # Not tighter than this on purpose: /dir/ link previews shell out to
+    # hitch/scripts/route_preview.py, whose routing graph is ~190 MB, and those subprocesses
+    # are children of this container so they count against the same cgroup. Single-flighting
+    # is per route key, so several can be building at once. 2 GB leaves room for a handful on
+    # top of the worst web-server figure we have actually observed.
+    mem_limit: 2g
+    networks:
+      - default
+      - hitchwiki-relay
+
+  # The batch jobs, split out of the web container on 2026-08-07. They used to run under
+  # `service cron start` inside the container above, which put show.py's ~1.6 GB peak in the
+  # same cgroup as waitress — so a data-generation spike could (and did) get the web server
+  # OOM-killed and 502 the site. Nothing in deploy/cron.sh talks to the web app.
+  hitchhiking-map-cron:
+    build: .
+    container_name: hitchhiking-map-cron
+    command: sh deploy/run_cron.sh
+    volumes: *app-volumes
+    env_file:
+      - .env
+    restart: unless-stopped
+    # Above the heaviest job's observed peak (sync_fuel ~1.9 GB, show ~1.6 GB) with room to
+    # grow, so this bounds what the batch side can take from the host without killing a job
+    # that is merely doing its normal work.
+    mem_limit: 3g
+    # Only for start-up ordering: the web container owns `flask init` (create_all + roles +
+    # generate-all), and cron should not race it on a fresh database.
+    depends_on:
+      - hitchhiking-map
     networks:
       - default
       - hitchwiki-relay
