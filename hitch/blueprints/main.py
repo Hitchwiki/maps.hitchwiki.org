@@ -97,6 +97,7 @@ from hitch.models import (
 )
 from hitch.scripts.nostr_ride_parsing import parse_post_to_ride_fields
 from hitch.translations import t
+from hitch.translations.weekdays import weekday_names
 
 main_bp = Blueprint("main", __name__)
 
@@ -813,6 +814,38 @@ def help_volunteers():
         # Rounded down to a round thousand: the exact figure changes every few minutes
         # and nobody reading a call for volunteers needs that precision.
         ride_count=ride_count // 1000 * 1000,
+    )
+
+
+@main_bp.route("/why-not-hitchhike")
+def why_not_hitchhike():
+    """Spots with a repeatable weekday pattern — same spot, same weekday, same faraway
+    destination, and nobody waited long.
+
+    The whole analysis is precomputed into dist/why_not_hitchhike.json by
+    hitch/scripts/why_not_hitchhike.py (weekly, see deploy/cron.sh): it clusters every
+    ride's destination against every other ride's from the same spot, far too heavy for a
+    request. A missing file renders an empty page rather than raising, exactly like the
+    leaderboard's precomputed inputs — a fresh checkout has never run the job.
+
+    Weekday *names* are resolved here, not in the script: main_bp routes are mirrored in
+    31 languages, so a name baked into the JSON would be wrong in 30 of them.
+    """
+    path = os.path.join(get_dirs()["dist"], "why_not_hitchhike.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        data = {}
+
+    return render_template(
+        "why_not_hitchhike.html",
+        matches=data.get("matches", []),
+        near_misses=data.get("near_misses", []),
+        criteria=data.get("criteria", {}),
+        coverage=data.get("coverage", {}),
+        generated_at=data.get("generated_at"),
+        weekdays=weekday_names(),
     )
 
 

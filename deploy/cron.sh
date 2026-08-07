@@ -75,6 +75,14 @@
 # snapshot plus its gzip on disk. Emails are replaced with placeholders and 2FA secrets /
 # phone numbers / login IPs are dropped before anything leaves the host.
 0 1 * * 0 cd /app && /usr/bin/flock -n /tmp/backup_to_drive.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/python3 /app/hitch/scripts/backup_to_drive.py' > logs/backup_to_drive.log 2>&1
+# every Monday at 7 AM — rebuild /why-not-hitchhike (dist/why_not_hitchhike.json).
+# Weekly rather than nightly because the output only moves when a *new* ride arrives
+# carrying a departure time, a destination AND a waiting time together — a few dozen a
+# week out of ~74k rides, so a daily run would recompute an identical file six times.
+# Reads dist/rides_index.json for canonical spot ids, so it must run after `show` (every
+# 10 min, always fresh), and after ride_places (4:45) / spot_names (4:30) so new spots and
+# destinations are already named. 7 AM leaves the 6 AM cities run finished.
+0 7 * * 1 cd /app && /usr/bin/flock -n /tmp/why_not_hitchhike.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate why_not_hitchhike' > logs/why_not_hitchhike.log 2>&1
 # every Monday at 8 AM
 0 8 * * 1 cd /app && /usr/bin/flock -n /tmp/sync_hitchhiking_rides_dataset.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate sync_hitchhiking_rides_dataset' > logs/sync_hitchhiking_rides_dataset.log 2>&1
 # first of every month at 9 AM — regenerate country hitchability CSV + country_ratings.json / country_insights.json

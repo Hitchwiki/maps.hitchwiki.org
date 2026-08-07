@@ -341,6 +341,7 @@ def register_commands(app):
             "sync_hitchwiki": os.path.join(dist_dir, "hitchwiki_articles.json"),
             "sync_events": os.path.join(dist_dir, "events.json"),
             "show": os.path.join(dist_dir, "spots.json"),
+            "why_not_hitchhike": os.path.join(dist_dir, "why_not_hitchhike.json"),
             "dashboard": os.path.join(dist_dir, "dashboard.html"),
             "cities": os.path.join(dist_dir, "city", "index.html"),
         }
@@ -354,6 +355,10 @@ def register_commands(app):
             *([("sync_hitchwiki", "")] if ENVIRONMENT == "prod" else []),
             *([("sync_events", "")] if ENVIRONMENT == "prod" else []),
             ("show", ""),
+            # After show: it reads the rides_index.json that show writes. Listed here so a
+            # fresh install has a populated /why-not-hitchhike immediately, instead of an
+            # empty page until the weekly cron first fires.
+            ("why_not_hitchhike", ""),
             ("dashboard", ""),
             *([("cities", "")] if ENVIRONMENT == "prod" else []),
         ]
