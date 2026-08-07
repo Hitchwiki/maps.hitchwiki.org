@@ -603,49 +603,80 @@ if len(unique_coords) > 1:
 # trick the 5 m merge uses, so the spot id / per-spot files stay stable.
 t_group = time.perf_counter()
 
+# Road-island polygons parsed per batch — see assign_polygon for why they are not all
+# materialised at once.
+POLYGON_CHUNK = 10000
+
 # Names of the service-area polygons, keyed by the anchor coordinate of the spot they
 # swallowed. Populated below; feeds the spot's display name, so the name a spot shows
 # always describes the polygon it was actually merged into.
 service_area_name_by_anchor = {}
 try:
     service_areas_df = pd.read_sql("select geom_id, name, geometry_wkt from service_area", get_db())
-    road_islands_df = pd.read_sql("select id, geometry_wkt from road_island", get_db())
+    # Road islands are only ever counted here — the geometries themselves are streamed in
+    # chunks below rather than loaded into a frame. See assign_polygon.
+    road_island_count = get_db().execute("select count(*) from road_island").fetchone()[0]
 except (pd.errors.DatabaseError, sqlite3.OperationalError):
     # Tables absent (sync scripts never run, e.g. fresh/dev DB): keep the 5 m merge only.
     logger.info("service_area / road_island tables not found — skipping polygon grouping")
-    service_areas_df = road_islands_df = None
+    service_areas_df = None
+    road_island_count = 0
 
-if service_areas_df is not None and (len(service_areas_df) or len(road_islands_df)):
-    logger.info(f"Polygon grouping: {len(service_areas_df)} service areas, {len(road_islands_df)} road islands")
+if service_areas_df is not None and (len(service_areas_df) or road_island_count):
+    logger.info(f"Polygon grouping: {len(service_areas_df)} service areas, {road_island_count} road islands")
     unique_pts = rides_df[["lat", "lon"]].drop_duplicates().reset_index(drop=True)
     lat_list = unique_pts["lat"].tolist()
     lon_list = unique_pts["lon"].tolist()
     # Polygons were built in (lon, lat) order, so query points must match.
     points = [Point(lon, lat) for lat, lon in zip(lat_list, lon_list)]
 
-    def assign_polygon(geoms, ids):
+    def assign_polygon(chunks):
         """For each unique point, return the id of the containing polygon (largest if
         several contain it) or None. An STRtree bbox prefilter keeps the no-match case —
-        the vast majority of spots — cheap."""
-        if not geoms:
-            return [None] * len(points)
-        tree = STRtree(geoms)
-        polygon_areas = [g.area for g in geoms]
-        assigned = []
-        for pt in points:
-            # STRtree tests query_geom.predicate(tree_geom); "within" → this point lies
-            # inside the tree polygon. (predicate="contains" would test point.contains(poly).)
-            candidates = tree.query(pt, predicate="within")
-            if len(candidates) == 0:
-                assigned.append(None)
-            else:
-                assigned.append(ids[max(candidates, key=lambda idx: polygon_areas[idx])])
-        return assigned
+        the vast majority of spots — cheap.
 
-    sa_geoms = [wkt_loads(w) for w in service_areas_df["geometry_wkt"]]
-    ri_geoms = [wkt_loads(w) for w in road_islands_df["geometry_wkt"]]
-    sa_ids = assign_polygon(sa_geoms, service_areas_df["geom_id"].tolist())
-    ri_ids = assign_polygon(ri_geoms, road_islands_df["id"].tolist())
+        Takes an iterable of (geoms, ids) chunks and keeps only a running best per point,
+        so one chunk's geometries are alive at a time. Materialising all of them at once
+        was ~375 MB for the 179,742 road islands (101 MB of WKT text, measured), on a host
+        whose OOM killer has already taken this app down once. A separate STRtree per
+        chunk costs almost nothing — building one over ~9k polygons measured at 0.02 s.
+        """
+        best_area = [None] * len(points)
+        best_id = [None] * len(points)
+        for geoms, ids in chunks:
+            if not geoms:
+                continue
+            tree = STRtree(geoms)
+            polygon_areas = [g.area for g in geoms]
+            for point_index, pt in enumerate(points):
+                # STRtree tests query_geom.predicate(tree_geom); "within" → this point lies
+                # inside the tree polygon. (predicate="contains" would test point.contains(poly).)
+                for idx in tree.query(pt, predicate="within"):
+                    area = polygon_areas[idx]
+                    if best_area[point_index] is None or area > best_area[point_index]:
+                        best_area[point_index] = area
+                        best_id[point_index] = ids[idx]
+        return best_id
+
+    def wkt_chunks(sql, chunk_size=POLYGON_CHUNK):
+        """Stream (geoms, ids) chunks straight from SQLite, parsing a chunk's WKT at a time."""
+        # Hold the connection in this frame: get_db() reassigns g._database on every call,
+        # so relying on that alone could collect the connection under an open cursor.
+        conn = get_db()
+        cursor = conn.execute(sql)
+        try:
+            while True:
+                batch = cursor.fetchmany(chunk_size)
+                if not batch:
+                    return
+                yield [wkt_loads(wkt) for _, wkt in batch], [row_id for row_id, _ in batch]
+        finally:
+            cursor.close()
+
+    # Service areas are small (a few thousand, <1 MB of WKT) and their frame is needed
+    # below for names anyway, so they go in as a single chunk.
+    sa_ids = assign_polygon([([wkt_loads(w) for w in service_areas_df["geometry_wkt"]], service_areas_df["geom_id"].tolist())])
+    ri_ids = assign_polygon(wkt_chunks("select id, geometry_wkt from road_island"))
 
     # One grouping label per coordinate; service area takes precedence over road island,
     # and points in neither keep their own coordinate (i.e. the 5 m-merge result). Build

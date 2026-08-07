@@ -21,8 +21,13 @@
 # 3598 back-dated rides accumulated unfetched and allPosts.json went 11 days stale. :51 leaves
 # the ~2 s incremental finished and the lock free.
 51 0 * * 1 cd /app && /usr/bin/flock -n /tmp/fetch_nostr.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate fetch_nostr' > logs/fetch_nostr_full.log 2>&1
-# every 10 minutes
-*/10 * * * * cd /app && /usr/bin/flock -n /tmp/show.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate show' > logs/show.log 2>&1
+# Every 30 minutes, not every 10. A run that actually regenerates takes 215-385 s and
+# peaks ~1.5 GB, so a */10 schedule spent much of every hour holding the largest allocation
+# on this host and repeatedly lost `flock -n` to its own previous run (show_ram.log had a
+# 4-hour hole on 2026-08-07 from exactly that). Freshness barely moves: a new ride is
+# already visible immediately via /pending_rides.json, which serves rides newer than the
+# last snapshot, so this only decides when the generated files catch up.
+*/30 * * * * cd /app && /usr/bin/flock -n /tmp/show.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate show' > logs/show.log 2>&1
 
 # daily at 4:45 AM — reverse-geocode new rides' endpoints into the ride_place table.
 # Incremental: steady-state runs geocode nothing, so reverse_geocoder never builds its

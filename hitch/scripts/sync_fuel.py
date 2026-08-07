@@ -41,6 +41,12 @@ SLEEP_BETWEEN_QUERIES_S = 5
 # none are free; retry with exponential backoff rather than aborting the whole run.
 MAX_RETRIES = 6
 RETRY_BASE_SLEEP_S = 30
+# Rows per INSERT batch. This job used to peak at ~1.9 GB — the largest single memory
+# event on this host, on a box whose OOM killer has taken the web server down (CLAUDE.md).
+# Most of that was the ORM: it built a mapped object per station and held all ~412k of
+# them in the session's identity map until one commit at the very end. Writing through
+# bulk_insert_mappings in chunks keeps only this many rows pending at a time.
+INSERT_CHUNK = 5000
 
 
 def load_spot_tiles():
@@ -90,6 +96,37 @@ def fetch_batch(query, batch_label):
     raise RuntimeError(f"{batch_label}: exhausted retries")
 
 
+def to_row(el):
+    """Reduce an Overpass element to just the columns we store, or None if it has no
+    usable position.
+
+    Done at ingest rather than at write time so the raw Overpass response can be dropped
+    as soon as a batch is folded in: an element carries far more than the eight fields
+    OsmFuelStationSpot keeps, and holding ~412k of them to the end of the run was half of
+    this script's memory footprint.
+    """
+    if el["type"] == "node":
+        # Nodes carry lat/lon directly; ways/relations carry it under "center" thanks to `out center`.
+        lat, lon = el.get("lat"), el.get("lon")
+    else:
+        center = el.get("center") or {}
+        lat, lon = center.get("lat"), center.get("lon")
+
+    if lat is None or lon is None:
+        return None
+
+    return {
+        "id": el["id"],
+        "osm_type": el["type"],
+        "latitude": lat,
+        "longitude": lon,
+        "tags": el.get("tags", {}),
+        "timestamp": el.get("timestamp"),
+        "user": el.get("user"),
+        "uid": el.get("uid"),
+    }
+
+
 logger.info(f"SYNC FUEL SCRIPT STARTED — querying Overpass at {overpass_url}")
 
 tiles = load_spot_tiles()
@@ -98,56 +135,41 @@ logger.info(f"Querying {len(tiles)} tiles in {len(batches)} batched requests")
 
 # Dedupe across batches: padded bboxes of neighbouring tiles overlap, so the same
 # station can appear in two batches. OSM (type, id) is the globally unique key.
-elements_by_key = {}
+# Values are the reduced row (or None when the element has no position), so a whole
+# batch of raw Overpass elements can be released before the next request goes out.
+rows_by_key = {}
 for i, batch in enumerate(batches, 1):
     query = build_query(batch)
     batch_elements = fetch_batch(query, f"Batch {i}/{len(batches)}")
     for el in batch_elements:
-        elements_by_key[(el["type"], el["id"])] = el
-    logger.info(f"Batch {i}/{len(batches)}: {len(batch_elements)} elements ({len(elements_by_key)} unique so far)")
+        rows_by_key[(el["type"], el["id"])] = to_row(el)
+    logger.info(f"Batch {i}/{len(batches)}: {len(batch_elements)} elements ({len(rows_by_key)} unique so far)")
+    del batch_elements
     if i < len(batches):
         time.sleep(SLEEP_BETWEEN_QUERIES_S)
 
-elements = list(elements_by_key.values())
-logger.info(f"Fetched {len(elements)} unique fuel stations near spots")
+# Count skipped over the DEDUPED set, so a positionless station seen in two overlapping
+# tiles counts once — same figure this logged when the check lived in the write loop.
+rows = [row for row in rows_by_key.values() if row is not None]
+skipped = len(rows_by_key) - len(rows)
+del rows_by_key
+logger.info(f"Fetched {len(rows)} unique fuel stations near spots")
 
 # Refuse to wipe the table if we got nothing — protects against transient API failures leaving us with 0 spots.
-if not elements:
-    logger.error("Overpass returned 0 elements — aborting without touching the database")
+if not rows:
+    logger.error("Overpass returned 0 usable elements — aborting without touching the database")
     raise SystemExit(1)
 
 prior_count = db.session.query(OsmFuelStationSpot).count()
-logger.info(f"Replacing {prior_count} existing fuel stations with {len(elements)} fresh ones")
+logger.info(f"Replacing {prior_count} existing fuel stations with {len(rows)} fresh ones")
 
 db.session.query(OsmFuelStationSpot).delete()
 db.session.commit()
 
-skipped = 0
-for el in elements:
-    # Nodes carry lat/lon directly; ways/relations carry it under "center" thanks to `out center`.
-    if el["type"] == "node":
-        lat, lon = el.get("lat"), el.get("lon")
-    else:
-        center = el.get("center") or {}
-        lat, lon = center.get("lat"), center.get("lon")
-
-    if lat is None or lon is None:
-        skipped += 1
-        continue
-
-    db.session.add(
-        OsmFuelStationSpot(
-            id=el["id"],
-            osm_type=el["type"],
-            latitude=lat,
-            longitude=lon,
-            tags=el.get("tags", {}),
-            timestamp=el.get("timestamp"),
-            user=el.get("user"),
-            uid=el.get("uid"),
-        )
-    )
-db.session.commit()
+# Chunked bulk insert rather than one session.add() per station: see INSERT_CHUNK.
+for start in range(0, len(rows), INSERT_CHUNK):
+    db.session.bulk_insert_mappings(OsmFuelStationSpot, rows[start : start + INSERT_CHUNK])
+    db.session.commit()
 
 final_count = db.session.query(OsmFuelStationSpot).count()
 logger.info(f"SYNC FUEL SCRIPT FINISHED — {final_count} stations saved (prior: {prior_count}, skipped: {skipped})")
