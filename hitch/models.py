@@ -62,6 +62,14 @@ class User(db.Model, fsqla.FsUserMixin):
     # it is never rendered on the public profile.
     distance_unit = db.Column(db.String(16), default="metric", nullable=False, server_default="metric")
 
+    # Epoch seconds of the last time this user opened the Activities page (/recent), or
+    # NULL if never. Drives the dot on the map's Activities button: a ride published by
+    # someone they follow after this instant hasn't been seen yet. Epoch seconds rather
+    # than a datetime because it is compared against RideEvent.created_at, which is the
+    # Nostr event's own epoch-seconds stamp (same unit as
+    # nearby_hitchhikers_email_last_sent above).
+    recent_seen_at = db.Column(db.Integer, default=None)
+
     # Lifetime hitchhiking stats, recomputed from all ride events on every show.py
     # run (not maintained on ride submission). Shown in the profile "Insights"
     # section so the page doesn't have to aggregate every ride on each load.

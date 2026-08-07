@@ -715,8 +715,16 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
 
 <!-- Bottom action pane -->
 <div class="bottom-action-pane" id="bottom-action-pane">
+    {# The dot means there is something on the page worth opening: either the viewer
+       follows nobody yet (the page suggests hitchhikers to follow in exactly that case)
+       or someone they follow has logged a ride since they last looked. Server-rendered
+       like the account button's bell — main.activities_badge. Cleared on click as well
+       as by the visit itself, since the page opens in a new tab and this one stays. #}
     <a class="action-btn" href="/recent" id="action-activities" title="{{ t('Activities') }}" target="_blank" rel="noopener">
         <i class="fa-solid fa-calendar-days"></i>
+        {% if activities_badge %}
+        <span class="action-dot" id="activities-dot" role="img" aria-label="{{ t('New activity') }}"></span>
+        {% endif %}
         <span>{{ t("Activities") }}</span>
     </a>
     <a class="action-btn" href="#insights" id="action-insights" title="{{ t('Insights') }}">

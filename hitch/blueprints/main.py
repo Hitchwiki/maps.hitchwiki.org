@@ -270,6 +270,7 @@ def render_map(map_variation):
         is_logged_in=not current_user.is_anonymous,
         username=("" if current_user.is_anonymous else current_user.username),
         unread_notifications=unread_count(current_user),
+        activities_badge=activities_badge(),
     )
 
 
@@ -432,6 +433,7 @@ def render_spot(spot_id):
         hide_account_button=current_app.config.get("HIDE_ACCOUNT_BUTTON", False),
         is_logged_in=not current_user.is_anonymous,
         unread_notifications=unread_count(current_user),
+        activities_badge=activities_badge(),
     )
 
 
@@ -591,6 +593,7 @@ def render_country(name):
         hide_account_button=current_app.config.get("HIDE_ACCOUNT_BUTTON", False),
         is_logged_in=not current_user.is_anonymous,
         unread_notifications=unread_count(current_user),
+        activities_badge=activities_badge(),
     )
 
 
@@ -615,6 +618,7 @@ def render_directions(start, dest):
         hide_account_button=current_app.config.get("HIDE_ACCOUNT_BUTTON", False),
         is_logged_in=not current_user.is_anonymous,
         unread_notifications=unread_count(current_user),
+        activities_badge=activities_badge(),
     )
 
 
@@ -784,6 +788,73 @@ def _followed_rides(followed_usernames, limit=10):
     return [_ride_to_card(rides_by_id[i]) for i in ids if i in rides_by_id]
 
 
+# How far back the Activities dot ever looks, in seconds. It bounds the badge query on
+# the map's index route — the most-requested page in the app — to the slice of
+# ride_event the created_at index can serve, rather than every ride a followed user has
+# ever logged. Nothing the badge is about is lost: it reports *new* activity, and a
+# month-old ride is not news.
+#
+# Measured against prod (~4.8k rides in the last 30 days): 53 ms for a viewer who last
+# looked a month ago, 10 ms for a week, 2 ms for a day — against 556 ms unbounded. Only
+# the worst case is on the page render, and only for someone who follows people and has
+# stopped opening the feed.
+BADGE_LOOKBACK_S = 30 * 24 * 3600
+
+
+def _has_unseen_followed_rides(user, followed_usernames):
+    """Has anyone `user` follows published a ride since they last opened /recent?
+
+    Compared on `created_at` — the Nostr event's own epoch-seconds stamp, and an indexed
+    column — not on `submission_time`, which is a string in the submitter's local
+    wall-clock time and so cannot be ordered against a server timestamp at all. An edit
+    republishes the ride under a fresh `created_at`, so an edited old ride counts as
+    activity; it is activity, just not a new ride.
+
+    Matches followed usernames against the nicknames in the ride's content JSON, the
+    same case-insensitive way _followed_rides does — rides link to users by name, not by
+    foreign key (hitch/usernames.py).
+    """
+    if not followed_usernames:
+        return False
+    since = max(user.recent_seen_at or 0, int(time.time()) - BADGE_LOOKBACK_S)
+    placeholders = ",".join(f":n{i}" for i in range(len(followed_usernames)))
+    params = {f"n{i}": username_key(name) for i, name in enumerate(followed_usernames)}
+    params["since"] = since
+    sql = text(
+        f"""
+        SELECT 1 FROM ride_event re
+        WHERE re.created_at > :since
+          AND EXISTS (
+            SELECT 1 FROM json_each(json_extract(re.content, '$.hitchhikers')) je
+            WHERE lower(json_extract(je.value, '$.nickname')) IN ({placeholders})
+          )
+        LIMIT 1
+        """
+    )
+    return db.session.execute(sql, params).first() is not None
+
+
+def activities_badge():
+    """Whether the map's Activities button carries its dot.
+
+    Two reasons, both saying the same thing — there is something on /recent worth
+    opening:
+
+    * the user follows nobody, so the whole point of the page is still news to them (it
+      renders its follow suggestions in exactly that case, see `recent_spots`);
+    * someone they follow has contributed since they last looked.
+
+    Anonymous visitors never get one: they can't follow anyone and can't clear it, so it
+    would be permanent noise.
+    """
+    if current_user.is_anonymous:
+        return False
+    followed = _followed_usernames()
+    if not followed:
+        return True
+    return _has_unseen_followed_rides(current_user, followed)
+
+
 def _suggested_hitchhikers(ride_cards, limit=3):
     """Follow suggestions for users who follow nobody yet: the most active hitchhikers
     among the recent ride cards. Only registered users are suggested — they have a
@@ -866,6 +937,9 @@ def why_not_hitchhike():
 @main_bp.route("/recent")
 def recent_spots():
     """Activities page: rides from people you follow, then the last 100 added rides."""
+    # Captured before the feed is read, and stored as "seen" after: a ride published
+    # while this page renders is not on it, so it must still count as unseen next time.
+    viewed_at = int(time.time())
     rides = (
         db.session.query(RideEvent)
         .filter(RideEvent.submission_time.isnot(None))
@@ -879,6 +953,12 @@ def recent_spots():
     followed_rides = attach_ride_images(_followed_rides(followed_usernames))
     # When the user follows nobody yet, suggest active hitchhikers to follow instead.
     follow_suggestions = _suggested_hitchhikers(ride_list) if (not current_user.is_anonymous and not followed_usernames) else []
+
+    # Opening the page is what clears the dot on the map's Activities button.
+    if not current_user.is_anonymous:
+        current_user.recent_seen_at = viewed_at
+        db.session.commit()
+
     return render_template(
         "recent.html",
         rides=ride_list,

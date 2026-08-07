@@ -109,6 +109,14 @@ A filter that describes a *ride* also decides which rides the open spot pane lis
 - `applyParams` ends by calling `refreshOpenSpotRides()` — filters can be changed with a pane open (on `#insights` the pane is mounted right above the charts), and both branches must re-derive it.
 - Known asymmetry: the map's comment search runs on the index's 200-char excerpt, the pane's on the whole comment, so a needle past that cut matches in the pane but not on the map. That's the right way round for a search box.
 
+### The Activities button carries a dot when /recent has something new
+The map's bottom-pane **Activities** button (`map.html` `#action-activities`) shows a red dot for logged-in visitors, decided server-side by `main.activities_badge()` and rendered like the account button's notification bell. Two reasons, both meaning "there is something on this page worth opening": the viewer **follows nobody** (the page answers exactly that case with its follow suggestions), or someone they follow **contributed since they last looked**.
+
+- **"Last looked" is `user.recent_seen_at`**, epoch seconds, stamped by `/recent` itself (`recent_spots`) from a timestamp taken *before* the feed is read — a ride published while the page renders isn't on it and must still count as unseen. NULL = never opened. Column added by `hitch/scripts/migrate_recent_seen_at.py`.
+- **Compared against `RideEvent.created_at`**, the Nostr event's own epoch-seconds stamp and an indexed column — never `submission_time`, which is a string in the submitter's local wall-clock time and so cannot be ordered against a server timestamp at all. An edit republishes under a fresh `created_at`, so an edited old ride counts as activity.
+- **`BADGE_LOOKBACK_S` (30 days) is a performance bound, not a product rule.** The query runs on the app's most-requested route; against prod it costs 53 ms for a viewer who last looked a month ago, 10 ms for a week, 2 ms for a day — and 556 ms with no bound at all. Anonymous visitors and the ~97% of accounts that follow nobody never reach it (they short-circuit on the follow list).
+- Cleared on click as well as by the visit (`map.js`), because the button opens `/recent` in a new tab and this page stays put.
+
 ### A hitchhiker's name is a case-insensitive identity
 Rides carry a free-text `nickname`, not a foreign key to `user`, so "is this ride mine", "whose profile is this" and "who do I notify" are all string comparisons. **`hitch/usernames.py` owns that comparison** — `username_key` / `same_username` / `find_user_ci` / `canonical_username`. Never compare two hitchhiker names with `==`.
 
@@ -290,6 +298,8 @@ sudo docker exec hitchhiking-map python3 /app/hitch/scripts/migrate_trip_user_nu
 ```bash
 sudo docker exec hitchhiking-map python3 /app/hitch/scripts/migrate_ride_images.py --db /app/db/hitchhiking-prod.sqlite
 ```
+
+A plain added column has a one-liner example too: `hitch/scripts/migrate_recent_seen_at.py` (`user.recent_seen_at`, applied to prod on 2026-08-07) — same shape, `ALTER TABLE ... ADD COLUMN` guarded by a `PRAGMA table_info` check so re-running is a no-op.
 
 Run the migration **before** pushing the code that depends on it: a deploy is a push, so the new code is live within a minute or two and would otherwise hit an `IntegrityError` on the old constraint (or a missing table).
 

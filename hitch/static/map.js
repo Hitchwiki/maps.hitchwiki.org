@@ -2151,6 +2151,17 @@ function setupEventListeners() {
   // halves in inride.js (#inr-log-past-btn) and the spot sheet (#spot-log-past), which
   // report the same event with a different `source`.
 
+  // The Activities dot is server-rendered (main.activities_badge) and the visit itself
+  // is what clears it — but the page opens in a new tab, so this one would keep showing
+  // a dot for something the user is reading right now. Drop it on click; the next load
+  // of this page asks the server again.
+  var activitiesDot = document.getElementById('activities-dot');
+  if (activitiesDot) {
+    document.getElementById('action-activities').addEventListener('click', function() {
+      activitiesDot.remove();
+    });
+  }
+
   var menuBtn = document.getElementById('action-menu');
   if (menuBtn) {
     menuBtn.addEventListener('click', function() {
