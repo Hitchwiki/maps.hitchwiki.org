@@ -1262,7 +1262,9 @@ def _spot_waypoints():
     for spot in spots_data:
         spot_id = generate_spot_id(spot["lat"], spot["lon"])
         last_ride = pd.Timestamp(spot["latest_ms"], unit="ms", tz="UTC").strftime("%Y-%m-%d") if spot.get("latest_ms") else None
-        yield spot_waypoint(spot, spot_details.get(spot_id, {}), spot_id, last_ride)
+        # The same ride entries the per-spot file holds, so a waypoint opened in an
+        # offline app shows the comments and ride facts the spot page shows.
+        yield spot_waypoint(spot, spot_details.get(spot_id, {}), spot_id, last_ride, rides_by_spot.get(spot_id))
 
 
 gpx_path = os.path.join(dirs["dist"], "spots.gpx")
