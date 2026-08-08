@@ -2366,7 +2366,7 @@ function handleHashChange() {
     bar(".sidebar.registered");
   }
 
-  if (window.location.pathname === "/hitchhiking.html") {
+  if (appPath() === "/hitchhiking.html") {
     // (The pane's "Add your ride" button used to be removed here too; it no longer
     // exists — the contribution bar is gated on HIDE_ADD_SPOT_BUTTON instead.)
     var filterPaneEl = document.getElementById('filter-pane');
@@ -2873,6 +2873,10 @@ function markerClick(marker) {
   // fragment when auto-linking a pasted URL, so a `/#lat,lon` link arrived
   // without coordinates. The #map= viewport is appended for recipients whose
   // client keeps it, and is safely ignorable when it's stripped.
+  // Deliberately without the /<lang> prefix even when the sharer is reading a
+  // translation: /spot/<id> is the canonical, indexable address of the spot (the
+  // mirrors are noindex — see LANG_MIRROR_NOINDEX_PREFIXES in hitch/__init__.py),
+  // and the recipient gets the page in their own language rather than the sharer's.
   const spotPath = `/spot/${data.lat.toFixed(5)}_${data.lon.toFixed(5)}`;
   const spotUrl = `${location.origin}${spotPath}#map=17/${data.lat.toFixed(5)}/${data.lon.toFixed(5)}`;
   // The shared delegated handler in base.html reads data-share-url at click time.
@@ -3835,6 +3839,30 @@ function clearParams() {
 // input so old shared links keep resolving to the same spot.
 // ---------------------------------------------------------------------------
 
+// Every route is mirrored under /<lang> for each non-English language (the server
+// registers main_bp/user_bp once per language), so the map is served at /de/spot/<id>
+// just as much as at /spot/<id>. The path regexes below stay root-anchored and are
+// matched against appPath(); writers put the prefix back. Without this a shared
+// /mn/spot/<id> link opened the bare world map — the spot was named by a path nothing
+// recognised — and that empty page is what Google indexed.
+const LANG_PREFIX = window.__LANG__ && window.__LANG__ !== "en" ? `/${window.__LANG__}` : "";
+
+// The current path with that prefix removed: "/de/spot/x_y" -> "/spot/x_y".
+function appPath(pathname) {
+  const p = pathname === undefined ? window.location.pathname : pathname;
+  if (!LANG_PREFIX) return p;
+  if (p === LANG_PREFIX) return "/";
+  return p.startsWith(`${LANG_PREFIX}/`) ? p.slice(LANG_PREFIX.length) : p;
+}
+
+// The inverse: a root-relative app path as it must appear in the address bar, so
+// navigating within the map keeps the language the visitor is reading. The map root
+// keeps its trailing slash ("/fi/", not "/fi") — that is the URL Flask serves the
+// mirror at, and the one sw.js caches it under; "/fi" only 308s onto it.
+function langPath(path) {
+  return path === "/" ? `${LANG_PREFIX}/` : LANG_PREFIX + path;
+}
+
 const MAP_HASH_RE = /^#?map=(\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)$/;
 const SPOT_PATH_RE = /^\/spot\/(-?\d+\.\d+)_(-?\d+\.\d+)\/?$/;
 // /country/<name> — the indexable form of the older #country/<name>. A fragment
@@ -3845,7 +3873,7 @@ const COUNTRY_PATH_RE = /^\/country\/([^/]+)\/?$/;
 // The country named by the path, or null. The legacy hash is handled separately
 // in navigate(), which rewrites it to this path.
 function countryFromUrl() {
-  const m = COUNTRY_PATH_RE.exec(window.location.pathname);
+  const m = COUNTRY_PATH_RE.exec(appPath());
   return m ? decodeURIComponent(m[1]) : null;
 }
 
@@ -3856,8 +3884,8 @@ function countryFromUrl() {
 function setCountryUrl(name, canonicalising) {
   const url = new URL(window.location.href);
   const path = `/country/${encodeURIComponent(name)}`;
-  if (url.pathname === path && !url.hash) return;
-  url.pathname = path;
+  if (appPath(url.pathname) === path && !url.hash) return;
+  url.pathname = langPath(path);
   // Drop a #country/<name> hash we are replacing; keep a #map= viewport.
   if (url.hash && !parseMapHash(url.hash)) url.hash = "";
   window.history[canonicalising ? "replaceState" : "pushState"]({}, "", url);
@@ -3869,10 +3897,10 @@ const DIR_PATH_RE = /^\/dir\/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+
 // The path the map was served under (/, /light, /hitchhiking.html …). Closing a
 // spot must return here, not unconditionally to "/", or the map variations and
 // their template tweaks would be lost on the way back. A /spot/ or /dir/ path is
-// selection state, not a variation — both close back to "/".
+// selection state, not a variation — both close back to "/" (in the current language).
 const BASE_PATH =
-  SPOT_PATH_RE.test(window.location.pathname) || DIR_PATH_RE.test(window.location.pathname)
-    ? "/"
+  SPOT_PATH_RE.test(appPath()) || DIR_PATH_RE.test(appPath())
+    ? langPath("/")
     : window.location.pathname;
 
 // Decimals such that one digit of the coordinate is worth about one screen
@@ -3894,7 +3922,7 @@ function parseMapHash(hash) {
 
 // The spot the current URL names, from the canonical path or a legacy link.
 function spotFromUrl() {
-  const m = SPOT_PATH_RE.exec(window.location.pathname);
+  const m = SPOT_PATH_RE.exec(appPath());
   if (m) return { lat: +m[1], lon: +m[2] };
   const lat = getQueryParameter("lat"),
     lon = getQueryParameter("lon");
@@ -3959,7 +3987,7 @@ function urlNamesSpot(lat, lon) {
 function setSpotUrl(lat, lon) {
   const url = new URL(window.location.href);
   const path = `/spot/${lat.toFixed(5)}_${lon.toFixed(5)}`;
-  const samePath = url.pathname === path;
+  const samePath = appPath(url.pathname) === path;
   const canonicalising = urlNamesSpot(lat, lon);
   const legacyParams = url.searchParams.has("lat") || url.searchParams.has("lon");
   // Keep a #map= viewport, drop any other hash (#lat,lon, #dir/…): it described
@@ -3967,7 +3995,7 @@ function setSpotUrl(lat, lon) {
   // would also stop updateMapHash() from ever tracking the map again.
   const staleHash = !!url.hash && !parseMapHash(url.hash);
   if (samePath && !legacyParams && !staleHash) return;
-  url.pathname = path;
+  url.pathname = langPath(path);
   url.searchParams.delete("lat");
   url.searchParams.delete("lon");
   if (staleHash) url.hash = "";
@@ -3982,8 +4010,8 @@ function clearSpotUrl() {
   // pane has to reset it too — otherwise navigate() re-reads the path and
   // immediately reopens the country sheet the user just closed.
   if (
-    !SPOT_PATH_RE.test(url.pathname) &&
-    !COUNTRY_PATH_RE.test(url.pathname) &&
+    !SPOT_PATH_RE.test(appPath(url.pathname)) &&
+    !COUNTRY_PATH_RE.test(appPath(url.pathname)) &&
     !url.searchParams.has("lat") &&
     !url.searchParams.has("lon")
   ) {
@@ -4267,7 +4295,7 @@ async function navigate() {
     }
     // No exact marker match — pan to the coordinates
     map.setView([lat, lon], zoom || 14);
-  } else if (mainArgs[0] == "dir" || DIR_PATH_RE.test(window.location.pathname)) {
+  } else if (mainArgs[0] == "dir" || DIR_PATH_RE.test(appPath())) {
     // Shareable route link (/dir/from/to, or the legacy #dir/from/to) — routing.js
     // (openFromUrl) opens the planner and computes; don't clear() it out from under it.
   } else {

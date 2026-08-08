@@ -70,6 +70,44 @@ class TestHreflang:
         assert all(href.startswith("https://") for href in alternates)
 
 
+class TestLanguageMirrorsAreNotIndexable:
+    """The mirrors of a page whose content is the same in every language.
+
+    Google had indexed /fi/account/<name> and a scattering of /<lang>/spot/<id>: the
+    noindex rules were written as `request.path.startswith("/account/")`, which is true
+    of exactly one of the 31 URLs each view answers on.
+    """
+
+    def test_an_account_mirror_carries_the_noindex_header(self, client):
+        assert client.get("/fi/account/Tyyybu").headers.get("X-Robots-Tag") == "noindex"
+
+    def test_the_english_account_page_still_does(self, client):
+        assert client.get("/account/Tyyybu").headers.get("X-Robots-Tag") == "noindex"
+
+    def test_a_noindexed_page_advertises_no_translations(self, client):
+        # An hreflang entry pointing at a noindexed URL is a contradiction; search
+        # engines drop the entry and may discount the whole cluster.
+        body = client.get("/fi/account/Tyyybu").get_data(as_text=True)
+        assert '<link rel="alternate" hreflang=' not in body
+
+    def test_an_indexable_page_still_does(self, client):
+        assert '<link rel="alternate" hreflang=' in client.get("/de/recent").get_data(as_text=True)
+
+    def test_a_shared_route_link_is_noindex_by_header_too(self, client):
+        # /dir/<from>/<to> has always carried the <meta> tag (its URL space is the square
+        # of the spot space), but only the tag -- so the mirrors still advertised each
+        # other as translations of a page none of them may index.
+        response = client.get("/dir/47.55811,7.58783/52.51739,13.39513")
+        assert response.headers.get("X-Robots-Tag") == "noindex"
+        assert '<link rel="alternate" hreflang=' not in response.get_data(as_text=True)
+
+    def test_a_login_with_a_next_parameter_is_noindex_in_every_language(self, client):
+        # ?next= makes a duplicate of /login with a throwaway parameter. Bare /login
+        # stays indexable, mirrors included.
+        assert client.get("/de/login?next=/me").headers.get("X-Robots-Tag") == "noindex"
+        assert client.get("/de/login").headers.get("X-Robots-Tag") is None
+
+
 class TestUnboundedUrlSpaces:
     def test_an_account_page_with_nothing_on_it_is_noindex(self, client):
         # /account/<anything> answers 200 so that ride nicknames from other sources

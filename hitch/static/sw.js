@@ -157,10 +157,19 @@ self.addEventListener('fetch', (event) => {
             // are read by crawlers, which don't run the service worker.
             // Same for /country/<name>: the sheet is filled client-side, so only
             // the OpenGraph tags differ and crawlers don't run the service worker.
-            if (/^\/spot\/-?\d+\.\d+_-?\d+\.\d+\/?$/.test(urlObject.pathname) ||
-                /^\/country\/[^/]+\/?$/.test(urlObject.pathname) ||
-                /^\/dir\/-?\d+(\.\d+)?,-?\d+(\.\d+)?\/-?\d+(\.\d+)?,-?\d+(\.\d+)?\/?$/.test(urlObject.pathname))
-                urlObject.pathname = '/';
+            // The optional leading /<lang> is the language mirror every route is also
+            // served under (31 two-letter codes). It is kept, not stripped: those pages
+            // differ from the English one in every translated string, so collapsing
+            // /fi/spot/<id> onto "/" would serve a Finnish visitor the English map.
+            const langAndPath = /^(\/[a-z]{2})?(\/.*)$/.exec(urlObject.pathname);
+            const lang = (langAndPath && langAndPath[1]) || '';
+            const path = (langAndPath && langAndPath[2]) || urlObject.pathname;
+            if (/^\/spot\/-?\d+\.\d+_-?\d+\.\d+\/?$/.test(path) ||
+                /^\/country\/[^/]+\/?$/.test(path) ||
+                /^\/dir\/-?\d+(\.\d+)?,-?\d+(\.\d+)?\/-?\d+(\.\d+)?,-?\d+(\.\d+)?\/?$/.test(path))
+                // Trailing slash: the language root is served (and so cached) as
+                // "/mn/", and a key of "/mn" would miss that copy offline.
+                urlObject.pathname = lang ? lang + '/' : '/';
             return urlObject.toString();
         }
 

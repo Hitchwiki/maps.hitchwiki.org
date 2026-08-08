@@ -51,6 +51,48 @@ HITCHWIKI_ROLES_URL = "https://hitchwiki.org/en/Roles"
 _PUBLIC_CACHE_ENDPOINTS = ("static", "catch_all")
 
 
+def strip_lang_prefix(path):
+    """Split a URL path into its language mirror prefix and the route beneath it.
+
+    "/fi/account/X" -> ("fi", "/account/X"); "/account/X" -> (None, "/account/X").
+
+    Every main_bp/user_bp route is registered again under /<lang> for each non-English
+    language (register_blueprints), so any rule about *which route* this is has to be
+    written against the stripped path -- a root-anchored `startswith("/account/")` silently
+    exempts 30 of the 31 URLs the same view answers on. That is exactly how
+    /fi/account/<name> and /mn/spot/<id> ended up in Google's index.
+    """
+    lang = next(
+        (code for code in SUPPORTED_LANGUAGES if code != "en" and (path == f"/{code}" or path.startswith(f"/{code}/"))),
+        None,
+    )
+    return (lang, (path[len(lang) + 1 :] or "/")) if lang else (None, path)
+
+
+# Per-user and per-action pages that must never enter a search index, in any language.
+#
+# /account/<username> renders 200 for ANY name -- deliberately, so rides logged under a
+# legacy nickname stay browsable -- which makes it an unbounded space of indexable
+# soft-404s (Google had picked up names belonging to nobody). The report/accept routes are
+# one-off actions tied to a single ride id. /dir/<from>/<to> was already noindex via a
+# <meta> tag (render_directions) -- its URL space is the square of the spot space -- but
+# only the tag, so its 31 mirrors still advertised each other as translations.
+NOINDEX_PREFIXES = ("/account/", "/report-ride/", "/accept-co-hitchhiking-ride/", "/dir/")
+
+# Pages whose *content* is the same in every language: user-generated ride text with only
+# the UI furniture translated. The unprefixed page is the one that may be indexed; its 30
+# language mirrors are thin duplicates of it, and Google had indexed a scattering of them
+# (/mn/spot/45.78421_21.21907, /it/spot/64.16578_-21.69205, ...). Same call cities.py makes
+# by only translating the top 400 cities.
+LANG_MIRROR_NOINDEX_PREFIXES = ("/spot/",)
+
+
+def page_is_noindex(path):
+    """Whether this exact path must be kept out of the index (see the tuples above)."""
+    lang, route = strip_lang_prefix(path)
+    return route.startswith(NOINDEX_PREFIXES) or (lang is not None and route.startswith(LANG_MIRROR_NOINDEX_PREFIXES))
+
+
 class _CacheAwareSessionInterface(SecureCookieSessionInterface):
     """Keeps session state off responses we advertise as publicly cacheable.
 
@@ -178,6 +220,21 @@ def register_i18n(app):
         # space / non-ASCII byte, which is not a valid URL and is ignored.
         return {"canonical_url": f"https://{request.host}{quote(request.path)}"}
 
+    # base.html declares the 31 mirrors of a page as translations of each other. That
+    # cluster is only meaningful between *indexable* pages: an hreflang entry pointing at a
+    # noindexed URL is a contradiction, which Google resolves by dropping the entry and can
+    # end up discounting the whole set. So a page that is itself noindexed, or whose mirrors
+    # are (a spot page), emits no alternates at all. Its canonical stays self-referencing:
+    # canonicalising a mirror onto the English page would be the same mixed signal from the
+    # other side, and a noindexed page's canonical is moot anyway.
+    @app.context_processor
+    def inject_hreflang_flag():
+        if not request:
+            return {}
+        _, route = strip_lang_prefix(request.path)
+        clustered = not (route.startswith(NOINDEX_PREFIXES) or route.startswith(LANG_MIRROR_NOINDEX_PREFIXES))
+        return {"emit_hreflang": clustered}
+
     @app.template_global()
     def lang_switch_url(lang):
         """The current page's URL rewritten into `lang`, for the language switcher.
@@ -186,12 +243,7 @@ def register_i18n(app):
         non-English language (register_blueprints), so switching is just adding/
         stripping that one prefix -- no per-route translation table to maintain.
         """
-        path = request.path
-        current_prefix = next(
-            (code for code in SUPPORTED_LANGUAGES if code != "en" and (path == f"/{code}" or path.startswith(f"/{code}/"))),
-            None,
-        )
-        stripped = (path[len(current_prefix) + 1 :] or "/") if current_prefix else path
+        _, stripped = strip_lang_prefix(request.path)
         target = stripped if lang == "en" else (f"/{lang}" if stripped == "/" else f"/{lang}{stripped}")
         qs = request.query_string.decode()
         return target + (f"?{qs}" if qs else "")
@@ -516,14 +568,9 @@ def register_routes(app):
             response.headers["Vary"] = "Accept-Encoding"
         return response
 
-    # Per-user and per-action pages that must never enter a search index.
-    #
-    # /account/<username> renders 200 for ANY name — deliberately, so rides logged
-    # under a legacy nickname stay browsable — which makes it an unbounded space of
-    # indexable soft-404s (Google had picked up names belonging to nobody). The
-    # report/accept routes are one-off actions tied to a single ride id, and a
-    # /login carrying ?next= is a duplicate of /login with a throwaway parameter.
-    # Bare /login stays indexable.
+    # Keeps the pages named by NOINDEX_PREFIXES / LANG_MIRROR_NOINDEX_PREFIXES (module
+    # level, with the reasoning) out of search indexes, plus /login?next=, which is a
+    # duplicate of /login with a throwaway parameter. Bare /login stays indexable.
     #
     # Sent as a header rather than a <meta> tag so it applies to redirects and to
     # every template in the group without relying on inheritance.
@@ -531,11 +578,11 @@ def register_routes(app):
     # NOTE: robots.txt must keep allowing these paths. A Disallow would stop
     # crawlers fetching them, so they would never see this header, and URLs already
     # in the index would stay there — the opposite of the intent.
-    NOINDEX_PREFIXES = ("/account/", "/report-ride/", "/accept-co-hitchhiking-ride/")
-
     @app.after_request
     def set_noindex_headers(response):
-        path = request.path
-        if path.startswith(NOINDEX_PREFIXES) or (path.rstrip("/") == "/login" and request.args.get("next")):
+        # The route beneath the /<lang> mirror prefix, so one rule covers all 31 URLs a
+        # view answers on — matching request.path directly exempted the 30 mirrors.
+        _, route = strip_lang_prefix(request.path)
+        if page_is_noindex(request.path) or (route.rstrip("/") == "/login" and request.args.get("next")):
             response.headers["X-Robots-Tag"] = "noindex"
         return response

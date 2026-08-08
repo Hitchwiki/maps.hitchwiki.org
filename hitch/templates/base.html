@@ -80,7 +80,10 @@
        same trap as main._external_https). An hreflang pointing at http:// names a URL
        that only redirects, so the cluster does not reciprocate and search engines
        discount the whole set of translations. #}
-    {% if request is defined %}
+    {# emit_hreflang (inject_hreflang_flag, hitch/__init__.py) is false on pages whose
+       mirrors are noindexed -- /spot/<id> and /account/<name>. Listing noindexed URLs as
+       alternates is a contradiction search engines resolve by discarding the cluster. #}
+    {% if request is defined and emit_hreflang %}
     {% for code in SUPPORTED_LANGUAGES %}
     <link rel="alternate" hreflang="{{ code }}" href="https://{{ request.host }}{{ lang_switch_url(code) }}" />
     {% endfor %}

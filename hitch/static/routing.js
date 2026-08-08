@@ -496,7 +496,7 @@
     // must fall back to BASE_PATH (map.js): leaving "/dir/…" in the address bar
     // would make the next navigate() reopen the planner we just closed.
     const dirHash = location.hash.slice(1).startsWith("dir/");
-    if (DIR_PATH_RE.test(location.pathname)) {
+    if (DIR_PATH_RE.test(routePath(location.pathname))) {
       // BASE_PATH is a top-level const in map.js: a global lexical binding, so it
       // resolves here but never as a window property.
       const home = typeof BASE_PATH === "string" ? BASE_PATH : "/";
@@ -636,6 +636,13 @@
   // load / paste is handled in init().
   const DIR_PATH_RE = /^\/dir\/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)\/?$/;
 
+  // The map is also served under /<lang> for every non-English language, so the
+  // route path arrives as /de/dir/… there. map.js owns that translation (appPath /
+  // langPath are top-level bindings in it, like BASE_PATH above); these wrappers
+  // degrade to the raw path if routing.js is ever loaded without it.
+  const routePath = (p) => (typeof appPath === "function" ? appPath(p) : p);
+  const localisedPath = (p) => (typeof langPath === "function" ? langPath(p) : p);
+
   // Beacon the requested route to the server so we can see which corridors are in
   // demand — routing is computed client-side, so this is the only server signal.
   // sendBeacon is fire-and-forget and survives the page being navigated away.
@@ -660,10 +667,13 @@
     // A legacy #dir hash described this very route; drop it rather than carry a
     // second, staler copy of the state. A #map= viewport is kept.
     const hash = location.hash.slice(1).startsWith("dir/") ? "" : location.hash;
-    history.replaceState(null, "", path + location.search + hash);
+    // Keep the visitor's language in the address bar: /dir/ is noindex in every
+    // language, so nothing is lost by not canonicalising it to the English path,
+    // and a reload of the shared link must not switch the UI language.
+    history.replaceState(null, "", localisedPath(path) + location.search + hash);
   }
   function parseDirPath(pathname) {
-    const m = DIR_PATH_RE.exec(pathname || "");
+    const m = DIR_PATH_RE.exec(routePath(pathname || ""));
     if (!m) return null;
     return { from: [+m[1], +m[2]], to: [+m[3], +m[4]] };
   }

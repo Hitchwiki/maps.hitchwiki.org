@@ -78,3 +78,28 @@ class TestRenderSpot:
         body = client.get(f"/spot/{SPOT_ID}").get_data(as_text=True)
         assert '<meta name="robots" content="noindex" />' in body
         assert "An der A10, Michendorf — hitchhiking spot" in body
+
+
+class TestOnlyTheUnprefixedSpotPageIsIndexable:
+    """A spot's rides are the same text in all 31 languages -- only the furniture around
+    them is translated -- so the /<lang> mirrors are thin duplicates of the English page.
+    Google had indexed a scattering of them (/mn/spot/45.78421_21.21907, ...)."""
+
+    RATED = {"spot": {"name": "Raststätte Michendorf-Nord", "wait": 51}, "rides": [{"rating": 4}]}
+
+    def test_the_mirror_is_noindex_even_when_the_spot_has_rides(self, client, write_spot):
+        write_spot(self.RATED)
+        assert client.get(f"/mn/spot/{SPOT_ID}").headers.get("X-Robots-Tag") == "noindex"
+
+    def test_the_english_page_stays_indexable(self, client, write_spot):
+        write_spot(self.RATED)
+        response = client.get(f"/spot/{SPOT_ID}")
+        assert response.headers.get("X-Robots-Tag") is None
+        assert '<meta name="robots" content="noindex" />' not in response.get_data(as_text=True)
+
+    def test_no_hreflang_cluster_around_a_noindexed_mirror(self, client, write_spot):
+        # The <link rel="alternate"> block only, not the language picker's own
+        # hreflang-annotated links -- those are navigation for humans.
+        write_spot(self.RATED)
+        body = client.get(f"/spot/{SPOT_ID}").get_data(as_text=True)
+        assert '<link rel="alternate" hreflang=' not in body
