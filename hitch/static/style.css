@@ -1496,25 +1496,42 @@ body.inr-picking .event-marker {
   transition: transform 0.25s ease;
   overflow: hidden;
   touch-action: none;
+  /* Height of .sheet-handle, which sits above the scrolling body and so has to be
+     subtracted from the visible height below. Kept as a variable because the two
+     numbers must agree. */
+  --sheet-handle-h: 46px;
+  /* How much of the sheet the snap below actually leaves on screen: 100% minus its
+     translateY. The scroll container is capped at this (see .sheet-body), because a
+     sheet at a partial snap has the rest of its box *below the bottom of the screen* —
+     a body sized to the whole sheet puts everything past the first card in that
+     invisible strip, so scrolling appeared to do nothing after the first ride. */
+  --sheet-visible: 45%;
 }
-/* When visible, lay out as a flex column so .sheet-handle keeps its natural
-   height and .sheet-body fills the rest. Scoped to .visible so the base
-   `.sidebar { display: none }` rule still hides closed sheets. */
+/* When visible, lay out as a flex column so .sheet-handle keeps its fixed
+   height and .sheet-body fills the rest (up to its visible-height cap). Scoped to
+   .visible so the base `.sidebar { display: none }` rule still hides closed sheets. */
 .sidebar.bottom-sheet.visible {
   display: flex;
   flex-direction: column;
 }
 .sidebar.bottom-sheet.snap-peek {
   transform: translateY(80%);
+  --sheet-visible: 20%;
 }
 .sidebar.bottom-sheet.snap-half {
   transform: translateY(55%);
+  --sheet-visible: 45%;
 }
 .sidebar.bottom-sheet.snap-full {
   transform: translateY(0);
+  --sheet-visible: 100%;
 }
 .sidebar.bottom-sheet.dragging {
   transition: none;
+  /* Mid-drag the sheet sits at an arbitrary offset, so no snap's cap is right; let the
+     body fill the sheet rather than leaving a blank strip while it is dragged upwards.
+     The cap returns the moment a snap class is set on release. */
+  --sheet-visible: 100%;
 }
 /* On desktop, match the width of the search bar and filter pane
    (left: 16px, right: 68px, max-width: 600px) instead of full-width. */
@@ -1530,13 +1547,16 @@ body.inr-picking .event-marker {
 #spot-sheet-body {
   flex: 1;
   min-height: 0; /* flex children with overflow need this to actually scroll */
+  /* Stop where the screen does, not where the sheet does — see --sheet-visible. */
+  max-height: calc(var(--sheet-visible, 100%) - var(--sheet-handle-h, 46px));
   overflow-y: auto;
   padding: 0 20px 20px 20px;
   -webkit-overflow-scrolling: touch;
 }
 .sheet-handle {
   width: 100%;
-  padding: 22px 0 18px;
+  height: var(--sheet-handle-h, 46px);
+  box-sizing: border-box;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -3734,7 +3754,7 @@ body.routing-active .leaflet-control-container .leaflet-control-geocoder { displ
 /* Route pane peek: show only the handle + "Routes" title (matches ROUTING_SHEET_SNAPS
    peek: 88 in map.js), overriding the generic .snap-peek (80%), so most of the map
    stays visible. The pane can't be swiped away — only the X closes it. */
-.sidebar.routing.bottom-sheet.snap-peek { transform: translateY(88%); }
+.sidebar.routing.bottom-sheet.snap-peek { transform: translateY(88%); --sheet-visible: 12%; }
 
 /* ── Account modal (issue #106): login + profile summary without leaving the map ──
    Reuses the in-ride sheet shell (.inr-sheet / .inride-scrim) but is a peer of those

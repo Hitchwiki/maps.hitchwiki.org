@@ -2457,6 +2457,18 @@ function renderRideCards(rides) {
     const name = anonymous
       ? `<span class="hitchhiker-name">${tr("Anonymous")}</span>`
       : `<a class="hitchhiker-name" href="/account/${encodeURIComponent(r.hitchhiker_name)}">${escapeHtml(r.hitchhiker_name)}</a>`;
+    // A spot's arrows are drawn as one anonymous bundle (renderPoints reads the spot's
+    // whole dest_lats/dest_lons), so with a handful of rides there is no way to tell
+    // which line belongs to which card. This button names one: hover (or tap) it and
+    // that ride's own line is drawn on top of the bundle. Only rides that recorded a
+    // destination get one — there is nothing to point at otherwise.
+    const destBtn =
+      r.dest_lat != null && r.dest_lon != null
+        ? `<button type="button" class="ride-dest-btn" data-dest-lat="${r.dest_lat}" data-dest-lon="${r.dest_lon}"` +
+          ` data-ride-key="${escapeHtml(r.id || `${r.dest_lat},${r.dest_lon}`)}"` +
+          ` title="${escapeHtml(tr("Show where this ride went"))}" aria-label="${escapeHtml(tr("Show where this ride went"))}">` +
+          `<i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i></button>`
+        : "";
     const comment = r.comment ? `<div class="ride-comment">${escapeHtml(r.comment)}</div>` : "";
     const href = r.id ? `/ride/${encodeURIComponent(r.id)}` : "";
     const clickable = href ? ` data-ride-href="${href}" role="link" tabindex="0" style="cursor:pointer;"` : "";
@@ -2464,7 +2476,7 @@ function renderRideCards(rides) {
     const cardClass = r.no_ride ? "ride-card ride-card--no-ride" : "ride-card";
     return `
       <div class="${cardClass}"${clickable}>
-        <div class="ride-meta">${noRideBadge}${metaBits}${rating} &mdash; ${name}</div>
+        <div class="ride-meta">${noRideBadge}${metaBits}${rating} &mdash; ${name}${destBtn}</div>
         ${timesLine}
         ${comment}
       </div>`;
@@ -2472,13 +2484,108 @@ function renderRideCards(rides) {
 }
 
 // Navigate to ride detail page when a ride-card is clicked, except when the
-// click lands on a nested link (e.g. the hitchhiker username).
+// click lands on a nested link (e.g. the hitchhiker username) or on a control of
+// its own (the destination-highlight button, which acts on the map instead).
 document.addEventListener("click", (e) => {
   const card = e.target.closest(".ride-card[data-ride-href]");
   if (!card) return;
-  if (e.target.closest("a")) return;
+  if (e.target.closest("a, button")) return;
   window.location.href = card.dataset.rideHref;
 });
+
+// ---- Per-ride destination highlight -----------------------------------------
+// The line for one ride, drawn over the spot's bundle of destination arrows by the
+// button in its card. Hovering previews it; clicking pins it (and frames both ends),
+// so a phone — which has no hover — still gets the same answer, and so the line
+// survives moving the pointer away to read the map.
+let rideDestHighlight = null;
+let pinnedRideDest = null; // { key, lat, lon } of the pinned card, or null
+
+function drawRideDestHighlight(lat, lon) {
+  if (!active || !active.length) return;
+  if (rideDestHighlight) rideDestHighlight.remove();
+  const from = active[0].getLatLng();
+  rideDestHighlight = L.layerGroup([
+    L.polyline([from, [lat, lon]], { color: "#e8590c", weight: 4, opacity: 0.95, pane: "arrowlines" }),
+    L.circleMarker([lat, lon], {
+      radius: 6,
+      color: "#e8590c",
+      weight: 2,
+      fillColor: "#e8590c",
+      fillOpacity: 1,
+      pane: "arrowlines",
+    }),
+  ]).addTo(map);
+}
+
+function eraseRideDestHighlight() {
+  if (rideDestHighlight) {
+    rideDestHighlight.remove();
+    rideDestHighlight = null;
+  }
+}
+
+// Drop the highlight entirely — pin included. Called whenever the cards it points
+// from are replaced or the spot is deselected, since a line drawn from a marker that
+// is no longer open belongs to nothing on screen.
+function clearRideDestHighlight() {
+  pinnedRideDest = null;
+  eraseRideDestHighlight();
+  document.querySelectorAll(".ride-dest-btn.active").forEach((b) => b.classList.remove("active"));
+}
+
+function rideDestFromButton(btn) {
+  return { key: btn.dataset.rideKey, lat: Number(btn.dataset.destLat), lon: Number(btn.dataset.destLon) };
+}
+
+// pointerover/out (which bubble, so one delegated pair covers every card) also fire
+// when the pointer crosses between the button and its icon; `relatedTarget` inside the
+// same button means the pointer never actually left it, and redrawing there would
+// flicker the line on every such crossing.
+const leftSameButton = (e, btn) => btn.contains(e.relatedTarget);
+
+document.addEventListener("pointerover", (e) => {
+  const btn = e.target.closest(".ride-dest-btn");
+  if (!btn || leftSameButton(e, btn)) return;
+  const d = rideDestFromButton(btn);
+  if (pinnedRideDest && pinnedRideDest.key === d.key) return;
+  drawRideDestHighlight(d.lat, d.lon);
+});
+
+document.addEventListener("pointerout", (e) => {
+  const btn = e.target.closest(".ride-dest-btn");
+  if (!btn || leftSameButton(e, btn)) return;
+  // Leaving a hover preview restores whatever was pinned, rather than clearing the map.
+  if (pinnedRideDest) drawRideDestHighlight(pinnedRideDest.lat, pinnedRideDest.lon);
+  else eraseRideDestHighlight();
+});
+
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".ride-dest-btn");
+  if (!btn) return;
+  const d = rideDestFromButton(btn);
+  if (pinnedRideDest && pinnedRideDest.key === d.key) {
+    clearRideDestHighlight();
+    return;
+  }
+  clearRideDestHighlight();
+  pinnedRideDest = d;
+  btn.classList.add("active");
+  drawRideDestHighlight(d.lat, d.lon);
+  frameRideDest(d.lat, d.lon);
+});
+
+// Fit spot + destination on screen. The bottom sheet covers the lower part of the map,
+// so the padding it needs is however much of the window it currently occupies —
+// otherwise the destination lands behind the very card that asked for it.
+function frameRideDest(lat, lon) {
+  if (!active || !active.length) return;
+  const bounds = L.latLngBounds([active[0].getLatLng(), [lat, lon]]);
+  const sheet = $$(".sidebar.show-spot");
+  const rect = sheet && sheet.classList.contains("visible") ? sheet.getBoundingClientRect() : null;
+  const bottomPad = rect ? Math.max(20, Math.min(window.innerHeight - rect.top, window.innerHeight * 0.6)) : 20;
+  map.fitBounds(bounds, { paddingTopLeft: [30, 30], paddingBottomRight: [30, bottomPad] });
+}
 
 // Photos attached to the rides logged at this spot, as one horizontally scrollable
 // strip at the top of the pane. Flattened across rides in the order the cards are shown
@@ -2752,6 +2859,9 @@ function applySpotRideFilter(marker) {
   const view = rideFilter ? { ...data, ...spotAverages(shown) } : data;
   renderSpotSummary(view);
   renderSpotPhotos(shown);
+
+  // The cards below are about to be replaced, taking their highlight buttons with them.
+  clearRideDestHighlight();
 
   const hidden = all.length - shown.length;
   const note = hidden > 0 ? `<div class="spot-filter-note">${spotFilterNote(shown.length, all.length)}</div>` : "";
@@ -3515,6 +3625,10 @@ function arrowLine(from, to) {
 }
 
 function renderPoints() {
+  // The per-ride highlight is drawn from the open spot's marker; a re-render means the
+  // selection (or the filtered ride set behind those cards) has changed, so it can no
+  // longer refer to anything the pane is showing.
+  clearRideDestHighlight();
   if (destLineGroup) destLineGroup.remove();
 
   destLineGroup = L.layerGroup();

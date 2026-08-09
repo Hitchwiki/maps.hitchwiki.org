@@ -26,6 +26,34 @@
 .ride-card .hitchhiker-name:hover {
     text-decoration: underline;
 }
+/* Highlights this ride's own line to its destination on the map (map.js
+   drawRideDestHighlight). Only rendered in the spot pane, where there is a map to point
+   at, but styled here next to the rest of the card. Sized to a comfortable tap target
+   without growing the meta line's height. */
+.ride-card .ride-dest-btn {
+    margin-left: 6px;
+    padding: 2px 7px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #fff;
+    color: #888;
+    font-size: 0.95em;
+    line-height: 1.4;
+    cursor: pointer;
+    vertical-align: middle;
+}
+.ride-card .ride-dest-btn:hover,
+.ride-card .ride-dest-btn:focus-visible {
+    color: #e8590c;
+    border-color: #e8590c;
+}
+/* Pinned: the line stays on the map after the pointer leaves, so the button has to
+   keep saying which ride it belongs to. */
+.ride-card .ride-dest-btn.active {
+    color: #fff;
+    background: #e8590c;
+    border-color: #e8590c;
+}
 .ride-card .map-thumbnail {
     height: 120px;
     margin: 0.35rem 0 0.2rem;

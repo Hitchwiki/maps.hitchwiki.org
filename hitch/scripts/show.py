@@ -1246,6 +1246,16 @@ for r in rides_data:
             # ~35k files for nothing.
             **({"vehicle_kind": r["vehicle_kind"]} if r.get("vehicle_kind") else {}),
             **({"signal_methods": r["signal_methods"]} if r.get("signal_methods") else {}),
+            # Where this particular ride ended. The spot's dest_lats/dest_lons in
+            # spots.json are one anonymous bag per spot, so the pane can't tell which
+            # arrow belongs to which card; these let a card highlight its own line
+            # (map.js drawRideDestHighlight). Omitted when the ride recorded no
+            # destination, like the two above — ~half of all rides.
+            **(
+                {"dest_lat": round_coord(r["dest_lat"]), "dest_lon": round_coord(r["dest_lon"])}
+                if r.get("dest_lat") is not None and r.get("dest_lon") is not None
+                else {}
+            ),
             "no_ride": r["no_ride"],
         }
     )
