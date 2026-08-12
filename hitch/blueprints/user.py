@@ -501,8 +501,12 @@ def _ride_distance_km(info):
 
     Mirrors show.py: great-circle distance scaled by the road-detour factor, with rides
     under 1 km discarded as unrealistically short (they are treated as having no
-    destination there, so a record must not be built out of one).
+    destination there, so a record must not be built out of one), and a give-up carrying
+    no distance at all -- its second stop is where the hitchhiker meant to go, not
+    anywhere a car took them.
     """
+    if info.get("no_ride"):
+        return None
     coords = (info["pickup_lat"], info["pickup_lon"], info["destination_lat"], info["destination_lon"])
     if any(c is None for c in coords):
         return None
@@ -760,9 +764,6 @@ def _extract_ride_info(ride, ride_type):
     # coords off the info dict, so it has to run once the dict exists.
     info["wait_min"] = _ride_wait_minutes(ride)
     info["ride_min"] = _ride_duration_minutes(ride)
-    distance = _ride_distance_km(info)
-    info["distance_km"] = round(distance, 1) if distance is not None else None
-    info["completion"] = _ride_completion_pct(ride)
     # A ride that never recorded where it ended is incomplete data the user can still fix,
     # so the modal flags it. A `no_ride` record is a give-up: the hitchhiker was never
     # picked up, so having no destination is correct there and must not be flagged. The
@@ -770,8 +771,12 @@ def _extract_ride_info(ride, ride_type):
     gave_up = content.get("no_ride") is not None
     info["gave_up"] = gave_up
     # Same fact under the name the card macro and the spot pane both use, so a give-up is
-    # badged identically in a profile list and on the map.
+    # badged identically in a profile list and on the map. Set before the distance below,
+    # which reads it to keep a give-up out of every distance figure.
     info["no_ride"] = gave_up
+    distance = _ride_distance_km(info)
+    info["distance_km"] = round(distance, 1) if distance is not None else None
+    info["completion"] = _ride_completion_pct(ride)
     info["missing_destination"] = destination_lat is None and not gave_up
     return info
 

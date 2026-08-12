@@ -115,6 +115,9 @@ class TestRideMapEntry:
             # The spot pane filters on these two, so they travel with a pending ride.
             mode_of_transportation=None,
             signals=None,
+            # A give-up: its last stop is a planned destination, so the entry must carry
+            # neither a destination nor a distance.
+            no_ride=False,
         )
         fields.update(overrides)
         return SimpleNamespace(**fields)
@@ -137,6 +140,18 @@ class TestRideMapEntry:
         assert entry["submission_time"] == "2026-07-02T16:35:00"
         assert entry["ride_datetime"] == "2026-07-02T14:00"
         assert entry["arrival_datetime"] == "2026-07-02T16:30"
+
+    def test_a_give_up_reports_no_destination_and_no_distance(self):
+        # Its second stop is where the hitchhiker meant to go, not where a car took them.
+        # show.py drops both for a give-up, and this entry stands in for a ride until
+        # show.py catches up — so the line and the distance must not appear and then
+        # vanish ten minutes later.
+        entry = ride_map_entry(self._ride(no_ride=True))
+        assert entry["dest_lat"] is None
+        assert entry["dest_lon"] is None
+        assert entry["distance"] is None
+        # The spot itself is still a real place someone stood, so the marker survives.
+        assert entry["spot_id"] == "51.08170_13.73629"
 
     def test_distance_matches_haversine_np_exactly(self):
         # The property that stops ride_map_entry's distance from drifting away from

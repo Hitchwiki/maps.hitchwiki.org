@@ -131,7 +131,7 @@ def load_rides(db_path):
     """
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
-    rows = conn.execute("SELECT id, d, stops FROM ride_event").fetchall()
+    rows = conn.execute("SELECT id, d, stops, no_ride FROM ride_event").fetchall()
     derived = load_derived_destinations(conn)
     derived_waits = load_derived_waits(conn)
     conn.close()
@@ -153,8 +153,13 @@ def load_rides(db_path):
             continue
         if slat is None or slon is None:
             continue
+        # A give-up has no route: its last stop is where the hitchhiker was heading, and
+        # routing it would build a corridor -- and the "repeatable" evidence behind it --
+        # out of a journey no car ever made. It still contributes its start spot, which is
+        # a real place people stand, exactly as show.py keeps the marker and drops the
+        # distance.
         dest = None
-        if len(stops) > 1:
+        if not r["no_ride"] and len(stops) > 1:
             try:
                 d = stops[-1]["location"]
                 dlat, dlon = d["latitude"], d["longitude"]
@@ -165,7 +170,7 @@ def load_rides(db_path):
                 pass
         # Only fall back to the derived destination when the ride logged none itself, and
         # only if it is distinct from the start (a same-cell match yields no route).
-        if dest is None and r["d"] in derived:
+        if dest is None and not r["no_ride"] and r["d"] in derived:
             dlat, dlon = derived[r["d"]]
             if not (abs(slat - dlat) < 1e-6 and abs(slon - dlon) < 1e-6):
                 dest = (dlat, dlon)

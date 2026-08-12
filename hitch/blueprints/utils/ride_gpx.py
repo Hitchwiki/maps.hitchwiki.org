@@ -139,10 +139,14 @@ def ride_description(ride, content, facts, distance_km):
     return "\n".join(line for line in lines if line is not None)
 
 
-def _ride_title(names, facts, ride):
-    """Title of the form `<start> → <destination>` where the spots are named, else a dated fallback."""
+def _ride_title(names, facts, ride, has_destination=True):
+    """Title of the form `<start> → <destination>` where the spots are named, else a dated fallback.
+
+    `has_destination` is False for a ride that reached nowhere (none logged, or a give-up),
+    whose title must not name an endpoint the hitchhiker never arrived at.
+    """
     start = _name_for(names, facts["pickup_lat"], facts["pickup_lon"])
-    end = _name_for(names, facts["dest_lat"], facts["dest_lon"])
+    end = _name_for(names, facts["dest_lat"], facts["dest_lon"]) if has_destination else None
     date = (ride.submission_time or "")[:10]
     if start and end:
         title = f"{start} → {end}"
@@ -151,7 +155,7 @@ def _ride_title(names, facts, ride):
     elif end:
         title = f"→ {end}"
     else:
-        title = "Hitchhiking ride" if facts["dest_lat"] is not None else "Hitchhiking spot"
+        title = "Hitchhiking ride" if has_destination else "Hitchhiking spot"
     return f"{title} ({date})" if date else title
 
 
@@ -185,12 +189,18 @@ def rides_gpx(rides, username):
         # The map's road-distance estimate (great-circle x 1.25), the same figure the
         # profile and the spot pane show — not the straight line — so a user comparing
         # the export against the site doesn't find two different numbers.
+        # A give-up records where the hitchhiker meant to go, not where they got: it has
+        # no distance to print and no line to draw, so it exports as the waypoint below
+        # exactly like a ride that logged no destination at all. Drawing the leg would put
+        # a journey nobody made on the user's offline map.
+        gave_up = content.get("no_ride") is not None
+        has_destination = not gave_up and facts["dest_lat"] is not None and facts["dest_lon"] is not None
         distance_km = None
-        if facts["dest_lat"] is not None and facts["dest_lon"] is not None:
+        if has_destination:
             distance_km = float(haversine_np(facts["pickup_lat"], facts["pickup_lon"], facts["dest_lat"], facts["dest_lon"]))
 
         entry = {
-            "name": _ride_title(names, facts, ride),
+            "name": _ride_title(names, facts, ride, has_destination),
             "desc": ride_description(ride, content, facts, distance_km),
             "time": facts["departure_time"] or ride.submission_time,
             "src": ride.source,
@@ -204,7 +214,7 @@ def rides_gpx(rides, username):
             },
         }
 
-        if facts["dest_lat"] is None or facts["dest_lon"] is None:
+        if not has_destination:
             entry["sym"] = WAYPOINT_SYM
             root.append(build_waypoint(dict(entry, lat=facts["pickup_lat"], lon=facts["pickup_lon"])))
             continue

@@ -345,6 +345,16 @@ rides_df.loc[(rides_df.distance < 1), "dest_lon"] = None
 rides_df.loc[(rides_df.distance < 1), "direction"] = None
 rides_df.loc[(rides_df.distance < 1), "distance"] = None
 
+# A give-up never travelled. Its second stop, when it has one, is where the hitchhiker was
+# *heading* (the ride form calls it "Planned Destination"), so counting it as distance would
+# credit kilometres nobody moved -- in the spot's average, the user's lifetime total, the
+# leaderboards and the "longest ride" tables alike. Dropped here, next to the short-ride
+# cleanup and before anything reads these columns, so every downstream view agrees; the
+# planned destination itself survives untouched in the Nostr record and on the ride's page.
+if "no_ride" in rides_df.columns:
+    gave_up = rides_df["no_ride"].fillna(False).astype(bool)
+    rides_df.loc[gave_up, ["dest_lat", "dest_lon", "direction", "distance"]] = None
+
 rounded_dir = 45 * np.round(rides_df.direction / 45)
 rides_df["arrows"] = rounded_dir.replace(
     {

@@ -143,7 +143,8 @@ def ride_map_entry(ride, images=None):
     """One /pending_rides.json entry, or None when the ride does not belong on the map.
 
     `ride` is any object with the RideEvent columns (`d`, `stops`, `hitchhikers`,
-    `comment`, `rating`, `submission_time`, `mode_of_transportation`, `signals`). The
+    `comment`, `rating`, `submission_time`, `mode_of_transportation`, `signals`,
+    `no_ride`). The
     keys match what show.py writes into rides/by-spot/<id>.json plus the marker fields
     from spots.json, so map.js can feed the entry straight into the paths that already
     render both. Attributes are read directly rather than through getattr defaults: a
@@ -165,7 +166,13 @@ def ride_map_entry(ride, images=None):
     # 1.25), not the ride page's straight-line haversine_km — using the same function
     # here is what keeps a pending ride's distance from jumping the moment show.py
     # regenerates and takes over.
+    # A give-up carries no distance and no destination line: its last stop is where the
+    # hitchhiker meant to go, not where a car took them. show.py drops both for the same
+    # reason, and this entry only exists until show.py catches up -- disagreeing would
+    # make a marker's line and distance vanish ten minutes after it appeared.
     dest_lat, dest_lon = facts["dest_lat"], facts["dest_lon"]
+    if ride.no_ride:
+        dest_lat = dest_lon = None
     distance = None
     if None not in (dest_lat, dest_lon):
         distance = float(haversine_np(facts["pickup_lat"], facts["pickup_lon"], dest_lat, dest_lon))
@@ -178,8 +185,8 @@ def ride_map_entry(ride, images=None):
         "spot_id": spot_id_for(facts["pickup_lat"], facts["pickup_lon"]),
         "lat": facts["pickup_lat"],
         "lon": facts["pickup_lon"],
-        "dest_lat": facts["dest_lat"],
-        "dest_lon": facts["dest_lon"],
+        "dest_lat": dest_lat,
+        "dest_lon": dest_lon,
         "rating": ride.rating,
         "wait": facts["waiting_minutes"],
         "distance": round(distance, 1) if distance is not None else None,

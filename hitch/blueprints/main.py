@@ -1017,7 +1017,10 @@ def ride_detail(d_tag):
     if isinstance(ride_obj, dict):
         trip_reasons = [RIDE_REASON_DESCRIPTION_BY_CODE.get(r, r) for r in (ride_obj.get("reasons") or [])]
 
-    distance_km = haversine_km(pickup_lat, pickup_lon, dest_lat, dest_lon)
+    # A give-up's last stop is a planned destination, so it has no distance to report --
+    # same rule show.py applies to every aggregate (see its no_ride cleanup).
+    gave_up = bool(ride.no_ride) or content.get("no_ride") is not None
+    distance_km = None if gave_up else haversine_km(pickup_lat, pickup_lon, dest_lat, dest_lon)
 
     submission_dt = ride.submission_time or None
 
@@ -1080,7 +1083,7 @@ def ride_detail(d_tag):
 
     ride_view = {
         "d_tag": d_tag,
-        "no_ride": bool(ride.no_ride) or content.get("no_ride") is not None,
+        "no_ride": gave_up,
         "rating": ride.rating,
         "comment": ride.comment,
         "wait": waiting_minutes,
