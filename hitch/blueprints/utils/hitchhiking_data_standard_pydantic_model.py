@@ -34,6 +34,11 @@ class ReasonEnum(str, Enum):
     commute = "commute"
     business = "business"
     recreational = "recreational"
+    # Local extension, not (yet) in the upstream standard: running errands is neither a
+    # commute nor business nor leisure, and it is one of the commonest short local trips
+    # a hitchhiker gets picked up on. Same value on both reason enums so the two answers
+    # to "why was this trip happening" stay comparable.
+    errands = "errands"
 
 
 class Ride(BaseModel, use_enum_values=True):
@@ -139,6 +144,7 @@ class ReasonToHitchhikeEnum(str, Enum):
     recreational = "recreational"
     environmental = "environmental"
     fundraising = "fundraising"
+    errands = "errands"  # Local extension, see ReasonEnum.errands.
 
 
 class Hitchhiker(Person, use_enum_values=True):

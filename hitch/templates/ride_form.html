@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Submit Your Ride Experience{% endblock %}
+{% block title %}{{ t("Submit Your Ride Experience") }}{% endblock %}
 
 {% block head %}
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
@@ -78,15 +78,22 @@
 {% block main %}
 {% if current_user.is_anonymous %}
 <div style="background-color: #dc3545; color: #fff; text-align: center; padding: 0.75rem 1rem; font-size: 0.95em;">
-    <strong>You are not logged in.</strong> <a href="/login" style="color: #fff; text-decoration: underline;">Log in</a> to track your rides &mdash; currently you are {% if request.args.get('edit') %}reviewing{% else %}adding a spot{% endif %} anonymously.
+    {# The login link sits inside the sentence, so it travels as a placeholder: a
+       translator must be free to move it, which splitting the sentence would forbid. #}
+    {% set login_link = '<a href="/login" style="color: #fff; text-decoration: underline;">' ~ t("Log in") ~ '</a>' %}
+    {% if request.args.get('edit') %}
+    {{ t("You are not logged in. {login} to track your rides — currently you are reviewing anonymously.", login=login_link)|safe }}
+    {% else %}
+    {{ t("You are not logged in. {login} to track your rides — currently you are adding a spot anonymously.", login=login_link)|safe }}
+    {% endif %}
 </div>
 {% endif %}
 <div class="container" style="max-width: 800px; margin: 2rem auto; padding: 2rem;">
-    <a href="/" style="color: #555; text-decoration: none; font-size: 0.9em;">← Back to map</a>
+    <a href="/" style="color: #555; text-decoration: none; font-size: 0.9em;">← {{ t("Back to map") }}</a>
     <div id="test-mode-banner" style="display:none; background:#fff3cd; border:1px solid #ffe08a; color:#664d03; padding:10px 14px; border-radius:6px; margin:12px 0; font-size:0.95em;">
-        🧪 <strong>Test mode is on.</strong> Rides submitted here will <strong>not</strong> be saved or published to the map.
+        🧪 <strong>{{ t("Test mode is on.") }}</strong> {{ t("Rides submitted here will not be saved or published to the map.") }}
     </div>
-    <h2>Submit Your Ride Experience</h2>
+    <h2>{{ t("Submit Your Ride Experience") }}</h2>
 
     {# Asked first because it reframes everything below it: a give-up has no ride to time,
        so the pickup question right underneath changes wording when this is ticked. The
@@ -94,7 +101,7 @@
     <div class="form-group" style="margin-top:1rem;">
         <label style="font-weight:normal;">
             <input form="ride-form" type="checkbox" id="no_ride" name="no_ride" value="1" onchange="syncNoRideLabels()" {% if ride_data and ride_data.no_ride %}checked{% endif %}>
-            I did not get a ride here
+            {{ t("I did not get a ride here") }}
         </label>
     </div>
 
@@ -102,52 +109,54 @@
         <div class="row">
             <div class="col-md-6">
                 <div class="location-section">
-                    <h4><i class="fa fa-map-marker" style="color: #28a745;"></i> Pickup Location</h4>
+                    <h4><i class="fa fa-map-marker" style="color: #28a745;"></i> {{ t("Pickup Location") }}</h4>
                     <div class="map-thumbnail" id="pickup-map-thumbnail" onclick="selectLocation('pickup')">
                         <div class="map-thumbnail-overlay">
-                            <i class="fa fa-edit"></i> Click to select location
+                            <i class="fa fa-edit"></i> {{ t("Click to select location") }}
                         </div>
                     </div>
                     <div class="d-flex justify-content-between align-items-center">
-                        <div class="coordinates-text" id="pickup-coordinates">No location selected</div>
-                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearLocation('pickup')" title="Clear pickup location" style="display: none;" id="pickup-clear-btn">
+                        <div class="coordinates-text" id="pickup-coordinates">{{ t("No location selected") }}</div>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearLocation('pickup')" title="{{ t("Clear pickup location") }}" style="display: none;" id="pickup-clear-btn">
                             <i class="fa fa-times"></i>
                         </button>
                     </div>
                     <div style="margin-top:0.4rem;">
                         <button type="button" class="btn btn-sm btn-outline-primary" onclick="useCurrentLocation('pickup')" id="pickup-gps-btn">
-                            <i class="fa fa-crosshairs"></i> Use GPS
+                            <i class="fa fa-crosshairs"></i> {{ t("Use GPS") }}
                         </button>
                         <span id="pickup-gps-status" style="margin-left:0.5rem; font-size:0.85em; color:#666;"></span>
                     </div>
                     <div style="margin-top:0.6rem;">
-                        <label for="datetime_ride" id="datetime_ride_label" style="display:block; font-size:0.9em; color:#555; margin-bottom:2px;">When did you get the ride?</label>
+                        <label for="datetime_ride" id="datetime_ride_label" style="display:block; font-size:0.9em; color:#555; margin-bottom:2px;">{{ t("When did you get the ride?") }}</label>
                         <input form="ride-form" id="datetime_ride" type="datetime-local" name="datetime_ride" class="form-control" min="2020-01-01T00:00" value="{{ ride_data.datetime_ride if ride_data and ride_data.datetime_ride else '' }}">
                     </div>
                 </div>
             </div>
             <div class="col-md-6">
                 <div class="location-section">
-                    <h4><i class="fa fa-flag" style="color: #dc3545;"></i> Destination</h4>
+                    <h4><i class="fa fa-flag" style="color: #dc3545;"></i> <span id="destination-heading">{{ t("Destination") }}</span></h4>
                     <div class="map-thumbnail" id="destination-map-thumbnail" onclick="selectLocation('destination')">
                         <div class="map-thumbnail-overlay">
-                            <i class="fa fa-edit"></i> Click to select destination
+                            <i class="fa fa-edit"></i> {{ t("Click to select destination") }}
                         </div>
                     </div>
                     <div class="d-flex justify-content-between align-items-center">
-                        <div class="coordinates-text" id="destination-coordinates">No destination selected</div>
-                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearLocation('destination')" title="Clear destination" style="display: none;" id="destination-clear-btn">
+                        <div class="coordinates-text" id="destination-coordinates">{{ t("No destination selected") }}</div>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearLocation('destination')" title="{{ t("Clear destination") }}" style="display: none;" id="destination-clear-btn">
                             <i class="fa fa-times"></i>
                         </button>
                     </div>
                     <div style="margin-top:0.4rem;">
                         <button type="button" class="btn btn-sm btn-outline-primary" onclick="useCurrentLocation('destination')" id="destination-gps-btn">
-                            <i class="fa fa-crosshairs"></i> Use GPS
+                            <i class="fa fa-crosshairs"></i> {{ t("Use GPS") }}
                         </button>
                         <span id="destination-gps-status" style="margin-left:0.5rem; font-size:0.85em; color:#666;"></span>
                     </div>
-                    <div style="margin-top:0.6rem;">
-                        <label for="arrival_datetime" style="display:block; font-size:0.9em; color:#555; margin-bottom:2px;">When did you arrive at the destination?</label>
+                    {# A give-up never reached this place, so it has no arrival time to
+                       state — the row is hidden (and cleared) while the box is ticked. #}
+                    <div style="margin-top:0.6rem;" id="arrival-row">
+                        <label for="arrival_datetime" style="display:block; font-size:0.9em; color:#555; margin-bottom:2px;">{{ t("When did you arrive at the destination?") }}</label>
                         <input form="ride-form" id="arrival_datetime" type="datetime-local" name="arrival_datetime" class="form-control" min="2020-01-01T00:00" value="{{ ride_data.arrival_datetime if ride_data and ride_data.arrival_datetime else '' }}">
                         <span id="arrival-error-message" class="error text-danger" style="display:block; font-size:0.85em;"></span>
                     </div>
@@ -167,47 +176,47 @@
         <input type="hidden" name="destination_lon" id="destination_lon" value="{{ ride_data.destination_lon if ride_data else '' }}">
         
         <div class="form-group">
-            <label>How do you rate the spot?</label>
+            <label>{{ t("How do you rate the spot?") }}</label>
             <div class="rate">
                 <input required type="radio" id="star5" name="rate" value="5" {% if ride_data and ride_data.rating == 5 %}checked{% endif %} />
-                <label for="star5" title="5 stars">5 stars</label>
+                <label for="star5" title="{{ t("5 stars") }}">{{ t("5 stars") }}</label>
                 <input type="radio" id="star4" name="rate" value="4" {% if ride_data and ride_data.rating == 4 %}checked{% endif %} />
-                <label for="star4" title="4 stars">4 stars</label>
+                <label for="star4" title="{{ t("4 stars") }}">{{ t("4 stars") }}</label>
                 <input type="radio" id="star3" name="rate" value="3" {% if ride_data and ride_data.rating == 3 %}checked{% endif %} />
-                <label for="star3" title="3 stars">3 stars</label>
+                <label for="star3" title="{{ t("3 stars") }}">{{ t("3 stars") }}</label>
                 <input type="radio" id="star2" name="rate" value="2" {% if ride_data and ride_data.rating == 2 %}checked{% endif %} />
-                <label for="star2" title="2 stars">2 stars</label>
+                <label for="star2" title="{{ t("2 stars") }}">{{ t("2 stars") }}</label>
                 <input type="radio" id="star1" name="rate" value="1" {% if ride_data and ride_data.rating == 1 %}checked{% endif %} />
-                <label for="star1" title="1 star">1 star</label>
+                <label for="star1" title="{{ t("1 star") }}">{{ t("1 star") }}</label>
             </div>
         </div>
 
         <div class="form-group">
-            <label for="wait">How long did you wait? Leave blank if you don't remember.</label>
+            <label for="wait">{{ t("How long did you wait? Leave blank if you don't remember.") }}</label>
             <div>
-                <input type="number" id="wait" name="wait" min="0" max="9999" size="4" value="{{ ride_data.wait if ride_data and ride_data.wait else '' }}"> minutes
+                <input type="number" id="wait" name="wait" min="0" max="9999" size="4" value="{{ ride_data.wait if ride_data and ride_data.wait else '' }}"> {{ t("minutes") }}
             </div>
         </div>
         
         <div class="form-group">
-            <label for="comment">Comment (optional)</label>
+            <label for="comment">{{ t("Comment (optional)") }}</label>
             <textarea id="comment" name="comment" class="form-control" rows="4">{{ ride_data.comment if ride_data and ride_data.comment else '' }}</textarea>
         </div>
         
         {# "You" mirrors the driver box below: who you were and how you asked, kept together
            so the form reads as two people rather than a flat list of fields. #}
         <div class="form-group">
-            <label>You (optional)</label>
+            <label>{{ t("You (optional)") }}</label>
             <div style="background:#fafafa; border:1px solid #eee; padding:12px; border-radius:4px;">
 
             <div id="co-hitchhiker-container" style="position: relative; margin-bottom:10px;">
-                <div style="font-weight:600; margin-bottom:4px;">People hitchhiking with you <span id="hitchhiker-count" style="font-weight:normal; color:#666;"></span></div>
+                <div style="font-weight:600; margin-bottom:4px;">{{ t("People hitchhiking with you") }} <span id="hitchhiker-count" style="font-weight:normal; color:#666;"></span></div>
                 <input type="hidden" name="co_hitchhiker" id="co-hitchhiker-hidden" value="{{ ride_data.co_hitchhiker if ride_data and ride_data.co_hitchhiker else '' }}">
             <input type="hidden" id="co-hitchhiker-locked" value="{{ ride_data.co_hitchhiker_locked if ride_data and ride_data.co_hitchhiker_locked else '' }}">
                 <div id="co-hitchhiker-tags" style="display:flex; flex-wrap:wrap; gap:6px; padding:6px 8px; border:1px solid #ccc; border-radius:4px; background:#fff; min-height:38px; align-items:center; cursor:text;" onclick="document.getElementById('co-hitchhiker-input').focus()">
                 </div>
                 <div style="position:relative;">
-                    <input id="co-hitchhiker-input" maxlength="32" pattern="[a-zA-Z0-9]*" class="form-control" autocomplete="off" placeholder="Add co-hitchhiker username…" style="margin-top:6px;">
+                    <input id="co-hitchhiker-input" maxlength="32" pattern="[a-zA-Z0-9]*" class="form-control" autocomplete="off" placeholder="{{ t("Add co-hitchhiker username…") }}" style="margin-top:6px;">
                     <ul id="co-hitchhiker-suggestions" style="display:none; position:absolute; z-index:1000; background:#fff; border:1px solid #ccc; border-top:none; list-style:none; padding:0; margin:0; width:100%; max-height:200px; overflow-y:auto;"></ul>
                 </div>
                 <span id="co-hitchhiker-error-message" class="error text-danger"></span>
@@ -215,14 +224,14 @@
                    the hitchhiker's `gender` on Nostr. The value rides along in the hidden field
                    as "Anonymous:male" / "Anonymous:female" (see publish_ride.py). #}
                 <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">
-                    <button type="button" id="add-anonymous-hitchhiker" class="btn btn-outline-secondary btn-sm" data-anon-gender="">+1 Anonymous hitchhiker</button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm" data-anon-gender="male">+1 Anonymous ♂</button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm" data-anon-gender="female">+1 Anonymous ♀</button>
+                    <button type="button" id="add-anonymous-hitchhiker" class="btn btn-outline-secondary btn-sm" data-anon-gender="">+1 {{ t("Anonymous hitchhiker") }}</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-anon-gender="male">+1 {{ t("Anonymous") }} ♂</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-anon-gender="female">+1 {{ t("Anonymous") }} ♀</button>
                 </div>
             </div>
             
             <div style="margin-bottom:10px;">
-                <div style="font-weight:600; margin-bottom:4px;">How did you signal? <span style="font-weight:normal; color:#666;">(select all that apply)</span></div>
+                <div style="font-weight:600; margin-bottom:4px;">{{ t("How did you signal?") }} <span style="font-weight:normal; color:#666;">{{ t("(select all that apply)") }}</span></div>
                 {% set selected_signals = ride_data.signal if ride_data and ride_data.signal else [] %}
                 {% if selected_signals is string %}{% set selected_signals = [selected_signals] %}{% endif %}
                 <input type="hidden" id="signal" name="signal" value="{{ selected_signals|join(',') }}">
@@ -230,28 +239,28 @@
                    reusing its .inr-chips / .inr-optchip styles so both entry points look alike.
                    Codes must stay thumb / sign / ask — they're what /ride stores. #}
                 <div id="signal-chips" class="inr-chips">
-                    <button type="button" class="inr-optchip" data-code="thumb">👍 Thumb</button>
-                    <button type="button" class="inr-optchip" data-code="sign">📝 Sign</button>
-                    <button type="button" class="inr-optchip" data-code="ask">🗣 Asking</button>
+                    <button type="button" class="inr-optchip" data-code="thumb">👍 {{ t("Thumb") }}</button>
+                    <button type="button" class="inr-optchip" data-code="sign">📝 {{ t("Sign") }}</button>
+                    <button type="button" class="inr-optchip" data-code="ask">🗣 {{ t("Asking") }}</button>
                 </div>
                 {# Only asked once a sign is actually one of the methods — what a sign said is
                    the single most reusable fact about it ("which town do I write?"), but it is
                    nonsense next to a bare thumb. Shown/hidden by initSignalChips. #}
                 <div id="sign-content-row" style="margin-top:6px;" hidden>
-                    <label for="sign_content" style="font-weight:normal;">What did your sign say?</label>
+                    <label for="sign_content" style="font-weight:normal;">{{ t("What did your sign say?") }}</label>
                     <input type="text" id="sign_content" name="sign_content" class="form-control" maxlength="255"
-                           placeholder="e.g. Strasbourg / A5 South"
+                           placeholder="{{ t("e.g. Strasbourg / A5 South") }}"
                            value="{{ ride_data.sign_content if ride_data and ride_data.sign_content else '' }}">
                 </div>
             </div>
 
             <div>
-                <div style="font-weight:600; margin-bottom:4px;">Why are you hitchhiking? <span style="font-weight:normal; color:#666;">(select all that apply)</span></div>
+                <div style="font-weight:600; margin-bottom:4px;">{{ t("Why are you hitchhiking?") }} <span style="font-weight:normal; color:#666;">{{ t("(select all that apply)") }}</span></div>
                 {% set selected_hh_reasons = ride_data.reasons_to_hitchhike if ride_data and ride_data.reasons_to_hitchhike else [] %}
                 <input type="hidden" id="reasons_to_hitchhike" name="reasons_to_hitchhike" value="{{ selected_hh_reasons|join(',') }}">
                 <div id="hitchhike-reason-chips" class="inr-chips">
                     {% for code, emoji, label in reason_to_hitchhike_choices %}
-                    <button type="button" class="inr-optchip" data-code="{{ code }}">{{ emoji }} {{ label }}</button>
+                    <button type="button" class="inr-optchip" data-code="{{ code }}">{{ emoji }} {{ t(label) }}</button>
                     {% endfor %}
                 </div>
             </div>
@@ -260,21 +269,21 @@
         </div>
 
 
-        <div class="form-group">
-            <label>Vehicle (optional)</label>
+        <div class="form-group" id="vehicle-group">
+            <label>{{ t("Vehicle (optional)") }}</label>
             <div class="row">
                 <div class="col-sm-6" style="margin-bottom:8px;">
                     <select id="vehicle_kind" name="vehicle_kind" class="form-control">
-                        <option value="">— Kind —</option>
+                        <option value="">— {{ t("Kind") }} —</option>
                         {% for k, emoji in vehicle_kinds %}
                         {# Default to "car" when no ride data is preloaded — it's by far the most common pickup. #}
-                        <option value="{{ k }}" {% if (ride_data and ride_data.vehicle_kind == k) or (not ride_data and k == "car") %}selected{% endif %}>{{ emoji }} {{ k }}</option>
+                        <option value="{{ k }}" {% if (ride_data and ride_data.vehicle_kind == k) or (not ride_data and k == "car") %}selected{% endif %}>{{ emoji }} {{ t(k) }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="col-sm-6" style="margin-bottom:8px;">
                     {% set selected_plate_code = ride_data.vehicle_license_plate_country if ride_data and ride_data.vehicle_license_plate_country else '' %}
-                    <input list="vehicle-plate-country-list" id="vehicle_license_plate_country_input" class="form-control" placeholder="License plate code (e.g. D (Germany), F (France))" autocomplete="off"
+                    <input list="vehicle-plate-country-list" id="vehicle_license_plate_country_input" class="form-control" placeholder="{{ t("License plate code (e.g. D (Germany), F (France))") }}" autocomplete="off"
                            data-selected-code="{{ selected_plate_code }}">
                     <input type="hidden" id="vehicle_license_plate_country" name="vehicle_license_plate_country" value="{{ selected_plate_code }}">
                     {# Searchable by the code that appears on the plate (e.g. "D" for Germany). data-code stores the ISO 3166-1 alpha-2 we persist. #}
@@ -285,47 +294,47 @@
                     </datalist>
                 </div>
                 <div class="col-sm-6" style="margin-bottom:8px;">
-                    <input type="text" id="vehicle_make" name="vehicle_make" class="form-control" maxlength="255" placeholder="Make (e.g. Toyota)" value="{{ ride_data.vehicle_make if ride_data and ride_data.vehicle_make else '' }}">
+                    <input type="text" id="vehicle_make" name="vehicle_make" class="form-control" maxlength="255" placeholder="{{ t("Make (e.g. Toyota)") }}" value="{{ ride_data.vehicle_make if ride_data and ride_data.vehicle_make else '' }}">
                 </div>
                 <div class="col-sm-6" style="margin-bottom:8px;">
-                    <input type="text" id="vehicle_model" name="vehicle_model" class="form-control" maxlength="255" placeholder="Model (e.g. Corolla)" value="{{ ride_data.vehicle_model if ride_data and ride_data.vehicle_model else '' }}">
+                    <input type="text" id="vehicle_model" name="vehicle_model" class="form-control" maxlength="255" placeholder="{{ t("Model (e.g. Corolla)") }}" value="{{ ride_data.vehicle_model if ride_data and ride_data.vehicle_model else '' }}">
                 </div>
                 <div class="col-sm-12" style="margin-bottom:8px;">
-                    <input type="text" id="vehicle_license_plate_identifier" name="vehicle_license_plate_identifier" class="form-control" maxlength="255" placeholder="License plate identifier (e.g. B (Berlin), 75 (Paris), California)" value="{{ ride_data.vehicle_license_plate_identifier if ride_data and ride_data.vehicle_license_plate_identifier else '' }}">
+                    <input type="text" id="vehicle_license_plate_identifier" name="vehicle_license_plate_identifier" class="form-control" maxlength="255" placeholder="{{ t("License plate identifier (e.g. B (Berlin), 75 (Paris), California)") }}" value="{{ ride_data.vehicle_license_plate_identifier if ride_data and ride_data.vehicle_license_plate_identifier else '' }}">
                 </div>
             </div>
         </div>
 
-        <div class="form-group">
-            <label>About the driver (optional)</label>
+        <div class="form-group" id="driver-group">
+            <label>{{ t("About the driver (optional)") }}</label>
             <div style="background:#fafafa; border:1px solid #eee; padding:12px; border-radius:4px;">
 
                 <div style="margin-bottom:10px;">
-                    <div style="font-weight:600; margin-bottom:4px;">Would you accept this ride again?</div>
+                    <div style="font-weight:600; margin-bottom:4px;">{{ t("Would you accept this ride again?") }}</div>
                     {# Empty value = no answer. Clicking the selected smiley again clears it. #}
                     {% set wra = ride_data.driver_would_ride_again if ride_data and ride_data.driver_would_ride_again is defined else '' %}
                     <input type="hidden" id="driver_would_ride_again" name="driver_would_ride_again" value="{{ wra }}">
-                    <div class="wra-select" role="group" aria-label="Would you accept this ride again?">
-                        <button type="button" class="wra-btn wra-btn--yes" data-value="yes" aria-pressed="false" title="Yes, I would accept this ride again">
+                    <div class="wra-select" role="group" aria-label="{{ t("Would you accept this ride again?") }}">
+                        <button type="button" class="wra-btn wra-btn--yes" data-value="yes" aria-pressed="false" title="{{ t("Yes, I would accept this ride again") }}">
                             <i class="fa-regular fa-face-smile" aria-hidden="true"></i>
-                            <span class="sr-only">Yes</span>
+                            <span class="sr-only">{{ t("Yes") }}</span>
                         </button>
-                        <button type="button" class="wra-btn wra-btn--no" data-value="no" aria-pressed="false" title="No, I would not accept this ride again">
+                        <button type="button" class="wra-btn wra-btn--no" data-value="no" aria-pressed="false" title="{{ t("No, I would not accept this ride again") }}">
                             <i class="fa-regular fa-face-frown" aria-hidden="true"></i>
-                            <span class="sr-only">No</span>
+                            <span class="sr-only">{{ t("No") }}</span>
                         </button>
                     </div>
                 </div>
 
                 <div style="margin-bottom:10px;">
-                    <div style="font-weight:600; margin-bottom:4px;">Why did they pick you up? <span style="font-weight:normal; color:#666;">(select all that apply)</span></div>
+                    <div style="font-weight:600; margin-bottom:4px;">{{ t("Why did they pick you up?") }} <span style="font-weight:normal; color:#666;">{{ t("(select all that apply)") }}</span></div>
                     {% set selected_reasons = ride_data.driver_reason_to_pick_up if ride_data and ride_data.driver_reason_to_pick_up else [] %}
                     <input type="hidden" id="driver_reason_to_pick_up" name="driver_reason_to_pick_up" value="{{ selected_reasons|join(',') }}">
                     <div id="driver-reason-tags" class="chip-select-tags" onclick="document.getElementById('driver-reason-input').focus()"></div>
-                    <input id="driver-reason-input" list="driver-reason-list" class="form-control" autocomplete="off" placeholder="Type a reason and pick from the list…" style="margin-top:6px;">
+                    <input id="driver-reason-input" list="driver-reason-list" class="form-control" autocomplete="off" placeholder="{{ t("Type a reason and pick from the list…") }}" style="margin-top:6px;">
                     <datalist id="driver-reason-list">
                         {% for code, desc in reason_to_pick_up_choices %}
-                        <option data-code="{{ code }}" value="{{ desc }}"></option>
+                        <option data-code="{{ code }}" value="{{ t(desc) }}"></option>
                         {% endfor %}
                     </datalist>
                 </div>
@@ -334,21 +343,21 @@
                    which is a different question from why they stopped for you. Tap chips
                    rather than the datalist above — there are only four. #}
                 <div style="margin-bottom:10px;">
-                    <div style="font-weight:600; margin-bottom:4px;">Why were they on the road? <span style="font-weight:normal; color:#666;">(select all that apply)</span></div>
+                    <div style="font-weight:600; margin-bottom:4px;">{{ t("Why were they on the road?") }} <span style="font-weight:normal; color:#666;">{{ t("(select all that apply)") }}</span></div>
                     {% set selected_ride_reasons = ride_data.ride_reasons if ride_data and ride_data.ride_reasons else [] %}
                     <input type="hidden" id="ride_reasons" name="ride_reasons" value="{{ selected_ride_reasons|join(',') }}">
                     <div id="ride-reason-chips" class="inr-chips">
                         {% for code, emoji, label in ride_reason_choices %}
-                        <button type="button" class="inr-optchip" data-code="{{ code }}">{{ emoji }} {{ label }}</button>
+                        <button type="button" class="inr-optchip" data-code="{{ code }}">{{ emoji }} {{ t(label) }}</button>
                         {% endfor %}
                     </div>
                 </div>
 
                 <div class="row">
                     <div class="col-sm-6" style="margin-bottom:8px;">
-                        <label for="driver_origin_country_input" style="font-weight:normal;">Origin country</label>
+                        <label for="driver_origin_country_input" style="font-weight:normal;">{{ t("Origin country") }}</label>
                         {% set selected_country_code = ride_data.driver_origin_country if ride_data and ride_data.driver_origin_country else '' %}
-                        <input list="driver-country-list" id="driver_origin_country_input" class="form-control" placeholder="Type to search…" autocomplete="off"
+                        <input list="driver-country-list" id="driver_origin_country_input" class="form-control" placeholder="{{ t("Type to search…") }}" autocomplete="off"
                                data-selected-code="{{ selected_country_code }}">
                         <input type="hidden" id="driver_origin_country" name="driver_origin_country" value="{{ selected_country_code }}">
                         <datalist id="driver-country-list">
@@ -358,26 +367,26 @@
                         </datalist>
                     </div>
                     <div class="col-sm-3" style="margin-bottom:8px;">
-                        <label for="driver_age" style="font-weight:normal;">Age</label>
-                        <input type="number" id="driver_age" name="driver_age" class="form-control" min="0" max="120" placeholder="e.g. 45" value="{{ ride_data.driver_age if ride_data and ride_data.driver_age else '' }}">
+                        <label for="driver_age" style="font-weight:normal;">{{ t("Age") }}</label>
+                        <input type="number" id="driver_age" name="driver_age" class="form-control" min="0" max="120" placeholder="{{ t("e.g. 45") }}" value="{{ ride_data.driver_age if ride_data and ride_data.driver_age else '' }}">
                     </div>
                     <div class="col-sm-3" style="margin-bottom:8px;">
-                        <label for="driver_gender" style="font-weight:normal;">Gender</label>
+                        <label for="driver_gender" style="font-weight:normal;">{{ t("Gender") }}</label>
                         <select id="driver_gender" name="driver_gender" class="form-control">
                             <option value="">—</option>
                             {% for code, label in gender_choices %}
-                            <option value="{{ code }}" {% if ride_data and ride_data.driver_gender == code %}selected{% endif %}>{{ label }}</option>
+                            <option value="{{ code }}" {% if ride_data and ride_data.driver_gender == code %}selected{% endif %}>{{ t(label) }}</option>
                             {% endfor %}
                         </select>
                     </div>
                 </div>
 
                 <div style="margin-top:8px;">
-                    <label style="font-weight:normal;">Languages spoken by the driver</label>
+                    <label style="font-weight:normal;">{{ t("Languages spoken by the driver") }}</label>
                     {% set selected_langs = ride_data.driver_languages if ride_data and ride_data.driver_languages else [] %}
                     <input type="hidden" id="driver_languages" name="driver_languages" value="{{ selected_langs|join(',') }}">
                     <div id="driver-language-tags" class="chip-select-tags" onclick="document.getElementById('driver-language-input').focus()"></div>
-                    <input id="driver-language-input" list="driver-language-list" class="form-control" autocomplete="off" placeholder="Type a language and pick from the list…" style="margin-top:6px;">
+                    <input id="driver-language-input" list="driver-language-list" class="form-control" autocomplete="off" placeholder="{{ t("Type a language and pick from the list…") }}" style="margin-top:6px;">
                     <datalist id="driver-language-list">
                         {% for code, name in language_choices %}
                         <option data-code="{{ code }}" value="{{ name }}"></option>
@@ -398,10 +407,10 @@
         <div class="form-group" id="ride-photos-group"
              data-max-images="{{ max_ride_images }}"
              data-images="{{ ride_images|tojson|forceescape }}">
-            <label>Photos (optional, up to {{ max_ride_images }})</label>
+            <label>{{ t("Photos (optional, up to {max})", max=max_ride_images) }}</label>
             <input type="hidden" name="draft_token" id="draft_token" value="">
             <div id="ride-photo-tiles" class="ride-photo-tiles">
-                <button type="button" id="ride-photo-add" class="ride-photo-add" aria-label="Add a photo">
+                <button type="button" id="ride-photo-add" class="ride-photo-add" aria-label="{{ t("Add a photo") }}">
                     <span class="ride-photo-plus" aria-hidden="true">+</span>
                 </button>
             </div>
@@ -411,34 +420,33 @@
                    accept="image/jpeg,image/png,image/webp,image/gif" multiple>
             <span id="ride-photos-error" class="error text-danger" style="display:block; font-size:0.85em;"></span>
             <p style="margin-top:6px; font-size:0.8rem; color:#888;">
-                Photos you upload here are published under
-                <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>
-                &mdash; anyone may reuse them, including commercially, as long as they credit you and share
-                any adaptation under the same licence. Only upload pictures you took yourself, and please
-                avoid recognisable people and license plates. Location data (EXIF) is stripped on upload.
+                {# The licence names are links, so they travel as placeholders — see the
+                   login banner at the top for why. #}
+                {% set ccbysa_link = '<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>' %}
+                {{ t("Photos you upload here are published under {ccbysa} — anyone may reuse them, including commercially, as long as they credit you and share any adaptation under the same licence. Only upload pictures you took yourself, and please avoid recognisable people and license plates. Location data (EXIF) is stripped on upload.", ccbysa=ccbysa_link)|safe }}
                 {# A map picture has to come from a source we can relicense CC BY-SA. The uploader is
                    not asked to credit anyone: the ride page attributes OSM for all map images, the
                    same way the main map's footer does. #}
-                For map images, use
-                <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener">OpenStreetMap</a>.
+                {% set osm_link = '<a href="https://www.openstreetmap.org/" target="_blank" rel="noopener">OpenStreetMap</a>' %}
+                {{ t("For map images, use {osm}.", osm=osm_link)|safe }}
             </p>
         </div>
 
         <p style="margin-top: 2rem; font-size: 0.85rem; color: #888;">
-            Is there anything else you want to remember about your rides? <a href="https://github.com/Hitchwiki/hitchhiking-data-standard/blob/main/STANDARD.md" target="_blank" rel="noopener">Let us know here</a>.
+            {% set standard_link = '<a href="https://github.com/Hitchwiki/hitchhiking-data-standard/blob/main/STANDARD.md" target="_blank" rel="noopener">' ~ t("Let us know here") ~ '</a>' %}
+            {{ t("Is there anything else you want to remember about your rides? {link}.", link=standard_link)|safe }}
         </p>
 
         <p style="margin-top: 1rem; font-size: 0.8rem; color: #888;">
-            Your ride is published publicly. The database is licensed under the
-            <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>;
-            your comment, username and any photos you upload are licensed under
-            <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>.
-            By submitting you agree to this. See the <a href="/copyright" target="_blank" rel="noopener">Copyright and License</a> page.
+            {% set odbl_link = '<a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>' %}
+            {% set ccbysa_link = '<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>' %}
+            {% set copyright_link = '<a href="/copyright" target="_blank" rel="noopener">' ~ t("Copyright and License") ~ '</a>' %}
+            {{ t("Your ride is published publicly. The database is licensed under the {odbl}; your comment, username and any photos you upload are licensed under {ccbysa}. By submitting you agree to this. See the {copyright} page.", odbl=odbl_link, ccbysa=ccbysa_link, copyright=copyright_link)|safe }}
         </p>
 
         <div class="form-group" style="margin-top: 1rem;">
-            <button type="submit" class="btn btn-primary btn-lg">Submit</button>
-            <a href="/" class="btn btn-secondary btn-lg" style="margin-left: 1rem;">Cancel</a>
+            <button type="submit" class="btn btn-primary btn-lg">{{ t("Submit") }}</button>
+            <a href="/" class="btn btn-secondary btn-lg" style="margin-left: 1rem;">{{ t("Cancel") }}</a>
         </div>
     </form>
 </div>
@@ -511,10 +519,32 @@
     
     // "I did not get a ride here" means the pickup time is not the moment a car stopped —
     // it's the moment the hitchhiker gave up on the spot. Same field, different question.
+    // "I did not get a ride here" reframes the rest of the form: the destination is only
+    // where you were heading, nothing was arrived at, and there is no driver or vehicle to
+    // describe. The server drops those fields too, so a value typed before the box was
+    // ticked can never be published as if a car had turned up.
     function syncNoRideLabels() {
         const noRide = document.getElementById('no_ride')?.checked;
         const label = document.getElementById('datetime_ride_label');
-        if (label) label.textContent = noRide ? 'When did you stop soliciting rides here?' : 'When did you get the ride?';
+        if (label) label.textContent = noRide ? {{ t("When did you stop soliciting rides here?")|tojson }} : {{ t("When did you get the ride?")|tojson }};
+        const heading = document.getElementById('destination-heading');
+        if (heading) heading.textContent = noRide ? {{ t("Planned Destination")|tojson }} : {{ t("Destination")|tojson }};
+        const arrivalRow = document.getElementById('arrival-row');
+        if (arrivalRow) {
+            arrivalRow.hidden = !!noRide;
+            // Cleared rather than merely hidden: the input still submits while hidden, and
+            // an arrival time on a ride that never happened is a contradiction.
+            if (noRide) {
+                const arrival = document.getElementById('arrival_datetime');
+                if (arrival) arrival.value = '';
+                const arrivalError = document.getElementById('arrival-error-message');
+                if (arrivalError) arrivalError.textContent = '';
+            }
+        }
+        ['vehicle-group', 'driver-group'].forEach(function (id) {
+            const el = document.getElementById(id);
+            if (el) el.hidden = !!noRide;
+        });
     }
 
     // Function to handle location selection
@@ -699,7 +729,7 @@
             pickupDisplay.textContent = `${coords.pickup[0].toFixed(4)}, ${coords.pickup[1].toFixed(4)}`;
             pickupClearBtn.style.display = 'block';
         } else {
-            pickupDisplay.textContent = 'No location selected';
+            pickupDisplay.textContent = {{ t("No location selected")|tojson }};
             pickupClearBtn.style.display = 'none';
         }
         
@@ -710,7 +740,7 @@
             destDisplay.textContent = `${coords.destination[0].toFixed(4)}, ${coords.destination[1].toFixed(4)}`;
             destClearBtn.style.display = 'block';
         } else {
-            destDisplay.textContent = 'No destination selected';
+            destDisplay.textContent = {{ t("No destination selected")|tojson }};
             destClearBtn.style.display = 'none';
         }
     }
@@ -732,7 +762,7 @@
             // Funnel drop-off we can act on: they tried to submit without ever
             // picking a location, i.e. the map-thumbnail affordance was missed.
             hmTrack('ride_form_blocked', { reason: 'no-pickup' });
-            alert('Please select a pickup location by clicking on the pickup map thumbnail.');
+            alert({{ t("Please select a pickup location by clicking on the pickup map thumbnail.")|tojson }});
             return false;
         }
 
@@ -742,7 +772,7 @@
         errSpan.textContent = '';
         if (dep && arr && new Date(arr) <= new Date(dep)) {
             hmTrack('ride_form_blocked', { reason: 'arrival-before-departure' });
-            errSpan.textContent = 'Arrival must be later than the pickup time.';
+            errSpan.textContent = {{ t("Arrival must be later than the pickup time.")|tojson }};
             return false;
         }
 
@@ -789,12 +819,12 @@
         const status = document.getElementById(type + '-gps-status');
         const button = document.getElementById(type + '-gps-btn');
         if (!navigator.geolocation) {
-            if (status) status.textContent = 'GPS not supported by this browser.';
+            if (status) status.textContent = {{ t("GPS not supported by this browser.")|tojson }};
             return;
         }
 
         if (button) button.disabled = true;
-        if (status) status.textContent = 'Getting GPS location...';
+        if (status) status.textContent = {{ t("Getting GPS location...")|tojson }};
 
         navigator.geolocation.getCurrentPosition(
             (position) => {
@@ -804,16 +834,16 @@
                 document.getElementById(type + '_lon').value = lon;
                 updateCoordinateDisplays();
                 refreshThumbnailMaps();
-                if (status) status.textContent = 'Location set.';
+                if (status) status.textContent = {{ t("Location set.")|tojson }};
                 if (button) button.disabled = false;
             },
             (error) => {
                 const errorMap = {
-                    1: 'Location permission denied.',
-                    2: 'Location unavailable.',
-                    3: 'Location request timed out.'
+                    1: {{ t("Location permission denied.")|tojson }},
+                    2: {{ t("Location unavailable.")|tojson }},
+                    3: {{ t("Location request timed out.")|tojson }}
                 };
-                if (status) status.textContent = errorMap[error.code] || 'Could not get GPS location.';
+                if (status) status.textContent = errorMap[error.code] || {{ t("Could not get GPS location.")|tojson }};
                 if (button) button.disabled = false;
             },
             {
@@ -923,7 +953,7 @@
                         suggestions.innerHTML = '';
                         if (usernames.length === 0) {
                             suggestions.style.display = 'none';
-                            errorMsg.textContent = 'No matching user found';
+                            errorMsg.textContent = {{ t("No matching user found")|tojson }};
                             return;
                         }
                         usernames.forEach(name => {
@@ -954,7 +984,7 @@
                 xhr.send();
                 const result = JSON.parse(xhr.responseText);
                 if (!result.used) {
-                    errorMsg.textContent = 'User "' + name + '" does not exist';
+                    errorMsg.textContent = {{ t('User "{name}" does not exist')|tojson }}.replace('{name}', name);
                 } else {
                     addTag(name);
                 }
@@ -999,7 +1029,7 @@
     validateForm = function() {
         if (IN_TEST_MODE) {
             console.log('[test mode] skipped /ride form submit');
-            alert('🧪 Test mode is on — this ride was NOT saved or published.');
+            alert({{ t("🧪 Test mode is on — this ride was NOT saved or published.")|tojson }});
             window.location.href = '/#success';
             return false;
         }
@@ -1017,7 +1047,7 @@
             xhr.send();
             const result = JSON.parse(xhr.responseText);
             if (!result.used) {
-                errorMsg.textContent = 'User "' + partial + '" does not exist';
+                errorMsg.textContent = {{ t('User "{name}" does not exist')|tojson }}.replace('{name}', partial);
                 return false;
             }
             document.getElementById('co-hitchhiker-hidden').value =
@@ -1046,7 +1076,7 @@
         // Disable submit button to prevent duplicate submissions during the ~5s Nostr publish
         const submitBtn = document.querySelector('button[type="submit"]');
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Submitting…';
+        submitBtn.textContent = {{ t("Submitting…")|tojson }};
 
         return true;
     };
@@ -1292,13 +1322,13 @@
             tile.className = 'ride-photo-tile';
             const img = document.createElement('img');
             img.src = objectUrl || photo.url;
-            img.alt = 'Ride photo';
+            img.alt = {{ t("Ride photo")|tojson }};
             tile.appendChild(img);
 
             const x = document.createElement('button');
             x.type = 'button';
             x.className = 'ride-photo-x';
-            x.setAttribute('aria-label', 'Remove this photo');
+            x.setAttribute('aria-label', {{ t("Remove this photo")|tojson }});
             x.textContent = '×';
             x.addEventListener('click', function () {
                 const id = tile.dataset.imageId;
@@ -1310,7 +1340,7 @@
                 body.append('draft_token', token());
                 fetch('/ride-image/' + encodeURIComponent(id) + '/delete', { method: 'POST', body: body })
                     .then(r => { if (!r.ok) throw new Error('delete failed'); tile.remove(); renderAddButton(); setError(''); })
-                    .catch(() => { x.disabled = false; setError('Could not remove that photo. Please try again.'); });
+                    .catch(() => { x.disabled = false; setError({{ t("Could not remove that photo. Please try again.")|tojson }}); });
             });
             tile.appendChild(x);
 
@@ -1322,15 +1352,15 @@
 
         function upload(file) {
             if (!file.type.startsWith('image/')) {
-                setError('"' + file.name + '" is not an image.');
+                setError({{ t('"{file}" is not an image.')|tojson }}.replace('{file}', file.name));
                 return;
             }
             if (file.size > RIDE_PHOTO_MAX_BYTES) {
-                setError('"' + file.name + '" is larger than 12 MB.');
+                setError({{ t('"{file}" is larger than 12 MB.')|tojson }}.replace('{file}', file.name));
                 return;
             }
             if (tiles.querySelectorAll('.ride-photo-tile').length >= MAX) {
-                setError('A ride can have at most ' + MAX + ' photos.');
+                setError({{ t("A ride can have at most {max} photos.")|tojson }}.replace('{max}', MAX));
                 return;
             }
             setError('');
@@ -1342,7 +1372,7 @@
             tile.classList.add('ride-photo-tile--uploading');
             const spinner = document.createElement('div');
             spinner.className = 'ride-photo-spinner';
-            spinner.textContent = 'Uploading…';
+            spinner.textContent = {{ t("Uploading…")|tojson }};
             tile.appendChild(spinner);
 
             const body = new FormData();
@@ -1351,7 +1381,7 @@
             fetch('/ride-image', { method: 'POST', body: body })
                 .then(r => r.json().then(data => ({ ok: r.ok, data })))
                 .then(({ ok, data }) => {
-                    if (!ok || !data.ok) throw new Error(data.error || 'Upload failed.');
+                    if (!ok || !data.ok) throw new Error(data.error || {{ t("Upload failed.")|tojson }});
                     tile.dataset.imageId = data.id;
                     // Swap the local preview for the stored (rotated, EXIF-stripped) file
                     // so what the tile shows is what the ride page will show.
@@ -1364,7 +1394,7 @@
                     URL.revokeObjectURL(objectUrl);
                     tile.remove();
                     renderAddButton();
-                    setError(err.message || 'Upload failed.');
+                    setError(err.message || {{ t("Upload failed.")|tojson }});
                 });
         }
 

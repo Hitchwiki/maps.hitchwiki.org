@@ -27,12 +27,13 @@ REASON_DESCRIPTION_BY_CODE = {code: desc for code, desc in REASON_TO_PICK_UP_CHO
 # Why the *ride itself* was happening — the standard's `ride.reasons`, i.e. the trip the
 # driver was on anyway. Distinct from why they stopped for a hitchhiker (above). Keys must
 # stay in sync with hitchhiking_data_standard_pydantic_model.ReasonEnum. Each carries an
-# emoji because these render as tap chips, not as a typed datalist (only four options).
+# emoji because these render as tap chips, not as a typed datalist (a handful of options).
 RIDE_REASON_CHOICES = [
     ("holiday", "🏖", "Holiday"),
     ("commute", "🏢", "Commute"),
     ("business", "💼", "Business"),
     ("recreational", "🎉", "Recreational"),
+    ("errands", "🛒", "Errands"),
 ]
 ALLOWED_RIDE_REASONS = [code for code, _, _ in RIDE_REASON_CHOICES]
 RIDE_REASON_DESCRIPTION_BY_CODE = {code: desc for code, _, desc in RIDE_REASON_CHOICES}
@@ -49,6 +50,7 @@ REASON_TO_HITCHHIKE_CHOICES = [
     ("environmental", "🌱", "Environmental"),
     ("sport", "🏃", "Sport"),
     ("fundraising", "🎗", "Fundraising"),
+    ("errands", "🛒", "Errands"),
 ]
 ALLOWED_REASONS_TO_HITCHHIKE = [code for code, _, _ in REASON_TO_HITCHHIKE_CHOICES]
 REASON_TO_HITCHHIKE_DESCRIPTION_BY_CODE = {code: desc for code, _, desc in REASON_TO_HITCHHIKE_CHOICES}

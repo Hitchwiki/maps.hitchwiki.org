@@ -1647,6 +1647,29 @@ def ride_form():
         # "I did not get a ride here" checkbox — an unchecked box submits no key at all.
         # The in-ride Give Up flow posts no_ride=1 for the same meaning.
         data["no_ride"] = str(data.get("no_ride", "")).strip() not in ("", "0", "false")
+        # A give-up reached nobody: the destination stays (it is where the hitchhiker was
+        # heading, and the stop still carries it), but nothing arrived there and no car
+        # exists to describe. The form hides these fields once the box is ticked; dropping
+        # them here as well is what makes that stick, since a hidden input still submits
+        # whatever was typed before the tick — and an in-ride Give Up posts no_ride=1
+        # through the same endpoint.
+        if data["no_ride"]:
+            data["arrival_datetime"] = ""
+            for field in (
+                "vehicle_kind",
+                "vehicle_make",
+                "vehicle_model",
+                "vehicle_license_plate_country",
+                "vehicle_license_plate_identifier",
+                "driver_would_ride_again",
+                "driver_origin_country",
+                "driver_age",
+                "driver_gender",
+            ):
+                data[field] = ""
+            data["driver_reason_to_pick_up"] = []
+            data["driver_languages"] = ""
+            data["ride_reasons"] = []
         rating = int(data["rate"])
         data["wait"] = int(data["wait"]) if data["wait"] != "" else None
         wait = data["wait"]
