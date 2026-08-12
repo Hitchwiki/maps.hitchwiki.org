@@ -478,6 +478,7 @@
   "Save changes": "保存更改",
   "Save details": "保存详情",
   "Save trip": "保存行程",
+  "Saved reasons are added to every ride in this trip. A ride keeps any extra reasons of its own, and removing a reason here leaves the rides unchanged.": "保存的原因会添加到此行程中的每次搭车中。每次搭车会保留其自身的额外原因，从这里移除原因不会影响搭车。",
   "Saving money": "省钱",
   "Say hi, and tell us where you are from and what you would enjoy doing.": "打个招呼，告诉我们你来自哪里以及你喜欢做什么。",
   "Search": "搜索",

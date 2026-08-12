@@ -22,9 +22,11 @@ from flask import (
     url_for,
 )
 from flask_security import current_user
+from pydantic import ValidationError
 from sqlalchemy import func, text
 
 from hitch.blueprints.publish_ride import ANONYMOUS_NICKNAME, construct_hitchhiker_from_current_user
+from hitch.blueprints.utils.driver_info_choices import ALLOWED_REASONS_TO_HITCHHIKE, REASON_TO_HITCHHIKE_CHOICES
 from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import HitchhikingRecord
 from hitch.blueprints.utils.notifications import notify_new_follower, unread_count
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
@@ -33,6 +35,7 @@ from hitch.blueprints.utils.ride_gpx import rides_gpx
 from hitch.blueprints.utils.ride_images import attach_ride_images
 from hitch.blueprints.utils.ride_score import score_fields
 from hitch.blueprints.utils.ride_sources import ride_is_replaceable
+from hitch.blueprints.utils.store_published_ride import store_published_ride
 from hitch.extensions import db, security
 from hitch.forms import UserEditForm
 from hitch.helpers import get_db, get_dirs, haversine_np
@@ -1058,7 +1061,15 @@ def create_trip():
     if current_user.is_anonymous:
         return redirect("/login")
     rides, undated = _selectable_rides_for_current_user()
-    return render_template("security/edit_trip.html", trip=None, rides=rides, undated_count=undated, selected_dtags=[])
+    return render_template(
+        "security/edit_trip.html",
+        trip=None,
+        rides=rides,
+        undated_count=undated,
+        selected_dtags=[],
+        selected_reasons=[],
+        reason_to_hitchhike_choices=REASON_TO_HITCHHIKE_CHOICES,
+    )
 
 
 @user_bp.route("/edit-trip/<int:trip_id>", methods=["GET"])
@@ -1071,7 +1082,87 @@ def edit_trip(trip_id):
         return redirect("/me")
     selected = [tr.ride_d_tag for tr in TripRide.query.filter_by(trip_id=trip.id).all()]
     rides, undated = _selectable_rides_for_current_user()
-    return render_template("security/edit_trip.html", trip=trip, rides=rides, undated_count=undated, selected_dtags=selected)
+    return render_template(
+        "security/edit_trip.html",
+        trip=trip,
+        rides=rides,
+        undated_count=undated,
+        selected_dtags=selected,
+        selected_reasons=[r for r in (trip.reasons_to_hitchhike or "").split(",") if r],
+        reason_to_hitchhike_choices=REASON_TO_HITCHHIKE_CHOICES,
+    )
+
+
+def _apply_trip_reasons_to_rides(reasons, d_tags):
+    """Add the trip's reasons to hitchhike to each of its rides, by set union.
+
+    A trip is one journey with one motive, so stating it once should not mean opening
+    twenty ride forms. The rule is union, never replacement: a ride that recorded a
+    reason of its own (a leg someone hitched to a race, say) keeps it, and a reason
+    removed from the trip is *not* stripped from the rides — the rides are the record of
+    what happened, this is only the fastest way to write to all of them at once.
+
+    Rides are stored on Nostr, so "adding a reason" means republishing each changed ride
+    under its own `d` tag, exactly as an edit does. Only the current user's own rides are
+    touched (the caller has already filtered to those), and only ones we can replace: a
+    ride imported from another platform would fork into a duplicate instead of changing.
+
+    Returns (updated, skipped) counts. Never raises: the trip itself is already saved by
+    the time this runs, and a relay hiccup must not turn that into a 500.
+    """
+    if not reasons or not d_tags:
+        return 0, 0
+
+    rides = RideEvent.query.filter(RideEvent.d.in_(list(d_tags))).all()
+    pending = []  # (ride, record) pairs that actually change
+    skipped = 0
+    for ride in rides:
+        if not ride_is_replaceable(ride):
+            skipped += 1
+            continue
+        try:
+            record = HitchhikingRecord.model_validate(ride.content or {})
+        except ValidationError:
+            # Content we can't re-serialise can't be republished without losing fields.
+            current_app.logger.exception("trip reasons: unparseable content for %s", ride.d)
+            skipped += 1
+            continue
+        # The reasons belong to *this* hitchhiker, so they go on their own entry — never
+        # on a co-hitchhiker's, who has their own reasons for being in that car.
+        entry = next(
+            (h for h in (record.hitchhikers or []) if same_username(h.nickname, current_user.username)),
+            None,
+        )
+        if entry is None:
+            skipped += 1
+            continue
+        merged = list(dict.fromkeys([*(entry.reasons_to_hitchhike or []), *reasons]))
+        if merged == list(entry.reasons_to_hitchhike or []):
+            continue  # already says all of this — nothing to republish
+        entry.reasons_to_hitchhike = merged
+        pending.append((ride, record))
+
+    if not pending:
+        return 0, skipped
+
+    updated = 0
+    try:
+        poster = HitchhikingDataStandardToNostrPoster()
+        try:
+            for ride, record in pending:
+                # Original tags → same `d` and published_at, so each ride is replaced
+                # rather than duplicated. wait=False: one pause for the whole batch
+                # (flush below), or a twenty-ride trip would hold the request for a
+                # minute and a half.
+                poster.post(ride_record=record, tags=ride.tags, wait=False)
+                store_published_ride(poster.last_event)
+                updated += 1
+            poster.flush()
+        finally:
+            poster.close()
+    except Exception:
+        current_app.logger.exception("trip reasons: could not republish every ride")
+    return updated, skipped
 
 
 @user_bp.route("/save-trip", methods=["POST"])
@@ -1083,6 +1174,14 @@ def save_trip():
     trip_id = request.form.get("trip_id", type=int)
     name = (request.form.get("name") or "").strip() or "Untitled trip"
     description = (request.form.get("description") or "").strip() or None
+    # Same vocabulary and same comma-separated shape the /ride form posts. Unknown codes
+    # are dropped rather than rejected: this is a chip picker, so anything else is a
+    # crafted POST, and the trip is still worth saving.
+    reasons = [
+        r
+        for r in dict.fromkeys(c.strip() for c in (request.form.get("reasons_to_hitchhike") or "").split(","))
+        if r in ALLOWED_REASONS_TO_HITCHHIKE
+    ]
 
     # Only accept d-tags that actually belong to the current user's rides, so a crafted
     # POST can't attach someone else's ride to a trip. dict.fromkeys de-dupes while
@@ -1100,16 +1199,21 @@ def save_trip():
             return redirect("/me")
         trip.name = name
         trip.description = description
+        trip.reasons_to_hitchhike = ",".join(reasons) or None
         # Membership is replaced wholesale on every save — simpler than diffing.
         TripRide.query.filter_by(trip_id=trip.id).delete()
     else:
-        trip = Trip(user_id=current_user.id, name=name, description=description)
+        trip = Trip(user_id=current_user.id, name=name, description=description, reasons_to_hitchhike=",".join(reasons) or None)
         db.session.add(trip)
         db.session.flush()  # assign trip.id before we reference it below
 
     for d_tag in selected:
         db.session.add(TripRide(trip_id=trip.id, ride_d_tag=d_tag))
     db.session.commit()
+
+    # After the commit: the trip is saved whatever the relays do next, and each ride the
+    # republish touches is written back into ride_event by store_published_ride.
+    _apply_trip_reasons_to_rides(reasons, selected)
 
     return redirect(f"/trip/{trip.id}")
 

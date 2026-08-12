@@ -78,7 +78,7 @@ class HitchhikingDataStandardToNostrPoster:
         # post() still returns only the d tag, which every existing caller relies on.
         self.last_event = None
 
-    def post(self, ride_record: HitchhikingRecord, tags: list = None, d_tag: str = None) -> str:
+    def post(self, ride_record: HitchhikingRecord, tags: list = None, d_tag: str = None, wait: bool = True) -> str:
         """Post a ride in the standardized format to Nostr and return the d tag.
 
         Args:
@@ -87,6 +87,11 @@ class HitchhikingDataStandardToNostrPoster:
                 Used when updating an existing post where tags stay the same.
             d_tag (str | None): A client-supplied bare id for a NEW ride (offline outbox).
                 Reused across retries so a resend replaces rather than duplicates.
+            wait (bool): Whether to give the relays their moment to answer before
+                returning. Pass False when publishing several rides in one go (a trip
+                save republishes each of its rides) and call `flush()` once at the end:
+                the pause is per batch, not per event, so twenty rides cost one wait
+                instead of twenty inside a single web request.
 
         Returns:
             str: The identifying d tag of the posted event.
@@ -131,14 +136,19 @@ class HitchhikingDataStandardToNostrPoster:
         print("posting to relays")
         self.relay_manager.publish_event(event)
         self.relay_manager.run_sync()  # Sync with the relay to send the event
+        if wait:
+            self.flush()
+
+        return d_tag
+
+    def flush(self) -> None:
+        """Give the relays their moment to answer, then drain the OK notices."""
         print("posted, waiting a bit")
         time.sleep(5)
 
         while self.relay_manager.message_pool.has_ok_notices():
             ok_msg = self.relay_manager.message_pool.get_ok_notice()
             print(ok_msg)
-
-        return d_tag
 
     def close(self):
         self.relay_manager.close_all_relay_connections()

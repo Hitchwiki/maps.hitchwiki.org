@@ -5,6 +5,10 @@ import json
 import pytest
 
 import hitch.blueprints.main as main
+
+# The storage helper lives in its own module (main only re-exports it) so that
+# blueprints other than main can publish rides too — patch it where it is defined.
+import hitch.blueprints.utils.store_published_ride as store_module
 from hitch.extensions import db as _db
 from hitch.models import RideEvent
 
@@ -125,7 +129,7 @@ class TestStorePublishedRide:
         # this raises from inside the try block so the except/rollback path is actually
         # exercised.
         with app.app_context():
-            monkeypatch.setattr(main, "RideEvent", _boom_ride_event)
+            monkeypatch.setattr(store_module, "RideEvent", _boom_ride_event)
 
             main._store_published_ride(_StubEvent(_raw_event()))
 
@@ -182,7 +186,7 @@ class TestStorageFailureNeverBreaksTheSubmit:
         # 500, and must not look like a transient relay failure (503) either — the ride
         # *was* published successfully; only our local mirror of it failed to write.
         monkeypatch.setattr(main, "HitchhikingDataStandardToNostrPoster", _RecordingPoster)
-        monkeypatch.setattr(main, "RideEvent", _boom_ride_event)
+        monkeypatch.setattr(store_module, "RideEvent", _boom_ride_event)
 
         resp = client.post(
             "/ride",

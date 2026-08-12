@@ -478,6 +478,7 @@
   "Save changes": "変更を保存",
   "Save details": "詳細を保存",
   "Save trip": "旅行を保存",
+  "Saved reasons are added to every ride in this trip. A ride keeps any extra reasons of its own, and removing a reason here leaves the rides unchanged.": "保存された理由は、この旅のすべてのライドに追加されます。ライドは独自の追加理由を保持し、ここで理由を削除してもライドには影響しません。",
   "Saving money": "節約",
   "Say hi, and tell us where you are from and what you would enjoy doing.": "挨拶して、どこから来たか、何を楽しみたいか教えてください。",
   "Search": "検索",

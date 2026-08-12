@@ -132,6 +132,12 @@ class Trip(db.Model):
     name = db.Column(db.String(255), nullable=False)
     # Optional free-text blurb the user writes to describe the trip.
     description = db.Column(db.Text, nullable=True)
+    # Why the hitchhiker was on this trip: comma-separated ReasonToHitchhikeEnum codes,
+    # the same vocabulary (and storage shape) the ride form's hidden input uses. Stored
+    # here as well as on each ride because saving the trip *adds* these to every ride in
+    # it by union — the rides are the record, this is what the trip claims about itself,
+    # and without it the picker would have nothing to show when the trip is reopened.
+    reasons_to_hitchhike = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=db.func.now())
 
 

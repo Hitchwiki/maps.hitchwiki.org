@@ -819,6 +819,10 @@ SOURCE_STRINGS = [
     "Origin country",
     "People hitchhiking with you",
     "Photos (optional, up to {max})",
+    # --- security/edit_trip.html: the trip builder's bulk "why are you hitchhiking?"
+    # picker, whose other strings it shares with the ride form above ---
+    "Saved reasons are added to every ride in this trip. A ride keeps any extra reasons of its own, and removing a "
+    "reason here leaves the rides unchanged.",
     "Photos you upload here are published under {ccbysa} — anyone may reuse them, including commercially, as long as they "
     "credit you and share any adaptation under the same licence. Only upload pictures you took yourself, and please avoid "
     "recognisable people and license plates. Location data (EXIF) is stripped on upload.",

@@ -27,6 +27,26 @@ textarea {
 .trip-ride-option .opt-body { font-size: 0.85em; }
 .trip-ride-option .opt-meta { color: #666; }
 .trip-ride-option .opt-comment { color: #333; white-space: pre-wrap; }
+/* Same chips as the ride form's, restated here: security/base.html doesn't load
+   style.css, so .inr-optchip isn't available on this page. */
+.trip-chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 0; }
+.trip-chip {
+    border: 1.5px solid #d8d8d8;
+    border-radius: 18px;
+    padding: 6px 12px;
+    font-size: 13px;
+    background: #fff;
+    color: #444;
+    cursor: pointer;
+    font-family: inherit;
+    line-height: 1;
+}
+.trip-chip--on {
+    border-color: #1a73e8;
+    background: #eaf2fe;
+    color: #1a73e8;
+    font-weight: 700;
+}
 .delete-trip-btn {
     color: #dc3545;
     background: none;
@@ -50,6 +70,21 @@ textarea {
     <label for="trip-description">{{ t("Description") }} <span style="color:#888; font-weight:normal;">({{ t("optional") }})</span></label>
     <textarea id="trip-description" name="description" rows="3" maxlength="2000"
               placeholder="{{ t('A few words about this trip…') }}">{{ trip.description if trip and trip.description else '' }}</textarea>
+
+    {# Asked once for the whole journey rather than on twenty ride forms. Saving adds
+       these to every ride in the trip; a ride that already states more keeps its own,
+       and unticking one here never takes it off a ride (see _apply_trip_reasons_to_rides
+       — the rides are the record of what happened). Say so, or the picker looks broken. #}
+    <label>{{ t("Why are you hitchhiking?") }} <span style="color:#888; font-weight:normal;">{{ t("(select all that apply)") }}</span></label>
+    <input type="hidden" id="reasons_to_hitchhike" name="reasons_to_hitchhike" value="{{ selected_reasons|join(',') }}">
+    <div id="trip-reason-chips" class="trip-chips">
+        {% for code, emoji, label in reason_to_hitchhike_choices %}
+        <button type="button" class="trip-chip" data-code="{{ code }}">{{ emoji }} {{ t(label) }}</button>
+        {% endfor %}
+    </div>
+    <p style="color:#666; font-size:0.85em; margin:6px 0 12px;">
+        {{ t("Saved reasons are added to every ride in this trip. A ride keeps any extra reasons of its own, and removing a reason here leaves the rides unchanged.") }}
+    </p>
 
     <label>{{ t("Select the rides that belong to this trip") }}</label>
     <p style="color:#666; font-size:0.85em; margin:2px 0 6px;">{{ t("Rides are listed and shown by their start time.") }}</p>
@@ -91,4 +126,34 @@ textarea {
     <button type="submit" class="delete-trip-btn">{{ t("Delete trip") }}</button>
 </form>
 {% endif %}
+
+<script>
+// Toggle chips over a hidden comma-separated code list — the same shape the /ride form
+// posts, so the server parses one format for both.
+(function () {
+    var hidden = document.getElementById('reasons_to_hitchhike');
+    var chips = document.querySelectorAll('#trip-reason-chips .trip-chip');
+    if (!hidden || !chips.length) return;
+    function codes() {
+        return hidden.value ? hidden.value.split(',').map(function (s) { return s.trim(); }).filter(Boolean) : [];
+    }
+    function render() {
+        var on = codes();
+        chips.forEach(function (chip) {
+            chip.classList.toggle('trip-chip--on', on.indexOf(chip.dataset.code) !== -1);
+        });
+    }
+    chips.forEach(function (chip) {
+        chip.addEventListener('click', function () {
+            var on = codes();
+            var i = on.indexOf(chip.dataset.code);
+            if (i === -1) on.push(chip.dataset.code);
+            else on.splice(i, 1);
+            hidden.value = on.join(',');
+            render();
+        });
+    });
+    render();
+})();
+</script>
 {% endblock %}
