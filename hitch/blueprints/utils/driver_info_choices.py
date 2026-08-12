@@ -24,6 +24,35 @@ REASON_TO_PICK_UP_CHOICES = [
 ALLOWED_REASONS_TO_PICK_UP = [code for code, _ in REASON_TO_PICK_UP_CHOICES]
 REASON_DESCRIPTION_BY_CODE = {code: desc for code, desc in REASON_TO_PICK_UP_CHOICES}
 
+# Why the *ride itself* was happening — the standard's `ride.reasons`, i.e. the trip the
+# driver was on anyway. Distinct from why they stopped for a hitchhiker (above). Keys must
+# stay in sync with hitchhiking_data_standard_pydantic_model.ReasonEnum. Each carries an
+# emoji because these render as tap chips, not as a typed datalist (only four options).
+RIDE_REASON_CHOICES = [
+    ("holiday", "🏖", "Holiday"),
+    ("commute", "🏢", "Commute"),
+    ("business", "💼", "Business"),
+    ("recreational", "🎉", "Recreational"),
+]
+ALLOWED_RIDE_REASONS = [code for code, _, _ in RIDE_REASON_CHOICES]
+RIDE_REASON_DESCRIPTION_BY_CODE = {code: desc for code, _, desc in RIDE_REASON_CHOICES}
+
+# Why the hitchhiker was hitchhiking on this particular ride — the standard's
+# hitchhiker.reasons_to_hitchhike. Keys must stay in sync with ReasonToHitchhikeEnum.
+REASON_TO_HITCHHIKE_CHOICES = [
+    ("vacation", "🏖", "Vacation"),
+    ("commute", "🏢", "Commute"),
+    ("recreational", "🎉", "Recreational"),
+    ("social_exchange", "💬", "Meeting people"),
+    ("cultural_exchange", "🌍", "Cultural exchange"),
+    ("financial", "💰", "Saving money"),
+    ("environmental", "🌱", "Environmental"),
+    ("sport", "🏃", "Sport"),
+    ("fundraising", "🎗", "Fundraising"),
+]
+ALLOWED_REASONS_TO_HITCHHIKE = [code for code, _, _ in REASON_TO_HITCHHIKE_CHOICES]
+REASON_TO_HITCHHIKE_DESCRIPTION_BY_CODE = {code: desc for code, _, desc in REASON_TO_HITCHHIKE_CHOICES}
+
 # (alpha_2, name) — sorted alphabetically by name.
 COUNTRY_CHOICES = sorted(
     [(c.alpha_2, c.name) for c in pycountry.countries],

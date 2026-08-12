@@ -411,6 +411,13 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
         </div>
         {% endif %}
 
+        {% if ride.sign_content %}
+        <div class="detail-row">
+            <div class="detail-label"><i class="fa fa-pen"></i> Sign said</div>
+            <div class="detail-value">{{ ride.sign_content }}</div>
+        </div>
+        {% endif %}
+
         {% if ride.departure_time %}
         <div class="detail-row">
             <div class="detail-label"><i class="fa fa-play"></i> Ride start time</div>
@@ -452,6 +459,13 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
             </div>
         </div>
         {% endif %}
+
+        {% if ride.hitchhike_reasons %}
+        <div class="detail-row">
+            <div class="detail-label"><i class="fa fa-compass"></i> Why hitchhiking</div>
+            <div class="detail-value">{{ ride.hitchhike_reasons|join(', ') }}</div>
+        </div>
+        {% endif %}
     </div>
 
     {% if ride.vehicle %}
@@ -485,9 +499,21 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     </div>
     {% endif %}
 
-    {% if ride.driver %}
+    {# The driver's own trip reasons live in this section even when nothing else about the
+       driver was recorded, so the section opens on either. #}
+    {% if ride.driver or ride.trip_reasons %}
     <div class="detail-section">
         <p class="section-title">Driver</p>
+        {% if ride.trip_reasons %}
+        <div class="detail-row">
+            <div class="detail-label"><i class="fa fa-road"></i> Why they were on the road</div>
+            <div class="detail-value">{{ ride.trip_reasons|join(', ') }}</div>
+        </div>
+        {% endif %}
+        {# `ride.driver` may be absent while trip reasons are present, and `None.x` is
+           Undefined in Jinja — which `is not none` would happily pass — so the whole
+           driver block is guarded here rather than row by row. #}
+        {% if ride.driver %}
         {# Tristate — `is not none` so an explicit "no" (falsy) still renders. #}
         {% if ride.driver.would_ride_again is not none %}
         <div class="detail-row">
@@ -530,6 +556,7 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
             <div class="detail-label"><i class="fa fa-language"></i> Languages</div>
             <div class="detail-value">{{ ride.driver.languages|join(', ') }}</div>
         </div>
+        {% endif %}
         {% endif %}
     </div>
     {% endif %}

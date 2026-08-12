@@ -194,42 +194,72 @@
             <textarea id="comment" name="comment" class="form-control" rows="4">{{ ride_data.comment if ride_data and ride_data.comment else '' }}</textarea>
         </div>
         
-        <div class="form-group" id="co-hitchhiker-container" style="position: relative;">
-            <label>People hitchhiking with you <span id="hitchhiker-count" style="font-weight:normal; color:#666;"></span></label>
-            <input type="hidden" name="co_hitchhiker" id="co-hitchhiker-hidden" value="{{ ride_data.co_hitchhiker if ride_data and ride_data.co_hitchhiker else '' }}">
-        <input type="hidden" id="co-hitchhiker-locked" value="{{ ride_data.co_hitchhiker_locked if ride_data and ride_data.co_hitchhiker_locked else '' }}">
-            <div id="co-hitchhiker-tags" style="display:flex; flex-wrap:wrap; gap:6px; padding:6px 8px; border:1px solid #ccc; border-radius:4px; background:#fff; min-height:38px; align-items:center; cursor:text;" onclick="document.getElementById('co-hitchhiker-input').focus()">
-            </div>
-            <div style="position:relative;">
-                <input id="co-hitchhiker-input" maxlength="32" pattern="[a-zA-Z0-9]*" class="form-control" autocomplete="off" placeholder="Add co-hitchhiker username…" style="margin-top:6px;">
-                <ul id="co-hitchhiker-suggestions" style="display:none; position:absolute; z-index:1000; background:#fff; border:1px solid #ccc; border-top:none; list-style:none; padding:0; margin:0; width:100%; max-height:200px; overflow-y:auto;"></ul>
-            </div>
-            <span id="co-hitchhiker-error-message" class="error text-danger"></span>
-            {# Anonymous co-hitchhikers can optionally carry a gender, which is published as
-               the hitchhiker's `gender` on Nostr. The value rides along in the hidden field
-               as "Anonymous:male" / "Anonymous:female" (see publish_ride.py). #}
-            <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">
-                <button type="button" id="add-anonymous-hitchhiker" class="btn btn-outline-secondary btn-sm" data-anon-gender="">+1 Anonymous hitchhiker</button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" data-anon-gender="male">+1 Anonymous ♂</button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" data-anon-gender="female">+1 Anonymous ♀</button>
-            </div>
-        </div>
-            
+        {# "You" mirrors the driver box below: who you were and how you asked, kept together
+           so the form reads as two people rather than a flat list of fields. #}
         <div class="form-group">
-            <label>How did you signal? <span style="font-weight:normal; color:#666;">(select all that apply)</span></label>
-            {% set selected_signals = ride_data.signal if ride_data and ride_data.signal else [] %}
-            {% if selected_signals is string %}{% set selected_signals = [selected_signals] %}{% endif %}
-            <input type="hidden" id="signal" name="signal" value="{{ selected_signals|join(',') }}">
-            {# Same multi-select chips as the in-ride "How was the spot?" sheet (inride.js),
-               reusing its .inr-chips / .inr-optchip styles so both entry points look alike.
-               Codes must stay thumb / sign / ask — they're what /ride stores. #}
-            <div id="signal-chips" class="inr-chips">
-                <button type="button" class="inr-optchip" data-code="thumb">👍 Thumb</button>
-                <button type="button" class="inr-optchip" data-code="sign">📝 Sign</button>
-                <button type="button" class="inr-optchip" data-code="ask">🗣 Asking</button>
+            <label>You (optional)</label>
+            <div style="background:#fafafa; border:1px solid #eee; padding:12px; border-radius:4px;">
+
+            <div id="co-hitchhiker-container" style="position: relative; margin-bottom:10px;">
+                <div style="font-weight:600; margin-bottom:4px;">People hitchhiking with you <span id="hitchhiker-count" style="font-weight:normal; color:#666;"></span></div>
+                <input type="hidden" name="co_hitchhiker" id="co-hitchhiker-hidden" value="{{ ride_data.co_hitchhiker if ride_data and ride_data.co_hitchhiker else '' }}">
+            <input type="hidden" id="co-hitchhiker-locked" value="{{ ride_data.co_hitchhiker_locked if ride_data and ride_data.co_hitchhiker_locked else '' }}">
+                <div id="co-hitchhiker-tags" style="display:flex; flex-wrap:wrap; gap:6px; padding:6px 8px; border:1px solid #ccc; border-radius:4px; background:#fff; min-height:38px; align-items:center; cursor:text;" onclick="document.getElementById('co-hitchhiker-input').focus()">
+                </div>
+                <div style="position:relative;">
+                    <input id="co-hitchhiker-input" maxlength="32" pattern="[a-zA-Z0-9]*" class="form-control" autocomplete="off" placeholder="Add co-hitchhiker username…" style="margin-top:6px;">
+                    <ul id="co-hitchhiker-suggestions" style="display:none; position:absolute; z-index:1000; background:#fff; border:1px solid #ccc; border-top:none; list-style:none; padding:0; margin:0; width:100%; max-height:200px; overflow-y:auto;"></ul>
+                </div>
+                <span id="co-hitchhiker-error-message" class="error text-danger"></span>
+                {# Anonymous co-hitchhikers can optionally carry a gender, which is published as
+                   the hitchhiker's `gender` on Nostr. The value rides along in the hidden field
+                   as "Anonymous:male" / "Anonymous:female" (see publish_ride.py). #}
+                <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">
+                    <button type="button" id="add-anonymous-hitchhiker" class="btn btn-outline-secondary btn-sm" data-anon-gender="">+1 Anonymous hitchhiker</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-anon-gender="male">+1 Anonymous ♂</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-anon-gender="female">+1 Anonymous ♀</button>
+                </div>
+            </div>
+            
+            <div style="margin-bottom:10px;">
+                <div style="font-weight:600; margin-bottom:4px;">How did you signal? <span style="font-weight:normal; color:#666;">(select all that apply)</span></div>
+                {% set selected_signals = ride_data.signal if ride_data and ride_data.signal else [] %}
+                {% if selected_signals is string %}{% set selected_signals = [selected_signals] %}{% endif %}
+                <input type="hidden" id="signal" name="signal" value="{{ selected_signals|join(',') }}">
+                {# Same multi-select chips as the in-ride "How was the spot?" sheet (inride.js),
+                   reusing its .inr-chips / .inr-optchip styles so both entry points look alike.
+                   Codes must stay thumb / sign / ask — they're what /ride stores. #}
+                <div id="signal-chips" class="inr-chips">
+                    <button type="button" class="inr-optchip" data-code="thumb">👍 Thumb</button>
+                    <button type="button" class="inr-optchip" data-code="sign">📝 Sign</button>
+                    <button type="button" class="inr-optchip" data-code="ask">🗣 Asking</button>
+                </div>
+                {# Only asked once a sign is actually one of the methods — what a sign said is
+                   the single most reusable fact about it ("which town do I write?"), but it is
+                   nonsense next to a bare thumb. Shown/hidden by initSignalChips. #}
+                <div id="sign-content-row" style="margin-top:6px;" hidden>
+                    <label for="sign_content" style="font-weight:normal;">What did your sign say?</label>
+                    <input type="text" id="sign_content" name="sign_content" class="form-control" maxlength="255"
+                           placeholder="e.g. Strasbourg / A5 South"
+                           value="{{ ride_data.sign_content if ride_data and ride_data.sign_content else '' }}">
+                </div>
+            </div>
+
+            <div>
+                <div style="font-weight:600; margin-bottom:4px;">Why are you hitchhiking? <span style="font-weight:normal; color:#666;">(select all that apply)</span></div>
+                {% set selected_hh_reasons = ride_data.reasons_to_hitchhike if ride_data and ride_data.reasons_to_hitchhike else [] %}
+                <input type="hidden" id="reasons_to_hitchhike" name="reasons_to_hitchhike" value="{{ selected_hh_reasons|join(',') }}">
+                <div id="hitchhike-reason-chips" class="inr-chips">
+                    {% for code, emoji, label in reason_to_hitchhike_choices %}
+                    <button type="button" class="inr-optchip" data-code="{{ code }}">{{ emoji }} {{ label }}</button>
+                    {% endfor %}
+                </div>
+            </div>
+
             </div>
         </div>
-        
+
+
         <div class="form-group">
             <label>Vehicle (optional)</label>
             <div class="row">
@@ -298,6 +328,20 @@
                         <option data-code="{{ code }}" value="{{ desc }}"></option>
                         {% endfor %}
                     </datalist>
+                </div>
+
+                {# The standard's `ride.reasons`: the trip the driver was making anyway,
+                   which is a different question from why they stopped for you. Tap chips
+                   rather than the datalist above — there are only four. #}
+                <div style="margin-bottom:10px;">
+                    <div style="font-weight:600; margin-bottom:4px;">Why were they on the road? <span style="font-weight:normal; color:#666;">(select all that apply)</span></div>
+                    {% set selected_ride_reasons = ride_data.ride_reasons if ride_data and ride_data.ride_reasons else [] %}
+                    <input type="hidden" id="ride_reasons" name="ride_reasons" value="{{ selected_ride_reasons|join(',') }}">
+                    <div id="ride-reason-chips" class="inr-chips">
+                        {% for code, emoji, label in ride_reason_choices %}
+                        <button type="button" class="inr-optchip" data-code="{{ code }}">{{ emoji }} {{ label }}</button>
+                        {% endfor %}
+                    </div>
                 </div>
 
                 <div class="row">
@@ -483,6 +527,9 @@
             comment: document.querySelector('textarea[name="comment"]')?.value || '',
             co_hitchhiker: document.getElementById('co-hitchhiker-hidden')?.value || '',
             signal: document.getElementById('signal')?.value || '',
+            sign_content: document.getElementById('sign_content')?.value || '',
+            reasons_to_hitchhike: document.getElementById('reasons_to_hitchhike')?.value || '',
+            ride_reasons: document.getElementById('ride_reasons')?.value || '',
             no_ride: document.getElementById('no_ride')?.checked || false,
             datetime_ride: document.querySelector('input[name="datetime_ride"]')?.value || '',
             arrival_datetime: document.querySelector('input[name="arrival_datetime"]')?.value || '',
@@ -567,7 +614,18 @@
             if (data.signal !== undefined) {
                 const signalStr = Array.isArray(data.signal) ? data.signal.join(',') : (data.signal && data.signal !== 'null' ? data.signal : '');
                 document.getElementById('signal').value = signalStr;
+                // Restore the sign's text before re-rendering the chips: that render is what
+                // shows or hides the row it lives in.
+                if (data.sign_content !== undefined) document.getElementById('sign_content').value = data.sign_content;
                 if (window._signalRenderTags) window._signalRenderTags();
+            }
+            if (data.reasons_to_hitchhike !== undefined) {
+                document.getElementById('reasons_to_hitchhike').value = data.reasons_to_hitchhike;
+                if (window._hitchhikeReasonRenderTags) window._hitchhikeReasonRenderTags();
+            }
+            if (data.ride_reasons !== undefined) {
+                document.getElementById('ride_reasons').value = data.ride_reasons;
+                if (window._rideReasonRenderTags) window._rideReasonRenderTags();
             }
             if (data.no_ride !== undefined) {
                 document.getElementById('no_ride').checked = !!data.no_ride;
@@ -1106,12 +1164,13 @@
         datalistId: 'vehicle-plate-country-list',
     });
 
-    // Signal methods are toggle chips rather than a datalist: there are only three of them,
-    // so tapping beats typing — and it matches the in-ride sheet the user may have come from.
-    // The hidden #signal input stays the source of truth (comma-separated codes).
-    function initSignalChips() {
-        const hidden = document.getElementById('signal');
-        const chips = document.querySelectorAll('#signal-chips .inr-optchip');
+    // Short enum lists (signal methods, reasons to hitchhike, the driver's trip reasons) are
+    // toggle chips rather than a datalist: with a handful of options tapping beats typing —
+    // and it matches the in-ride sheet the user may have come from. The hidden input stays
+    // the source of truth (comma-separated codes); onChange lets a caller react to it.
+    function initToggleChips({ hiddenId, chipsId, onChange }) {
+        const hidden = document.getElementById(hiddenId);
+        const chips = document.querySelectorAll('#' + chipsId + ' .inr-optchip');
         if (!hidden || !chips.length) return null;
         function getCodes() {
             return hidden.value ? hidden.value.split(',').map(s => s.trim()).filter(Boolean) : [];
@@ -1121,6 +1180,7 @@
             chips.forEach(function (chip) {
                 chip.classList.toggle('inr-optchip--on', codes.includes(chip.dataset.code));
             });
+            if (onChange) onChange(codes);
         }
         chips.forEach(function (chip) {
             chip.addEventListener('click', function () {
@@ -1135,7 +1195,22 @@
         renderTags();
         return { renderTags };
     }
-    const signalChip = initSignalChips();
+    const signalChip = initToggleChips({
+        hiddenId: 'signal', chipsId: 'signal-chips',
+        // "What did your sign say?" only exists while a sign is selected. The field keeps
+        // its text while hidden so an accidental de-select and re-select doesn't lose it;
+        // the server drops sign_content when no sign method was submitted.
+        onChange: function (codes) {
+            const row = document.getElementById('sign-content-row');
+            if (row) row.hidden = !codes.includes('sign');
+        },
+    });
+    const hitchhikeReasonChip = initToggleChips({
+        hiddenId: 'reasons_to_hitchhike', chipsId: 'hitchhike-reason-chips',
+    });
+    const rideReasonChip = initToggleChips({
+        hiddenId: 'ride_reasons', chipsId: 'ride-reason-chips',
+    });
     const reasonChip = initChipSelect({
         inputId: 'driver-reason-input', tagsId: 'driver-reason-tags',
         hiddenId: 'driver_reason_to_pick_up', datalistId: 'driver-reason-list',
@@ -1329,6 +1404,8 @@
     if (signalChip) window._signalRenderTags = signalChip.renderTags;
     if (reasonChip) window._reasonRenderTags = reasonChip.renderTags;
     if (languageChip) window._driverLanguagesRenderTags = languageChip.renderTags;
+    if (hitchhikeReasonChip) window._hitchhikeReasonRenderTags = hitchhikeReasonChip.renderTags;
+    if (rideReasonChip) window._rideReasonRenderTags = rideReasonChip.renderTags;
 
     // Initialize when page loads
     document.addEventListener('DOMContentLoaded', function() {

@@ -17,6 +17,7 @@ from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import (
     ModeOfTranportation,
     NoRide,
     Occupant,
+    Ride,
     Signal,
     Stop,
 )
@@ -87,7 +88,7 @@ def map_gender(gender: str) -> str | None:
     return gender_map.get(gender)
 
 
-def construct_hitchhiker_from_current_user() -> Hitchhiker:
+def construct_hitchhiker_from_current_user(reasons_to_hitchhike: list[str] | None = None) -> Hitchhiker:
     hitchhiker = Hitchhiker(
         origin_location=current_user.origin_city if hasattr(current_user, "origin_city") else None,
         origin_country=current_user.origin_country if hasattr(current_user, "origin_country") else None,
@@ -97,7 +98,7 @@ def construct_hitchhiker_from_current_user() -> Hitchhiker:
         was_driver=None,
         nickname=current_user.username,
         hitchhiking_since=current_user.hitchhiking_since if hasattr(current_user, "hitchhiking_since") else None,
-        reasons_to_hitchhike=None,
+        reasons_to_hitchhike=list(reasons_to_hitchhike) if reasons_to_hitchhike else None,
     )
 
     return hitchhiker
@@ -161,12 +162,22 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
             methods.append(m)
     if methods:
         duration = f"PT{int(custom_object['wait'])}M" if pd.notna(custom_object.get("wait")) else None
-        signals = [Signal(methods=methods, duration=duration)]
+        # What the sign said is only meaningful when a sign was actually used — the form
+        # hides the field otherwise, and a leftover value from a de-selected chip must not
+        # be published as if it had been held up.
+        sign_content = (custom_object.get("sign_content") or "").strip() or None
+        signals = [Signal(methods=methods, duration=duration, sign_content=sign_content if "sign" in methods else None)]
     else:
         signals = None
 
+    # Why *this* person hitchhiked on *this* ride — asked in the form's "You" section.
+    # It belongs to the submitting hitchhiker only: a co-hitchhiker's reasons are theirs
+    # to state, and an anonymous co-hitchhiker never gets asked at all.
+    reasons_to_hitchhike = custom_object.get("reasons_to_hitchhike") or []
     hitchhiker = (
-        Hitchhiker(nickname=ANONYMOUS_NICKNAME) if current_user.is_anonymous else construct_hitchhiker_from_current_user()
+        Hitchhiker(nickname=ANONYMOUS_NICKNAME, reasons_to_hitchhike=list(reasons_to_hitchhike) or None)
+        if current_user.is_anonymous
+        else construct_hitchhiker_from_current_user(reasons_to_hitchhike)
     )
 
     # Build hitchhikers list: the current user plus any anonymous co-hitchhikers. Named
@@ -223,6 +234,11 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
     else:
         occupants = None
 
+    # The trip the driver was on anyway (`ride.reasons`), asked next to the driver info.
+    # Only emitted when answered — an empty Ride object would claim nothing.
+    ride_reasons = custom_object.get("ride_reasons") or []
+    ride = Ride(reasons=list(ride_reasons)) if ride_reasons else None
+
     # The hitchhiker never got picked up here. We don't ask why yet, so the reasons list is
     # empty — its presence alone is what marks the record as a no-ride.
     no_ride = NoRide(reasons=[]) if custom_object.get("no_ride") else None
@@ -236,7 +252,7 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
         signals=signals,
         occupants=occupants,
         mode_of_transportation=mode_of_transportation,
-        ride=None,
+        ride=ride,
         declined_rides=None,
         no_ride=no_ride,
         source=source,

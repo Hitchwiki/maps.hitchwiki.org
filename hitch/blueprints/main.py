@@ -38,7 +38,9 @@ from hitch.blueprints.publish_ride import (
 from hitch.blueprints.user import _extract_ride_info
 from hitch.blueprints.utils.driver_info_choices import (
     ALLOWED_GENDERS,
+    ALLOWED_REASONS_TO_HITCHHIKE,
     ALLOWED_REASONS_TO_PICK_UP,
+    ALLOWED_RIDE_REASONS,
     COUNTRY_CHOICES,
     COUNTRY_CODES,
     COUNTRY_NAME_BY_CODE,
@@ -47,7 +49,11 @@ from hitch.blueprints.utils.driver_info_choices import (
     LANGUAGE_CODES,
     LANGUAGE_NAME_BY_CODE,
     REASON_DESCRIPTION_BY_CODE,
+    REASON_TO_HITCHHIKE_CHOICES,
+    REASON_TO_HITCHHIKE_DESCRIPTION_BY_CODE,
     REASON_TO_PICK_UP_CHOICES,
+    RIDE_REASON_CHOICES,
+    RIDE_REASON_DESCRIPTION_BY_CODE,
 )
 from hitch.blueprints.utils.filter_request_log import FILTER_FIELDS, log_filter_request
 from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import HitchhikingRecord
@@ -991,9 +997,25 @@ def ride_detail(d_tag):
             if method not in signal_methods:
                 signal_methods.append(method)
 
+    # What the sign said, from the first signal that names it (see the ride form).
+    sign_content = next((sig.get("sign_content") for sig in (content.get("signals") or []) if sig.get("sign_content")), None)
+
     hitchhikers = [
         {"nickname": h.get("nickname") or "Anonymous", "gender": h.get("gender")} for h in (content.get("hitchhikers") or [])
     ]
+    # Reasons to hitchhike are per person in the standard, but the page shows them as one
+    # list: on a shared ride the interesting fact is why this group was on the road.
+    hitchhike_reasons = []
+    for h in content.get("hitchhikers") or []:
+        for r in h.get("reasons_to_hitchhike") or []:
+            label = REASON_TO_HITCHHIKE_DESCRIPTION_BY_CODE.get(r, r)
+            if label not in hitchhike_reasons:
+                hitchhike_reasons.append(label)
+
+    ride_obj = content.get("ride")
+    trip_reasons = []
+    if isinstance(ride_obj, dict):
+        trip_reasons = [RIDE_REASON_DESCRIPTION_BY_CODE.get(r, r) for r in (ride_obj.get("reasons") or [])]
 
     distance_km = haversine_km(pickup_lat, pickup_lon, dest_lat, dest_lon)
 
@@ -1063,6 +1085,9 @@ def ride_detail(d_tag):
         "comment": ride.comment,
         "wait": waiting_minutes,
         "signal_methods": signal_methods,
+        "sign_content": sign_content,
+        "hitchhike_reasons": hitchhike_reasons,
+        "trip_reasons": trip_reasons,
         "hitchhikers": hitchhikers,
         "pickup_lat": pickup_lat,
         "pickup_lon": pickup_lon,
@@ -1445,6 +1470,9 @@ def ride_form():
                     "destination_lon": "",
                     "wait": "",
                     "signal": [],
+                    "sign_content": "",
+                    "reasons_to_hitchhike": [],
+                    "ride_reasons": [],
                     "datetime_ride": "",
                     "arrival_datetime": "",
                     "co_hitchhiker": "",
@@ -1480,6 +1508,12 @@ def ride_form():
                     ride_data["driver_gender"] = driver.get("gender") or ""
                     langs = driver.get("languages") or []
                     ride_data["driver_languages"] = [code for code in langs if code in LANGUAGE_CODES]
+
+                # Why the driver was on the road at all (`ride.reasons`), as opposed to why
+                # they stopped for a hitchhiker (`reasons_to_pick_up`, read above).
+                ride_obj = content.get("ride") or {}
+                if isinstance(ride_obj, dict):
+                    ride_data["ride_reasons"] = [r for r in (ride_obj.get("reasons") or []) if r in ALLOWED_RIDE_REASONS]
 
                 mot = content.get("mode_of_transportation") or {}
                 if isinstance(mot, dict):
@@ -1526,6 +1560,12 @@ def ride_form():
                         if mapped and mapped not in selected:
                             selected.append(mapped)
                 ride_data["signal"] = selected
+                # Sign content is a property of the sign signal, so take it from the first
+                # entry that actually names one rather than from signals[0] blindly.
+                for sig in content.get("signals", []) or []:
+                    if sig.get("sign_content"):
+                        ride_data["sign_content"] = sig["sign_content"]
+                        break
 
                 # Requirement: co-hitchhikers already on a ride cannot be removed when editing,
                 # only new ones can be added. "Already present" means either:
@@ -1533,6 +1573,17 @@ def ride_form():
                 # (b) in the CoHitchhiker table with accepted="open" (invited, pending response).
                 current_nickname = current_user.username if not current_user.is_anonymous else None
                 all_hitchhikers = content.get("hitchhikers", [])
+                # Reasons to hitchhike belong to one person, so the form must show the
+                # editor's own — never a co-hitchhiker's, which re-saving would then
+                # publish as if the editor had claimed them.
+                own_entry = next(
+                    (h for h in all_hitchhikers if same_username(h.get("nickname"), current_nickname)),
+                    None,
+                )
+                if own_entry:
+                    ride_data["reasons_to_hitchhike"] = [
+                        r for r in (own_entry.get("reasons_to_hitchhike") or []) if r in ALLOWED_REASONS_TO_HITCHHIKE
+                    ]
                 # The editor themselves is excluded case-insensitively: their ride may list
                 # them under the spelling they used on the platform it was imported from, and
                 # an exact compare would offer them to themselves as a locked co-hitchhiker.
@@ -1573,6 +1624,8 @@ def ride_form():
             language_choices=LANGUAGE_CHOICES,
             gender_choices=GENDER_CHOICES,
             reason_to_pick_up_choices=REASON_TO_PICK_UP_CHOICES,
+            ride_reason_choices=RIDE_REASON_CHOICES,
+            reason_to_hitchhike_choices=REASON_TO_HITCHHIKE_CHOICES,
         )
 
     # POST request - process the form submission (same logic as experience route)
@@ -1589,6 +1642,8 @@ def ride_form():
         data["driver_reason_to_pick_up"] = [
             r.strip() for r in (data.get("driver_reason_to_pick_up") or "").split(",") if r.strip()
         ]
+        data["ride_reasons"] = [r.strip() for r in (data.get("ride_reasons") or "").split(",") if r.strip()]
+        data["reasons_to_hitchhike"] = [r.strip() for r in (data.get("reasons_to_hitchhike") or "").split(",") if r.strip()]
         # "I did not get a ride here" checkbox — an unchecked box submits no key at all.
         # The in-ride Give Up flow posts no_ride=1 for the same meaning.
         data["no_ride"] = str(data.get("no_ride", "")).strip() not in ("", "0", "false")
@@ -1606,6 +1661,19 @@ def ride_form():
         for s in signals_selected:
             assert s in ["thumb", "sign", "ask"], f"Signal must be one of thumb, sign, ask - got {s}."
         data["signal"] = signals_selected
+
+        # What the sign said. Only kept when a sign was one of the chosen methods — the
+        # field is hidden otherwise, and a stale value must not travel with the ride.
+        sign_content = (data.get("sign_content") or "").strip()
+        assert len(sign_content) <= 255, "Sign content must be <= 255 characters"
+        data["sign_content"] = sign_content if "sign" in signals_selected else ""
+
+        # Reasons to hitchhike (the "You" section) and the driver's reasons for the trip
+        # itself — both enum allowlists, same shape as reason_to_pick_up below.
+        for r in data["reasons_to_hitchhike"]:
+            assert r in ALLOWED_REASONS_TO_HITCHHIKE, f"Invalid reason_to_hitchhike: {r}"
+        for r in data["ride_reasons"]:
+            assert r in ALLOWED_RIDE_REASONS, f"Invalid ride reason: {r}"
 
         # Driver-info parsing.
         # reason_to_pick_up: validate against the enum allowlist.
