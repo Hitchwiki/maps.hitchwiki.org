@@ -793,6 +793,13 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
         <!-- Filled in by showTripCreated() when a tracked journey's rides were grouped
              into a trip. Hidden otherwise, and for a single-ride journey. -->
         <p id="success-trip-note" class="success-trip-note" style="display: none;"></p>
+        <!-- Shown once per browser: the first time a submission completes here. EXP-005
+             (hitchhiking-automation, 2026-08-14) found only 38.4% of first-time account
+             holders log a second ride within 30 days, while the ones who do carry 88.4%
+             of all account-attributed rides -- this is the cheapest possible nudge at
+             exactly that moment, and unlike an email it also reaches anonymous
+             submitters, who have no other re-engagement channel at all. -->
+        <p id="success-return-nudge" class="success-trip-note" style="display: none;"></p>
         <div id="success-share-block">
             <h2>{{ t("Show your friends") }}</h2>
             <p class="success-share-sub">{{ t("Send them the map of your ride — it's how most hitchhikers find us.") }}</p>

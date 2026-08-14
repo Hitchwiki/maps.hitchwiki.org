@@ -3281,6 +3281,7 @@ function showSuccessOverlay(opts) {
   // an earlier one in this session must not show.
   if (!opts) lastTripCreated = null;
   renderTripCreatedNote();
+  renderReturnNudge();
   shareCompleted = false;
 
   // Dismissing the overlay returns to the map the user submitted from — no
@@ -3343,6 +3344,31 @@ function renderTripCreatedNote() {
 function showTripCreated(trip) {
   lastTripCreated = trip;
   renderTripCreatedNote();
+}
+
+// Marks this browser as having completed a ride submission before, so the nudge below
+// shows exactly once per browser rather than on every success overlay. A client-side
+// proxy for "first ride" rather than a server-side one on purpose: 84% of rides carry no
+// user_id (ASSETS.md), so a per-account check would miss most submitters entirely, and
+// this is the only signal available for an anonymous one. Trade-off, not free: a cleared
+// browser or a second device reads as first-time again, and there is no way to tell that
+// apart from a real first ride from here — the dump-based retention read (EXP-005) is
+// still the accurate measure for logged-in accounts; this nudge is reach, not attribution.
+const RETURNED_BEFORE_KEY = "hmLoggedRideBefore";
+
+function renderReturnNudge() {
+  const note = $$("#success-return-nudge");
+  if (!note) return; // an old cached copy of the overlay markup (see setupShareCard)
+  if (localStorage.getItem(RETURNED_BEFORE_KEY)) {
+    note.style.display = "none";
+    return;
+  }
+  localStorage.setItem(RETURNED_BEFORE_KEY, "1");
+  note.textContent = tr(
+    "This was your first logged ride. Most first-timers never log a second one — if you hitch again, come back and add it. It takes a minute, and it's what keeps the map current."
+  );
+  note.style.display = "block";
+  hmTrack("first_ride_nudge_shown", {});
 }
 
 // Builds the shareable image and wires the share button. Anything that goes wrong

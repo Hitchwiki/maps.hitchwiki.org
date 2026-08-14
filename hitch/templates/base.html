@@ -31,11 +31,43 @@
       // helper. It must never throw: the tracker is `defer`, so early clicks can
       // land before it loads, and ad-blockers stop it loading at all — in both
       // cases the product feature has to carry on working untracked.
-      window.hmTrack = function (name, data) {
-        try {
-          if (window.umami) window.umami.track(name, data || {});
-        } catch (e) {}
-      };
+      //
+      // A dropped call is not the same as an untracked one, though. `defer` means
+      // the tracker does not execute until parsing finishes, so anything fired
+      // from an inline script *during* parsing found no `window.umami` and was
+      // silently discarded. That is not hypothetical: `ride_form_started` fires
+      // at parse time in ride_form.html and recorded **0 events in 28 days**,
+      // against 697 `ride_form_submitted` from the same script block — the only
+      // difference between them being that one runs at parse time and the other
+      // on submit. It has been the sole never-firing event since the funnel
+      // shipped on 2026-07-21. So queue what arrives early and flush it once the
+      // tracker is there.
+      (function () {
+        var queue = [];
+        // Bounded: if the tracker never loads this is dead weight, and no page
+        // legitimately fires 20 events before it finishes parsing.
+        var QUEUE_MAX = 20;
+        function flush() {
+          if (!window.umami) return false;
+          for (var i = 0; i < queue.length; i++) {
+            try { window.umami.track(queue[i][0], queue[i][1]); } catch (e) {}
+          }
+          queue.length = 0;
+          return true;
+        }
+        window.hmTrack = function (name, data) {
+          try {
+            if (window.umami) { window.umami.track(name, data || {}); return; }
+            if (queue.length < QUEUE_MAX) queue.push([name, data || {}]);
+          } catch (e) {}
+        };
+        // Deferred scripts run after parsing but before DOMContentLoaded, so that
+        // is the first moment the queue can drain. `load` is the backstop; if the
+        // tracker is still absent by then it is blocked or failed, and the queue
+        // is dropped rather than held for a page view that will never be sent.
+        document.addEventListener("DOMContentLoaded", flush);
+        window.addEventListener("load", function () { if (!flush()) queue.length = 0; });
+      })();
     </script>
 
     {# Root-relative: a relative "favicon.ico" resolves against the current path,

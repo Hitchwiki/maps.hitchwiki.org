@@ -461,7 +461,27 @@
     // Set maximum date to today
     document.getElementById("datetime_ride").max = (new Date().toISOString().slice(0, 11)) + "23:59";
     document.getElementById("arrival_datetime").max = (new Date().toISOString().slice(0, 11)) + "23:59";
-    
+
+    // Keep the arrival picker from ever offering a time at or before departure.
+    // validateForm() already rejects that combination at submit, but by then the
+    // hitchhiker has filled in the whole form -- 'arrival-before-departure' is 58 of
+    // the 59 ride_form_blocked events in the last 28 days (Umami event-data, reason
+    // property), against 1 for 'no-pickup', so this is the block worth designing out
+    // rather than just catching. Binding min here turns most of those into a picker
+    // that never lets the mistake happen, instead of a submit that has to be redone.
+    (function () {
+        const dep = document.getElementById("datetime_ride");
+        const arr = document.getElementById("arrival_datetime");
+        function syncArrivalMin() {
+            arr.min = dep.value || "2020-01-01T00:00";
+            // A previously chosen arrival that the new departure has invalidated is
+            // cleared rather than left in place silently failing the submit check.
+            if (dep.value && arr.value && arr.value <= dep.value) arr.value = "";
+        }
+        dep.addEventListener("change", syncArrivalMin);
+        syncArrivalMin();
+    })();
+
     // Initialize map thumbnails
     let pickupMap, destinationMap;
     
@@ -749,8 +769,15 @@
     // stalled edit and a stalled first-time submission are different problems.
     {# Quote in JS, not in the expression: Jinja autoescaping turns emitted
        quote characters into &#34;, which is a syntax error inside <script>. #}
+    // Hoisted because ride_form_submitted needs the same value: without it, an
+    // edit and a first-time submission are one undifferentiated count, which is
+    // why ride_form_submitted (697/28d) could exceed add_ride_clicked (557/28d)
+    // with no way to tell whether the click event under-fires or edits simply
+    // never pass through a click at all. /ride?edit=<d_tag> is reached straight
+    // from the account page (account.js rideEditUrl), so it never can.
+    var HM_FORM_MODE = '{{ "edit" if request.args.get("edit") else "new" }}';
     hmTrack('ride_form_started', {
-        mode: '{{ "edit" if request.args.get("edit") else "new" }}',
+        mode: HM_FORM_MODE,
         auth: '{{ "anon" if current_user.is_anonymous else "user" }}'
     });
 
@@ -780,7 +807,7 @@
         // rather than on the success page because the post redirects to
         // /?ride=<d_tag>#success on the map, where a pageview alone can't be told
         // apart from a normal visit.
-        hmTrack('ride_form_submitted', { destination: coords.destination ? 'yes' : 'no' });
+        hmTrack('ride_form_submitted', { destination: coords.destination ? 'yes' : 'no', mode: HM_FORM_MODE });
         return true;
     }
     
