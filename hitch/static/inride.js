@@ -548,13 +548,52 @@
     });
   };
 
-  // Cancel the whole journey WITHOUT logging anything — for a journey started by mistake.
-  // Distinct from Give Up (which records a rated spot experience); this just discards, so
-  // it confirms first to avoid throwing away a real wait accidentally.
+  // Ends the journey via the dock's × — offers to salvage a real outcome first instead of
+  // only discarding. journey_cancelled turned out to be the single most common way a
+  // journey ends (146 of 210 journey_started in a 28d window — more than journey_got_ride
+  // (74) and journey_gave_up (12) combined), but the old flow gave "I got picked up before
+  // I could tap anything else" and "I tapped Start by mistake" the exact same one button,
+  // so a real ride behind a cancel went unrecorded. Discard (no track, no data) is still
+  // one tap away via the dialog's own dismiss (× / scrim tap) — same as declining the old
+  // window.confirm.
   journeyFlow.cancel = function () {
     const j = journeyStore.get();
     if (!j) return;
-    if (!window.confirm(T("Cancel this journey? Your wait won't be saved."))) return;
+    journeyUI.dialog({
+      title: T("End this journey?"),
+      body: T("How did it go?"),
+      centered: true,
+      cancelButton: true,
+      actions: [
+        {
+          label: T("Got a ride"),
+          cls: "inr-go",
+          onClick: function () {
+            // gotRide only accepts state "waiting"; resume first if paused so the
+            // existing state machine handles the transition unchanged.
+            if (j.state === "paused") journeyFlow.resume();
+            journeyUI.rideDetailsSheet(function (details) { journeyFlow.gotRide(details); });
+          },
+        },
+        {
+          label: T("Wasn't picked up"),
+          cls: "inr-ghost",
+          onClick: function () { journeyFlow.giveUp(); },
+        },
+        {
+          label: T("No, it was a mistake — don't save"),
+          cls: "inr-grey",
+          onClick: function () { journeyFlow._discardCancel(j); },
+        },
+      ],
+    });
+  };
+
+  // The true discard path (formerly the whole of `cancel`): logs journey_cancelled and
+  // ends the journey without submitting a ride. Kept separate so the dialog's third
+  // button reads as one clear action rather than an inline closure duplicating the
+  // tracking call.
+  journeyFlow._discardCancel = function (j) {
     // The silent loss: a started journey that produces no ride at all. Distinct
     // from give-up, which does submit one — so this is the count that says how
     // much real hitchhiking the tracker records but never publishes.
@@ -2550,9 +2589,84 @@
     },
   };
 
+  // ── raceBanner: announce a currently-running named race, if any ─────────────
+  // races.py already ranks hitchhikers automatically by matching their logged rides
+  // against a race's city-pair + date window (RACES.md) — no comment tag, no organizer
+  // relay required for the standings themselves. The gap this closes is discovery:
+  // nothing on the map tells someone hitchhiking through a live race's corridor that a
+  // leaderboard exists for what they're doing right now, so the only way anyone finds
+  // out is an organizer telling their group — a channel with a poor track record (ask
+  // it to prompt logging every year, it doesn't happen). This reaches participants
+  // directly instead, keyed off RACES.md's own dates, so it works for any future named
+  // race added there with no further code change.
+  //
+  // Deliberately not geo-targeted (no GPS permission prompt for a low-stakes banner) —
+  // it shows to every visitor during the race window, not just people near the route.
+  // That's over-broad by design: the false-positive cost (someone not racing sees a
+  // one-time dismissible dialog) is far lower than the false-negative cost (a racer
+  // near the corridor never learns the leaderboard exists).
+  const raceBanner = {
+    _shownKey(title) { return "hmRaceBannerShown:" + title; },
+
+    async check() {
+      // Don't compete with an active journey or an already-open dialog — the in-ride
+      // tracker's own prompts (soft login gate, stale-journey welcome back) take
+      // priority over this.
+      if (journeyStore.get() || journeyUI._openDialog) return;
+      let races;
+      try {
+        const res = await fetch("/races.json");
+        if (!res.ok) return;
+        races = await res.json();
+      } catch (e) { return; } // offline, blocked, or missing — never block the map over this
+      if (!Array.isArray(races)) return;
+      const now = Date.now();
+      const running = races.filter(function (r) {
+        if (!r.name) return false; // organizer-named events only, not open-ended "virtual races"
+        const from = Date.parse(r.from), to = Date.parse(r.to);
+        // `to` is a bare YYYY-MM-DD (parses as that day's UTC midnight); +24h covers
+        // the whole final day so a race doesn't read as over at its own start-of-day.
+        return from && to && now >= from && now <= to + 24 * 3600 * 1000;
+      });
+      if (!running.length) return;
+      // One race per *event name*, in case it has several legs (Tramprennen has two
+      // starting cities) — pick the first leg not yet shown; seen[] also blocks a
+      // later leg of the same event once any leg has already been shown once.
+      const seen = {};
+      const race = running.find(function (r) {
+        if (seen[r.name]) return false;
+        seen[r.name] = true;
+        return !localStorage.getItem(raceBanner._shownKey(r.title));
+      });
+      if (!race) return;
+      localStorage.setItem(raceBanner._shownKey(race.title), "1");
+      hmTrack("race_banner_shown", { race: race.name });
+      journeyUI.dialog({
+        title: T("{name} is on right now", { name: race.name }),
+        body: T(
+          "Through {to}. Log your rides as you go and you'll show up automatically on the live leaderboard — no tag or special step needed. Mentioning \"{name}\" in your ride comment also helps us see how many racers are logging.",
+          { to: race.to, name: race.name }
+        ),
+        centered: true,
+        cancelButton: true,
+        actions: [
+          {
+            label: T("See the leaderboard"),
+            cls: "inr-go",
+            onClick: function () {
+              hmTrack("race_banner_leaderboard_clicked", { race: race.name });
+              window.location.href = "/races";
+            },
+          },
+          { label: T("Not now"), cls: "inr-grey", onClick: function () {} },
+        ],
+      });
+    },
+  };
+
   window.inride = {
     journeyStore, journeyUI, journeyFlow, outboxStore, submitBody, flushOutbox, outboxUI, startLauncher,
-    journeyLogStore, pendingTripStore, finalizeJourney, tryCreateTrip, rideFactsFromBody,
+    journeyLogStore, pendingTripStore, finalizeJourney, tryCreateTrip, rideFactsFromBody, raceBanner,
   };
 
   // ── On-load init ─────────────────────────────────────────────────────────────
@@ -2594,6 +2708,11 @@
     // Non-blocking load of score weights and driver-info choices so the in-ride sheet
     // can render and score synchronously once the user reaches the demographics step.
     loadDemographicData();
+
+    // Non-blocking; the check itself skips out if a journey is already active or
+    // another dialog is already open, so call order relative to the rest of this
+    // function doesn't matter.
+    raceBanner.check();
 
     const j = journeyStore.get();
     if (!j) return;
