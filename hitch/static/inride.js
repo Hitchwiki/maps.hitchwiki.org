@@ -968,11 +968,22 @@
       });
       row.appendChild(giveUpBtn);
 
-      // Got a Ride! — disabled while paused so accidental taps can't cut the wait short.
+      // Got a Ride! — active while paused too (EXP-013's cancel-dialog "Got a
+      // ride" branch already resumes-then-gotRide for exactly this case; this
+      // button used to be the one place in the whole flow where that same
+      // outcome was unreachable in one tap). Resuming first means the wait
+      // this leg reports is measured up to now, not silently frozen at the
+      // pause point — the same reasoning gotRide's own wait_min already
+      // relies on elsewhere.
       const gotRideBtn = document.createElement("button");
-      gotRideBtn.className = "inr-big inr-big--green inr-disabled";
-      gotRideBtn.disabled = true;
+      gotRideBtn.className = "inr-big inr-big--green";
       gotRideBtn.innerHTML = '<i class="fa-solid fa-thumbs-up"></i> ' + T("Got a Ride!");
+      gotRideBtn.addEventListener("click", function () {
+        journeyFlow.resume();
+        journeyUI.rideDetailsSheet(function (details) {
+          journeyFlow.gotRide(details);
+        });
+      });
       row.appendChild(gotRideBtn);
       dock.appendChild(row);
       dock.appendChild(journeyUI._cancelButton());
