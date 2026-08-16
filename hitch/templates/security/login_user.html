@@ -4,6 +4,11 @@
 
 {% block content %}
 <h1>{{ t("Login") }}</h1>
+{% if oauth_error %}
+<p style="background: #fdecea; border: 1px solid #f5c6cb; color: #611a15; padding: 0.75em 1em; border-radius: 4px;">
+  {{ oauth_error }}
+</p>
+{% endif %}
 <p>
   {{ t("The Hitchhiking Map is made for all hitchhikers to learn from each others experiences. Thus all your rides and personal information (except your email address) will be publicly available. Only share as much as you are comfortable with. Keep in mind that hitchhikers are a vulnerable group and may face risks while traveling. Read our {link} for more information on how we handle your data and what you can do to protect yourself.",
        link='<a href="https://github.com/Hitchwiki/maps.hitchwiki.org/blob/main/docs/PRIVACY_POLICY.md">' ~ t("privacy policy") ~ '</a>')|safe }}

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="{{ g.lang }}">
+<head>
+  <meta charset="utf-8" />
+  <title>{{ t("Login failed") }}</title>
+  <meta name="robots" content="noindex" />
+  <style>
+    body { font-family: sans-serif; max-width: 28em; margin: 3em auto; padding: 0 1em; text-align: center; }
+    a { display: inline-block; margin-top: 1em; }
+  </style>
+</head>
+<body>
+  <p>{{ message }}</p>
+  <a href="/login/oauth?popup=1">{{ t("Try again") }}</a>
+  <script>
+    (function () {
+      // Same channel _finish_login's success path uses (oauth_popup_done.html) --
+      // account.js's listener can now tell a real failure apart from silence.
+      var msg = { type: "hitchwiki-auth", ok: false, error: {{ message|tojson }} };
+      if (window.opener) {
+        try { window.opener.postMessage(msg, window.location.origin); } catch (e) {}
+      }
+      // Deliberately no auto-close, unlike the success page: issue #120 asked for the
+      // error to actually be readable, not to flash and vanish. The visitor closes it
+      // themselves, or taps "Try again" to restart the flow in the same popup.
+    })();
+  </script>
+</body>
+</html>

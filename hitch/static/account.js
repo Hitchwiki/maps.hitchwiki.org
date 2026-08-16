@@ -567,6 +567,12 @@
       if (e.source !== popup) return;
       if (!e.data || e.data.type !== "hitchwiki-auth") return;
       window.removeEventListener("message", onMsg);
+      // Failure (state mismatch, a dead token exchange, ...): oauth_popup_error.html
+      // already shows the reason in the popup itself and offers a retry link, so there
+      // is nothing new to reflect in the account sheet — just stop, rather than treating
+      // the message as a success (e.data.needsProfile would be undefined here, which
+      // used to fall through to refresh(undefined) silently on every failure).
+      if (e.data.ok === false) return;
       // Brand-new account: close the account sheet and run the first-run intro, which
       // ends on the profile-setup form. Existing users just get the refreshed sheet.
       if (e.data.needsProfile && window.HitchwikiWelcome) {

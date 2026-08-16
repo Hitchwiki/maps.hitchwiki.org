@@ -103,11 +103,33 @@ def logout():
     return redirect("/")
 
 
+def _oauth_error(message, status=400):
+    """Render an OAuth failure so it reaches the user, not a bare error string.
+
+    Issue #120's whole complaint: a state mismatch (usually just a stale
+    session -- the login tab sat open too long, or was opened twice) left the
+    visitor on "State mismatch - possible CSRF attack" with no styling, no
+    explanation, and, in the popup flow, no way back to the app at all --
+    account.js's message listener never fires because nothing was ever
+    posted to the opener, so the popup just sits there orphaned.
+
+    Popup flow: mirror _finish_login's success path (oauth_popup_done.html)
+    -- post the failure to the opener over the same "hitchwiki-auth" channel
+    and show the message in the popup itself, so the reader can actually see
+    what happened before closing it themselves. Full-page flow: back to the
+    login page with the message inline, so the login button is still one
+    click away instead of a dead end.
+    """
+    if session.pop("oauth_popup", False):
+        return render_template("security/oauth_popup_error.html", message=message)
+    return render_template("security/login_user.html", oauth_error=message), status
+
+
 def _handle_callback(code):
     """Exchange authorization code for access token, fetch profile, login/create user."""
     state = request.args.get("state")
     if state != session.pop("oauth_state", None):
-        return "State mismatch - possible CSRF attack", 403
+        return _oauth_error("State mismatch - possible CSRF attack. Please try logging in again.", 403)
 
     wiki_base = _wiki_base()
     token_url = f"{wiki_base}/rest.php/oauth2/access_token"
@@ -130,7 +152,7 @@ def _handle_callback(code):
 
     if token_response.status_code != 200:
         current_app.logger.error(f"OAuth token exchange failed: {token_response.status_code} {token_response.text}")
-        return "Login failed: could not complete OAuth exchange. Please try again.", 400
+        return _oauth_error("Login failed: could not complete OAuth exchange. Please try again.")
 
     access_token = token_response.json()["access_token"]
 
@@ -147,14 +169,14 @@ def _handle_callback(code):
 
     if profile_response.status_code != 200:
         current_app.logger.error(f"OAuth profile fetch failed: {profile_response.status_code} {profile_response.text}")
-        return "Login failed: could not fetch your Hitchwiki profile. Please try again.", 400
+        return _oauth_error("Login failed: could not fetch your Hitchwiki profile. Please try again.")
 
     profile = profile_response.json()
     hitchwiki_username = profile.get("username")
     email = profile.get("email")
 
     if not hitchwiki_username:
-        return "Login failed: Hitchwiki did not return a username.", 400
+        return _oauth_error("Login failed: Hitchwiki did not return a username.")
 
     # Find or create local user. Matched case-insensitively (hitch/usernames.py): an
     # account created here from an earlier import or a differently-cased spelling is the
