@@ -445,7 +445,7 @@
         </p>
 
         <div class="form-group" style="margin-top: 1rem;">
-            <button type="submit" class="btn btn-primary btn-lg">{{ t("Submit") }}</button>
+            <button type="submit" id="ride-form-submit" class="btn btn-primary btn-lg">{{ t("Submit") }}</button>
             <a href="/" class="btn btn-secondary btn-lg" style="margin-left: 1rem;">{{ t("Cancel") }}</a>
         </div>
     </form>
@@ -808,6 +808,15 @@
         // /?ride=<d_tag>#success on the map, where a pageview alone can't be told
         // apart from a normal visit.
         hmTrack('ride_form_submitted', { destination: coords.destination ? 'yes' : 'no', mode: HM_FORM_MODE });
+
+        // Plain browser POST, no client_d_tag (unlike the in-ride Finish/Give-up
+        // flow's ride_submit.js, each POST here mints a fresh server-side d_tag) --
+        // so a double-tap or slow-network double-click before the page navigates
+        // away publishes two separate ride events for one real ride. Disabling the
+        // button synchronously, in the same handler that returns true, stops the
+        // browser from ever dispatching a second submit for a disabled button.
+        const submitBtn = document.getElementById('ride-form-submit');
+        if (submitBtn) submitBtn.disabled = true;
         return true;
     }
     
