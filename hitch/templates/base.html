@@ -103,6 +103,29 @@
        generation (cities.py) it is undefined, so guard it with `is defined` or
        the whole render aborts. Static city pages supply canonical_url instead. #}
     <meta property="og:url" content="{% block og_url %}{{ canonical_url if canonical_url else (request.base_url if request is defined else '') }}{% endblock %}" />
+    {# Site-level schema.org markup -- WebSite + Organization, the same on every
+       page (not per-page content like the OG tags above), so search engines and
+       LLM crawlers have a baseline structured fact about what this site is and
+       who publishes it. Deliberately minimal: no SearchAction, no per-page Place/
+       TravelAction markup -- this is a starting baseline, not the full build
+       ASSETS.md §12 scopes if the LLM-referrer channel grows past its current
+       negligible level (checked 2026-08-16: ~17 visits/90d across the whole
+       Hitchwiki portfolio). #}
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Hitchhiking Map",
+      "alternateName": "Hitchwiki Maps",
+      "url": "https://maps.hitchwiki.org/",
+      "description": "Discover hitchhiking spots worldwide on an interactive map. See community ratings, waiting times, and trip data. Share your own rides.",
+      "publisher": {
+        "@type": "Organization",
+        "name": "Hitchwiki",
+        "url": "https://hitchwiki.org/"
+      }
+    }
+    </script>
     {# Tells search engines each /<lang>/... mirror is a translation of this exact
        page, not a duplicate -- see lang_switch_url (hitch/__init__.py) for how the
        paths relate. Guarded the same way as og_url above: absent during cities.py's
