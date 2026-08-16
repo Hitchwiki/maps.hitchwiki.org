@@ -2220,13 +2220,18 @@
         title: T("Where are you waiting?"),
         hint: T("Drag the pin or tap the map, then confirm."),
         confirmLabel: T("Confirm"),
-        // Seeded at the map centre so Confirm is one tap for someone who already panned
-        // to where they are; "Use my location" and dragging stay available.
+        // Seeded at the map centre so the picker has something to show immediately;
+        // "Use my location" and dragging stay available regardless.
         seed: null,
         color: "green",
-        // No background fix here: the user chose this view deliberately, so snapping the
-        // pin away from where they panned would fight them.
-        autoLocate: false,
+        // Geolocation is never requested on page load (see map.js), so the map centre
+        // at the moment this button is tapped is not the user's location — it's
+        // whatever view they happened to be on (a spot they were checking, a
+        // last-viewed hash, a default region). Unlike the "Wait somewhere else" picker,
+        // there is no just-confirmed point to seed from here, so a silent background
+        // fix is worth it: same pattern as "Confirm Drop-off" below, non-blocking and
+        // silent on denial/failure, only moves the pin if the user hasn't touched it.
+        autoLocate: true,
         myLocation: true,
         onConfirm: journeyFlow.startFromChoose,
       });
