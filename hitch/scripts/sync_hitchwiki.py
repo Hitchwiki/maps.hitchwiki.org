@@ -71,8 +71,20 @@ def extract_maps(text):
     """Extract map patterns from wiki text.
 
     Looks for patterns like: |map = <map lat='51.049' lng='13.74' zoom='11'.../>
+
+    Two variants tolerated on purpose, both confirmed live on real articles (not
+    guessed): a space between the pipe and "map" ("| map =", e.g. Braunschweig),
+    and double-quoted attribute values ("lat=\"...\"") alongside the single-quoted
+    ones shown above. The original pattern required no space after "|" and only
+    single quotes, silently dropping real, correctly-formatted map data -- the
+    same two gaps this repo's own read-only research scripts
+    (hitchwiki_geocode_gap_scan.py, hitchwiki_geocoverage_scan.py) already found
+    and fixed independently; this ports the same fix into the actual sync path
+    that populates HitchwikiArticleMap.
     """
-    map_pattern = re.compile(r"\|map\s*=\s*<map\s+lat='([^']+)'\s+lng='([^']+)'\s+zoom='([^']+)'")
+    map_pattern = re.compile(
+        r"\|\s*map\s*=\s*<map\s+lat=[\"']([^\"']+)[\"']\s+lng=[\"']([^\"']+)[\"']\s+zoom=[\"']([^\"']+)[\"']"
+    )
     maps = [(m.start(), m.group(0), m.group(1), m.group(2), m.group(3)) for m in map_pattern.finditer(text)]
 
     return maps

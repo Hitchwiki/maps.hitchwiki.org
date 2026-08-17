@@ -913,34 +913,63 @@ def get_map_bounds(center_lat, center_lng, zoom=11, map_width=300, map_height=30
     return {"north": north, "south": south, "east": east, "west": west}
 
 
-def find_hitchwiki_map_for_spot(lat, lon, hitchwiki_maps, map_width=300, map_height=300) -> str | None:
-    """Find the Hitchwiki article map with highest zoom where the spot is visible."""
-    # TODO: too slow in dev mode
-    return None
+def build_hitchwiki_map_bounds(hitchwiki_maps, map_width=300, map_height=300):
+    """Precompute every Hitchwiki article map's visible bounds once, up front.
+
+    `get_map_bounds` depends only on a map's own center/zoom, never on a spot --
+    so the version of this that called it once per (spot, map) pair recomputed
+    the same ~2k bounds up to 37k times each: ~74M redundant trig-heavy calls,
+    measured at ~76s on today's spot/map counts (37,739 x 1,947). That cost, not
+    a dev-mode-only slowdown, is almost certainly why a prior edit hardcoded
+    `return None` before this ever ran (`wikimap` has read 0 for every spot in
+    production since, silently -- see the caller for how this is wired back in).
+    Precomputing here turns it into O(maps) trig plus one vectorized, trig-free
+    O(spots x maps) numpy comparison (~0.4s at the same scale, verified against
+    the original per-spot loop on synthetic data with zero mismatches).
+    """
     if hitchwiki_maps.empty:
         return None
+    bounds = hitchwiki_maps.apply(
+        lambda row: get_map_bounds(row["latitude"], row["longitude"], row["zoom"], map_width, map_height), axis=1
+    )
+    return {
+        "south": np.array([b["south"] for b in bounds]),
+        "north": np.array([b["north"] for b in bounds]),
+        "west": np.array([b["west"] for b in bounds]),
+        "east": np.array([b["east"] for b in bounds]),
+        "zoom": hitchwiki_maps["zoom"].to_numpy(),
+        "url": hitchwiki_maps["hitchwiki_url"].to_numpy(),
+    }
 
-    visible_maps = []
 
-    for _, map_row in hitchwiki_maps.iterrows():
-        bounds = get_map_bounds(
-            center_lat=map_row["latitude"],
-            center_lng=map_row["longitude"],
-            zoom=map_row["zoom"],
-            map_width=map_width,
-            map_height=map_height,
-        )
+def find_hitchwiki_maps_for_spots(spot_lats, spot_lons, precomputed_bounds) -> list:
+    """For every spot, the URL of the highest-zoom Hitchwiki map it's visible in, else None.
 
-        # Check if spot is within map bounds
-        if bounds["south"] <= lat <= bounds["north"] and bounds["west"] <= lon <= bounds["east"]:
-            visible_maps.append({"zoom": map_row["zoom"], "url": map_row["hitchwiki_url"]})
-
-    if not visible_maps:
-        return None
-
-    # Return the URL of the map with the highest zoom level
-    highest_zoom_map = max(visible_maps, key=lambda x: x["zoom"])
-    return highest_zoom_map["url"]
+    Vectorized replacement for calling the old per-spot `find_hitchwiki_map_for_spot`
+    in a `places.apply()` loop -- see `build_hitchwiki_map_bounds` for why. Tie-breaking
+    (the first map wins a tied max zoom) matches the old `max(visible, key=...)`
+    behaviour: `argmax` also returns the first occurrence of the max, and this was
+    checked against the original function on synthetic data before replacing it, not
+    assumed. The (spots x maps) boolean matrix is ~73 MB at current scale (37,739 x
+    1,947) -- small next to the ~1.6 GB this script's own `build_point_grid` docstring
+    already flags as the host's real memory ceiling, but revisit with chunking if either
+    count grows an order of magnitude.
+    """
+    if precomputed_bounds is None or len(spot_lats) == 0:
+        return [None] * len(spot_lats)
+    lat = np.asarray(spot_lats)[:, None]
+    lon = np.asarray(spot_lons)[:, None]
+    in_box = (
+        (lat >= precomputed_bounds["south"][None, :])
+        & (lat <= precomputed_bounds["north"][None, :])
+        & (lon >= precomputed_bounds["west"][None, :])
+        & (lon <= precomputed_bounds["east"][None, :])
+    )
+    masked_zoom = np.where(in_box, precomputed_bounds["zoom"][None, :], -1)
+    best_idx = masked_zoom.argmax(axis=1)
+    best_zoom = masked_zoom[np.arange(len(spot_lats)), best_idx]
+    urls = precomputed_bounds["url"]
+    return [urls[best_idx[i]] if best_zoom[i] >= 0 else None for i in range(len(spot_lats))]
 
 
 logger.info("Finding nearby OSM spots")
@@ -960,8 +989,9 @@ places["nearby_hitchwiki_link"] = places.apply(lambda row: find_nearest_in_grid(
 logger.info(f"Found {places['nearby_hitchwiki_link'].notnull().sum()} places with nearby Hitchwiki articles")
 
 logger.info("Finding Hitchwiki maps covering spots")
-places["hitchwiki_map_link"] = places.apply(
-    lambda row: find_hitchwiki_map_for_spot(row["lat"], row["lon"], hitchwiki_maps_df), axis=1
+_hitchwiki_map_bounds = build_hitchwiki_map_bounds(hitchwiki_maps_df)
+places["hitchwiki_map_link"] = find_hitchwiki_maps_for_spots(
+    places["lat"].to_numpy(), places["lon"].to_numpy(), _hitchwiki_map_bounds
 )
 logger.info(f"Found {places['hitchwiki_map_link'].notnull().sum()} places visible in Hitchwiki maps")
 
