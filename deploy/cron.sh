@@ -63,6 +63,15 @@
 # against Photon) so a nightly run stays bounded. The initial ~30k backlog is drained by
 # a manual `--limit 0` run, after which only newly created spots are left.
 30 4 * * * cd /app && /usr/bin/flock -n /tmp/spot_names.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/python3 /app/hitch/scripts/spot_names.py' > logs/spot_names.log 2>&1
+# every day at 4:50 AM — split dist/spots.gpx into one GPX per country (issue #114).
+# Standalone script, not folded into the 10-minute `show` cycle: country data only
+# changes when new spots appear, so re-splitting ~190 countries' worth of GPX every
+# 10 minutes would add real, unnecessary I/O to that already runtime-sensitive job.
+# Reads dist/spots.json and dist/rides/by-spot/<id>.json, so it must run after `show`
+# (always fresh) and after `spot_names` (4:30, ~33 min cap in steady state well under
+# 20 min once the initial backlog is drained), so spots carry real names, not bare
+# coordinates.
+50 4 * * * cd /app && /usr/bin/flock -n /tmp/spots_by_country.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate spots_by_country' > logs/spots_by_country.log 2>&1
 # every day at 5 AM
 0 5 * * * cd /app && /usr/bin/flock -n /tmp/dashboard.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate dashboard' > logs/dashboard.log 2>&1
 # every day at 5:30 AM — "Hitchhiking from X to Y" SEO pages for well-evidenced city pairs.
