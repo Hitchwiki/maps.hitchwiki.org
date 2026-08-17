@@ -61,6 +61,27 @@
             if (queue.length < QUEUE_MAX) queue.push([name, data || {}]);
           } catch (e) {}
         };
+        // A/B variant assignment: one random pick from `variants`, persisted in
+        // localStorage so the same visitor always sees the same variant. No
+        // server involvement -- Umami already accepts arbitrary event
+        // properties via hmTrack's `data` argument (see e.g. ride_form_blocked's
+        // `reason`), so tagging any funnel event with `{variant: hmVariant(...)}`
+        // is enough to read a conversion rate per variant later, with no new
+        // infrastructure. Falls back to `variants[0]` (the control) if
+        // localStorage is blocked (private browsing, some ad-blockers) rather
+        // than reassigning a fresh variant on every page view.
+        window.hmVariant = function (experimentName, variants) {
+          var key = "hm_ab_" + experimentName;
+          try {
+            var v = localStorage.getItem(key);
+            if (v && variants.indexOf(v) !== -1) return v;
+            v = variants[Math.floor(Math.random() * variants.length)];
+            localStorage.setItem(key, v);
+            return v;
+          } catch (e) {
+            return variants[0];
+          }
+        };
         // Deferred scripts run after parsing but before DOMContentLoaded, so that
         // is the first moment the queue can drain. `load` is the backstop; if the
         // tracker is still absent by then it is blocked or failed, and the queue
