@@ -145,6 +145,15 @@ function createMap() {
     preferCanvas: true,
     attributionControl: false,
     zoomControl: false,
+    // Without this, panning past +-180 deg longitude (or just starting at world
+    // zoom/center 0,0, as this map does) shows correct OSM tiles -- they tile
+    // seamlessly by design -- but every marker layer (spots, clusters, the
+    // heatmap overlay) only exists in the single "home" copy of the world, so
+    // the map reads as empty out there (issue #115). worldCopyJump makes
+    // Leaflet snap the view back to the home copy once you've panned exactly
+    // one world-width away, so overlays are always visible without needing to
+    // duplicate every marker across infinite copies.
+    worldCopyJump: true,
   });
   L.control.zoom({ position: "bottomright" }).addTo(map);
   L.control.attribution({ position: "bottomright" }).addTo(map);

@@ -4,6 +4,7 @@ Class to allow posting hitchhiking rides in the standardized format to Nostr.
 
 import ast
 import json
+import logging
 import os
 import time
 import uuid
@@ -15,6 +16,8 @@ from pynostr.key import PrivateKey
 from pynostr.relay_manager import RelayManager
 
 from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import HitchhikingRecord
+
+logger = logging.getLogger(__name__)
 
 NSEC = os.getenv("NSEC")
 RELAYS = ast.literal_eval(os.getenv("RELAYS"))
@@ -141,14 +144,34 @@ class HitchhikingDataStandardToNostrPoster:
 
         return d_tag
 
-    def flush(self) -> None:
-        """Give the relays their moment to answer, then drain the OK notices."""
+    def flush(self) -> bool:
+        """Give the relays their moment to answer, then drain the OK notices.
+
+        Every relay answers a published event with `["OK", <event_id>, <true|false>,
+        <message>]` (NIP-01) -- pynostr's `OKMessage.ok` carries that boolean. Before
+        this, a rejection and an acceptance both just got `print()`ed identically, so
+        a relay silently refusing an event (e.g. issue #61's bulk-upload flood, or any
+        relay-side validation failure) left no trace anywhere a human or `docker logs`
+        would notice -- the event still exists in this app's own DB (see
+        `_store_published_ride`) and in `dist/temporary.json` above, so the ride is
+        never lost, but a rejected event never reaches the wider Nostr network any
+        other client reads from. Logging rejections at WARNING makes that visible.
+        Returns whether every relay that answered accepted the event -- not yet used
+        to trigger a retry here (a real retry policy is a bigger, separate change),
+        but available to a future caller that wants to react to a `False`.
+        """
         print("posted, waiting a bit")
         time.sleep(5)
 
+        all_accepted = True
         while self.relay_manager.message_pool.has_ok_notices():
             ok_msg = self.relay_manager.message_pool.get_ok_notice()
-            print(ok_msg)
+            if ok_msg.ok:
+                print(ok_msg)
+            else:
+                all_accepted = False
+                logger.warning("Relay %s rejected event %s: %s", ok_msg.url, ok_msg.event_id, ok_msg.message)
+        return all_accepted
 
     def close(self):
         self.relay_manager.close_all_relay_connections()
