@@ -1616,7 +1616,6 @@ def _truncate_text(value, max_len):
     return value if len(value) <= max_len else value[: max_len - 1].rstrip() + "…"
 
 
-# TODO: check if all data from the new co-hitchhiker added to the new event and that no data was lost
 @user_bp.route("/accept-co-hitchhiking-ride/<ride_d_tag>", methods=["GET", "POST"])
 def accept_co_hitchhiker(ride_d_tag: str):
     if current_user.is_anonymous:
@@ -1625,28 +1624,50 @@ def accept_co_hitchhiker(ride_d_tag: str):
     conn = get_db()
     cursor = conn.cursor()
 
-    # TODO: only allow if the current user is actually listed as co-hitchhiker
+    # Scoped to the current user's own username, so this can only ever flip a row
+    # where they are genuinely the invited co-hitchhiker -- but the UPDATE matching
+    # zero rows (never invited, or already-accepted-then-retried on a stale link)
+    # must stop here. Previously nothing checked this, so ANY logged-in user could
+    # hit this route with ANY ride's d_tag (public, visible on /ride/<d_tag>) and
+    # still fall through to the code below, which added them as a co-hitchhiker and
+    # republished the ride to Nostr regardless of whether they were ever invited.
     cursor.execute(
         "UPDATE co_hitchhiker SET accepted = 'yes' WHERE nostr_ride_event_d_tag = ? and lower(co_hitchhiker) = ?",
         (ride_d_tag, username_key(current_user.username)),
     )
+    was_invited = cursor.rowcount > 0
     conn.commit()
     conn.close()
+
+    if not was_invited:
+        return redirect("/me")
 
     ### Update the Nostr event
 
     # Find the nostr event
     ride_row = db.session.query(RideEvent).filter_by(d=ride_d_tag).first()
+    if ride_row is None:
+        # The co_hitchhiker row referenced a ride that no longer exists (deleted
+        # since the invite) -- nothing to republish.
+        return redirect("/me")
 
     # manipulate it
     ride_record: dict = HitchhikingRecord.model_validate(ride_row.content)
-    this_hitchhiker = construct_hitchhiker_from_current_user()
-    print(f"Adding co-hitchhiker {this_hitchhiker} to ride {ride_d_tag}")
-    ride_record.hitchhikers.append(this_hitchhiker)
-    # post the updated event
-    poster = HitchhikingDataStandardToNostrPoster()
-    _ = poster.post(ride_record=ride_record, tags=ride_row.tags)
-    poster.close()
+    # Accepting is only supposed to happen once; a repeat visit to this link (a
+    # double-click, or a browser back-button replay) must not append a second,
+    # duplicate hitchhiker entry to the ride.
+    already_listed = next(
+        (h for h in (ride_record.hitchhikers or []) if same_username(h.nickname, current_user.username)),
+        None,
+    )
+    if already_listed is None:
+        this_hitchhiker = construct_hitchhiker_from_current_user()
+        print(f"Adding co-hitchhiker {this_hitchhiker} to ride {ride_d_tag}")
+        ride_record.hitchhikers.append(this_hitchhiker)
+        # post the updated event
+        poster = HitchhikingDataStandardToNostrPoster()
+        _ = poster.post(ride_record=ride_record, tags=ride_row.tags)
+        poster.close()
 
     return redirect("/me")
 
