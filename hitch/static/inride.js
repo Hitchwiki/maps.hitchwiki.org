@@ -2680,9 +2680,116 @@
     },
   };
 
+  // ── thinCoverageBanner: ask someone physically in a documented gap to write it ──
+  // Till (hitchhiking-automation PR#27): "1 build geolocation" — trigger from the
+  // visitor's real position, not a viewport pan (over-broad) and not a just-logged
+  // ride (the cheaper design a prior run built; that patch stays unshipped).
+  //
+  // Does NOT request geolocation on page load when the permission is still "prompt"
+  // — map.js's locate button is the only place that asks. On load we only reuse an
+  // already-granted permission (returning visitors). A locate-button fix also
+  // calls onFix() so a first-time grant still reaches this the moment they tap GPS.
+  // Ireland only (Dingle, Lahinch): both confirmed 404 on hitchwiki.org/en/<title>
+  // 2026-08-17. 40 km radius around each place's real coordinate, not the 3° grid
+  // cell the scoping research used for ranking (those labels don't bound the towns).
+  const THIN_COVERAGE_TARGETS = [
+    {
+      id: "dingle",
+      lat: 52.1408, lon: -10.2687, radiusKm: 40,
+      title: "Dingle",
+      url: "https://hitchwiki.org/en/index.php?title=Dingle&action=edit",
+    },
+    {
+      id: "lahinch",
+      lat: 52.9321, lon: -9.3459, radiusKm: 40,
+      title: "Lahinch",
+      url: "https://hitchwiki.org/en/index.php?title=Lahinch&action=edit",
+    },
+  ];
+
+  function thinCoverageHaversineKm(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const toRad = function (d) { return (d * Math.PI) / 180; };
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  function findThinCoverageTarget(lat, lon) {
+    if (typeof lat !== "number" || typeof lon !== "number" || isNaN(lat) || isNaN(lon)) return null;
+    let best = null;
+    let bestDist = Infinity;
+    THIN_COVERAGE_TARGETS.forEach(function (target) {
+      const d = thinCoverageHaversineKm(lat, lon, target.lat, target.lon);
+      if (d <= target.radiusKm && d < bestDist) {
+        best = target;
+        bestDist = d;
+      }
+    });
+    return best;
+  }
+
+  const thinCoverageBanner = {
+    _shownKey(id) { return "hmThinCoverageShown:" + id; },
+
+    onFix(lat, lon) {
+      if (journeyStore.get() || journeyUI._openDialog) return;
+      const target = findThinCoverageTarget(lat, lon);
+      if (!target) return;
+      if (localStorage.getItem(thinCoverageBanner._shownKey(target.id))) return;
+      localStorage.setItem(thinCoverageBanner._shownKey(target.id), "1");
+      hmTrack("thin_coverage_nudge_shown", { target: target.id, trigger: "geolocation" });
+      journeyUI.dialog({
+        title: T("{place} has no Hitchwiki article yet", { place: target.title }),
+        body: T(
+          "You're near {place}. A few lines about how to hitch out of town helps the next person who stands here.",
+          { place: target.title }
+        ),
+        centered: true,
+        cancelButton: true,
+        actions: [
+          {
+            label: T("Write about {place}", { place: target.title }),
+            cls: "inr-go",
+            onClick: function () {
+              hmTrack("thin_coverage_nudge_clicked", { target: target.id, trigger: "geolocation" });
+              window.open(target.url, "_blank", "noopener");
+            },
+          },
+          { label: T("Not now"), cls: "inr-grey", onClick: function () {} },
+        ],
+      });
+    },
+
+    check() {
+      if (journeyStore.get() || journeyUI._openDialog) return;
+      if (!navigator.geolocation) return;
+      const useGranted = function () {
+        navigator.geolocation.getCurrentPosition(
+          function (pos) {
+            thinCoverageBanner.onFix(pos.coords.latitude, pos.coords.longitude);
+          },
+          function () { /* denied/timeout/unavailable — never alert, never block the map */ },
+          { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+        );
+      };
+      if (navigator.permissions && navigator.permissions.query) {
+        navigator.permissions.query({ name: "geolocation" }).then(function (status) {
+          if (status.state === "granted") useGranted();
+        }).catch(function () { /* Permissions API can throw on some WebViews; skip */ });
+        return;
+      }
+      // No Permissions API: don't call getCurrentPosition — that would prompt on load.
+    },
+  };
+
   window.inride = {
     journeyStore, journeyUI, journeyFlow, outboxStore, submitBody, flushOutbox, outboxUI, startLauncher,
     journeyLogStore, pendingTripStore, finalizeJourney, tryCreateTrip, rideFactsFromBody, raceBanner,
+    thinCoverageBanner,
   };
 
   // ── On-load init ─────────────────────────────────────────────────────────────
@@ -2727,8 +2834,10 @@
 
     // Non-blocking; the check itself skips out if a journey is already active or
     // another dialog is already open, so call order relative to the rest of this
-    // function doesn't matter.
-    raceBanner.check();
+    // function doesn't matter. Thin-coverage waits for the race banner's fetch so
+    // the two dialogs never race; thinCoverageBanner.check also no-ops if a
+    // dialog opened in the meantime.
+    raceBanner.check().then(function () { thinCoverageBanner.check(); });
 
     const j = journeyStore.get();
     if (!j) return;

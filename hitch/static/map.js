@@ -764,6 +764,14 @@ function showLocation(e) {
   // stale in sync with the dot, signalling the fix is a one-time snapshot.
   setLocateButtonState("active");
   if (locateButtonEl) restartFade(locateButtonEl, "locate-fading");
+
+  // Thin-coverage nudge (B32): a locate-button fix is a real GPS position, which
+  // is the trigger Till asked for. No extra permission prompt — this handler only
+  // runs after requestLocation() already succeeded. inride may not be mounted yet
+  // on a very fast first fix; the on-load granted-permission path covers that.
+  if (window.inride && window.inride.thinCoverageBanner) {
+    window.inride.thinCoverageBanner.onFix(e.latlng.lat, e.latlng.lng);
+  }
 }
 
 // locationerror handler: permission denied, position unavailable, or timeout.
@@ -774,8 +782,10 @@ function onLocationError(e) {
 
 // OsmAnd-style "current location" button. Anchored bottom-right above the zoom
 // control. Requirement: geolocation must NOT be requested on page load — the
-// only call to map.locate()/navigator.geolocation happens in the tap handler
-// (wired in Task 2). This task only renders the idle button.
+// only call to map.locate() happens in the tap handler (wired in Task 2).
+// hitchhiking-automation B32 reuses an *already-granted* permission on load
+// (inride.thinCoverageBanner.check) and this locationfound hook; neither
+// prompts. This task only renders the idle button.
 // ---- Map mode switcher (Spots / Heatmap / Countries) -----------------------
 
 // Score (1..5) -> choropleth colour, matching the country page badge colours.
