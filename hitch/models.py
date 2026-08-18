@@ -1,5 +1,7 @@
 """Define database tables that are created at flask init."""
 
+from datetime import datetime
+
 from flask_security.models import fsqla_v3 as fsqla
 
 from hitch.extensions import db
@@ -103,6 +105,22 @@ class Notification(db.Model):
     link = db.Column(db.String(255), nullable=True)
     is_read = db.Column(db.Boolean, nullable=False, default=False, server_default="0")
     created_at = db.Column(db.DateTime, nullable=False, default=db.func.now())
+
+
+class AppAuthCode(db.Model):
+    """Single-use, short-lived code bridging the mobile OAuth callback to /api/auth/token.
+
+    The callback mints one of these and redirects it to the app via the custom scheme; the
+    app exchanges it for a bearer token. Consumed (deleted) on first use so a replayed
+    redirect can't mint a second token. Not the durable credential.
+    """
+
+    __tablename__ = "app_auth_code"
+
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(64), unique=True, nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
 
 class Message(db.Model):

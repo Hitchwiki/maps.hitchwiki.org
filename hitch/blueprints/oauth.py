@@ -205,6 +205,12 @@ def _handle_callback(code):
         # redirect rather than being re-derived later from the user row. The full-page
         # path lands on the map with ?welcome=1 so the first-run intro (welcome.js) runs
         # before the profile-setup form; the popup path opens the intro via postMessage.
+        # Mobile clients finish via a one-time code + custom-scheme redirect, not a session.
+        # login_user above set a cookie the app simply ignores, which is harmless.
+        if session.pop("oauth_mobile", False):
+            from hitch.blueprints.api_auth import finish_mobile_login
+
+            return finish_mobile_login(user)
         return _finish_login("/?welcome=1", needs_profile=True)
 
     # Existing user - just log in
@@ -215,4 +221,8 @@ def _handle_callback(code):
     # Back-fills the welcome notification for users who registered before notifications
     # existed; idempotent, so existing users get it exactly once.
     ensure_welcome_notification(user)
+    if session.pop("oauth_mobile", False):
+        from hitch.blueprints.api_auth import finish_mobile_login
+
+        return finish_mobile_login(user)
     return _finish_login("/me", needs_profile=False)

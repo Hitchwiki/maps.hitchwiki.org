@@ -16,6 +16,7 @@ from flask_security import SQLAlchemyUserDatastore
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import safe_join
 
+from hitch.blueprints.api_auth import api_auth_bp
 from hitch.blueprints.main import main_bp
 from hitch.blueprints.messages import messages_bp
 from hitch.blueprints.oauth import oauth_bp
@@ -289,6 +290,7 @@ def register_extensions(app):
 
 def register_blueprints(app):
     app.register_blueprint(oauth_bp)
+    app.register_blueprint(api_auth_bp)
     app.register_blueprint(main_bp)
     app.register_blueprint(user_bp)
     app.register_blueprint(messages_bp)

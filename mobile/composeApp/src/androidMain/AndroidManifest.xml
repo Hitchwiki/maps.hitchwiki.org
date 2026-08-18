@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Required for MapLibre vector tile fetching (osm_us_style.json) and the app's own API calls. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Required for fused/last-known location lookups in LocationProvider. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@android:drawable/sym_def_app_icon"
+        android:label="Hitchwiki Maps"
+        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <!-- Catches the hitchwiki-app://oauth-callback?code=… redirect that ends the mobile
+             OAuth flow; hands the one-time code to AuthRedirectBus and finishes immediately. -->
+        <activity
+            android:name="org.hitchwiki.maps.auth.OAuthRedirectActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="hitchwiki-app" android:host="oauth-callback" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

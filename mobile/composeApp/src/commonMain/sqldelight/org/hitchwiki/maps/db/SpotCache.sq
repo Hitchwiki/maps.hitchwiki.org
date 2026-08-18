@@ -1,0 +1,15 @@
+CREATE TABLE spotCache (
+    lat REAL NOT NULL,
+    lon REAL NOT NULL,
+    json TEXT NOT NULL,      -- the serialized Spot, so the row round-trips losslessly
+    PRIMARY KEY (lat, lon)
+);
+
+selectAll:
+SELECT json FROM spotCache;
+
+deleteAll:
+DELETE FROM spotCache;
+
+insert:
+INSERT OR REPLACE INTO spotCache(lat, lon, json) VALUES (?, ?, ?);
