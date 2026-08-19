@@ -1,0 +1,81 @@
+{% extends "security/base.html" %}
+
+{% set title = t("Waiting-time statistics") %}
+
+{% block head %}
+{{ super() }}
+<style>
+  .overlay { max-width: 760px; }
+  .stats-intro, .stats-note { color: #555; font-size: 0.9em; }
+  .stats-summary { display: grid; grid-template-columns: repeat(4, minmax(110px, 1fr)); gap: 0.6rem; margin: 1.2rem 0; }
+  .stats-card { border: 1px solid #ddd; border-radius: 8px; padding: 0.75rem; text-align: center; }
+  .stats-card strong { display: block; font-size: 1.35em; }
+  .stats-card span { color: #666; font-size: 0.78em; }
+  .stats-group { margin-top: 1.8rem; }
+  .stats-group h2 { font-size: 1.05em; border-bottom: 2px solid #ccc; padding-bottom: 0.3rem; }
+  .stats-table { border-collapse: collapse; width: 100%; font-size: 0.88em; }
+  .stats-table th, .stats-table td { border-bottom: 1px solid #eee; padding: 0.5rem 0.35rem; text-align: left; }
+  .stats-table th:nth-child(2), .stats-table td:nth-child(2),
+  .stats-table th:nth-child(3), .stats-table td:nth-child(3) { text-align: right; white-space: nowrap; }
+  .stats-thin { color: #9a6700; }
+  .stats-foot { margin-top: 2rem; padding-top: 0.8rem; border-top: 1px solid #eee; color: #777; font-size: 0.8em; }
+  @media (max-width: 600px) { .stats-summary { grid-template-columns: repeat(2, 1fr); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>{{ t("Waiting-time statistics") }}</h1>
+<p class="stats-intro">
+  {{ t("How long did hitchhikers wait before a recorded pickup? These are medians: half of the rides waited less and half waited more.") }}
+</p>
+
+<div class="stats-summary">
+  {% for group in groups %}
+  <div class="stats-card">
+    <strong>{{ group.median_minutes if group.median_minutes is not none else "—" }}{% if group.median_minutes is not none %} min{% endif %}</strong>
+    <span>
+      {% if group.size == 1 %}{{ t("solo") }}
+      {% else %}{{ t("{n} hitchhikers", n=group.size) }}{% endif %}
+      · {{ group.rides }} {{ t("rides") }}
+    </span>
+  </div>
+  {% endfor %}
+</div>
+
+<p class="stats-note">
+  {{ t("The tables include every possible combination of the four gender values the ride form can record, including combinations with no sample yet. Observed rides with missing gender data are listed separately as ‘Not recorded’; that is not a gender category. Small samples are shown, not hidden, and marked below 10 rides.") }}
+</p>
+
+{% for group in groups %}
+<section class="stats-group">
+  <h2>
+    {% if group.size == 1 %}{{ t("Solo hitchhikers") }}
+    {% else %}{{ t("Groups of {n}", n=group.size) }}{% endif %}
+  </h2>
+  {% if group.combinations %}
+  <table class="stats-table">
+    <thead><tr><th>{{ t("Gender combination") }}</th><th>{{ t("Median wait") }}</th><th>{{ t("Rides") }}</th></tr></thead>
+    <tbody>
+      {% for row in group.combinations %}
+      <tr class="{{ 'stats-thin' if row.rides < 10 }}">
+        <td>
+          {% for part in row.gender_counts %}{{ part.count }} × {{ gender_labels[part.gender] }}{{ " + " if not loop.last }}{% endfor %}
+        </td>
+        <td>{{ (row.median_minutes ~ " min") if row.median_minutes is not none else "—" }}</td>
+        <td>{{ row.rides }}{% if row.rides and row.rides < 10 %} *{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="stats-note">{{ t("No rides with a recorded waiting time in this group yet.") }}</p>
+  {% endif %}
+</section>
+{% endfor %}
+
+<p class="stats-foot">
+  {{ t("A ride counts only when it records a waiting time and between one and four hitchhikers. Give-ups are excluded because they measure time until stopping, not time until pickup. A dash means no qualifying ride; an asterisk marks fewer than 10 rides. Do not treat those small-sample medians as a general rule.") }}
+  {% if coverage.rides_used %}{{ t("{used} of {total} database rows qualify.", used=coverage.rides_used, total=coverage.rows_read) }}{% endif %}
+  {% if generated_at %}{{ t("Recalculated daily; last run {when}.", when=generated_at) }}{% endif %}
+</p>
+{% endblock %}

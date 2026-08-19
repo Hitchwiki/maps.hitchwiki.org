@@ -394,6 +394,7 @@ def register_commands(app):
             "sync_events": os.path.join(dist_dir, "events.json"),
             "show": os.path.join(dist_dir, "spots.json"),
             "why_not_hitchhike": os.path.join(dist_dir, "why_not_hitchhike.json"),
+            "wait_statistics": os.path.join(dist_dir, "statistics.json"),
             "dashboard": os.path.join(dist_dir, "dashboard.html"),
             "cities": os.path.join(dist_dir, "city", "index.html"),
         }
@@ -411,6 +412,8 @@ def register_commands(app):
             # fresh install has a populated /why-not-hitchhike immediately, instead of an
             # empty page until the weekly cron first fires.
             ("why_not_hitchhike", ""),
+            # Same dependency as why_not_hitchhike: the ride table must exist first.
+            ("wait_statistics", ""),
             ("dashboard", ""),
             *([("cities", "")] if ENVIRONMENT == "prod" else []),
         ]

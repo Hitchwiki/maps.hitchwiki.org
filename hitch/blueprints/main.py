@@ -898,6 +898,40 @@ def why_not_hitchhike():
     )
 
 
+@main_bp.route("/statistics")
+def statistics_page():
+    """Median pickup waits by hitchhiker group size and gender composition.
+
+    The aggregate is precomputed daily so a public request never scans every ride's
+    JSON fields. Missing output is an honest empty page on a fresh checkout, matching
+    /why-not-hitchhike's behaviour before its generator first runs.
+    """
+    path = os.path.join(get_dirs()["dist"], "statistics.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        data = {}
+
+    groups = data.get("groups") or [
+        {"size": size, "median_minutes": None, "rides": 0, "combinations": []}
+        for size in range(1, 5)
+    ]
+    return render_template(
+        "statistics.html",
+        groups=groups,
+        coverage=data.get("coverage", {}),
+        generated_at=data.get("generated_at"),
+        gender_labels={
+            "female": t("Female"),
+            "male": t("Male"),
+            "non_binary": t("Non-binary"),
+            "prefer_not_to_say": t("Prefer not to say"),
+            "unknown": t("Not recorded"),
+        },
+    )
+
+
 @main_bp.route("/recent")
 def recent_spots():
     """Activities page: rides from people you follow, then the last 100 added rides."""

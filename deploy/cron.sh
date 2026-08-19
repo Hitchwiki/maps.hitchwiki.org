@@ -97,6 +97,10 @@
 # 10 min, always fresh), and after ride_places (4:45) / spot_names (4:30) so new spots and
 # destinations are already named. 7 AM leaves the 6 AM cities run finished.
 0 7 * * 1 cd /app && /usr/bin/flock -n /tmp/why_not_hitchhike.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate why_not_hitchhike' > logs/why_not_hitchhike.log 2>&1
+# daily at 7:20 AM — rebuild /statistics after the overnight fetch/generation jobs.
+# The page reads this small aggregate rather than scanning every ride's JSON blobs in a
+# web worker. Daily is cheap and makes newly logged group/gender combinations visible.
+20 7 * * * cd /app && /usr/bin/flock -n /tmp/wait_statistics.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate wait_statistics' > logs/wait_statistics.log 2>&1
 # every Monday at 8 AM
 0 8 * * 1 cd /app && /usr/bin/flock -n /tmp/sync_hitchhiking_rides_dataset.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate sync_hitchhiking_rides_dataset' > logs/sync_hitchhiking_rides_dataset.log 2>&1
 # first of every month at 9 AM — regenerate country hitchability CSV + country_ratings.json / country_insights.json
