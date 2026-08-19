@@ -15,6 +15,13 @@
 {% from "_ride_card.html" import ride_card %}
 
 {% block content %}
+{% if profile_picture_saved %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  hmTrack("profile_picture_saved", {source: {{ profile_picture_saved | tojson }}});
+});
+</script>
+{% endif %}
 <style>
 /* .share-btn styling + click handler are shared globally from base.html */
 .account-header {
@@ -25,6 +32,9 @@
     flex-wrap: wrap;
 }
 .account-header h1 { margin: 0; }
+.profile-identity { display: flex; align-items: center; gap: 14px; margin: 10px 0; }
+.profile-avatar { width: 112px; height: 112px; border-radius: 50%; object-fit: cover; background: #eee; }
+.profile-photo-credit { display: block; color: #666; font-size: 0.78em; margin-top: 3px; }
 .profile-stats { margin: 16px 0; }
 .stats-grid {
     display: flex;
@@ -166,7 +176,15 @@
   </div>
 </div>
 
-{{ t("Name: {name}", name=user.username) }}{% if source_label %} <span class="source-badge">({% if source_url %}<a href="{{ source_url }}" rel="nofollow ugc">{{ source_label }}</a>{% else %}{{ source_label }}{% endif %})</span>{% endif %}<br>
+<div class="profile-identity">
+  {% if profile_image %}
+  <div>
+    <img class="profile-avatar" src="{{ profile_image.url }}" alt="{{ t('{name}\'s profile picture', name=user.username) }}" width="112" height="112" referrerpolicy="no-referrer">
+    {% if profile_image.uploaded %}<span class="profile-photo-credit">{{ t("Photo by {name}, CC BY-SA 4.0", name=user.username) }}</span>{% else %}<span class="profile-photo-credit">{{ t("Photo from Gravatar") }}</span>{% endif %}
+  </div>
+  {% endif %}
+  <div>{{ t("Name: {name}", name=user.username) }}{% if source_label %} <span class="source-badge">({% if source_url %}<a href="{{ source_url }}" rel="nofollow ugc">{{ source_label }}</a>{% else %}{{ source_label }}{% endif %})</span>{% endif %}</div>
+</div>
 
 {% if user_known %}
 {% if is_me %}

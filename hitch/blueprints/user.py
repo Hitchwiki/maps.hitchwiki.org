@@ -19,6 +19,7 @@ from flask import (
     render_template,
     request,
     send_file,
+    session,
     url_for,
 )
 from flask_security import current_user
@@ -30,6 +31,12 @@ from hitch.blueprints.utils.driver_info_choices import ALLOWED_REASONS_TO_HITCHH
 from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import HitchhikingRecord
 from hitch.blueprints.utils.notifications import notify_new_follower, unread_count
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
+from hitch.blueprints.utils.profile_images import (
+    AVATAR_SOURCES,
+    avatar_view,
+    delete_uploaded_image,
+    store_uploaded_image,
+)
 from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON
 from hitch.blueprints.utils.ride_gpx import rides_gpx
 from hitch.blueprints.utils.ride_images import attach_ride_images
@@ -39,7 +46,7 @@ from hitch.blueprints.utils.store_published_ride import store_published_ride
 from hitch.extensions import db, security
 from hitch.forms import UserEditForm
 from hitch.helpers import get_db, get_dirs, haversine_np
-from hitch.models import CoHitchhiker, Follow, Notification, RideEvent, RidePlace, RideReport, Trip, TripRide, User
+from hitch.models import CoHitchhiker, Follow, Notification, RideEvent, RidePlace, RideReport, Trip, TripRide, User, UserAvatar
 from hitch.scripts.races import current_races
 from hitch.translations import t
 from hitch.usernames import canonical_username, find_user_ci, same_username, username_key
@@ -77,10 +84,36 @@ def form():
     form.message_email_notifications.label.text = t("Email me when I receive a new message")
     form.distance_unit.label.text = t("Distance units")
     form.distance_unit.choices = [(v, t(lbl)) for v, lbl in form.distance_unit.choices]
+    form.avatar_source.label.text = t("Profile picture")
+    form.avatar_source.choices = [
+        ("none", t("No profile picture")),
+        ("upload", t("Upload a picture")),
+        ("gravatar", t("Use my Gravatar")),
+    ]
+    form.avatar_image.label.text = t("Choose a picture")
     form.submit.label.text = t("Submit")
 
     if form.validate_on_submit():
         updated_user = security.datastore.find_user(username=current_user.username)
+        avatar = UserAvatar.query.filter_by(user_id=updated_user.id).first()
+        source = form.avatar_source.data if form.avatar_source.data in AVATAR_SOURCES else "none"
+        old_filename = avatar.filename if avatar else None
+        new_filename = None
+        if source == "upload" and form.avatar_image.data:
+            try:
+                new_filename = store_uploaded_image(form.avatar_image.data)
+            except ValueError as err:
+                form.avatar_image.errors.append(str(err))
+                return render_template("security/edit_user.html", form=form)
+        elif source == "upload" and not old_filename:
+            form.avatar_image.errors.append(t("Choose a picture to upload."))
+            return render_template("security/edit_user.html", form=form)
+
+        if avatar is None:
+            avatar = UserAvatar(user_id=updated_user.id)
+            db.session.add(avatar)
+        avatar.source = source
+        avatar.filename = new_filename or (old_filename if source == "upload" else None)
         updated_user.gender = form.gender.data or None
         updated_user.year_of_birth = form.year_of_birth.data
         updated_user.hitchhiking_since = form.hitchhiking_since.data
@@ -95,6 +128,11 @@ def form():
         updated_user.distance_unit = form.distance_unit.data
         security.datastore.put(updated_user)
         security.datastore.commit()
+        if old_filename and old_filename != avatar.filename:
+            delete_uploaded_image(old_filename)
+        # Track only a successful save, and only once after the redirect. A click event on
+        # the form would count rejected images and validation failures as adoption.
+        session["track_profile_picture_saved"] = source
         return redirect("/me")
 
     form.gender.data = current_user.gender
@@ -109,6 +147,8 @@ def form():
     form.allow_messages.data = current_user.allow_messages
     form.message_email_notifications.data = current_user.message_email_notifications
     form.distance_unit.data = current_user.distance_unit or "metric"
+    avatar = UserAvatar.query.filter_by(user_id=current_user.id).first()
+    form.avatar_source.data = avatar.source if avatar else "none"
 
     return render_template("security/edit_user.html", form=form)
 
@@ -360,6 +400,9 @@ def show_account(username, is_me: bool = False):
     # only if that user opted into receiving messages (allow_messages). Same gate the send
     # endpoint enforces server-side, so the button never appears where a POST would 403.
     can_message = user_known and not is_me and not current_user.is_anonymous and bool(user.allow_messages)
+    avatar = UserAvatar.query.filter_by(user_id=user.id).first() if user_known else None
+    profile_image = avatar_view(avatar, user.email if user_known else None)
+    profile_picture_saved = session.pop("track_profile_picture_saved", None) if is_me else None
 
     return render_template(
         "security/account.html",
@@ -376,6 +419,8 @@ def show_account(username, is_me: bool = False):
         can_follow=can_follow,
         is_following=is_following,
         can_message=can_message,
+        profile_image=profile_image,
+        profile_picture_saved=profile_picture_saved,
         # /account/<anything> answers 200 by design (see the stub above), which makes it
         # an unbounded URL space a crawler can wander forever -- and each page costs a
         # couple of seconds of database work. A name that belongs to no registered user

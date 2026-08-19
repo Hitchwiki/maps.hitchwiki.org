@@ -556,10 +556,10 @@ def register_routes(app):
                 # briefly, then revalidate (ETag turns the recheck into a 304).
                 response.headers["Cache-Control"] = "public, max-age=300"
             response.headers["Vary"] = "Accept-Encoding"
-        elif endpoint == "catch_all" and request.path.startswith("/ride-images/"):
-            # A ride photo's filename is a uuid, so the bytes at a given URL can never
-            # change — only be deleted. Same reasoning as the ?v= assets above: cache it
-            # for a year instead of revalidating every ride page view.
+        elif endpoint == "catch_all" and request.path.startswith(("/ride-images/", "/profile-images/")):
+            # An uploaded photo's filename is a uuid, so the bytes at a given URL can
+            # never change — only be deleted. Same reasoning as the ?v= assets above:
+            # cache it for a year instead of revalidating every profile/ride page view.
             response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
             response.headers["Vary"] = "Accept-Encoding"
         elif endpoint == "catch_all":

@@ -78,6 +78,21 @@ class User(db.Model, fsqla.FsUserMixin):
     total_waiting_time_min = db.Column(db.Integer, default=0)
 
 
+class UserAvatar(db.Model):
+    """A registered user's explicit public profile-image choice.
+
+    Kept in its own table so deploying the feature cannot make the existing ``user``
+    table unreadable before ``flask init`` creates the new schema. ``source`` is one of
+    none/upload/gravatar. Uploaded filenames are random paths below dist/profile-images;
+    Gravatar needs no stored hash because it is derived only after the user opts in.
+    """
+
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), primary_key=True)
+    source = db.Column(db.String(16), nullable=False, default="none", server_default="none")
+    filename = db.Column(db.String(255), nullable=True)
+    updated_at = db.Column(db.DateTime, nullable=False, default=db.func.now(), onupdate=db.func.now())
+
+
 class Follow(db.Model):
     # Directed follow relationship between two registered users: follower_id follows
     # followed_id. A unique constraint on the pair makes a follow idempotent (a user

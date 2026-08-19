@@ -2,7 +2,8 @@ from datetime import datetime
 
 import pycountry
 from flask_wtf import FlaskForm
-from wtforms import BooleanField, IntegerField, SelectField, StringField, SubmitField
+from flask_wtf.file import FileField
+from wtforms import BooleanField, IntegerField, RadioField, SelectField, StringField, SubmitField
 from wtforms.validators import Optional
 from wtforms.widgets import NumberInput
 
@@ -14,6 +15,12 @@ class CountrySelectField(SelectField):
 
 
 class UserEditForm(FlaskForm):
+    avatar_source = RadioField(
+        "Profile picture",
+        choices=[("none", "No profile picture"), ("upload", "Upload a picture"), ("gravatar", "Use Gravatar")],
+        default="none",
+    )
+    avatar_image = FileField("Choose a picture", validators=[Optional()])
     gender = SelectField(
         "Gender",
         choices=[

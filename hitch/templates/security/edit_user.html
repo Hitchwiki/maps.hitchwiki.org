@@ -4,8 +4,17 @@
 
 {% block content %}
 <h1>{{ t("Edit your personal data") }}</h1>
-<form method="POST" action="{{ url_for('user.form') }}">
+<form method="POST" action="{{ url_for('user.form') }}" enctype="multipart/form-data">
     {{ form.csrf_token }}
+    <fieldset>
+      <legend>{{ form.avatar_source.label.text }}</legend>
+      {% for option in form.avatar_source %}<p>{{ option() }} {{ option.label }}</p>{% endfor %}
+      <p>{{ form.avatar_image.label }} {{ form.avatar_image(accept="image/jpeg,image/png,image/webp,image/gif,image/bmp,image/tiff") }}</p>
+      {% for error in form.avatar_image.errors %}<p style="color:#b00020">{{ error }}</p>{% endfor %}
+      <p style="color:#666; font-size:0.85em;">{{ t("Uploaded pictures are public under CC BY-SA 4.0. Upload only a picture you own or may share under that license. Images are resized and location metadata is removed.") }}</p>
+      <p style="color:#666; font-size:0.85em;">{{ t("Gravatar uses the email address on this account. Selecting it loads your picture from Gravatar on public profile visits; Gravatar pictures are not relicensed by Hitchwiki.") }}</p>
+    </fieldset>
+    <br>
     <p>{{ form.gender.label }} {{ form.gender() }}</p>
     <p>{{ form.year_of_birth.label }} {{ form.year_of_birth() }}</p>
     <p>{{ form.hitchhiking_since.label }} {{ form.hitchhiking_since() }}</p>
