@@ -178,7 +178,15 @@
         <div class="form-group">
             <label>{{ t("How do you rate the spot?") }}</label>
             <div class="rate">
-                <input required type="radio" id="star5" name="rate" value="5" {% if ride_data and ride_data.rating == 5 %}checked{% endif %} />
+                {# No `required` here: while unchecked, `.rate:not(:checked) > input` in style.css
+                   positions every option (including whichever carries `required`) at
+                   `top: -9999px` so the stars can be drawn from labels instead. Native HTML5
+                   constraint validation then tries to scroll to and focus that off-screen input
+                   before the submit event (and this file's own validateForm()) ever runs --
+                   a user-reported dead end (Signal, 2026-08-19: "i can't type in that red
+                   field" / "i also can't click into that field"). Validated in JS instead,
+                   same as the pickup-location and arrival-time checks below. #}
+                <input type="radio" id="star5" name="rate" value="5" {% if ride_data and ride_data.rating == 5 %}checked{% endif %} />
                 <label for="star5" title="{{ t("5 stars") }}">{{ t("5 stars") }}</label>
                 <input type="radio" id="star4" name="rate" value="4" {% if ride_data and ride_data.rating == 4 %}checked{% endif %} />
                 <label for="star4" title="{{ t("4 stars") }}">{{ t("4 stars") }}</label>
@@ -189,6 +197,7 @@
                 <input type="radio" id="star1" name="rate" value="1" {% if ride_data and ride_data.rating == 1 %}checked{% endif %} />
                 <label for="star1" title="{{ t("1 star") }}">{{ t("1 star") }}</label>
             </div>
+            <span id="rate-error-message" class="error text-danger" style="display:block; font-size:0.85em;"></span>
         </div>
 
         <div class="form-group">
@@ -783,6 +792,15 @@
 
     // Add form validation
     function validateForm() {
+        const rateError = document.getElementById('rate-error-message');
+        if (rateError) rateError.textContent = '';
+        if (!document.querySelector('input[name="rate"]:checked')) {
+            hmTrack('ride_form_blocked', { reason: 'no-rating' });
+            if (rateError) rateError.textContent = {{ t("Please rate the spot before submitting.")|tojson }};
+            document.querySelector('.rate')?.scrollIntoView({ block: 'center' });
+            return false;
+        }
+
         const coords = getCoordinates();
 
         if (!coords.pickup) {
