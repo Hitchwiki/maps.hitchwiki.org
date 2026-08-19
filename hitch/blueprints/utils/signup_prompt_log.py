@@ -30,7 +30,7 @@ _HEADER = ["timestamp", "prompt", "action"]
 # The client is untrusted, so only known prompt/action pairs are ever recorded —
 # an unknown value would just be noise in the conversion counts.
 PROMPT_ACTIONS = {
-    "anon-signup": {"shown", "signup", "stay-anonymous"},
+    "anon-signup": {"shown", "signup", "stay-anonymous", "account-created"},
     "co-hitchhiker-invite": {"shown", "invite", "skip"},
 }
 

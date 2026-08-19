@@ -18,6 +18,9 @@ from hitch.usernames import find_user_ci
 
 oauth_bp = Blueprint("oauth", __name__)
 
+SIGNUP_PROMPT_SOURCE = "anon-signup"
+SIGNUP_PROMPT_SESSION_KEY = "signup_prompt_source"
+
 
 def _wiki_base():
     return current_app.config["HITCHWIKI_WIKI_BASE"]
@@ -48,6 +51,12 @@ def login():
     if code:
         return _handle_callback(code)
 
+    # The anonymous post-ride prompt starts a multi-page, cross-origin OAuth
+    # flow. Keep only this allowlisted attribution marker in the signed session;
+    # query parameters do not survive the redirect through Hitchwiki.
+    if request.args.get("source") == SIGNUP_PROMPT_SOURCE:
+        session[SIGNUP_PROMPT_SESSION_KEY] = SIGNUP_PROMPT_SOURCE
+
     return render_template("security/login_user.html")
 
 
@@ -61,6 +70,14 @@ def _finish_login(target, needs_profile):
     if session.pop("oauth_popup", False):
         return render_template("security/oauth_popup_done.html", needs_profile=needs_profile)
     return redirect(target)
+
+
+def _new_user_target(signup_prompt_source):
+    """Return the first-login URL, adding attribution only for our known prompt."""
+    params = {"welcome": "1"}
+    if signup_prompt_source == SIGNUP_PROMPT_SOURCE:
+        params["signup_prompt"] = "account-created"
+    return f"/?{urlencode(params)}"
 
 
 @oauth_bp.route("/login/oauth")
@@ -182,6 +199,10 @@ def _handle_callback(code):
     # account created here from an earlier import or a differently-cased spelling is the
     # same person, and an exact match would silently create them a second, empty account.
     user = find_user_ci(hitchwiki_username)
+    # Consume attribution only after the OAuth exchange and profile lookup have
+    # succeeded, so a transient error/retry does not lose it. Existing users do
+    # not count as a newly created Maps account and clear the marker here too.
+    signup_prompt_source = session.pop(SIGNUP_PROMPT_SESSION_KEY, None)
     if user is None:
         user = security.datastore.create_user(
             username=hitchwiki_username,
@@ -205,7 +226,7 @@ def _handle_callback(code):
         # redirect rather than being re-derived later from the user row. The full-page
         # path lands on the map with ?welcome=1 so the first-run intro (welcome.js) runs
         # before the profile-setup form; the popup path opens the intro via postMessage.
-        return _finish_login("/?welcome=1", needs_profile=True)
+        return _finish_login(_new_user_target(signup_prompt_source), needs_profile=True)
 
     # Existing user - just log in
     login_user(user, remember=True)

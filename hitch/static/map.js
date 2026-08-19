@@ -3590,7 +3590,7 @@ function showSignupPromptOverlay(opts) {
   // unlogged exit would leave the conversion numbers unreadable.
   $$("#signup-prompt-yes").onclick = function () {
     logSignupPrompt("anon-signup", "signup");
-    window.location.href = "/login";
+    window.location.href = "/login?source=anon-signup";
   };
   $$("#signup-prompt-no").onclick = function () {
     logSignupPrompt("anon-signup", "stay-anonymous");
@@ -3606,6 +3606,20 @@ function showSignupPromptOverlay(opts) {
     };
   }
 }
+
+// The OAuth callback adds this one-time marker only when it creates a brand-new
+// Maps account from the anonymous post-ride prompt. Track it through the same
+// analytics + durable server-log path as the prompt choices, then remove it
+// immediately so refresh/back does not count the account twice.
+function trackSignupPromptAccountCreated() {
+  const url = new URL(window.location.href);
+  if (url.searchParams.get("signup_prompt") !== "account-created") return;
+  logSignupPrompt("anon-signup", "account-created");
+  url.searchParams.delete("signup_prompt");
+  window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+}
+
+trackSignupPromptAccountCreated();
 
 function showInvitePromptOverlay(opts) {
   const overlay = $$("#invite-prompt-overlay");
