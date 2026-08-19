@@ -361,7 +361,22 @@
   }
 
   function renderLoggedIn(body, data, needsProfile) {
-    body.appendChild(el("h4", "acct-username", data.username));
+    const identity = el("div", "acct-identity");
+    if (data.profile_image_url) {
+      const avatar = el("img", "acct-avatar");
+      avatar.src = data.profile_image_url;
+      avatar.alt = T("Your profile picture");
+      avatar.referrerPolicy = "no-referrer";
+      avatar.addEventListener("error", function () { avatar.remove(); });
+      identity.appendChild(avatar);
+    }
+    const identityText = el("div", "acct-identity__text");
+    identityText.appendChild(el("h4", "acct-username", data.username));
+    const editProfile = el("a", "acct-edit-profile", T("Edit profile"));
+    editProfile.href = "/edit-user";
+    identityText.appendChild(editProfile);
+    identity.appendChild(identityText);
+    body.appendChild(identity);
 
     if (needsProfile) {
       const nudge = el("a", "acct-nudge");
@@ -603,6 +618,7 @@
     fetch("/me/incomplete_rides.json", { credentials: "same-origin" })
       .then(function (r) { return r.json(); })
       .then(function (data) {
+        setAccountAvatar(link, data && data.profile_image_url);
         const existing = btn.querySelector(".account-dot--amber");
         const count = data ? data.count : 0;
         // Don't fight the notification bell: unread notifications already own the corner.
@@ -621,6 +637,20 @@
         }
       })
       .catch(function () {}); // a nudge dot is not worth surfacing an error over
+  }
+
+  function setAccountAvatar(link, url) {
+    if (!link || !url || link.querySelector(".top-account-avatar")) return;
+    const icon = link.querySelector(".fa-circle-user");
+    const avatar = el("img", "top-account-avatar");
+    avatar.alt = T("Your profile picture");
+    avatar.referrerPolicy = "no-referrer";
+    avatar.addEventListener("load", function () {
+      if (icon) icon.hidden = true;
+    });
+    avatar.addEventListener("error", function () { avatar.remove(); });
+    avatar.src = url;
+    link.insertBefore(avatar, link.firstChild);
   }
 
   function init() {

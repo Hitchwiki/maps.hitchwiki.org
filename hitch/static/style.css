@@ -289,6 +289,12 @@ html {
 .top-account-btn.logged-in a {
   color: #fff;
 }
+.top-account-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
 
 /* Logged-out nudge: a small red notification dot in the corner encourages sign-in. */
 .top-account-btn .account-dot {
@@ -3762,7 +3768,11 @@ body.routing-active .leaflet-control-container .leaflet-control-geocoder { displ
 .acct-sheet { z-index: 3000; }
 .acct-scrim { z-index: 2999; }
 .acct-body { display: flex; flex-direction: column; }
-.acct-username { margin: 2px 0 10px; font-size: 20px; }
+.acct-identity { display: flex; align-items: center; gap: 11px; margin: 2px 0 12px; }
+.acct-avatar { width: 54px; height: 54px; border-radius: 50%; object-fit: cover; flex: 0 0 auto; }
+.acct-identity__text { min-width: 0; }
+.acct-username { margin: 0; font-size: 20px; overflow-wrap: anywhere; }
+.acct-edit-profile { color: #2f80ed; font-size: 12px; font-weight: 600; text-decoration: none; }
 .acct-pitch { color: #555; font-size: 14px; margin: 0 0 14px; }
 .acct-loading, .acct-error { color: #888; font-size: 14px; }
 

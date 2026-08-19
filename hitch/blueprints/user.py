@@ -200,6 +200,12 @@ def _ride_needs_detail(ride_info):
     return ride_info.get("completion", 0) < 100 or ride_info.get("missing_destination")
 
 
+def _profile_image_for(user):
+    """Public image metadata for one registered user, with one bounded lookup."""
+    avatar = UserAvatar.query.filter_by(user_id=user.id).first()
+    return avatar_view(avatar, user.email)
+
+
 @user_bp.route("/me/incomplete_rides.json", methods=["GET"])
 def incomplete_rides_json():
     """How many of the user's rides still want more detail — for the avatar nudge dot.
@@ -211,7 +217,11 @@ def incomplete_rides_json():
     # Anonymous users have no rides to nudge about; skip the query entirely.
     rides = [] if current_user.is_anonymous else _get_rides_for_user(current_user)
     count = sum(1 for ride in rides if _ride_needs_detail(ride))
-    resp = jsonify({"count": count})
+    payload = {"count": count}
+    if not current_user.is_anonymous:
+        profile_image = _profile_image_for(current_user)
+        payload["profile_image_url"] = profile_image["url"] if profile_image else None
+    resp = jsonify(payload)
     # Per-user, like /me.json — never let a shared cache serve one user's count to another.
     resp.headers["Cache-Control"] = "private, no-store"
     return resp
@@ -260,6 +270,9 @@ def me_json():
                 "logged_in": True,
                 "username": current_user.username,
                 "profile_url": "/me",
+                "profile_image_url": (
+                    profile_image["url"] if (profile_image := _profile_image_for(current_user)) else None
+                ),
                 "insights": {
                     "rides": total_rides,
                     "distance_km": total_km,
@@ -400,8 +413,7 @@ def show_account(username, is_me: bool = False):
     # only if that user opted into receiving messages (allow_messages). Same gate the send
     # endpoint enforces server-side, so the button never appears where a POST would 403.
     can_message = user_known and not is_me and not current_user.is_anonymous and bool(user.allow_messages)
-    avatar = UserAvatar.query.filter_by(user_id=user.id).first() if user_known else None
-    profile_image = avatar_view(avatar, user.email if user_known else None)
+    profile_image = _profile_image_for(user) if user_known else None
     profile_picture_saved = session.pop("track_profile_picture_saved", None) if is_me else None
 
     return render_template(

@@ -67,6 +67,7 @@ def test_me_json_logged_in_payload(client, logged_in_user):
     assert body["logged_in"] is True
     assert body["username"] == logged_in_user.username
     assert body["profile_url"] == "/me"
+    assert body["profile_image_url"] is None
 
     assert set(body["insights"]) == {"rides", "distance_km", "waiting_min", "partners"}
     assert body["insights"]["rides"] == 42

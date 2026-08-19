@@ -95,6 +95,11 @@ def test_upload_is_reencoded_and_publicly_credited(app, client, profile_user, pr
     assert b"Photo by avatarhitcher, CC BY-SA 4.0" in page.data
     assert b"/profile-images/" in page.data
 
+    modal = client.get("/me.json").get_json()
+    nudge = client.get("/me/incomplete_rides.json").get_json()
+    assert modal["profile_image_url"].startswith("/profile-images/")
+    assert nudge["profile_image_url"] == modal["profile_image_url"]
+
 
 def test_upload_source_requires_a_file(client, profile_user, profile_image_dir):
     response = client.post("/edit-user", data=_form_data(avatar_source="upload"))
