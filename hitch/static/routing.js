@@ -42,6 +42,11 @@
   // Mirrors MIN_SUPPORT in build_ride_routes.py: an edge below this was taken by
   // one hitchhiker once, and only exists in the lazily loaded fallback graph.
   const MIN_SUPPORT = 2;
+  // A normal road journey is already longer than the crow-flight distance, and
+  // carKm includes the engine's 1.25 road-distance factor. Past this ratio the
+  // logged corridor itself is meaningfully indirect, so say so without calling
+  // the route wrong: it can still be the best route supported by our data.
+  const CIRCUITOUS_RATIO = 2;
   const ALT_COLORS = ["#1a73e8", "#e8710a", "#188038"]; // fastest first
 
   // ---- small helpers -----------------------------------------------------
@@ -52,6 +57,19 @@
       Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(dlon / 2) ** 2;
     return EARTH_KM * 2 * Math.asin(Math.sqrt(s));
   }
+  function routeDistanceRatio(rt, start, dest) {
+    const directKm = haversineKm(start, dest);
+    if (directKm < 0.1) return 1;
+    return (rt.carKm + rt.walkKm) / directKm;
+  }
+  function isCircuitous(rt, start, dest) {
+    return routeDistanceRatio(rt, start, dest) >= CIRCUITOUS_RATIO;
+  }
+
+  // Small pure seam for the headless Node acceptance test. It contains no
+  // route state and is also useful to future UI surfaces that need the same
+  // honest directness classification.
+  window.RoutingDirectness = { routeDistanceRatio, isCircuitous, threshold: CIRCUITOUS_RATIO };
   class MinHeap {
     constructor() { this.h = []; }
     push(x) { const h = this.h; h.push(x); let i = h.length - 1;
@@ -1137,6 +1155,8 @@
       const e = routeEnds(rt);
       const cars = rt.legs.filter((l) => l.mode === "car").length;
       const oneOff = rt.minSupport < MIN_SUPPORT;
+      const distanceRatio = routeDistanceRatio(rt, RJ.start.latlng, RJ.dest.latlng);
+      const circuitous = isCircuitous(rt, RJ.start.latlng, RJ.dest.latlng);
       const delta = i === 0 ? T("fastest") : "+" + fmtTime(e.coreMin - fastest);
       const mid = e.midWalkMin > 0.5 ? ` · ${T("{time} walk", { time: fmtTime(e.midWalkMin) })}` : "";
       const ends = endsLabel(rt);
@@ -1161,6 +1181,10 @@
             ${ends ? `<span class="rp-opt-ends">${ends}</span>` : ""}
             ${oneOff ? '<span class="rp-opt-weak"><i class="fa-solid fa-circle-info"></i>' +
               T("Includes a leg only one hitchhiker has logged") + "</span>" : ""}
+            ${circuitous ? '<span class="rp-opt-indirect"><i class="fa-solid fa-route"></i>' +
+              T("This route is about {ratio}× the straight-line distance", {
+                ratio: distanceRatio.toFixed(1)
+              }) + "</span>" : ""}
           </button>
           <button class="rp-details-btn" type="button" aria-expanded="false">${T("Details")}</button>
           <div class="rp-steps" hidden></div>

@@ -3652,6 +3652,14 @@ body.routing-active .leaflet-control-container .leaflet-control-geocoder { displ
 .rp-opt-weak i { font-size: 11px; }
 .rp-weak { color: #8a5a00; }
 
+/* Geographic directness is separate from evidence strength: a well-supported
+   route can still detour because the logged graph has no direct corridor. */
+.rp-opt-indirect {
+  display: flex; align-items: center; gap: 5px; margin-top: 3px;
+  color: #5f6368; font-size: 12px;
+}
+.rp-opt-indirect i { color: #8a5a00; font-size: 11px; }
+
 /* Mode strip: one glyph per leg, in travel order. Wraps on long routes rather
    than pushing the card wider than the sheet. */
 .rp-opt-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 2px 0 1px; }
