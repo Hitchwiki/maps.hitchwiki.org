@@ -66,6 +66,42 @@ def _city_path(country, city_name, lang="en"):
     return os.path.join(*parts), f"{_city_slug(city_name)}.html"
 
 
+def _city_jsonld(city, place_label, canonical_url, city_rides):
+    """Place + Review structured data for one city page.
+
+    Built here, not in the template, same reasoning as route_pages.py's
+    jsonld_steps: this is the copy a parser (or an assistant summarising the
+    page) lifts directly, so it should be exact and it's awkward to assemble
+    with conditionals in Jinja. Only real logged content goes in -- no rating
+    field exists in ride_event, so no AggregateRating is emitted.
+    """
+    reviews = []
+    for row in city_rides.itertuples():
+        # pd.read_sql leaves a NULL comment as NaN (a float), not None -- `or ""`
+        # alone doesn't catch it, since bool(nan) is True and .strip() then throws.
+        comment = "" if pd.isna(row.comment) else str(row.comment).strip()
+        if not comment:
+            continue
+        reviews.append(
+            {
+                "@type": "Review",
+                "reviewBody": comment[:500],
+                "author": {"@type": "Person", "name": row.hitchhiker_name or "Anonymous"},
+                "datePublished": (row.submission_time or "")[:10],
+            }
+        )
+    data = {
+        "@context": "https://schema.org",
+        "@type": "Place",
+        "name": place_label,
+        "url": canonical_url,
+        "geo": {"@type": "GeoCoordinates", "latitude": float(city.lat), "longitude": float(city.lng)},
+    }
+    if reviews:
+        data["review"] = reviews
+    return data
+
+
 # Load template environment.
 #
 # These pages extend the site's base.html, which is written for Flask's own Jinja
@@ -269,6 +305,7 @@ for pos in renderable:
         folder, filename = _city_path(city.country, city.city, lang)
         os.makedirs(folder, exist_ok=True)
         canonical = _city_loc(city.country, city.city, lang)
+        place_label = f"{city.city}, {city.country}" if city.country else city.city
         with open(os.path.join(folder, filename), "w") as f:
             f.write(
                 city_template.render(
@@ -277,6 +314,7 @@ for pos in renderable:
                     reviews=city_rides,
                     canonical_url=canonical,
                     alternate_urls=alternates,
+                    city_jsonld=_city_jsonld(city, place_label, canonical, city_rides),
                 )
             )
         if lang != "en":

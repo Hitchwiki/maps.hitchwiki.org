@@ -45,6 +45,16 @@
     <br>
     <small>&copy; <a id="copyright" href="/copyright.html">Hitchwiki Map</a> contributors</small>
 </div>
+
+{# Structured data: same reasoning as route_template.html's HowTo block -- built
+   server-side in cities.py, not assembled here, so an assistant or search engine
+   summarising this page lifts the exact geo/review facts rather than inferring
+   them from prose. #}
+{% if city_jsonld %}
+<script type="application/ld+json">
+{{ city_jsonld | tojson }}
+</script>
+{% endif %}
 <style>
  .font-semibold {
      font-weight: bold;
