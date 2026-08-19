@@ -80,6 +80,10 @@ class HitchhikingDataStandardToNostrPoster:
         # the local ride_event table so the ride is live before the fetch cron runs;
         # post() still returns only the d tag, which every existing caller relies on.
         self.last_event = None
+        # Event ids awaiting an explicit NIP-01 OK acceptance. A batch may publish
+        # several events before one flush, so one boolean cannot represent this.
+        self.pending_event_ids = set()
+        self.last_flush_accepted = None
 
     def post(self, ride_record: HitchhikingRecord, tags: list = None, d_tag: str = None, wait: bool = True) -> str:
         """Post a ride in the standardized format to Nostr and return the d tag.
@@ -133,6 +137,7 @@ class HitchhikingDataStandardToNostrPoster:
         event.sign(self.private_key_hex)
 
         self.last_event = event
+        self.pending_event_ids.add(event.id)
 
         _append_event_to_temporary_json(event)
 
@@ -140,7 +145,7 @@ class HitchhikingDataStandardToNostrPoster:
         self.relay_manager.publish_event(event)
         self.relay_manager.run_sync()  # Sync with the relay to send the event
         if wait:
-            self.flush()
+            self.last_flush_accepted = self.flush()
 
         return d_tag
 
@@ -156,22 +161,33 @@ class HitchhikingDataStandardToNostrPoster:
         `_store_published_ride`) and in `dist/temporary.json` above, so the ride is
         never lost, but a rejected event never reaches the wider Nostr network any
         other client reads from. Logging rejections at WARNING makes that visible.
-        Returns whether every relay that answered accepted the event -- not yet used
-        to trigger a retry here (a real retry policy is a bigger, separate change),
-        but available to a future caller that wants to react to a `False`.
+        Returns whether every pending event received at least one explicit acceptance.
+        A rejection from one relay does not outweigh acceptance from another, but no
+        reply is not success. The result is not yet used to trigger a retry here (a
+        real retry policy is a bigger, separate change), but is available to callers.
         """
         print("posted, waiting a bit")
         time.sleep(5)
 
-        all_accepted = True
+        pending = set(self.pending_event_ids)
+        accepted_event_ids = set()
         while self.relay_manager.message_pool.has_ok_notices():
             ok_msg = self.relay_manager.message_pool.get_ok_notice()
             if ok_msg.ok:
+                if ok_msg.event_id in pending:
+                    accepted_event_ids.add(ok_msg.event_id)
                 print(ok_msg)
             else:
-                all_accepted = False
                 logger.warning("Relay %s rejected event %s: %s", ok_msg.url, ok_msg.event_id, ok_msg.message)
-        return all_accepted
+
+        unconfirmed = pending - accepted_event_ids
+        for event_id in sorted(unconfirmed):
+            logger.warning("No relay confirmed accepting event %s", event_id)
+
+        # Each flush owns the snapshot it started with. Do not let a later flush
+        # mistake an old acceptance (or silence) for a newly published event.
+        self.pending_event_ids.difference_update(pending)
+        return not unconfirmed
 
     def close(self):
         self.relay_manager.close_all_relay_connections()
