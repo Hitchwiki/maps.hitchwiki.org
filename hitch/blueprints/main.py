@@ -6,6 +6,7 @@ import re
 import subprocess
 import sys
 import time
+import uuid
 from datetime import datetime
 from functools import lru_cache
 from urllib.parse import quote
@@ -1611,6 +1612,9 @@ def ride_form():
             "ride_form.html",
             ride_data=ride_data,
             ride_images=ride_images,
+            # One value per rendered form: two POSTs from the same page replace
+            # the same parameterized Nostr event instead of minting two rides.
+            client_d_tag=str(uuid.uuid4()),
             max_ride_images=MAX_IMAGES_PER_RIDE,
             vehicle_kinds=VEHICLE_KIND_CHOICES,
             country_codes=ISO_3166_1_ALPHA_2,
