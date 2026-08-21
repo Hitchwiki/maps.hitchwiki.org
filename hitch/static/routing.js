@@ -20,6 +20,8 @@
   // node with only `window`/`document`/`fetch` stubbed (see CLAUDE.md), where a
   // bare hmTrack would be a ReferenceError instead of a no-op.
   const hmTrack = (typeof window !== "undefined" && window.hmTrack) || function () {};
+  const hmVariant = (typeof window !== "undefined" && window.hmVariant) ||
+    function (_name, variants) { return variants[0]; };
 
   // Same reasoning as hmTrack above, for map.js's tr() (client-side i18n, see
   // hitch/static/map.js): guarded so headless node runs of this file don't throw.
@@ -70,6 +72,11 @@
   // route state and is also useful to future UI surfaces that need the same
   // honest directness classification.
   window.RoutingDirectness = { routeDistanceRatio, isCircuitous, threshold: CIRCUITOUS_RATIO };
+  function firstBoardingPoint(rt) {
+    const firstRide = rt && rt.legs && rt.legs.find((leg) => leg.mode === "car");
+    return firstRide ? firstRide.from : null;
+  }
+  window.RoutingStartCta = { firstBoardingPoint };
   class MinHeap {
     constructor() { this.h = []; }
     push(x) { const h = this.h; h.push(x); let i = h.length - 1;
@@ -1004,7 +1011,10 @@
         '<button type="button" class="share-btn" data-share-title="' + T("Hitchhiking route – Hitchwiki Maps") + '">' +
         '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>' +
         '<span class="share-btn-label">' + T("Share") + '</span></button>' +
-        '</div><div class="rp-options"></div>';
+        '</div><div class="rp-options"></div>' +
+        '<button type="button" class="rp-start-cta" hidden>' +
+        '<i class="fa-solid fa-thumbs-up" aria-hidden="true"></i> ' +
+        T("Start hitchhiking at the first spot") + '</button>';
     }
     return body.querySelector(".rp-options");
   }
@@ -1193,6 +1203,20 @@
       row.querySelector(".rp-details-btn").addEventListener("click", () => toggleDetails(row, rt, i));
       box.appendChild(row);
     });
+    const variant = hmVariant("route-start-cta-v1", ["control", "cta"]);
+    hmTrack("route_start_cta_exposure", { variant: variant });
+    const cta = resultsSheet() && resultsSheet().querySelector(".rp-start-cta");
+    if (cta) {
+      cta.hidden = variant !== "cta";
+      cta.onclick = function () {
+        const rt = RJ.routes[RJ.highlight || 0];
+        const boarding = firstBoardingPoint(rt);
+        if (!boarding || !window.inride || !window.inride.journeyFlow) return;
+        hmTrack("route_start_cta_clicked", { variant: variant });
+        close();
+        window.inride.journeyFlow.startFromChoose({ lat: boarding[0], lon: boarding[1] });
+      };
+    }
     showResultsSheet();
   }
 
