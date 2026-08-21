@@ -1182,6 +1182,7 @@
     //   myLocation bool — show the "Use my location" button
     //   onConfirm(dest {lat, lon})
     //   onCancel() — optional
+    //   onOutcome(name, details) — optional, aggregate analytics only
     pinConfirm(opts) {
       if (!window.L || !window.map) {
         // No map available (edge case) — never leave the Finish button spinning.
@@ -1209,18 +1210,19 @@
       // Once the user has placed the pin themselves, a late GPS fix must never move it —
       // a fix can land 20 s after the picker opens, long after they dragged the pin.
       let touched = false;
-      function touch() { touched = true; }
-      marker.on("dragstart", touch);
+      let placement = opts.seed ? "seed" : "map-centre";
+      function touch(method) { touched = true; placement = method; }
+      marker.on("dragstart", function () { touch("drag"); });
 
       // Tapping the map also repositions the pin (same UX as the standard
       // location-selection UI in map.js).
-      function onMapClick(e) { touch(); marker.setLatLng(e.latlng); }
+      function onMapClick(e) { touch("map-tap"); marker.setLatLng(e.latlng); }
       window.map.on("click", onMapClick);
 
       // Expose a reposition hook so a long-press (routed through inrideOnEntryGesture)
       // can drop the pin too — but ONLY while this picker is open, so long-press never
       // drops a pin outside the flow.
-      journeyUI._setPin = function (ll) { touch(); marker.setLatLng(ll); };
+      journeyUI._setPin = function (ll) { touch("long-press"); marker.setLatLng(ll); };
 
       const ui = document.createElement("div");
       ui.className = "location-selection-ui";
@@ -1266,12 +1268,25 @@
         window.map.setView([fix.lat, fix.lon]);
       }
 
+      function outcome(name, details) {
+        if (opts.onOutcome) opts.onOutcome(name, details || {});
+      }
+
       if (opts.autoLocate) {
         setLocating(true);
         requestFix().then(
-          function (fix) { setLocating(false); if (!touched) moveTo(fix); },
+          function (fix) {
+            setLocating(false);
+            if (!touched) {
+              placement = "auto-location";
+              moveTo(fix);
+              outcome("auto-location-used");
+            } else {
+              outcome("auto-location-ignored");
+            }
+          },
           // Silent: the user never asked for this fix, and the pin is already usable.
-          function () { setLocating(false); }
+          function () { setLocating(false); outcome("auto-location-failed"); }
         );
       }
 
@@ -1279,9 +1294,15 @@
         locBtn.addEventListener("click", function () {
           setLocating(true);
           requestFix().then(
-            function (fix) { setLocating(false); touch(); moveTo(fix); },
+            function (fix) {
+              setLocating(false);
+              touch("location-button");
+              moveTo(fix);
+              outcome("location-button-used");
+            },
             function () {
               setLocating(false);
+              outcome("location-button-failed");
               journeyUI.error(T("Couldn't get your location — drag the pin instead."));
             }
           );
@@ -1299,12 +1320,14 @@
 
       document.getElementById("inr-pin-confirm").addEventListener("click", function () {
         const ll = marker.getLatLng();
+        outcome("confirmed", { placement: placement });
         cleanup();
         // Normalize Leaflet's .lng → .lon so every consumer sees exactly one shape.
         opts.onConfirm(toLatLon(ll));
       });
 
       document.getElementById("inr-pin-cancel").addEventListener("click", function () {
+        outcome("cancelled", { placement: placement });
         cleanup();
         if (opts.onCancel) opts.onCancel();
       });
@@ -2233,6 +2256,9 @@
         // silent on denial/failure, only moves the pin if the user hasn't touched it.
         autoLocate: true,
         myLocation: true,
+        onOutcome: function (outcome, details) {
+          hmTrack("journey_start_picker", Object.assign({ outcome: outcome }, details));
+        },
         onConfirm: journeyFlow.startFromChoose,
       });
     },
