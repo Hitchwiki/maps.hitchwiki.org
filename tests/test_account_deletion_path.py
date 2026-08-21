@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 ROOT = Path(__file__).parents[1]
 APP = (ROOT / "hitch" / "__init__.py").read_text()
 PAGE = (ROOT / "hitch" / "templates" / "delete_account.html").read_text()
