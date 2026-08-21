@@ -167,7 +167,10 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
     document.getElementById('install-hint-close').addEventListener('click', dismiss);
 
     // Small delay so the hint doesn't fight with map load.
-    setTimeout(function () { hint.hidden = false; }, 1500);
+    setTimeout(function () {
+        hint.hidden = false;
+        if (isAndroid && window.hmTrack) window.hmTrack('play_store_shown', { source: 'install_hint' });
+    }, 1500);
 })();
 
 // Play Store button: Android only, and not inside the installed app itself. Kept
@@ -180,6 +183,7 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
     if (standalone) return;
     if (!/Android/.test(navigator.userAgent || '')) return;
     btn.hidden = false;
+    if (window.hmTrack) window.hmTrack('play_store_shown', { source: 'map_badge' });
     btn.addEventListener('click', function () {
         if (window.hmTrack) window.hmTrack('play_store_clicked', { source: 'map_badge' });
     });

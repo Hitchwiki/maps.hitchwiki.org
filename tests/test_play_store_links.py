@@ -13,6 +13,8 @@ def test_android_install_surfaces_use_the_public_listing():
 
 
 def test_both_install_surfaces_are_measurable_without_identity_data():
+    assert "hmTrack('play_store_shown', { source: 'install_hint' })" in TEMPLATE
+    assert "hmTrack('play_store_shown', { source: 'map_badge' })" in TEMPLATE
     assert "hmTrack('play_store_clicked', { source: 'install_hint' })" in TEMPLATE
     assert "hmTrack('play_store_clicked', { source: 'map_badge' })" in TEMPLATE
 
