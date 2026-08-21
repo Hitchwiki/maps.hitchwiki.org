@@ -56,5 +56,6 @@ assert.strictEqual(C.firstBoardingPoint({ legs: [{ mode: "walk" }] }), null);
 assert.match(source, /hmVariant\("route-start-cta-v1", \["control", "cta"\]\)/);
 assert.match(source, /hmTrack\("route_start_cta_exposure", \{ variant: variant \}\)/);
 assert.match(source, /hmTrack\("route_start_cta_clicked", \{ variant: variant \}\)/);
+assert.match(source, /startFromChoose\([\s\S]*?"route-results"/);
 
 console.log("routing directness tests passed");

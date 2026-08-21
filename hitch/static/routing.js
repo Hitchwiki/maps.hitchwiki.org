@@ -1214,7 +1214,10 @@
         if (!boarding || !window.inride || !window.inride.journeyFlow) return;
         hmTrack("route_start_cta_clicked", { variant: variant });
         close();
-        window.inride.journeyFlow.startFromChoose({ lat: boarding[0], lon: boarding[1] });
+        window.inride.journeyFlow.startFromChoose(
+          { lat: boarding[0], lon: boarding[1] },
+          "route-results",
+        );
       };
     }
     showResultsSheet();
