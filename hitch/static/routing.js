@@ -421,7 +421,11 @@
       </div>
       <div class="rp-suggest" hidden></div>
       <div class="rp-options" hidden></div>
-      <div class="rp-status" hidden></div>`;
+      <div class="rp-status" hidden></div>
+      <button type="button" class="rp-no-route-cta" hidden>
+        <i class="fa-solid fa-thumbs-up" aria-hidden="true"></i>
+        ${T("Start hitchhiking anyway")}
+      </button>`;
     document.body.appendChild(panel);
 
     panel.querySelector(".rp-close").addEventListener("click", close);
@@ -544,6 +548,8 @@
     const sheet = resultsSheet();
     const opts = sheet && sheet.querySelector(".rp-options");
     if (opts) opts.innerHTML = "";
+    const noRouteCta = panel && panel.querySelector(".rp-no-route-cta");
+    if (noRouteCta) { noRouteCta.hidden = true; noRouteCta.onclick = null; }
     setStatus(null);
   }
   function setStatus(msg) {
@@ -591,8 +597,10 @@
         if (!alt.length) {
           // The failure mode is the actionable part: which end (or the middle)
           // has too little logged data is what says where to recruit rides.
-          hmTrack('route_none', { reason: diagnoseNoRouteReason(FB || RJ.router, from, to, DEFAULT_MAX_WALK) });
+          const reason = diagnoseNoRouteReason(FB || RJ.router, from, to, DEFAULT_MAX_WALK);
+          hmTrack('route_none', { reason: reason });
           setStatus(diagnoseNoRoute(FB || RJ.router, from, to, DEFAULT_MAX_WALK, !!FB));
+          showNoRouteStartAction();
           return;
         }
         hmTrack('route_found', { graph: 'oneoff', options: alt.length });
@@ -626,6 +634,29 @@
     if (!startCovered) return 'start-uncovered';
     if (!destCovered) return 'dest-uncovered';
     return 'gap-in-middle';
+  }
+
+  // A missing route is missing evidence, not proof that the trip cannot be
+  // hitchhiked. Test whether letting the person enter the normal journey flow
+  // from their searched origin recovers intent that the planner would otherwise
+  // strand. Variant is encoded in fixed event names so aggregate analytics never
+  // need an event-data query (which would expose session ids and route URLs).
+  function showNoRouteStartAction() {
+    const cta = panel && panel.querySelector(".rp-no-route-cta");
+    if (!cta || !RJ.start) return;
+    const variant = hmVariant("route-none-start-v1", ["control", "cta"]);
+    hmTrack("route_none_start_exposure_" + variant);
+    cta.hidden = variant !== "cta";
+    cta.onclick = function () {
+      if (!window.inride || !window.inride.journeyFlow || !RJ.start) return;
+      hmTrack("route_none_start_clicked_cta");
+      const start = RJ.start.latlng;
+      close();
+      window.inride.journeyFlow.startFromChoose(
+        { lat: start[0], lon: start[1] },
+        "route-results",
+      );
+    };
   }
 
   // When no route is found, explain which end is the problem so the user can act

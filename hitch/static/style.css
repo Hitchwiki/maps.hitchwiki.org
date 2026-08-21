@@ -3679,12 +3679,14 @@ body.routing-active .leaflet-control-container .leaflet-control-geocoder { displ
 }
 .rp-details-btn:hover { text-decoration: underline; }
 
-.rp-start-cta {
+.rp-start-cta,
+.rp-no-route-cta {
   width: 100%; margin-top: 10px; padding: 11px 14px;
   border: 0; border-radius: 9px; background: #188038; color: #fff;
   font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
 }
-.rp-start-cta:hover { background: #137333; }
+.rp-start-cta:hover,
+.rp-no-route-cta:hover { background: #137333; }
 
 /* Step-by-step itinerary: a time column, a rail of dots and connecting lines,
    and the step content — the shape a transit app uses for a trip. */

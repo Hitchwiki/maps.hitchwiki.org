@@ -57,5 +57,14 @@ assert.match(source, /hmVariant\("route-start-cta-v1", \["control", "cta"\]\)/);
 assert.match(source, /hmTrack\("route_start_cta_exposure", \{ variant: variant \}\)/);
 assert.match(source, /hmTrack\("route_start_cta_clicked", \{ variant: variant \}\)/);
 assert.match(source, /startFromChoose\([\s\S]*?"route-results"/);
+assert.match(source, /hmVariant\("route-none-start-v1", \["control", "cta"\]\)/);
+assert.match(source, /hmTrack\("route_none_start_exposure_" \+ variant\)/);
+assert.match(source, /hmTrack\("route_none_start_clicked_cta"\)/);
+assert.match(source, /class="rp-no-route-cta" hidden/);
+assert.match(
+  source,
+  /const start = RJ\.start\.latlng;[\s\S]*?startFromChoose\([\s\S]*?lat: start\[0\], lon: start\[1\][\s\S]*?"route-results"/,
+  "the no-route CTA starts from the searched origin without exposing it to analytics",
+);
 
 console.log("routing directness tests passed");
