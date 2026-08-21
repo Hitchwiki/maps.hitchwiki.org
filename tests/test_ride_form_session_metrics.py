@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 TEMPLATE = (
     Path(__file__).parents[1] / "hitch" / "templates" / "ride_form.html"
 ).read_text()
