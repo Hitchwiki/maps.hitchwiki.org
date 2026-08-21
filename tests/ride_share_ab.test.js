@@ -27,4 +27,11 @@ test("every share outcome carries the assigned variant", () => {
   for (const action of ["dismiss", "clicked", "shared"]) {
     assert.ok(SOURCE.includes(`action: "${action}"`), `missing ${action} outcome`);
   }
+  for (const event of [
+    "ride_share_clicked",
+    "ride_share_shared",
+    "ride_share_dismissed",
+  ]) {
+    assert.ok(SOURCE.includes(`"${event}"`), `missing aggregate ${event} event`);
+  }
 });

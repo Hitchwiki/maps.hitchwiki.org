@@ -3291,6 +3291,14 @@ const chooseVariant = window.hmVariant || function (_name, variants) { return va
 
 function trackRideShare(properties) {
   hmTrack("ride_share", Object.assign({ variant: shareVariant }, properties));
+  const outcomeEvent = {
+    clicked: "ride_share_clicked",
+    shared: "ride_share_shared",
+    dismiss: "ride_share_dismissed",
+  }[properties.action];
+  if (outcomeEvent) {
+    hmTrack(outcomeEvent, Object.assign({ variant: shareVariant }, properties));
+  }
 }
 
 // `opts` is how a caller that never navigated hands the ride in directly:
