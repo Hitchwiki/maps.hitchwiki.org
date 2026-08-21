@@ -10,14 +10,23 @@ baseDir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 sql_prefix = "sqlite:///" if sys.platform.startswith("win") else "sqlite:////"
 
 
+# Fallback values for local dev only -- both are well-known (this exact salt is the demo
+# value from Flask-Security-Too's own docs), so `create_app()` in hitch/__init__.py
+# refuses to start with either of them when ENVIRONMENT=prod. Kept as fallbacks rather
+# than a hard requirement everywhere so `cp example.env .env` still boots for local dev
+# without editing anything.
+INSECURE_DEFAULT_SECRET_KEY = "super_secret_key"
+INSECURE_DEFAULT_PASSWORD_SALT = "146585145368132386173505678016728509634"
+
+
 class BaseConfig:
-    SECRET_KEY = os.getenv("SECRET_KEY", "super_secret_key")
+    SECRET_KEY = os.getenv("SECRET_KEY", INSECURE_DEFAULT_SECRET_KEY)
     EMAIL = os.getenv("EMAIL", "maps@hitchwiki.org")
     MAX_CLAIMS_PER_DAY = os.getenv("MAX_CLAIMS_PER_DAY", 10)
 
     # User Config
     SECURITY_PASSWORD_HASH = os.getenv("SECURITY_PASSWORD_HASH", "argon2")
-    SECURITY_PASSWORD_SALT = os.getenv("SECURITY_PASSWORD_SALT", "146585145368132386173505678016728509634")
+    SECURITY_PASSWORD_SALT = os.getenv("SECURITY_PASSWORD_SALT", INSECURE_DEFAULT_PASSWORD_SALT)
     SECURITY_REGISTERABLE = False
     SECURITY_SEND_REGISTER_EMAIL = False
 
