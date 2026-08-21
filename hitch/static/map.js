@@ -2951,7 +2951,10 @@ function markerClick(marker) {
     hitchBtn.onclick = function () {
       if (!window.inride || !window.L) return;
       clear(); // close the spot sheet before the waiting UI takes over
-      window.inride.journeyFlow.startFromChoose(L.latLng(data.lat, data.lon));
+      window.inride.journeyFlow.startFromChoose(
+        L.latLng(data.lat, data.lon),
+        "spot-sheet",
+      );
     };
   }
 

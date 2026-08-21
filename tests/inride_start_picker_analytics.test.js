@@ -7,6 +7,10 @@ const SOURCE = fs.readFileSync(
   path.join(__dirname, "..", "hitch", "static", "inride.js"),
   "utf8",
 );
+const MAP_SOURCE = fs.readFileSync(
+  path.join(__dirname, "..", "hitch", "static", "map.js"),
+  "utf8",
+);
 
 test("the start picker sends one aggregate event with an outcome property", () => {
   assert.match(
@@ -40,4 +44,14 @@ test("confirmed placement records every way the pin can move", () => {
   ]) {
     assert.ok(SOURCE.includes(`"${placement}"`), `missing ${placement}`);
   }
+});
+
+test("journey start source survives the login redirect and stays bounded", () => {
+  assert.match(SOURCE, /const START_SOURCES = \["start-bar", "spot-sheet", "map-gesture", "route-results"\]/);
+  assert.match(SOURCE, /START_SOURCES\.includes\(source\) \? source : "unknown"/);
+  assert.match(SOURCE, /JSON\.stringify\(\{ lat: p\.lat, lon: p\.lon, source: source \}\)/);
+  assert.match(SOURCE, /source: startSource\(source\)/);
+  assert.match(SOURCE, /startFromChoose\(latlng, "start-bar"\)/);
+  assert.match(SOURCE, /startFromChoose\(latlng, "map-gesture"\)/);
+  assert.match(MAP_SOURCE, /startFromChoose\([\s\S]*?"spot-sheet"/);
 });

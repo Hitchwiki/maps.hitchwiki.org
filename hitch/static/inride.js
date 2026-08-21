@@ -470,12 +470,17 @@
   // Soft login gate: logged-in users go straight to start; anonymous users see a
   // prompt so they can choose to log in (and preserve the chosen spot across the
   // redirect) or carry on without an account. No hard block — anonymous is fine.
-  journeyFlow.startFromChoose = function (latlng) {
+  const START_SOURCES = ["start-bar", "spot-sheet", "map-gesture", "route-results"];
+  function startSource(source) {
+    return START_SOURCES.includes(source) ? source : "unknown";
+  }
+  journeyFlow.startFromChoose = function (latlng, source) {
     // Callers pass either a Leaflet LatLng (map.js, entry gestures) or {lat, lon}
     // (pinConfirm). Normalise once here so the redirect stash below can't store
     // lon: undefined and silently lose the chosen spot across login.
     const p = toLatLon(latlng);
-    if (window.IS_LOGGED_IN) return journeyFlow.beginWithCoHitchers(p);
+    source = startSource(source);
+    if (window.IS_LOGGED_IN) return journeyFlow.beginWithCoHitchers(p, source);
     journeyUI.dialog({
       title: T("Track your rides?"),
       body: T("Log in to keep your ride history, or just continue anonymously."),
@@ -486,11 +491,14 @@
           cls: "inr-go",
           onClick: () => {
             // Stash the chosen pickup so we can resume after the redirect back.
-            localStorage.setItem(PENDING_KEY, JSON.stringify({ lat: p.lat, lon: p.lon }));
+            localStorage.setItem(
+              PENDING_KEY,
+              JSON.stringify({ lat: p.lat, lon: p.lon, source: source }),
+            );
             window.location.href = "/login?next=/";
           },
         },
-        { label: T("Continue anonymously"), cls: "inr-grey", onClick: () => journeyFlow.beginWithCoHitchers(p) },
+        { label: T("Continue anonymously"), cls: "inr-grey", onClick: () => journeyFlow.beginWithCoHitchers(p, source) },
       ],
     });
   };
@@ -517,7 +525,7 @@
   };
 
   // Seed the waiting journey. Pickup = the chosen latlng; wait timer starts now.
-  journeyFlow.start = function (latlng, coHitchhikers) {
+  journeyFlow.start = function (latlng, coHitchhikers, source) {
     // Accepts a Leaflet LatLng or {lat, lon} — see toLatLon.
     const p = toLatLon(latlng);
     // A fresh journey logs nothing yet. nextRide deliberately does NOT do this: its legs
@@ -537,14 +545,17 @@
     // Entry point of the in-ride funnel. This is a second, separate contribution
     // path from the /ride form — a journey that reaches Finish or Give up submits
     // a ride without ever touching add_ride_clicked.
-    hmTrack("journey_started", { co_hitchhikers: (coHitchhikers || []).length });
+    hmTrack("journey_started", {
+      co_hitchhikers: (coHitchhikers || []).length,
+      source: startSource(source),
+    });
     journeyUI.render(j);
   };
 
   // Show the co-hitcher modal, then seed the journey with whoever was added.
-  journeyFlow.beginWithCoHitchers = function (latlng) {
+  journeyFlow.beginWithCoHitchers = function (latlng, source) {
     journeyUI.coHitcherSheet(function (coHitchhikers) {
-      journeyFlow.start(latlng, coHitchhikers);
+      journeyFlow.start(latlng, coHitchhikers, source);
     });
   };
 
@@ -2259,7 +2270,7 @@
         onOutcome: function (outcome, details) {
           hmTrack("journey_start_picker", Object.assign({ outcome: outcome }, details));
         },
-        onConfirm: journeyFlow.startFromChoose,
+        onConfirm: (latlng) => journeyFlow.startFromChoose(latlng, "start-bar"),
       });
     },
   };
@@ -2306,7 +2317,7 @@
         {
           label: T("Start Hitching"),
           cls: "inr-go",
-          onClick: () => journeyFlow.startFromChoose(latlng),
+          onClick: () => journeyFlow.startFromChoose(latlng, "map-gesture"),
         },
         {
           label: T("Log a past ride"),
@@ -2848,7 +2859,11 @@
       localStorage.removeItem(PENDING_KEY);
       // return is INSIDE the try so a malformed PENDING_KEY that throws falls through
       // to the store-resume path below instead of short-circuiting the whole init.
-      try { const p = JSON.parse(pend); journeyFlow.beginWithCoHitchers(L.latLng(p.lat, p.lon)); return; } catch (e) {}
+      try {
+        const p = JSON.parse(pend);
+        journeyFlow.beginWithCoHitchers({ lat: p.lat, lon: p.lon }, startSource(p.source));
+        return;
+      } catch (e) {}
     } else if (pend) {
       // Returned still anonymous (login cancelled or failed) — discard the stash.
       localStorage.removeItem(PENDING_KEY);
