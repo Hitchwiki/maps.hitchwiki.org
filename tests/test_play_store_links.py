@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 TEMPLATE = (Path(__file__).parents[1] / "hitch" / "templates" / "map.html").read_text()
 PUBLIC_URL = "https://play.google.com/store/apps/details?id=org.hitchwiki.maps.twa"
 
