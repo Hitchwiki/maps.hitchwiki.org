@@ -62,6 +62,58 @@ class TestStopFacts:
         stops[0]["waiting_duration"] = "PT2H30M"
         assert stop_facts(stops)["waiting_minutes"] is None
 
+    def test_a_two_stop_ride_has_no_intermediate_stops(self):
+        assert stop_facts(_stops())["intermediate_stops"] == []
+
+    def test_a_single_stop_ride_has_no_intermediate_stops(self):
+        assert stop_facts(_stops(with_destination=False))["intermediate_stops"] == []
+
+    def test_a_labelled_detour_is_surfaced_between_pickup_and_destination(self):
+        stops = _stops()
+        stops.insert(
+            1,
+            {
+                "location": {"latitude": 51.5, "longitude": 13.2},
+                "label": "onsen",
+                "arrival_time": "2026-07-02T15:00",
+                "departure_time": "2026-07-02T15:20",
+            },
+        )
+        intermediate = stop_facts(stops)["intermediate_stops"]
+        assert len(intermediate) == 1
+        assert intermediate[0] == {
+            "lat": 51.5,
+            "lon": 13.2,
+            "label": "onsen",
+            "arrival_time": "2026-07-02T15:00",
+            "departure_time": "2026-07-02T15:20",
+        }
+
+    def test_an_unlabelled_intermediate_stop_still_surfaces_with_a_none_label(self):
+        stops = _stops()
+        stops.insert(1, {"location": {"latitude": 51.5, "longitude": 13.2}})
+        intermediate = stop_facts(stops)["intermediate_stops"]
+        assert len(intermediate) == 1
+        assert intermediate[0]["label"] is None
+
+    def test_a_blank_label_reads_as_not_labelled(self):
+        # Same "don't trust whitespace as real data" rule as hitchhiker_name.
+        stops = _stops()
+        stops.insert(1, {"location": {"latitude": 51.5, "longitude": 13.2}, "label": "   "})
+        assert stop_facts(stops)["intermediate_stops"][0]["label"] is None
+
+    def test_multiple_intermediate_stops_keep_their_order(self):
+        stops = _stops()
+        stops.insert(1, {"location": {"latitude": 51.2, "longitude": 13.1}, "label": "gas station"})
+        stops.insert(2, {"location": {"latitude": 51.5, "longitude": 13.2}, "label": "onsen"})
+        labels = [s["label"] for s in stop_facts(stops)["intermediate_stops"]]
+        assert labels == ["gas station", "onsen"]
+
+    def test_an_intermediate_stop_with_no_coordinate_is_dropped_not_shown_blank(self):
+        stops = _stops()
+        stops.insert(1, {"label": "mystery stop"})  # malformed: no location at all
+        assert stop_facts(stops)["intermediate_stops"] == []
+
 
 class TestHaversine:
     def test_known_distance(self):

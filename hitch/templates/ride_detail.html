@@ -387,6 +387,22 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
         {% endif %}
     </div>
 
+    {% if ride.intermediate_stops %}
+    <div class="detail-section">
+        <p class="section-title">Stops along the way</p>
+        {% for stop in ride.intermediate_stops %}
+        <div class="detail-row">
+            <div class="detail-label"><i class="fa fa-map-pin"></i> {{ stop.label or "Stop " ~ loop.index }}</div>
+            <div class="detail-value">
+                {{ "%.4f, %.4f"|format(stop.lat, stop.lon) }}
+                {% if stop.arrival_time %}&middot; arrived {{ with_weekday(stop.arrival_time.replace('T', ' ')[:16]) }}{% endif %}
+                {% if stop.departure_time %}&middot; left {{ with_weekday(stop.departure_time.replace('T', ' ')[:16]) }}{% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <div class="detail-section">
         <p class="section-title">Ride information</p>
 
