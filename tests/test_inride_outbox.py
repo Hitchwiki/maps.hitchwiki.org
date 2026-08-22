@@ -80,6 +80,25 @@ def test_ride_post_is_idempotent_on_client_d_tag(client, monkeypatch):
     assert _CapturingPoster.calls == ["fixed-uuid-1", "fixed-uuid-1"]
 
 
+# Same idempotency guarantee for the plain /ride form's retry ("tap Submit to try
+# again" after a transient failure): the retry reuses the same client_d_tag input
+# unchanged, so it must replace rather than duplicate too, exactly like the in-ride
+# tracker's own retries above.
+def test_ride_form_retry_with_same_client_d_tag_is_idempotent(client, monkeypatch):
+    _CapturingPoster.calls = []
+    monkeypatch.setattr(main, "HitchhikingDataStandardToNostrPoster", _CapturingPoster)
+
+    form = dict(_FORM, client_d_tag="fixed-uuid-2")
+    headers = {"X-Requested-With": "ride-form"}
+    r1 = client.post("/ride", data=form, headers=headers)
+    r2 = client.post("/ride", data=form, headers=headers)
+
+    assert r1.status_code == 200 and r2.status_code == 200
+    assert r1.get_json()["ok"] and r2.get_json()["ok"]
+    assert r1.get_json()["d_tag"] == r2.get_json()["d_tag"] == "hitchmap-fixed-uuid-2"
+    assert _CapturingPoster.calls == ["fixed-uuid-2", "fixed-uuid-2"]
+
+
 # ── Transient failure classification ──────────────────────────────────────────
 class _BoomPoster:
     """Poster whose publish fails as if the relay were unreachable."""

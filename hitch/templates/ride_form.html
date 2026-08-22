@@ -457,6 +457,11 @@
         <div class="form-group" style="margin-top: 1rem;">
             <button type="submit" id="ride-form-submit" class="btn btn-primary btn-lg">{{ t("Submit") }}</button>
             <a href="/" class="btn btn-secondary btn-lg" style="margin-left: 1rem;">{{ t("Cancel") }}</a>
+            {# Populated by submitRideFormViaFetch() on a transient failure (network error,
+               proxy 502/503/504) or a rare validation error the server rejected. Hidden
+               until then; never clears the form or the client_d_tag above, so retrying
+               (same submit button, same data) is safe and does not create a duplicate ride. #}
+            <div id="ride-form-submit-error" class="error text-danger" style="display:none; margin-top:0.75em;"></div>
         </div>
     </form>
 </div>
@@ -862,9 +867,87 @@
         // The synchronous disable prevents the browser dispatching a second submit.
         const submitBtn = document.getElementById('ride-form-submit');
         if (submitBtn) submitBtn.disabled = true;
+        const errorBox = document.getElementById('ride-form-submit-error');
+        if (errorBox) { errorBox.style.display = 'none'; errorBox.textContent = ''; }
         return true;
     }
-    
+
+    // The co-hitchhiker script further below replaces window.validateForm with a
+    // wrapper that calls this one first and only proceeds (sessionStorage stash,
+    // "Submitting…" button text, its own `return true`) when this returns true --
+    // so this function must keep returning a plain boolean and must NOT itself
+    // decide submission. Actually sending the request is handled by the separate
+    // 'submit' listener below, once every onsubmit handler (this one and its
+    // wrapper) has approved the submission.
+
+    // Captured once at page load, before any submit attempt can overwrite the
+    // button's text with "Submitting…" -- so a later failure can restore it exactly.
+    const RIDE_FORM_SUBMIT_BTN_DEFAULT_TEXT = document.getElementById('ride-form-submit')
+        ? document.getElementById('ride-form-submit').textContent
+        : null;
+
+    // Shows a reassuring inline message near the submit button. Deliberately does not
+    // touch the form's fields or the hidden client_d_tag input: leaving them exactly as
+    // typed is what makes "tap Submit to try again" a safe, no-duplicate retry (the
+    // server upserts on client_d_tag rather than creating a new ride each retry).
+    function showRideFormRetryMessage(message) {
+        const errorBox = document.getElementById('ride-form-submit-error');
+        if (!errorBox) return;
+        errorBox.textContent = message;
+        errorBox.style.display = 'block';
+        errorBox.scrollIntoView({ block: 'center' });
+    }
+
+    // Re-enables the submit button and restores its pre-submission label after a
+    // failed attempt, so the user isn't left staring at a disabled "Submitting…" button.
+    function resetRideFormSubmitButton() {
+        const submitBtn = document.getElementById('ride-form-submit');
+        if (!submitBtn) return;
+        submitBtn.disabled = false;
+        if (RIDE_FORM_SUBMIT_BTN_DEFAULT_TEXT !== null) submitBtn.textContent = RIDE_FORM_SUBMIT_BTN_DEFAULT_TEXT;
+    }
+
+    function submitRideFormViaFetch() {
+        const form = document.getElementById('ride-form');
+        const formData = new FormData(form);
+
+        fetch('/ride', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'ride-form' }
+        }).then(function (res) {
+            return res.json().catch(function () {
+                // Not JSON -- e.g. a proxy's own error page (502/503/504) during an
+                // outage rather than Flask's own JSON response. Treat the same as an
+                // explicit transient failure so the retry message still shows.
+                return { ok: false, transient: true };
+            });
+        }).then(function (json) {
+            if (json.ok === true) {
+                window.location.href = json.redirect;
+                return;
+            }
+            resetRideFormSubmitButton();
+            if (json.transient === true) {
+                hmTrack('ride_form_retry_shown', { mode: HM_FORM_MODE, reason: 'transient' });
+                showRideFormRetryMessage({{ t("Couldn't reach the server. Your ride wasn't lost — tap Submit to try again.")|tojson }});
+            } else {
+                // Rare: the server rejected the submission outright (e.g. an edit whose
+                // ownership no longer checks out). Client-side validateForm() above
+                // already covers rating/pickup/arrival-time, so this is mostly a
+                // backstop -- but the button must still come back and say something.
+                showRideFormRetryMessage(json.error || {{ t("Something went wrong. Please try again.")|tojson }});
+            }
+        }).catch(function () {
+            // fetch() itself threw: offline, DNS failure, connection refused, timeout --
+            // the exact failure mode a native form submit would have shown as a bare
+            // browser error page with all typed data gone.
+            resetRideFormSubmitButton();
+            hmTrack('ride_form_retry_shown', { mode: HM_FORM_MODE, reason: 'network-error' });
+            showRideFormRetryMessage({{ t("Couldn't reach the server. Your ride wasn't lost — tap Submit to try again.")|tojson }});
+        });
+    }
+
     // Function to clear selected locations
     function clearLocation(type) {
         if (type === 'pickup') {
@@ -1161,6 +1244,30 @@
 
         return true;
     };
+
+    // Actually send the submission. Registered as a plain 'submit' listener (not
+    // folded into validateForm() above) because validateForm() gets replaced by the
+    // wrapper just above, and that wrapper's own `return true`/`return false` is what
+    // the inline onsubmit="return validateForm()" attribute uses to decide whether to
+    // call preventDefault(). By the time a 'submit' listener added here runs, that
+    // decision has already happened -- event.defaultPrevented tells us which way it
+    // went, without this code needing to know or care how many layers of validateForm
+    // there are.
+    (function () {
+        const form = document.getElementById('ride-form');
+        if (!form) return;
+        form.addEventListener('submit', function (event) {
+            if (event.defaultPrevented) return; // validation already rejected this submit
+            // Never let the browser do a native full-page POST: on a transient backend
+            // failure (proxy 502/503/504, dropped connection) that shows the browser's
+            // own error page and loses every typed field with no way back (EXP-209,
+            // the 2026-08-22 11-hour outage). Submit via fetch instead so the page --
+            // and the form's values, including client_d_tag -- stay in place and a
+            // failure can offer an in-place retry.
+            event.preventDefault();
+            submitRideFormViaFetch();
+        });
+    })();
 
     // Build a name↔code map from a <datalist> whose options carry data-code attributes.
     function _buildDatalistMaps(datalist) {

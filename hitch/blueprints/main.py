@@ -1633,9 +1633,12 @@ def ride_form():
     form = request.form
     data = form.to_dict(flat=True)
 
-    # In-ride tracker submits via fetch and must stay on the map, so answer JSON
-    # instead of the usual redirect. Detected by the X-Requested-With header.
-    wants_json = request.headers.get("X-Requested-With") == "inride"
+    # In-ride tracker and the plain ride form both submit via fetch and need JSON
+    # instead of the usual redirect (the form so a transient failure can offer an
+    # in-place retry without losing what was typed). Detected by the
+    # X-Requested-With header: "inride" is the existing live-journey tracker,
+    # "ride-form" is the plain /ride form's fetch-based submit.
+    wants_json = request.headers.get("X-Requested-With") in ("inride", "ride-form")
 
     try:
         # Signal and reason-to-pick-up arrive as comma-separated codes from the chip widgets.
@@ -1892,9 +1895,6 @@ def ride_form():
             for uid in invited_user_ids:
                 notify_co_hitchhiker_invite(uid, inviter_name)
 
-        if wants_json:
-            return jsonify({"ok": True, "d_tag": d_tag}), 200
-
         # A nudge only makes sense for a ride just created — an edit is not the moment to
         # ask someone to sign up, and the ride's anonymity was already decided. The client
         # shows each overlay at most once per browser and then falls through to #success.
@@ -1902,12 +1902,17 @@ def ride_form():
         # success overlay's share card links to /ride/<d_tag>, which now resolves
         # immediately (see _store_published_ride). map.js strips the param once read.
         success_query = f"/?ride={quote(d_tag)}"
+        redirect_url = f"{success_query}#success"
         if not edit_d_tag:
             if current_user.is_anonymous:
-                return redirect(f"{success_query}#success-anon")
-            if any(is_anonymous_co_hitchhiker(ch) for ch in data.get("co_hitchhiker", "").split(",")):
-                return redirect(f"{success_query}#success-invite")
-        return redirect(f"{success_query}#success")
+                redirect_url = f"{success_query}#success-anon"
+            elif any(is_anonymous_co_hitchhiker(ch) for ch in data.get("co_hitchhiker", "").split(",")):
+                redirect_url = f"{success_query}#success-invite"
+
+        if wants_json:
+            return jsonify({"ok": True, "d_tag": d_tag, "redirect": redirect_url}), 200
+
+        return redirect(redirect_url)
 
     except (AssertionError, ValueError, KeyError) as err:
         # Bad input — permanent. 400 with no `transient` flag; the offline outbox flags it
