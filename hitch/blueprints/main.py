@@ -1466,6 +1466,7 @@ def ride_form():
                     "pickup_lon": "",
                     "destination_lat": "",
                     "destination_lon": "",
+                    "ride_stops": [],
                     "wait": "",
                     "signal": [],
                     "sign_content": "",
@@ -1548,6 +1549,17 @@ def ride_form():
                         arrival_time = last_stop.get("arrival_time")
                         if arrival_time:
                             ride_data["arrival_datetime"] = arrival_time[:16]
+
+                        # Everything strictly between pickup and destination -- same slice
+                        # ride_facts.stop_facts uses for display. Only the label round-trips
+                        # into the form; a stop with a coordinate but no label (nothing this
+                        # form can currently create, but possible from another Nostr client)
+                        # falls back to "Stop N" rather than being dropped silently.
+                        ride_data["ride_stops"] = [
+                            (s.get("label") or "").strip() or f"Stop {i + 1}"
+                            for i, s in enumerate(stops[1:-1])
+                            if isinstance(s, dict)
+                        ]
 
                 # Extract signals — flatten methods across all Signal entries
                 method_to_form = {"sign": "sign", "thumb": "thumb", "asking": "ask"}
@@ -1645,6 +1657,19 @@ def ride_form():
         ]
         data["ride_reasons"] = [r.strip() for r in (data.get("ride_reasons") or "").split(",") if r.strip()]
         data["reasons_to_hitchhike"] = [r.strip() for r in (data.get("reasons_to_hitchhike") or "").split(",") if r.strip()]
+        # Intermediate stops ("onsen", "grandparents' house") arrive as a JSON array of
+        # free-text labels from the form's chip input -- commas are legal in a label, so
+        # this can't reuse the comma-split convention the enum chip fields above use.
+        try:
+            raw_stops = json.loads(data.get("ride_stops") or "[]")
+        except (json.JSONDecodeError, TypeError):
+            raw_stops = []
+        assert isinstance(raw_stops, list), "ride_stops must be a JSON array"
+        stop_labels = [s.strip() for s in raw_stops if isinstance(s, str) and s.strip()]
+        assert len(stop_labels) <= 20, f"Too many stops: {len(stop_labels)} (max 20)"
+        for s in stop_labels:
+            assert len(s) <= 200, f"Stop label must be <= 200 characters: {s}"
+        data["ride_stops"] = stop_labels
         # "I did not get a ride here" checkbox — an unchecked box submits no key at all.
         # The in-ride Give Up flow posts no_ride=1 for the same meaning.
         data["no_ride"] = str(data.get("no_ride", "")).strip() not in ("", "0", "false")

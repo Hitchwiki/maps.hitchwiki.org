@@ -109,9 +109,25 @@ class TestStopFacts:
         labels = [s["label"] for s in stop_facts(stops)["intermediate_stops"]]
         assert labels == ["gas station", "onsen"]
 
-    def test_an_intermediate_stop_with_no_coordinate_is_dropped_not_shown_blank(self):
+    def test_a_label_only_stop_surfaces_with_no_coordinate(self):
+        # The ride form's "Stops along the way" input deliberately has no map picker --
+        # a hitchhiker naming a detour after the fact rarely has its exact coordinate --
+        # so this is the normal shape for a stop it creates, not a malformed one.
         stops = _stops()
-        stops.insert(1, {"label": "mystery stop"})  # malformed: no location at all
+        stops.insert(1, {"label": "onsen"})
+        intermediate = stop_facts(stops)["intermediate_stops"]
+        assert len(intermediate) == 1
+        assert intermediate[0] == {
+            "lat": None,
+            "lon": None,
+            "label": "onsen",
+            "arrival_time": None,
+            "departure_time": None,
+        }
+
+    def test_a_stop_with_neither_coordinate_nor_label_is_dropped_not_shown_blank(self):
+        stops = _stops()
+        stops.insert(1, {})  # truly empty: nothing usable at all
         assert stop_facts(stops)["intermediate_stops"] == []
 
 

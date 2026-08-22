@@ -128,6 +128,15 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
             waiting_duration=f"PT{int(custom_object['wait'])}M" if pd.notna(custom_object["wait"]) else None,
         ),
     ]
+    # Stops between pickup and destination: free-text labels only ("onsen", "their
+    # grandparents' house"), no coordinate picker -- a hitchhiker recalling a detour after
+    # the fact rarely has the exact spot, and the point (a Matrix chat question this
+    # answers) is the story, not a pin. Only meaningful with a real destination: a stop
+    # "along the way" to nowhere recorded isn't a waypoint, it's just more trip.
+    if pd.notna(dest_lat) and pd.notna(dest_lon):
+        for label in custom_object.get("ride_stops") or []:
+            stops.append(Stop(location=None, label=label))
+
     if pd.notna(dest_lat) and pd.notna(dest_lon):
         arrival_dt = custom_object.get("arrival_datetime")
         arrival_time = (

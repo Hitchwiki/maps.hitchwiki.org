@@ -1,6 +1,8 @@
 """Tests for the durable ride outbox backend: idempotent client d_tags and the
 transient-failure (503) classification the offline outbox relies on."""
 
+import json
+
 import hitch.blueprints.main as main
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import build_ride_d_tag
 
@@ -102,3 +104,50 @@ def test_ride_post_relay_failure_is_transient_503(client, monkeypatch):
     assert r.status_code == 503
     body = r.get_json()
     assert body["ok"] is False and body["transient"] is True
+
+
+# ── Intermediate stops end to end (form POST -> create_record_from_custom_object) ──
+class _RecordingPoster:
+    """Stub poster that captures the built ride_record so a test can inspect its stops."""
+
+    last_record = None
+    last_event = None  # _store_published_ride reads this after every post()
+
+    def post(self, ride_record, tags=None, d_tag=None):
+        _RecordingPoster.last_record = ride_record
+        return build_ride_d_tag("hitchmap", tags, d_tag)
+
+    def close(self):
+        pass
+
+
+def test_ride_stops_form_field_reaches_the_published_record(client, monkeypatch):
+    monkeypatch.setattr(main, "HitchhikingDataStandardToNostrPoster", _RecordingPoster)
+
+    form = dict(_FORM, client_d_tag="stops-1", ride_stops=json.dumps(["onsen", "grandparents' house"]))
+    r = client.post("/ride", data=form, headers=_HEADERS)
+
+    assert r.status_code == 200 and r.get_json()["ok"]
+    labels = [s.label for s in _RecordingPoster.last_record.stops[1:-1]]
+    assert labels == ["onsen", "grandparents' house"]
+
+
+def test_too_many_ride_stops_is_a_400_not_silently_truncated(client, monkeypatch):
+    monkeypatch.setattr(main, "HitchhikingDataStandardToNostrPoster", _RecordingPoster)
+
+    form = dict(_FORM, client_d_tag="stops-2", ride_stops=json.dumps([f"stop {i}" for i in range(21)]))
+    r = client.post("/ride", data=form, headers=_HEADERS)
+
+    assert r.status_code == 400
+    assert r.get_json()["ok"] is False
+
+
+def test_malformed_ride_stops_json_is_treated_as_no_stops(client, monkeypatch):
+    """A tampered or corrupted hidden field must not 500 -- degrade to "no stops"."""
+    monkeypatch.setattr(main, "HitchhikingDataStandardToNostrPoster", _RecordingPoster)
+
+    form = dict(_FORM, client_d_tag="stops-3", ride_stops="not json")
+    r = client.post("/ride", data=form, headers=_HEADERS)
+
+    assert r.status_code == 200 and r.get_json()["ok"]
+    assert _RecordingPoster.last_record.stops[1:-1] == []

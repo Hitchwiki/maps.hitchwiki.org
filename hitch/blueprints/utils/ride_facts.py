@@ -24,22 +24,26 @@ EARTH_RADIUS_KM = 6371
 def _waypoint_from_stop(stop):
     """A displayable {lat, lon, label, arrival_time, departure_time} from one stop dict.
 
-    Returns None when the stop carries no usable coordinate -- a malformed intermediate
-    entry should be dropped, not shown as a blank waypoint.
+    `lat`/`lon` are `None` for a label-only stop (a detour named but never pinned --
+    the ride form lets a hitchhiker add one without a coordinate picker). Returns None
+    only when the stop has neither a coordinate nor a label -- nothing usable at all.
     """
     if not isinstance(stop, dict):
         return None
     location = stop.get("location") or {}
     lat, lon = location.get("latitude"), location.get("longitude")
-    if lat is None or lon is None:
-        return None
     label = stop.get("label")
+    # Blank/whitespace-only reads as "not labelled", matching hitchhiker_name's own
+    # "don't trust a blank string as real data" convention elsewhere in this module.
+    label = label.strip() if isinstance(label, str) and label.strip() else None
+    if lat is None or lon is None:
+        if label is None:
+            return None
+        lat = lon = None
     return {
         "lat": lat,
         "lon": lon,
-        # Blank/whitespace-only reads as "not labelled", matching hitchhiker_name's own
-        # "don't trust a blank string as real data" convention elsewhere in this module.
-        "label": label.strip() if isinstance(label, str) and label.strip() else None,
+        "label": label,
         "arrival_time": stop.get("arrival_time"),
         "departure_time": stop.get("departure_time"),
     }

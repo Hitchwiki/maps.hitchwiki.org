@@ -394,7 +394,7 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
         <div class="detail-row">
             <div class="detail-label"><i class="fa fa-map-pin"></i> {{ stop.label or "Stop " ~ loop.index }}</div>
             <div class="detail-value">
-                {{ "%.4f, %.4f"|format(stop.lat, stop.lon) }}
+                {% if stop.lat is not none and stop.lon is not none %}{{ "%.4f, %.4f"|format(stop.lat, stop.lon) }}{% endif %}
                 {% if stop.arrival_time %}&middot; arrived {{ with_weekday(stop.arrival_time.replace('T', ' ')[:16]) }}{% endif %}
                 {% if stop.departure_time %}&middot; left {{ with_weekday(stop.departure_time.replace('T', ' ')[:16]) }}{% endif %}
             </div>

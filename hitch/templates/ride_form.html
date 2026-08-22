@@ -163,6 +163,24 @@
                 </div>
             </div>
         </div>
+        {# Detours between pickup and destination -- a driver's onsen, a viewpoint, their
+           grandparents' house. Labels only, deliberately no coordinate picker: a hitchhiker
+           recalling a detour after the fact rarely knows the exact spot, and turning this
+           into a second map round-trip per stop (like pickup/destination use) would make
+           an unbounded-length section of the form as heavy as the whole rest of it. #}
+        <div class="row" style="margin-top:1rem;">
+            <div class="col-md-12">
+                <div class="location-section">
+                    <h4><i class="fa fa-route" style="color:#6c757d;"></i> {{ t("Stops along the way") }}
+                        <span style="font-weight:normal; font-size:0.8em; color:#888;">({{ t("optional") }})</span></h4>
+                    <div id="ride-stops-tags" class="chip-select-tags" onclick="document.getElementById('ride-stop-input').focus()"></div>
+                    <input type="text" id="ride-stop-input" class="form-control" style="margin-top:0.4rem;"
+                           placeholder="{{ t('e.g. onsen, viewpoint — press Enter to add') }}" maxlength="200">
+                    <input type="hidden" form="ride-form" id="ride_stops_hidden" name="ride_stops"
+                           value="{{ (ride_data.ride_stops if ride_data else [])|tojson|forceescape }}">
+                </div>
+            </div>
+        </div>
     </div>
 
     {# No enctype: photos never travel with this POST. They are uploaded as they are
@@ -597,6 +615,7 @@
             pickup_lon: coords.pickup ? coords.pickup[1] : '',
             destination_lat: coords.destination ? coords.destination[0] : '',
             destination_lon: coords.destination ? coords.destination[1] : '',
+            ride_stops: document.getElementById('ride_stops_hidden')?.value || '[]',
             // Preserve edit mode so location selection redirects back to the correct edit URL
             edit_d_tag: document.querySelector('input[name="edit_d_tag"]')?.value || '',
             vehicle_kind: document.getElementById('vehicle_kind')?.value || '',
@@ -687,6 +706,10 @@
             if (data.reasons_to_hitchhike !== undefined) {
                 document.getElementById('reasons_to_hitchhike').value = data.reasons_to_hitchhike;
                 if (window._hitchhikeReasonRenderTags) window._hitchhikeReasonRenderTags();
+            }
+            if (data.ride_stops !== undefined) {
+                document.getElementById('ride_stops_hidden').value = data.ride_stops;
+                if (window._rideStopsRenderTags) window._rideStopsRenderTags();
             }
             if (data.ride_reasons !== undefined) {
                 document.getElementById('ride_reasons').value = data.ride_reasons;
@@ -1263,6 +1286,77 @@
         renderTags();
         return { renderTags };
     }
+
+    // Chip-style ordered list of arbitrary free text, backed by a JSON array in a hidden
+    // field (not comma-joined like the co-hitchhiker/enum tag inputs above -- a stop's
+    // label is free text and can itself contain a comma, e.g. "sauna, then the viewpoint").
+    function initFreeTextTags({ inputId, tagsId, hiddenId, maxTags }) {
+        const input = document.getElementById(inputId);
+        const tagsContainer = document.getElementById(tagsId);
+        const hidden = document.getElementById(hiddenId);
+        if (!input || !tagsContainer || !hidden) return null;
+
+        function getTags() {
+            try {
+                const parsed = JSON.parse(hidden.value || '[]');
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+                return [];
+            }
+        }
+        function setTags(tags) {
+            hidden.value = JSON.stringify(tags);
+        }
+
+        function renderTags() {
+            tagsContainer.innerHTML = '';
+            getTags().forEach((label, idx) => {
+                const tag = document.createElement('span');
+                tag.className = 'chip-select-tag';
+                tag.textContent = label;
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.textContent = '×';
+                remove.addEventListener('click', () => {
+                    const tags = getTags();
+                    tags.splice(idx, 1);
+                    setTags(tags);
+                    renderTags();
+                });
+                tag.appendChild(remove);
+                tagsContainer.appendChild(tag);
+            });
+        }
+
+        function tryAddFromInput() {
+            const label = input.value.trim();
+            if (!label) return;
+            const tags = getTags();
+            if (maxTags && tags.length >= maxTags) return;
+            tags.push(label);
+            setTags(tags);
+            renderTags();
+            input.value = '';
+        }
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                tryAddFromInput();
+            }
+        });
+        // A stop typed but not confirmed with Enter shouldn't be silently lost when the
+        // hitchhiker taps straight on to the next field.
+        input.addEventListener('blur', tryAddFromInput);
+
+        renderTags();
+        return { renderTags };
+    }
+
+    const rideStopsTags = initFreeTextTags({
+        inputId: 'ride-stop-input', tagsId: 'ride-stops-tags', hiddenId: 'ride_stops_hidden', maxTags: 20,
+    });
+    window._rideStopsRenderTags = rideStopsTags ? rideStopsTags.renderTags : null;
 
     initCodePicker({
         inputId: 'driver_origin_country_input',
