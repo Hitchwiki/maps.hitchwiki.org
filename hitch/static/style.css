@@ -2038,6 +2038,33 @@ ul.no-style {
   color: #000;
 }
 
+.country-gpx-picker {
+  margin: 8px 0 4px;
+}
+.country-gpx-picker label,
+.country-gpx-picker select,
+.country-gpx-picker small {
+  display: block;
+}
+.country-gpx-picker label {
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+.country-gpx-picker select {
+  width: 100%;
+  max-width: 320px;
+  padding: 6px;
+  font: inherit;
+}
+.country-gpx-download {
+  margin-top: 6px;
+  font-weight: 600;
+}
+.country-gpx-picker small {
+  margin-top: 4px;
+  color: #666;
+}
+
 /* Volunteer call-to-action at the top of the menu sheet. A card rather than another
    line in the link list: it is the one thing on this sheet we want people to click,
    and the list below it (GitHub, downloads, licences) is reference material.
