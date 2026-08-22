@@ -151,3 +151,80 @@ def test_malformed_ride_stops_json_is_treated_as_no_stops(client, monkeypatch):
 
     assert r.status_code == 200 and r.get_json()["ok"]
     assert _RecordingPoster.last_record.stops[1:-1] == []
+
+
+def test_editing_a_ride_preserves_a_foreign_coordinate_stop(app, client, monkeypatch):
+    """The form only ever creates label-only intermediate stops (no coordinate picker).
+    Resaving a ride that already has a coordinate-bearing intermediate stop from some
+    other Nostr client must not silently drop that coordinate -- see
+    foreign_coordinate_intermediate_stops in publish_ride.py."""
+    from hitch.extensions import db as _db
+    from hitch.models import RideEvent, User
+    from tests.conftest import TEST_PUBKEY
+
+    username = "foreignstopowner"
+    d_tag = "hitchmap-foreign-stop-test"
+    with app.app_context():
+        _db.session.query(RideEvent).filter_by(d=d_tag).delete()
+        _db.session.query(User).filter_by(username=username).delete()
+        user = User(
+            username=username,
+            email="foreignstopowner@example.com",
+            password="x",
+            active=True,
+            fs_uniquifier="foreign-stop-test-uniquifier",
+        )
+        _db.session.add(user)
+        _db.session.add(
+            RideEvent(
+                id="foreignstopevt",
+                pubkey=TEST_PUBKEY,
+                sig="s" * 128,
+                kind=36820,
+                created_at=1_800_000_000,
+                d=d_tag,
+                tags=[["d", d_tag], ["published_at", "1800000000"]],
+                content={
+                    "version": "1.0.0",
+                    "source": "hitchmap.com",
+                    "comment": "old ride",
+                    "rating": 4,
+                    "submission_time": "2026-07-01T10:00:00",
+                    "hitchhikers": [{"nickname": username}],
+                    "stops": [
+                        {"location": {"latitude": 52.0, "longitude": 13.0}},
+                        {"location": {"latitude": 52.05, "longitude": 13.05}, "label": "a real waypoint"},
+                        {"location": {"latitude": 52.1, "longitude": 13.1}},
+                    ],
+                },
+            )
+        )
+        _db.session.commit()
+
+    with client.session_transaction() as sess:
+        sess["_user_id"] = "foreign-stop-test-uniquifier"
+        sess["_fresh"] = True
+
+    monkeypatch.setattr(main, "HitchhikingDataStandardToNostrPoster", _RecordingPoster)
+    form = dict(
+        _FORM,
+        edit_d_tag=d_tag,
+        client_d_tag="stops-edit-1",
+        ride_stops="[]",  # the label editor never touched anything -- submits empty
+    )
+    r = client.post("/ride", data=form, headers=_HEADERS)
+
+    assert r.status_code == 200 and r.get_json()["ok"], r.get_json()
+    stops = _RecordingPoster.last_record.stops
+    intermediate = stops[1:-1]
+    assert len(intermediate) == 1
+    assert intermediate[0].location is not None
+    assert intermediate[0].location.latitude == 52.05
+    assert intermediate[0].label == "a real waypoint"
+
+    with client.session_transaction() as sess:
+        sess.clear()
+    with app.app_context():
+        _db.session.query(RideEvent).filter_by(d=d_tag).delete()
+        _db.session.query(User).filter_by(username=username).delete()
+        _db.session.commit()

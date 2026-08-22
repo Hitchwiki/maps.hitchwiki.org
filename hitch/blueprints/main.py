@@ -34,6 +34,7 @@ from hitch.blueprints.publish_ride import (
     anonymous_co_hitchhiker_token,
     construct_hitchhiker_from_current_user,
     create_record_from_custom_object,
+    foreign_coordinate_intermediate_stops,
     is_anonymous_co_hitchhiker,
 )
 from hitch.blueprints.user import _extract_ride_info
@@ -1551,15 +1552,19 @@ def ride_form():
                             ride_data["arrival_datetime"] = arrival_time[:16]
 
                         # Everything strictly between pickup and destination -- same slice
-                        # ride_facts.stop_facts uses for display. Only the label round-trips
-                        # into the form; a stop with a coordinate but no label (nothing this
-                        # form can currently create, but possible from another Nostr client)
-                        # falls back to "Stop N" rather than being dropped silently.
+                        # ride_facts.stop_facts uses for display. Only label-only stops
+                        # (this form's own shape) are offered here for editing; a stop that
+                        # carries a real coordinate (possible from another Nostr client) is
+                        # preserved on save regardless of what this list shows (see
+                        # foreign_coordinate_intermediate_stops in the POST handler below),
+                        # so listing it here as an editable "Stop N" text entry would be
+                        # misleading about what removing it actually does.
                         ride_data["ride_stops"] = [
-                            (s.get("label") or "").strip() or f"Stop {i + 1}"
-                            for i, s in enumerate(stops[1:-1])
-                            if isinstance(s, dict)
+                            (s.get("label") or "").strip()
+                            for s in stops[1:-1]
+                            if isinstance(s, dict) and not (s.get("location") or {}).get("latitude")
                         ]
+                        ride_data["ride_stops"] = [label for label in ride_data["ride_stops"] if label]
 
                 # Extract signals — flatten methods across all Signal entries
                 method_to_form = {"sign": "sign", "thumb": "thumb", "asking": "ask"}
@@ -1848,6 +1853,14 @@ def ride_form():
             updated_record = create_record_from_custom_object(
                 custom_object=data, source=ride_source(existing_ride) or THIS_NOSTR_SOURCE, license=THIS_DATA_LICENSE
             )
+            # The form only ever creates label-only intermediate stops (no coordinate
+            # picker -- see create_record_from_custom_object), and this rebuild starts
+            # from a blank stops list every time. Splice back any intermediate stop the
+            # existing ride carries with a real coordinate (from some other Nostr client)
+            # so resaving through this form can never silently discard it.
+            preserved = foreign_coordinate_intermediate_stops((existing_ride.content or {}).get("stops"))
+            if preserved and len(updated_record.stops) > 1:
+                updated_record.stops = [updated_record.stops[0], *preserved, *updated_record.stops[1:]]
 
             # post the updated event (maintaining all original tags including d tag)
             poster = HitchhikingDataStandardToNostrPoster()

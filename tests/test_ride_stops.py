@@ -10,7 +10,7 @@ them.
 import pytest
 
 from hitch.blueprints import publish_ride
-from hitch.blueprints.publish_ride import create_record_from_custom_object
+from hitch.blueprints.publish_ride import create_record_from_custom_object, foreign_coordinate_intermediate_stops
 from hitch.blueprints.utils.ride_facts import stop_facts
 
 
@@ -90,3 +90,48 @@ def test_write_then_read_round_trip_matches_the_form():
     assert len(facts["intermediate_stops"]) == 1
     assert facts["intermediate_stops"][0]["label"] == "onsen"
     assert facts["intermediate_stops"][0]["lat"] is None
+
+
+# ── foreign_coordinate_intermediate_stops (edit-safety guard) ──────────────────────
+class TestForeignCoordinateIntermediateStops:
+    def test_a_coordinate_bearing_stop_is_preserved(self):
+        raw = [
+            {"location": {"latitude": 51.0, "longitude": 13.0}},  # pickup
+            {"location": {"latitude": 51.5, "longitude": 13.2}, "label": "roadside shrine"},
+            {"location": {"latitude": 52.0, "longitude": 13.5}},  # destination
+        ]
+        preserved = foreign_coordinate_intermediate_stops(raw)
+        assert len(preserved) == 1
+        assert preserved[0].location.latitude == 51.5
+        assert preserved[0].location.longitude == 13.2
+        assert preserved[0].label == "roadside shrine"
+
+    def test_a_label_only_stop_is_not_preserved(self):
+        # This form's own shape -- it round-trips through the ride_stops chip input,
+        # not this guard.
+        raw = [
+            {"location": {"latitude": 51.0, "longitude": 13.0}},
+            {"location": None, "label": "onsen"},
+            {"location": {"latitude": 52.0, "longitude": 13.5}},
+        ]
+        assert foreign_coordinate_intermediate_stops(raw) == []
+
+    def test_pickup_and_destination_are_never_included(self):
+        raw = [
+            {"location": {"latitude": 51.0, "longitude": 13.0}},
+            {"location": {"latitude": 52.0, "longitude": 13.5}},
+        ]
+        assert foreign_coordinate_intermediate_stops(raw) == []
+
+    def test_empty_and_malformed_input_yields_nothing(self):
+        for raw in ([], None, "not a list", [{}], [{"location": {}}]):
+            assert foreign_coordinate_intermediate_stops(raw) == []
+
+    def test_a_malformed_middle_entry_with_no_usable_coordinate_is_skipped(self):
+        raw = [
+            {"location": {"latitude": 51.0, "longitude": 13.0}},
+            {"location": {}},  # neither a coordinate nor a label -- nothing to preserve
+            "not even a dict",
+            {"location": {"latitude": 52.0, "longitude": 13.5}},
+        ]
+        assert foreign_coordinate_intermediate_stops(raw) == []
