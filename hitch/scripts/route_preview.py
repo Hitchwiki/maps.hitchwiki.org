@@ -89,7 +89,12 @@ def fetch_tile(z, x, y):
     path = os.path.join(get_dirs()["dist"], "tiles", str(z), str(x), f"{y}.png")
     if os.path.isfile(path):
         try:
-            return Image.open(path).convert("RGB")
+            img = Image.open(path).convert("RGB")
+            # Bump mtime on every hit so cron.sh's age-based prune reads as "last
+            # used", not "last fetched" -- a tile a real route reuses stays warm
+            # forever; one nobody has asked for since ages out on its own.
+            os.utime(path, None)
+            return img
         except OSError:
             pass  # truncated cache entry; refetch
     try:

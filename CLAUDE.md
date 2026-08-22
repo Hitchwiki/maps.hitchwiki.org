@@ -593,7 +593,8 @@ Two things are worth knowing before editing this:
 - **Every 5 minutes**: `fetch_nostr_incremental` - Fetch only new/edited rides from Nostr and upsert them + apply NIP-09 deletions (cheap; replaced the every-30-min full `fetch_nostr`)
 - **Weekly (Mon 00:51)**: `fetch_nostr` - FULL Nostr re-fetch + table rebuild; catches back-dated events and refreshes the public `allPosts.json`/`.csv` exports (deletions are handled by the 5-min incremental job). **The minute must stay off a multiple of 5**: it shares `fetch_nostr.lockfile` with the `*/5` incremental job, and at 00:50 the two started in the same second and this one always lost `flock -n`, so it silently never ran for 11 days
 - **Every 10 minutes**: `show` - Regenerate JSON map data
-- **Daily at 1:30 AM**: prune `dist/dir/` route link-preview cache — plain `find -mtime +7 -delete`; previews regenerate on demand, the `dist/tiles` cache is not touched
+- **Daily at 1:30 AM**: prune `dist/dir/` route link-preview cache — plain `find -mtime +7 -delete`; previews regenerate on demand
+- **Daily at 1:45 AM**: prune `dist/tiles/` OSM tile cache — `find -mtime +90 -delete`. Was unbounded until the 2026-08-22 disk-full outage; `route_preview.py`'s `fetch_tile()` now bumps mtime on every cache hit, so this is an LRU-style eviction (90 days unused), not "older than 90 days since first fetch"
 - **Daily at 2 AM**: `build_ride_routes.py --skip-detailed` - Rebuild the routing graph (`dist/repeatable_routes.json`, `dist/oneoff_routes.json`, `dist/test_routes.json`). Not a `flask generate` script — cron calls the file directly with `python3`
 - **Daily at 3 AM**: `sync_osm` - Sync OSM hitchhiking spots
 - **Daily at 3:30 AM**: `sync_car_pooling` - Sync OSM car-pooling spots
