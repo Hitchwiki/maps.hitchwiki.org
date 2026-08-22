@@ -983,6 +983,7 @@ def ride_detail(d_tag):
     departure_time = facts["departure_time"]
     arrival_time = facts["arrival_time"]
     waiting_minutes = facts["waiting_minutes"]
+    intermediate_stops = facts["intermediate_stops"]
 
     signal_methods = []
     for sig in content.get("signals") or []:
@@ -1091,6 +1092,7 @@ def ride_detail(d_tag):
         "dest_lon": dest_lon,
         "departure_time": departure_time,
         "arrival_time": arrival_time,
+        "intermediate_stops": intermediate_stops,
         "submission_time": submission_dt,
         "source": content.get("source") or ride.source,
         "distance_km": distance_km,

@@ -21,11 +21,37 @@ _WAITING_DURATION_RE = re.compile(r"^PT(\d+)M$")
 EARTH_RADIUS_KM = 6371
 
 
+def _waypoint_from_stop(stop):
+    """A displayable {lat, lon, label, arrival_time, departure_time} from one stop dict.
+
+    Returns None when the stop carries no usable coordinate -- a malformed intermediate
+    entry should be dropped, not shown as a blank waypoint.
+    """
+    if not isinstance(stop, dict):
+        return None
+    location = stop.get("location") or {}
+    lat, lon = location.get("latitude"), location.get("longitude")
+    if lat is None or lon is None:
+        return None
+    label = stop.get("label")
+    return {
+        "lat": lat,
+        "lon": lon,
+        # Blank/whitespace-only reads as "not labelled", matching hitchhiker_name's own
+        # "don't trust a blank string as real data" convention elsewhere in this module.
+        "label": label.strip() if isinstance(label, str) and label.strip() else None,
+        "arrival_time": stop.get("arrival_time"),
+        "departure_time": stop.get("departure_time"),
+    }
+
+
 def stop_facts(stops):
     """Pickup/destination coordinates and times from a ride's stop list.
 
     Every key is always present, `None` when the ride does not have it, so callers
-    never have to distinguish "absent" from "malformed".
+    never have to distinguish "absent" from "malformed". `intermediate_stops` is the
+    exception -- always a list, empty when there are none -- since callers loop over it
+    directly (`{% for stop in ride.intermediate_stops %}`) rather than testing it first.
     """
     facts = {
         "pickup_lat": None,
@@ -35,6 +61,7 @@ def stop_facts(stops):
         "departure_time": None,
         "arrival_time": None,
         "waiting_minutes": None,
+        "intermediate_stops": [],
     }
     if not isinstance(stops, list) or not stops:
         return facts
@@ -55,6 +82,10 @@ def stop_facts(stops):
         facts["dest_lat"] = last_location.get("latitude")
         facts["dest_lon"] = last_location.get("longitude")
         facts["arrival_time"] = last.get("arrival_time")
+
+    # Everything strictly between the first and last entry -- undefined for a ride with
+    # 2 or fewer stops, where stops[1:-1] is already empty, so no separate length guard.
+    facts["intermediate_stops"] = [waypoint for stop in stops[1:-1] if (waypoint := _waypoint_from_stop(stop)) is not None]
 
     return facts
 
