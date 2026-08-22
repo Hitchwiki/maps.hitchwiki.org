@@ -610,6 +610,11 @@
             driver_age: document.getElementById('driver_age')?.value || '',
             driver_gender: document.getElementById('driver_gender')?.value || '',
             driver_languages: document.getElementById('driver_languages')?.value || '',
+            // One logical form session can render three times (initial page, return
+            // from pickup selection, return from destination selection). Carry the
+            // aggregate-only funnel marker through those map round-trips so telemetry
+            // does not count one contributor as three abandoned forms.
+            _funnel_session_started: HM_FORM_SESSION_STARTED,
             // Photos are already uploaded and live under this token on the server, so
             // carrying the token is all that is needed to get the tiles back — which is
             // exactly why they are uploaded on pick rather than held in the file input,
@@ -786,6 +791,28 @@
     // never pass through a click at all. /ride?edit=<d_tag> is reached straight
     // from the account page (account.js rideEditUrl), so it never can.
     var HM_FORM_MODE = '{{ "edit" if request.args.get("edit") else "new" }}';
+    var HM_FORM_SESSION_STARTED = false;
+    try {
+        var hmDraft = JSON.parse(sessionStorage.getItem('rideFormData') || '{}');
+        HM_FORM_SESSION_STARTED = !!hmDraft._funnel_session_started;
+        if (!HM_FORM_SESSION_STARTED) {
+            hmTrack('ride_form_session_started', {
+                mode: HM_FORM_MODE,
+                auth: '{{ "anon" if current_user.is_anonymous else "user" }}'
+            });
+            HM_FORM_SESSION_STARTED = true;
+            hmDraft._funnel_session_started = true;
+            sessionStorage.setItem('rideFormData', JSON.stringify(hmDraft));
+        }
+    } catch (e) {
+        // sessionStorage can be disabled. Count this render rather than losing the
+        // funnel entirely; only the location-selection round-trips may overcount.
+        hmTrack('ride_form_session_started', {
+            mode: HM_FORM_MODE,
+            auth: '{{ "anon" if current_user.is_anonymous else "user" }}'
+        });
+        HM_FORM_SESSION_STARTED = true;
+    }
     hmTrack('ride_form_started', {
         mode: HM_FORM_MODE,
         auth: '{{ "anon" if current_user.is_anonymous else "user" }}'
@@ -827,6 +854,7 @@
         // /?ride=<d_tag>#success on the map, where a pageview alone can't be told
         // apart from a normal visit.
         hmTrack('ride_form_submitted', { destination: coords.destination ? 'yes' : 'no', mode: HM_FORM_MODE });
+        hmTrack('ride_form_session_submitted', { destination: coords.destination ? 'yes' : 'no', mode: HM_FORM_MODE });
 
         // The hidden client_d_tag makes the server idempotent. Disabling here still
         // avoids needless duplicate requests and duplicate analytics events: a
