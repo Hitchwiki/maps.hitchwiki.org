@@ -179,6 +179,10 @@ SOURCE_STRINGS = [
     "5 stars",
     "Activities",
     "Add Hitchhiking Map to your home screen",
+    "Get the Android app",
+    "Get the public app from Google Play and keep the hitchhiking map on your phone.",
+    "Get it on Google Play",
+    "Hitchhiking Map is now an Android app",
     "Any",
     "As GPX (to import into offline maps)",
     "asking",
@@ -941,8 +945,9 @@ def _translate_batch(strings, lang_name, api_key):
         timeout=120,
     )
     resp.raise_for_status()
-    content = resp.json()["choices"][0]["message"]["content"]
-    return json.loads(content)
+    payload = resp.json()
+    content = payload["choices"][0]["message"]["content"]
+    return json.loads(content), payload.get("usage", {})
 
 
 def main():
@@ -976,7 +981,12 @@ def main():
 
     lang_name = LANGUAGE_NAMES[args.lang]
     print(f"Translating {len(todo)} string(s) to {lang_name}...")
-    translated = _translate_batch(todo, lang_name, api_key)
+    translated, usage = _translate_batch(todo, lang_name, api_key)
+    print(
+        "Usage: "
+        f"input={usage.get('prompt_tokens', 0)} "
+        f"output={usage.get('completion_tokens', 0)}"
+    )
 
     missing = [s for s in todo if s not in translated]
     if missing:

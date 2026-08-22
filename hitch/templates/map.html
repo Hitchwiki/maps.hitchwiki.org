@@ -97,7 +97,7 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
 // Install-to-homescreen hint logic. Self-contained — no dependency on map.js.
 // Storage key holds the dismissal timestamp (ms); reappears after 30 days.
 (function () {
-    var PLAY_URL = 'https://play.google.com/apps/testing/org.hitchwiki.maps.twa';
+    var PLAY_URL = 'https://play.google.com/store/apps/details?id=org.hitchwiki.maps.twa';
     var REAPPEAR_MS = 30 * 24 * 60 * 60 * 1000;
     var hint = document.getElementById('install-hint');
     if (!hint) return;
@@ -130,7 +130,7 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
         textEl.innerHTML = '{{ t("Tap the <strong>Share</strong> button, then <strong>Add to Home Screen</strong>.")|safe }}';
     } else if (isAndroid) {
         titleEl.textContent = '{{ t("Hitchhiking Map is now an Android app") }}';
-        textEl.textContent = '{{ t("It is in its testing phase — join the test on Google Play and get it on your phone.") }}';
+        textEl.textContent = '{{ t("Get the public app from Google Play and keep the hitchhiking map on your phone.") }}';
         actionBtn.textContent = '{{ t("Get it on Google Play") }}';
         actionBtn.hidden = false;
     }
@@ -148,6 +148,7 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
 
     actionBtn.addEventListener('click', function () {
         if (isAndroid) {
+            if (window.hmTrack) window.hmTrack('play_store_clicked', { source: 'install_hint' });
             window.open(PLAY_URL, '_blank', 'noopener');
             dismiss();
             return;
@@ -167,7 +168,10 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
     document.getElementById('install-hint-close').addEventListener('click', dismiss);
 
     // Small delay so the hint doesn't fight with map load.
-    setTimeout(function () { hint.hidden = false; }, 1500);
+    setTimeout(function () {
+        hint.hidden = false;
+        if (isAndroid && window.hmTrack) window.hmTrack('play_store_shown', { source: 'install_hint' });
+    }, 1500);
 })();
 
 // Play Store button: Android only, and not inside the installed app itself. Kept
@@ -180,6 +184,10 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
     if (standalone) return;
     if (!/Android/.test(navigator.userAgent || '')) return;
     btn.hidden = false;
+    if (window.hmTrack) window.hmTrack('play_store_shown', { source: 'map_badge' });
+    btn.addEventListener('click', function () {
+        if (window.hmTrack) window.hmTrack('play_store_clicked', { source: 'map_badge' });
+    });
 })();
 </script>
 {% endblock %}
@@ -712,15 +720,15 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
      inline script below unhides it after a UA check. Not shown inside the installed
      app itself, which runs in standalone display mode. -->
 <a class="play-store-btn{% if hide_account_button %} no-account{% endif %}" id="play-store-btn" hidden
-   href="https://play.google.com/apps/testing/org.hitchwiki.maps.twa" target="_blank" rel="noopener"
-   title="{{ t('Get the Android app (testing)') }}" aria-label="{{ t('Get the Android app (testing)') }}">
+   href="https://play.google.com/store/apps/details?id=org.hitchwiki.maps.twa" target="_blank" rel="noopener"
+   title="{{ t('Get the Android app') }}" aria-label="{{ t('Get the Android app') }}">
     <svg width="20" height="20" viewBox="0 0 512 512" aria-hidden="true">
         <path fill="#2196F3" d="M47 0C34 6.8 25.3 19.2 25.3 35.3v441.4c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0z"/>
         <path fill="#4CAF50" d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1z"/>
         <path fill="#FFC107" d="M472.2 225.6l-58.9-34.1-65.7 64.5 65.7 64.5 60-34.1c18-14.3 18-46.5-1.1-60.8z"/>
         <path fill="#F44336" d="M104.6 499l220.7-221.3 60.1 60.1L104.6 499z"/>
     </svg>
-    <span class="sr-only">{{ t("Get the Android app (testing)") }}</span>
+    <span class="sr-only">{{ t("Get the Android app") }}</span>
 </a>
 
 <!-- Bottom action pane -->
