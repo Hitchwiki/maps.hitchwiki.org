@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% set title = "Delete your Hitchwiki Maps account and data" %}
+
+{% block main %}
+<main style="max-width: 760px; margin: 2rem auto; padding: 0 1rem; line-height: 1.6;">
+  <p><a href="/">← Back to Hitchwiki Maps</a></p>
+  <h1>Delete your Hitchwiki Maps account and data</h1>
+
+  <p>To request deletion, email
+    <a href="mailto:play.hitchwiki@gmail.com?subject=Hitchwiki%20Maps%20account%20deletion%20request">play.hitchwiki@gmail.com</a>
+    with the subject <strong>Hitchwiki Maps account deletion request</strong>.
+  </p>
+  <p>Include the username and email address connected to your account so we can
+    identify it. <strong>Never send your password.</strong> We may reply to the
+    account email to verify that the request is yours.</p>
+
+  <h2>What the request covers</h2>
+  <p>We will remove your account and associated personal data from systems we
+    control. Tell us if you want only particular data deleted instead.</p>
+
+  <h2>Limits for published ride data</h2>
+  <p>Ride data is published openly and to Nostr relays. We will remove it from
+    systems we control and make a best-effort deletion request to the relays we
+    use, but we cannot delete copies already downloaded, mirrored, archived, or
+    held by third parties. The <a href="/privacy">Privacy Policy</a> explains
+    this limitation before you submit a ride.</p>
+</main>
+{% endblock %}

@@ -504,6 +504,13 @@ def register_routes(app):
     def privacy():
         return render_template("privacy.html", canonical_url=f"https://{request.host}/privacy")
 
+    @app.route("/delete-account")
+    def delete_account():
+        return render_template(
+            "delete_account.html",
+            canonical_url=f"https://{request.host}/delete-account",
+        )
+
     # These files are manually served in such a way to conform to web standards of them being in the root
     @app.route("/favicon.ico")
     def favicon():
