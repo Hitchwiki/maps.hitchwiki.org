@@ -41,4 +41,30 @@ assert.strictEqual(D.routeDistanceRatio(
   { carKm: 0, walkKm: 0 }, start, start
 ), 1, "coincident endpoints never divide by zero");
 
+const C = sandbox.window.RoutingStartCta;
+assert.ok(C, "route-start CTA helper is exposed");
+assert.deepStrictEqual(
+  Array.from(C.firstBoardingPoint({ legs: [
+    { mode: "walk", from: [1, 2], to: [3, 4] },
+    { mode: "car", from: [3, 4], to: [5, 6] },
+  ] })),
+  [3, 4],
+  "the CTA starts at the first boarding spot, not the route origin",
+);
+assert.strictEqual(C.firstBoardingPoint({ legs: [{ mode: "walk" }] }), null);
+
+assert.match(source, /hmVariant\("route-start-cta-v1", \["control", "cta"\]\)/);
+assert.match(source, /hmTrack\("route_start_cta_exposure", \{ variant: variant \}\)/);
+assert.match(source, /hmTrack\("route_start_cta_clicked", \{ variant: variant \}\)/);
+assert.match(source, /startFromChoose\([\s\S]*?"route-results"/);
+assert.match(source, /hmVariant\("route-none-start-v1", \["control", "cta"\]\)/);
+assert.match(source, /hmTrack\("route_none_start_exposure_" \+ variant\)/);
+assert.match(source, /hmTrack\("route_none_start_clicked_cta"\)/);
+assert.match(source, /class="rp-no-route-cta" hidden/);
+assert.match(
+  source,
+  /const start = RJ\.start\.latlng;[\s\S]*?startFromChoose\([\s\S]*?lat: start\[0\], lon: start\[1\][\s\S]*?"route-results"/,
+  "the no-route CTA starts from the searched origin without exposing it to analytics",
+);
+
 console.log("routing directness tests passed");
