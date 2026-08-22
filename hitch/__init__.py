@@ -23,7 +23,7 @@ from hitch.blueprints.user import user_bp
 from hitch.extensions import db, mail, security
 from hitch.helpers import convert_km, current_distance_unit, distance_unit_label, format_distance
 from hitch.models import Role, User
-from hitch.settings import config
+from hitch.settings import INSECURE_DEFAULT_PASSWORD_SALT, INSECURE_DEFAULT_SECRET_KEY, config
 from hitch.translations import LANGUAGE_ENDONYMS, LANGUAGE_FLAGS, SUPPORTED_LANGUAGES, client_translations, t
 from hitch.translations.weekdays import weekday_abbrs, weekday_index, weekday_names, with_weekday
 
@@ -133,6 +133,25 @@ def create_app(config_name=None):
     # needed fo r correct OAuth callback URLs and to avoid mixed content issues when behind a reverse proxy
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
     app.config.from_object(config[config_name])
+    # Both SECRET_KEY and SECURITY_PASSWORD_SALT fall back to well-known, publicly
+    # visible default values (see settings.py) so a fresh `cp example.env .env` still
+    # boots for local dev. SECRET_KEY signs session and remember-me cookies (the latter
+    # good for a year, see REMEMBER_COOKIE_DURATION); a known value lets anyone forge
+    # them. ENVIRONMENT=prod is required and validated above (the app already refuses to
+    # start without it), so it is the reliable signal here -- FLASK_CONFIG is not: it
+    # silently defaults to "development" if unset, and example.env itself ships
+    # FLASK_CONFIG=development, so a production .env that only set ENVIRONMENT=prod and
+    # forgot FLASK_CONFIG would otherwise run ProductionConfig's weaker sibling with no
+    # warning at all.
+    if ENVIRONMENT == "prod" and app.config["SECRET_KEY"] == INSECURE_DEFAULT_SECRET_KEY:
+        raise RuntimeError(
+            "Refusing to start with ENVIRONMENT=prod and the default SECRET_KEY. Set a real SECRET_KEY in .env (see example.env)."
+        )
+    if ENVIRONMENT == "prod" and app.config["SECURITY_PASSWORD_SALT"] == INSECURE_DEFAULT_PASSWORD_SALT:
+        raise RuntimeError(
+            "Refusing to start with ENVIRONMENT=prod and the default SECURITY_PASSWORD_SALT. "
+            "Set a real SECURITY_PASSWORD_SALT in .env (see example.env)."
+        )
     # See _CacheAwareSessionInterface for why Vary: Cookie needs stripping here,
     # not in an after_request hook.
     app.session_interface = _CacheAwareSessionInterface()
