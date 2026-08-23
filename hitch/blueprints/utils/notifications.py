@@ -219,10 +219,16 @@ def notify_nearby_hitchhikers(user_id, usernames):
         return
     names = ", ".join(usernames)
     plural = "hitchhikers were" if len(usernames) > 1 else "hitchhiker was"
+    # Every other notification kind links straight to something relevant (a profile, a
+    # ride, a thread); this one linked to /leaderboard, which has no connection to who
+    # was actually nearby. Link to the first nearby user's profile instead, same pattern
+    # notify_new_follower already uses for a single-user link -- for the common one-match
+    # case this goes exactly where "See their profiles" promises; for multiple matches
+    # it's still a real profile among the group rather than an unrelated page.
     add_notification(
         user_id,
         f"{len(usernames)} {plural} logged near you recently: {names}. See their profiles on the map.",
-        link="/leaderboard",
+        link=f"/account/{usernames[0]}",
         kind="nearby",
     )
 
