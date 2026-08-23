@@ -481,6 +481,7 @@
     const p = toLatLon(latlng);
     source = startSource(source);
     if (window.IS_LOGGED_IN) return journeyFlow.beginWithCoHitchers(p, source);
+    hmTrack("journey_track_prompt_shown", { source: source });
     journeyUI.dialog({
       title: T("Track your rides?"),
       body: T("Log in to keep your ride history, or just continue anonymously."),
@@ -490,6 +491,7 @@
           label: T("Log in"),
           cls: "inr-go",
           onClick: () => {
+            hmTrack("journey_track_prompt_outcome", { outcome: "login" });
             // Stash the chosen pickup so we can resume after the redirect back.
             localStorage.setItem(
               PENDING_KEY,
@@ -498,8 +500,31 @@
             window.location.href = "/login?next=/";
           },
         },
-        { label: T("Continue anonymously"), cls: "inr-grey", onClick: () => journeyFlow.beginWithCoHitchers(p, source) },
+        {
+          label: T("Continue anonymously"),
+          cls: "inr-grey",
+          onClick: () => {
+            hmTrack("journey_track_prompt_outcome", { outcome: "anonymous" });
+            journeyFlow.beginWithCoHitchers(p, source);
+          },
+        },
       ],
+      // A stray scrim tap used to lose the pin the hitchhiker just placed with no
+      // way back to it and nothing recorded — the two buttons above are the only
+      // paths that started a journey. "No hard block, anonymous is fine" (see the
+      // comment above) already says what an unresolved choice should default to;
+      // this just makes a dismissal actually take that default instead of losing
+      // the journey outright. Distinguished from the explicit buttons in analytics
+      // (outcome: "dismissed") so the two are not conflated. Checking `reason ===
+      // "scrim"` rather than "not button" on purpose: dialog() calls onClose(undefined)
+      // when a *different* dialog force-closes this one (the "one dialog at a time"
+      // guard at the top of dialog()), which must not silently start a journey the
+      // hitchhiker never chose to start.
+      onClose: (reason) => {
+        if (reason !== "scrim" && reason !== "cancel-x") return;
+        hmTrack("journey_track_prompt_outcome", { outcome: "dismissed" });
+        journeyFlow.beginWithCoHitchers(p, source);
+      },
     });
   };
 
@@ -2108,13 +2133,19 @@
       const actionsEl = document.createElement("div");
       actionsEl.className = "inr-actions";
 
-      function close() {
+      // reason distinguishes an explicit action button from a scrim tap (or a future
+      // dismissal path) for callers that need to treat the two differently -- e.g. a
+      // choice with a safe default should still apply it on an accidental scrim tap,
+      // not just lose whatever the dialog was for. close() always runs *before* the
+      // clicked button's own onClick (see below), so onClose cannot infer this from
+      // execution order; it has to be told.
+      function close(reason) {
         if (scrim.parentNode) scrim.parentNode.removeChild(scrim);
         if (card.parentNode) card.parentNode.removeChild(card);
         journeyUI._openDialog = null;
         // Fires on ANY dismissal (button or scrim tap) so callers can clean up
         // transient chrome they attached alongside the dialog (e.g. a preview pin).
-        if (onClose) onClose();
+        if (onClose) onClose(reason);
       }
 
       actions.forEach(function (action) {
@@ -2122,7 +2153,7 @@
         btn.className = action.cls;
         btn.textContent = action.label;
         btn.addEventListener("click", function () {
-          close();
+          close("button");
           action.onClick();
         });
         actionsEl.appendChild(btn);
@@ -2140,14 +2171,15 @@
         cancelBtn.className = "inr-cancel";
         cancelBtn.setAttribute("aria-label", T("Close"));
         cancelBtn.innerHTML = '<i class="fa-solid fa-xmark" aria-hidden="true"></i>';
-        cancelBtn.addEventListener("click", close);
+        cancelBtn.addEventListener("click", () => close("cancel-x"));
         card.appendChild(cancelBtn);
       }
 
       // Tap the scrim (outside the card) to cancel — unless the dialog is `forced`
       // (a required answer, e.g. would-ride-again on finish), where there is no way out
-      // but the action buttons.
-      if (!forced) scrim.addEventListener("click", close);
+      // but the action buttons. Not passed directly as the listener: that would hand
+      // close() the click MouseEvent as `reason` instead of a real one.
+      if (!forced) scrim.addEventListener("click", () => close("scrim"));
 
       document.body.appendChild(scrim);
       document.body.appendChild(card);
