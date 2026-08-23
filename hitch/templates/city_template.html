@@ -20,7 +20,7 @@
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <div class="bg-white rounded-lg shadow-lg p-6">
-        <nav><br><a href="{{ '/city/index.html' if g.lang == 'en' else '/' ~ g.lang ~ '/city/index.html' }}" id="back">&lt; {{ t("All cities") }}</a> | <a href="https://hitchwiki.org/en/index.php?title={{city.city | urlencode}}" target="_blank" rel="noopener" id="hitchwiki-link">{{ t("{city} on Hitchwiki", city=city.city) }}</a><br></nav>
+        <nav><br><a href="{{ '/city/index.html' if g.lang == 'en' else '/' ~ g.lang ~ '/city/index.html' }}" id="back">&lt; {{ t("All cities") }}</a> | <a href="https://hitchwiki.org/en/index.php?title={{city.city | urlencode}}" target="_blank" rel="noopener" id="hitchwiki-link">{{ t("{city} on Hitchwiki", city=city.city) }}</a> | <a href="/route/index.html" id="routes-link">{{ t("Hitchhiking routes between cities") }}</a><br></nav>
         <article class="mt-6">
             <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
                 <h2 style="margin:0;">{{ t("Hitchhiking from {city}", city=city.city) }}</h2>
