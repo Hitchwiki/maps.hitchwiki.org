@@ -112,9 +112,19 @@
 # any /dir/<from>/<to> hit regenerates its .json/.png pair on demand (~4-7 s cold), and the
 # URL space is quadratic in coordinates — crawlers can mint new keys forever — so without a
 # sweep the directory grows unbounded (~2 MB/day observed). mtime is generation time, not
-# last access, so a route still being shared after 7 days is simply rebuilt once. The shared
-# OSM tile cache (dist/tiles) is deliberately kept forever and is NOT touched here.
+# last access, so a route still being shared after 7 days is simply rebuilt once.
 30 1 * * * find /app/dist/dir -type f -mtime +7 -delete > logs/prune_dir_previews.log 2>&1
+
+# every day at 1:45 AM — prune the shared OSM tile cache (dist/tiles). Was "kept forever" by
+# design (a given tile is fetched at most once, and the same tiles are reused across many
+# routes) until the maps.hitchwiki.org outage of 2026-08-22: nothing bounds how many *distinct*
+# routes get previewed, so a crawler hitting many /dir/<a>/<b> links (the URL space is quadratic,
+# same as dist/dir above) grows this cache with no ceiling at all -- unlike dist/dir, which at
+# least always cleared itself every 7 days. route_preview.py's fetch_tile() now bumps a tile's
+# mtime on every cache hit, so this sweep reads as "not requested by any preview in 90 days",
+# not "fetched more than 90 days ago" -- a tile behind a route people keep sharing never ages
+# out; only genuinely one-off crawler traffic does.
+45 1 * * * find /app/dist/tiles -type f -mtime +90 -delete > logs/prune_tiles.log 2>&1
 
 # every day at 00:30 — remind signed-up users who still have zero logged rides (7- and 30-day nudge)
 30 0 * * * cd /app && /usr/bin/flock -n /tmp/remind_inactive_users.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate remind_inactive_users' > logs/remind_inactive_users.log 2>&1
