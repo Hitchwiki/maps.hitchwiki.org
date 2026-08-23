@@ -20,11 +20,39 @@
        durable id. Calling identify() after load would leave that pageview in a
        different session from the rest of the visit. #}
     <script src="/static/visitor_consent.js"></script>
+    {# The /1p/ proxy is a single point of failure that nothing here could see
+       fail. On 2026-08-09 it started answering /1p/script.js with a 404 on this
+       origin (and with HTML on hitchwiki.org and europe.hitchwiki.org) while the
+       Umami container itself stayed up and the sites that load it straight from
+       1p.hitchhiking.org kept reporting normally — six days of every event from
+       all three first-party sites lost, and the only symptom was a slowly
+       shrinking "last 7 days" number that reads as a traffic decline.
+
+       So: keep /1p/ as the primary path (it is still what gets past the
+       blocklists this audience runs), and fall back to the analytics origin
+       when it does not produce a working tracker. Defined before the tag so the
+       tag's onerror can reach it. #}
+    <script>
+      window.hmLoadTrackerFallback = function () {
+        // Never two trackers: a second script would double every pageview.
+        if (window.umami || window.hmTrackerFallbackTried) return;
+        window.hmTrackerFallbackTried = true;
+        var s = document.createElement("script");
+        s.src = "https://1p.hitchhiking.org/script.js";
+        s.setAttribute("data-website-id", "f3576395-def8-4d09-9725-7f74dde89c72");
+        s.setAttribute("data-before-send", "hmVisitorBeforeSend");
+        // Anything hmTrack queued while the first-party path was failing is
+        // still worth sending once a tracker finally exists.
+        s.addEventListener("load", function () { if (window.hmTrackFlush) window.hmTrackFlush(); });
+        document.head.appendChild(s);
+      };
+    </script>
     <script
       defer
       src="/1p/script.js"
       data-website-id="f3576395-def8-4d09-9725-7f74dde89c72"
       data-before-send="hmVisitorBeforeSend"
+      onerror="window.hmLoadTrackerFallback()"
     ></script>
     <script>
       // Funnel events are fired from map.js / the ride form through this one
@@ -86,6 +114,10 @@
         // is the first moment the queue can drain. `load` is the backstop; if the
         // tracker is still absent by then it is blocked or failed, and the queue
         // is dropped rather than held for a page view that will never be sent.
+        // Exposed so a fallback tracker (loaded later, if the primary /1p/
+        // path 404s) can drain whatever queued while there was no tracker at
+        // all -- see hmLoadTrackerFallback below.
+        window.hmTrackFlush = flush;
         document.addEventListener("DOMContentLoaded", flush);
         window.addEventListener("load", function () { if (!flush()) queue.length = 0; });
       })();
