@@ -90,6 +90,28 @@
         window.addEventListener("load", function () { if (!flush()) queue.length = 0; });
       })();
     </script>
+    <script>
+      // `?ref=<tag>` on the landing URL attributes a visit to whatever placed the
+      // link (a wiki banner, a newsletter send, ...) -- a level Umami's own
+      // referrer-domain tracking can't reach: it can say hitchwiki.org sent
+      // someone, but not which link on that page did it, or split two links to
+      // us from the same page. Capped/sanitised since it's raw visitor-
+      // controlled input landing straight in an analytics property. Fired once,
+      // then stripped from the address bar (same reasoning as the `?ride=`
+      // handoff in map.js's success overlay) so a shared/bookmarked URL doesn't
+      // carry someone else's attribution tag forward.
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        var ref = params.get("ref");
+        if (!ref) return;
+        ref = ref.slice(0, 64).replace(/[^a-zA-Z0-9_-]/g, "");
+        if (!ref) return;
+        window.hmTrack("referred_via", { ref: ref });
+        params.delete("ref");
+        var qs = params.toString();
+        history.replaceState({}, "", window.location.pathname + (qs ? "?" + qs : "") + window.location.hash);
+      })();
+    </script>
 
     {# Root-relative: a relative "favicon.ico" resolves against the current path,
        so it 404s on nested routes like /spot/<lat>_<lon>. #}
