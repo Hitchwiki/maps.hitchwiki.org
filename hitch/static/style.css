@@ -1111,6 +1111,31 @@ body.spots-loaded.has-start-bar:not(.inride-active) .leaflet-bottom.leaflet-righ
   color: #666;
   font-style: italic;
 }
+.sidebar.country .country-legality {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+}
+.sidebar.country .country-legality h3 {
+  font-size: 0.95rem;
+  margin: 0 0 0.5rem;
+  color: #444;
+}
+.sidebar.country .country-legality-body {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #222;
+}
+.sidebar.country .country-legality-body a {
+  color: #1a73e8;
+  text-decoration: none;
+}
+.sidebar.country .country-legality-body a:hover {
+  text-decoration: underline;
+}
+.sidebar.country .country-legality-body p {
+  margin: 0 0 1rem;
+}
 .sidebar.country .country-source {
   margin-top: 1.5rem;
   padding-top: 1rem;

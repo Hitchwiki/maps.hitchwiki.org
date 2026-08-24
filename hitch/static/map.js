@@ -1002,9 +1002,12 @@ function renderCountryWikitext(raw) {
       if (heading) {
         flush();
         const label = heading[1].trim();
-        // Drop the redundant top-level "Hitchhiking" heading — the sheet is
-        // already titled with the country name.
-        if (label.toLowerCase() !== "hitchhiking") out.push(`<h4>${label}</h4>`);
+        // Drop a fetched section's own top-level heading when the caller already
+        // shows an equivalent title itself: "Hitchhiking" (the sheet is titled with
+        // the country name) and "Legality of Hitchhiking" (the legality block has
+        // its own static <h3>, see loadCountrySheetLegality).
+        const lower = label.toLowerCase();
+        if (lower !== "hitchhiking" && lower !== "legality of hitchhiking") out.push(`<h4>${label}</h4>`);
       } else {
         para.push(line);
       }
@@ -1115,20 +1118,37 @@ function countryWikiApi(title, params) {
   );
 }
 
-// Find the index of the top-level "== Hitchhiking ==" section, or null if the
-// article has none. Country articles usually put the practical advice under this
-// heading, which is more useful than the lead's generic intro.
-async function findHitchhikingSection(title) {
+// Find the index of a top-level section whose heading exactly matches `heading`
+// (case-insensitive), or null if the article has none.
+async function findTopLevelSection(title, heading) {
   try {
     const data = await fetch(countryWikiApi(title, "&prop=sections")).then((r) => r.json());
     const sections = (data && data.parse && data.parse.sections) || [];
     const match = sections.find(
-      (s) => s.toclevel === 1 && s.line && s.line.trim().toLowerCase() === "hitchhiking"
+      (s) => s.toclevel === 1 && s.line && s.line.trim().toLowerCase() === heading
     );
     return match ? match.index : null;
   } catch (e) {
     return null;
   }
+}
+
+// The top-level "== Hitchhiking ==" section, or null if the article has none.
+// Country articles usually put the practical advice under this heading, which is
+// more useful than the lead's generic intro.
+function findHitchhikingSection(title) {
+  return findTopLevelSection(title, "hitchhiking");
+}
+
+// The top-level "== Legality of Hitchhiking ==" section, or null if the article
+// has none (a handful of non-independent-country entries). Present on 233 of 237
+// country articles as of 2026-08-21 (see research/hitchwiki-legality-map-
+// scoping-2026-08-21.md in the automation repo) -- either real, sourced legal
+// text or the wiki's own honest "the law here has not been checked" placeholder.
+// Both are safe to show verbatim: this only surfaces what the wiki already says,
+// never a classification this app invents.
+function findLegalitySection(title) {
+  return findTopLevelSection(title, "legality of hitchhiking");
 }
 
 // Fill a "keep reading on Hitchwiki" call to action. Wiki text on the map is an
@@ -1177,9 +1197,41 @@ async function loadCountrySheetLead(name) {
   }
 }
 
+// Fetch and render a country's "Legality of Hitchhiking" section verbatim, when
+// the article has one. Independent of loadCountrySheetLead: a missing/failed
+// legality section must not affect the main lead text, and vice versa.
+async function loadCountrySheetLegality(name) {
+  const title = COUNTRY_WIKI_TITLE_ALIASES[name] || name;
+  const wrap = $$("#country-sheet-legality");
+  const body = $$("#country-sheet-legality-body");
+  wrap.hidden = true;
+  body.innerHTML = "";
+  try {
+    const section = await findLegalitySection(title);
+    if (section == null) return; // no Legality section on this article
+    const data = await fetch(countryWikiApi(title, "&prop=wikitext&section=" + section)).then((r) => r.json());
+    const wikitext = data && data.parse && data.parse.wikitext && data.parse.wikitext["*"];
+    if (!wikitext) return;
+    const html = renderCountryWikitext(wikitext);
+    if (!html) return;
+    body.innerHTML = html;
+    wrap.hidden = false;
+    // No baseline exists for how often this new block is actually seen -- track
+    // it the same way route_start_cta_exposure tracks a new UI surface, so a
+    // later run can tell whether this shipped unmeasured or genuinely used.
+    hmTrack("country_legality_shown", { country: name });
+  } catch (e) {
+    console.warn("Could not load Hitchwiki legality section:", e);
+  }
+}
+
 // Open the country info sheet for `name` (invoked from navigate() via #country/<name>).
 async function openCountrySheet(name) {
   clear();
+  // No exposure tracking existed for Countries mode at all before this -- without
+  // it, country_legality_shown has no denominator (40 fires could be 90% coverage
+  // or 1%). Fired once per open regardless of what the sheet ends up rendering.
+  hmTrack("country_sheet_opened", { country: name });
   $$("#country-sheet-name").textContent = name;
   // Share the deep link that reopens this country sheet. The path form, not the
   // old #country/<name>: several messengers strip a #fragment when auto-linking a
@@ -1191,10 +1243,13 @@ async function openCountrySheet(name) {
   $$("#country-sheet-lead").innerHTML = `<p class="country-status">${tr("Loading from Hitchwiki…")}</p>`;
   $$("#country-sheet-source").innerHTML = "";
   $$("#country-sheet-cta").hidden = true;
+  $$("#country-sheet-legality").hidden = true;
+  $$("#country-sheet-legality-body").innerHTML = "";
   bar(".sidebar.country");
   updateBottomPaneVar();
   setSheetSnap($$(".sidebar.country"), "full", COUNTRY_SHEET_SNAPS);
   loadCountrySheetLead(name);
+  loadCountrySheetLegality(name);
   // Rating + histograms are keyed by ISO code, resolved from the country name.
   const cc = await getCountryCc(name);
   loadCountrySheetRating(cc);
