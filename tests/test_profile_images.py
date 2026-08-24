@@ -116,6 +116,12 @@ def test_gravatar_is_opt_in_and_not_claimed_as_cc(app, client, profile_user):
     assert digest in page.data
     assert b"Photo from Gravatar" in page.data
     assert b"CC BY-SA" not in page.data
+    # Gravatar is requested with d=404 (no default image): an account that opted
+    # in without actually having a picture there gets a real, permanent broken
+    # image, invisible until this is checked -- there's no server-side way to
+    # know in advance. Must degrade instead of leaving a broken <img> plus an
+    # orphaned "Photo from Gravatar" caption with nothing above it.
+    assert b'onerror="this.parentElement.remove()"' in page.data
 
 
 def test_uploaded_profile_picture_has_long_immutable_cache(client):
