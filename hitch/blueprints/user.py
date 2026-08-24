@@ -270,9 +270,7 @@ def me_json():
                 "logged_in": True,
                 "username": current_user.username,
                 "profile_url": "/me",
-                "profile_image_url": (
-                    profile_image["url"] if (profile_image := _profile_image_for(current_user)) else None
-                ),
+                "profile_image_url": (profile_image["url"] if (profile_image := _profile_image_for(current_user)) else None),
                 "insights": {
                     "rides": total_rides,
                     "distance_km": total_km,
@@ -1644,7 +1642,10 @@ def _paste_tiles(img, zoom, origin_x, origin_y):
         tx, ty = job
         return job, _fetch_tile(zoom, tx % n, ty)
 
-    with ThreadPoolExecutor(max_workers=8) as pool:
+    # 4, not 8: matches route_preview.py's own concurrency, since a cache miss on
+    # either path hits the same OSM tile server and its usage policy is shared,
+    # not per-endpoint.
+    with ThreadPoolExecutor(max_workers=4) as pool:
         for (tx, ty), tile in pool.map(fetch, jobs):
             if tile is None:
                 continue
@@ -1654,17 +1655,52 @@ def _paste_tiles(img, zoom, origin_x, origin_y):
 
 
 def _fetch_tile(zoom, x, y):
+    """One tile, from the disk cache shared with route_preview.py's /dir/
+    previews, or from OSM on a miss.
+
+    Trip previews used to hit tile.openstreetmap.org live on every request
+    with no cache at all -- unlike /dir/'s link previews, which OSM's own
+    tile-usage policy required a disk cache for from the start (see
+    route_preview.py's fetch_tile). A trip preview URL gets refetched by
+    every messenger's link-unfurl crawler each time it's shared, so the
+    same coordinates get requested repeatedly; caching this one too, in the
+    exact same dist/tiles/<z>/<x>/<y>.png layout, means it shares hits with
+    /dir/'s cache for free instead of doubling live OSM traffic for
+    overlapping map areas.
+    """
     from PIL import Image
+
+    path = os.path.join(get_dirs()["dist"], "tiles", str(zoom), str(x), f"{y}.png")
+    if os.path.isfile(path):
+        try:
+            img = Image.open(path).convert("RGB")
+            # Bump mtime on every hit, same reasoning as route_preview.py:
+            # cron.sh's age-based prune should read "last used", not "last
+            # fetched", so a tile in active rotation never ages out.
+            os.utime(path, None)
+            return img
+        except OSError:
+            pass  # truncated cache entry; refetch below
 
     url = f"https://tile.openstreetmap.org/{zoom}/{x}/{y}.png"
     try:
-        import requests
-
-        resp = requests.get(url, timeout=5, headers={"User-Agent": "hitchmap-trip-preview"})
+        resp = requests.get(
+            url, timeout=5, headers={"User-Agent": "maps.hitchwiki.org trip previews (+https://maps.hitchwiki.org)"}
+        )
         if resp.status_code != 200:
             return None
-        return Image.open(io.BytesIO(resp.content)).convert("RGB")
+        content = resp.content
     except Exception:
+        return None
+
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "wb") as f:
+        f.write(content)
+    os.replace(tmp, path)  # never leave a half-written tile in the cache
+    try:
+        return Image.open(path).convert("RGB")
+    except OSError:
         return None
 
 
