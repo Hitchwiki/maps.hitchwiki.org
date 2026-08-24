@@ -481,6 +481,36 @@ class TestRideSubmit:
         with app.app_context():
             assert len(images_for_ride(D_TAG)) == 2
 
+    def test_editing_a_ride_via_json_redirects_to_plain_success(self, app, client, monkeypatch, image_dir, clean_rides, owner):
+        # The plain ride form's fetch-based submit (X-Requested-With: ride-form) still
+        # needs a `redirect` target for an edit -- unlike a brand-new ride, an edit never
+        # gets the anonymous/co-hitchhiker-invite nudge overlays (those only make sense
+        # the first time a ride is created), so it must land on plain #success, matching
+        # what the non-JSON redirect branch above already does for edits.
+        monkeypatch.setattr(main, "HitchhikingDataStandardToNostrPoster", _RecordingPoster)
+        _submit(client, token="")
+
+        resp = client.post(
+            "/ride",
+            data={
+                "rate": "5",
+                "wait": "12",
+                "signal": "thumb",
+                "comment": "edited via json",
+                "pickup_lat": "51.08170",
+                "pickup_lon": "13.73629",
+                "destination_lat": "",
+                "destination_lon": "",
+                "edit_d_tag": D_TAG,
+                "draft_token": "",
+            },
+            headers={"X-Requested-With": "ride-form"},
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["ok"] is True
+        assert data["redirect"] == f"/?ride={D_TAG}#success"
+
     def test_a_stranger_editing_a_ride_cannot_attach_photos_to_it(self, app, client, monkeypatch, image_dir, clean_rides):
         # Not logged in, so the edit is refused before the claim is ever reached.
         monkeypatch.setattr(main, "HitchhikingDataStandardToNostrPoster", _RecordingPoster)
