@@ -291,10 +291,13 @@ def me_json():
     return resp
 
 
-# TODO: properly delete the user after their confirmation
+# Superseded by /delete-account (a real page with the actual limits/warnings
+# spelled out, not a bare one-liner) -- kept as a redirect, not removed, since
+# this URL was live and linked from the account page itself for a while and
+# may be bookmarked or indexed.
 @user_bp.route("/delete-user", methods=["GET"])
 def delete_user():
-    return f"To delete your account please send an email to {current_app.config['EMAIL']} with the subject 'Delete my account'."
+    return redirect("/delete-account", code=301)
 
 
 @user_bp.route("/is_username_used/<username>", methods=["GET"])
