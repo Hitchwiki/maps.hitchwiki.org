@@ -131,6 +131,14 @@ class HitchhikingDataStandardToNostrPoster:
                 # published_at stays the same across versions of the same ride,
                 # so that we can identify updates to the same ride across versions
                 ["published_at", published_at_tag],
+                # Labels this ride into Trustroots' "hitchhikers" circle (nostroots
+                # docs/Events.md), the same label nostrhitch already puts on its
+                # separate hitchmap-dump mirror events (kind 34242) -- without this,
+                # a ride submitted through this app's own form was invisible to any
+                # circle-based filter in Trustroots' nostr apps (nos.trustroots.org),
+                # even though the mirrored copy of the same ride was discoverable.
+                ["L", "trustroots-circle"],
+                ["l", "hitchhikers", "trustroots-circle"],
             ],
         )
 
