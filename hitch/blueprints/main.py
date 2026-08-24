@@ -902,6 +902,11 @@ def why_not_hitchhike():
 
 @main_bp.route("/statistics")
 def statistics_page():
+    return render_template("statistics_index.html")
+
+
+@main_bp.route("/statistics/waiting-times")
+def waiting_time_statistics():
     """Median pickup waits by hitchhiker group size and gender composition.
 
     The aggregate is precomputed daily so a public request never scans every ride's
@@ -932,6 +937,27 @@ def statistics_page():
             "unknown": t("Not recorded"),
         },
     )
+
+
+@main_bp.route("/statistics/ride-collection")
+def ride_collection_statistics_page():
+    path = os.path.join(get_dirs()["dist"], "ride_collection_statistics.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        data = {}
+    return render_template(
+        "ride_collection_statistics.html",
+        series=data.get("series", {}),
+        coverage=data.get("coverage", {}),
+        generated_at=data.get("generated_at"),
+    )
+
+
+@main_bp.route("/dashboard.html")
+def legacy_dashboard_redirect():
+    return redirect(url_for("main.statistics_page"), code=301)
 
 
 @main_bp.route("/recent")

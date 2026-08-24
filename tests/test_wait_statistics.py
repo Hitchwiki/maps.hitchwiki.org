@@ -71,11 +71,11 @@ def test_statistics_route_renders_precomputed_data(client, monkeypatch, tmp_path
     (tmp_path / "statistics.json").write_text(json.dumps(payload))
     monkeypatch.setattr("hitch.blueprints.main.get_dirs", lambda: {"dist": str(tmp_path)})
 
-    response = client.get("/statistics")
+    response = client.get("/statistics/waiting-times")
     assert response.status_code == 200
-    assert b"Waiting-time statistics" in response.data
+    assert b"Waiting times" in response.data
     assert b"20 min" in response.data
     assert b"1 \xc3\x97 Female" in response.data
 
     # main_bp routes are mirrored under every supported language prefix too.
-    assert client.get("/pl/statistics").status_code == 200
+    assert client.get("/pl/statistics/waiting-times").status_code == 200

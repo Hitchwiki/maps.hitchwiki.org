@@ -72,8 +72,6 @@
 # 20 min once the initial backlog is drained), so spots carry real names, not bare
 # coordinates.
 50 4 * * * cd /app && /usr/bin/flock -n /tmp/spots_by_country.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate spots_by_country' > logs/spots_by_country.log 2>&1
-# every day at 5 AM
-0 5 * * * cd /app && /usr/bin/flock -n /tmp/dashboard.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate dashboard' > logs/dashboard.log 2>&1
 # every day at 5:30 AM — "Hitchhiking from X to Y" SEO pages for well-evidenced city pairs.
 # Runs BEFORE cities (6 AM) on purpose: cities.py writes sitemap.xml at the end of its run
 # and picks up dist/route/index.json, so a route page generated now is advertised the same
@@ -101,6 +99,8 @@
 # The page reads this small aggregate rather than scanning every ride's JSON blobs in a
 # web worker. Daily is cheap and makes newly logged group/gender combinations visible.
 20 7 * * * cd /app && /usr/bin/flock -n /tmp/wait_statistics.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate wait_statistics' > logs/wait_statistics.log 2>&1
+# daily at 7:25 AM — rebuild the small weekly ride/source aggregate.
+25 7 * * * cd /app && /usr/bin/flock -n /tmp/ride_collection_statistics.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate ride_collection_statistics' > logs/ride_collection_statistics.log 2>&1
 # every Monday at 8 AM
 0 8 * * 1 cd /app && /usr/bin/flock -n /tmp/sync_hitchhiking_rides_dataset.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate sync_hitchhiking_rides_dataset' > logs/sync_hitchhiking_rides_dataset.log 2>&1
 # first of every month at 9 AM — regenerate country hitchability CSV + country_ratings.json / country_insights.json

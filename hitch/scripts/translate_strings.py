@@ -201,6 +201,12 @@ SOURCE_STRINGS = [
     # every non-English render fell back to English. Caught while adding two of them
     # as new links from the menu and city pages (route index / why-not-hitchhike).
     "Waiting-time statistics",
+    "Statistics",
+    "Waiting times",
+    "Ride collection",
+    "Past month",
+    "Past year",
+    "All time",
     "Hitchhiking routes between cities",
     "Why not hitchhike?",
     "Clear",

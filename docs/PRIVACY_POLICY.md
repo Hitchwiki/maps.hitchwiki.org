@@ -64,7 +64,7 @@ If you do not want your data to be subject to these risks, please **do not submi
 
 ### Research
 
-Hitchhiking and more broadly mobility research might be conducted using the data collected on Hitchwiki Maps including user data. See our [statistics page](https://maps.hitchwiki.org/dashboard.html) for more information.
+Hitchhiking and more broadly mobility research might be conducted using the data collected on Hitchwiki Maps including user data. See our [statistics page](https://maps.hitchwiki.org/statistics) for more information.
 
 ---
 

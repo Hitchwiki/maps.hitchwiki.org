@@ -1,6 +1,6 @@
 {% extends "security/base.html" %}
 
-{% set title = t("Waiting-time statistics") %}
+{% set title = t("Waiting times") %}
 
 {% block head %}
 {{ super() }}
@@ -24,7 +24,7 @@
 {% endblock %}
 
 {% block content %}
-<h1>{{ t("Waiting-time statistics") }}</h1>
+<h1>{{ t("Waiting times") }}</h1>
 <p class="stats-intro">
   {{ t("How long did hitchhikers wait before a recorded pickup? These are medians: half of the rides waited less and half waited more.") }}
 </p>

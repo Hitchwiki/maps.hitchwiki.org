@@ -414,7 +414,7 @@ def register_commands(app):
             "show": os.path.join(dist_dir, "spots.json"),
             "why_not_hitchhike": os.path.join(dist_dir, "why_not_hitchhike.json"),
             "wait_statistics": os.path.join(dist_dir, "statistics.json"),
-            "dashboard": os.path.join(dist_dir, "dashboard.html"),
+            "ride_collection_statistics": os.path.join(dist_dir, "ride_collection_statistics.json"),
             "cities": os.path.join(dist_dir, "city", "index.html"),
         }
 
@@ -433,7 +433,7 @@ def register_commands(app):
             ("why_not_hitchhike", ""),
             # Same dependency as why_not_hitchhike: the ride table must exist first.
             ("wait_statistics", ""),
-            ("dashboard", ""),
+            ("ride_collection_statistics", ""),
             *([("cities", "")] if ENVIRONMENT == "prod" else []),
         ]
         for script, args in scripts:
