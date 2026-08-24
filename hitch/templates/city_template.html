@@ -29,6 +29,13 @@
 
             <a class="map-link" href="/#location,{{city.lat}},{{city.lng}},12"><div id="static-map"></div><span class="map-overlay">{{ t("{city} on Hitchhiking Map", city=city.city) }}</span> </a>
 
+            {# Populated client-side by city_wiki_excerpt.js -- the Hitchwiki API
+               sits behind Cloudflare's bot challenge, which blocks this host's
+               own server-side requests but lets a real visitor's browser through
+               (same reason map.js's country sheet fetches client-side). Stays
+               empty and invisible for the ~596 cities with no matching article. #}
+            <div id="city-wiki-excerpt" class="city-wiki-excerpt" data-title="{{ city.city }}"></div>
+
             <h2>{{ t("Hitchhiking to {city}", city=city.city) }}</h2>
 
             <a class="map-link" href="/?text={{city.city}}#location,{{city.lat}},{{city.lng}},8"><div id="static-map-zoomed-out"></div><span class="map-overlay">{{ t("View all spots mentioning {city}", city=city.city) }}</span> </a>
@@ -117,7 +124,15 @@
      justify-content: center;
      font-family: sans-serif;
  }
+ .city-wiki-excerpt:empty {
+     display: none;
+ }
+ .city-wiki-excerpt-source {
+     font-size: 0.85em;
+     color: #666;
+ }
 </style>
+<script src="/static/city_wiki_excerpt.js"></script>
 <script>
  document.querySelector('.bg').href = '/#location,{{city.lat}},{{city.lng}},10'
 
