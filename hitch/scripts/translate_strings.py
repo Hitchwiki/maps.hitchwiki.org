@@ -196,6 +196,13 @@ SOURCE_STRINGS = [
     "car",
     "Car pooling",
     "Charts & graphs",
+    # These three menu-sheet links were already wrapped in t() (statistics.html's own
+    # title, route_index.html's, why_not_hitchhike.html's) but never added here, so
+    # every non-English render fell back to English. Caught while adding two of them
+    # as new links from the menu and city pages (route index / why-not-hitchhike).
+    "Waiting-time statistics",
+    "Hitchhiking routes between cities",
+    "Why not hitchhike?",
     "Clear",
     "Click on the duplicated marker.",
     "Close",
