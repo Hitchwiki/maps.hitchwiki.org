@@ -31,7 +31,17 @@
        So: keep /1p/ as the primary path (it is still what gets past the
        blocklists this audience runs), and fall back to the analytics origin
        when it does not produce a working tracker. Defined before the tag so the
-       tag's onerror can reach it. #}
+       tag's onerror can reach it.
+
+       onerror alone only catches a clean network failure (404, connection
+       refused, CORS) -- this comment already says /1p/ served plain HTML on
+       hitchwiki.org/europe.hitchwiki.org during the same incident, and a
+       sibling repo's port of this exact fix learned the hard way (2026-08-24)
+       that HTML shape is usually a redirect the browser follows and loads as
+       a 200, which never fires onerror at all. This origin's failure has
+       been a clean 404 both times so far, but a setTimeout backstop costs
+       nothing and means the next occurrence doesn't have to be the same
+       shape as the last one for this to still work. #}
     <script>
       window.hmLoadTrackerFallback = function () {
         // Never two trackers: a second script would double every pageview.
@@ -46,6 +56,7 @@
         s.addEventListener("load", function () { if (window.hmTrackFlush) window.hmTrackFlush(); });
         document.head.appendChild(s);
       };
+      setTimeout(window.hmLoadTrackerFallback, 4000);
     </script>
     <script
       defer
