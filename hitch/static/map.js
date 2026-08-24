@@ -961,6 +961,15 @@ function renderCountryWikitext(raw) {
   // lines (no [[ ]]), so stripWikiImages below won't catch them — drop the
   // whole block, otherwise the filenames leak through as prose text.
   t = t.replace(/<gallery[^>]*>[\s\S]*?<\/gallery>/gi, "");
+  // Stray raw HTML tags (e.g. a section opening with a bare "<br>" right after
+  // its heading, confirmed live in Luxembourg (City)'s "Motorway exit for
+  // Brussels" section via the spot-pane excerpt) would otherwise survive into
+  // the escape step below and print as literal "&lt;br&gt;" text. <br> becomes
+  // a line break (it's doing real formatting work); anything else is just
+  // dropped -- this renderer only ever emits its own <p>/<h4>/<a>/<strong>/
+  // <em> tags, never wiki-authored markup verbatim.
+  t = t.replace(/<br\s*\/?>/gi, "\n");
+  t = t.replace(/<\/?[a-zA-Z][a-zA-Z0-9]*(?:\s[^<>]*)?>/g, "");
   t = stripWikiTemplates(t);
   t = t.replace(/__[A-Z]+__/g, ""); // magic words (__TOC__, __NOTOC__, …)
   t = stripWikiImages(t); // [[File:...]] / [[Image:...]] embeds
@@ -1181,11 +1190,12 @@ async function loadCountrySheetLead(name) {
     // Prefer the Hitchhiking section; fall back to the lead (section 0).
     const section = (await findHitchhikingSection(title)) || "0";
     const data = await fetch(countryWikiApi(title, "&prop=wikitext&section=" + section)).then((r) => r.json());
-    const wikitext = data && data.parse && data.parse.wikitext && data.parse.wikitext["*"];
+    let wikitext = data && data.parse && data.parse.wikitext && data.parse.wikitext["*"];
     if (!wikitext) {
       lead.innerHTML = `<p class="country-status">${tr("No Hitchwiki summary could be loaded for {name}.", { name: escapeHtml(name) })}</p>`;
       return;
     }
+    wikitext = substituteWikiPageName(wikitext, title);
     const html = renderCountryWikitext(wikitext);
     lead.innerHTML = html || `<p class="country-status">${tr("No summary text available for {name}.", { name: escapeHtml(name) })}</p>`;
     // Only invite people over once we know the article actually rendered — a CTA
@@ -1212,7 +1222,7 @@ async function loadCountrySheetLegality(name) {
     const data = await fetch(countryWikiApi(title, "&prop=wikitext&section=" + section)).then((r) => r.json());
     const wikitext = data && data.parse && data.parse.wikitext && data.parse.wikitext["*"];
     if (!wikitext) return;
-    const html = renderCountryWikitext(wikitext);
+    const html = renderCountryWikitext(substituteWikiPageName(wikitext, title));
     if (!html) return;
     body.innerHTML = html;
     wrap.hidden = false;
@@ -1222,6 +1232,73 @@ async function loadCountrySheetLegality(name) {
     hmTrack("country_legality_shown", { country: name });
   } catch (e) {
     console.warn("Could not load Hitchwiki legality section:", e);
+  }
+}
+
+// --- Spot-level Hitchwiki excerpt ---------------------------------------------
+// A spot's `hitchwiki_article` (preferred) or `hitchwiki_map` link, built by
+// sync_hitchwiki.py, already points at the exact section of a Hitchwiki article
+// relevant to it -- often a specific entry/exit/motorway-section subheading (e.g.
+// "Luxembourg (City)#Motorway_exit_for_Brussels"), not just the article's lead.
+// The fragment is the article's own real MediaWiki section anchor (hwpybot issue
+// #5 fixed this repo's coordinate links to use the real anchor rather than a
+// guessed one), so resolving it back to a section index is a straight match
+// against prop=sections' own `anchor` field -- see findSectionByAnchor below.
+const spotWikiExcerptCache = new Map(); // url -> rendered HTML ("" means nothing to show)
+
+async function findSectionByAnchor(title, anchor) {
+  try {
+    const data = await fetch(countryWikiApi(title, "&prop=sections")).then((r) => r.json());
+    const sections = (data && data.parse && data.parse.sections) || [];
+    const match = sections.find((s) => s.anchor === anchor);
+    return match ? match.index : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Parse a spot's hitchwiki_article/hitchwiki_map URL into { title, anchor }.
+// Titles are stored with literal spaces/punctuation ("Luxembourg (City)"), not
+// the underscored/percent-encoded form links use -- see sync_hitchwiki.py.
+function parseSpotWikiUrl(url) {
+  const rest = url.slice(COUNTRY_WIKI_BASE.length);
+  const hashIdx = rest.indexOf("#");
+  if (hashIdx === -1) return { title: rest, anchor: null };
+  return { title: rest.slice(0, hashIdx), anchor: decodeURIComponent(rest.slice(hashIdx + 1)) };
+}
+
+// Fill the spot pane's excerpt container for the article/section `url` points at.
+// `marker` guards against a fast second click: if the pane has moved on to a
+// different spot by the time this fetch resolves, the result is cached (so the
+// next open of this spot is instant) but never written into the wrong pane.
+async function loadSpotWikiExcerpt(marker, container, url) {
+  if (spotWikiExcerptCache.has(url)) {
+    const cached = spotWikiExcerptCache.get(url);
+    if (cached && active && active[0] === marker) container.innerHTML = cached;
+    return;
+  }
+  const { title, anchor } = parseSpotWikiUrl(url);
+  try {
+    const section = (anchor && (await findSectionByAnchor(title, anchor))) || "0";
+    const data = await fetch(countryWikiApi(title, "&prop=wikitext&section=" + section)).then((r) => r.json());
+    const wikitext = data && data.parse && data.parse.wikitext && data.parse.wikitext["*"];
+    const html = wikitext ? renderCountryWikitext(substituteWikiPageName(wikitext, title)) : "";
+    const rendered = html
+      ? `<div class="spot-wiki-excerpt-text">${html}</div><p class="spot-wiki-excerpt-source">${tr(
+          "Text from {link}, licensed {license}.",
+          {
+            link: `<a href="${countryWikiLink(title)}" target="_blank" rel="noopener">Hitchwiki: ${escapeHtml(title)}</a>`,
+            license: `<a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA</a>`,
+          },
+        )}</p>`
+      : "";
+    spotWikiExcerptCache.set(url, rendered);
+    if (rendered && active && active[0] === marker) {
+      container.innerHTML = rendered;
+      hmTrack("spot_wiki_excerpt_shown", {});
+    }
+  } catch (e) {
+    console.warn("Could not load Hitchwiki spot excerpt:", e);
   }
 }
 
@@ -2812,6 +2889,12 @@ function summaryText(data, hists = { wait: null, distance: null }) {
   const hitchwikiMapLink = data.hitchwiki_map
     ? `<div>🗺️ <a href="${data.hitchwiki_map}" target="_blank" rel="noopener noreferrer">${tr("Read about this area on Hitchwiki")}</a></div>`
     : '';
+  // Filled in asynchronously by loadSpotWikiExcerpt once this markup is in the DOM
+  // (see applySpotRideFilter) -- fetching Hitchwiki's API takes a round trip this
+  // synchronous function can't wait on. Empty when neither link above exists.
+  const spotWikiExcerpt = data.hitchwiki_article || data.hitchwiki_map
+    ? `<div id="spot-wiki-excerpt" class="spot-wiki-excerpt"></div>`
+    : '';
 
   const wait = !data.wait || Number.isNaN(data.wait) ? "-" : tr("{n} min", { n: data.wait.toFixed(0) });
   const distance = !data.distance || Number.isNaN(data.distance) ? "-" : formatDistance(data.distance);
@@ -2827,7 +2910,7 @@ function summaryText(data, hists = { wait: null, distance: null }) {
     ${spotHistogramMarkup(hists.wait, "spot-wait-hist", "min")}
     <div>${tr("Ride distance: {distance}", { distance })}</div>
     ${spotHistogramMarkup(scaleHistToDisplay(hists.distance), "spot-distance-hist", distanceUnitLabel())}
-    ${osmLink}${carPoolingLink}${fuelLink}${hitchwikiLink}${hitchwikiMapLink}`;
+    ${osmLink}${carPoolingLink}${fuelLink}${hitchwikiLink}${hitchwikiMapLink}${spotWikiExcerpt}`;
 }
 
 async function handleMarkerClick(marker, point, e) {
@@ -2933,6 +3016,15 @@ function applySpotRideFilter(marker) {
   const view = rideFilter ? { ...data, ...spotAverages(shown) } : data;
   renderSpotSummary(view);
   renderSpotPhotos(shown);
+
+  // renderSpotSummary just rebuilt #spot-wiki-excerpt (if this spot has a wiki
+  // link) from scratch, so it needs refilling every call, not just the first —
+  // a filter change re-renders the summary while the pane stays open.
+  // loadSpotWikiExcerpt's own cache means a repeat call for the same URL (e.g.
+  // toggling a filter with no distance/rating change) costs no extra fetch.
+  const spotWikiUrl = data.hitchwiki_article || data.hitchwiki_map;
+  const spotWikiContainer = $$("#spot-wiki-excerpt");
+  if (spotWikiUrl && spotWikiContainer) loadSpotWikiExcerpt(marker, spotWikiContainer, spotWikiUrl);
 
   // The cards below are about to be replaced, taking their highlight buttons with them.
   clearRideDestHighlight();

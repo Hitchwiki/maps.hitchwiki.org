@@ -1151,6 +1151,41 @@ body.spots-loaded.has-start-bar:not(.inride-active) .leaflet-bottom.leaflet-righ
   text-decoration: underline;
 }
 
+/* Same look, scoped to the spot pane's own Hitchwiki excerpt -- see
+   loadSpotWikiExcerpt in map.js. Duplicated rather than sharing the
+   .country-* classes since the two panes are structurally independent
+   sheets and giving them the same class name would couple their styling. */
+.sidebar.show-spot .spot-wiki-excerpt-text {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #222;
+  margin-top: 0.75rem;
+}
+.sidebar.show-spot .spot-wiki-excerpt-text a {
+  color: #1a73e8;
+  text-decoration: none;
+}
+.sidebar.show-spot .spot-wiki-excerpt-text a:hover {
+  text-decoration: underline;
+}
+.sidebar.show-spot .spot-wiki-excerpt-text p {
+  margin: 0 0 1rem;
+}
+.sidebar.show-spot .spot-wiki-excerpt-source {
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #eee;
+  font-size: 0.85rem;
+  color: #666;
+}
+.sidebar.show-spot .spot-wiki-excerpt-source a {
+  color: #1a73e8;
+  text-decoration: none;
+}
+.sidebar.show-spot .spot-wiki-excerpt-source a:hover {
+  text-decoration: underline;
+}
+
 /* "Read on at Hitchwiki" call to action, shared by the country and event sheets.
    Wiki text shown on the map is only an excerpt; this is the hand-off that sends
    readers (and potential editors) to Hitchwiki itself, so it reads as an action
