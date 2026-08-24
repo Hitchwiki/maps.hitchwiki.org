@@ -1216,6 +1216,10 @@ async function loadCountrySheetLegality(name) {
     if (!html) return;
     body.innerHTML = html;
     wrap.hidden = false;
+    // No baseline exists for how often this new block is actually seen -- track
+    // it the same way route_start_cta_exposure tracks a new UI surface, so a
+    // later run can tell whether this shipped unmeasured or genuinely used.
+    hmTrack("country_legality_shown", { country: name });
   } catch (e) {
     console.warn("Could not load Hitchwiki legality section:", e);
   }
