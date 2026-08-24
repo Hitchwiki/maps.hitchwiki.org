@@ -197,7 +197,14 @@ class NoRide(BaseModel, use_enum_values=True):
 
 
 class Stop(BaseModel):
-    location: Location = Field(...)
+    # Optional, not Field(...): an intermediate stop the hitchhiker names ("onsen",
+    # "grandparents' house") but never pinned a coordinate for is still worth recording
+    # -- pickup and destination stops always set this, only a mid-journey one may omit it.
+    location: Optional[Location] = None
+    # Not yet in the upstream hitchhiking-data-standard (proposed, not merged --
+    # Hitchwiki/hitchhiking-data-standard#54) but the read side (ride_facts.stop_facts)
+    # already expects it, so this vendored copy carries it now rather than waiting.
+    label: Optional[str] = None
     arrival_time: Optional[str] = None  # RFC 9557 format
     departure_time: Optional[str] = None  # RFC 9557 format
     waiting_duration: Optional[str] = None  # ISO 8601 duration format

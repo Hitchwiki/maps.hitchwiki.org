@@ -34,6 +34,7 @@ from hitch.blueprints.publish_ride import (
     anonymous_co_hitchhiker_token,
     construct_hitchhiker_from_current_user,
     create_record_from_custom_object,
+    foreign_coordinate_intermediate_stops,
     is_anonymous_co_hitchhiker,
 )
 from hitch.blueprints.user import _extract_ride_info
@@ -1466,6 +1467,7 @@ def ride_form():
                     "pickup_lon": "",
                     "destination_lat": "",
                     "destination_lon": "",
+                    "ride_stops": [],
                     "wait": "",
                     "signal": [],
                     "sign_content": "",
@@ -1548,6 +1550,21 @@ def ride_form():
                         arrival_time = last_stop.get("arrival_time")
                         if arrival_time:
                             ride_data["arrival_datetime"] = arrival_time[:16]
+
+                        # Everything strictly between pickup and destination -- same slice
+                        # ride_facts.stop_facts uses for display. Only label-only stops
+                        # (this form's own shape) are offered here for editing; a stop that
+                        # carries a real coordinate (possible from another Nostr client) is
+                        # preserved on save regardless of what this list shows (see
+                        # foreign_coordinate_intermediate_stops in the POST handler below),
+                        # so listing it here as an editable "Stop N" text entry would be
+                        # misleading about what removing it actually does.
+                        ride_data["ride_stops"] = [
+                            (s.get("label") or "").strip()
+                            for s in stops[1:-1]
+                            if isinstance(s, dict) and not (s.get("location") or {}).get("latitude")
+                        ]
+                        ride_data["ride_stops"] = [label for label in ride_data["ride_stops"] if label]
 
                 # Extract signals — flatten methods across all Signal entries
                 method_to_form = {"sign": "sign", "thumb": "thumb", "asking": "ask"}
@@ -1645,6 +1662,19 @@ def ride_form():
         ]
         data["ride_reasons"] = [r.strip() for r in (data.get("ride_reasons") or "").split(",") if r.strip()]
         data["reasons_to_hitchhike"] = [r.strip() for r in (data.get("reasons_to_hitchhike") or "").split(",") if r.strip()]
+        # Intermediate stops ("onsen", "grandparents' house") arrive as a JSON array of
+        # free-text labels from the form's chip input -- commas are legal in a label, so
+        # this can't reuse the comma-split convention the enum chip fields above use.
+        try:
+            raw_stops = json.loads(data.get("ride_stops") or "[]")
+        except (json.JSONDecodeError, TypeError):
+            raw_stops = []
+        assert isinstance(raw_stops, list), "ride_stops must be a JSON array"
+        stop_labels = [s.strip() for s in raw_stops if isinstance(s, str) and s.strip()]
+        assert len(stop_labels) <= 20, f"Too many stops: {len(stop_labels)} (max 20)"
+        for s in stop_labels:
+            assert len(s) <= 200, f"Stop label must be <= 200 characters: {s}"
+        data["ride_stops"] = stop_labels
         # "I did not get a ride here" checkbox — an unchecked box submits no key at all.
         # The in-ride Give Up flow posts no_ride=1 for the same meaning.
         data["no_ride"] = str(data.get("no_ride", "")).strip() not in ("", "0", "false")
@@ -1823,6 +1853,14 @@ def ride_form():
             updated_record = create_record_from_custom_object(
                 custom_object=data, source=ride_source(existing_ride) or THIS_NOSTR_SOURCE, license=THIS_DATA_LICENSE
             )
+            # The form only ever creates label-only intermediate stops (no coordinate
+            # picker -- see create_record_from_custom_object), and this rebuild starts
+            # from a blank stops list every time. Splice back any intermediate stop the
+            # existing ride carries with a real coordinate (from some other Nostr client)
+            # so resaving through this form can never silently discard it.
+            preserved = foreign_coordinate_intermediate_stops((existing_ride.content or {}).get("stops"))
+            if preserved and len(updated_record.stops) > 1:
+                updated_record.stops = [updated_record.stops[0], *preserved, *updated_record.stops[1:]]
 
             # post the updated event (maintaining all original tags including d tag)
             poster = HitchhikingDataStandardToNostrPoster()

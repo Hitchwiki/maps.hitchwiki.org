@@ -108,6 +108,37 @@ def construct_hitchhiker_from_current_user(reasons_to_hitchhike: list[str] | Non
 ### Again, here the function is a bit special because we are dealing with multiple datasets actually
 
 
+def foreign_coordinate_intermediate_stops(raw_stops: list) -> list[Stop]:
+    """Intermediate stops from a ride's *raw* Nostr content that carry a real coordinate.
+
+    `create_record_from_custom_object` always rebuilds a ride's stops from scratch out of
+    form fields, and this form has no coordinate picker for an intermediate stop (see the
+    comment above) -- it only ever produces label-only ones. So on an edit, resubmitting
+    without this would silently drop the coordinate on any intermediate stop that reached
+    the ride some other way (a different Nostr client publishing to the same relay/kind).
+    Currently 0/1,732 real rides have such a stop (verified 2026-08-22), so this guards
+    against a scenario that hasn't happened yet rather than one already seen in the wild.
+    """
+    out = []
+    for stop in (raw_stops or [])[1:-1]:
+        if not isinstance(stop, dict):
+            continue
+        location = stop.get("location") or {}
+        lat, lon = location.get("latitude"), location.get("longitude")
+        if lat is None or lon is None:
+            continue  # label-only or malformed -- not this form's job to preserve
+        out.append(
+            Stop(
+                location=Location(latitude=lat, longitude=lon, is_exact=bool(location.get("is_exact", True))),
+                label=stop.get("label"),
+                arrival_time=stop.get("arrival_time"),
+                departure_time=stop.get("departure_time"),
+                waiting_duration=stop.get("waiting_duration"),
+            )
+        )
+    return out
+
+
 def create_record_from_custom_object(custom_object: dict, source: str, license: str) -> HitchhikingRecord:
     lat = float(custom_object["pickup_lat"]) if custom_object.get("pickup_lat") else None
     lon = float(custom_object["pickup_lon"]) if custom_object.get("pickup_lon") else None
@@ -128,6 +159,15 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
             waiting_duration=f"PT{int(custom_object['wait'])}M" if pd.notna(custom_object["wait"]) else None,
         ),
     ]
+    # Stops between pickup and destination: free-text labels only ("onsen", "their
+    # grandparents' house"), no coordinate picker -- a hitchhiker recalling a detour after
+    # the fact rarely has the exact spot, and the point (a Matrix chat question this
+    # answers) is the story, not a pin. Only meaningful with a real destination: a stop
+    # "along the way" to nowhere recorded isn't a waypoint, it's just more trip.
+    if pd.notna(dest_lat) and pd.notna(dest_lon):
+        for label in custom_object.get("ride_stops") or []:
+            stops.append(Stop(location=None, label=label))
+
     if pd.notna(dest_lat) and pd.notna(dest_lon):
         arrival_dt = custom_object.get("arrival_datetime")
         arrival_time = (
