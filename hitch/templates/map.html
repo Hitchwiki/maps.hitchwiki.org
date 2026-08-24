@@ -655,6 +655,14 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
             </section>
         </div>
         <div class="country-lead" id="country-sheet-lead"></div>
+        {# Legality of Hitchhiking, shown verbatim from the wiki's own already-sourced
+           section when the article has one -- never a classification this app invents,
+           see hitch/static/map.js loadCountrySheetLegality(). Hidden entirely when the
+           article has no such section (a handful of non-independent-country entries). #}
+        <div class="country-legality" id="country-sheet-legality" hidden>
+            <h3>{{ t("Legality of Hitchhiking") }}</h3>
+            <div class="country-legality-body" id="country-sheet-legality-body"></div>
+        </div>
         {# The sheet only shows one section of the wiki article. The CTA is the invitation
            to keep reading (and contribute) on Hitchwiki itself, not a bare attribution. #}
         <a class="wiki-cta" id="country-sheet-cta" target="_blank" rel="noopener" hidden></a>
