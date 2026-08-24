@@ -1228,6 +1228,10 @@ async function loadCountrySheetLegality(name) {
 // Open the country info sheet for `name` (invoked from navigate() via #country/<name>).
 async function openCountrySheet(name) {
   clear();
+  // No exposure tracking existed for Countries mode at all before this -- without
+  // it, country_legality_shown has no denominator (40 fires could be 90% coverage
+  // or 1%). Fired once per open regardless of what the sheet ends up rendering.
+  hmTrack("country_sheet_opened", { country: name });
   $$("#country-sheet-name").textContent = name;
   // Share the deep link that reopens this country sheet. The path form, not the
   // old #country/<name>: several messengers strip a #fragment when auto-linking a
