@@ -10,7 +10,12 @@ import time
 
 import pytest
 
-from hitch.blueprints.utils.notifications import load_race_podiums, notify_new_race_podiums, notify_race_podium
+from hitch.blueprints.utils.notifications import (
+    load_race_podiums,
+    notify_nearby_hitchhikers,
+    notify_new_race_podiums,
+    notify_race_podium,
+)
 from hitch.extensions import db as _db
 from hitch.models import Follow, Notification, RideEvent, RideLike, User
 
@@ -188,3 +193,22 @@ def test_no_previous_races_file_notifies_nobody(app, world, tmp_path):
     with app.app_context():
         notify_new_race_podiums(None, [{"name": "r", "title": "R", "entries": [{"hitchhiker_name": "firstliker"}]}])
         assert Notification.query.filter_by(kind="race_podium").all() == []
+
+
+def test_nearby_hitchhikers_notification_links_to_a_profile(app, world):
+    """The message promises "See their profiles on the map" -- the link must actually
+    lead to one of them, not an unrelated page (regression: this used to hardcode
+    /leaderboard, which has no connection to who was nearby)."""
+    with app.app_context():
+        notify_nearby_hitchhikers(world["owner"], ["firstliker", "otherliker"])
+        note = Notification.query.filter_by(user_id=world["owner"], kind="nearby").first()
+        assert note is not None
+        assert note.link == "/account/firstliker"
+        assert "firstliker" in note.message
+        assert "otherliker" in note.message
+
+
+def test_nearby_hitchhikers_notification_noop_with_no_matches(app, world):
+    with app.app_context():
+        notify_nearby_hitchhikers(world["owner"], [])
+        assert Notification.query.filter_by(user_id=world["owner"], kind="nearby").all() == []
