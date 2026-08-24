@@ -178,8 +178,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
 <div class="profile-identity">
   {% if profile_image %}
+  {# Gravatar is requested with d=404 (see profile_images.py gravatar_url), so an
+     account that opted into Gravatar without actually having one there gets a
+     real, permanent broken image, not a default placeholder -- there is no
+     server-side way to know in advance. account.js's own avatar rendering
+     already handles this (an "error" listener removes the element); this
+     server-rendered page never had the same handling. Remove the whole
+     picture+caption block on failure, not just the <img>, so a broken Gravatar
+     doesn't leave an orphaned "Photo from Gravatar" caption with nothing above it. #}
   <div>
-    <img class="profile-avatar" src="{{ profile_image.url }}" alt="{{ t('{name}\'s profile picture', name=user.username) }}" width="112" height="112" referrerpolicy="no-referrer">
+    <img class="profile-avatar" src="{{ profile_image.url }}" alt="{{ t('{name}\'s profile picture', name=user.username) }}" width="112" height="112" referrerpolicy="no-referrer" onerror="this.parentElement.remove()">
     {% if profile_image.uploaded %}<span class="profile-photo-credit">{{ t("Photo by {name}, CC BY-SA 4.0", name=user.username) }}</span>{% else %}<span class="profile-photo-credit">{{ t("Photo from Gravatar") }}</span>{% endif %}
   </div>
   {% endif %}
