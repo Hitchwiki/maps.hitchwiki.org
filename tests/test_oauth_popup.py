@@ -36,6 +36,23 @@ def test_new_user_target_attributes_only_the_known_prompt():
     assert _new_user_target(None) == "/?welcome=1"
 
 
+def test_existing_user_target_tracks_a_login_from_the_signup_prompt():
+    """A real successful login through the anon-signup flow must not be invisible
+    to signup_prompt tracking just because the account already existed (confirmed
+    live 2026-08-25 via a KnyttesBot OAuth round-trip -- the old unconditional
+    "/me" swallowed this outcome entirely)."""
+    from hitch.blueprints.oauth import _existing_user_target
+
+    assert _existing_user_target("anon-signup") == "/?signup_prompt=logged-in"
+
+
+def test_existing_user_target_leaves_other_logins_unchanged():
+    from hitch.blueprints.oauth import _existing_user_target
+
+    assert _existing_user_target("made-up") == "/me"
+    assert _existing_user_target(None) == "/me"
+
+
 def test_popup_flag_is_cleared_by_a_later_full_page_login(client):
     """A stale flag must not turn a normal login into a popup-completion page."""
     client.get("/login/oauth?popup=1")

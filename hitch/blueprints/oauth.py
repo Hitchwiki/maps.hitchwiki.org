@@ -80,6 +80,30 @@ def _new_user_target(signup_prompt_source):
     return f"/?{urlencode(params)}"
 
 
+def _existing_user_target(signup_prompt_source):
+    """Return the existing-user post-login URL.
+
+    A visitor who already has a Maps account (created on an earlier visit,
+    or simply an existing Hitchwiki user whose *Maps* account already
+    exists) but clicks "sign up" on the anon-signup prompt completes a real,
+    successful login here -- but the old unconditional "/me" target left
+    that outcome invisible to signup_prompt tracking, which only ever fired
+    "account-created" for the brand-new-user branch above. Confirmed live
+    (2026-08-25, KnyttesBot test account, decisions PR#32 "use KnyttesBot
+    hitchwiki account for this"): a second OAuth round-trip through the
+    exact anon-signup flow landed on /me with no tracking marker at all,
+    even though the login fully succeeded -- exactly the under-counting
+    Till suspected was deflating signup_prompt_account_creation_per_signup_choice_28d.
+    Mirrors _new_user_target's redirect-to-map-with-a-marker shape so the
+    client can log a distinct "logged-in" completion action; any login NOT
+    sourced from the anon-signup prompt keeps the original /me destination
+    unchanged.
+    """
+    if signup_prompt_source == SIGNUP_PROMPT_SOURCE:
+        return f"/?{urlencode({'signup_prompt': 'logged-in'})}"
+    return "/me"
+
+
 @oauth_bp.route("/login/oauth")
 def login_oauth():
     """Start the OAuth2 redirect to Hitchwiki."""
@@ -236,4 +260,4 @@ def _handle_callback(code):
     # Back-fills the welcome notification for users who registered before notifications
     # existed; idempotent, so existing users get it exactly once.
     ensure_welcome_notification(user)
-    return _finish_login("/me", needs_profile=False)
+    return _finish_login(_existing_user_target(signup_prompt_source), needs_profile=False)

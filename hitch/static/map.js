@@ -3793,14 +3793,19 @@ function showSignupPromptOverlay(opts) {
   }
 }
 
-// The OAuth callback adds this one-time marker only when it creates a brand-new
-// Maps account from the anonymous post-ride prompt. Track it through the same
+// The OAuth callback adds this one-time marker when the anonymous post-ride
+// prompt's login completes -- "account-created" for a brand-new Maps account,
+// "logged-in" for a visitor who already had one (oauth.py's
+// _existing_user_target; without this second marker, a real successful
+// login through this exact flow was invisible to signup_prompt tracking,
+// undercounting the true completion rate). Track it through the same
 // analytics + durable server-log path as the prompt choices, then remove it
-// immediately so refresh/back does not count the account twice.
+// immediately so refresh/back does not count the login twice.
 function trackSignupPromptAccountCreated() {
   const url = new URL(window.location.href);
-  if (url.searchParams.get("signup_prompt") !== "account-created") return;
-  logSignupPrompt("anon-signup", "account-created");
+  const outcome = url.searchParams.get("signup_prompt");
+  if (outcome !== "account-created" && outcome !== "logged-in") return;
+  logSignupPrompt("anon-signup", outcome);
   url.searchParams.delete("signup_prompt");
   window.history.replaceState({}, "", url.pathname + url.search + url.hash);
 }

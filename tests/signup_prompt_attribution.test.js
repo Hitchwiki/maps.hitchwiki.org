@@ -36,6 +36,12 @@ test("an attributed new account records once and removes only its marker", () =>
   assert.deepStrictEqual(result.replacements, ["/?welcome=1#map=4/50/10"]);
 });
 
+test("an existing user logging in through the prompt records as a distinct outcome, not lost", () => {
+  const result = runAt("https://maps.hitchwiki.org/?signup_prompt=logged-in#map=4/50/10");
+  assert.deepStrictEqual(result.events, [["anon-signup", "logged-in"]]);
+  assert.deepStrictEqual(result.replacements, ["/#map=4/50/10"]);
+});
+
 test("ordinary and forged attribution values record nothing", () => {
   assert.deepStrictEqual(runAt("https://maps.hitchwiki.org/?welcome=1"), {
     events: [],
