@@ -25,6 +25,7 @@ requests-cache==1.2.1
 requests-oauthlib==2.0.0
 reverse_geocoder==1.5.1
 pytest==8.3.4
+pytest-cov==6.0.0
 ruff==0.9.4
 shapely==2.0.7
 simplejson==3.19.3
