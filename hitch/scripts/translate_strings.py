@@ -181,6 +181,7 @@ SOURCE_STRINGS = [
     "Account and data",
     "Add Hitchhiking Map to your home screen",
     "Get the Android app",
+    "Get the app",
     "Get the public app from Google Play and keep the hitchhiking map on your phone.",
     "Get it on Google Play",
     "Hitchhiking Map is now an Android app",
