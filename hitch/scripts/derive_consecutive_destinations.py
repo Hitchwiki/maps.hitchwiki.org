@@ -254,7 +254,11 @@ def main(argv=None):
     conn.commit()
     after = conn.execute("SELECT COUNT(*) FROM derived_ride_location").fetchone()[0]
     conn.close()
-    print(f"inserted {after - before} new rows ({len(rows) - (after - before)} skipped as already present); table now has {after}")
+    print(
+        f"inserted {after - before} new rows "
+        f"({len(rows) - (after - before)} skipped as already present); "
+        f"table now has {after}"
+    )
     return 0
 
 

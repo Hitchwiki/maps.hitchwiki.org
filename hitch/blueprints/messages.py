@@ -6,7 +6,7 @@ is no conversation table. Opt-in gates who may write: to send a message to X, X 
 other person). The Chat button on a profile only appears when the target opted in.
 """
 
-from flask import Blueprint, current_app, jsonify, redirect, render_template, request
+from flask import Blueprint, jsonify, redirect, render_template, request
 from flask_security import current_user
 from sqlalchemy import and_, or_
 
@@ -92,7 +92,12 @@ def thread(username):
     if other.id == current_user.id:
         return redirect("/messages")
 
-    msgs = db.session.query(Message).filter(_pair_filter(current_user.id, other.id)).order_by(Message.created_at, Message.id).all()
+    msgs = (
+        db.session.query(Message)
+        .filter(_pair_filter(current_user.id, other.id))
+        .order_by(Message.created_at, Message.id)
+        .all()
+    )
 
     # Opening the thread clears the unread state for messages the other person sent me,
     # and marks the matching bell notification read so it doesn't linger after I've read

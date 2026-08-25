@@ -32,7 +32,10 @@ def javascript_coverage(path):
         values = [value.strip() for value in line.split("|")]
         values[0] = values[0].removeprefix("#").removeprefix("ℹ").strip()
         if values and values[0] == "all files" and len(values) >= 4:
-            return tuple(f"{value}%" if not value.endswith("%") else value for value in values[1:4])
+            return tuple(
+                f"{value}%" if not value.endswith("%") else value
+                for value in values[1:4]
+            )
     return "—", "—", "—"
 
 
