@@ -142,7 +142,6 @@ def find_coords_and_headings(raw_wiki_page: str, title: str, base_url: str = "ht
 
 logger.info("Starting Hitchwiki synchronization script...")
 
-# TODO: get articles with |map = <map lat='51.049' lng='13.74' zoom='11'/> in Infobox as well
 articles_file = os.path.join(get_dirs()["dist"], "hitchwiki_articles.json")
 logger.info(f"Articles file path: {articles_file}")
 if os.path.exists(articles_file):
