@@ -1,0 +1,152 @@
+{% extends "security/base.html" %}
+
+{% set title = t("Why not hitchhike?") %}
+
+{% block head %}
+{{ super() }}
+<style>
+  /* Wider than the login-form default this base is sized for: every row is a
+     spot → destination pair with four numbers hanging off it, and at 350px the
+     stats wrap onto four lines each. */
+  .overlay { max-width: 640px; }
+
+  .wnh-intro { color: #555; font-size: 0.9em; margin: 0.4rem 0 1.4rem; }
+  .wnh-criteria { margin: 0.6rem 0 0; padding-left: 1.1rem; color: #555; font-size: 0.9em; }
+  .wnh-criteria li { margin: 0.15rem 0; }
+
+  .wnh-section { margin: 2rem 0 0; }
+  .wnh-section h2 { font-size: 1.05em; margin: 0 0 0.2rem; border-bottom: 2px solid #ccc; padding-bottom: 0.3rem; }
+  .wnh-section-note { color: #888; font-size: 0.85em; margin: 0.4rem 0 1rem; }
+
+  .wnh-row { border-bottom: 1px solid #eee; padding: 0.8rem 0; }
+  .wnh-head { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; }
+  .wnh-route { font-weight: 600; }
+  .wnh-route a { text-decoration: none; border-bottom: 1px solid #ccc; }
+  .wnh-day {
+    font-size: 0.68em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+    padding: 0.15em 0.55em; border-radius: 999px; background: #e6f4ea; color: #1b6b34; white-space: nowrap;
+  }
+  .wnh-day.miss { background: #f1f1f1; color: #666; }
+
+  .wnh-stats { display: flex; flex-wrap: wrap; gap: 0.2rem 1.1rem; margin: 0.45rem 0 0; color: #444; font-size: 0.88em; }
+  .wnh-stats b { font-weight: 600; }
+  .wnh-why { color: #8a6d1f; font-size: 0.85em; margin: 0.35rem 0 0; }
+
+  .wnh-rides { margin: 0.5rem 0 0; font-size: 0.82em; color: #777; }
+  .wnh-rides summary { cursor: pointer; color: #555; }
+  .wnh-rides table { border-collapse: collapse; margin: 0.4rem 0 0; width: 100%; }
+  .wnh-rides td { padding: 0.15rem 0.5rem 0.15rem 0; white-space: nowrap; }
+  .wnh-rides td:last-child { width: 100%; white-space: normal; }
+
+  .wnh-empty { background: #fafafa; border: 1px solid #eee; border-radius: 6px; padding: 0.9rem 1rem; color: #555; font-size: 0.9em; }
+  .wnh-foot { margin: 2.2rem 0 0; padding-top: 0.8rem; border-top: 1px solid #eee; color: #888; font-size: 0.8em; }
+</style>
+{% endblock %}
+
+{% from "_share.html" import share_button %}
+
+{#
+  Renders one qualifying (or near-qualifying) spot → destination pattern. `miss` is set
+  only on near misses and explains, in the row itself, which criterion it fell short of —
+  a near miss listed without that sentence would read as a confirmed one.
+#}
+{% macro pattern_row(row) %}
+<div class="wnh-row">
+  <div class="wnh-head">
+    <span class="wnh-day {{ 'miss' if row.miss }}">{{ weekdays[row.weekday] }}</span>
+    <span class="wnh-route">
+      <a href="/spot/{{ row.spot_id }}">{{ row.spot_name or (row.lat ~ ", " ~ row.lon) }}</a>
+      &rarr; {{ row.dest_name or t("an unnamed place") }}{% if row.dest_cc %} ({{ row.dest_cc }}){% endif %}
+    </span>
+  </div>
+
+  <div class="wnh-stats">
+    <span><b>{{ row.n_rides }}</b> {{ t("rides") }}</span>
+    <span><b>{{ row.n_dates }}</b> {{ t("different dates") }}</span>
+    <span>~<b>{{ row.avg_km }}</b> km</span>
+    <span>{{ t("longest wait") }} <b>{{ row.max_wait }}</b> min</span>
+  </div>
+
+  {% if row.miss == "few-rides" %}
+  <p class="wnh-why">{{ t("Almost: only {n} rides so far, {min} are needed.", n=row.n_rides, min=criteria.min_rides) }}</p>
+  {% elif row.miss == "one-slow-ride" %}
+  <p class="wnh-why">{{ t("Almost: one ride here waited {w} minutes.", w=row.slow_wait) }}</p>
+  {% endif %}
+
+  <details class="wnh-rides">
+    <summary>{{ t("the rides") }}</summary>
+    <table>
+      {% for ride in row.rides %}
+      <tr>
+        <td>{{ ride.date }}</td>
+        <td>{{ ride.wait }} min</td>
+        <td>{{ ride.km }} km</td>
+        <td>{{ ride.to or "" }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </details>
+</div>
+{% endmacro %}
+
+{% block content %}
+<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+  <h1 style="margin:0;">{{ t("Why not hitchhike?") }}</h1>
+  {{ share_button(title=t("Why not hitchhike? – Hitchwiki Maps")) }}
+</div>
+
+<p class="wnh-intro">
+  {{ t("Places where hitchhiking has worked the same way more than once: pick this spot on this weekday, and the rides we know about all went to the same faraway place, quickly.") }}
+</p>
+
+<p class="wnh-intro" style="margin-bottom:0.2rem;">{{ t("A spot is listed when, on one weekday:") }}</p>
+<ul class="wnh-criteria">
+  <li>{{ t("at least {n} rides started there", n=criteria.min_rides or 4) }}</li>
+  <li>{{ t("they all ended within {km} km of each other", km=criteria.dest_radius_km|int or 25) }}</li>
+  <li>{{ t("that destination is at least {km} km away", km=criteria.min_distance_km|int or 100) }}</li>
+  <li>{{ t("and every single one of them waited under {min} minutes", min=criteria.max_wait_min|int or 30) }}</li>
+</ul>
+
+<div class="wnh-section">
+  <h2>{{ t("Every criterion met") }} ({{ matches|length }})</h2>
+  {% if matches %}
+  <p class="wnh-section-note">{{ t("One slow ride would have removed any of these.") }}</p>
+  {% for row in matches %}{{ pattern_row(row) }}{% endfor %}
+  {% else %}
+  {#
+    An empty headline section is the honest state, not a bug: the criteria need four rides
+    that each logged a departure time, a destination *and* a waiting time, all from one spot
+    on one weekday. Saying so with the coverage numbers is the difference between "no such
+    spot exists" (false) and "we cannot show one yet" (true).
+  #}
+  <p class="wnh-empty">
+    {{ t("No spot meets all four criteria yet.") }}
+    {% if coverage.rides_usable %}
+    {{ t("Only {usable} of {total} rides record a departure time, a destination and a waiting time together — everything needed to place a ride on a weekday and judge it. Log those three and this list fills up.", usable=coverage.rides_usable, total=coverage.rides_indexed) }}
+    {% endif %}
+  </p>
+  {% endif %}
+</div>
+
+<div class="wnh-section">
+  <h2>{{ t("Almost") }} ({{ near_misses|length }})</h2>
+  {% if near_misses %}
+  <p class="wnh-section-note">
+    {{ t("These match everything except one thing, named on each row. All of them span at least two different dates, so none is a single afternoon.") }}
+  </p>
+  {% for row in near_misses %}{{ pattern_row(row) }}{% endfor %}
+  {% else %}
+  <p class="wnh-empty">{{ t("Nothing close enough to show yet.") }}</p>
+  {% endif %}
+</div>
+
+<p class="wnh-foot">
+  {{ t("A ride counts only if it recorded the day it actually happened — a submission date is when someone typed the ride in, often weeks later, and would put it on the wrong weekday. The same ride submitted twice counts once.") }}
+  {% if coverage.rides_usable %}
+  {{ t("{usable} rides qualify to be judged.", usable=coverage.rides_usable) }}
+  {% endif %}
+  {% if generated_at %}
+  {{ t("Recalculated weekly; last run {when}.", when=generated_at) }}
+  {% endif %}
+</p>
+{% endblock %}

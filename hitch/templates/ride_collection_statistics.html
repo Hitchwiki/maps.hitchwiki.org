@@ -1,0 +1,93 @@
+{% extends "security/base.html" %}
+
+{% set title = t("Ride collection") %}
+
+{% block head %}
+{{ super() }}
+<style>
+  .overlay { max-width: 940px; }
+  .stats-intro, .stats-foot, .chart-empty { color: #666; font-size: .9em; }
+  .range-picker { display: flex; gap: .4rem; margin: 1rem 0 1.5rem; }
+  .range-picker button { background: #fff; border: 1px solid #bbb; border-radius: 999px; cursor: pointer; font: inherit; padding: .35rem .8rem; }
+  .range-picker button[aria-pressed="true"] { background: #333; border-color: #333; color: #fff; }
+  .collection-chart { margin: 0 0 2rem; }
+  .collection-chart h2 { font-size: 1.05em; margin-bottom: .3rem; }
+  .collection-chart svg { display: block; height: 220px; overflow: visible; width: 100%; }
+  .chart-grid { stroke: #e4e4e4; stroke-width: 1; }
+  .chart-line { fill: none; stroke: #3b78b5; stroke-linejoin: round; stroke-width: 2.5; }
+  .chart-label { fill: #666; font: 11px sans-serif; }
+  .stats-foot { border-top: 1px solid #eee; margin-top: .5rem; padding-top: .8rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>{{ t("Ride collection") }}</h1>
+<p class="stats-intro">{{ t("Rides added to the shared dataset each week. The first chart combines every source; the charts below show each source separately.") }}</p>
+
+<div class="range-picker" aria-label="{{ t('Time range') }}">
+  <button type="button" data-range="month">{{ t("Past month") }}</button>
+  <button type="button" data-range="year" aria-pressed="true">{{ t("Past year") }}</button>
+  <button type="button" data-range="all">{{ t("All time") }}</button>
+</div>
+
+<div id="collection-charts"></div>
+<p class="stats-foot">
+  {{ t("Weeks start on Monday. A ride is counted when it was collected, not when the hitchhiking trip happened.") }}
+  {% if coverage.rides_used %}{{ t("{total} rides with valid collection dates are included.", total=coverage.rides_used) }}{% endif %}
+  {% if generated_at %}{{ t("Recalculated daily; last run {when}.", when=generated_at) }}{% endif %}
+</p>
+
+<script>
+(function () {
+  var allSeries = {{ series|tojson }};
+  var root = document.getElementById('collection-charts');
+  var buttons = document.querySelectorAll('[data-range]');
+
+  function visible(points, range) {
+    if (range === 'all' || !points.length) return points;
+    var last = new Date(points[points.length - 1][0] + 'T00:00:00Z');
+    var cutoff = new Date(last);
+    cutoff.setUTCDate(cutoff.getUTCDate() - (range === 'month' ? 28 : 364));
+    return points.filter(function (point) { return new Date(point[0] + 'T00:00:00Z') >= cutoff; });
+  }
+
+  function chart(name, points) {
+    var width = 820, height = 220, left = 46, right = 10, top = 12, bottom = 30;
+    var max = Math.max.apply(null, points.map(function (p) { return p[1]; }).concat([1]));
+    var x = function (i) { return left + (points.length === 1 ? 0 : i * (width - left - right) / (points.length - 1)); };
+    var y = function (value) { return top + (max - value) * (height - top - bottom) / max; };
+    var path = points.map(function (p, i) { return (i ? 'L' : 'M') + x(i).toFixed(1) + ',' + y(p[1]).toFixed(1); }).join(' ');
+    var ticks = [0, Math.ceil(max / 2), max].filter(function (v, i, a) { return a.indexOf(v) === i; });
+    var grid = ticks.map(function (value) {
+      return '<line class="chart-grid" x1="' + left + '" x2="' + (width-right) + '" y1="' + y(value) + '" y2="' + y(value) + '"></line>' +
+        '<text class="chart-label" x="' + (left-7) + '" y="' + (y(value)+4) + '" text-anchor="end">' + value + '</text>';
+    }).join('');
+    var first = points[0][0], last = points[points.length - 1][0];
+    return '<section class="collection-chart"><h2>' + escapeHtml(name) + '</h2><svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="' + escapeHtml(name) + '">' + grid +
+      '<path class="chart-line" d="' + path + '"></path>' +
+      '<text class="chart-label" x="' + left + '" y="' + (height-5) + '">' + first + '</text>' +
+      '<text class="chart-label" x="' + (width-right) + '" y="' + (height-5) + '" text-anchor="end">' + last + '</text></svg></section>';
+  }
+
+  function escapeHtml(value) {
+    var node = document.createElement('span'); node.textContent = value; return node.innerHTML;
+  }
+
+  function render(range) {
+    var html = Object.keys(allSeries).map(function (name) {
+      var points = visible(allSeries[name], range);
+      return points.length ? chart(name, points) : '';
+    }).join('');
+    root.innerHTML = html || '<p class="chart-empty">{{ t("No collected rides yet.") }}</p>';
+  }
+
+  buttons.forEach(function (button) {
+    button.addEventListener('click', function () {
+      buttons.forEach(function (item) { item.setAttribute('aria-pressed', String(item === button)); });
+      render(button.dataset.range);
+    });
+  });
+  render('year');
+}());
+</script>
+{% endblock %}

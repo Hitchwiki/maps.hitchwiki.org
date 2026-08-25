@@ -26,6 +26,71 @@
 .ride-card .hitchhiker-name:hover {
     text-decoration: underline;
 }
+/* Highlights this ride's own line to its destination on the map (map.js
+   drawRideDestHighlight). Only rendered in the spot pane, where there is a map to point
+   at, but styled here next to the rest of the card. Sized to a comfortable tap target
+   without growing the meta line's height. */
+.ride-card .ride-dest-btn {
+    margin-left: 6px;
+    padding: 2px 7px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #fff;
+    color: #888;
+    font-size: 0.95em;
+    line-height: 1.4;
+    cursor: pointer;
+    vertical-align: middle;
+}
+.ride-card .ride-dest-btn:hover,
+.ride-card .ride-dest-btn:focus-visible {
+    color: #e8590c;
+    border-color: #e8590c;
+}
+/* Pinned: the line stays on the map after the pointer leaves, so the button has to
+   keep saying which ride it belongs to. */
+.ride-card .ride-dest-btn.active {
+    color: #fff;
+    background: #e8590c;
+    border-color: #e8590c;
+}
+.ride-card .map-thumbnail {
+    height: 120px;
+    margin: 0.35rem 0 0.2rem;
+}
+.ride-card .ride-coords {
+    color: #888;
+    font-size: 0.8em;
+}
+/* Photos attached to the ride, as a sideways-scrolling row rather than a grid: a card
+   is read in a list, and three stacked photos would push the next ride off the screen.
+   Mirrors the spot pane's .spot-photos strip. */
+.ride-card-photos {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    margin: 0.45rem 0 0.1rem;
+    padding-bottom: 3px;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}
+.ride-card-photos img {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    height: 100px;
+    /* Auto width keeps each photo's aspect ratio — a portrait shot of a slip road
+       shouldn't be cropped to a landscape box; max-width stops a panorama taking
+       the whole row. */
+    width: auto;
+    max-width: 190px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #e5e5e5;
+    background: #f2f2f2;
+    display: block;
+}
 
 a.ride-card,
 .ride-card[data-ride-href] {
@@ -42,6 +107,22 @@ a.ride-card:hover,
 
 .ride-card.co-hitchhiker-card {
     border-left: 3px solid #fd7e14;
+}
+
+/* A ride that was logged but never happened (the hitchhiker gave up waiting). Same
+   marking the spot pane and /ride/<d_tag> use — those styles live in style.css, which
+   only the map page loads, so they are repeated here for the server-rendered lists. */
+.ride-card--no-ride { border-left: 3px solid #d73027; }
+.ride-card .no-ride-badge {
+    display: inline-block;
+    color: #fff;
+    background: #d73027;
+    font-weight: 600;
+    font-size: 0.8em;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-right: 4px;
+    vertical-align: middle;
 }
 .co-label {
     font-size: 0.75em;

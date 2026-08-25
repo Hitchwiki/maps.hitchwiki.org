@@ -1,6 +1,8 @@
 """Tests for the durable ride outbox backend: idempotent client d_tags and the
 transient-failure (503) classification the offline outbox relies on."""
 
+import json
+
 import hitch.blueprints.main as main
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import build_ride_d_tag
 
@@ -53,6 +55,7 @@ class _CapturingPoster:
     construction, so two POSTs with the same client_d_tag yield the same server d."""
 
     calls = []
+    last_event = None
 
     def post(self, ride_record, tags=None, d_tag=None):
         result = build_ride_d_tag("hitchmap", tags, d_tag)
@@ -79,6 +82,25 @@ def test_ride_post_is_idempotent_on_client_d_tag(client, monkeypatch):
     assert _CapturingPoster.calls == ["fixed-uuid-1", "fixed-uuid-1"]
 
 
+# Same idempotency guarantee for the plain /ride form's retry ("tap Submit to try
+# again" after a transient failure): the retry reuses the same client_d_tag input
+# unchanged, so it must replace rather than duplicate too, exactly like the in-ride
+# tracker's own retries above.
+def test_ride_form_retry_with_same_client_d_tag_is_idempotent(client, monkeypatch):
+    _CapturingPoster.calls = []
+    monkeypatch.setattr(main, "HitchhikingDataStandardToNostrPoster", _CapturingPoster)
+
+    form = dict(_FORM, client_d_tag="fixed-uuid-2")
+    headers = {"X-Requested-With": "ride-form"}
+    r1 = client.post("/ride", data=form, headers=headers)
+    r2 = client.post("/ride", data=form, headers=headers)
+
+    assert r1.status_code == 200 and r2.status_code == 200
+    assert r1.get_json()["ok"] and r2.get_json()["ok"]
+    assert r1.get_json()["d_tag"] == r2.get_json()["d_tag"] == "hitchmap-fixed-uuid-2"
+    assert _CapturingPoster.calls == ["fixed-uuid-2", "fixed-uuid-2"]
+
+
 # ── Transient failure classification ──────────────────────────────────────────
 class _BoomPoster:
     """Poster whose publish fails as if the relay were unreachable."""
@@ -101,3 +123,127 @@ def test_ride_post_relay_failure_is_transient_503(client, monkeypatch):
     assert r.status_code == 503
     body = r.get_json()
     assert body["ok"] is False and body["transient"] is True
+
+
+# ── Intermediate stops end to end (form POST -> create_record_from_custom_object) ──
+class _RecordingPoster:
+    """Stub poster that captures the built ride_record so a test can inspect its stops."""
+
+    last_record = None
+    last_event = None  # _store_published_ride reads this after every post()
+
+    def post(self, ride_record, tags=None, d_tag=None):
+        _RecordingPoster.last_record = ride_record
+        return build_ride_d_tag("hitchmap", tags, d_tag)
+
+    def close(self):
+        pass
+
+
+def test_ride_stops_form_field_reaches_the_published_record(client, monkeypatch):
+    monkeypatch.setattr(main, "HitchhikingDataStandardToNostrPoster", _RecordingPoster)
+
+    form = dict(_FORM, client_d_tag="stops-1", ride_stops=json.dumps(["onsen", "grandparents' house"]))
+    r = client.post("/ride", data=form, headers=_HEADERS)
+
+    assert r.status_code == 200 and r.get_json()["ok"]
+    labels = [s.label for s in _RecordingPoster.last_record.stops[1:-1]]
+    assert labels == ["onsen", "grandparents' house"]
+
+
+def test_too_many_ride_stops_is_a_400_not_silently_truncated(client, monkeypatch):
+    monkeypatch.setattr(main, "HitchhikingDataStandardToNostrPoster", _RecordingPoster)
+
+    form = dict(_FORM, client_d_tag="stops-2", ride_stops=json.dumps([f"stop {i}" for i in range(21)]))
+    r = client.post("/ride", data=form, headers=_HEADERS)
+
+    assert r.status_code == 400
+    assert r.get_json()["ok"] is False
+
+
+def test_malformed_ride_stops_json_is_treated_as_no_stops(client, monkeypatch):
+    """A tampered or corrupted hidden field must not 500 -- degrade to "no stops"."""
+    monkeypatch.setattr(main, "HitchhikingDataStandardToNostrPoster", _RecordingPoster)
+
+    form = dict(_FORM, client_d_tag="stops-3", ride_stops="not json")
+    r = client.post("/ride", data=form, headers=_HEADERS)
+
+    assert r.status_code == 200 and r.get_json()["ok"]
+    assert _RecordingPoster.last_record.stops[1:-1] == []
+
+
+def test_editing_a_ride_preserves_a_foreign_coordinate_stop(app, client, monkeypatch):
+    """The form only ever creates label-only intermediate stops (no coordinate picker).
+    Resaving a ride that already has a coordinate-bearing intermediate stop from some
+    other Nostr client must not silently drop that coordinate -- see
+    foreign_coordinate_intermediate_stops in publish_ride.py."""
+    from hitch.extensions import db as _db
+    from hitch.models import RideEvent, User
+    from tests.conftest import TEST_PUBKEY
+
+    username = "foreignstopowner"
+    d_tag = "hitchmap-foreign-stop-test"
+    with app.app_context():
+        _db.session.query(RideEvent).filter_by(d=d_tag).delete()
+        _db.session.query(User).filter_by(username=username).delete()
+        user = User(
+            username=username,
+            email="foreignstopowner@example.com",
+            password="x",
+            active=True,
+            fs_uniquifier="foreign-stop-test-uniquifier",
+        )
+        _db.session.add(user)
+        _db.session.add(
+            RideEvent(
+                id="foreignstopevt",
+                pubkey=TEST_PUBKEY,
+                sig="s" * 128,
+                kind=36820,
+                created_at=1_800_000_000,
+                d=d_tag,
+                tags=[["d", d_tag], ["published_at", "1800000000"]],
+                content={
+                    "version": "1.0.0",
+                    "source": "hitchmap.com",
+                    "comment": "old ride",
+                    "rating": 4,
+                    "submission_time": "2026-07-01T10:00:00",
+                    "hitchhikers": [{"nickname": username}],
+                    "stops": [
+                        {"location": {"latitude": 52.0, "longitude": 13.0}},
+                        {"location": {"latitude": 52.05, "longitude": 13.05}, "label": "a real waypoint"},
+                        {"location": {"latitude": 52.1, "longitude": 13.1}},
+                    ],
+                },
+            )
+        )
+        _db.session.commit()
+
+    with client.session_transaction() as sess:
+        sess["_user_id"] = "foreign-stop-test-uniquifier"
+        sess["_fresh"] = True
+
+    monkeypatch.setattr(main, "HitchhikingDataStandardToNostrPoster", _RecordingPoster)
+    form = dict(
+        _FORM,
+        edit_d_tag=d_tag,
+        client_d_tag="stops-edit-1",
+        ride_stops="[]",  # the label editor never touched anything -- submits empty
+    )
+    r = client.post("/ride", data=form, headers=_HEADERS)
+
+    assert r.status_code == 200 and r.get_json()["ok"], r.get_json()
+    stops = _RecordingPoster.last_record.stops
+    intermediate = stops[1:-1]
+    assert len(intermediate) == 1
+    assert intermediate[0].location is not None
+    assert intermediate[0].location.latitude == 52.05
+    assert intermediate[0].label == "a real waypoint"
+
+    with client.session_transaction() as sess:
+        sess.clear()
+    with app.app_context():
+        _db.session.query(RideEvent).filter_by(d=d_tag).delete()
+        _db.session.query(User).filter_by(username=username).delete()
+        _db.session.commit()

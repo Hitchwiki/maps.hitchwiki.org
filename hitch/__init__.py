@@ -1,14 +1,16 @@
 """Initialize the Flask application at flask init."""
 
 import importlib
+import json
 import mimetypes
 import os
 import resource
 import sys
 import time as time_module
+from urllib.parse import quote
 
 import click
-from flask import Flask, has_request_context, render_template, request, send_from_directory
+from flask import Flask, g, has_request_context, render_template, request, send_from_directory
 from flask.sessions import SecureCookieSessionInterface
 from flask_security import SQLAlchemyUserDatastore
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -19,8 +21,11 @@ from hitch.blueprints.messages import messages_bp
 from hitch.blueprints.oauth import oauth_bp
 from hitch.blueprints.user import user_bp
 from hitch.extensions import db, mail, security
+from hitch.helpers import convert_km, current_distance_unit, distance_unit_label, format_distance
 from hitch.models import Role, User
-from hitch.settings import config
+from hitch.settings import INSECURE_DEFAULT_PASSWORD_SALT, INSECURE_DEFAULT_SECRET_KEY, config
+from hitch.translations import LANGUAGE_ENDONYMS, LANGUAGE_FLAGS, SUPPORTED_LANGUAGES, client_translations, t
+from hitch.translations.weekdays import weekday_abbrs, weekday_index, weekday_names, with_weekday
 
 baseDir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
@@ -29,10 +34,63 @@ if ENVIRONMENT not in ["prod", "dev"]:
     print("ENVIRONMENT variable must be 'prod' or 'dev'")
     sys.exit(1)
 
+# Not in the system mime table on a slim container image, so dist/spots.gpx would be
+# served as application/octet-stream and some phones would offer to "open with" nothing.
+mimetypes.add_type("application/gpx+xml", ".gpx")
+
+# Where volunteers actually land. Both are linked from several places (the menu sheet,
+# /help, future emails), and the Signal invite in particular is a rotating group link --
+# defined once here and exposed as a template global so replacing it is a one-line change
+# rather than a hunt through templates.
+SIGNAL_CHAT_URL = "https://signal.group/#CjQKIFSj0oaPjMY_eB1uHfXEuxH459W6gtfEke0krGgTabZBEhB1ZK3YP53QSPBuviWzHO_F"
+HITCHWIKI_ROLES_URL = "https://hitchwiki.org/en/Roles"
+
 
 # The endpoints set_public_cache_headers marks publicly cacheable. Their responses are
 # identical for every visitor and must never carry per-user state.
 _PUBLIC_CACHE_ENDPOINTS = ("static", "catch_all")
+
+
+def strip_lang_prefix(path):
+    """Split a URL path into its language mirror prefix and the route beneath it.
+
+    "/fi/account/X" -> ("fi", "/account/X"); "/account/X" -> (None, "/account/X").
+
+    Every main_bp/user_bp route is registered again under /<lang> for each non-English
+    language (register_blueprints), so any rule about *which route* this is has to be
+    written against the stripped path -- a root-anchored `startswith("/account/")` silently
+    exempts 30 of the 31 URLs the same view answers on. That is exactly how
+    /fi/account/<name> and /mn/spot/<id> ended up in Google's index.
+    """
+    lang = next(
+        (code for code in SUPPORTED_LANGUAGES if code != "en" and (path == f"/{code}" or path.startswith(f"/{code}/"))),
+        None,
+    )
+    return (lang, (path[len(lang) + 1 :] or "/")) if lang else (None, path)
+
+
+# Per-user and per-action pages that must never enter a search index, in any language.
+#
+# /account/<username> renders 200 for ANY name -- deliberately, so rides logged under a
+# legacy nickname stay browsable -- which makes it an unbounded space of indexable
+# soft-404s (Google had picked up names belonging to nobody). The report/accept routes are
+# one-off actions tied to a single ride id. /dir/<from>/<to> was already noindex via a
+# <meta> tag (render_directions) -- its URL space is the square of the spot space -- but
+# only the tag, so its 31 mirrors still advertised each other as translations.
+NOINDEX_PREFIXES = ("/account/", "/report-ride/", "/accept-co-hitchhiking-ride/", "/dir/")
+
+# Pages whose *content* is the same in every language: user-generated ride text with only
+# the UI furniture translated. The unprefixed page is the one that may be indexed; its 30
+# language mirrors are thin duplicates of it, and Google had indexed a scattering of them
+# (/mn/spot/45.78421_21.21907, /it/spot/64.16578_-21.69205, ...). Same call cities.py makes
+# by only translating the top 400 cities.
+LANG_MIRROR_NOINDEX_PREFIXES = ("/spot/",)
+
+
+def page_is_noindex(path):
+    """Whether this exact path must be kept out of the index (see the tuples above)."""
+    lang, route = strip_lang_prefix(path)
+    return route.startswith(NOINDEX_PREFIXES) or (lang is not None and route.startswith(LANG_MIRROR_NOINDEX_PREFIXES))
 
 
 class _CacheAwareSessionInterface(SecureCookieSessionInterface):
@@ -75,6 +133,25 @@ def create_app(config_name=None):
     # needed fo r correct OAuth callback URLs and to avoid mixed content issues when behind a reverse proxy
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
     app.config.from_object(config[config_name])
+    # Both SECRET_KEY and SECURITY_PASSWORD_SALT fall back to well-known, publicly
+    # visible default values (see settings.py) so a fresh `cp example.env .env` still
+    # boots for local dev. SECRET_KEY signs session and remember-me cookies (the latter
+    # good for a year, see REMEMBER_COOKIE_DURATION); a known value lets anyone forge
+    # them. ENVIRONMENT=prod is required and validated above (the app already refuses to
+    # start without it), so it is the reliable signal here -- FLASK_CONFIG is not: it
+    # silently defaults to "development" if unset, and example.env itself ships
+    # FLASK_CONFIG=development, so a production .env that only set ENVIRONMENT=prod and
+    # forgot FLASK_CONFIG would otherwise run ProductionConfig's weaker sibling with no
+    # warning at all.
+    if ENVIRONMENT == "prod" and app.config["SECRET_KEY"] == INSECURE_DEFAULT_SECRET_KEY:
+        raise RuntimeError(
+            "Refusing to start with ENVIRONMENT=prod and the default SECRET_KEY. Set a real SECRET_KEY in .env (see example.env)."
+        )
+    if ENVIRONMENT == "prod" and app.config["SECURITY_PASSWORD_SALT"] == INSECURE_DEFAULT_PASSWORD_SALT:
+        raise RuntimeError(
+            "Refusing to start with ENVIRONMENT=prod and the default SECURITY_PASSWORD_SALT. "
+            "Set a real SECURITY_PASSWORD_SALT in .env (see example.env)."
+        )
     # See _CacheAwareSessionInterface for why Vary: Cookie needs stripping here,
     # not in an after_request hook.
     app.session_interface = _CacheAwareSessionInterface()
@@ -84,8 +161,111 @@ def create_app(config_name=None):
     register_commands(app)
     register_routes(app)
     register_template_globals(app)
+    register_i18n(app)
 
     return app
+
+
+def register_i18n(app):
+    app.jinja_env.globals["t"] = t
+    app.jinja_env.globals["SUPPORTED_LANGUAGES"] = SUPPORTED_LANGUAGES
+    app.jinja_env.globals["LANGUAGE_ENDONYMS"] = LANGUAGE_ENDONYMS
+    app.jinja_env.globals["LANGUAGE_FLAGS"] = LANGUAGE_FLAGS
+    # Every displayed ride date carries its weekday in front ("Fri 2026-08-01 11:32") --
+    # which day of the week a ride happened is a first-class hitchhiking fact (a Sunday
+    # motorway is a different place than a Tuesday one), so it should not need counting
+    # back from a date. The ride-card dicts store plain stamps, so the weekday is added
+    # at render time rather than baked in: show.py writes its cards once, from cron, for
+    # pages that are then rendered in all 31 languages.
+    app.jinja_env.globals["with_weekday"] = with_weekday
+    app.jinja_env.globals["weekday_names"] = weekday_names
+    app.jinja_env.globals["weekday_abbrs"] = weekday_abbrs
+    app.jinja_env.globals["weekday_index"] = weekday_index
+
+    @app.template_global()
+    def client_translations_json():
+        """The current language's translation dict as a JSON literal, for map.js's
+        JS-side t() -- see the <script> in map.html that sets window.__TRANSLATIONS__.
+        Not marked |tojson in the template because Jinja's tojson HTML-escapes (turns
+        '"' into '&#34;' etc.) for safe embedding in an attribute, which would corrupt
+        the JSON when embedded directly in a <script> body; json.dumps is exactly what
+        we want there, just needs `</` guarded so a translation can't prematurely close
+        the surrounding <script> tag.
+        """
+        return json.dumps(client_translations(), ensure_ascii=False).replace("</", "<\\/")
+
+    @app.template_global()
+    def client_weekdays_json():
+        """The current language's weekday names as a JSON literal, for map.js/account.js
+        (window.__WEEKDAYS__). Injected rather than left to toLocaleDateString() so a
+        client-rendered ride card prints the same weekday as the server-rendered card
+        beside it, on every browser -- ICU data for the smaller languages here (Georgian,
+        Mongolian) is not something we can assume. Same `</` guard as above."""
+        payload = {"abbr": list(weekday_abbrs()), "names": list(weekday_names())}
+        return json.dumps(payload, ensure_ascii=False).replace("</", "<\\/")
+
+    # The only signal for which language to render: which blueprint registration
+    # served the request (see register_blueprints -- main_bp and user_bp are each
+    # registered again per non-English language, as "main_<lang>" / "user_<lang>").
+    # Nothing to do with Accept-Language or cookies, so a URL always renders the
+    # same language for every visitor/crawler.
+    @app.before_request
+    def set_locale():
+        bp = request.blueprint or ""
+        lang = bp.rsplit("_", 1)[1] if "_" in bp else "en"
+        g.lang = lang if lang in SUPPORTED_LANGUAGES else "en"
+
+    # Every main_bp/user_bp route is mirrored under 31 language prefixes, so a live
+    # page with no canonical exists at 31 indistinguishable URLs -- which is what
+    # Search Console reports as "Duplicate without user-selected canonical". Default
+    # every page to a self-referencing canonical; the hreflang block in base.html
+    # declares the mirrors as translations of each other, and self-referencing is the
+    # pattern that pairs with it (canonicalising a mirror onto the English original
+    # instead tells Google to drop the mirror -- "Alternate page with proper canonical
+    # tag"). A context processor rather than a template global because Flask re-applies
+    # the explicit render_template() context on top of context processors, so a view
+    # with a better answer (a .html twin, a map variation) just passes canonical_url=.
+    @app.context_processor
+    def inject_canonical_url():
+        if not request:
+            return {}
+        # https is stated, not read off the request: waitress strips the
+        # X-Forwarded-Proto that ProxyFix would need, so the scheme reads as http in
+        # production and search engines discard an insecure canonical on an https page
+        # (see main._external_https). request.path drops the query string on purpose --
+        # /?heatmap=true is a client-side toggle over the same HTML, not a page.
+        # request.path is percent-DEcoded, so it has to be re-encoded: /country/United
+        # States and /account/Hélia would otherwise emit a canonical containing a raw
+        # space / non-ASCII byte, which is not a valid URL and is ignored.
+        return {"canonical_url": f"https://{request.host}{quote(request.path)}"}
+
+    # base.html declares the 31 mirrors of a page as translations of each other. That
+    # cluster is only meaningful between *indexable* pages: an hreflang entry pointing at a
+    # noindexed URL is a contradiction, which Google resolves by dropping the entry and can
+    # end up discounting the whole set. So a page that is itself noindexed, or whose mirrors
+    # are (a spot page), emits no alternates at all. Its canonical stays self-referencing:
+    # canonicalising a mirror onto the English page would be the same mixed signal from the
+    # other side, and a noindexed page's canonical is moot anyway.
+    @app.context_processor
+    def inject_hreflang_flag():
+        if not request:
+            return {}
+        _, route = strip_lang_prefix(request.path)
+        clustered = not (route.startswith(NOINDEX_PREFIXES) or route.startswith(LANG_MIRROR_NOINDEX_PREFIXES))
+        return {"emit_hreflang": clustered}
+
+    @app.template_global()
+    def lang_switch_url(lang):
+        """The current page's URL rewritten into `lang`, for the language switcher.
+
+        Every main_bp/user_bp route is mirrored verbatim under /<lang> for each
+        non-English language (register_blueprints), so switching is just adding/
+        stripping that one prefix -- no per-route translation table to maintain.
+        """
+        _, stripped = strip_lang_prefix(request.path)
+        target = stripped if lang == "en" else (f"/{lang}" if stripped == "/" else f"/{lang}{stripped}")
+        qs = request.query_string.decode()
+        return target + (f"?{qs}" if qs else "")
 
 
 def register_template_globals(app):
@@ -102,6 +282,17 @@ def register_template_globals(app):
             return path
         sep = "&" if "?" in path else "?"
         return f"{path}{sep}v={version}"
+
+    # Community entry points, so the menu sheet and /help can never drift apart on them.
+    app.jinja_env.globals["SIGNAL_CHAT_URL"] = SIGNAL_CHAT_URL
+    app.jinja_env.globals["HITCHWIKI_ROLES_URL"] = HITCHWIKI_ROLES_URL
+
+    # Distance rendering follows the logged-in user's unit preference (User.distance_unit).
+    # Exposed as template globals so every page formats km through one place.
+    app.jinja_env.globals["format_distance"] = format_distance
+    app.jinja_env.globals["convert_km"] = convert_km
+    app.jinja_env.globals["distance_unit"] = current_distance_unit
+    app.jinja_env.globals["distance_unit_label"] = distance_unit_label
 
 
 def register_extensions(app):
@@ -120,6 +311,19 @@ def register_blueprints(app):
     app.register_blueprint(main_bp)
     app.register_blueprint(user_bp)
     app.register_blueprint(messages_bp)
+    # Every non-English language in SUPPORTED_LANGUAGES gets a /<lang> mirror of
+    # main_bp and user_bp, sharing the exact same view functions -- see CLAUDE.md's
+    # URL scheme section: identity lives in the path, so /de/spot/<id> is simply a
+    # different path to the same spot. set_locale() (register_i18n) tells all these
+    # registrations apart by request.blueprint ("main_<lang>" / "user_<lang>").
+    # /me, /leaderboard, /races etc. need a mirror too, not just the map itself --
+    # though a handler that does e.g. redirect("/me") still lands on the English
+    # path either way; that's a known gap, not something this mirror fixes.
+    for lang in SUPPORTED_LANGUAGES:
+        if lang == "en":
+            continue
+        app.register_blueprint(main_bp, url_prefix=f"/{lang}", name=f"main_{lang}")
+        app.register_blueprint(user_bp, url_prefix=f"/{lang}", name=f"user_{lang}")
 
 
 def register_commands(app):
@@ -208,7 +412,9 @@ def register_commands(app):
             "sync_hitchwiki": os.path.join(dist_dir, "hitchwiki_articles.json"),
             "sync_events": os.path.join(dist_dir, "events.json"),
             "show": os.path.join(dist_dir, "spots.json"),
-            "dashboard": os.path.join(dist_dir, "dashboard.html"),
+            "why_not_hitchhike": os.path.join(dist_dir, "why_not_hitchhike.json"),
+            "wait_statistics": os.path.join(dist_dir, "statistics.json"),
+            "ride_collection_statistics": os.path.join(dist_dir, "ride_collection_statistics.json"),
             "cities": os.path.join(dist_dir, "city", "index.html"),
         }
 
@@ -221,7 +427,13 @@ def register_commands(app):
             *([("sync_hitchwiki", "")] if ENVIRONMENT == "prod" else []),
             *([("sync_events", "")] if ENVIRONMENT == "prod" else []),
             ("show", ""),
-            ("dashboard", ""),
+            # After show: it reads the rides_index.json that show writes. Listed here so a
+            # fresh install has a populated /why-not-hitchhike immediately, instead of an
+            # empty page until the weekly cron first fires.
+            ("why_not_hitchhike", ""),
+            # Same dependency as why_not_hitchhike: the ride table must exist first.
+            ("wait_statistics", ""),
+            ("ride_collection_statistics", ""),
             *([("cities", "")] if ENVIRONMENT == "prod" else []),
         ]
         for script, args in scripts:
@@ -266,19 +478,38 @@ def register_routes(app):
                 response = send_from_directory(dist_dir, path + ".gz", mimetype=mimetype)
                 response.headers["Content-Encoding"] = "gzip"
                 response.headers["Vary"] = "Accept-Encoding"
+                # send_from_directory names the attachment after the file it actually
+                # read (spots.gpx.gz), and a filename in Content-Disposition outranks
+                # the bare `download` attribute on the menu link. The browser decodes
+                # the gzip layer, so that would save plain XML under a .gz name — which
+                # won't gunzip and which GPX viewers reject on extension. Report the
+                # requested name instead.
+                response.headers["Content-Disposition"] = f"inline; filename={os.path.basename(path)}"
                 return response
 
         return send_from_directory(os.path.join(baseDir, "dist"), path)
 
+    # Both pages answer to a bare path and a ".html" twin (the twin is the historical
+    # hitchmap.com URL, kept so old links resolve). Two URLs, one page -- so the twin
+    # names the bare path as canonical rather than competing with it. These are
+    # app-level routes, not blueprint ones, so they exist only in English and the
+    # canonical needs no language prefix.
     @app.route("/copyright")
     @app.route("/copyright.html")
     def copyright():
-        return render_template("copyright.html")
+        return render_template("copyright.html", canonical_url=f"https://{request.host}/copyright")
 
     @app.route("/privacy")
     @app.route("/privacy.html")
     def privacy():
-        return render_template("privacy.html")
+        return render_template("privacy.html", canonical_url=f"https://{request.host}/privacy")
+
+    @app.route("/delete-account")
+    def delete_account():
+        return render_template(
+            "delete_account.html",
+            canonical_url=f"https://{request.host}/delete-account",
+        )
 
     # These files are manually served in such a way to conform to web standards of them being in the root
     @app.route("/favicon.ico")
@@ -301,6 +532,18 @@ def register_routes(app):
         return send_from_directory(
             os.path.join(app.root_path, "static"),
             "sw.js",
+        )
+
+    # Taginfo project file: lets OSM's taginfo (https://taginfo.openstreetmap.org)
+    # list this project under the OSM tags it consumes. Taginfo polls it daily; the
+    # URL registered in taginfo-projects is https://maps.hitchwiki.org/taginfo.json,
+    # so it must be served from the site root, not from /static/.
+    @app.route("/taginfo.json")
+    def taginfo():
+        return send_from_directory(
+            os.path.join(app.root_path, "static"),
+            "taginfo.json",
+            mimetype="application/json",
         )
 
     # Digital Asset Links: proves this domain authorises the Android TWA wrapper
@@ -339,6 +582,12 @@ def register_routes(app):
                 # briefly, then revalidate (ETag turns the recheck into a 304).
                 response.headers["Cache-Control"] = "public, max-age=300"
             response.headers["Vary"] = "Accept-Encoding"
+        elif endpoint == "catch_all" and request.path.startswith(("/ride-images/", "/profile-images/")):
+            # An uploaded photo's filename is a uuid, so the bytes at a given URL can
+            # never change — only be deleted. Same reasoning as the ?v= assets above:
+            # cache it for a year instead of revalidating every profile/ride page view.
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+            response.headers["Vary"] = "Accept-Encoding"
         elif endpoint == "catch_all":
             # dist/* regenerates every ~10 min and is already ~40 min stale by design, so
             # a 5-min cache + stale-while-revalidate is invisible and skips the reload
@@ -346,4 +595,23 @@ def register_routes(app):
             # files vary only by gzip vs plain, never by cookie — drop Vary: Cookie.
             response.headers["Cache-Control"] = "public, max-age=300, stale-while-revalidate=600"
             response.headers["Vary"] = "Accept-Encoding"
+        return response
+
+    # Keeps the pages named by NOINDEX_PREFIXES / LANG_MIRROR_NOINDEX_PREFIXES (module
+    # level, with the reasoning) out of search indexes, plus /login?next=, which is a
+    # duplicate of /login with a throwaway parameter. Bare /login stays indexable.
+    #
+    # Sent as a header rather than a <meta> tag so it applies to redirects and to
+    # every template in the group without relying on inheritance.
+    #
+    # NOTE: robots.txt must keep allowing these paths. A Disallow would stop
+    # crawlers fetching them, so they would never see this header, and URLs already
+    # in the index would stay there — the opposite of the intent.
+    @app.after_request
+    def set_noindex_headers(response):
+        # The route beneath the /<lang> mirror prefix, so one rule covers all 31 URLs a
+        # view answers on — matching request.path directly exempted the 30 mirrors.
+        _, route = strip_lang_prefix(request.path)
+        if page_is_noindex(request.path) or (route.rstrip("/") == "/login" and request.args.get("next")):
+            response.headers["X-Robots-Tag"] = "noindex"
         return response

@@ -1,6 +1,6 @@
 {% extends "security/base.html" %}
 
-{% set title = user.username ~ " – Insights" %}
+{% set title = t("{name} – Insights", name=user.username) %}
 
 {% block content %}
 <style>
@@ -66,15 +66,15 @@ a.record:hover { border-color: #dcc688; }
 .achievement-progress { font-size: 0.76em; color: #888; margin-top: 3px; }
 </style>
 
-<h1>Insights</h1>
+<h1>{{ t("Insights") }}</h1>
 <p style="color:#666; font-size:0.9em; margin-top:-8px;">{{ user.username }}</p>
 
 {% if records.distance or records.wait %}
 <div class="record-grid">
   {# A record links to its ride only when the ride has a d-tag; legacy/imported rides have none. #}
   {% for key, emoji, label, value in [
-       ("distance", "🛣️", "Longest ride", records.distance.value | round | int ~ " km" if records.distance else None),
-       ("wait", "⏳", "Longest wait", records.wait.value ~ " min" if records.wait else None),
+       ("distance", "🛣️", t("Longest ride"), format_distance(records.distance.value) if records.distance else None),
+       ("wait", "⏳", t("Longest wait"), t("{min} min", min=records.wait.value) if records.wait else None),
      ] %}
   {% set record = records[key] %}
   {% if record %}
@@ -92,15 +92,15 @@ a.record:hover { border-color: #dcc688; }
 {% endif %}
 
 <div class="stats-grid">
-  <div class="stat"><span class="stat-value">{{ total_rides }}</span><span class="stat-label">rides</span></div>
-  <div class="stat"><span class="stat-value">{{ total_km | round | int }}</span><span class="stat-label">km travelled</span></div>
-  <div class="stat"><span class="stat-value">{{ total_waiting_min | round | int }}</span><span class="stat-label">min waiting</span></div>
-  <div class="stat"><span class="stat-value">{{ partners }}</span><span class="stat-label">partners</span></div>
+  <div class="stat"><span class="stat-value">{{ total_rides }}</span><span class="stat-label">{{ t("rides") }}</span></div>
+  <div class="stat"><span class="stat-value">{{ convert_km(total_km) | round | int }}</span><span class="stat-label">{{ t("{unit} travelled", unit=distance_unit_label()) }}</span></div>
+  <div class="stat"><span class="stat-value">{{ total_waiting_min | round | int }}</span><span class="stat-label">{{ t("min waiting") }}</span></div>
+  <div class="stat"><span class="stat-value">{{ partners }}</span><span class="stat-label">{{ t("partners") }}</span></div>
 </div>
 
-<a href="/?user={{ user.username }}#insights">{{ "See my full insights on the map" if is_me else "See their full insights on the map" }} →</a>
+<a href="/?user={{ user.username }}#insights">{{ t("See my full insights on the map") if is_me else t("See their full insights on the map") }} →</a>
 
-<h2>Achievements</h2>
+<h2>{{ t("Achievements") }}</h2>
 <div class="achievement-list">
   {% for a in achievements %}
   <div class="achievement{% if a.earned %} earned{% endif %}">
@@ -117,5 +117,5 @@ a.record:hover { border-color: #dcc688; }
   {% endfor %}
 </div>
 
-<p><a href="{{ url_for('user.show_account', username=user.username) }}">← Back to profile</a></p>
+<p><a href="{{ url_for('user.show_account', username=user.username) }}">← {{ t("Back to profile") }}</a></p>
 {% endblock %}

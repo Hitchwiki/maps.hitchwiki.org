@@ -2,7 +2,8 @@ from datetime import datetime
 
 import pycountry
 from flask_wtf import FlaskForm
-from wtforms import BooleanField, IntegerField, SelectField, StringField, SubmitField
+from flask_wtf.file import FileField
+from wtforms import BooleanField, IntegerField, RadioField, SelectField, StringField, SubmitField
 from wtforms.validators import Optional
 from wtforms.widgets import NumberInput
 
@@ -10,14 +11,20 @@ from wtforms.widgets import NumberInput
 class CountrySelectField(SelectField):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.choices = [(None, "None")] + [(country.name, country.name) for country in pycountry.countries]
+        self.choices = [("", "None")] + [(country.name, country.name) for country in pycountry.countries]
 
 
 class UserEditForm(FlaskForm):
+    avatar_source = RadioField(
+        "Profile picture",
+        choices=[("none", "No profile picture"), ("upload", "Upload a picture"), ("gravatar", "Use Gravatar")],
+        default="none",
+    )
+    avatar_image = FileField("Choose a picture", validators=[Optional()])
     gender = SelectField(
         "Gender",
         choices=[
-            (None, "None"),
+            ("", "None"),
             ("Female", "Female"),
             ("Male", "Male"),
             ("Non-Binary", "Non-Binary"),
@@ -42,4 +49,9 @@ class UserEditForm(FlaskForm):
     nearby_hitchhikers_email = BooleanField("Email me about other hitchhikers who were close by", default=False)
     allow_messages = BooleanField("Let other hitchhikers message me (adds a Chat button to my profile)", default=True)
     message_email_notifications = BooleanField("Email me when I receive a new message", default=True)
+    distance_unit = SelectField(
+        "Distance units",
+        choices=[("metric", "Metric (km)"), ("imperial", "Imperial (miles)")],
+        default="metric",
+    )
     submit = SubmitField("Submit")

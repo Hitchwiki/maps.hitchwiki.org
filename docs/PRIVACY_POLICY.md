@@ -25,6 +25,21 @@ This information is collected when you provide it to us (like when you fill your
 
 Our server (and thus your data) is securely hosted in the EU.
 
+### Public profile pictures
+
+Adding a profile picture is optional. A picture uploaded to Hitchwiki Maps is made
+public on your profile under the [Creative Commons Attribution-ShareAlike 4.0 (CC
+BY-SA 4.0)](https://creativecommons.org/licenses/by-sa/4.0/) license, with your
+username as the credit. Upload only a picture you own or are allowed to publish under
+that license. We resize uploaded pictures, convert them to JPEG, and remove embedded
+metadata such as GPS location and device details before storing them on our EU server.
+
+You can instead opt into Gravatar. If you do, public profile visits load the picture
+from Gravatar using a one-way SHA-256 hash of your account email. This shares the hash,
+the visitor's IP address, and ordinary browser request information with Gravatar's
+operator. Hitchwiki does not claim a CC BY-SA license over Gravatar pictures. Selecting
+“No profile picture” removes Hitchwiki's stored upload and stops displaying Gravatar.
+
 ### Public publication of ride data (important — please read)
 
 The hitchhiking experiences you submit are **published publicly alongside personal information** — including the username you choose to publish under, start and destination coordinates, waiting time, rating, and any comment you write. Specifically:
@@ -49,7 +64,7 @@ If you do not want your data to be subject to these risks, please **do not submi
 
 ### Research
 
-Hitchhiking and more broadly mobility research might be conducted using the data collected on Hitchwiki Maps including user data. See our [statistics page](https://maps.hitchwiki.org/dashboard.html) for more information.
+Hitchhiking and more broadly mobility research might be conducted using the data collected on Hitchwiki Maps including user data. See our [statistics page](https://maps.hitchwiki.org/statistics) for more information.
 
 ---
 

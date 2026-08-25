@@ -17,32 +17,76 @@
 
   // ── Pure formatters (unit-tested) ──────────────────────────────────────────
 
+  // Distances arrive in km and are rendered in the user's chosen unit. The converters
+  // are map.js globals; fall back to metric so this module still loads standalone
+  // (the node unit tests require() it without map.js).
+  const dispKm = (km) => (typeof toDisplayDistance === "function" ? toDisplayDistance(km) : km);
+  const dispUnit = () => (typeof distanceUnitLabel === "function" ? distanceUnitLabel() : "km");
+
+  // Same fallback dance as dispKm/dispUnit above: tr() is a map.js global, absent when
+  // this module is require()'d standalone under node for the unit tests, so those keep
+  // seeing the plain English (with {placeholder}s substituted by hand).
+  function T(text, vars) {
+    if (typeof tr === "function") return tr(text, vars);
+    if (!vars) return text;
+    return Object.keys(vars).reduce((s, k) => s.split("{" + k + "}").join(vars[k]), text);
+  }
+
   function formatInsights(insights) {
     const i = insights || {};
-    const km = Math.round(i.distance_km || 0);
+    const km = Math.round(dispKm(i.distance_km || 0));
     const mins = Math.round(i.waiting_min || 0);
     const hours = Math.floor(mins / 60);
     return {
       rides: String(i.rides || 0),
-      distance: km.toLocaleString("en-US") + " km",
+      distance: km.toLocaleString("en-US") + " " + dispUnit(),
       // Waiting time reads as hours once it passes an hour; minutes alone below that.
-      waiting: hours > 0 ? hours + " h " + (mins % 60) + " m" : mins + " m",
+      waiting: hours > 0 ? T("{h} h {m} m", { h: hours, m: mins % 60 }) : T("{m} m", { m: mins }),
       partners: String(i.partners || 0),
     };
   }
 
   // `shown` is what the payload carried (capped server-side); `total` is the real count.
   function ridesSummary(shown, total) {
-    if (total > shown) return "Showing " + shown + " of " + total + " rides";
-    return total + (total === 1 ? " ride" : " rides");
+    if (total > shown) return T("Showing {shown} of {total} rides", { shown, total });
+    return T(total === 1 ? "{n} ride" : "{n} rides", { n: total });
   }
 
   function awardsSummary(n) {
-    return n + (n === 1 ? " award earned" : " awards earned");
+    return T(n === 1 ? "{n} award earned" : "{n} awards earned", { n });
+  }
+
+  // ── Weekdays ───────────────────────────────────────────────────────────────
+  // Every ride date here leads with its weekday, as everywhere else on the site:
+  // which day of the week a ride happened is a hitchhiking fact of its own, and a
+  // bare "2026-07-28" makes you count it out. The localized table is map.js's
+  // weekdayAbbrs() (fed by the server, see client_weekdays_json); English is the
+  // fallback for the standalone node tests, which load this module without map.js.
+  const WEEKDAY_ABBR_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+  // Derived from the y/m/d digits via Date.UTC, never from new Date(stamp): the stamp
+  // is already the ride's own local wall-clock time, and letting the browser reinterpret
+  // it against its own zone would shift the weekday for a ride near midnight. Same
+  // reason formatRideDate below parses by hand.
+  function weekdayAbbr(stamp) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(stamp || "");
+    if (!match) return "";
+    const d = new Date(Date.UTC(+match[1], +match[2] - 1, +match[3]));
+    // Reject an out-of-range date ("2026-13-01") rather than let it roll into next month.
+    if (isNaN(d) || d.getUTCMonth() !== +match[2] - 1) return "";
+    const table = typeof weekdayAbbrs === "function" ? weekdayAbbrs() : WEEKDAY_ABBR_EN;
+    // JS weeks start on Sunday (getUTCDay() === 0); the table starts on Monday.
+    return table[(d.getUTCDay() + 6) % 7];
+  }
+
+  // "2026-07-28" -> "Tue 2026-07-28". Unparseable stamps come back untouched.
+  function withWeekday(stamp) {
+    const abbr = weekdayAbbr(stamp);
+    return abbr ? abbr + " " + stamp : (stamp || "");
   }
 
   function rideLabel(ride) {
-    const when = (ride.created || "").slice(0, 10);
+    const when = withWeekday((ride.when || ride.created || "").slice(0, 10));
     const stars = ride.rating ? "★".repeat(ride.rating) : "";
     return { when: when, stars: stars, comment: (ride.comment || "").trim() };
   }
@@ -53,21 +97,23 @@
   ];
 
   // "2026-07-28 12:00" -> "28 - July - 26 12:00". Parsed by hand rather than with Date():
-  // `created` is already the user's local submission time, and new Date("...") would
-  // re-interpret it against the browser's zone and shift the day.
+  // the stamp is already a local wall-clock time (the ride's own time, or the submission
+  // time when it has none), and new Date("...") would re-interpret it against the
+  // browser's zone and shift the day.
   function formatRideDate(created) {
     const match = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/.exec(created || "");
     if (!match) return "";
     const month = MONTHS[Number(match[2]) - 1];
     if (!month) return "";
     const stamp = match[1].slice(2) + (match[4] ? " " + match[4] + ":" + match[5] : "");
-    return Number(match[3]) + " - " + month + " - " + stamp;
+    const abbr = weekdayAbbr(created);
+    return (abbr ? abbr + " " : "") + Number(match[3]) + " - " + T(month) + " - " + stamp;
   }
 
   // What identifies a ride in the list. Place names when we have them; otherwise the
   // date, which is the only other thing that distinguishes one ride from another.
   function rideTitle(ride) {
-    return rideRoute(ride) || formatRideDate(ride.created) || "Unknown ride";
+    return rideRoute(ride) || formatRideDate(ride.when || ride.created) || T("Unknown ride");
   }
 
   // The route split into its two ends, so the row can render the destination as a real
@@ -85,16 +131,16 @@
     const toFlag = flagEmoji(ride.to_cc);
 
     // With no origin name the date carries the row, and the arrow would dangle.
-    const start = from ? (fromFlag ? fromFlag + " " + from : from) : formatRideDate(ride.created) || "Unknown ride";
+    const start = from ? (fromFlag ? fromFlag + " " + from : from) : formatRideDate(ride.when || ride.created) || T("Unknown ride");
 
     if (to) return { start: start, end: toFlag ? toFlag + " " + to : to, endKind: "place" };
-    if (ride.gave_up) return { start: start, end: "gave up", endKind: "gaveup" };
+    if (ride.gave_up) return { start: start, end: T("gave up"), endKind: "gaveup" };
     if (ride.missing_destination) return { start: start, end: "", endKind: "missing" };
     return { start: start, end: "", endKind: null };
   }
 
   function durationText(mins) {
-    return mins >= 60 ? Math.floor(mins / 60) + " h " + (mins % 60) + " m" : mins + " min";
+    return mins >= 60 ? T("{h} h {m} m", { h: Math.floor(mins / 60), m: mins % 60 }) : T("{m} min", { m: mins });
   }
 
   // The stats beside a ride's completion pie, as {text, dot} entries so the row can draw
@@ -106,12 +152,12 @@
   // misleading "0 min" / "0 km". A real zero is data, though, and still renders.
   function rideStats(ride, includeDate) {
     const out = [];
-    const when = includeDate === false ? "" : (ride.created || "").slice(0, 10);
+    const when = includeDate === false ? "" : withWeekday((ride.when || ride.created || "").slice(0, 10));
     if (when) out.push({ text: when, dot: null });
     if (ride.wait_min != null) out.push({ text: durationText(ride.wait_min), dot: "stopped" });
     if (ride.ride_min != null) out.push({ text: durationText(ride.ride_min), dot: "going" });
     if (ride.distance_km != null) {
-      out.push({ text: Math.round(ride.distance_km).toLocaleString("en-US") + " km", dot: null });
+      out.push({ text: Math.round(dispKm(ride.distance_km)).toLocaleString("en-US") + " " + dispUnit(), dot: null });
     }
     return out;
   }
@@ -169,8 +215,8 @@
   }
 
   function nudgeText(n) {
-    if (n === 0) return "Every ride is fully logged. Nice.";
-    return n === 1 ? "1 ride could use more detail" : n + " rides could use more detail";
+    if (n === 0) return T("Every ride is fully logged. Nice.");
+    return T(n === 1 ? "{n} ride could use more detail" : "{n} rides could use more detail", { n });
   }
 
   // Where a ride's "fix this" CTAs point, or null when the ride isn't editable.
@@ -223,13 +269,13 @@
     sheet.appendChild(el("div", "inr-sheet__grab"));
     const closeX = el("button", "inr-sheet__close");
     closeX.type = "button";
-    closeX.setAttribute("aria-label", "Close");
+    closeX.setAttribute("aria-label", T("Close"));
     closeX.innerHTML = "&times;";
     closeX.addEventListener("click", close);
     sheet.appendChild(closeX);
 
     const body = el("div", "acct-body");
-    body.appendChild(el("p", "acct-loading", "Loading…"));
+    body.appendChild(el("p", "acct-loading", T("Loading…")));
     sheet.appendChild(body);
 
     function onKey(e) {
@@ -263,39 +309,89 @@
       })
       .catch(function () {
         body.innerHTML = "";
-        body.appendChild(el("p", "acct-error", "Couldn't load your account. Check your connection."));
+        body.appendChild(el("p", "acct-error", T("Couldn't load your account. Check your connection.")));
       });
   }
 
   function renderLoggedOut(body) {
-    body.appendChild(el("h4", null, "Your rides, saved"));
+    body.appendChild(el("h4", null, T("Your rides, saved")));
     body.appendChild(
-      el("p", "acct-pitch", "Log in to track your hitchhiking, keep your ride history, and see your stats.")
+      el("p", "acct-pitch", T("Log in to track your hitchhiking, keep your ride history, and see your stats."))
     );
     const btn = el("button", "inr-big inr-big--green");
     btn.type = "button";
-    btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Log in with Hitchwiki';
+    btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> ' + T("Log in with Hitchwiki");
     btn.addEventListener("click", startLogin);
     body.appendChild(btn);
+
+    // The same disclaimer /login carries (security/login_user.html): someone signing up from
+    // the map must learn that their rides become public *before* they log in, not only on the
+    // route they happen not to take. Kept below the button because the modal's job is the CTA;
+    // the fine print sits under it. Links open in a new tab -- this modal exists precisely so
+    // the map (and any in-progress ride) is not unloaded.
+    const notes = el("div", "acct-legal");
+    [
+      T(
+        "The Hitchhiking Map is made for all hitchhikers to learn from each others experiences. Thus all your rides and " +
+          "personal information (except your email address) will be publicly available. Only share as much as you are " +
+          "comfortable with. Keep in mind that hitchhikers are a vulnerable group and may face risks while traveling. Read " +
+          "our {link} for more information on how we handle your data and what you can do to protect yourself.",
+        { link: '<a href="/privacy" target="_blank" rel="noopener">' + T("privacy policy") + "</a>" }
+      ),
+      T(
+        "Log in with your Hitchwiki account. If you don't have one yet, you can {link}. A new account on the Hitchhiking " +
+          "Map will be created for you automatically on first login.",
+        {
+          link:
+            '<a href="https://hitchwiki.org/en/Special:CreateAccount" target="_blank" rel="noopener">' +
+            T("create one on hitchwiki.org") +
+            "</a>",
+        }
+      ),
+      T(
+        "If you used other hitchhiking applications such as Hitchmap before whose data can also be seen here, just use " +
+          "the same username to sign up to claim those rides for you."
+      ),
+    ].forEach(function (html) {
+      const p = el("p");
+      p.innerHTML = html;
+      notes.appendChild(p);
+    });
+    body.appendChild(notes);
   }
 
   function renderLoggedIn(body, data, needsProfile) {
-    body.appendChild(el("h4", "acct-username", data.username));
+    const identity = el("div", "acct-identity");
+    if (data.profile_image_url) {
+      const avatar = el("img", "acct-avatar");
+      avatar.src = data.profile_image_url;
+      avatar.alt = T("Your profile picture");
+      avatar.referrerPolicy = "no-referrer";
+      avatar.addEventListener("error", function () { avatar.remove(); });
+      identity.appendChild(avatar);
+    }
+    const identityText = el("div", "acct-identity__text");
+    identityText.appendChild(el("h4", "acct-username", data.username));
+    const editProfile = el("a", "acct-edit-profile", T("Edit profile"));
+    editProfile.href = "/edit-user";
+    identityText.appendChild(editProfile);
+    identity.appendChild(identityText);
+    body.appendChild(identity);
 
     if (needsProfile) {
       const nudge = el("a", "acct-nudge");
       nudge.href = "/edit-user";
-      nudge.textContent = "Finish setting up your profile →";
+      nudge.textContent = T("Finish setting up your profile →");
       body.appendChild(nudge);
     }
 
     const s = formatInsights(data.insights);
     const stats = el("div", "acct-stats");
     [
-      ["Rides", s.rides],
-      ["Distance", s.distance],
-      ["Waiting", s.waiting],
-      ["Partners", s.partners],
+      [T("Rides"), s.rides],
+      [T("Distance"), s.distance],
+      [T("Waiting"), s.waiting],
+      [T("Partners"), s.partners],
     ].forEach(function (pair) {
       const cell = el("div", "acct-stat");
       cell.appendChild(el("span", "acct-stat__val", pair[1]));
@@ -341,7 +437,7 @@
         li.classList.add("acct-ride--clickable");
         li.tabIndex = 0;
         li.setAttribute("role", "link");
-        li.setAttribute("aria-label", "View ride details");
+        li.setAttribute("aria-label", T("View ride details"));
         const openView = function () { window.open(viewUrl, "_blank", "noopener"); };
         li.addEventListener("click", function (e) {
           // The pie and the warning are their own links to the edit form; a click on one
@@ -372,8 +468,8 @@
         rosette.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i>';
         pie.appendChild(rosette);
         pie.setAttribute("role", "img");
-        pie.setAttribute("aria-label", "Ride fully logged");
-        pie.title = "Fully logged — nice one!";
+        pie.setAttribute("aria-label", T("Ride fully logged"));
+        pie.title = T("Fully logged — nice one!");
       } else {
         const cta = Boolean(editUrl);
         pie = el(cta ? "a" : "span", "acct-pie acct-pie--" + tier + (cta ? " acct-pie--cta" : ""));
@@ -384,12 +480,12 @@
           pie.href = editUrl;
           pie.target = "_blank";
           pie.rel = "noopener";
-          pie.title = pct + "% complete — add driver and vehicle details";
-          pie.setAttribute("aria-label", "Ride " + pct + "% complete. Add driver and vehicle details.");
+          pie.title = T("{pct}% complete — add driver and vehicle details", { pct });
+          pie.setAttribute("aria-label", T("Ride {pct}% complete. Add driver and vehicle details.", { pct }));
         } else {
           pie.setAttribute("role", "img");
-          pie.setAttribute("aria-label", pct + "% of driver and vehicle details recorded");
-          pie.title = pct + "% complete";
+          pie.setAttribute("aria-label", T("{pct}% of driver and vehicle details recorded", { pct }));
+          pie.title = T("{pct}% complete", { pct });
         }
       }
       li.appendChild(pie);
@@ -420,12 +516,12 @@
           warn.href = editUrl;
           warn.target = "_blank";
           warn.rel = "noopener";
-          warn.title = "No destination recorded — add it";
-          warn.setAttribute("aria-label", "No destination recorded for this ride. Add it.");
+          warn.title = T("No destination recorded — add it");
+          warn.setAttribute("aria-label", T("No destination recorded for this ride. Add it."));
         } else {
-          warn.title = "No destination recorded for this ride";
+          warn.title = T("No destination recorded for this ride");
           warn.setAttribute("role", "img");
-          warn.setAttribute("aria-label", "No destination recorded for this ride");
+          warn.setAttribute("aria-label", T("No destination recorded for this ride"));
         }
         routeEl.appendChild(warn);
       }
@@ -439,7 +535,7 @@
           if (i) statsEl.appendChild(el("span", "acct-ride__sep", " · "));
           if (stat.dot) {
             const dot = el("span", "acct-dot acct-dot--" + stat.dot);
-            dot.title = stat.dot === "stopped" ? "Waiting at the roadside" : "Moving";
+            dot.title = stat.dot === "stopped" ? T("Waiting at the roadside") : T("Moving");
             statsEl.appendChild(dot);
           }
           statsEl.appendChild(el("span", null, stat.text));
@@ -453,7 +549,7 @@
     body.appendChild(list);
 
     if (rides.length > RIDES_SHOWN_COLLAPSED) {
-      const more = el("button", "acct-more", "Show all " + rides.length);
+      const more = el("button", "acct-more", T("Show all {n}", { n: rides.length }));
       more.type = "button";
       more.addEventListener("click", function () {
         list.querySelectorAll(".acct-ride--hidden").forEach(function (n) {
@@ -466,7 +562,7 @@
 
     const profile = el("a", "acct-profile-link");
     profile.href = data.profile_url || "/me";
-    profile.textContent = "View full profile →";
+    profile.textContent = T("View full profile →");
     body.appendChild(profile);
   }
 
@@ -486,6 +582,12 @@
       if (e.source !== popup) return;
       if (!e.data || e.data.type !== "hitchwiki-auth") return;
       window.removeEventListener("message", onMsg);
+      // Failure (state mismatch, a dead token exchange, ...): oauth_popup_error.html
+      // already shows the reason in the popup itself and offers a retry link, so there
+      // is nothing new to reflect in the account sheet — just stop, rather than treating
+      // the message as a success (e.data.needsProfile would be undefined here, which
+      // used to fall through to refresh(undefined) silently on every failure).
+      if (e.data.ok === false) return;
       // Brand-new account: close the account sheet and run the first-run intro, which
       // ends on the profile-setup form. Existing users just get the refreshed sheet.
       if (e.data.needsProfile && window.HitchwikiWelcome) {
@@ -516,6 +618,7 @@
     fetch("/me/incomplete_rides.json", { credentials: "same-origin" })
       .then(function (r) { return r.json(); })
       .then(function (data) {
+        setAccountAvatar(link, data && data.profile_image_url);
         const existing = btn.querySelector(".account-dot--amber");
         const count = data ? data.count : 0;
         // Don't fight the notification bell: unread notifications already own the corner.
@@ -526,7 +629,7 @@
           dot.setAttribute("role", "img");
           dot.setAttribute(
             "aria-label",
-            count === 1 ? "1 ride could use more detail" : count + " rides could use more detail"
+            T(count === 1 ? "{n} ride could use more detail" : "{n} rides could use more detail", { n: count })
           );
           link.appendChild(dot);
         } else if (count === 0 && existing) {
@@ -534,6 +637,20 @@
         }
       })
       .catch(function () {}); // a nudge dot is not worth surfacing an error over
+  }
+
+  function setAccountAvatar(link, url) {
+    if (!link || !url || link.querySelector(".top-account-avatar")) return;
+    const icon = link.querySelector(".fa-circle-user");
+    const avatar = el("img", "top-account-avatar");
+    avatar.alt = T("Your profile picture");
+    avatar.referrerPolicy = "no-referrer";
+    avatar.addEventListener("load", function () {
+      if (icon) icon.hidden = true;
+    });
+    avatar.addEventListener("error", function () { avatar.remove(); });
+    avatar.src = url;
+    link.insertBefore(avatar, link.firstChild);
   }
 
   function init() {
@@ -570,6 +687,8 @@
     rideRoute: rideRoute,
     flagEmoji: flagEmoji,
     formatRideDate: formatRideDate,
+    weekdayAbbr: weekdayAbbr,
+    withWeekday: withWeekday,
     rideTitle: rideTitle,
     routeSegments: routeSegments,
     rideViewUrl: rideViewUrl,

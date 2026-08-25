@@ -4,6 +4,7 @@ Class to allow posting hitchhiking rides in the standardized format to Nostr.
 
 import ast
 import json
+import logging
 import os
 import time
 import uuid
@@ -15,6 +16,8 @@ from pynostr.key import PrivateKey
 from pynostr.relay_manager import RelayManager
 
 from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import HitchhikingRecord
+
+logger = logging.getLogger(__name__)
 
 NSEC = os.getenv("NSEC")
 RELAYS = ast.literal_eval(os.getenv("RELAYS"))
@@ -73,7 +76,16 @@ class HitchhikingDataStandardToNostrPoster:
 
         self.event_kind = int(os.getenv("NOSTR_EVENT_KIND"))
 
-    def post(self, ride_record: HitchhikingRecord, tags: list = None, d_tag: str = None) -> str:
+        # The most recently published signed event. The caller writes it straight into
+        # the local ride_event table so the ride is live before the fetch cron runs;
+        # post() still returns only the d tag, which every existing caller relies on.
+        self.last_event = None
+        # Event ids awaiting an explicit NIP-01 OK acceptance. A batch may publish
+        # several events before one flush, so one boolean cannot represent this.
+        self.pending_event_ids = set()
+        self.last_flush_accepted = None
+
+    def post(self, ride_record: HitchhikingRecord, tags: list = None, d_tag: str = None, wait: bool = True) -> str:
         """Post a ride in the standardized format to Nostr and return the d tag.
 
         Args:
@@ -82,6 +94,11 @@ class HitchhikingDataStandardToNostrPoster:
                 Used when updating an existing post where tags stay the same.
             d_tag (str | None): A client-supplied bare id for a NEW ride (offline outbox).
                 Reused across retries so a resend replaces rather than duplicates.
+            wait (bool): Whether to give the relays their moment to answer before
+                returning. Pass False when publishing several rides in one go (a trip
+                save republishes each of its rides) and call `flush()` once at the end:
+                the pause is per batch, not per event, so twenty rides cost one wait
+                instead of twenty inside a single web request.
 
         Returns:
             str: The identifying d tag of the posted event.
@@ -106,33 +123,71 @@ class HitchhikingDataStandardToNostrPoster:
             created_at=unix_timestamp_now,
             content=content,
             pubkey=self.pubkey_hex,
-            id=None, # ID will be computed when signing
+            id=None,  # ID will be computed when signing
             sig=None,  # Signature will be added later
             tags=[
-                ["d", d_tag ],  # Use existing d tag if updating, otherwise create a new one
-                *geohash_tags, # geohash is always updated in case the ride's location changes
+                ["d", d_tag],  # Use existing d tag if updating, otherwise create a new one
+                *geohash_tags,  # geohash is always updated in case the ride's location changes
                 # published_at stays the same across versions of the same ride,
                 # so that we can identify updates to the same ride across versions
                 ["published_at", published_at_tag],
-            ]
+            ],
         )
 
         event.sign(self.private_key_hex)
+
+        self.last_event = event
+        self.pending_event_ids.add(event.id)
 
         _append_event_to_temporary_json(event)
 
         print("posting to relays")
         self.relay_manager.publish_event(event)
         self.relay_manager.run_sync()  # Sync with the relay to send the event
+        if wait:
+            self.last_flush_accepted = self.flush()
+
+        return d_tag
+
+    def flush(self) -> bool:
+        """Give the relays their moment to answer, then drain the OK notices.
+
+        Every relay answers a published event with `["OK", <event_id>, <true|false>,
+        <message>]` (NIP-01) -- pynostr's `OKMessage.ok` carries that boolean. Before
+        this, a rejection and an acceptance both just got `print()`ed identically, so
+        a relay silently refusing an event (e.g. issue #61's bulk-upload flood, or any
+        relay-side validation failure) left no trace anywhere a human or `docker logs`
+        would notice -- the event still exists in this app's own DB (see
+        `_store_published_ride`) and in `dist/temporary.json` above, so the ride is
+        never lost, but a rejected event never reaches the wider Nostr network any
+        other client reads from. Logging rejections at WARNING makes that visible.
+        Returns whether every pending event received at least one explicit acceptance.
+        A rejection from one relay does not outweigh acceptance from another, but no
+        reply is not success. The result is not yet used to trigger a retry here (a
+        real retry policy is a bigger, separate change), but is available to callers.
+        """
         print("posted, waiting a bit")
         time.sleep(5)
 
+        pending = set(self.pending_event_ids)
+        accepted_event_ids = set()
         while self.relay_manager.message_pool.has_ok_notices():
             ok_msg = self.relay_manager.message_pool.get_ok_notice()
-            print(ok_msg)
+            if ok_msg.ok:
+                if ok_msg.event_id in pending:
+                    accepted_event_ids.add(ok_msg.event_id)
+                print(ok_msg)
+            else:
+                logger.warning("Relay %s rejected event %s: %s", ok_msg.url, ok_msg.event_id, ok_msg.message)
 
+        unconfirmed = pending - accepted_event_ids
+        for event_id in sorted(unconfirmed):
+            logger.warning("No relay confirmed accepting event %s", event_id)
 
-        return d_tag
+        # Each flush owns the snapshot it started with. Do not let a later flush
+        # mistake an old acceptance (or silence) for a newly published event.
+        self.pending_event_ids.difference_update(pending)
+        return not unconfirmed
 
     def close(self):
         self.relay_manager.close_all_relay_connections()

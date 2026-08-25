@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+
+{% set title = t("Help us") %}
+
+{% block meta_description %}{{ t("Hitchwiki Maps is built by hitchhikers. Help us map regions we know little about, get more hitchhikers logging rides, or dig into our open hitchhiking dataset.") }}{% endblock %}
+{% block og_title %}{{ t("Help us map hitchhiking — Hitchwiki Maps") }}{% endblock %}
+{% block og_description %}{{ t("Hitchwiki Maps is built by hitchhikers. Help us map regions we know little about, get more hitchhikers logging rides, or dig into our open hitchhiking dataset.") }}{% endblock %}
+
+{% block head %}
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    line-height: 1.6;
+    color: #333;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #f4f4f4;
+  }
+
+  .content-heading {
+    background-color: #e9ecef;
+    border-bottom: 1px solid #ced4da;
+    padding: 15px 0;
+    margin-bottom: 20px;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 2em;
+    color: #212529;
+  }
+
+  h2 {
+    color: #212529;
+    font-size: 1.3em;
+    margin: 0 0 6px;
+  }
+
+  h3 {
+    color: #495057;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 10px;
+    margin-top: 35px;
+  }
+
+  p { margin-bottom: 15px; }
+
+  a { color: #0066cc; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .lead {
+    font-size: 1.1em;
+    color: #343a40;
+  }
+
+  /* Each way to help is a card rather than a run of paragraphs: a volunteer is
+     scanning for the one that describes them, not reading top to bottom. */
+  .role {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-left: 4px solid #495057;
+    border-radius: 4px;
+    padding: 18px 20px;
+    margin: 18px 0;
+  }
+
+  .role-tag {
+    display: inline-block;
+    font-size: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6c757d;
+    margin-bottom: 4px;
+  }
+
+  .role ul { margin: 10px 0 0; padding-left: 22px; }
+  .role li { margin-bottom: 6px; }
+
+  .cta {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 20px;
+    margin: 25px 0;
+    text-align: center;
+  }
+
+  .cta-btn {
+    display: inline-block;
+    background: #2e7d32;
+    color: #fff;
+    padding: 12px 26px;
+    border-radius: 4px;
+    font-size: 1.05em;
+    font-weight: 600;
+  }
+
+  .cta-btn:hover { background: #256428; text-decoration: none; }
+
+  .cta-note {
+    color: #6c757d;
+    font-size: 0.9em;
+    margin: 12px 0 0;
+  }
+
+  .steps { padding-left: 22px; }
+  .steps li { margin-bottom: 8px; }
+
+  .muted { color: #6c757d; font-size: 0.9em; }
+</style>
+{% endblock %}
+
+{% block main %}
+<div id="content">
+  <a href="/" style="color: #555; text-decoration: none; font-size: 0.9em;">← {{ t("Back to map") }}</a>
+  <div class="content-heading">
+    <h1>{{ t("Help us") }}</h1>
+  </div>
+  <div class="content-body">
+    <p class="lead">
+      {{ t("Hitchwiki Maps is made by hitchhikers, in their spare time, for free. There is no company behind it — every spot, every ride and every line of code was added by someone who wanted hitchhiking to be easier for the next person.") }}
+    </p>
+    <p>
+      {{ t("If you want to be one of those people: welcome. Below are the three things that would help us most right now. You do not need to be a developer, and you do not need to commit to anything — most volunteers help with one small thing that fits their life.") }}
+    </p>
+
+    <div class="cta">
+      <a class="cta-btn" href="{{ SIGNAL_CHAT_URL }}" target="_blank" rel="noopener">{{ t("Join our Signal chat") }}</a>
+      <p class="cta-note">{{ t("That is where everything happens. Say hi, tell us where you are from, and we will point you at something useful.") }}</p>
+    </div>
+
+    <h3>{{ t("Where we need help most") }}</h3>
+
+    <div class="role">
+      <div class="role-tag">{{ t("Biggest gap") }}</div>
+      <h2>{{ t("Put your region on the map") }}</h2>
+      <p>
+        {{ t("Our map is thick with data in Europe and nearly empty across much of Africa, Latin America, Central, South and Southeast Asia, the Caucasus and beyond — not because nobody hitchhikes there, but because hardly anyone there has heard of us. In many of these places catching a ride is completely normal, for travellers and for people going about their daily lives.") }}
+      </p>
+      <p>
+        {{ t("If you are from such a region, or have hitchhiked there a lot, you can change that faster than any of us can. What helps:") }}
+      </p>
+      <ul>
+        <li>{{ t("Tell local hitchhikers, travellers, backpacker and road-trip communities that this map exists — groups, forums, hostels, meetups, anywhere people already talk about getting around.") }}</li>
+        <li>{{ t("Log the rides you take, and add the spots you know — a handful of good spots in a country with none is a huge difference.") }}</li>
+        <li>{{ t("Explain how hitchhiking actually works where you live: how you signal, what is polite, whether money is expected, where to stand, what is unsafe. This is exactly the knowledge that never leaves a region.") }}</li>
+        <li>{{ t("Translate the map, or improve a translation, into a language spoken there.") }}</li>
+        <li>{{ t("Introduce us to local groups and communities so we can reach them properly instead of guessing.") }}</li>
+      </ul>
+    </div>
+
+    <div class="role">
+      <div class="role-tag">{{ t("Mostly Europe") }}</div>
+      <h2>{{ t("Get more hitchhikers to log their rides") }}</h2>
+      <p>
+        {{ t("In Europe the problem is the opposite: plenty of people hitchhike, very few of them record what happened. Every unlogged ride is a waiting time, a spot and a piece of advice that the next hitchhiker at that on-ramp never gets.") }}
+      </p>
+      <p>
+        {{ t("Nudging that ratio up is the single cheapest way to make the map better, and anyone can do it:") }}
+      </p>
+      <ul>
+        <li>{{ t("Log your own rides — it takes under a minute per ride, and you can do it from the roadside.") }}</li>
+        <li>{{ t("Mention the map to the hitchhikers you meet at the on-ramp, at gatherings, and in hitchhiking groups and forums.") }}</li>
+        <li>{{ t("Bring it up at hitchhiking gatherings, races and events, or bring stickers and cards to hand out.") }}</li>
+        <li>{{ t("Write about it — a post, a video, a thread — wherever the hitchhikers you know already hang out.") }}</li>
+      </ul>
+    </div>
+
+    <div class="role">
+      <div class="role-tag">{{ t("Research & thesis") }}</div>
+      <h2>{{ t("Dig into the data") }}</h2>
+      <p>
+        {% if ride_count %}
+        {{ t("We hold over {count} logged rides — waiting times, ratings, distances, spots and free-text reports from hitchhikers all over the world. It is, as far as we know, the largest open dataset on hitchhiking that exists, and it is barely analysed.", count="{:,}".format(ride_count)) }}
+        {% else %}
+        {{ t("We hold tens of thousands of logged rides — waiting times, ratings, distances, spots and free-text reports from hitchhikers all over the world. It is, as far as we know, the largest open dataset on hitchhiking that exists, and it is barely analysed.") }}
+        {% endif %}
+      </p>
+      <p>
+        {{ t("What makes a good spot? How long do you really wait, and where? How has hitchhiking changed over the decades? We would love to know, and we are happy to support you if you want to find out — this fits a university project, a seminar paper or a full thesis in mobility, geography, data science or the social sciences.") }}
+      </p>
+      <ul>
+        <li>{{ t("The full dataset is open and downloadable: {link}.", link='<a href="https://huggingface.co/datasets/Hitchwiki/hitchhiking-rides-dataset" target="_blank" rel="noopener">' ~ t("hitchhiking-rides-dataset on Hugging Face") ~ '</a>')|safe }}</li>
+        <li>{{ t("See what we already chart on the {link}.", link='<a href="/statistics" target="_blank" rel="noopener">' ~ t("statistics page") ~ '</a>')|safe }}</li>
+        <li>{{ t("Re-use terms are on our {link} page — in short, it is yours to work with.", link='<a href="/copyright" target="_blank" rel="noopener">' ~ t("Copyright and License") ~ '</a>')|safe }}</li>
+      </ul>
+    </div>
+
+    <h3>{{ t("Other ways to help") }}</h3>
+    <p>
+      {{ t("Those are our priorities, not the whole list. Hitchwiki has many more roles — writing and moderating wiki articles, design, translation, outreach, community, code and more. They are all described here: {link}.", link='<a href="' ~ HITCHWIKI_ROLES_URL ~ '" target="_blank" rel="noopener">' ~ t("Roles on Hitchwiki") ~ '</a>')|safe }}
+    </p>
+    <p>
+      {{ t("If you would rather work on the map itself, the code is open source: {contribute} and {bugs}.",
+           contribute='<a href="https://github.com/Hitchwiki/maps.hitchwiki.org" target="_blank" rel="noopener">' ~ t("contribute on GitHub") ~ '</a>',
+           bugs='<a href="https://github.com/Hitchwiki/maps.hitchwiki.org/issues/new" target="_blank" rel="noopener">' ~ t("report a bug") ~ '</a>')|safe }}
+    </p>
+
+    <h3>{{ t("How to start") }}</h3>
+    <ol class="steps">
+      <li>{{ t("Join the {link}.", link='<a href="' ~ SIGNAL_CHAT_URL ~ '" target="_blank" rel="noopener">' ~ t("Signal chat") ~ '</a>')|safe }}</li>
+      <li>{{ t("Say hi, and tell us where you are from and what you would enjoy doing.") }}</li>
+      <li>{{ t("We will find something concrete for you — and answer every question you have along the way.") }}</li>
+    </ol>
+
+    <div class="cta">
+      <a class="cta-btn" href="{{ SIGNAL_CHAT_URL }}" target="_blank" rel="noopener">{{ t("Join our Signal chat") }}</a>
+      <p class="cta-note">{{ t("No commitment, no minimum, no experience needed. Even one message from you helps.") }}</p>
+    </div>
+
+    <p class="muted">
+      {{ t("Prefer email? Reach out to {a} or {b}.", a='<a href="https://tillwenke.github.io/about" target="_blank" rel="noopener">Till Wenke</a>', b='<a href="https://github.com/leon-wbr" target="_blank" rel="noopener">Leon Weber</a>')|safe }}
+    </p>
+  </div>
+</div>
+{% endblock %}

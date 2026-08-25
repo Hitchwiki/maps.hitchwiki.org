@@ -136,10 +136,7 @@ def main():
 
     conn.executemany(
         "INSERT OR REPLACE INTO ride_place (d_tag, from_place, from_cc, to_place, to_cc) VALUES (?, ?, ?, ?, ?)",
-        [
-            (d_tag, e.get("from"), e.get("from_cc"), e.get("to"), e.get("to_cc"))
-            for d_tag, e in places.items()
-        ],
+        [(d_tag, e.get("from"), e.get("from_cc"), e.get("to"), e.get("to_cc")) for d_tag, e in places.items()],
     )
     conn.commit()
     logger.info("Wrote %d ride_place rows (%d total)", len(places), len(known) + len(places))
@@ -147,7 +144,7 @@ def main():
 
 
 # Run on import: `flask generate` executes scripts by importing their module (see the
-# generate command in hitch/__init__.py), matching show.py/cities.py/dashboard.py. A
+# generate command in hitch/__init__.py), matching show.py and cities.py. A
 # `if __name__ == "__main__"` guard would make `flask generate ride_places` — used by the
 # one-time backfill and the daily 04:45 cron — a silent no-op.
 main()

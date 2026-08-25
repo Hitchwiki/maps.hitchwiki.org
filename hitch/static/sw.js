@@ -4,6 +4,8 @@ const cacheName = 'hitchhiking-map-v1';
 const TWM = 'https://tinyworldmap.com/dist/tiny-world-all-10000.json';
 const precacheResources = ['/', '/light.html', '/static/icon.png', '/favicon.ico', 'https://a.tile.openstreetmap.org/0/0/0.png',TWM];
 const REGEXP = /tile\.openstreetmap\.org\/(?<z>\d+)\/(?<x>\d+)\/(?<y>\d+)/
+// Downloads that must bypass the cache entirely — see the fetch handler.
+const NEVER_CACHE = /\/(spots\.gpx|me\/rides\.(gpx|json))(\?|$)/
 const TILESIZE = 256
 
 // When the service worker is installing, open the cache and add the precache resources to it
@@ -128,6 +130,14 @@ self.addEventListener('fetch', (event) => {
     if (event.request.method != 'GET')
         return
 
+    // File downloads never go through the cache. /spots.gpx is several MB, and storing
+    // it would push the map data and tiles this cache exists for towards the origin's
+    // storage quota; the /me/ exports are private ride data that must not sit in a
+    // shared browser's cache after a logout. Not calling respondWith leaves the request
+    // to the browser, which is exactly the behaviour we want here.
+    if (NEVER_CACHE.test(event.request.url))
+        return
+
     let match = REGEXP.exec(event.request.url)
 
     if (event.request.destination === 'image' && match) {
@@ -145,9 +155,21 @@ self.addEventListener('fetch', (event) => {
             // spot is opened client-side), so don't cache one copy per spot.
             // Same for /dir/<from>/<to>: only its OpenGraph tags differ, and those
             // are read by crawlers, which don't run the service worker.
-            if (/^\/spot\/-?\d+\.\d+_-?\d+\.\d+\/?$/.test(urlObject.pathname) ||
-                /^\/dir\/-?\d+(\.\d+)?,-?\d+(\.\d+)?\/-?\d+(\.\d+)?,-?\d+(\.\d+)?\/?$/.test(urlObject.pathname))
-                urlObject.pathname = '/';
+            // Same for /country/<name>: the sheet is filled client-side, so only
+            // the OpenGraph tags differ and crawlers don't run the service worker.
+            // The optional leading /<lang> is the language mirror every route is also
+            // served under (31 two-letter codes). It is kept, not stripped: those pages
+            // differ from the English one in every translated string, so collapsing
+            // /fi/spot/<id> onto "/" would serve a Finnish visitor the English map.
+            const langAndPath = /^(\/[a-z]{2})?(\/.*)$/.exec(urlObject.pathname);
+            const lang = (langAndPath && langAndPath[1]) || '';
+            const path = (langAndPath && langAndPath[2]) || urlObject.pathname;
+            if (/^\/spot\/-?\d+\.\d+_-?\d+\.\d+\/?$/.test(path) ||
+                /^\/country\/[^/]+\/?$/.test(path) ||
+                /^\/dir\/-?\d+(\.\d+)?,-?\d+(\.\d+)?\/-?\d+(\.\d+)?,-?\d+(\.\d+)?\/?$/.test(path))
+                // Trailing slash: the language root is served (and so cached) as
+                // "/mn/", and a key of "/mn" would miss that copy offline.
+                urlObject.pathname = lang ? lang + '/' : '/';
             return urlObject.toString();
         }
 

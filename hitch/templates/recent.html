@@ -9,26 +9,13 @@
 <link rel="stylesheet" href="/static/ride_card.css" />
 {% endblock %}
 
-{% macro ride_card(ride, thumb_prefix, idx) %}
-{% set tag = "a" if ride.d_tag else "div" %}
-<{{ tag }} class="ride-card"{% if ride.d_tag %} href="/ride/{{ ride.d_tag }}"{% endif %}>
-    <div class="ride-meta">
-        {{ ride.created }}
-        {% if ride.rating > 0 %}&nbsp;{{ "⭐" * ride.rating }}{% endif %}
-        &mdash; <span class="hitchhiker-name">{{ ride.hitchhiker_name }}</span>
-    </div>
-    {% if ride.pickup_lat and ride.pickup_lon %}
-    <div class="map-thumbnail" id="{{ thumb_prefix }}-{{ idx }}" style="height:100px;"></div>
-    <div style="color:#888; font-size:0.8em;">{{ "%.4f, %.4f"|format(ride.pickup_lat, ride.pickup_lon) }}</div>
-    {% endif %}
-    {% if ride.comment %}
-    <div class="ride-comment">{{ ride.comment }}</div>
-    {% endif %}
-</{{ tag }}>
-{% endmacro %}
-
+{% from "_ride_card.html" import ride_card %}
+{% from "_share.html" import share_button %}
 {% block content %}
-<h1>Activities</h1>
+<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+  <h1 style="margin:0;">Activities</h1>
+  {{ share_button(title="Recent hitchhiking activity – Hitchwiki Maps") }}
+</div>
 
 {% if is_logged_in %}
 {% if followed_rides %}
@@ -70,17 +57,14 @@
 <script src="/static/map_thumbnail.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const followedRides = {{ followed_rides | tojson }};
-    const recentRides = {{ rides | tojson }};
-    followedRides.forEach((ride, i) => {
-        if (ride.pickup_lat && ride.pickup_lon) {
-            initMapThumbnail(`followed-thumb-${i}`, ride.pickup_lat, ride.pickup_lon);
-        }
-    });
-    recentRides.forEach((ride, i) => {
-        if (ride.pickup_lat && ride.pickup_lon) {
-            initMapThumbnail(`recent-thumb-${i}`, ride.pickup_lat, ride.pickup_lon);
-        }
+    initThumbnailsIn(document);
+
+    // Whole-card navigation to ride detail; ignore clicks on the nested map link.
+    document.querySelectorAll('.ride-card[data-ride-href]').forEach((card) => {
+        card.addEventListener('click', (e) => {
+            if (e.target.closest('a, button, form')) return;
+            window.location.href = card.dataset.rideHref;
+        });
     });
 });
 </script>

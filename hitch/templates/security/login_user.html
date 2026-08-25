@@ -1,22 +1,27 @@
 {% extends "security/base.html" %}
 
-{% set title = "Login" %}
+{% set title = t("Login") %}
 
 {% block content %}
-<h1>Login</h1>
+<h1>{{ t("Login") }}</h1>
+{% if oauth_error %}
+<p style="background: #fdecea; border: 1px solid #f5c6cb; color: #611a15; padding: 0.75em 1em; border-radius: 4px;">
+  {{ oauth_error }}
+</p>
+{% endif %}
 <p>
-  The Hitchhiking Map is made for all hitchhikers to learn from each others experiences.
-  Thus all your rides and personal information (except your email address) will be publicly available.
-  Only share as much as you are comfortable with.
-  Keep in mind that hitchhikers are a vulnerable group and may face risks while traveling. Read our <a href="https://github.com/Hitchwiki/maps.hitchwiki.org/blob/main/docs/PRIVACY_POLICY.md">privacy policy</a> for more information on how we handle your data and what you can do to protect yourself.
+  {{ t("The Hitchhiking Map is made for all hitchhikers to learn from each others experiences. Thus all your rides and personal information (except your email address) will be publicly available. Only share as much as you are comfortable with. Keep in mind that hitchhikers are a vulnerable group and may face risks while traveling. Read our {link} for more information on how we handle your data and what you can do to protect yourself.",
+       link='<a href="https://github.com/Hitchwiki/maps.hitchwiki.org/blob/main/docs/PRIVACY_POLICY.md">' ~ t("privacy policy") ~ '</a>')|safe }}
 </p>
 <p>
-  Log in with your Hitchwiki account. If you don't have one yet, you can
-  <a href="https://hitchwiki.org/en/Special:CreateAccount">create one on hitchwiki.org</a>.
-  A new account on the Hitchhiking Map will be created for you automatically on first login.
+  {{ t("Log in with your Hitchwiki account. If you don't have one yet, you can {link}. A new account on the Hitchhiking Map will be created for you automatically on first login.",
+       link='<a href="https://hitchwiki.org/en/Special:CreateAccount">' ~ t("create one on hitchwiki.org") ~ '</a>')|safe }}
+</p>
+<p>
+  {{ t("If you used other hitchhiking applications such as Hitchmap before whose data can also be seen here, just use the same username to sign up to claim those rides for you.") }}
 </p>
 <br>
 <a href="/login/oauth" style="display: inline-block; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 4px;">
-  Login with Hitchwiki
+  {{ t("Login with Hitchwiki") }}
 </a>
 {% endblock content %}

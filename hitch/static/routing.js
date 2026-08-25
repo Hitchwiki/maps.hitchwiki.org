@@ -1,5 +1,10 @@
 /* Hitchhiking route planner for the main map.
  *
+ * License: AGPL 3.0
+ * Author: Till Wenke
+ * Github: @tillwenke
+ * Website: https://tillwenke.github.io/
+ *
  * Self-contained: ports the corridor-aware routing engine (see
  * hitch/scripts/repeatable_router.py) into the browser, and drives a
  * Google-Maps-style start/destination UI that transforms the search bar.
@@ -9,6 +14,23 @@
  */
 (function () {
   "use strict";
+
+  // Analytics helper from base.html. Resolved once through a local alias rather
+  // than referenced as a bare global, because this file is also exercised under
+  // node with only `window`/`document`/`fetch` stubbed (see CLAUDE.md), where a
+  // bare hmTrack would be a ReferenceError instead of a no-op.
+  const hmTrack = (typeof window !== "undefined" && window.hmTrack) || function () {};
+  const hmVariant = (typeof window !== "undefined" && window.hmVariant) ||
+    function (_name, variants) { return variants[0]; };
+
+  // Same reasoning as hmTrack above, for map.js's tr() (client-side i18n, see
+  // hitch/static/map.js): guarded so headless node runs of this file don't throw.
+  // Falls back to plain English with {placeholder}s substituted by hand.
+  function T(text, vars) {
+    if (typeof tr === "function") return tr(text, vars);
+    if (!vars) return text;
+    return Object.keys(vars).reduce((s, k) => s.split("{" + k + "}").join(vars[k]), text);
+  }
 
   // ---- engine constants --------------------------------------------------
   const WALK_KMH = 5, CAR_KMH = 100, CAR_FACTOR = 1.25, EARTH_KM = 6371;
@@ -22,6 +44,11 @@
   // Mirrors MIN_SUPPORT in build_ride_routes.py: an edge below this was taken by
   // one hitchhiker once, and only exists in the lazily loaded fallback graph.
   const MIN_SUPPORT = 2;
+  // A normal road journey is already longer than the crow-flight distance, and
+  // carKm includes the engine's 1.25 road-distance factor. Past this ratio the
+  // logged corridor itself is meaningfully indirect, so say so without calling
+  // the route wrong: it can still be the best route supported by our data.
+  const CIRCUITOUS_RATIO = 2;
   const ALT_COLORS = ["#1a73e8", "#e8710a", "#188038"]; // fastest first
 
   // ---- small helpers -----------------------------------------------------
@@ -32,6 +59,24 @@
       Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(dlon / 2) ** 2;
     return EARTH_KM * 2 * Math.asin(Math.sqrt(s));
   }
+  function routeDistanceRatio(rt, start, dest) {
+    const directKm = haversineKm(start, dest);
+    if (directKm < 0.1) return 1;
+    return (rt.carKm + rt.walkKm) / directKm;
+  }
+  function isCircuitous(rt, start, dest) {
+    return routeDistanceRatio(rt, start, dest) >= CIRCUITOUS_RATIO;
+  }
+
+  // Small pure seam for the headless Node acceptance test. It contains no
+  // route state and is also useful to future UI surfaces that need the same
+  // honest directness classification.
+  window.RoutingDirectness = { routeDistanceRatio, isCircuitous, threshold: CIRCUITOUS_RATIO };
+  function firstBoardingPoint(rt) {
+    const firstRide = rt && rt.legs && rt.legs.find((leg) => leg.mode === "car");
+    return firstRide ? firstRide.from : null;
+  }
+  window.RoutingStartCta = { firstBoardingPoint };
   class MinHeap {
     constructor() { this.h = []; }
     push(x) { const h = this.h; h.push(x); let i = h.length - 1;
@@ -272,8 +317,14 @@
   }
   function fmtClock(d) { return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); }
   function fmtDay(d) { return d.toLocaleDateString([], { weekday: "short" }); }
+  // Distance display follows the user's unit setting. The conversion helpers live in
+  // map.js; fall back to metric so routing.js still runs standalone (node harness),
+  // where map.js isn't loaded. All routing maths stays in km either way.
+  const dispKm = (km) => (typeof toDisplayDistance === "function" ? toDisplayDistance(km) : km);
+  const dispUnit = () => (typeof distanceUnitLabel === "function" ? distanceUnitLabel() : "km");
   // Sub-10 km legs are usually walks, where 0.4 vs 0 km is the whole message.
-  function fmtKm(km) { return km < 10 ? km.toFixed(1) : String(Math.round(km)); }
+  function fmtKm(km) { const v = dispKm(km); return v < 10 ? v.toFixed(1) : String(Math.round(v)); }
+  function fmtDist(km) { return `${fmtKm(km)} ${dispUnit()}`; }
 
   const WALK_ICON = "fa-solid fa-person-walking";
   const RIDE_ICON = "fa-solid fa-thumbs-up";
@@ -285,7 +336,7 @@
   const MAX_CHIPS = 7;
   function chipStrip(rt) {
     const chip = (l) => `<span class="rp-chip rp-chip-${l.mode}"><i class="${
-      l.mode === "walk" ? WALK_ICON : RIDE_ICON}"></i><span>${fmtKm(l.km)} km</span></span>`;
+      l.mode === "walk" ? WALK_ICON : RIDE_ICON}"></i><span>${fmtDist(l.km)}</span></span>`;
     const shown = rt.legs.slice(0, MAX_CHIPS).map(chip);
     const rest = rt.legs.length - MAX_CHIPS;
     if (rest > 0) shown.push(`<span class="rp-chip rp-chip-more">+${rest}</span>`);
@@ -335,8 +386,8 @@
     if (e.endsKm < 0.2) return "";
     // Too far to reasonably walk in a city -> suggest public transport.
     return e.endsKm > 3
-      ? "+ transit to start &amp; end"
-      : `+ ${fmtTime(e.endsMin)} walk to start &amp; end`;
+      ? T("+ transit to start &amp; end")
+      : T("+ {time} walk to start &amp; end", { time: fmtTime(e.endsMin) });
   }
   function pinIcon(kind) {
     return L.divIcon({
@@ -353,24 +404,28 @@
     panel.id = "route-panel";
     panel.hidden = true;
     panel.innerHTML = `
-      <button class="rp-close" title="Close" aria-label="Close route planning">
+      <button class="rp-close" title="${T("Close")}" aria-label="${T("Close route planning")}">
         <i class="fa-solid fa-arrow-left"></i>
       </button>
       <div class="rp-fields">
         <div class="rp-field" data-field="start">
           <span class="rp-dot rp-dot-start"></span>
-          <input type="text" autocomplete="off" placeholder="Choose starting point, or click on the map" />
-          <button class="rp-clear" tabindex="-1" aria-label="Clear">&times;</button>
+          <input type="text" autocomplete="off" placeholder="${T("Choose starting point, or click on the map")}" />
+          <button class="rp-clear" tabindex="-1" aria-label="${T("Clear")}">&times;</button>
         </div>
         <div class="rp-field" data-field="dest">
           <span class="rp-dot rp-dot-dest"></span>
-          <input type="text" autocomplete="off" placeholder="Choose destination, or click on the map" />
-          <button class="rp-clear" tabindex="-1" aria-label="Clear">&times;</button>
+          <input type="text" autocomplete="off" placeholder="${T("Choose destination, or click on the map")}" />
+          <button class="rp-clear" tabindex="-1" aria-label="${T("Clear")}">&times;</button>
         </div>
       </div>
       <div class="rp-suggest" hidden></div>
       <div class="rp-options" hidden></div>
-      <div class="rp-status" hidden></div>`;
+      <div class="rp-status" hidden></div>
+      <button type="button" class="rp-no-route-cta" hidden>
+        <i class="fa-solid fa-thumbs-up" aria-hidden="true"></i>
+        ${T("Start hitchhiking anyway")}
+      </button>`;
     document.body.appendChild(panel);
 
     panel.querySelector(".rp-close").addEventListener("click", close);
@@ -407,7 +462,7 @@
       item.innerHTML = `<i class="fa-solid fa-location-dot"></i> <span>${res.html || res.name}</span>`;
       item.addEventListener("click", () => {
         const c = res.center;
-        setPoint(field, [c.lat, c.lng], (res.name || "").split(",")[0] || "Location");
+        setPoint(field, [c.lat, c.lng], (res.name || "").split(",")[0] || T("Location"));
         hideSuggest();
       });
       box.appendChild(item);
@@ -440,6 +495,9 @@
   // ---- open / close ------------------------------------------------------
   function open() {
     if (RJ.active) return;
+    // Entry step of the routing funnel: opened -> searched -> found. The drop
+    // between opened and searched is people who couldn't express their trip.
+    hmTrack('routing_opened');
     RJ.active = true;
     document.body.classList.add("routing-active");
     if (!panel) buildPanel();
@@ -467,7 +525,7 @@
     // must fall back to BASE_PATH (map.js): leaving "/dir/…" in the address bar
     // would make the next navigate() reopen the planner we just closed.
     const dirHash = location.hash.slice(1).startsWith("dir/");
-    if (DIR_PATH_RE.test(location.pathname)) {
+    if (DIR_PATH_RE.test(routePath(location.pathname))) {
       // BASE_PATH is a top-level const in map.js: a global lexical binding, so it
       // resolves here but never as a window property.
       const home = typeof BASE_PATH === "string" ? BASE_PATH : "/";
@@ -490,6 +548,8 @@
     const sheet = resultsSheet();
     const opts = sheet && sheet.querySelector(".rp-options");
     if (opts) opts.innerHTML = "";
+    const noRouteCta = panel && panel.querySelector(".rp-no-route-cta");
+    if (noRouteCta) { noRouteCta.hidden = true; noRouteCta.onclick = null; }
     setStatus(null);
   }
   function setStatus(msg) {
@@ -499,31 +559,51 @@
   }
 
   function compute() {
-    if (!RJ.router) { setStatus("Loading route data…"); return; }
+    if (!RJ.router) { setStatus(T("Loading route data…")); return; }
     if (!RJ.start || !RJ.dest) return;
     hideSuggest();
     clearRoutes();
-    setStatus("Finding routes…");
+    setStatus(T("Finding routes…"));
     // Defer so "Finding routes…" paints before the (sync) search runs. Cancel any
     // pending compute so two quick clicks can't both draw and orphan a layer.
     clearTimeout(RJ._computeTimer);
     const search = RJ.searchToken = {};   // a later compute() invalidates this one
     RJ._computeTimer = setTimeout(() => {
       const from = RJ.start.latlng, to = RJ.dest.latlng;
+      logRouteRequest(from, to);   // record which route was asked for (server has no other signal)
+      // Coordinates stay out of Umami (the server CSV has them); the straight-line
+      // distance is what tells us whether people plan city hops or continents.
+      hmTrack('route_searched', { km: Math.round(haversineKm(from, to)) });
       const res = alternatives(RJ.router, from, to, DEFAULT_MAX_WALK, 3, 0.6);
       clearRoutes(); // drop anything a previous run left before drawing fresh
-      if (res.length) { showRoutes(res); return; }
+      if (res.length) {
+        // Splitting the outcome by graph matters: a route that only exists in the
+        // one-off graph rests on a single logged ride, so a high share of these
+        // means the repeatable graph is too sparse to be the primary answer.
+        hmTrack('route_found', { graph: 'repeatable', options: res.length });
+        showRoutes(res);
+        return;
+      }
 
       // Nothing repeats between these points. Retry on the one-off graph before
       // giving up — a corridor one hitchhiker logged once still beats nothing.
       // (clearRoutes above cancelled the token; this search is still the live one.)
       RJ.searchToken = search;
-      setStatus("No repeatable route — checking one-off rides…");
+      setStatus(T("No repeatable route — checking one-off rides…"));
       loadFallbackRouter().then((FB) => {
         if (search !== RJ.searchToken) return;   // superseded while downloading
         const alt = FB ? alternatives(FB, from, to, DEFAULT_MAX_WALK, 3, 0.6) : [];
         clearRoutes();
-        if (!alt.length) { setStatus(diagnoseNoRoute(FB || RJ.router, from, to, DEFAULT_MAX_WALK, !!FB)); return; }
+        if (!alt.length) {
+          // The failure mode is the actionable part: which end (or the middle)
+          // has too little logged data is what says where to recruit rides.
+          const reason = diagnoseNoRouteReason(FB || RJ.router, from, to, DEFAULT_MAX_WALK);
+          hmTrack('route_none', { reason: reason });
+          setStatus(diagnoseNoRoute(FB || RJ.router, from, to, DEFAULT_MAX_WALK, !!FB));
+          showNoRouteStartAction();
+          return;
+        }
+        hmTrack('route_found', { graph: 'oneoff', options: alt.length });
         showRoutes(alt);
       });
     }, 30);
@@ -544,6 +624,41 @@
     updateShareUrl();       // make this search shareable (#dir/from/to)
   }
 
+  // The same diagnosis as diagnoseNoRoute(), reduced to one of four fixed labels
+  // for analytics. Kept separate from the prose so the wording can be reworded
+  // freely without silently splitting an event into two categories.
+  function diagnoseNoRouteReason(R, start, dest, maxWalk) {
+    const startCovered = spotsNear(R, start, maxWalk).length > 0;
+    const destCovered = spotsNear(R, dest, maxWalk).length > 0;
+    if (!startCovered && !destCovered) return 'both-uncovered';
+    if (!startCovered) return 'start-uncovered';
+    if (!destCovered) return 'dest-uncovered';
+    return 'gap-in-middle';
+  }
+
+  // A missing route is missing evidence, not proof that the trip cannot be
+  // hitchhiked. Test whether letting the person enter the normal journey flow
+  // from their searched origin recovers intent that the planner would otherwise
+  // strand. Variant is encoded in fixed event names so aggregate analytics never
+  // need an event-data query (which would expose session ids and route URLs).
+  function showNoRouteStartAction() {
+    const cta = panel && panel.querySelector(".rp-no-route-cta");
+    if (!cta || !RJ.start) return;
+    const variant = hmVariant("route-none-start-v1", ["control", "cta"]);
+    hmTrack("route_none_start_exposure_" + variant);
+    cta.hidden = variant !== "cta";
+    cta.onclick = function () {
+      if (!window.inride || !window.inride.journeyFlow || !RJ.start) return;
+      hmTrack("route_none_start_clicked_cta");
+      const start = RJ.start.latlng;
+      close();
+      window.inride.journeyFlow.startFromChoose(
+        { lat: start[0], lon: start[1] },
+        "route-results",
+      );
+    };
+  }
+
   // When no route is found, explain which end is the problem so the user can act
   // (move a point, or search only the part of the trip that has coverage). An
   // endpoint is "covered" if any repeatable-route spot sits within walking range;
@@ -552,22 +667,19 @@
     const startCovered = spotsNear(R, start, maxWalk).length > 0;
     const destCovered = spotsNear(R, dest, maxWalk).length > 0;
     if (!startCovered && !destCovered) {
-      return "No route found: both your start and destination are in areas where too few people have hitchhiked. " +
-        "Try points nearer to major roads or cities.";
+      return T("No route found: both your start and destination are in areas where too few people have hitchhiked. Try points nearer to major roads or cities.");
     }
     if (!startCovered) {
-      return "No route found: your starting point is in an area where too few people have hitchhiked. " +
-        "Move it closer to a major road or city, or search just the later part of your trip.";
+      return T("No route found: your starting point is in an area where too few people have hitchhiked. Move it closer to a major road or city, or search just the later part of your trip.");
     }
     if (!destCovered) {
-      return "No route found: your destination is in an area where too few people have hitchhiked. " +
-        "Move it closer to a major road or city, or search just the earlier part of your trip.";
+      return T("No route found: your destination is in an area where too few people have hitchhiked. Move it closer to a major road or city, or search just the earlier part of your trip.");
     }
     // The middle is the gap. Say so — and, when the one-off graph was searched
     // too, that no single logged ride bridges it either.
-    return "No route found: we couldn't connect these two points" +
-      (triedOneOff ? ", even using rides only one person has logged" : " with repeatable rides") +
-      ". Try searching for part of the route — e.g. between larger cities along the way.";
+    return T(triedOneOff
+      ? "No route found: we couldn't connect these two points, even using rides only one person has logged. Try searching for part of the route — e.g. between larger cities along the way."
+      : "No route found: we couldn't connect these two points with repeatable rides. Try searching for part of the route — e.g. between larger cities along the way.");
   }
 
   // ---- shareable route URL (/dir/<slat>,<slon>/<dlat>,<dlon>) ------------
@@ -580,6 +692,30 @@
   // load / paste is handled in init().
   const DIR_PATH_RE = /^\/dir\/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)\/?$/;
 
+  // The map is also served under /<lang> for every non-English language, so the
+  // route path arrives as /de/dir/… there. map.js owns that translation (appPath /
+  // langPath are top-level bindings in it, like BASE_PATH above); these wrappers
+  // degrade to the raw path if routing.js is ever loaded without it.
+  const routePath = (p) => (typeof appPath === "function" ? appPath(p) : p);
+  const localisedPath = (p) => (typeof langPath === "function" ? langPath(p) : p);
+
+  // Beacon the requested route to the server so we can see which corridors are in
+  // demand — routing is computed client-side, so this is the only server signal.
+  // sendBeacon is fire-and-forget and survives the page being navigated away.
+  function logRouteRequest(from, to) {
+    try {
+      const body = JSON.stringify({
+        slat: +from[0].toFixed(5), slon: +from[1].toFixed(5),
+        dlat: +to[0].toFixed(5), dlon: +to[1].toFixed(5),
+        // The geocoded/reverse-geocoded labels of each endpoint, if known.
+        sname: (RJ.start && RJ.start.label) || "",
+        dname: (RJ.dest && RJ.dest.label) || "",
+      });
+      const blob = new Blob([body], { type: "application/json" });
+      if (navigator.sendBeacon) navigator.sendBeacon("/log-route-request", blob);
+    } catch (e) { /* logging must never break routing */ }
+  }
+
   function updateShareUrl() {
     if (!RJ.start || !RJ.dest) return;
     const f = RJ.start.latlng, t = RJ.dest.latlng;
@@ -587,10 +723,13 @@
     // A legacy #dir hash described this very route; drop it rather than carry a
     // second, staler copy of the state. A #map= viewport is kept.
     const hash = location.hash.slice(1).startsWith("dir/") ? "" : location.hash;
-    history.replaceState(null, "", path + location.search + hash);
+    // Keep the visitor's language in the address bar: /dir/ is noindex in every
+    // language, so nothing is lost by not canonicalising it to the English path,
+    // and a reload of the shared link must not switch the UI language.
+    history.replaceState(null, "", localisedPath(path) + location.search + hash);
   }
   function parseDirPath(pathname) {
-    const m = DIR_PATH_RE.exec(pathname || "");
+    const m = DIR_PATH_RE.exec(routePath(pathname || ""));
     if (!m) return null;
     return { from: [+m[1], +m[2]], to: [+m[3], +m[4]] };
   }
@@ -628,12 +767,12 @@
   }
 
   // Routes must not live in the default overlay pane: style.css dims it to 30%
-  // opacity while zoomed out (body.zoomed-out, set below zoom 9) and hides it
-  // outright while filtering. Both rules exist to keep a spot's destination
-  // arrows from cluttering a wide view — but drawRoutes() fitBounds()es onto a
-  // whole intercity route, which lands below zoom 9 every time, so the routes
-  // would draw at ~0.07-0.28 effective opacity. Own pane, above the overlay pane
-  // (400) and the country choropleth (450), below the markers (600).
+  // opacity while zoomed out (body.zoomed-out, set below zoom 9). That rule
+  // exists to keep a spot's destination arrows from cluttering a wide view — but
+  // drawRoutes() fitBounds()es onto a whole intercity route, which lands below
+  // zoom 9 every time, so the routes would draw at 30% opacity. Own pane, above
+  // the overlay pane (400), the country choropleth (450) and the destination
+  // arrow heads (455), below the markers (600).
   function routePane() {
     if (!map.getPane("routes")) {
       const p = map.createPane("routes");
@@ -688,12 +827,12 @@
   function tagIcon(rt, i) {
     const color = ALT_COLORS[i % ALT_COLORS.length];
     const e = routeEnds(rt);
-    const mid = e.midWalkMin > 0.5 ? ` · ${fmtTime(e.midWalkMin)} walk` : "";
+    const mid = e.midWalkMin > 0.5 ? ` · ${T("{time} walk", { time: fmtTime(e.midWalkMin) })}` : "";
     const ends = endsLabel(rt);
     return L.divIcon({
       className: "route-tag-wrap",
       html: `<div class="route-tag active" style="--rc:${color}">
-        <b>${fmtTime(e.coreMin)}</b><span class="rt-sub">${rt.carKm.toFixed(0)} km${mid}</span>
+        <b>${fmtTime(e.coreMin)}</b><span class="rt-sub">${fmtDist(rt.carKm)}${mid}</span>
         ${ends ? `<span class="rt-ends">${ends}</span>` : ""}</div>`,
       iconSize: null, iconAnchor: [0, 12],
     });
@@ -758,8 +897,8 @@
         if (seen.has(key) && !change) return; seen.add(key);
         let m;
         if (change) {
-          const tip = kind === "first" ? "Start hitchhiking here — tap for rides"
-            : kind === "last" ? "Get off here — tap for rides" : "Change car here — tap for rides";
+          const tip = kind === "first" ? T("Start hitchhiking here — tap for rides")
+            : kind === "last" ? T("Get off here — tap for rides") : T("Change car here — tap for rides");
           m = L.marker(c, { icon: carStopIcon(kind, color), zIndexOffset: 400 })
             .bindTooltip(tip, { direction: "top" });
         } else {
@@ -893,8 +1032,20 @@
     if (!sheet) return null;
     let body = sheet.querySelector(".sheet-body");
     // Replace the placeholder body with our options container once we have routes.
+    // The share button carries no data-share-url: the delegated handler in
+    // base.html falls back to the current URL, which updateShareUrl() keeps as the
+    // /dir/<from>/<to> permalink for whatever route is currently shown.
     if (!body.querySelector(".rp-options")) {
-      body.innerHTML = '<h3 class="rp-sheet-title">Routes</h3><div class="rp-options"></div>';
+      body.innerHTML =
+        '<div class="rp-sheet-head">' +
+        '<h3 class="rp-sheet-title">' + T("Routes") + '</h3>' +
+        '<button type="button" class="share-btn" data-share-title="' + T("Hitchhiking route – Hitchwiki Maps") + '">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>' +
+        '<span class="share-btn-label">' + T("Share") + '</span></button>' +
+        '</div><div class="rp-options"></div>' +
+        '<button type="button" class="rp-start-cta" hidden>' +
+        '<i class="fa-solid fa-thumbs-up" aria-hidden="true"></i> ' +
+        T("Start hitchhiking at the first spot") + '</button>';
     }
     return body.querySelector(".rp-options");
   }
@@ -932,7 +1083,7 @@
     if (open && !steps.childElementCount) steps.appendChild(buildItinerary(rt));
     steps.hidden = !open;
     btn.setAttribute("aria-expanded", String(open));
-    btn.textContent = open ? "Hide details" : "Details";
+    btn.textContent = open ? T("Hide details") : T("Details");
     if (open) highlight(i);
   }
 
@@ -969,9 +1120,9 @@
       <span class="rp-rail"><span class="rp-line"></span></span>
       <span class="rp-edge-body">
         <span class="rp-edge-head"><i class="${leg.mode === "walk" ? WALK_ICON : RIDE_ICON}"></i>
-          <b>${leg.mode === "walk" ? "Walk" : "Ride"}</b></span>
-        <span class="rp-edge-sub">${fmtKm(leg.km)} km · ${fmtTime(leg.minutes)}${
-          weak ? ' · <span class="rp-weak">1 logged ride</span>' : ""}</span>
+          <b>${leg.mode === "walk" ? T("Walk") : T("Ride")}</b></span>
+        <span class="rp-edge-sub">${fmtDist(leg.km)} · ${fmtTime(leg.minutes)}${
+          weak ? ` · <span class="rp-weak">${T("1 logged ride")}</span>` : ""}</span>
       </span>`;
     if (weak) li.classList.add("rp-edge-weak");
     // Corridor spots the driver merely passes: worth listing (you can be dropped
@@ -982,7 +1133,7 @@
       const toggle = document.createElement("button");
       toggle.type = "button";
       toggle.className = "rp-via-toggle";
-      toggle.textContent = `${via.length} spot${via.length > 1 ? "s" : ""} on the way`;
+      toggle.textContent = T(via.length === 1 ? "{n} spot on the way" : "{n} spots on the way", { n: via.length });
       const list = document.createElement("ul");
       list.className = "rp-via"; list.hidden = true;
       via.forEach((c) => {
@@ -1011,7 +1162,7 @@
       <span class="rp-time"></span>
       <span class="rp-rail"><span class="rp-line rp-line-wait"></span></span>
       <span class="rp-edge-body"><span class="rp-edge-head"><i class="fa-regular fa-clock"></i>
-        <b>Wait</b></span> <span class="rp-edge-sub">about ${fmtTime(min)}</span></span>`;
+        <b>${T("Wait")}</b></span> <span class="rp-edge-sub">${T("about {time}", { time: fmtTime(min) })}</span></span>`;
     return li;
   }
 
@@ -1045,8 +1196,10 @@
       const e = routeEnds(rt);
       const cars = rt.legs.filter((l) => l.mode === "car").length;
       const oneOff = rt.minSupport < MIN_SUPPORT;
-      const delta = i === 0 ? "fastest" : "+" + fmtTime(e.coreMin - fastest);
-      const mid = e.midWalkMin > 0.5 ? ` · ${fmtTime(e.midWalkMin)} walk` : "";
+      const distanceRatio = routeDistanceRatio(rt, RJ.start.latlng, RJ.dest.latlng);
+      const circuitous = isCircuitous(rt, RJ.start.latlng, RJ.dest.latlng);
+      const delta = i === 0 ? T("fastest") : "+" + fmtTime(e.coreMin - fastest);
+      const mid = e.midWalkMin > 0.5 ? ` · ${T("{time} walk", { time: fmtTime(e.midWalkMin) })}` : "";
       const ends = endsLabel(rt);
       // Depart-now clock line, as a transit app shows it. rt.totalMin includes the
       // first/last-mile walks and every wait, so it is the honest door-to-door span.
@@ -1065,18 +1218,39 @@
             <span class="rp-opt-clock">${fmtClock(depart)}—${fmtClock(arrive)}${dayTag}</span>
             <span class="rp-opt-chips">${chipStrip(rt)}</span>
             <span class="rp-opt-head"><b>${fmtTime(e.coreMin)}</b> <span class="rp-opt-delta">${delta}</span></span>
-            <span class="rp-opt-sub">${rt.carKm.toFixed(0)} km${mid} · ${cars} ride${cars > 1 ? "s" : ""} · ${Math.round(rt.waitMin)} min wait</span>
+            <span class="rp-opt-sub">${fmtDist(rt.carKm)}${mid} · ${T(cars === 1 ? "{n} ride" : "{n} rides", { n: cars })} · ${T("{n} min wait", { n: Math.round(rt.waitMin) })}</span>
             ${ends ? `<span class="rp-opt-ends">${ends}</span>` : ""}
             ${oneOff ? '<span class="rp-opt-weak"><i class="fa-solid fa-circle-info"></i>' +
-              "Includes a leg only one hitchhiker has logged</span>" : ""}
+              T("Includes a leg only one hitchhiker has logged") + "</span>" : ""}
+            ${circuitous ? '<span class="rp-opt-indirect"><i class="fa-solid fa-route"></i>' +
+              T("This route is about {ratio}× the straight-line distance", {
+                ratio: distanceRatio.toFixed(1)
+              }) + "</span>" : ""}
           </button>
-          <button class="rp-details-btn" type="button" aria-expanded="false">Details</button>
+          <button class="rp-details-btn" type="button" aria-expanded="false">${T("Details")}</button>
           <div class="rp-steps" hidden></div>
         </div>`;
       row.querySelector(".rp-opt-summary").addEventListener("click", () => highlight(i));
       row.querySelector(".rp-details-btn").addEventListener("click", () => toggleDetails(row, rt, i));
       box.appendChild(row);
     });
+    const variant = hmVariant("route-start-cta-v1", ["control", "cta"]);
+    hmTrack("route_start_cta_exposure", { variant: variant });
+    const cta = resultsSheet() && resultsSheet().querySelector(".rp-start-cta");
+    if (cta) {
+      cta.hidden = variant !== "cta";
+      cta.onclick = function () {
+        const rt = RJ.routes[RJ.highlight || 0];
+        const boarding = firstBoardingPoint(rt);
+        if (!boarding || !window.inride || !window.inride.journeyFlow) return;
+        hmTrack("route_start_cta_clicked", { variant: variant });
+        close();
+        window.inride.journeyFlow.startFromChoose(
+          { lat: boarding[0], lon: boarding[1] },
+          "route-results",
+        );
+      };
+    }
     showResultsSheet();
   }
 

@@ -1,0 +1,85 @@
+{% extends "security/base.html" %}
+
+{% set title = t("Races") %}
+
+{% block head %}
+{{ super() }}
+<style>
+  .race { margin: 0 0 2.5rem; }
+  .race-head { border-bottom: 2px solid #ccc; padding-bottom: 0.3rem; }
+  .race-head h2 { margin: 0; font-size: 1.15em; }
+  .race-span { color: #888; font-size: 0.8em; }
+  .race-badge {
+    font-size: 0.62em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+    vertical-align: middle; padding: 0.15em 0.5em; border-radius: 999px; margin-left: 0.4rem;
+  }
+  .race-badge.running { background: #e6f4ea; color: #1b6b34; }
+  .race-badge.upcoming { background: #f1f1f1; color: #666; }
+  .podium-entry { margin: 1rem 0 0; }
+  .podium-head { display: flex; align-items: baseline; gap: 0.5rem; border-bottom: 1px solid #eee; padding: 0.3rem 0; }
+  .podium-medal { min-width: 1.6em; }
+  .podium-time { margin-left: auto; font-weight: 600; }
+  .podium-sub { color: #888; font-size: 0.8em; margin: 0.2rem 0 0.5rem; }
+</style>
+{% endblock %}
+
+{% from "_share.html" import share_button %}
+{% block content %}
+<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+  <h1 style="margin:0;">{{ t("Races") }}</h1>
+  {{ share_button(title=t("Hitchhiking races – Hitchwiki Maps")) }}
+</div>
+
+{#
+  Each race is a city pair and a timespan. Hitchhikers who logged a chain of consecutive
+  rides from one city to the other are ranked by how long the whole journey took —
+  waiting time included. Only rides with a username, a logged destination and a departure
+  time can be timed, so only those count; a missing arrival time is estimated from the
+  distance at 75 km/h. Only races running right now and races starting within the next
+  month are listed. Kept as a comment, not shown on the page.
+#}
+
+{% for race in races %}
+<div class="race">
+  <div class="race-head">
+    <h2>
+      {{ race.title }}
+      {% if race.status == "upcoming" %}
+      <span class="race-badge upcoming">{{ t("starts in {n} day" if race.starts_in_days == 1 else "starts in {n} days", n=race.starts_in_days) }}</span>
+      {% else %}
+      <span class="race-badge running">{{ t("running") }}</span>
+      {% endif %}
+    </h2>
+    {# Tolerances (max {{ race.max_gap_km }} km between consecutive rides, {{ race.max_radius_km }} km
+       from either city centre) are rules of the scoring, not something the reader needs on the page. #}
+    <span class="race-span">
+      {{ race.start }} &rarr; {{ race.finish }} &middot; {{ race["from"] }} &ndash; {{ race.to }}
+    </span>
+  </div>
+
+  {% if race.status == "upcoming" %}
+    <p style="color:#666; font-size:0.9em;">{{ t("Not started yet — the board opens on {date}.", date=race["from"]) }}</p>
+  {% elif race.entries %}
+    {% for entry in race.entries %}
+    {% set entry_idx = loop.index0 %}
+    <div class="podium-entry">
+      <div class="podium-head">
+        <span class="podium-medal">{{ ["🥇", "🥈", "🥉"][entry_idx] if entry_idx < 3 else loop.index }}</span>
+        <a href="/account/{{ entry.hitchhiker_name }}" style="font-weight:600;">{{ entry.hitchhiker_name }}</a>
+        <span class="podium-time">{{ entry.duration }}</span>
+      </div>
+      <div class="podium-sub">
+        {{ t("{n} ride" if entry.ride_count == 1 else "{n} rides", n=entry.ride_count) }} &middot; {{ entry.started }} &rarr; {{ entry.finished }}
+        {% if entry.estimated %}&middot; <span title="{{ t('At least one ride logged no arrival time; it was estimated from the distance at 75 km/h.') }}">{{ t("partly estimated") }}</span>{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <p style="color:#666; font-size:0.9em;">{{ t("Nobody has logged this route yet — be the first.") }}</p>
+  {% endif %}
+</div>
+{% else %}
+<p style="color:#666; font-size:0.9em;">{{ t("No race is running right now, and none starts within the next month.") }}</p>
+{% endfor %}
+{% endblock %}
+

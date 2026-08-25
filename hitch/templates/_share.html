@@ -1,0 +1,15 @@
+{# Reusable Share button. The click behaviour (native share sheet / clipboard
+   fallback) is a delegated handler in base.html — this macro only renders the
+   button. Pass an explicit url for a canonical link; omit it to share whatever
+   URL the page is currently on (filter/zoom-dependent views).
+
+   Usage: {% from "_share.html" import share_button %}
+          {{ share_button(url=canonical_url, title="Foo on Hitchwiki Maps") }} #}
+{% macro share_button(url="", title="", label="Share", extra_class="") %}
+<button type="button" class="share-btn{{ ' ' ~ extra_class if extra_class }}"
+        {% if url %}data-share-url="{{ url }}"{% endif %}
+        {% if title %}data-share-title="{{ title }}"{% endif %}>
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+  <span class="share-btn-label">{{ label }}</span>
+</button>
+{% endmacro %}

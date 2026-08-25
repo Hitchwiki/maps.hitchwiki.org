@@ -83,7 +83,8 @@
     <p>You are always able to remove personal information from your profile.</p>
     <p>
       You are able to remove your profile from Hitchwiki Maps by asking us to delete your
-      account.
+      account. See <a href="/delete-account">Delete your Hitchwiki Maps account and data</a>
+      for the request address, what to include, and what deletion can and cannot remove.
     </p>
     <p>
       We will never, ever sell your profile data to anyone or try to otherwise use it
@@ -178,11 +179,58 @@
       rides</b>, or submit them under a pseudonym that is not linkable to your real identity.
     </p>
 
+    <h3>Usage analytics</h3>
+    <p>
+      We measure how the map is used with
+      <a href="https://umami.is/" target="_blank" rel="noopener">Umami</a>, which we host
+      ourselves on our own server. No data goes to Google, and nothing is shared with or sold
+      to anyone. We record which pages are viewed and a small set of actions — opening a spot,
+      starting a route, applying a filter, beginning or submitting a ride — so we can see where
+      people get stuck. We do not record what you search for, what you type into filters, or
+      the coordinates you look at.
+    </p>
+    <p>
+      By default no cookie is set and nothing is stored in your browser. Visits are grouped
+      using a value derived from your IP address and browser, recalculated every month, so a
+      visitor cannot be followed beyond a calendar month. If you agreed to be recognised
+      between visits, a random ID is stored in your browser instead — it is not linked to your
+      account, your name, or your rides, and its only purpose is to distinguish a returning
+      visitor from a new one.
+    </p>
+    <p>You can change this at any time:</p>
+    <p id="hm-privacy-state" style="font-weight:bold;"></p>
+    <p>
+      <button type="button" id="hm-privacy-grant">Recognise me between visits</button>
+      <button type="button" id="hm-privacy-deny">Don't recognise me</button>
+      <button type="button" id="hm-privacy-disable">Turn analytics off entirely</button>
+    </p>
+    <script>
+      // Reflect and edit the state held by visitor_consent.js. Kept here rather
+      // than in that file so the banner stays a single-purpose prompt.
+      (function () {
+        var c = window.hmVisitorConsent;
+        if (!c) return;
+        var labels = {
+          granted: "Currently: this browser is recognised between visits.",
+          denied: "Currently: not recognised — usage is still counted anonymously, without storing anything.",
+          unset: "Currently: not recognised — usage is counted anonymously, without storing anything.",
+          disabled: "Currently: analytics are off. Nothing at all is sent.",
+        };
+        function render() {
+          document.getElementById("hm-privacy-state").textContent = labels[c.state()] || "";
+        }
+        document.getElementById("hm-privacy-grant").onclick = function () { c.enable(); c.grant(); render(); };
+        document.getElementById("hm-privacy-deny").onclick = function () { c.enable(); c.deny(); render(); };
+        document.getElementById("hm-privacy-disable").onclick = function () { c.disable(); render(); };
+        render();
+      })();
+    </script>
+
     <h3>Research</h3>
     <p>
       Hitchhiking and more broadly mobility research might be conducted using the data collected
       on Hitchwiki Maps including user data. See our
-      <a href="https://maps.hitchwiki.org/dashboard.html">statistics page</a> for more
+      <a href="https://maps.hitchwiki.org/statistics">statistics page</a> for more
       information.
     </p>
 

@@ -10,14 +10,23 @@ baseDir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 sql_prefix = "sqlite:///" if sys.platform.startswith("win") else "sqlite:////"
 
 
+# Fallback values for local dev only -- both are well-known (this exact salt is the demo
+# value from Flask-Security-Too's own docs), so `create_app()` in hitch/__init__.py
+# refuses to start with either of them when ENVIRONMENT=prod. Kept as fallbacks rather
+# than a hard requirement everywhere so `cp example.env .env` still boots for local dev
+# without editing anything.
+INSECURE_DEFAULT_SECRET_KEY = "super_secret_key"
+INSECURE_DEFAULT_PASSWORD_SALT = "146585145368132386173505678016728509634"
+
+
 class BaseConfig:
-    SECRET_KEY = os.getenv("SECRET_KEY", "super_secret_key")
+    SECRET_KEY = os.getenv("SECRET_KEY", INSECURE_DEFAULT_SECRET_KEY)
     EMAIL = os.getenv("EMAIL", "maps@hitchwiki.org")
     MAX_CLAIMS_PER_DAY = os.getenv("MAX_CLAIMS_PER_DAY", 10)
 
     # User Config
     SECURITY_PASSWORD_HASH = os.getenv("SECURITY_PASSWORD_HASH", "argon2")
-    SECURITY_PASSWORD_SALT = os.getenv("SECURITY_PASSWORD_SALT", "146585145368132386173505678016728509634")
+    SECURITY_PASSWORD_SALT = os.getenv("SECURITY_PASSWORD_SALT", INSECURE_DEFAULT_PASSWORD_SALT)
     SECURITY_REGISTERABLE = False
     SECURITY_SEND_REGISTER_EMAIL = False
 
@@ -67,6 +76,14 @@ class BaseConfig:
     REMEMBER_COOKIE_SAMESITE = "Lax"
     REMEMBER_COOKIE_HTTPONLY = True
 
+    # Hard ceiling on any request body, enforced by Werkzeug (413 past it). The only
+    # endpoint that legitimately receives a big one is the ride form's photo upload
+    # (MAX_IMAGES_PER_RIDE x MAX_UPLOAD_BYTES = 36 MB, see utils/ride_images.py);
+    # everything else posts a handful of form fields. Without a cap, one unauthenticated
+    # POST can make waitress buffer an unbounded amount of memory on a host that the
+    # kernel OOM killer has already visited.
+    MAX_CONTENT_LENGTH = 40 * 1024 * 1024
+
     # Database Config
     DATABASE_NAME = os.getenv("DATABASE_NAME", "hitchhiking.sqlite")
     DATABASE_URI = os.getenv("DATABASE_URI", os.path.join(baseDir, "db", DATABASE_NAME))
@@ -74,6 +91,18 @@ class BaseConfig:
     SQLALCHEMY_DATABASE_URI = sql_prefix + DATABASE_URI
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
+
+    # Off by default, opt in with GENERATE_HEATMAP=true. The heatmap refits an sklearn
+    # Gaussian Process over the whole ride set and peaks around 1.9 GB RSS; show.py runs
+    # every 10 minutes, and this host has ~7.7 GB shared with other services. Left on, the
+    # kernel OOM-kills the show process partway through (observed 2026-07-25, dmesg
+    # "Killed process ... (flask) anon-rss:1855276kB"), which silently truncates the whole
+    # generate pass — the kill bypasses the try/except around the heatmap block, so
+    # everything after it never runs. This key was previously absent from the config
+    # entirely, so show.py's `config.get("GENERATE_HEATMAP", True)` always fell back to
+    # True and no .env setting could turn it off. With it off, dist/heatmap.json simply
+    # keeps its last generated contents.
+    GENERATE_HEATMAP = os.getenv("GENERATE_HEATMAP", "false").strip().lower() in ("1", "true", "yes", "on")
 
     # Flask-Mailman configuration
     MAIL_SERVER = os.getenv("MAIL_SERVER", "mail.smtp2go.com")

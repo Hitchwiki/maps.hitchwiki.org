@@ -16,6 +16,43 @@ def test_plain_login_oauth_sets_no_popup_flag(client):
         assert "oauth_popup" not in sess
 
 
+def test_anonymous_prompt_source_survives_oauth_redirect(client):
+    client.get("/login?source=anon-signup")
+    with client.session_transaction() as sess:
+        assert sess["signup_prompt_source"] == "anon-signup"
+
+
+def test_unknown_login_source_is_not_stored(client):
+    client.get("/login?source=made-up")
+    with client.session_transaction() as sess:
+        assert "signup_prompt_source" not in sess
+
+
+def test_new_user_target_attributes_only_the_known_prompt():
+    from hitch.blueprints.oauth import _new_user_target
+
+    assert _new_user_target("anon-signup") == "/?welcome=1&signup_prompt=account-created"
+    assert _new_user_target("made-up") == "/?welcome=1"
+    assert _new_user_target(None) == "/?welcome=1"
+
+
+def test_existing_user_target_tracks_a_login_from_the_signup_prompt():
+    """A real successful login through the anon-signup flow must not be invisible
+    to signup_prompt tracking just because the account already existed (confirmed
+    live 2026-08-25 via a KnyttesBot OAuth round-trip -- the old unconditional
+    "/me" swallowed this outcome entirely)."""
+    from hitch.blueprints.oauth import _existing_user_target
+
+    assert _existing_user_target("anon-signup") == "/?signup_prompt=logged-in"
+
+
+def test_existing_user_target_leaves_other_logins_unchanged():
+    from hitch.blueprints.oauth import _existing_user_target
+
+    assert _existing_user_target("made-up") == "/me"
+    assert _existing_user_target(None) == "/me"
+
+
 def test_popup_flag_is_cleared_by_a_later_full_page_login(client):
     """A stale flag must not turn a normal login into a popup-completion page."""
     client.get("/login/oauth?popup=1")

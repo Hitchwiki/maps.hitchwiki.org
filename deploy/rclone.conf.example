@@ -1,0 +1,102 @@
+# Google Drive credentials for the weekly backup job (hitch/scripts/backup_to_drive.py).
+#
+# Copy to deploy/rclone.conf and fill in real values. That file is gitignored and mounted into
+# the container at /root/.config/rclone/rclone.conf — it must NOT be committed and must NOT be
+# baked into the image. The client secret JSON downloaded from Google Cloud Console is also
+# gitignored (client_secret_*.json); it lands in the project root by default, which is a git
+# repo, so check `git status` before committing after a Console download.
+#
+# The mount is deliberately read-write: rclone refreshes the OAuth access token roughly hourly
+# and writes the new one back to this file. Verified — forcing a refresh rewrites the file.
+# Mounting it :ro yields a setup that works for an hour and then breaks, i.e. it looks fine on
+# the day you set it up and fails the following week.
+#
+# Create this file BEFORE the container next starts. Docker bind-mounts a missing source path
+# by creating it as an empty *directory*, so a `docker compose up` with no rclone.conf leaves
+# a root-owned directory here and rclone silently runs with no remotes configured.
+#
+#
+# ---------------------------------------------------------------------------------------
+# Setting up from scratch
+# ---------------------------------------------------------------------------------------
+#
+# 1. Google Cloud Console (console.cloud.google.com), signed in as the account that owns the
+#    backup Drive. Everything here is free — no billing account, no card. The Drive API quota
+#    that matters is a rate limit, not a charge.
+#      - Create a project (ours: "hitchwiki-maps").
+#      - APIs & Services -> Library -> enable "Google Drive API".
+#      - APIs & Services -> OAuth consent screen (newer Console: Google Auth Platform ->
+#        Audience) -> User type "External".
+#      - *** Click PUBLISH APP so the status reads "In production", NOT "Testing". ***
+#        This is the one step that silently ruins the setup if skipped. While an app is in
+#        Testing, Google (a) blocks anyone not added under Test users, with "has not completed
+#        the Google verification process", and (b) expires issued refresh tokens after 7 DAYS.
+#        This job runs every 7 days, so a Testing-mode token yields one or two good backups and
+#        then months of quiet failures. Adding yourself as a Test user fixes (a) but NOT (b) —
+#        publish instead.
+#        You do NOT need Google's app verification. Publishing unverified is fine for an app
+#        only you use; it just means an "unverified app" interstitial during login
+#        (Advanced -> Go to <app> (unsafe)). "Unverified" and "Testing" are different things.
+#      - Credentials -> Create Credentials -> OAuth client ID -> type "Desktop app".
+#        Download the JSON.
+#
+#    Why our own client_id rather than blank: a blank one shares rclone's global default OAuth
+#    client with every rclone user on earth, whose per-minute quota is frequently exhausted —
+#    it surfaces as "Error 403: Quota exceeded ... consumer project_number:202264815644". We hit
+#    that on the very first call. Our own client gets its own quota.
+#
+# 2. Authorize. The server is headless, so rclone cannot open a browser here. rclone's OAuth
+#    callback port (53682) is fixed, and Google allows Desktop-app clients any loopback port,
+#    so the registered redirect_uri (http://localhost) needs no change — ignore rclone's NOTICE
+#    about it.
+#
+#    Easiest route, and it keeps the client secret off your laptop and out of any chat/paste
+#    buffer: VS Code Remote-SSH already forwards localhost ports to this host. With VS Code
+#    connected, run ON THE SERVER:
+#
+#      cd /var/www/maps.hitchwiki.org
+#      CID=$(python3 -c "import json,glob;print(json.load(open(glob.glob('client_secret_*.json')[0]))['installed']['client_id'])")
+#      CSEC=$(python3 -c "import json,glob;print(json.load(open(glob.glob('client_secret_*.json')[0]))['installed']['client_secret'])")
+#      rclone authorize "drive" "$CID" "$CSEC"
+#
+#    It prints http://127.0.0.1:53682/auth?state=... — open that in your laptop browser; the
+#    forward carries it here. Log in as the Drive-owning account, click through the unverified
+#    interstitial, and rclone prints the token JSON.
+#
+#    (If 53682 is already taken on the laptop, `lsof -i :53682` shows what holds it. Note VS
+#    Code itself may legitimately be the listener — that IS the forward, not a conflict.)
+#
+#    Without VS Code, either tunnel it yourself
+#    (`ssh -L 53682:localhost:53682 user@host`, then run the same command on the server), or
+#    run `rclone authorize` on the laptop and paste the token back. The Desktop-app client
+#    secret is not treated as confidential by Google and grants nothing without user consent,
+#    but the refresh token IS a live credential to the Drive — don't paste that around.
+#
+# 3. Assemble this file: [gdrive] block below, with client_id/client_secret from the JSON and
+#    token from the authorize output. Then `chmod 600 deploy/rclone.conf`, and set in .env:
+#
+#      BACKUP_RCLONE_REMOTE=gdrive:hitchwiki_maps-backups
+#      BACKUP_RETENTION_DAYS=28
+#
+# 4. Create the folder and verify:
+#
+#      export RCLONE_CONFIG=/var/www/maps.hitchwiki.org/deploy/rclone.conf
+#      rclone mkdir gdrive:hitchwiki_maps-backups
+#      rclone about gdrive:                     # proves auth
+#      sudo -E python3 hitch/scripts/backup_to_drive.py --no-upload   # proves snapshot+scrub
+#
+#    In the container (after an image rebuild — hitch/scripts/ is baked in, not mounted):
+#
+#      sudo docker exec hitchhiking-map rclone lsf gdrive:hitchwiki_maps-backups
+#      sudo docker exec hitchhiking-map python3 /app/hitch/scripts/backup_to_drive.py
+#
+# Revoking: myaccount.google.com/permissions lists granted apps. Revoking one invalidates its
+# refresh token, and the next backup fails until you re-run step 2.
+
+[gdrive]
+type = drive
+client_id = <from client_secret_*.json>
+client_secret = <from client_secret_*.json>
+scope = drive
+token = {"access_token":"...","token_type":"Bearer","refresh_token":"...","expiry":"..."}
+team_drive =

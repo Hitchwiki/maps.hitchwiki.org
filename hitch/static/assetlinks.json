@@ -5,7 +5,8 @@
       "namespace": "android_app",
       "package_name": "org.hitchwiki.maps.twa",
       "sha256_cert_fingerprints": [
-        "F8:B3:09:7A:5F:9F:04:E9:CE:95:C6:05:86:12:A2:D4:C7:2E:E6:6E:FC:3C:72:59:7B:EC:7F:DE:74:8C:AE:EC"
+        "F8:B3:09:7A:5F:9F:04:E9:CE:95:C6:05:86:12:A2:D4:C7:2E:E6:6E:FC:3C:72:59:7B:EC:7F:DE:74:8C:AE:EC",
+        "95:D4:7A:74:9E:AC:2D:77:EA:D9:0F:ED:C5:A5:20:B5:D0:25:31:59:BA:32:73:79:25:7C:5C:20:AB:10:53:66"
       ]
     }
   }

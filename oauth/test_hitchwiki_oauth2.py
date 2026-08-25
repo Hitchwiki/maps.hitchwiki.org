@@ -38,11 +38,7 @@ PROFILE_URL = f"{WIKI_BASE}/rest.php/oauth2/resource/profile"
 def index():
     if "user" in session:
         user = session["user"]
-        return (
-            f"<h1>Logged in as {user.get('username', 'unknown')}</h1>"
-            f"<pre>{user}</pre>"
-            f'<a href="/logout">Logout</a>'
-        )
+        return f'<h1>Logged in as {user.get("username", "unknown")}</h1><pre>{user}</pre><a href="/logout">Logout</a>'
     return '<h1>Hitchwiki OAuth 2.0 Test</h1><a href="/login">Login with Hitchwiki</a>'
 
 

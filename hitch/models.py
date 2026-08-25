@@ -56,12 +56,41 @@ class User(db.Model, fsqla.FsUserMixin):
     # chat itself. Only consulted when allow_messages is on (no messages arrive otherwise).
     message_email_notifications = db.Column(db.Boolean, default=True, nullable=False, server_default="1")
 
+    # Which unit system distances are *displayed* in ("metric" = km, "imperial" = miles).
+    # Storage and every computation stay in km — this is a presentation preference only, so a
+    # user switching units never rewrites ride data. Private: unlike the profile fields above
+    # it is never rendered on the public profile.
+    distance_unit = db.Column(db.String(16), default="metric", nullable=False, server_default="metric")
+
+    # Epoch seconds of the last time this user opened the Activities page (/recent), or
+    # NULL if never. Drives the dot on the map's Activities button: a ride published by
+    # someone they follow after this instant hasn't been seen yet. Epoch seconds rather
+    # than a datetime because it is compared against RideEvent.created_at, which is the
+    # Nostr event's own epoch-seconds stamp (same unit as
+    # nearby_hitchhikers_email_last_sent above).
+    recent_seen_at = db.Column(db.Integer, default=None)
+
     # Lifetime hitchhiking stats, recomputed from all ride events on every show.py
     # run (not maintained on ride submission). Shown in the profile "Insights"
     # section so the page doesn't have to aggregate every ride on each load.
     total_rides = db.Column(db.Integer, default=0)
     total_distance_km = db.Column(db.Float, default=0)
     total_waiting_time_min = db.Column(db.Integer, default=0)
+
+
+class UserAvatar(db.Model):
+    """A registered user's explicit public profile-image choice.
+
+    Kept in its own table so deploying the feature cannot make the existing ``user``
+    table unreadable before ``flask init`` creates the new schema. ``source`` is one of
+    none/upload/gravatar. Uploaded filenames are random paths below dist/profile-images;
+    Gravatar needs no stored hash because it is derived only after the user opts in.
+    """
+
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), primary_key=True)
+    source = db.Column(db.String(16), nullable=False, default="none", server_default="none")
+    filename = db.Column(db.String(255), nullable=True)
+    updated_at = db.Column(db.DateTime, nullable=False, default=db.func.now(), onupdate=db.func.now())
 
 
 class Follow(db.Model):
@@ -109,10 +138,21 @@ class Trip(db.Model):
     # A named collection of rides belonging to one user (e.g. "Summer 2026 Balkans").
     # Rides are attached via TripRide rows keyed on the ride's Nostr d-tag.
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    # Nullable because a multi-ride journey logged anonymously through the in-ride tracker
+    # is auto-grouped into a trip too (see /auto-trip), and there is no account to hang it
+    # off. An ownerless trip is reachable only by its link and nobody can edit or delete it
+    # — every trip-mutating route compares trip.user_id to a logged-in id, which None never
+    # equals.
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
     name = db.Column(db.String(255), nullable=False)
     # Optional free-text blurb the user writes to describe the trip.
     description = db.Column(db.Text, nullable=True)
+    # Why the hitchhiker was on this trip: comma-separated ReasonToHitchhikeEnum codes,
+    # the same vocabulary (and storage shape) the ride form's hidden input uses. Stored
+    # here as well as on each ride because saving the trip *adds* these to every ride in
+    # it by union — the rides are the record, this is what the trip claims about itself,
+    # and without it the picker would have nothing to show when the trip is reopened.
+    reasons_to_hitchhike = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=db.func.now())
 
 
@@ -149,13 +189,91 @@ class RideReport(db.Model):
     __table_args__ = (db.UniqueConstraint("ride_d_tag", "user_id", name="uq_ride_report_dtag_user"),)
 
 
+class RideLike(db.Model):
+    """A logged-in user's like on a ride, identified by its Nostr `d` tag.
+
+    One like per (ride, user) via the unique constraint, so liking twice is a no-op and
+    unliking is a plain delete rather than a toggle counter.
+    """
+
+    __tablename__ = "ride_like"
+
+    id = db.Column(db.Integer, primary_key=True)
+    ride_d_tag = db.Column(db.String(255), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=db.func.now())
+
+    __table_args__ = (db.UniqueConstraint("ride_d_tag", "user_id", name="uq_ride_like_dtag_user"),)
+
+
+class RideComment(db.Model):
+    """A logged-in user's comment on a ride, identified by its Nostr `d` tag.
+
+    Write access is restricted in main.py's comment_ride(): only allowed on your own
+    ride, or when the ride's owner already follows you (mirrors the ask that comments
+    require a one-sided follow from the person whose ride it is, so a ride can't be
+    flooded with comments from strangers the owner has never engaged with).
+    """
+
+    __tablename__ = "ride_comment"
+
+    id = db.Column(db.Integer, primary_key=True)
+    ride_d_tag = db.Column(db.String(255), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=db.func.now())
+
+
+class RideImage(db.Model):
+    """A photo a hitchhiker attached to their ride, identified by its Nostr `d` tag.
+
+    Deliberately local-only: the image bytes live on this server (under
+    `dist/ride-images/`, see blueprints/utils/ride_images.py) and the *only* link back to
+    the ride is this table's `ride_d_tag`. Nothing about a photo is published to Nostr —
+    the hitchhiking data standard has no image field we could fill without inventing one,
+    and a relay is the wrong place for binary payloads. A ride therefore keeps its photos
+    across edits, which republish the Nostr event under the same `d`.
+
+    `user_id` is nullable because the ride form can be submitted anonymously; the abuse
+    trail for such an upload is the ride's own entry in logs/ride_ips.csv (log_ride_ip),
+    which keeps IP addresses out of the database and its off-site backups.
+
+    Exactly one of `ride_d_tag` / `draft_token` is set. A photo is uploaded the moment it
+    is picked, which is *before* the ride exists — the d tag only comes back from the
+    relay publish — so it lands under the form's `draft_token` and is claimed by the
+    submit. It has to work this way: the form navigates away to the map to pick a pickup
+    point, and no file input survives a navigation, so anything still held in the browser
+    at submit time would silently vanish.
+    """
+
+    __tablename__ = "ride_image"
+
+    id = db.Column(db.Integer, primary_key=True)
+    # NULL while the photo is still attached to an unsubmitted form.
+    ride_d_tag = db.Column(db.String(255), nullable=True, index=True)
+    # The submitting form's random token, NULL once the photo belongs to a ride. Unclaimed
+    # rows are swept after ride_images.DRAFT_TTL so an abandoned form leaves no litter.
+    draft_token = db.Column(db.String(64), nullable=True, index=True)
+    # Path relative to dist/ride-images/, e.g. "2026/07/<uuid>.jpg". Stored rather than
+    # derived so the on-disk layout can change without rewriting existing rows.
+    filename = db.Column(db.String(255), nullable=False, unique=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
+    width = db.Column(db.Integer, nullable=True)
+    height = db.Column(db.Integer, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=db.func.now())
+
+
 class RideEvent(db.Model):
     id = db.Column(db.String(64), primary_key=True)
     kind = db.Column(db.Integer, nullable=False)
     pubkey = db.Column(db.String(64), nullable=False)
     sig = db.Column(db.String(128), nullable=False)
     content = db.Column(db.JSON, nullable=False)
-    created_at = db.Column(db.Integer, nullable=False)
+    # Indexed: /pending_rides.json filters on this column on every map load, and without
+    # an index that's a full scan of a 75k-row / ~130 MB table (verified via EXPLAIN QUERY
+    # PLAN against prod). Creating the index on the production DB is a separate deploy
+    # step (ALTER not applied by this ORM change) — see CLAUDE.md's migration section.
+    created_at = db.Column(db.Integer, nullable=False, index=True)
 
     # Ride details as columns for easier querying
     version = db.Column(db.String(32), nullable=True)
@@ -180,7 +298,13 @@ class RideEvent(db.Model):
 
     # Tag keys as columns
     expiration = db.Column(db.String(32), nullable=True)
-    d = db.Column(db.String(255), nullable=True)
+    # Indexed: `d` is the addressable id every profile-side view resolves a ride by
+    # (/ride/<d_tag>, trip membership, co-hitchhiker invitations), and without an index
+    # each lookup is a full scan of a 79k-row table whose rows carry several JSON blobs
+    # — ~0.3 s apiece. A trip page doing that once per member ride cost 19 s of the 22 s
+    # /account/Ecureuil took (64 rides). Creating the index on the production DB is a
+    # separate deploy step — see CLAUDE.md's migration section.
+    d = db.Column(db.String(255), nullable=True, index=True)
     published_at = db.Column(db.String(32), nullable=True)
 
     # Store all tags as JSON for flexibility
@@ -292,6 +416,27 @@ class RidePlace(db.Model):
     to_cc = db.Column(db.String(2), nullable=True)
 
 
+class SpotName(db.Model):
+    """Reverse-geocoded street name for a spot, keyed by its `generate_spot_id`.
+
+    Only the last step of the naming cascade (hitch/scripts/spot_naming.py): the spots
+    that no OSM feature within 100 m can name — about 84% of them. Written offline by
+    hitch/scripts/spot_names.py at one request per second against Photon, which is why
+    it is cached at all rather than resolved when the spot is rendered.
+
+    A NULL `name` means Photon answered and the place has no street or settlement, and
+    is never asked again. A spot that failed to resolve has no row, so it is retried.
+    """
+
+    __tablename__ = "spot_name"
+
+    spot_id = db.Column(db.String(64), primary_key=True)
+    name = db.Column(db.String(255), nullable=True)
+    latitude = db.Column("lat", db.Float, nullable=False)
+    longitude = db.Column("lon", db.Float, nullable=False)
+    geocoded_at = db.Column(db.String(32), nullable=False)
+
+
 class DerivedRideLocation(db.Model):
     """A destination we inferred for a ride that reached Nostr without one, keyed by `d`.
 
@@ -321,6 +466,36 @@ class DerivedRideLocation(db.Model):
     def to_stop(self):
         # Same shape as a Nostr stop's location object so it merges straight onto a note.
         return {"location": {"latitude": self.latitude, "longitude": self.longitude, "is_exact": bool(self.is_exact)}}
+
+
+class DerivedRideWait(db.Model):
+    """A waiting time we inferred for a ride that reached Nostr without one, keyed by `d`.
+
+    Many hitchmap.com / hitchwiki.org rides carry no `waiting_duration` on their first
+    stop yet the free-text comment states how long the hitchhiker waited before getting
+    picked up ("waited 20 min and a truck stopped"). hitch/scripts/extract_wait_times.py
+    mines those comments (a cheap `\\d+ min` regex gate, then an LLM that only accepts a
+    comment which actually says the writer *waited* N minutes and then got a ride — not a
+    journey/drive duration) and stores the result here so it can be merged back onto the
+    ride's first stop via to_iso().
+
+    Kept in its own table — not written to Nostr and not columns on RideEvent — because
+    fetch_nostr rebuilds ride_event wholesale, and because this is data only we hold. The
+    minutes are inferred from prose, never a logged timer. Mirrors DerivedRideLocation.
+    """
+
+    __tablename__ = "derived_ride_wait"
+
+    d = db.Column(db.String(255), primary_key=True)
+    waiting_minutes = db.Column(db.Integer, nullable=False)
+    source_comment = db.Column(db.Text, nullable=True)
+    kind = db.Column(db.String(64), nullable=True)
+    created_at = db.Column(db.Integer, nullable=True)
+
+    def to_iso(self):
+        # ISO 8601 duration, the same shape a Nostr stop's `waiting_duration` carries, so
+        # it merges straight onto stops[0] and every wait consumer reads it unchanged.
+        return f"PT{int(self.waiting_minutes)}M"
 
 
 class ProposedSpot(db.Model):

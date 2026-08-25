@@ -1,0 +1,29 @@
+{% extends "security/base.html" %}
+
+{% set title = t("Statistics") %}
+
+{% block head %}
+{{ super() }}
+<style>
+  .overlay { max-width: 720px; }
+  .statistics-links { display: grid; gap: 1rem; margin: 1.5rem 0; }
+  .statistics-link { border: 1px solid #ddd; border-radius: 8px; color: inherit; padding: 1rem; text-decoration: none; }
+  .statistics-link:hover { border-color: #888; background: #fafafa; }
+  .statistics-link strong { display: block; font-size: 1.15em; margin-bottom: .2rem; }
+  .statistics-link span { color: #555; font-size: .9em; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>{{ t("Statistics") }}</h1>
+<div class="statistics-links">
+  <a class="statistics-link" href="{{ url_for(request.blueprint ~ '.waiting_time_statistics') }}">
+    <strong>{{ t("Waiting times") }}</strong>
+    <span>{{ t("Compare recorded pickup waits by group size and gender composition.") }}</span>
+  </a>
+  <a class="statistics-link" href="{{ url_for(request.blueprint ~ '.ride_collection_statistics_page') }}">
+    <strong>{{ t("Ride collection") }}</strong>
+    <span>{{ t("See how many rides were collected each week, overall and by source.") }}</span>
+  </a>
+</div>
+{% endblock %}

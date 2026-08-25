@@ -1,6 +1,8 @@
 {% extends 'base.html' %}
 
-{% block title %}Ride Details | Hitchhiking Map{% endblock %}
+{% block title %}{{ og_title }} | Hitchhiking Map{% endblock %}
+{% block og_title %}{{ og_title }}{% endblock %}
+{% block og_description %}{{ og_description }}{% endblock %}
 
 {% block head %}
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
@@ -136,22 +138,23 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     gap: 10px;
     flex-wrap: wrap;
 }
-.share-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    background: #f0f0f0;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    color: #333;
-    font: inherit;
-    font-size: 0.85em;
-    cursor: pointer;
-    text-decoration: none;
+/* .share-btn styling + click handler are shared globally from base.html */
+/* Countdown / status toast for the 5-tap claim easter egg (script at page bottom). */
+#claim-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    transform: translateX(-50%);
+    z-index: 10000;
+    max-width: 88vw;
+    padding: 10px 16px;
+    border-radius: 20px;
+    background: rgba(0, 0, 0, 0.82);
+    color: #fff;
+    font-size: 0.9em;
+    text-align: center;
+    pointer-events: none;
 }
-.share-btn:hover { background: #e4e4e4; }
-.share-btn.copied { background: #d4edda; border-color: #28a745; color: #155724; }
 .report-btn {
     display: inline-flex;
     align-items: center;
@@ -178,6 +181,15 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     margin-bottom: 1rem;
     font-size: 0.95em;
 }
+.no-ride-notice {
+    background: #d73027;
+    color: #fff;
+    border-radius: 6px;
+    padding: 0.7rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 1em;
+    font-weight: 600;
+}
 .report-confirm {
     background: #d4edda;
     border: 1px solid #28a745;
@@ -187,12 +199,102 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     margin-bottom: 1rem;
     font-size: 0.95em;
 }
+.like-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    color: #555;
+    font: inherit;
+    font-size: 0.85em;
+    cursor: pointer;
+}
+.like-btn:hover { background: #fdf2f3; border-color: #f3b6c0; }
+.like-btn.liked { background: #fdf2f3; border-color: #e0839a; color: #c2185b; }
+.header-actions form.like-form { margin: 0; }
+.comment {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+.comment:last-child { border-bottom: none; }
+.comment-body { flex: 1; }
+.comment-meta {
+    font-size: 0.85em;
+    color: #888;
+    margin-bottom: 0.15rem;
+}
+.comment-meta a { color: #555; }
+.comment-text { white-space: pre-wrap; color: #333; font-size: 0.95em; }
+.comment-delete {
+    background: none;
+    border: none;
+    color: #b02a37;
+    cursor: pointer;
+    font-size: 0.85em;
+    padding: 0;
+    align-self: flex-start;
+}
+.comment-form textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 0.5rem;
+    font: inherit;
+    font-size: 0.9em;
+    resize: vertical;
+    min-height: 60px;
+}
+.comment-form button {
+    margin-top: 0.5rem;
+    padding: 6px 14px;
+    background: #28a745;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+.comment-locked {
+    color: #888;
+    font-size: 0.9em;
+}
+.ride-photos {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.5rem;
+}
+.ride-photos img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #e5e5e5;
+    display: block;
+}
+.photo-license {
+    font-size: 0.8rem;
+    color: #888;
+    margin: 0.6rem 0 0;
+}
 </style>
 {% endblock %}
 
 {% block main %}
 <div class="ride-detail-page">
     <a href="/" class="back-link">← Back to map</a>
+
+    {% if ride.no_ride %}
+    <div class="no-ride-notice">
+        <i class="fa fa-ban"></i> No ride was taken — the hitchhiker gave up waiting.
+    </div>
+    {% endif %}
 
     <div class="ride-header">
         <div>
@@ -216,10 +318,26 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
             </h1>
         </div>
         <div class="header-actions">
-            <button type="button" class="share-btn" id="share-btn" data-share-url="{{ url_for('main.ride_detail', d_tag=ride.d_tag, _external=True) }}" data-share-title="Hitchhiking ride on Hitchwiki Maps">
+            {# data-claim-dtag arms the 5-tap claim easter egg (see the script block at the
+               bottom of this page, and the README). Only set when the ride looks claimable;
+               /claim-ride re-checks it anyway. #}
+            <button type="button" class="share-btn" id="share-btn" data-share-url="{{ url_for('main.ride_detail', d_tag=ride.d_tag, _external=True) }}" data-share-title="Hitchhiking ride on Hitchwiki Maps"{% if can_claim %} data-claim-dtag="{{ ride.d_tag }}"{% endif %}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                 <span class="share-btn-label">Share</span>
             </button>
+            {% if is_logged_in %}
+                <form method="post" action="/like-ride/{{ ride.d_tag }}" class="like-form">
+                    <button type="submit" class="like-btn{% if liked_by_me %} liked{% endif %}">
+                        <i class="fa{% if liked_by_me %}-solid{% else %}-regular{% endif %} fa-heart"></i>
+                        <span>{{ likes_count }}</span>
+                    </button>
+                </form>
+            {% else %}
+                <a href="/login?next=/ride/{{ ride.d_tag }}" class="like-btn">
+                    <i class="fa-regular fa-heart"></i>
+                    <span>{{ likes_count }}</span>
+                </a>
+            {% endif %}
             {% if ride.can_delete %}
                 {% if not owner_deleted %}
                     {# Only rides published by this site can be edited (a foreign-source event
@@ -269,6 +387,22 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
         {% endif %}
     </div>
 
+    {% if ride.intermediate_stops %}
+    <div class="detail-section">
+        <p class="section-title">Stops along the way</p>
+        {% for stop in ride.intermediate_stops %}
+        <div class="detail-row">
+            <div class="detail-label"><i class="fa fa-map-pin"></i> {{ stop.label or "Stop " ~ loop.index }}</div>
+            <div class="detail-value">
+                {% if stop.lat is not none and stop.lon is not none %}{{ "%.4f, %.4f"|format(stop.lat, stop.lon) }}{% endif %}
+                {% if stop.arrival_time %}&middot; arrived {{ with_weekday(stop.arrival_time.replace('T', ' ')[:16]) }}{% endif %}
+                {% if stop.departure_time %}&middot; left {{ with_weekday(stop.departure_time.replace('T', ' ')[:16]) }}{% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <div class="detail-section">
         <p class="section-title">Ride information</p>
 
@@ -282,7 +416,7 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
         {% if ride.distance_km is not none %}
         <div class="detail-row">
             <div class="detail-label"><i class="fa fa-route"></i> Distance</div>
-            <div class="detail-value">{{ "%.0f km"|format(ride.distance_km) }}</div>
+            <div class="detail-value">{{ format_distance(ride.distance_km) }}</div>
         </div>
         {% endif %}
 
@@ -293,23 +427,30 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
         </div>
         {% endif %}
 
+        {% if ride.sign_content %}
+        <div class="detail-row">
+            <div class="detail-label"><i class="fa fa-pen"></i> Sign said</div>
+            <div class="detail-value">{{ ride.sign_content }}</div>
+        </div>
+        {% endif %}
+
         {% if ride.departure_time %}
         <div class="detail-row">
             <div class="detail-label"><i class="fa fa-play"></i> Ride start time</div>
-            <div class="detail-value">{{ ride.departure_time.replace('T', ' ')[:16] }}</div>
+            <div class="detail-value">{{ with_weekday(ride.departure_time.replace('T', ' ')[:16]) }}</div>
         </div>
         {% endif %}
 
         {% if ride.arrival_time %}
         <div class="detail-row">
             <div class="detail-label"><i class="fa fa-flag-checkered"></i> Arrival time</div>
-            <div class="detail-value">{{ ride.arrival_time.replace('T', ' ')[:16] }}</div>
+            <div class="detail-value">{{ with_weekday(ride.arrival_time.replace('T', ' ')[:16]) }}</div>
         </div>
         {% endif %}
 
         <div class="detail-row">
             <div class="detail-label"><i class="fa fa-upload"></i> Submitted</div>
-            <div class="detail-value">{% if ride.submission_time %}{{ ride.submission_time.replace('T', ' ')[:16] }}{% else %}--:--:--{% endif %}</div>
+            <div class="detail-value">{% if ride.submission_time %}{{ with_weekday(ride.submission_time.replace('T', ' ')[:16]) }}{% else %}--:--:--{% endif %}</div>
         </div>
 
         {% if ride.source %}
@@ -328,10 +469,17 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
                     {% if h.nickname and h.nickname != 'Anonymous' %}
                         <a class="hitchhiker-chip" href="/account/{{ h.nickname }}">{% if sign %}{{ sign }} {% endif %}{{ h.nickname }}</a>
                     {% else %}
-                        <span class="hitchhiker-chip">Anonymous</span>
+                        <span class="hitchhiker-chip">{% if sign %}{{ sign }} {% endif %}Anonymous</span>
                     {% endif %}
                 {% endfor %}
             </div>
+        </div>
+        {% endif %}
+
+        {% if ride.hitchhike_reasons %}
+        <div class="detail-row">
+            <div class="detail-label"><i class="fa fa-compass"></i> Why hitchhiking</div>
+            <div class="detail-value">{{ ride.hitchhike_reasons|join(', ') }}</div>
         </div>
         {% endif %}
     </div>
@@ -367,9 +515,21 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     </div>
     {% endif %}
 
-    {% if ride.driver %}
+    {# The driver's own trip reasons live in this section even when nothing else about the
+       driver was recorded, so the section opens on either. #}
+    {% if ride.driver or ride.trip_reasons %}
     <div class="detail-section">
         <p class="section-title">Driver</p>
+        {% if ride.trip_reasons %}
+        <div class="detail-row">
+            <div class="detail-label"><i class="fa fa-road"></i> Why they were on the road</div>
+            <div class="detail-value">{{ ride.trip_reasons|join(', ') }}</div>
+        </div>
+        {% endif %}
+        {# `ride.driver` may be absent while trip reasons are present, and `None.x` is
+           Undefined in Jinja — which `is not none` would happily pass — so the whole
+           driver block is guarded here rather than row by row. #}
+        {% if ride.driver %}
         {# Tristate — `is not none` so an explicit "no" (falsy) still renders. #}
         {% if ride.driver.would_ride_again is not none %}
         <div class="detail-row">
@@ -413,6 +573,7 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
             <div class="detail-value">{{ ride.driver.languages|join(', ') }}</div>
         </div>
         {% endif %}
+        {% endif %}
     </div>
     {% endif %}
 
@@ -423,16 +584,83 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     </div>
     {% endif %}
 
+    {# Photos live on this server only — they are never published to Nostr, so they are
+       looked up by d tag rather than read out of the ride event (see ride_images.py). #}
+    {% if ride_images %}
+    <div class="detail-section">
+        <p class="section-title">Photos</p>
+        <div class="ride-photos">
+            {% for img in ride_images %}
+            {# Links to the full-size file: the grid crops to a uniform tile, and a
+               hitchhiker checking what a spot looks like needs the whole picture. #}
+            <a href="{{ img.url }}" target="_blank" rel="noopener">
+                <img src="{{ img.url }}" alt="Photo attached to this ride" loading="lazy"
+                     {% if img.width %}width="{{ img.width }}"{% endif %}
+                     {% if img.height %}height="{{ img.height }}"{% endif %}>
+            </a>
+            {% endfor %}
+        </div>
+        <p class="photo-license">
+            Photos are published by their uploader under
+            <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>.
+        </p>
+    </div>
+    {% endif %}
+
     {# Downstream license notice: the review (comment + username) is an individual content
        licensed CC BY-SA 4.0; the database as a whole is ODbL (see /copyright, ODbL §2.4). #}
     <div class="detail-section">
         <p style="font-size: 0.8rem; color: #888; line-height: 1.5;">
-            This review (comment and username) is licensed under
+            This review (comment, username and photos) is licensed under
             <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>.
             The map database as a whole is licensed under the
             <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>.
+            {# Uploaded photos may include map images; those come from OSM, so they carry the same
+               attribution our own map footer does (map.js tile layer credit). #}
+            Map images are &copy;
+            <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>
+            contributors, as on our main map.
             See <a href="/copyright" target="_blank" rel="noopener">Copyright and License</a>.
         </p>
+    </div>
+
+    <div class="detail-section" id="comments">
+        <p class="section-title">Comments ({{ comments|length }})</p>
+
+        {% for c in comments %}
+        <div class="comment">
+            <div class="comment-body">
+                <div class="comment-meta">
+                    <a href="/account/{{ c.username }}">{{ c.username }}</a>
+                    · {{ c.created_at.strftime('%Y-%m-%d %H:%M') }}
+                </div>
+                <div class="comment-text">{{ c.body }}</div>
+            </div>
+            {% if c.is_own %}
+            <form method="post" action="/delete-ride-comment/{{ c.id }}"
+                  onsubmit="return confirm('Delete this comment?');">
+                <button type="submit" class="comment-delete"><i class="fa fa-trash"></i></button>
+            </form>
+            {% endif %}
+        </div>
+        {% else %}
+        <p style="color:#888; font-size:0.9em;">No comments yet.</p>
+        {% endfor %}
+
+        {% if can_comment %}
+        <form method="post" action="/comment-ride/{{ ride.d_tag }}" class="comment-form" style="margin-top:1rem;">
+            <textarea name="body" maxlength="2000" placeholder="Write a comment…" required></textarea>
+            <button type="submit">Post comment</button>
+        </form>
+        {% elif is_logged_in %}
+        <p class="comment-locked" style="margin-top:1rem;">
+            <i class="fa fa-lock"></i> This ride's hitchhiker(s) need to follow you before you can comment.
+        </p>
+        {% else %}
+        <p class="comment-locked" style="margin-top:1rem;">
+            <a href="/login?next=/ride/{{ ride.d_tag }}#comments">Log in</a> to comment (if this ride's hitchhiker follows you).
+        </p>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
@@ -446,31 +674,101 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     initMapThumbnail('pickup-map', {{ ride.pickup_lat }}, {{ ride.pickup_lon }}, 7);
     {% endif %}
     {% if ride.dest_lat is not none and ride.dest_lon is not none %}
-    initMapThumbnail('dest-map', {{ ride.dest_lat }}, {{ ride.dest_lon }}, 7);
+    {# Its own map, so it gets the checkered flag rather than the pickup thumb. #}
+    initMapThumbnail('dest-map', {{ ride.dest_lat }}, {{ ride.dest_lon }}, 7, { kind: 'dest' });
     {% endif %}
 
-    const shareBtn = document.getElementById('share-btn');
-    if (shareBtn) {
-        shareBtn.addEventListener('click', async () => {
-            const url = shareBtn.dataset.shareUrl;
-            const title = shareBtn.dataset.shareTitle;
-            try {
-                if (navigator.share) {
-                    await navigator.share({ title: title, url: url });
-                    return;
-                }
-            } catch (e) { if (e.name === 'AbortError') return; }
-            try {
-                await navigator.clipboard.writeText(url);
-                const label = shareBtn.querySelector('.share-btn-label');
-                const prev = label.textContent;
-                shareBtn.classList.add('copied');
-                label.textContent = 'Link copied!';
-                setTimeout(() => { shareBtn.classList.remove('copied'); label.textContent = prev; }, 1800);
-            } catch (e) {
-                window.prompt('Copy this link:', url);
-            }
-        });
+    // The #share-btn click is handled by the shared delegated handler in base.html.
+    var shareBtn = document.getElementById('share-btn');
+
+    // ── Claim-an-unattributed-ride easter egg ───────────────────────────────────
+    // Tapping Share 5× on a ride nobody put their name to claims it for you. Much of
+    // this map was logged without an account — people submitted anonymously before they
+    // registered, and the whole hitchmap.com import arrived that way — so a hitchhiker
+    // recognising their own ride can take it back; it then counts on their profile and
+    // becomes editable. The server re-checks every condition (hitch/blueprints/main.py,
+    // claim_ride) and refuses rides another platform published.
+    var claimDTag = shareBtn && shareBtn.dataset.claimDtag;
+    if (!claimDTag) return;
+
+    var CLAIM_TAPS = 5;
+    // Generous window: the first tap really shares, which on a phone opens the native
+    // share sheet the user has to dismiss before tapping again.
+    var CLAIM_WINDOW_MS = 4000;
+    var taps = 0;
+    var resetTimer = null;
+
+    function resetTaps() { taps = 0; clearTimeout(resetTimer); }
+
+    shareBtn.addEventListener('click', function (e) {
+        taps++;
+        clearTimeout(resetTimer);
+        // Listeners on the button itself run before base.html's delegated one on
+        // document, so stopping propagation here is what suppresses the share.
+        if (taps > 1) { e.preventDefault(); e.stopPropagation(); }
+        if (taps >= CLAIM_TAPS) {
+            resetTaps();
+            // Irreversible: the claim republishes the ride on Nostr under this user's
+            // name, and there is no unclaim. Ask before doing it.
+            if (!confirm({{ t("Do you really want to claim this ride for yourself? It will be published under your name and this cannot be undone.")|tojson }})) return;
+            claimRide();
+            return;
+        }
+        if (taps > 1) {
+            // From the second tap on, say what is happening — a Share button that stops
+            // sharing otherwise reads as a bug rather than as a secret.
+            var remaining = CLAIM_TAPS - taps;
+            showToast(remaining === 1
+                ? {{ t("1 more tap to claim this ride…")|tojson }}
+                : {{ t("{n} more taps to claim this ride…")|tojson }}.replace('{n}', remaining));
+        }
+        resetTimer = setTimeout(resetTaps, CLAIM_WINDOW_MS);
+    });
+
+    // Publishing the claim goes through Nostr, which takes a few seconds; the toast has
+    // to stay up for the whole wait so the tap streak doesn't look like it did nothing.
+    async function claimRide() {
+        showToast({{ t("Claiming this ride…")|tojson }}, 20000);
+        var data = {};
+        var ok = false;
+        try {
+            var resp = await fetch('/claim-ride/' + encodeURIComponent(claimDTag), {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'fetch' },
+            });
+            data = await resp.json().catch(function () { return {}; });
+            ok = resp.ok && data.ok;
+        } catch (err) {
+            console.error('claim-ride failed', err);
+        }
+        if (!ok) { showToast(claimErrorMessage(data.error, data.source), 5000); return; }
+        // Reload rather than patch: the claim changes the byline, the edit link and the
+        // delete button, all rendered server-side.
+        window.location.reload();
+    }
+
+    function claimErrorMessage(error, source) {
+        if (error === 'not_logged_in') return {{ t("Log in to claim a ride")|tojson }};
+        if (error === 'already_claimed') return {{ t("This ride already has a hitchhiker")|tojson }};
+        if (error === 'foreign_source') {
+            return source
+                ? {{ t("This ride was recorded on {source} — claim it there")|tojson }}.replace('{source}', source)
+                : {{ t("This ride comes from another site and can't be claimed here")|tojson }};
+        }
+        return {{ t("Couldn't claim this ride — try again")|tojson }};
+    }
+
+    var toastTimer = null;
+    function showToast(msg, ms) {
+        var t = document.getElementById('claim-toast');
+        if (!t) {
+            t = document.createElement('div');
+            t.id = 'claim-toast';
+            document.body.appendChild(t);
+        }
+        t.textContent = msg;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { if (t.parentNode) t.remove(); }, ms || 1500);
     }
 })();
 </script>

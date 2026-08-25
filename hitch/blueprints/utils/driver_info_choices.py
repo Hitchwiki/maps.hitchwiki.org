@@ -24,6 +24,37 @@ REASON_TO_PICK_UP_CHOICES = [
 ALLOWED_REASONS_TO_PICK_UP = [code for code, _ in REASON_TO_PICK_UP_CHOICES]
 REASON_DESCRIPTION_BY_CODE = {code: desc for code, desc in REASON_TO_PICK_UP_CHOICES}
 
+# Why the *ride itself* was happening — the standard's `ride.reasons`, i.e. the trip the
+# driver was on anyway. Distinct from why they stopped for a hitchhiker (above). Keys must
+# stay in sync with hitchhiking_data_standard_pydantic_model.ReasonEnum. Each carries an
+# emoji because these render as tap chips, not as a typed datalist (a handful of options).
+RIDE_REASON_CHOICES = [
+    ("holiday", "🏖", "Holiday"),
+    ("commute", "🏢", "Commute"),
+    ("business", "💼", "Business"),
+    ("recreational", "🎉", "Recreational"),
+    ("errands", "🛒", "Errands"),
+]
+ALLOWED_RIDE_REASONS = [code for code, _, _ in RIDE_REASON_CHOICES]
+RIDE_REASON_DESCRIPTION_BY_CODE = {code: desc for code, _, desc in RIDE_REASON_CHOICES}
+
+# Why the hitchhiker was hitchhiking on this particular ride — the standard's
+# hitchhiker.reasons_to_hitchhike. Keys must stay in sync with ReasonToHitchhikeEnum.
+REASON_TO_HITCHHIKE_CHOICES = [
+    ("vacation", "🏖", "Vacation"),
+    ("commute", "🏢", "Commute"),
+    ("recreational", "🎉", "Recreational"),
+    ("social_exchange", "💬", "Meeting people"),
+    ("cultural_exchange", "🌍", "Cultural exchange"),
+    ("financial", "💰", "Saving money"),
+    ("environmental", "🌱", "Environmental"),
+    ("sport", "🏃", "Sport"),
+    ("fundraising", "🎗", "Fundraising"),
+    ("errands", "🛒", "Errands"),
+]
+ALLOWED_REASONS_TO_HITCHHIKE = [code for code, _, _ in REASON_TO_HITCHHIKE_CHOICES]
+REASON_TO_HITCHHIKE_DESCRIPTION_BY_CODE = {code: desc for code, _, desc in REASON_TO_HITCHHIKE_CHOICES}
+
 # (alpha_2, name) — sorted alphabetically by name.
 COUNTRY_CHOICES = sorted(
     [(c.alpha_2, c.name) for c in pycountry.countries],
@@ -37,14 +68,84 @@ COUNTRY_CODES = {code for code, _ in COUNTRY_CHOICES}
 # pycountry list is too noisy for a driver-info picker; pick the ones most
 # users will need.
 MAJOR_LANGUAGE_CODES = {
-    "eng", "spa", "fra", "deu", "ita", "por", "rus", "zho", "jpn", "kor",
-    "ara", "hin", "ben", "urd", "fas", "tur", "nld", "pol", "ukr", "ron",
-    "ces", "ell", "swe", "nor", "dan", "fin", "hun", "bul", "srp", "hrv",
-    "slk", "slv", "lit", "lav", "est", "heb", "tha", "vie", "ind", "msa",
-    "tgl", "swa", "afr", "cat", "eus", "isl", "sqi", "mkd", "bos", "kat",
-    "hye", "aze", "kaz", "uzb", "mon", "nep", "sin", "tam", "tel", "mal",
-    "kan", "mar", "guj", "pan", "ori", "asm", "amh", "som", "yor", "ibo",
-    "hau", "zul", "xho", "mlt", "gle", "cym", "epo", "lat",
+    "eng",
+    "spa",
+    "fra",
+    "deu",
+    "ita",
+    "por",
+    "rus",
+    "zho",
+    "jpn",
+    "kor",
+    "ara",
+    "hin",
+    "ben",
+    "urd",
+    "fas",
+    "tur",
+    "nld",
+    "pol",
+    "ukr",
+    "ron",
+    "ces",
+    "ell",
+    "swe",
+    "nor",
+    "dan",
+    "fin",
+    "hun",
+    "bul",
+    "srp",
+    "hrv",
+    "slk",
+    "slv",
+    "lit",
+    "lav",
+    "est",
+    "heb",
+    "tha",
+    "vie",
+    "ind",
+    "msa",
+    "tgl",
+    "swa",
+    "afr",
+    "cat",
+    "eus",
+    "isl",
+    "sqi",
+    "mkd",
+    "bos",
+    "kat",
+    "hye",
+    "aze",
+    "kaz",
+    "uzb",
+    "mon",
+    "nep",
+    "sin",
+    "tam",
+    "tel",
+    "mal",
+    "kan",
+    "mar",
+    "guj",
+    "pan",
+    "ori",
+    "asm",
+    "amh",
+    "som",
+    "yor",
+    "ibo",
+    "hau",
+    "zul",
+    "xho",
+    "mlt",
+    "gle",
+    "cym",
+    "epo",
+    "lat",
 }
 # (alpha_3, name) — ISO 639-3 since the data standard example uses 3-letter codes.
 # Skip languages without a name; sort alphabetically by name. Filter to majors.

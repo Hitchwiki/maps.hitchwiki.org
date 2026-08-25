@@ -93,3 +93,30 @@ test("buildGiveUpBody builds a destination-less body with co_hitchhiker", () => 
   assert.strictEqual(body.destination_lat, "");
   assert.strictEqual(body.client_d_tag, "gid");
 });
+
+// ── toLatLon ─────────────────────────────────────────────────────────────────
+// The in-ride pin pickers used to disagree on their output shape (manualPin returned
+// {lat, lon}, setWaitingSpot a Leaflet LatLng). Passing the wrong one to buildFinishBody
+// produced destination_lon: undefined, which the backend rejected without a clear error.
+
+test("toLatLon normalises a Leaflet LatLng to {lat, lon}", () => {
+  assert.deepStrictEqual(RideSubmit.toLatLon({ lat: 48.2, lng: 16.37 }), { lat: 48.2, lon: 16.37 });
+});
+
+test("toLatLon passes a plain {lat, lon} through unchanged", () => {
+  assert.deepStrictEqual(RideSubmit.toLatLon({ lat: 48.2, lon: 16.37 }), { lat: 48.2, lon: 16.37 });
+});
+
+test("toLatLon prefers lon when an object carries both", () => {
+  assert.deepStrictEqual(RideSubmit.toLatLon({ lat: 1, lon: 2, lng: 3 }), { lat: 1, lon: 2 });
+});
+
+// Greenwich: lon 0 is falsy, so a `||` fallback would read .lng (undefined) instead and
+// submit a ride with no longitude. This is why the implementation tests `!= null`.
+test("toLatLon keeps lon 0 rather than falling through to lng", () => {
+  assert.deepStrictEqual(RideSubmit.toLatLon({ lat: 51.48, lon: 0 }), { lat: 51.48, lon: 0 });
+});
+
+test("toLatLon returns null for a missing point", () => {
+  assert.strictEqual(RideSubmit.toLatLon(null), null);
+});

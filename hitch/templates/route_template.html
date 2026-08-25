@@ -1,0 +1,91 @@
+{% extends "security/base.html" %}
+
+{% set pair = origin.city ~ " to " ~ destination.city %}
+
+{% block title %}{{ t("Hitchhiking from {origin} to {destination} – Hitchwiki Map", origin=origin.city, destination=destination.city) }}{% endblock %}
+
+{% block meta_description %}{{ t("How to hitchhike from {origin} to {destination}: about {time} and {rides} ride(s) over {km} km, based on rides the community logged. Spots to stand at and typical waiting times.", origin=origin.city, destination=destination.city, time=info.core_time, rides=info.rides, km=info.car_km) }}{% endblock %}
+
+{% block og_title %}{{ t("Hitchhiking from {origin} to {destination}", origin=origin.city, destination=destination.city) }}{% endblock %}
+
+{% block og_description %}{{ t("About {time} hitchhiking, {km} km in roughly {rides} ride(s), based on rides logged by the hitchhiking community.", time=info.core_time, km=info.car_km, rides=info.rides) }}{% endblock %}
+
+{% from "_share.html" import share_button %}
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+  <div class="bg-white rounded-lg shadow-lg p-6">
+    <nav><br><a href="/route/index.html">&lt; {{ t("All hitchhiking routes") }}</a><br></nav>
+
+    <article class="mt-6">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+        <h1 style="margin:0;">{{ t("Hitchhiking from {origin} to {destination}", origin=origin.city, destination=destination.city) }}</h1>
+        {{ share_button(url=canonical_url, title=t("Hitchhiking from {origin} to {destination}", origin=origin.city, destination=destination.city)) }}
+      </div>
+
+      <p>{{ t("About {time} of hitchhiking — roughly {km} km in {rides} ride(s), including about {wait} of waiting by the road. These figures come from rides hitchhikers logged on this map, not from an estimate.", time=info.core_time, km=info.car_km, rides=info.rides, wait=info.wait_time) }}</p>
+
+      <p><a class="map-link" href="{{ planner_url }}">{{ t("Open this route in the interactive planner") }}</a></p>
+
+      <h2>{{ t("Step by step") }}</h2>
+      <ol>
+        {% for step in info.steps %}
+        <li>
+          {% if step.mode == "walk" and step.is_edge_walk %}
+            {{ t("Get from {origin} to {destination} — {km} km. Local transport is usually quicker than walking this stretch.", origin=step.origin_name, destination=step.dest_name, km=step.km) }}
+          {% elif step.mode == "walk" %}
+            {{ t("Walk {km} km ({time}) from {origin} to {destination}.", km=step.km, time=step.minutes, origin=step.origin_name, destination=step.dest_name) }}
+          {% else %}
+            {{ t("Hitch {km} km ({time}) from {origin} to {destination}.", km=step.km, time=step.minutes, origin=step.origin_name, destination=step.dest_name) }}
+            {{ t("Expect around {wait} of waiting here.", wait=step.wait) }}
+            {% if step.support and step.support < 2 %}
+              <em>{{ t("Only one logged ride — weak evidence.") }}</em>
+            {% elif step.support %}
+              <em>{{ t("{n} logged rides support this leg.", n=step.support) }}</em>
+            {% endif %}
+            {% if step.spot_id %}
+              <a href="/spot/{{ step.spot_id }}">{{ t("See this spot") }}</a>
+            {% endif %}
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ol>
+
+      {% if info.quotes %}
+      <h2>{{ t("What hitchhikers said along this route") }}</h2>
+      {% for q in info.quotes %}
+      <blockquote>
+        “{{ q.text }}”<br>
+        <small>― {{ q.who }}{% if q.when %}, {{ with_weekday(q.when) }}{% endif %} · <a href="{{ q.spot_url }}">{{ q.spot }}</a></small>
+      </blockquote>
+      {% endfor %}
+      {% endif %}
+
+      <h2>{{ t("Nearby city guides") }}</h2>
+      <ul>
+        <li><a href="{{ origin.url }}">{{ t("Hitchhiking in {city}", city=origin.city) }}</a></li>
+        <li><a href="{{ destination.url }}">{{ t("Hitchhiking in {city}", city=destination.city) }}</a></li>
+      </ul>
+
+      <p><small>{{ t("Waiting times and distances are averages from community-logged rides. Travel time assumes 100 km/h in a car and 5 km/h walking. They are not guarantees.") }}</small></p>
+    </article>
+  </div>
+
+  {# Structured data: the leg-by-leg itinerary in a form a parser can lift directly,
+     which is how an assistant summarising this page gets the numbers right rather
+     than inferring them from prose. #}
+  <script type="application/ld+json">
+  {{ {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "Hitchhiking from " ~ origin.city ~ " to " ~ destination.city,
+    "description": "Hitchhiking route from " ~ origin.city ~ " to " ~ destination.city ~ ", based on rides logged by the hitchhiking community.",
+    "url": canonical_url,
+    "totalTime": "PT" ~ (info.core_minutes | round | int) ~ "M",
+    "step": info.jsonld_steps,
+  } | tojson }}
+  </script>
+
+  <br>
+  <small>&copy; <a id="copyright" href="/copyright.html">Hitchwiki Map</a> contributors</small>
+</div>
+{% endblock %}

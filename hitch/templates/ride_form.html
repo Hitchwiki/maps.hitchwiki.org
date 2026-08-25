@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Submit Your Ride Experience{% endblock %}
+{% block title %}{{ t("Submit Your Ride Experience") }}{% endblock %}
 
 {% block head %}
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
@@ -34,163 +34,284 @@
 .wra-btn:hover { color: #555; border-color: #999; }
 .wra-btn--yes[aria-pressed="true"] { color: #2e7d32; border-color: #2e7d32; background: #eaf5eb; }
 .wra-btn--no[aria-pressed="true"] { color: #c62828; border-color: #c62828; background: #fbeaea; }
+/* Photo tiles: uploaded pictures and a trailing "+" tile, all the same square, so the
+   row reads as one strip of slots rather than a file field with a preview bolted on. */
+.ride-photo-tiles { display: flex; flex-wrap: wrap; gap: 10px; margin: 6px 0 4px; }
+.ride-photo-tile, .ride-photo-add {
+    position: relative; width: 104px; height: 104px;
+    border-radius: 8px; overflow: hidden; flex: 0 0 auto;
+}
+.ride-photo-tile { border: 1px solid #ddd; background: #f2f2f2; }
+.ride-photo-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ride-photo-add {
+    display: flex; align-items: center; justify-content: center;
+    border: 2px dashed #bbb; background: #fafafa; color: #999;
+    cursor: pointer; padding: 0; transition: border-color .12s ease, color .12s ease, background-color .12s ease;
+}
+.ride-photo-add:hover { border-color: #28a745; color: #28a745; background: #f4fbf5; }
+.ride-photo-plus { font-size: 2.2em; line-height: 1; font-weight: 300; }
+/* The x sits on the image, so it needs its own contrast rather than the page's. */
+.ride-photo-x {
+    position: absolute; top: 4px; right: 4px;
+    width: 22px; height: 22px; border-radius: 50%;
+    border: none; padding: 0;
+    background: rgba(0, 0, 0, 0.55); color: #fff;
+    font-size: 14px; line-height: 22px; text-align: center;
+    cursor: pointer;
+}
+.ride-photo-x:hover { background: rgba(176, 42, 55, 0.9); }
+/* Uploading state: the tile exists immediately (with a local preview) and dims until the
+   server confirms, so a slow phone upload never looks like nothing happened. */
+.ride-photo-tile--uploading img { opacity: 0.45; }
+.ride-photo-spinner {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: #333; font-size: 0.75em; font-weight: 600;
+}
+/* Visually hidden but still focusable/clickable via the + tile. */
+.sr-only-file {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;
+}
 </style>
 {% endblock %}
 
 {% block main %}
 {% if current_user.is_anonymous %}
 <div style="background-color: #dc3545; color: #fff; text-align: center; padding: 0.75rem 1rem; font-size: 0.95em;">
-    <strong>You are not logged in.</strong> <a href="/login" style="color: #fff; text-decoration: underline;">Log in</a> to track your rides &mdash; currently you are {% if request.args.get('edit') %}reviewing{% else %}adding a spot{% endif %} anonymously.
+    {# The login link sits inside the sentence, so it travels as a placeholder: a
+       translator must be free to move it, which splitting the sentence would forbid. #}
+    {% set login_link = '<a href="/login" style="color: #fff; text-decoration: underline;">' ~ t("Log in") ~ '</a>' %}
+    {% if request.args.get('edit') %}
+    {{ t("You are not logged in. {login} to track your rides — currently you are reviewing anonymously.", login=login_link)|safe }}
+    {% else %}
+    {{ t("You are not logged in. {login} to track your rides — currently you are adding a spot anonymously.", login=login_link)|safe }}
+    {% endif %}
 </div>
 {% endif %}
 <div class="container" style="max-width: 800px; margin: 2rem auto; padding: 2rem;">
-    <a href="/" style="color: #555; text-decoration: none; font-size: 0.9em;">← Back to map</a>
-    <h2>Submit Your Ride Experience</h2>
-    
+    <a href="/" style="color: #555; text-decoration: none; font-size: 0.9em;">← {{ t("Back to map") }}</a>
+    <div id="test-mode-banner" style="display:none; background:#fff3cd; border:1px solid #ffe08a; color:#664d03; padding:10px 14px; border-radius:6px; margin:12px 0; font-size:0.95em;">
+        🧪 <strong>{{ t("Test mode is on.") }}</strong> {{ t("Rides submitted here will not be saved or published to the map.") }}
+    </div>
+    <h2>{{ t("Submit Your Ride Experience") }}</h2>
+
+    {# Asked first because it reframes everything below it: a give-up has no ride to time,
+       so the pickup question right underneath changes wording when this is ticked. The
+       input lives outside <form> (like the datetime fields) and is bound with form=. #}
+    <div class="form-group" style="margin-top:1rem;">
+        <label style="font-weight:normal;">
+            <input form="ride-form" type="checkbox" id="no_ride" name="no_ride" value="1" onchange="syncNoRideLabels()" {% if ride_data and ride_data.no_ride %}checked{% endif %}>
+            {{ t("I did not get a ride here") }}
+        </label>
+    </div>
+
     <div class="ride-info" style="background-color: #f8f9fa; padding: 1rem; margin-bottom: 2rem; border-radius: 5px;">
         <div class="row">
             <div class="col-md-6">
                 <div class="location-section">
-                    <h4><i class="fa fa-map-marker" style="color: #28a745;"></i> Pickup Location</h4>
+                    <h4><i class="fa fa-map-marker" style="color: #28a745;"></i> {{ t("Pickup Location") }}</h4>
                     <div class="map-thumbnail" id="pickup-map-thumbnail" onclick="selectLocation('pickup')">
                         <div class="map-thumbnail-overlay">
-                            <i class="fa fa-edit"></i> Click to select location
+                            <i class="fa fa-edit"></i> {{ t("Click to select location") }}
                         </div>
                     </div>
                     <div class="d-flex justify-content-between align-items-center">
-                        <div class="coordinates-text" id="pickup-coordinates">No location selected</div>
-                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearLocation('pickup')" title="Clear pickup location" style="display: none;" id="pickup-clear-btn">
+                        <div class="coordinates-text" id="pickup-coordinates">{{ t("No location selected") }}</div>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearLocation('pickup')" title="{{ t("Clear pickup location") }}" style="display: none;" id="pickup-clear-btn">
                             <i class="fa fa-times"></i>
                         </button>
                     </div>
                     <div style="margin-top:0.4rem;">
                         <button type="button" class="btn btn-sm btn-outline-primary" onclick="useCurrentLocation('pickup')" id="pickup-gps-btn">
-                            <i class="fa fa-crosshairs"></i> Use GPS
+                            <i class="fa fa-crosshairs"></i> {{ t("Use GPS") }}
                         </button>
                         <span id="pickup-gps-status" style="margin-left:0.5rem; font-size:0.85em; color:#666;"></span>
                     </div>
                     <div style="margin-top:0.6rem;">
-                        <label for="datetime_ride" style="display:block; font-size:0.9em; color:#555; margin-bottom:2px;">When did you get the ride?</label>
+                        <label for="datetime_ride" id="datetime_ride_label" style="display:block; font-size:0.9em; color:#555; margin-bottom:2px;">{{ t("When did you get the ride?") }}</label>
                         <input form="ride-form" id="datetime_ride" type="datetime-local" name="datetime_ride" class="form-control" min="2020-01-01T00:00" value="{{ ride_data.datetime_ride if ride_data and ride_data.datetime_ride else '' }}">
                     </div>
                 </div>
             </div>
             <div class="col-md-6">
                 <div class="location-section">
-                    <h4><i class="fa fa-flag" style="color: #dc3545;"></i> Destination</h4>
+                    <h4><i class="fa fa-flag" style="color: #dc3545;"></i> <span id="destination-heading">{{ t("Destination") }}</span></h4>
                     <div class="map-thumbnail" id="destination-map-thumbnail" onclick="selectLocation('destination')">
                         <div class="map-thumbnail-overlay">
-                            <i class="fa fa-edit"></i> Click to select destination
+                            <i class="fa fa-edit"></i> {{ t("Click to select destination") }}
                         </div>
                     </div>
                     <div class="d-flex justify-content-between align-items-center">
-                        <div class="coordinates-text" id="destination-coordinates">No destination selected</div>
-                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearLocation('destination')" title="Clear destination" style="display: none;" id="destination-clear-btn">
+                        <div class="coordinates-text" id="destination-coordinates">{{ t("No destination selected") }}</div>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearLocation('destination')" title="{{ t("Clear destination") }}" style="display: none;" id="destination-clear-btn">
                             <i class="fa fa-times"></i>
                         </button>
                     </div>
                     <div style="margin-top:0.4rem;">
                         <button type="button" class="btn btn-sm btn-outline-primary" onclick="useCurrentLocation('destination')" id="destination-gps-btn">
-                            <i class="fa fa-crosshairs"></i> Use GPS
+                            <i class="fa fa-crosshairs"></i> {{ t("Use GPS") }}
                         </button>
                         <span id="destination-gps-status" style="margin-left:0.5rem; font-size:0.85em; color:#666;"></span>
                     </div>
-                    <div style="margin-top:0.6rem;">
-                        <label for="arrival_datetime" style="display:block; font-size:0.9em; color:#555; margin-bottom:2px;">When did you arrive at the destination?</label>
+                    {# A give-up never reached this place, so it has no arrival time to
+                       state — the row is hidden (and cleared) while the box is ticked. #}
+                    <div style="margin-top:0.6rem;" id="arrival-row">
+                        <label for="arrival_datetime" style="display:block; font-size:0.9em; color:#555; margin-bottom:2px;">{{ t("When did you arrive at the destination?") }}</label>
                         <input form="ride-form" id="arrival_datetime" type="datetime-local" name="arrival_datetime" class="form-control" min="2020-01-01T00:00" value="{{ ride_data.arrival_datetime if ride_data and ride_data.arrival_datetime else '' }}">
                         <span id="arrival-error-message" class="error text-danger" style="display:block; font-size:0.85em;"></span>
                     </div>
                 </div>
             </div>
         </div>
+        {# Detours between pickup and destination -- a driver's onsen, a viewpoint, their
+           grandparents' house. Labels only, deliberately no coordinate picker: a hitchhiker
+           recalling a detour after the fact rarely knows the exact spot, and turning this
+           into a second map round-trip per stop (like pickup/destination use) would make
+           an unbounded-length section of the form as heavy as the whole rest of it. #}
+        <div class="row" style="margin-top:1rem;">
+            <div class="col-md-12">
+                <div class="location-section">
+                    <h4><i class="fa fa-route" style="color:#6c757d;"></i> {{ t("Stops along the way") }}
+                        <span style="font-weight:normal; font-size:0.8em; color:#888;">({{ t("optional") }})</span></h4>
+                    <div id="ride-stops-tags" class="chip-select-tags" onclick="document.getElementById('ride-stop-input').focus()"></div>
+                    <input type="text" id="ride-stop-input" class="form-control" style="margin-top:0.4rem;"
+                           placeholder="{{ t('e.g. onsen, viewpoint — press Enter to add') }}" maxlength="200">
+                    <input type="hidden" form="ride-form" id="ride_stops_hidden" name="ride_stops"
+                           value="{{ (ride_data.ride_stops if ride_data else [])|tojson|forceescape }}">
+                </div>
+            </div>
+        </div>
     </div>
 
+    {# No enctype: photos never travel with this POST. They are uploaded as they are
+       picked (see the photo tiles at the bottom) and the form carries only the
+       draft_token that claims them. #}
     <form id="ride-form" action="/ride" method="post" onsubmit="return validateForm()">
         <input type="hidden" name="edit_d_tag" value="{{ ride_data.d_tag if ride_data else '' }}">
+        <input type="hidden" name="client_d_tag" value="{{ client_d_tag }}">
         <input type="hidden" name="pickup_lat" id="pickup_lat" value="{{ ride_data.pickup_lat if ride_data else '' }}">
         <input type="hidden" name="pickup_lon" id="pickup_lon" value="{{ ride_data.pickup_lon if ride_data else '' }}">
         <input type="hidden" name="destination_lat" id="destination_lat" value="{{ ride_data.destination_lat if ride_data else '' }}">
         <input type="hidden" name="destination_lon" id="destination_lon" value="{{ ride_data.destination_lon if ride_data else '' }}">
         
         <div class="form-group">
-            <label>How do you rate the spot?</label>
+            <label>{{ t("How do you rate the spot?") }}</label>
             <div class="rate">
-                <input required type="radio" id="star5" name="rate" value="5" {% if ride_data and ride_data.rating == 5 %}checked{% endif %} />
-                <label for="star5" title="5 stars">5 stars</label>
+                {# No `required` here: while unchecked, `.rate:not(:checked) > input` in style.css
+                   positions every option (including whichever carries `required`) at
+                   `top: -9999px` so the stars can be drawn from labels instead. Native HTML5
+                   constraint validation then tries to scroll to and focus that off-screen input
+                   before the submit event (and this file's own validateForm()) ever runs --
+                   a user-reported dead end (Signal, 2026-08-19: "i can't type in that red
+                   field" / "i also can't click into that field"). Validated in JS instead,
+                   same as the pickup-location and arrival-time checks below. #}
+                <input type="radio" id="star5" name="rate" value="5" {% if ride_data and ride_data.rating == 5 %}checked{% endif %} />
+                <label for="star5" title="{{ t("5 stars") }}">{{ t("5 stars") }}</label>
                 <input type="radio" id="star4" name="rate" value="4" {% if ride_data and ride_data.rating == 4 %}checked{% endif %} />
-                <label for="star4" title="4 stars">4 stars</label>
+                <label for="star4" title="{{ t("4 stars") }}">{{ t("4 stars") }}</label>
                 <input type="radio" id="star3" name="rate" value="3" {% if ride_data and ride_data.rating == 3 %}checked{% endif %} />
-                <label for="star3" title="3 stars">3 stars</label>
+                <label for="star3" title="{{ t("3 stars") }}">{{ t("3 stars") }}</label>
                 <input type="radio" id="star2" name="rate" value="2" {% if ride_data and ride_data.rating == 2 %}checked{% endif %} />
-                <label for="star2" title="2 stars">2 stars</label>
+                <label for="star2" title="{{ t("2 stars") }}">{{ t("2 stars") }}</label>
                 <input type="radio" id="star1" name="rate" value="1" {% if ride_data and ride_data.rating == 1 %}checked{% endif %} />
-                <label for="star1" title="1 star">1 star</label>
+                <label for="star1" title="{{ t("1 star") }}">{{ t("1 star") }}</label>
             </div>
+            <span id="rate-error-message" class="error text-danger" style="display:block; font-size:0.85em;"></span>
         </div>
 
         <div class="form-group">
-            <label style="font-weight:normal;">
-                <input type="checkbox" id="no_ride" name="no_ride" value="1" {% if ride_data and ride_data.no_ride %}checked{% endif %}>
-                I did not get a ride here
-            </label>
-        </div>
-
-        <div class="form-group">
-            <label for="wait">How long did you wait? Leave blank if you don't remember.</label>
+            <label for="wait">{{ t("How long did you wait? Leave blank if you don't remember.") }}</label>
             <div>
-                <input type="number" id="wait" name="wait" min="0" max="9999" size="4" value="{{ ride_data.wait if ride_data and ride_data.wait else '' }}"> minutes
+                <input type="number" id="wait" name="wait" min="0" max="9999" size="4" value="{{ ride_data.wait if ride_data and ride_data.wait else '' }}"> {{ t("minutes") }}
             </div>
         </div>
         
         <div class="form-group">
-            <label for="comment">Comment (optional)</label>
+            <label for="comment">{{ t("Comment (optional)") }}</label>
             <textarea id="comment" name="comment" class="form-control" rows="4">{{ ride_data.comment if ride_data and ride_data.comment else '' }}</textarea>
         </div>
         
-        <div class="form-group" id="co-hitchhiker-container" style="position: relative;">
-            <label>People hitchhiking with you <span id="hitchhiker-count" style="font-weight:normal; color:#666;"></span></label>
-            <input type="hidden" name="co_hitchhiker" id="co-hitchhiker-hidden" value="{{ ride_data.co_hitchhiker if ride_data and ride_data.co_hitchhiker else '' }}">
-        <input type="hidden" id="co-hitchhiker-locked" value="{{ ride_data.co_hitchhiker_locked if ride_data and ride_data.co_hitchhiker_locked else '' }}">
-            <div id="co-hitchhiker-tags" style="display:flex; flex-wrap:wrap; gap:6px; padding:6px 8px; border:1px solid #ccc; border-radius:4px; background:#fff; min-height:38px; align-items:center; cursor:text;" onclick="document.getElementById('co-hitchhiker-input').focus()">
+        {# "You" mirrors the driver box below: who you were and how you asked, kept together
+           so the form reads as two people rather than a flat list of fields. #}
+        <div class="form-group">
+            <label>{{ t("You (optional)") }}</label>
+            <div style="background:#fafafa; border:1px solid #eee; padding:12px; border-radius:4px;">
+
+            <div id="co-hitchhiker-container" style="position: relative; margin-bottom:10px;">
+                <div style="font-weight:600; margin-bottom:4px;">{{ t("People hitchhiking with you") }} <span id="hitchhiker-count" style="font-weight:normal; color:#666;"></span></div>
+                <input type="hidden" name="co_hitchhiker" id="co-hitchhiker-hidden" value="{{ ride_data.co_hitchhiker if ride_data and ride_data.co_hitchhiker else '' }}">
+            <input type="hidden" id="co-hitchhiker-locked" value="{{ ride_data.co_hitchhiker_locked if ride_data and ride_data.co_hitchhiker_locked else '' }}">
+                <div id="co-hitchhiker-tags" style="display:flex; flex-wrap:wrap; gap:6px; padding:6px 8px; border:1px solid #ccc; border-radius:4px; background:#fff; min-height:38px; align-items:center; cursor:text;" onclick="document.getElementById('co-hitchhiker-input').focus()">
+                </div>
+                <div style="position:relative;">
+                    <input id="co-hitchhiker-input" maxlength="32" pattern="[a-zA-Z0-9]*" class="form-control" autocomplete="off" placeholder="{{ t("Add co-hitchhiker username…") }}" style="margin-top:6px;">
+                    <ul id="co-hitchhiker-suggestions" style="display:none; position:absolute; z-index:1000; background:#fff; border:1px solid #ccc; border-top:none; list-style:none; padding:0; margin:0; width:100%; max-height:200px; overflow-y:auto;"></ul>
+                </div>
+                <span id="co-hitchhiker-error-message" class="error text-danger"></span>
+                {# Anonymous co-hitchhikers can optionally carry a gender, which is published as
+                   the hitchhiker's `gender` on Nostr. The value rides along in the hidden field
+                   as "Anonymous:male" / "Anonymous:female" (see publish_ride.py). #}
+                <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">
+                    <button type="button" id="add-anonymous-hitchhiker" class="btn btn-outline-secondary btn-sm" data-anon-gender="">+1 {{ t("Anonymous hitchhiker") }}</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-anon-gender="male">+1 {{ t("Anonymous") }} ♂</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-anon-gender="female">+1 {{ t("Anonymous") }} ♀</button>
+                </div>
             </div>
-            <div style="position:relative;">
-                <input id="co-hitchhiker-input" maxlength="32" pattern="[a-zA-Z0-9]*" class="form-control" autocomplete="off" placeholder="Add co-hitchhiker username…" style="margin-top:6px;">
-                <ul id="co-hitchhiker-suggestions" style="display:none; position:absolute; z-index:1000; background:#fff; border:1px solid #ccc; border-top:none; list-style:none; padding:0; margin:0; width:100%; max-height:200px; overflow-y:auto;"></ul>
-            </div>
-            <span id="co-hitchhiker-error-message" class="error text-danger"></span>
-            <button type="button" id="add-anonymous-hitchhiker" class="btn btn-outline-secondary btn-sm" style="margin-top:6px;">+1 Anonymous hitchhiker</button>
-        </div>
             
-        <div class="form-group">
-            <label>How did you signal? <span style="font-weight:normal; color:#666;">(select all that apply)</span></label>
-            {% set selected_signals = ride_data.signal if ride_data and ride_data.signal else [] %}
-            {% if selected_signals is string %}{% set selected_signals = [selected_signals] %}{% endif %}
-            <input type="hidden" id="signal" name="signal" value="{{ selected_signals|join(',') }}">
-            {# Same multi-select chips as the in-ride "How was the spot?" sheet (inride.js),
-               reusing its .inr-chips / .inr-optchip styles so both entry points look alike.
-               Codes must stay thumb / sign / ask — they're what /ride stores. #}
-            <div id="signal-chips" class="inr-chips">
-                <button type="button" class="inr-optchip" data-code="thumb">👍 Thumb</button>
-                <button type="button" class="inr-optchip" data-code="sign">📝 Sign</button>
-                <button type="button" class="inr-optchip" data-code="ask">🗣 Asking</button>
+            <div style="margin-bottom:10px;">
+                <div style="font-weight:600; margin-bottom:4px;">{{ t("How did you signal?") }} <span style="font-weight:normal; color:#666;">{{ t("(select all that apply)") }}</span></div>
+                {% set selected_signals = ride_data.signal if ride_data and ride_data.signal else [] %}
+                {% if selected_signals is string %}{% set selected_signals = [selected_signals] %}{% endif %}
+                <input type="hidden" id="signal" name="signal" value="{{ selected_signals|join(',') }}">
+                {# Same multi-select chips as the in-ride "How was the spot?" sheet (inride.js),
+                   reusing its .inr-chips / .inr-optchip styles so both entry points look alike.
+                   Codes must stay thumb / sign / ask — they're what /ride stores. #}
+                <div id="signal-chips" class="inr-chips">
+                    <button type="button" class="inr-optchip" data-code="thumb">👍 {{ t("Thumb") }}</button>
+                    <button type="button" class="inr-optchip" data-code="sign">📝 {{ t("Sign") }}</button>
+                    <button type="button" class="inr-optchip" data-code="ask">🗣 {{ t("Asking") }}</button>
+                </div>
+                {# Only asked once a sign is actually one of the methods — what a sign said is
+                   the single most reusable fact about it ("which town do I write?"), but it is
+                   nonsense next to a bare thumb. Shown/hidden by initSignalChips. #}
+                <div id="sign-content-row" style="margin-top:6px;" hidden>
+                    <label for="sign_content" style="font-weight:normal;">{{ t("What did your sign say?") }}</label>
+                    <input type="text" id="sign_content" name="sign_content" class="form-control" maxlength="255"
+                           placeholder="{{ t("e.g. Strasbourg / A5 South") }}"
+                           value="{{ ride_data.sign_content if ride_data and ride_data.sign_content else '' }}">
+                </div>
+            </div>
+
+            <div>
+                <div style="font-weight:600; margin-bottom:4px;">{{ t("Why are you hitchhiking?") }} <span style="font-weight:normal; color:#666;">{{ t("(select all that apply)") }}</span></div>
+                {% set selected_hh_reasons = ride_data.reasons_to_hitchhike if ride_data and ride_data.reasons_to_hitchhike else [] %}
+                <input type="hidden" id="reasons_to_hitchhike" name="reasons_to_hitchhike" value="{{ selected_hh_reasons|join(',') }}">
+                <div id="hitchhike-reason-chips" class="inr-chips">
+                    {% for code, emoji, label in reason_to_hitchhike_choices %}
+                    <button type="button" class="inr-optchip" data-code="{{ code }}">{{ emoji }} {{ t(label) }}</button>
+                    {% endfor %}
+                </div>
+            </div>
+
             </div>
         </div>
-        
-        <div class="form-group">
-            <label>Vehicle (optional)</label>
+
+
+        <div class="form-group" id="vehicle-group">
+            <label>{{ t("Vehicle (optional)") }}</label>
             <div class="row">
                 <div class="col-sm-6" style="margin-bottom:8px;">
                     <select id="vehicle_kind" name="vehicle_kind" class="form-control">
-                        <option value="">— Kind —</option>
+                        <option value="">— {{ t("Kind") }} —</option>
                         {% for k, emoji in vehicle_kinds %}
                         {# Default to "car" when no ride data is preloaded — it's by far the most common pickup. #}
-                        <option value="{{ k }}" {% if (ride_data and ride_data.vehicle_kind == k) or (not ride_data and k == "car") %}selected{% endif %}>{{ emoji }} {{ k }}</option>
+                        <option value="{{ k }}" {% if (ride_data and ride_data.vehicle_kind == k) or (not ride_data and k == "car") %}selected{% endif %}>{{ emoji }} {{ t(k) }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="col-sm-6" style="margin-bottom:8px;">
                     {% set selected_plate_code = ride_data.vehicle_license_plate_country if ride_data and ride_data.vehicle_license_plate_country else '' %}
-                    <input list="vehicle-plate-country-list" id="vehicle_license_plate_country_input" class="form-control" placeholder="License plate code (e.g. D (Germany), F (France))" autocomplete="off"
+                    <input list="vehicle-plate-country-list" id="vehicle_license_plate_country_input" class="form-control" placeholder="{{ t("License plate code (e.g. D (Germany), F (France))") }}" autocomplete="off"
                            data-selected-code="{{ selected_plate_code }}">
                     <input type="hidden" id="vehicle_license_plate_country" name="vehicle_license_plate_country" value="{{ selected_plate_code }}">
                     {# Searchable by the code that appears on the plate (e.g. "D" for Germany). data-code stores the ISO 3166-1 alpha-2 we persist. #}
@@ -201,56 +322,70 @@
                     </datalist>
                 </div>
                 <div class="col-sm-6" style="margin-bottom:8px;">
-                    <input type="text" id="vehicle_make" name="vehicle_make" class="form-control" maxlength="255" placeholder="Make (e.g. Toyota)" value="{{ ride_data.vehicle_make if ride_data and ride_data.vehicle_make else '' }}">
+                    <input type="text" id="vehicle_make" name="vehicle_make" class="form-control" maxlength="255" placeholder="{{ t("Make (e.g. Toyota)") }}" value="{{ ride_data.vehicle_make if ride_data and ride_data.vehicle_make else '' }}">
                 </div>
                 <div class="col-sm-6" style="margin-bottom:8px;">
-                    <input type="text" id="vehicle_model" name="vehicle_model" class="form-control" maxlength="255" placeholder="Model (e.g. Corolla)" value="{{ ride_data.vehicle_model if ride_data and ride_data.vehicle_model else '' }}">
+                    <input type="text" id="vehicle_model" name="vehicle_model" class="form-control" maxlength="255" placeholder="{{ t("Model (e.g. Corolla)") }}" value="{{ ride_data.vehicle_model if ride_data and ride_data.vehicle_model else '' }}">
                 </div>
                 <div class="col-sm-12" style="margin-bottom:8px;">
-                    <input type="text" id="vehicle_license_plate_identifier" name="vehicle_license_plate_identifier" class="form-control" maxlength="255" placeholder="License plate identifier (e.g. B (Berlin), 75 (Paris), California)" value="{{ ride_data.vehicle_license_plate_identifier if ride_data and ride_data.vehicle_license_plate_identifier else '' }}">
+                    <input type="text" id="vehicle_license_plate_identifier" name="vehicle_license_plate_identifier" class="form-control" maxlength="255" placeholder="{{ t("License plate identifier (e.g. B (Berlin), 75 (Paris), California)") }}" value="{{ ride_data.vehicle_license_plate_identifier if ride_data and ride_data.vehicle_license_plate_identifier else '' }}">
                 </div>
             </div>
         </div>
 
-        <div class="form-group">
-            <label>About the driver (optional)</label>
+        <div class="form-group" id="driver-group">
+            <label>{{ t("About the driver (optional)") }}</label>
             <div style="background:#fafafa; border:1px solid #eee; padding:12px; border-radius:4px;">
 
                 <div style="margin-bottom:10px;">
-                    <div style="font-weight:600; margin-bottom:4px;">Would you accept this ride again?</div>
+                    <div style="font-weight:600; margin-bottom:4px;">{{ t("Would you accept this ride again?") }}</div>
                     {# Empty value = no answer. Clicking the selected smiley again clears it. #}
                     {% set wra = ride_data.driver_would_ride_again if ride_data and ride_data.driver_would_ride_again is defined else '' %}
                     <input type="hidden" id="driver_would_ride_again" name="driver_would_ride_again" value="{{ wra }}">
-                    <div class="wra-select" role="group" aria-label="Would you accept this ride again?">
-                        <button type="button" class="wra-btn wra-btn--yes" data-value="yes" aria-pressed="false" title="Yes, I would accept this ride again">
+                    <div class="wra-select" role="group" aria-label="{{ t("Would you accept this ride again?") }}">
+                        <button type="button" class="wra-btn wra-btn--yes" data-value="yes" aria-pressed="false" title="{{ t("Yes, I would accept this ride again") }}">
                             <i class="fa-regular fa-face-smile" aria-hidden="true"></i>
-                            <span class="sr-only">Yes</span>
+                            <span class="sr-only">{{ t("Yes") }}</span>
                         </button>
-                        <button type="button" class="wra-btn wra-btn--no" data-value="no" aria-pressed="false" title="No, I would not accept this ride again">
+                        <button type="button" class="wra-btn wra-btn--no" data-value="no" aria-pressed="false" title="{{ t("No, I would not accept this ride again") }}">
                             <i class="fa-regular fa-face-frown" aria-hidden="true"></i>
-                            <span class="sr-only">No</span>
+                            <span class="sr-only">{{ t("No") }}</span>
                         </button>
                     </div>
                 </div>
 
                 <div style="margin-bottom:10px;">
-                    <div style="font-weight:600; margin-bottom:4px;">Why did they pick you up? <span style="font-weight:normal; color:#666;">(select all that apply)</span></div>
+                    <div style="font-weight:600; margin-bottom:4px;">{{ t("Why did they pick you up?") }} <span style="font-weight:normal; color:#666;">{{ t("(select all that apply)") }}</span></div>
                     {% set selected_reasons = ride_data.driver_reason_to_pick_up if ride_data and ride_data.driver_reason_to_pick_up else [] %}
                     <input type="hidden" id="driver_reason_to_pick_up" name="driver_reason_to_pick_up" value="{{ selected_reasons|join(',') }}">
                     <div id="driver-reason-tags" class="chip-select-tags" onclick="document.getElementById('driver-reason-input').focus()"></div>
-                    <input id="driver-reason-input" list="driver-reason-list" class="form-control" autocomplete="off" placeholder="Type a reason and pick from the list…" style="margin-top:6px;">
+                    <input id="driver-reason-input" list="driver-reason-list" class="form-control" autocomplete="off" placeholder="{{ t("Type a reason and pick from the list…") }}" style="margin-top:6px;">
                     <datalist id="driver-reason-list">
                         {% for code, desc in reason_to_pick_up_choices %}
-                        <option data-code="{{ code }}" value="{{ desc }}"></option>
+                        <option data-code="{{ code }}" value="{{ t(desc) }}"></option>
                         {% endfor %}
                     </datalist>
                 </div>
 
+                {# The standard's `ride.reasons`: the trip the driver was making anyway,
+                   which is a different question from why they stopped for you. Tap chips
+                   rather than the datalist above — there are only four. #}
+                <div style="margin-bottom:10px;">
+                    <div style="font-weight:600; margin-bottom:4px;">{{ t("Why were they on the road?") }} <span style="font-weight:normal; color:#666;">{{ t("(select all that apply)") }}</span></div>
+                    {% set selected_ride_reasons = ride_data.ride_reasons if ride_data and ride_data.ride_reasons else [] %}
+                    <input type="hidden" id="ride_reasons" name="ride_reasons" value="{{ selected_ride_reasons|join(',') }}">
+                    <div id="ride-reason-chips" class="inr-chips">
+                        {% for code, emoji, label in ride_reason_choices %}
+                        <button type="button" class="inr-optchip" data-code="{{ code }}">{{ emoji }} {{ t(label) }}</button>
+                        {% endfor %}
+                    </div>
+                </div>
+
                 <div class="row">
                     <div class="col-sm-6" style="margin-bottom:8px;">
-                        <label for="driver_origin_country_input" style="font-weight:normal;">Origin country</label>
+                        <label for="driver_origin_country_input" style="font-weight:normal;">{{ t("Origin country") }}</label>
                         {% set selected_country_code = ride_data.driver_origin_country if ride_data and ride_data.driver_origin_country else '' %}
-                        <input list="driver-country-list" id="driver_origin_country_input" class="form-control" placeholder="Type to search…" autocomplete="off"
+                        <input list="driver-country-list" id="driver_origin_country_input" class="form-control" placeholder="{{ t("Type to search…") }}" autocomplete="off"
                                data-selected-code="{{ selected_country_code }}">
                         <input type="hidden" id="driver_origin_country" name="driver_origin_country" value="{{ selected_country_code }}">
                         <datalist id="driver-country-list">
@@ -260,26 +395,26 @@
                         </datalist>
                     </div>
                     <div class="col-sm-3" style="margin-bottom:8px;">
-                        <label for="driver_age" style="font-weight:normal;">Age</label>
-                        <input type="number" id="driver_age" name="driver_age" class="form-control" min="0" max="120" placeholder="e.g. 45" value="{{ ride_data.driver_age if ride_data and ride_data.driver_age else '' }}">
+                        <label for="driver_age" style="font-weight:normal;">{{ t("Age") }}</label>
+                        <input type="number" id="driver_age" name="driver_age" class="form-control" min="0" max="120" placeholder="{{ t("e.g. 45") }}" value="{{ ride_data.driver_age if ride_data and ride_data.driver_age else '' }}">
                     </div>
                     <div class="col-sm-3" style="margin-bottom:8px;">
-                        <label for="driver_gender" style="font-weight:normal;">Gender</label>
+                        <label for="driver_gender" style="font-weight:normal;">{{ t("Gender") }}</label>
                         <select id="driver_gender" name="driver_gender" class="form-control">
                             <option value="">—</option>
                             {% for code, label in gender_choices %}
-                            <option value="{{ code }}" {% if ride_data and ride_data.driver_gender == code %}selected{% endif %}>{{ label }}</option>
+                            <option value="{{ code }}" {% if ride_data and ride_data.driver_gender == code %}selected{% endif %}>{{ t(label) }}</option>
                             {% endfor %}
                         </select>
                     </div>
                 </div>
 
                 <div style="margin-top:8px;">
-                    <label style="font-weight:normal;">Languages spoken by the driver</label>
+                    <label style="font-weight:normal;">{{ t("Languages spoken by the driver") }}</label>
                     {% set selected_langs = ride_data.driver_languages if ride_data and ride_data.driver_languages else [] %}
                     <input type="hidden" id="driver_languages" name="driver_languages" value="{{ selected_langs|join(',') }}">
                     <div id="driver-language-tags" class="chip-select-tags" onclick="document.getElementById('driver-language-input').focus()"></div>
-                    <input id="driver-language-input" list="driver-language-list" class="form-control" autocomplete="off" placeholder="Type a language and pick from the list…" style="margin-top:6px;">
+                    <input id="driver-language-input" list="driver-language-list" class="form-control" autocomplete="off" placeholder="{{ t("Type a language and pick from the list…") }}" style="margin-top:6px;">
                     <datalist id="driver-language-list">
                         {% for code, name in language_choices %}
                         <option data-code="{{ code }}" value="{{ name }}"></option>
@@ -289,24 +424,69 @@
             </div>
         </div>
 
+        {# Photos sit at the very bottom of the form, in both the new-ride and the edit
+           case. They are stored on this server and linked to the ride by its Nostr d tag;
+           nothing about them is published to the relays (see utils/ride_images.py).
+
+           Each photo uploads the moment it is picked, into the draft below, and the
+           submit only claims them. Keeping files in the <input> until submit cannot work
+           here: picking a pickup location navigates the page away to the map, and
+           re-opening the file picker replaces the whole previous FileList. #}
+        <div class="form-group" id="ride-photos-group"
+             data-max-images="{{ max_ride_images }}"
+             data-images="{{ ride_images|tojson|forceescape }}">
+            <label>{{ t("Photos (optional, up to {max})", max=max_ride_images) }}</label>
+            <input type="hidden" name="draft_token" id="draft_token" value="">
+            <div id="ride-photo-tiles" class="ride-photo-tiles">
+                <button type="button" id="ride-photo-add" class="ride-photo-add" aria-label="{{ t("Add a photo") }}">
+                    <span class="ride-photo-plus" aria-hidden="true">+</span>
+                </button>
+            </div>
+            {# The real input is offscreen; the + tile is what the user clicks. `multiple`
+               still helps for picking several at once, which we then upload one by one. #}
+            <input type="file" id="ride_images" class="sr-only-file"
+                   accept="image/jpeg,image/png,image/webp,image/gif" multiple>
+            <span id="ride-photos-error" class="error text-danger" style="display:block; font-size:0.85em;"></span>
+            <p style="margin-top:6px; font-size:0.8rem; color:#888;">
+                {# The licence names are links, so they travel as placeholders — see the
+                   login banner at the top for why. #}
+                {% set ccbysa_link = '<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>' %}
+                {{ t("Photos you upload here are published under {ccbysa} — anyone may reuse them, including commercially, as long as they credit you and share any adaptation under the same licence. Only upload pictures you took yourself, and please avoid recognisable people and license plates. Location data (EXIF) is stripped on upload.", ccbysa=ccbysa_link)|safe }}
+                {# A map picture has to come from a source we can relicense CC BY-SA. The uploader is
+                   not asked to credit anyone: the ride page attributes OSM for all map images, the
+                   same way the main map's footer does. #}
+                {% set osm_link = '<a href="https://www.openstreetmap.org/" target="_blank" rel="noopener">OpenStreetMap</a>' %}
+                {{ t("For map images, use {osm}.", osm=osm_link)|safe }}
+            </p>
+        </div>
+
         <p style="margin-top: 2rem; font-size: 0.85rem; color: #888;">
-            Is there anything else you want to remember about your rides? <a href="https://github.com/Hitchwiki/hitchhiking-data-standard/blob/main/STANDARD.md" target="_blank" rel="noopener">Let us know here</a>.
+            {% set standard_link = '<a href="https://github.com/Hitchwiki/hitchhiking-data-standard/blob/main/STANDARD.md" target="_blank" rel="noopener">' ~ t("Let us know here") ~ '</a>' %}
+            {{ t("Is there anything else you want to remember about your rides? {link}.", link=standard_link)|safe }}
         </p>
 
         <p style="margin-top: 1rem; font-size: 0.8rem; color: #888;">
-            Your ride is published publicly. The database is licensed under the
-            <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>;
-            your comment and username are licensed under
-            <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>.
-            By submitting you agree to this. See the <a href="/copyright" target="_blank" rel="noopener">Copyright and License</a> page.
+            {% set odbl_link = '<a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>' %}
+            {% set ccbysa_link = '<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>' %}
+            {% set copyright_link = '<a href="/copyright" target="_blank" rel="noopener">' ~ t("Copyright and License") ~ '</a>' %}
+            {{ t("Your ride is published publicly. The database is licensed under the {odbl}; your comment, username and any photos you upload are licensed under {ccbysa}. By submitting you agree to this. See the {copyright} page.", odbl=odbl_link, ccbysa=ccbysa_link, copyright=copyright_link)|safe }}
         </p>
 
         <div class="form-group" style="margin-top: 1rem;">
-            <button type="submit" class="btn btn-primary btn-lg">Submit</button>
-            <a href="/" class="btn btn-secondary btn-lg" style="margin-left: 1rem;">Cancel</a>
+            <button type="submit" id="ride-form-submit" class="btn btn-primary btn-lg">{{ t("Submit") }}</button>
+            <a href="/" class="btn btn-secondary btn-lg" style="margin-left: 1rem;">{{ t("Cancel") }}</a>
+            {# Populated by submitRideFormViaFetch() on a transient failure (network error,
+               proxy 502/503/504) or a rare validation error the server rejected. Hidden
+               until then; never clears the form or the client_d_tag above, so retrying
+               (same submit button, same data) is safe and does not create a duplicate ride. #}
+            <div id="ride-form-submit-error" class="error text-danger" style="display:none; margin-top:0.75em;"></div>
         </div>
     </form>
 </div>
+{# `scripts` must close `main` first: a named block nested inside another is
+   rendered at its definition site AND again where base.html calls it, which
+   emitted this entire script section (Leaflet included) twice per page. #}
+{% endblock %}
 
 {% block scripts %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -314,7 +494,27 @@
     // Set maximum date to today
     document.getElementById("datetime_ride").max = (new Date().toISOString().slice(0, 11)) + "23:59";
     document.getElementById("arrival_datetime").max = (new Date().toISOString().slice(0, 11)) + "23:59";
-    
+
+    // Keep the arrival picker from ever offering a time at or before departure.
+    // validateForm() already rejects that combination at submit, but by then the
+    // hitchhiker has filled in the whole form -- 'arrival-before-departure' is 58 of
+    // the 59 ride_form_blocked events in the last 28 days (Umami event-data, reason
+    // property), against 1 for 'no-pickup', so this is the block worth designing out
+    // rather than just catching. Binding min here turns most of those into a picker
+    // that never lets the mistake happen, instead of a submit that has to be redone.
+    (function () {
+        const dep = document.getElementById("datetime_ride");
+        const arr = document.getElementById("arrival_datetime");
+        function syncArrivalMin() {
+            arr.min = dep.value || "2020-01-01T00:00";
+            // A previously chosen arrival that the new departure has invalidated is
+            // cleared rather than left in place silently failing the submit check.
+            if (dep.value && arr.value && arr.value <= dep.value) arr.value = "";
+        }
+        dep.addEventListener("change", syncArrivalMin);
+        syncArrivalMin();
+    })();
+
     // Initialize map thumbnails
     let pickupMap, destinationMap;
     
@@ -370,6 +570,36 @@
         }
     }
     
+    // "I did not get a ride here" means the pickup time is not the moment a car stopped —
+    // it's the moment the hitchhiker gave up on the spot. Same field, different question.
+    // "I did not get a ride here" reframes the rest of the form: the destination is only
+    // where you were heading, nothing was arrived at, and there is no driver or vehicle to
+    // describe. The server drops those fields too, so a value typed before the box was
+    // ticked can never be published as if a car had turned up.
+    function syncNoRideLabels() {
+        const noRide = document.getElementById('no_ride')?.checked;
+        const label = document.getElementById('datetime_ride_label');
+        if (label) label.textContent = noRide ? {{ t("When did you stop soliciting rides here?")|tojson }} : {{ t("When did you get the ride?")|tojson }};
+        const heading = document.getElementById('destination-heading');
+        if (heading) heading.textContent = noRide ? {{ t("Planned Destination")|tojson }} : {{ t("Destination")|tojson }};
+        const arrivalRow = document.getElementById('arrival-row');
+        if (arrivalRow) {
+            arrivalRow.hidden = !!noRide;
+            // Cleared rather than merely hidden: the input still submits while hidden, and
+            // an arrival time on a ride that never happened is a contradiction.
+            if (noRide) {
+                const arrival = document.getElementById('arrival_datetime');
+                if (arrival) arrival.value = '';
+                const arrivalError = document.getElementById('arrival-error-message');
+                if (arrivalError) arrivalError.textContent = '';
+            }
+        }
+        ['vehicle-group', 'driver-group'].forEach(function (id) {
+            const el = document.getElementById(id);
+            if (el) el.hidden = !!noRide;
+        });
+    }
+
     // Function to handle location selection
     function selectLocation(type) {
         // Store current form data in sessionStorage including coordinates
@@ -380,6 +610,9 @@
             comment: document.querySelector('textarea[name="comment"]')?.value || '',
             co_hitchhiker: document.getElementById('co-hitchhiker-hidden')?.value || '',
             signal: document.getElementById('signal')?.value || '',
+            sign_content: document.getElementById('sign_content')?.value || '',
+            reasons_to_hitchhike: document.getElementById('reasons_to_hitchhike')?.value || '',
+            ride_reasons: document.getElementById('ride_reasons')?.value || '',
             no_ride: document.getElementById('no_ride')?.checked || false,
             datetime_ride: document.querySelector('input[name="datetime_ride"]')?.value || '',
             arrival_datetime: document.querySelector('input[name="arrival_datetime"]')?.value || '',
@@ -387,6 +620,7 @@
             pickup_lon: coords.pickup ? coords.pickup[1] : '',
             destination_lat: coords.destination ? coords.destination[0] : '',
             destination_lon: coords.destination ? coords.destination[1] : '',
+            ride_stops: document.getElementById('ride_stops_hidden')?.value || '[]',
             // Preserve edit mode so location selection redirects back to the correct edit URL
             edit_d_tag: document.querySelector('input[name="edit_d_tag"]')?.value || '',
             vehicle_kind: document.getElementById('vehicle_kind')?.value || '',
@@ -399,9 +633,19 @@
             driver_origin_country: document.getElementById('driver_origin_country')?.value || '',
             driver_age: document.getElementById('driver_age')?.value || '',
             driver_gender: document.getElementById('driver_gender')?.value || '',
-            driver_languages: document.getElementById('driver_languages')?.value || ''
+            driver_languages: document.getElementById('driver_languages')?.value || '',
+            // One logical form session can render three times (initial page, return
+            // from pickup selection, return from destination selection). Carry the
+            // aggregate-only funnel marker through those map round-trips so telemetry
+            // does not count one contributor as three abandoned forms.
+            _funnel_session_started: HM_FORM_SESSION_STARTED,
+            // Photos are already uploaded and live under this token on the server, so
+            // carrying the token is all that is needed to get the tiles back — which is
+            // exactly why they are uploaded on pick rather than held in the file input,
+            // whose selection this navigation would destroy.
+            draft_token: document.getElementById('draft_token')?.value || ''
         };
-        
+
         sessionStorage.setItem('rideFormData', JSON.stringify(formData));
         
         // Get coordinates for initial map position
@@ -459,9 +703,29 @@
             if (data.signal !== undefined) {
                 const signalStr = Array.isArray(data.signal) ? data.signal.join(',') : (data.signal && data.signal !== 'null' ? data.signal : '');
                 document.getElementById('signal').value = signalStr;
+                // Restore the sign's text before re-rendering the chips: that render is what
+                // shows or hides the row it lives in.
+                if (data.sign_content !== undefined) document.getElementById('sign_content').value = data.sign_content;
                 if (window._signalRenderTags) window._signalRenderTags();
             }
-            if (data.no_ride !== undefined) document.getElementById('no_ride').checked = !!data.no_ride;
+            if (data.reasons_to_hitchhike !== undefined) {
+                document.getElementById('reasons_to_hitchhike').value = data.reasons_to_hitchhike;
+                if (window._hitchhikeReasonRenderTags) window._hitchhikeReasonRenderTags();
+            }
+            if (data.ride_stops !== undefined) {
+                document.getElementById('ride_stops_hidden').value = data.ride_stops;
+                if (window._rideStopsRenderTags) window._rideStopsRenderTags();
+            }
+            if (data.ride_reasons !== undefined) {
+                document.getElementById('ride_reasons').value = data.ride_reasons;
+                if (window._rideReasonRenderTags) window._rideReasonRenderTags();
+            }
+            if (data.no_ride !== undefined) {
+                document.getElementById('no_ride').checked = !!data.no_ride;
+                syncNoRideLabels();
+            }
+            // Re-adopt the photo draft and pull its tiles back from the server.
+            if (data.draft_token && ridePhotos) ridePhotos.restore(data.draft_token);
             if (data.datetime_ride) document.querySelector('input[name="datetime_ride"]').value = data.datetime_ride;
             if (data.arrival_datetime) document.querySelector('input[name="arrival_datetime"]').value = data.arrival_datetime;
             if (data.vehicle_kind !== undefined) document.getElementById('vehicle_kind').value = data.vehicle_kind;
@@ -528,7 +792,7 @@
             pickupDisplay.textContent = `${coords.pickup[0].toFixed(4)}, ${coords.pickup[1].toFixed(4)}`;
             pickupClearBtn.style.display = 'block';
         } else {
-            pickupDisplay.textContent = 'No location selected';
+            pickupDisplay.textContent = {{ t("No location selected")|tojson }};
             pickupClearBtn.style.display = 'none';
         }
         
@@ -539,17 +803,67 @@
             destDisplay.textContent = `${coords.destination[0].toFixed(4)}, ${coords.destination[1].toFixed(4)}`;
             destClearBtn.style.display = 'block';
         } else {
-            destDisplay.textContent = 'No destination selected';
+            destDisplay.textContent = {{ t("No destination selected")|tojson }};
             destClearBtn.style.display = 'none';
         }
     }
     
+    // Funnel step 3: the form actually rendered. Split by edit vs. new, because a
+    // stalled edit and a stalled first-time submission are different problems.
+    {# Quote in JS, not in the expression: Jinja autoescaping turns emitted
+       quote characters into &#34;, which is a syntax error inside <script>. #}
+    // Hoisted because ride_form_submitted needs the same value: without it, an
+    // edit and a first-time submission are one undifferentiated count, which is
+    // why ride_form_submitted (697/28d) could exceed add_ride_clicked (557/28d)
+    // with no way to tell whether the click event under-fires or edits simply
+    // never pass through a click at all. /ride?edit=<d_tag> is reached straight
+    // from the account page (account.js rideEditUrl), so it never can.
+    var HM_FORM_MODE = '{{ "edit" if request.args.get("edit") else "new" }}';
+    var HM_FORM_SESSION_STARTED = false;
+    try {
+        var hmDraft = JSON.parse(sessionStorage.getItem('rideFormData') || '{}');
+        HM_FORM_SESSION_STARTED = !!hmDraft._funnel_session_started;
+        if (!HM_FORM_SESSION_STARTED) {
+            hmTrack('ride_form_session_started', {
+                mode: HM_FORM_MODE,
+                auth: '{{ "anon" if current_user.is_anonymous else "user" }}'
+            });
+            HM_FORM_SESSION_STARTED = true;
+            hmDraft._funnel_session_started = true;
+            sessionStorage.setItem('rideFormData', JSON.stringify(hmDraft));
+        }
+    } catch (e) {
+        // sessionStorage can be disabled. Count this render rather than losing the
+        // funnel entirely; only the location-selection round-trips may overcount.
+        hmTrack('ride_form_session_started', {
+            mode: HM_FORM_MODE,
+            auth: '{{ "anon" if current_user.is_anonymous else "user" }}'
+        });
+        HM_FORM_SESSION_STARTED = true;
+    }
+    hmTrack('ride_form_started', {
+        mode: HM_FORM_MODE,
+        auth: '{{ "anon" if current_user.is_anonymous else "user" }}'
+    });
+
     // Add form validation
     function validateForm() {
+        const rateError = document.getElementById('rate-error-message');
+        if (rateError) rateError.textContent = '';
+        if (!document.querySelector('input[name="rate"]:checked')) {
+            hmTrack('ride_form_blocked', { reason: 'no-rating' });
+            if (rateError) rateError.textContent = {{ t("Please rate the spot before submitting.")|tojson }};
+            document.querySelector('.rate')?.scrollIntoView({ block: 'center' });
+            return false;
+        }
+
         const coords = getCoordinates();
 
         if (!coords.pickup) {
-            alert('Please select a pickup location by clicking on the pickup map thumbnail.');
+            // Funnel drop-off we can act on: they tried to submit without ever
+            // picking a location, i.e. the map-thumbnail affordance was missed.
+            hmTrack('ride_form_blocked', { reason: 'no-pickup' });
+            alert({{ t("Please select a pickup location by clicking on the pickup map thumbnail.")|tojson }});
             return false;
         }
 
@@ -558,13 +872,105 @@
         const errSpan = document.getElementById('arrival-error-message');
         errSpan.textContent = '';
         if (dep && arr && new Date(arr) <= new Date(dep)) {
-            errSpan.textContent = 'Arrival must be later than the pickup time.';
+            hmTrack('ride_form_blocked', { reason: 'arrival-before-departure' });
+            errSpan.textContent = {{ t("Arrival must be later than the pickup time.")|tojson }};
             return false;
         }
 
+        // Funnel step 4: the submission is on its way to the server. Fired here
+        // rather than on the success page because the post redirects to
+        // /?ride=<d_tag>#success on the map, where a pageview alone can't be told
+        // apart from a normal visit.
+        hmTrack('ride_form_submitted', { destination: coords.destination ? 'yes' : 'no', mode: HM_FORM_MODE });
+        hmTrack('ride_form_session_submitted', { destination: coords.destination ? 'yes' : 'no', mode: HM_FORM_MODE });
+
+        // The hidden client_d_tag makes the server idempotent. Disabling here still
+        // avoids needless duplicate requests and duplicate analytics events: a
+        // double-tap or slow-network double-click previously published two rides.
+        // The synchronous disable prevents the browser dispatching a second submit.
+        const submitBtn = document.getElementById('ride-form-submit');
+        if (submitBtn) submitBtn.disabled = true;
+        const errorBox = document.getElementById('ride-form-submit-error');
+        if (errorBox) { errorBox.style.display = 'none'; errorBox.textContent = ''; }
         return true;
     }
-    
+
+    // The co-hitchhiker script further below replaces window.validateForm with a
+    // wrapper that calls this one first and only proceeds (sessionStorage stash,
+    // "Submitting…" button text, its own `return true`) when this returns true --
+    // so this function must keep returning a plain boolean and must NOT itself
+    // decide submission. Actually sending the request is handled by the separate
+    // 'submit' listener below, once every onsubmit handler (this one and its
+    // wrapper) has approved the submission.
+
+    // Captured once at page load, before any submit attempt can overwrite the
+    // button's text with "Submitting…" -- so a later failure can restore it exactly.
+    const RIDE_FORM_SUBMIT_BTN_DEFAULT_TEXT = document.getElementById('ride-form-submit')
+        ? document.getElementById('ride-form-submit').textContent
+        : null;
+
+    // Shows a reassuring inline message near the submit button. Deliberately does not
+    // touch the form's fields or the hidden client_d_tag input: leaving them exactly as
+    // typed is what makes "tap Submit to try again" a safe, no-duplicate retry (the
+    // server upserts on client_d_tag rather than creating a new ride each retry).
+    function showRideFormRetryMessage(message) {
+        const errorBox = document.getElementById('ride-form-submit-error');
+        if (!errorBox) return;
+        errorBox.textContent = message;
+        errorBox.style.display = 'block';
+        errorBox.scrollIntoView({ block: 'center' });
+    }
+
+    // Re-enables the submit button and restores its pre-submission label after a
+    // failed attempt, so the user isn't left staring at a disabled "Submitting…" button.
+    function resetRideFormSubmitButton() {
+        const submitBtn = document.getElementById('ride-form-submit');
+        if (!submitBtn) return;
+        submitBtn.disabled = false;
+        if (RIDE_FORM_SUBMIT_BTN_DEFAULT_TEXT !== null) submitBtn.textContent = RIDE_FORM_SUBMIT_BTN_DEFAULT_TEXT;
+    }
+
+    function submitRideFormViaFetch() {
+        const form = document.getElementById('ride-form');
+        const formData = new FormData(form);
+
+        fetch('/ride', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'ride-form' }
+        }).then(function (res) {
+            return res.json().catch(function () {
+                // Not JSON -- e.g. a proxy's own error page (502/503/504) during an
+                // outage rather than Flask's own JSON response. Treat the same as an
+                // explicit transient failure so the retry message still shows.
+                return { ok: false, transient: true };
+            });
+        }).then(function (json) {
+            if (json.ok === true) {
+                window.location.href = json.redirect;
+                return;
+            }
+            resetRideFormSubmitButton();
+            if (json.transient === true) {
+                hmTrack('ride_form_retry_shown', { mode: HM_FORM_MODE, reason: 'transient' });
+                showRideFormRetryMessage({{ t("Couldn't reach the server. Your ride wasn't lost — tap Submit to try again.")|tojson }});
+            } else {
+                // Rare: the server rejected the submission outright (e.g. an edit whose
+                // ownership no longer checks out). Client-side validateForm() above
+                // already covers rating/pickup/arrival-time, so this is mostly a
+                // backstop -- but the button must still come back and say something.
+                showRideFormRetryMessage(json.error || {{ t("Something went wrong. Please try again.")|tojson }});
+            }
+        }).catch(function () {
+            // fetch() itself threw: offline, DNS failure, connection refused, timeout --
+            // the exact failure mode a native form submit would have shown as a bare
+            // browser error page with all typed data gone.
+            resetRideFormSubmitButton();
+            hmTrack('ride_form_retry_shown', { mode: HM_FORM_MODE, reason: 'network-error' });
+            showRideFormRetryMessage({{ t("Couldn't reach the server. Your ride wasn't lost — tap Submit to try again.")|tojson }});
+        });
+    }
+
     // Function to clear selected locations
     function clearLocation(type) {
         if (type === 'pickup') {
@@ -600,12 +1006,12 @@
         const status = document.getElementById(type + '-gps-status');
         const button = document.getElementById(type + '-gps-btn');
         if (!navigator.geolocation) {
-            if (status) status.textContent = 'GPS not supported by this browser.';
+            if (status) status.textContent = {{ t("GPS not supported by this browser.")|tojson }};
             return;
         }
 
         if (button) button.disabled = true;
-        if (status) status.textContent = 'Getting GPS location...';
+        if (status) status.textContent = {{ t("Getting GPS location...")|tojson }};
 
         navigator.geolocation.getCurrentPosition(
             (position) => {
@@ -615,16 +1021,16 @@
                 document.getElementById(type + '_lon').value = lon;
                 updateCoordinateDisplays();
                 refreshThumbnailMaps();
-                if (status) status.textContent = 'Location set.';
+                if (status) status.textContent = {{ t("Location set.")|tojson }};
                 if (button) button.disabled = false;
             },
             (error) => {
                 const errorMap = {
-                    1: 'Location permission denied.',
-                    2: 'Location unavailable.',
-                    3: 'Location request timed out.'
+                    1: {{ t("Location permission denied.")|tojson }},
+                    2: {{ t("Location unavailable.")|tojson }},
+                    3: {{ t("Location request timed out.")|tojson }}
                 };
-                if (status) status.textContent = errorMap[error.code] || 'Could not get GPS location.';
+                if (status) status.textContent = errorMap[error.code] || {{ t("Could not get GPS location.")|tojson }};
                 if (button) button.disabled = false;
             },
             {
@@ -658,13 +1064,29 @@
             return val ? val.split(',').map(s => s.trim()).filter(Boolean) : [];
         }
 
+        // "Anonymous", "Anonymous:male", "Anonymous:female" — the wire tokens for a
+        // co-hitchhiker with no account (publish_ride.py turns them into hitchhikers).
+        function isAnonymousTag(name) {
+            return name.split(':')[0] === 'Anonymous';
+        }
+
+        // Show the gender as a symbol; the raw "Anonymous:female" token stays in the
+        // hidden field, which is what gets posted.
+        function tagLabel(name) {
+            if (!isAnonymousTag(name)) return name;
+            const gender = name.split(':')[1];
+            if (gender === 'male') return 'Anonymous ♂';
+            if (gender === 'female') return 'Anonymous ♀';
+            return 'Anonymous';
+        }
+
         function renderTags() {
             tagsContainer.innerHTML = '';
             getTags().forEach((name, idx) => {
                 const tag = document.createElement('span');
                 const isLocked = getLockedTags().includes(name);
                 tag.style.cssText = 'display:inline-flex; align-items:center; background:#e0e0e0; border-radius:3px; padding:2px 6px; font-size:0.9em; gap:4px;';
-                tag.textContent = name;
+                tag.textContent = tagLabel(name);
                 if (!isLocked) {
                     const remove = document.createElement('button');
                     remove.type = 'button';
@@ -688,8 +1110,8 @@
             name = name.trim();
             if (!name) return;
             const tags = getTags();
-            // Allow duplicate "Anonymous" entries but not duplicate real usernames
-            if (name !== 'Anonymous' && tags.includes(name)) {
+            // Allow duplicate anonymous entries but not duplicate real usernames
+            if (!isAnonymousTag(name) && tags.includes(name)) {
                 input.value = '';
                 suggestions.style.display = 'none';
                 return;
@@ -718,7 +1140,7 @@
                         suggestions.innerHTML = '';
                         if (usernames.length === 0) {
                             suggestions.style.display = 'none';
-                            errorMsg.textContent = 'No matching user found';
+                            errorMsg.textContent = {{ t("No matching user found")|tojson }};
                             return;
                         }
                         usernames.forEach(name => {
@@ -749,7 +1171,7 @@
                 xhr.send();
                 const result = JSON.parse(xhr.responseText);
                 if (!result.used) {
-                    errorMsg.textContent = 'User "' + name + '" does not exist';
+                    errorMsg.textContent = {{ t('User "{name}" does not exist')|tojson }}.replace('{name}', name);
                 } else {
                     addTag(name);
                 }
@@ -764,9 +1186,12 @@
             if (suggestions.children.length > 0) suggestions.style.display = 'block';
         });
 
-        // +1 Anonymous hitchhiker button
-        document.getElementById('add-anonymous-hitchhiker').addEventListener('click', () => {
-            addTag('Anonymous');
+        // +1 Anonymous hitchhiker buttons (plain / male / female)
+        document.querySelectorAll('#co-hitchhiker-container [data-anon-gender]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const gender = btn.dataset.anonGender;
+                addTag(gender ? 'Anonymous:' + gender : 'Anonymous');
+            });
         });
 
         // Expose for sessionStorage save/restore
@@ -775,8 +1200,27 @@
     })();
 
     // Validate co-hitchhiker on form submit
+    // Test mode (the 9-tap heatmap easter egg, key set in map.js) must suppress the
+    // real publish here too, not only in the in-ride flow (inride.js). This classic
+    // "Add a ride" form is a full-page POST to /ride, so it never saw that flag —
+    // rides created in test mode were published to the relay and appeared on the map.
+    // Short-circuit before validation/submission: nothing is sent, and we land on the
+    // same /#success the server would have redirected to.
+    const IN_TEST_MODE = localStorage.getItem('inride.testMode') === '1';
+    if (IN_TEST_MODE) {
+        const banner = document.getElementById('test-mode-banner');
+        if (banner) banner.style.display = 'block';
+    }
+
     const originalValidateForm = validateForm;
     validateForm = function() {
+        if (IN_TEST_MODE) {
+            console.log('[test mode] skipped /ride form submit');
+            alert({{ t("🧪 Test mode is on — this ride was NOT saved or published.")|tojson }});
+            window.location.href = '/#success';
+            return false;
+        }
+
         if (!originalValidateForm()) return false;
 
         const input = document.getElementById('co-hitchhiker-input');
@@ -790,7 +1234,7 @@
             xhr.send();
             const result = JSON.parse(xhr.responseText);
             if (!result.used) {
-                errorMsg.textContent = 'User "' + partial + '" does not exist';
+                errorMsg.textContent = {{ t('User "{name}" does not exist')|tojson }}.replace('{name}', partial);
                 return false;
             }
             document.getElementById('co-hitchhiker-hidden').value =
@@ -798,13 +1242,55 @@
                     ? document.getElementById('co-hitchhiker-hidden').value + ',' : '') + partial;
         }
 
+        // Hand the facts of this ride to the success overlay on the map. The POST
+        // redirects to /?ride=<d_tag>#success, but that only carries the d tag — the
+        // pickup/destination coords still need this stash, or the share card would have
+        // nothing to draw. sessionStorage survives the navigation; map.js consumes and
+        // clears the entry the first time it shows the overlay.
+        try {
+            const c = getCoordinates();
+            sessionStorage.setItem('hmLastRide', JSON.stringify({
+                pickupLat: c.pickup ? c.pickup[0] : '',
+                pickupLon: c.pickup ? c.pickup[1] : '',
+                destLat: c.destination ? c.destination[0] : '',
+                destLon: c.destination ? c.destination[1] : '',
+                waitMin: document.querySelector('input[name="wait"]')?.value || '',
+                departedAt: document.getElementById('datetime_ride')?.value || '',
+                arrivedAt: document.getElementById('arrival_datetime')?.value || '',
+            }));
+        } catch (e) {}
+
         // Disable submit button to prevent duplicate submissions during the ~5s Nostr publish
         const submitBtn = document.querySelector('button[type="submit"]');
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Submitting…';
+        submitBtn.textContent = {{ t("Submitting…")|tojson }};
 
         return true;
     };
+
+    // Actually send the submission. Registered as a plain 'submit' listener (not
+    // folded into validateForm() above) because validateForm() gets replaced by the
+    // wrapper just above, and that wrapper's own `return true`/`return false` is what
+    // the inline onsubmit="return validateForm()" attribute uses to decide whether to
+    // call preventDefault(). By the time a 'submit' listener added here runs, that
+    // decision has already happened -- event.defaultPrevented tells us which way it
+    // went, without this code needing to know or care how many layers of validateForm
+    // there are.
+    (function () {
+        const form = document.getElementById('ride-form');
+        if (!form) return;
+        form.addEventListener('submit', function (event) {
+            if (event.defaultPrevented) return; // validation already rejected this submit
+            // Never let the browser do a native full-page POST: on a transient backend
+            // failure (proxy 502/503/504, dropped connection) that shows the browser's
+            // own error page and loses every typed field with no way back (EXP-209,
+            // the 2026-08-22 11-hour outage). Submit via fetch instead so the page --
+            // and the form's values, including client_d_tag -- stay in place and a
+            // failure can offer an in-place retry.
+            event.preventDefault();
+            submitRideFormViaFetch();
+        });
+    })();
 
     // Build a name↔code map from a <datalist> whose options carry data-code attributes.
     function _buildDatalistMaps(datalist) {
@@ -908,6 +1394,77 @@
         return { renderTags };
     }
 
+    // Chip-style ordered list of arbitrary free text, backed by a JSON array in a hidden
+    // field (not comma-joined like the co-hitchhiker/enum tag inputs above -- a stop's
+    // label is free text and can itself contain a comma, e.g. "sauna, then the viewpoint").
+    function initFreeTextTags({ inputId, tagsId, hiddenId, maxTags }) {
+        const input = document.getElementById(inputId);
+        const tagsContainer = document.getElementById(tagsId);
+        const hidden = document.getElementById(hiddenId);
+        if (!input || !tagsContainer || !hidden) return null;
+
+        function getTags() {
+            try {
+                const parsed = JSON.parse(hidden.value || '[]');
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+                return [];
+            }
+        }
+        function setTags(tags) {
+            hidden.value = JSON.stringify(tags);
+        }
+
+        function renderTags() {
+            tagsContainer.innerHTML = '';
+            getTags().forEach((label, idx) => {
+                const tag = document.createElement('span');
+                tag.className = 'chip-select-tag';
+                tag.textContent = label;
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.textContent = '×';
+                remove.addEventListener('click', () => {
+                    const tags = getTags();
+                    tags.splice(idx, 1);
+                    setTags(tags);
+                    renderTags();
+                });
+                tag.appendChild(remove);
+                tagsContainer.appendChild(tag);
+            });
+        }
+
+        function tryAddFromInput() {
+            const label = input.value.trim();
+            if (!label) return;
+            const tags = getTags();
+            if (maxTags && tags.length >= maxTags) return;
+            tags.push(label);
+            setTags(tags);
+            renderTags();
+            input.value = '';
+        }
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                tryAddFromInput();
+            }
+        });
+        // A stop typed but not confirmed with Enter shouldn't be silently lost when the
+        // hitchhiker taps straight on to the next field.
+        input.addEventListener('blur', tryAddFromInput);
+
+        renderTags();
+        return { renderTags };
+    }
+
+    const rideStopsTags = initFreeTextTags({
+        inputId: 'ride-stop-input', tagsId: 'ride-stops-tags', hiddenId: 'ride_stops_hidden', maxTags: 20,
+    });
+    window._rideStopsRenderTags = rideStopsTags ? rideStopsTags.renderTags : null;
+
     initCodePicker({
         inputId: 'driver_origin_country_input',
         hiddenId: 'driver_origin_country',
@@ -919,12 +1476,13 @@
         datalistId: 'vehicle-plate-country-list',
     });
 
-    // Signal methods are toggle chips rather than a datalist: there are only three of them,
-    // so tapping beats typing — and it matches the in-ride sheet the user may have come from.
-    // The hidden #signal input stays the source of truth (comma-separated codes).
-    function initSignalChips() {
-        const hidden = document.getElementById('signal');
-        const chips = document.querySelectorAll('#signal-chips .inr-optchip');
+    // Short enum lists (signal methods, reasons to hitchhike, the driver's trip reasons) are
+    // toggle chips rather than a datalist: with a handful of options tapping beats typing —
+    // and it matches the in-ride sheet the user may have come from. The hidden input stays
+    // the source of truth (comma-separated codes); onChange lets a caller react to it.
+    function initToggleChips({ hiddenId, chipsId, onChange }) {
+        const hidden = document.getElementById(hiddenId);
+        const chips = document.querySelectorAll('#' + chipsId + ' .inr-optchip');
         if (!hidden || !chips.length) return null;
         function getCodes() {
             return hidden.value ? hidden.value.split(',').map(s => s.trim()).filter(Boolean) : [];
@@ -934,6 +1492,7 @@
             chips.forEach(function (chip) {
                 chip.classList.toggle('inr-optchip--on', codes.includes(chip.dataset.code));
             });
+            if (onChange) onChange(codes);
         }
         chips.forEach(function (chip) {
             chip.addEventListener('click', function () {
@@ -948,7 +1507,22 @@
         renderTags();
         return { renderTags };
     }
-    const signalChip = initSignalChips();
+    const signalChip = initToggleChips({
+        hiddenId: 'signal', chipsId: 'signal-chips',
+        // "What did your sign say?" only exists while a sign is selected. The field keeps
+        // its text while hidden so an accidental de-select and re-select doesn't lose it;
+        // the server drops sign_content when no sign method was submitted.
+        onChange: function (codes) {
+            const row = document.getElementById('sign-content-row');
+            if (row) row.hidden = !codes.includes('sign');
+        },
+    });
+    const hitchhikeReasonChip = initToggleChips({
+        hiddenId: 'reasons_to_hitchhike', chipsId: 'hitchhike-reason-chips',
+    });
+    const rideReasonChip = initToggleChips({
+        hiddenId: 'ride_reasons', chipsId: 'ride-reason-chips',
+    });
     const reasonChip = initChipSelect({
         inputId: 'driver-reason-input', tagsId: 'driver-reason-tags',
         hiddenId: 'driver_reason_to_pick_up', datalistId: 'driver-reason-list',
@@ -980,14 +1554,176 @@
     }
     initWouldRideAgain();
 
+    // Photo tiles.
+    //
+    // Every photo is uploaded the moment it is picked, into a server-side draft keyed by
+    // #draft_token; the submit only claims that draft. Anything else loses pictures:
+    // choosing a pickup location navigates the whole page to the map (selectLocation),
+    // and re-opening the file picker replaces the entire previous FileList — so files
+    // parked in the <input> until submit disappear both ways.
+    //
+    // The server is the authority on every limit (ride_images.py); the checks here only
+    // save a round trip.
+    const RIDE_PHOTO_MAX_BYTES = 12 * 1024 * 1024;
+
+    const ridePhotos = (function () {
+        const group = document.getElementById('ride-photos-group');
+        const tiles = document.getElementById('ride-photo-tiles');
+        const addBtn = document.getElementById('ride-photo-add');
+        const input = document.getElementById('ride_images');
+        const tokenInput = document.getElementById('draft_token');
+        const errSpan = document.getElementById('ride-photos-error');
+        if (!group || !tiles || !addBtn || !input || !tokenInput) return null;
+
+        const MAX = parseInt(group.dataset.maxImages || '3', 10);
+        // Photos already on the ride being edited. They belong to the ride, not to the
+        // draft, so their x deletes server-side straight away.
+        let photos = [];
+        try { photos = JSON.parse(group.dataset.images || '[]'); } catch (e) { photos = []; }
+
+        function token() {
+            if (!tokenInput.value) {
+                tokenInput.value = (crypto.randomUUID ? crypto.randomUUID()
+                    : String(Date.now()) + '-' + Math.random().toString(36).slice(2));
+            }
+            return tokenInput.value;
+        }
+
+        function setError(message) {
+            if (errSpan) errSpan.textContent = message || '';
+        }
+
+        function renderAddButton() {
+            // At the cap the + tile goes away rather than erroring on click; deleting a
+            // photo brings it straight back.
+            addBtn.style.display = tiles.querySelectorAll('.ride-photo-tile').length >= MAX ? 'none' : 'flex';
+        }
+
+        function makeTile(photo, objectUrl) {
+            const tile = document.createElement('div');
+            tile.className = 'ride-photo-tile';
+            const img = document.createElement('img');
+            img.src = objectUrl || photo.url;
+            img.alt = {{ t("Ride photo")|tojson }};
+            tile.appendChild(img);
+
+            const x = document.createElement('button');
+            x.type = 'button';
+            x.className = 'ride-photo-x';
+            x.setAttribute('aria-label', {{ t("Remove this photo")|tojson }});
+            x.textContent = '×';
+            x.addEventListener('click', function () {
+                const id = tile.dataset.imageId;
+                // A tile still uploading has no id yet; dropping it locally is all we can
+                // do, and the orphan draft row is swept server-side.
+                if (!id) { tile.remove(); renderAddButton(); return; }
+                x.disabled = true;
+                const body = new FormData();
+                body.append('draft_token', token());
+                fetch('/ride-image/' + encodeURIComponent(id) + '/delete', { method: 'POST', body: body })
+                    .then(r => { if (!r.ok) throw new Error('delete failed'); tile.remove(); renderAddButton(); setError(''); })
+                    .catch(() => { x.disabled = false; setError({{ t("Could not remove that photo. Please try again.")|tojson }}); });
+            });
+            tile.appendChild(x);
+
+            // Insert before the + so the add tile always trails the strip.
+            tiles.insertBefore(tile, addBtn);
+            renderAddButton();
+            return tile;
+        }
+
+        function upload(file) {
+            if (!file.type.startsWith('image/')) {
+                setError({{ t('"{file}" is not an image.')|tojson }}.replace('{file}', file.name));
+                return;
+            }
+            if (file.size > RIDE_PHOTO_MAX_BYTES) {
+                setError({{ t('"{file}" is larger than 12 MB.')|tojson }}.replace('{file}', file.name));
+                return;
+            }
+            if (tiles.querySelectorAll('.ride-photo-tile').length >= MAX) {
+                setError({{ t("A ride can have at most {max} photos.")|tojson }}.replace('{max}', MAX));
+                return;
+            }
+            setError('');
+
+            // Show the tile from the local file immediately: on a phone the upload can
+            // take seconds, and an empty slot reads as "nothing happened".
+            const objectUrl = URL.createObjectURL(file);
+            const tile = makeTile(null, objectUrl);
+            tile.classList.add('ride-photo-tile--uploading');
+            const spinner = document.createElement('div');
+            spinner.className = 'ride-photo-spinner';
+            spinner.textContent = {{ t("Uploading…")|tojson }};
+            tile.appendChild(spinner);
+
+            const body = new FormData();
+            body.append('image', file);
+            body.append('draft_token', token());
+            fetch('/ride-image', { method: 'POST', body: body })
+                .then(r => r.json().then(data => ({ ok: r.ok, data })))
+                .then(({ ok, data }) => {
+                    if (!ok || !data.ok) throw new Error(data.error || {{ t("Upload failed.")|tojson }});
+                    tile.dataset.imageId = data.id;
+                    // Swap the local preview for the stored (rotated, EXIF-stripped) file
+                    // so what the tile shows is what the ride page will show.
+                    tile.querySelector('img').src = data.url;
+                    URL.revokeObjectURL(objectUrl);
+                    tile.classList.remove('ride-photo-tile--uploading');
+                    spinner.remove();
+                })
+                .catch(err => {
+                    URL.revokeObjectURL(objectUrl);
+                    tile.remove();
+                    renderAddButton();
+                    setError(err.message || {{ t("Upload failed.")|tojson }});
+                });
+        }
+
+        addBtn.addEventListener('click', function () { input.click(); });
+        input.addEventListener('change', function () {
+            // One request per file: a batch pick uploads them all, and re-opening the
+            // picker adds to the strip instead of replacing it.
+            Array.from(input.files || []).forEach(upload);
+            input.value = '';  // so picking the same file again still fires `change`
+        });
+
+        // Photos of the ride being edited, rendered with the same tile + x as new ones.
+        photos.forEach(photo => { makeTile(photo).dataset.imageId = photo.id; });
+        renderAddButton();
+
+        return {
+            // Called by restoreFormData: the draft survives the trip to the map, so
+            // re-adopt its token and re-render the tiles it already holds.
+            restore(savedToken) {
+                if (!savedToken) return;
+                tokenInput.value = savedToken;
+                fetch('/ride-image/draft/' + encodeURIComponent(savedToken))
+                    .then(r => r.json())
+                    .then(data => {
+                        (data.images || []).forEach(photo => {
+                            if (tiles.querySelector('[data-image-id="' + photo.id + '"]')) return;
+                            makeTile(photo).dataset.imageId = photo.id;
+                        });
+                    })
+                    .catch(() => {});
+            },
+            token: () => tokenInput.value,
+        };
+    })();
+
     // Expose re-render hooks so sessionStorage restore can refresh the chip rows after editing the hidden inputs.
     if (signalChip) window._signalRenderTags = signalChip.renderTags;
     if (reasonChip) window._reasonRenderTags = reasonChip.renderTags;
     if (languageChip) window._driverLanguagesRenderTags = languageChip.renderTags;
+    if (hitchhikeReasonChip) window._hitchhikeReasonRenderTags = hitchhikeReasonChip.renderTags;
+    if (rideReasonChip) window._rideReasonRenderTags = rideReasonChip.renderTags;
 
     // Initialize when page loads
     document.addEventListener('DOMContentLoaded', function() {
         restoreFormData();
+        // Covers the edit case, where the box is checked server-side and never fires change.
+        syncNoRideLabels();
         setTimeout(() => {
             initThumbnailMaps();
             updateCoordinateDisplays();
@@ -995,6 +1731,4 @@
     });
 </script>
 <!-- End of scripts block -->
-{% endblock %}
-<!-- End of main content block -->
 {% endblock %}

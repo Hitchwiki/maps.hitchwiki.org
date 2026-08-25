@@ -34,6 +34,11 @@ class ReasonEnum(str, Enum):
     commute = "commute"
     business = "business"
     recreational = "recreational"
+    # Local extension, not (yet) in the upstream standard: running errands is neither a
+    # commute nor business nor leisure, and it is one of the commonest short local trips
+    # a hitchhiker gets picked up on. Same value on both reason enums so the two answers
+    # to "why was this trip happening" stay comparable.
+    errands = "errands"
 
 
 class Ride(BaseModel, use_enum_values=True):
@@ -72,6 +77,7 @@ class ReasonToPickUpEnum(str, Enum):
     safety_concern = "safety_concern"
     opposed = "opposed"
 
+
 class PositiveExperienceEnum(str, Enum):
     friendly = "friendly"
     good_conversation = "good_conversation"
@@ -92,6 +98,7 @@ class NegativeExperienceEnum(str, Enum):
     aggressive = "aggressive"
     expected_something_in_return = "expected_something_in_return"
     felt_unsafe = "felt_unsafe"
+
 
 class Occupant(Person, use_enum_values=True):
     # Upstream narrowed this to a single enum; we keep a list because our driver-info
@@ -137,6 +144,7 @@ class ReasonToHitchhikeEnum(str, Enum):
     recreational = "recreational"
     environmental = "environmental"
     fundraising = "fundraising"
+    errands = "errands"  # Local extension, see ReasonEnum.errands.
 
 
 class Hitchhiker(Person, use_enum_values=True):
@@ -183,12 +191,20 @@ class NoRideReasonEnum(str, Enum):
     took_alternative_transport = "took_alternative_transport"
     gave_up = "gave_up"
 
+
 class NoRide(BaseModel, use_enum_values=True):
     reasons: Optional[list[NoRideReasonEnum]] = None
 
 
 class Stop(BaseModel):
-    location: Location = Field(...)
+    # Optional, not Field(...): an intermediate stop the hitchhiker names ("onsen",
+    # "grandparents' house") but never pinned a coordinate for is still worth recording
+    # -- pickup and destination stops always set this, only a mid-journey one may omit it.
+    location: Optional[Location] = None
+    # Not yet in the upstream hitchhiking-data-standard (proposed, not merged --
+    # Hitchwiki/hitchhiking-data-standard#54) but the read side (ride_facts.stop_facts)
+    # already expects it, so this vendored copy carries it now rather than waiting.
+    label: Optional[str] = None
     arrival_time: Optional[str] = None  # RFC 9557 format
     departure_time: Optional[str] = None  # RFC 9557 format
     waiting_duration: Optional[str] = None  # ISO 8601 duration format

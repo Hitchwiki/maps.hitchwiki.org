@@ -31,8 +31,16 @@ def _send_via_sparkpost(to_email, to_name, subject, html, text, transactional=Tr
     """
     base_url = current_app.config["SPARKPOST_BASE_URL"].rstrip("/")
     api_key = current_app.config["SPARKPOST_API_KEY"]
+    # Every caller of this shared helper (welcome, nearby-hitchhikers digest,
+    # inactive-user reminder) links only to GET-safe pages (the homepage, another
+    # user's profile, /edit-user) -- none carry a one-click state-changing link like
+    # the newsletter's own unsubscribe URL (see hitchhiking-newsletter's click-tracking
+    # fix), so there is no link-scanner-prefetch risk here. Was hardcoded off with no
+    # comment explaining why; turning both on is the same "no click/open data on our
+    # own email" gap that fix closed, just in the app's own transactional/digest sends
+    # instead of the separate newsletter script.
     payload = {
-        "options": {"open_tracking": False, "click_tracking": False, "transactional": transactional},
+        "options": {"open_tracking": True, "click_tracking": True, "transactional": transactional},
         "content": {
             "from": {
                 "email": current_app.config["WELCOME_FROM_EMAIL"],

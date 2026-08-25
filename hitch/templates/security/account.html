@@ -12,24 +12,18 @@
 <link rel="stylesheet" href="/static/ride_card.css" />
 {% endblock %}
 
+{% from "_ride_card.html" import ride_card %}
+
 {% block content %}
+{% if profile_picture_saved %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  hmTrack("profile_picture_saved", {source: {{ profile_picture_saved | tojson }}});
+});
+</script>
+{% endif %}
 <style>
-.share-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    background: #f0f0f0;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    color: #333;
-    font: inherit;
-    font-size: 0.85em;
-    cursor: pointer;
-    text-decoration: none;
-}
-.share-btn:hover { background: #e4e4e4; }
-.share-btn.copied { background: #d4edda; border-color: #28a745; color: #155724; }
+/* .share-btn styling + click handler are shared globally from base.html */
 .account-header {
     display: flex;
     justify-content: space-between;
@@ -38,6 +32,9 @@
     flex-wrap: wrap;
 }
 .account-header h1 { margin: 0; }
+.profile-identity { display: flex; align-items: center; gap: 14px; margin: 10px 0; }
+.profile-avatar { width: 112px; height: 112px; border-radius: 50%; object-fit: cover; background: #eee; }
+.profile-photo-credit { display: block; color: #666; font-size: 0.78em; margin-top: 3px; }
 .profile-stats { margin: 16px 0; }
 .stats-grid {
     display: flex;
@@ -117,108 +114,131 @@
 .trip-thumb-name { display: block; font-weight: 600; font-size: 0.9em; }
 .trip-thumb-dates { display: block; color: #555; font-size: 0.78em; margin-top: 2px; }
 .trip-thumb-count { display: block; color: #888; font-size: 0.76em; margin-top: 1px; }
-.notifications { margin: 16px 0; }
-.notifications h2 { margin: 0 0 8px; display: flex; align-items: center; gap: 8px; }
-.notif-list { list-style: none; padding: 0; margin: 0; }
-.notif-item {
-    display: block; padding: 10px 12px; margin-bottom: 8px;
-    background: #f7f7f7; border: 1px solid #e2e2e2; border-radius: 8px;
-    color: inherit; text-decoration: none;
+/* Bell icon linking to /notifications. Square so it reads as an icon next to the
+   labelled buttons, and position:relative so the unread mark can sit on its corner. */
+.notif-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    color: #333;
+    text-decoration: none;
 }
-.notif-item.unread { background: #eef5fc; border-color: #cfe2f6; }
-a.notif-item:hover { border-color: #c7ced3; }
-.notif-msg { display: block; font-size: 0.92em; }
-.notif-time { display: block; color: #888; font-size: 0.76em; margin-top: 4px; }
+.notif-btn:hover { background: #f0f0f0; }
+/* Same red mark the map's account button carries when notifications are unread. */
+.notif-btn .notif-dot {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 10px;
+    height: 10px;
+    background: #d9342b;
+    border: 2px solid #fff;
+    border-radius: 50%;
+}
 .source-badge { color: #888; font-size: 0.9em; }
 </style>
 <div class="account-header">
-  <h1>Hitchhiker</h1>
+  <h1>{{ t("Hitchhiker") }}</h1>
   <div class="header-actions">
+    {# Always shown on your own page (even at zero), so the notifications page stays
+       reachable — the page itself explains an empty list. #}
+    {% if is_me %}
+    <a class="notif-btn" href="/notifications"
+       title="{{ t('You have unread notifications') if unread_notifications else t('Notifications') }}"
+       aria-label="{{ t('{n} unread notifications', n=unread_notifications) if unread_notifications else t('Notifications') }}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      {% if unread_notifications %}<span class="notif-dot"></span>{% endif %}
+    </a>
+    {% endif %}
     {% if can_follow %}
     <button type="button" class="follow-btn" id="follow-btn"
             data-username="{{ user.username }}"
             aria-pressed="{{ 'true' if is_following else 'false' }}">
-      <span class="follow-btn-label">{{ "Following" if is_following else "Follow" }}</span>
+      <span class="follow-btn-label">{{ t("Following") if is_following else t("Follow") }}</span>
     </button>
     {% endif %}
     {% if can_message %}
     <a class="chat-btn" href="/messages/{{ user.username }}">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-      <span>Chat</span>
+      <span>{{ t("Chat") }}</span>
     </a>
     {% endif %}
-    <button type="button" class="share-btn" id="share-btn" data-share-url="{{ url_for('user.show_account', username=user.username, _external=True) }}" data-share-title="{{ user.username }} on Hitchwiki Maps">
+    <button type="button" class="share-btn" id="share-btn" data-share-url="{{ url_for('user.show_account', username=user.username, _external=True) }}" data-share-title="{{ t('{name} on Hitchwiki Maps', name=user.username) }}">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-      <span class="share-btn-label">Share</span>
+      <span class="share-btn-label">{{ t("Share") }}</span>
     </button>
   </div>
 </div>
 
-{% if is_me and notifications %}
-<div class="notifications">
-  <h2>🔔 Notifications</h2>
-  <ul class="notif-list">
-    {% for n in notifications %}
-    {% if n.link %}
-    <a class="notif-item{% if not n.is_read %} unread{% endif %}" href="{{ n.link }}">
-      <span class="notif-msg">{{ n.message }}</span>
-      <span class="notif-time">{{ n.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
-    </a>
-    {% else %}
-    <li class="notif-item{% if not n.is_read %} unread{% endif %}">
-      <span class="notif-msg">{{ n.message }}</span>
-      <span class="notif-time">{{ n.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
-    </li>
-    {% endif %}
-    {% endfor %}
-  </ul>
+<div class="profile-identity">
+  {% if profile_image %}
+  {# Gravatar is requested with d=404 (see profile_images.py gravatar_url), so an
+     account that opted into Gravatar without actually having one there gets a
+     real, permanent broken image, not a default placeholder -- there is no
+     server-side way to know in advance. account.js's own avatar rendering
+     already handles this (an "error" listener removes the element); this
+     server-rendered page never had the same handling. Remove the whole
+     picture+caption block on failure, not just the <img>, so a broken Gravatar
+     doesn't leave an orphaned "Photo from Gravatar" caption with nothing above it. #}
+  <div>
+    <img class="profile-avatar" src="{{ profile_image.url }}" alt="{{ t('{name}\'s profile picture', name=user.username) }}" width="112" height="112" referrerpolicy="no-referrer" onerror="this.parentElement.remove()">
+    {% if profile_image.uploaded %}<span class="profile-photo-credit">{{ t("Photo by {name}, CC BY-SA 4.0", name=user.username) }}</span>{% else %}<span class="profile-photo-credit">{{ t("Photo from Gravatar") }}</span>{% endif %}
+  </div>
+  {% endif %}
+  <div>{{ t("Name: {name}", name=user.username) }}{% if source_label %} <span class="source-badge">({% if source_url %}<a href="{{ source_url }}" rel="nofollow ugc">{{ source_label }}</a>{% else %}{{ source_label }}{% endif %})</span>{% endif %}</div>
 </div>
-{% endif %}
-
-Name: {{ user.username }}{% if source_label %} <span class="source-badge">({{ source_label }})</span>{% endif %}<br>
 
 {% if user_known %}
 {% if is_me %}
-<h2>Public Profile</h2>
+<h2>{{ t("Public Profile") }}</h2>
 {% endif %}
 
-{% set origin = [user.origin_city, user.origin_country]|reject("none")|reject("equalto", "")|reject("undefined")|join(", ") %}
-{% set age_gender = [(age ~ " years") if age else None, user.gender]|reject("none")|reject("equalto", "")|join(". ") %}
+{% set origin = [user.origin_city, user.origin_country]|reject("none")|reject("equalto", "")|reject("equalto", "None")|reject("undefined")|join(", ") %}
+{% set age_gender = [t("{age} years", age=age) if age else None, user.gender]|reject("none")|reject("equalto", "")|reject("equalto", "None")|join(". ") %}
 {% if age_gender %}{{ age_gender }}.<br>{% endif %}
-{% if user.hitchhiking_since %}Hitchhiking since {{ user.hitchhiking_since }}<br>{% endif %}
-{% if origin %}From {{ origin }}<br>{% endif %}
-{% if escaped_hitchwiki_username %}On Hitchwiki: <a href="https://hitchwiki.org/en/User:{{ escaped_hitchwiki_username }}">{{ escaped_hitchwiki_username }}</a><br>{% endif %}
-{% if escaped_trustroots_username %}On Trustroots: <a href="https://www.trustroots.org/profile/{{ escaped_trustroots_username }}">{{ escaped_trustroots_username }}</a><br>{% endif %}
+{% if user.hitchhiking_since %}{{ t("Hitchhiking since {date}", date=user.hitchhiking_since) }}<br>{% endif %}
+{% if origin %}{{ t("From {origin}", origin=origin) }}<br>{% endif %}
+{% if escaped_hitchwiki_username %}{{ t("On Hitchwiki:") }} <a href="https://hitchwiki.org/en/User:{{ escaped_hitchwiki_username }}">{{ escaped_hitchwiki_username }}</a><br>{% endif %}
+{% if escaped_trustroots_username %}{{ t("On Trustroots:") }} <a href="https://www.trustroots.org/profile/{{ escaped_trustroots_username }}">{{ escaped_trustroots_username }}</a><br>{% endif %}
 {% elif show_hitchwiki_link and escaped_hitchwiki_username %}
-On Hitchwiki: <a href="https://hitchwiki.org/en/User:{{ escaped_hitchwiki_username }}">{{ escaped_hitchwiki_username }}</a><br>
+{{ t("On Hitchwiki:") }} <a href="https://hitchwiki.org/en/User:{{ escaped_hitchwiki_username }}">{{ escaped_hitchwiki_username }}</a><br>
 {% endif %}
 <br>
-<a href="/?user={{ user.username }}#filters">{{ "See my spots on the map" if is_me else "See their spots on the map"}}</a><br>
+<a href="/?user={{ user.username }}#filters">{{ t("See my spots on the map") if is_me else t("See their spots on the map") }}</a><br>
 
 {% if user_known %}
 <div class="profile-stats" id="insights">
-  <h2><a href="{{ url_for('user.show_insights', username=user.username) }}">Insights</a></h2>
+  <h2><a href="{{ url_for('user.show_insights', username=user.username) }}">{{ t("Insights") }}</a></h2>
   <div class="stats-grid">
-    <div class="stat"><span class="stat-value">{{ user.total_rides or 0 }}</span><span class="stat-label">rides</span></div>
-    <div class="stat"><span class="stat-value">{{ (user.total_distance_km or 0) | round | int }}</span><span class="stat-label">km travelled</span></div>
-    <div class="stat"><span class="stat-value">{{ (user.total_waiting_time_min or 0) | round | int }}</span><span class="stat-label">min waiting</span></div>
+    <div class="stat"><span class="stat-value">{{ user.total_rides or 0 }}</span><span class="stat-label">{{ t("rides") }}</span></div>
+    <div class="stat"><span class="stat-value">{{ convert_km(user.total_distance_km or 0) | round | int }}</span><span class="stat-label">{{ t("{unit} travelled", unit=distance_unit_label()) }}</span></div>
+    <div class="stat"><span class="stat-value">{{ (user.total_waiting_time_min or 0) | round | int }}</span><span class="stat-label">{{ t("min waiting") }}</span></div>
   </div>
-  <a href="{{ url_for('user.show_insights', username=user.username) }}">See all insights and achievements →</a>
+  <a href="{{ url_for('user.show_insights', username=user.username) }}">{{ t("See all insights and achievements →") }}</a>
 </div>
 {% endif %}
 
 {% if is_me %}
-<a href="/messages">Messages</a><br>
-<a href="/edit-user">Edit your personal data</a><br>
-<a href="/logout">Logout</a><br>
-<a href="/delete-user" style="color: red;">Delete my account</a>
+<a href="/notifications">{{ t("Notifications") }}</a><br>
+<a href="/messages">{{ t("Messages") }}</a><br>
+{# Private to the owner: /me/downloads has no /account/<username> counterpart. #}
+<a href="/me/downloads">{{ t("Download your rides (GPX)") }}</a><br>
+<a href="/edit-user">{{ t("Edit your personal data") }}</a><br>
+<a href="/logout">{{ t("Logout") }}</a><br>
+<a href="/delete-account" style="color: red;">{{ t("Delete my account") }}</a>
 {% endif %}
 
 {% if is_me or trips %}
 <hr>
 <div class="trips-header">
-  <h2>{{ "Your Trips" if is_me else "Trips" }}</h2>
-  {% if is_me %}<a class="btn-create-trip" href="/create-trip">+ Create trip</a>{% endif %}
+  <h2>{{ t("Your Trips") if is_me else t("Trips") }}</h2>
+  {% if is_me %}<a class="btn-create-trip" href="/create-trip">+ {{ t("Create trip") }}</a>{% endif %}
 </div>
 {% if trips %}
 <div class="trip-grid">
@@ -228,54 +248,40 @@ On Hitchwiki: <a href="https://hitchwiki.org/en/User:{{ escaped_hitchwiki_userna
     <div class="trip-thumb-info">
       <span class="trip-thumb-name">{{ trip.name }}</span>
       {% if trip.date_span %}<span class="trip-thumb-dates">{{ trip.date_span }}</span>{% endif %}
-      <span class="trip-thumb-count">{{ trip.rides|length }} ride{{ '' if trip.rides|length == 1 else 's' }}</span>
+      <span class="trip-thumb-count">{{ t("{n} ride" if trip.rides|length == 1 else "{n} rides", n=trip.rides|length) }}</span>
     </div>
   </div>
   {% endfor %}
 </div>
 {% elif is_me %}
-<p style="color:#666; font-size:0.9em;">No trips yet. Create one to group your rides into a journey.</p>
+<p style="color:#666; font-size:0.9em;">{{ t("No trips yet. Create one to group your rides into a journey.") }}</p>
 {% endif %}
 {% endif %}
 
 <hr>
-<h2>{{ "Your Rides" if is_me else "Rides" }}</h2>
+<h2>{{ t("Your Rides") if is_me else t("Rides") }}</h2>
 {% if rides %}
   {% for ride in rides %}
-  <div class="ride-card {% if ride.type == 'co_hitchhiker' %}co-hitchhiker-card{% endif %}"{% if ride.d_tag %} data-ride-href="/ride/{{ ride.d_tag }}"{% endif %}>
-      <div class="ride-meta">
-          {{ ride.created }}
-          {% if ride.rating > 0 %}&nbsp;{{ "⭐" * ride.rating }}{% endif %}
-          {% if ride.type == 'co_hitchhiker' %}<span class="co-label">co-hitchhiker</span>{% endif %}
-      </div>
-      {% if ride.pickup_lat and ride.pickup_lon %}
-      <a href="/#{{ ride.pickup_lat }},{{ ride.pickup_lon }}" title="View spot on map" style="display:block; text-decoration:none;">
-        <div class="map-thumbnail" id="ride-thumb-{{ loop.index0 }}" style="height:100px;">
-          <div class="map-thumbnail-overlay">View on map ↗</div>
-        </div>
-        <div style="color:#888; font-size:0.8em;">{{ "%.4f, %.4f"|format(ride.pickup_lat, ride.pickup_lon) }}</div>
-      </a>
+  {# The name is left off here: every card in this list belongs to the profile's owner,
+     so repeating it on each one says nothing. #}
+  {% call ride_card(ride, "ride-thumb", loop.index0, show_name=false,
+                    extra_class="co-hitchhiker-card" if ride.type == 'co_hitchhiker' else "",
+                    badge='<span class="co-label">' ~ t("co-hitchhiker") ~ '</span>' if ride.type == 'co_hitchhiker' else "") %}
+      {% if ride.type == 'own' %}
+      <a class="btn-edit" href="/ride?edit={{ ride.d_tag }}">{{ t("Edit") }}</a>
+      {% elif ride.type == 'own_external' %}
+      {% else %}
+      <form method="post" action="/accept-co-hitchhiking-ride/{{ ride.d_tag }}" style="display:inline;">
+          <button type="submit" class="btn-accept">{{ t("Accept") }}</button>
+      </form>
+      <form method="post" action="/reject-co-hitchhiking-ride/{{ ride.d_tag }}" style="display:inline;">
+          <button type="submit" class="btn-reject">{{ t("Reject") }}</button>
+      </form>
       {% endif %}
-      {% if ride.comment %}
-      <div class="ride-comment">{{ ride.comment }}</div>
-      {% endif %}
-      <div class="ride-actions">
-          {% if ride.type == 'own' %}
-          <a class="btn-edit" href="/ride?edit={{ ride.d_tag }}">Edit</a>
-          {% elif ride.type == 'own_external' %}
-          {% else %}
-          <form method="post" action="/accept-co-hitchhiking-ride/{{ ride.d_tag }}" style="display:inline;">
-              <button type="submit" class="btn-accept">Accept</button>
-          </form>
-          <form method="post" action="/reject-co-hitchhiking-ride/{{ ride.d_tag }}" style="display:inline;">
-              <button type="submit" class="btn-reject">Reject</button>
-          </form>
-          {% endif %}
-      </div>
-  </div>
+  {% endcall %}
   {% endfor %}
 {% else %}
-  <p style="color:#666; font-size:0.9em;">No rides yet.</p>
+  <p style="color:#666; font-size:0.9em;">{{ t("No rides yet.") }}</p>
 {% endif %}
 {% endblock %}
 
@@ -286,12 +292,7 @@ On Hitchwiki: <a href="https://hitchwiki.org/en/User:{{ escaped_hitchwiki_userna
 <script src="/static/trip_map.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const rides = {{ rides | tojson }};
-    rides.forEach((ride, i) => {
-        if (ride.pickup_lat && ride.pickup_lon) {
-            initMapThumbnail(`ride-thumb-${i}`, ride.pickup_lat, ride.pickup_lon);
-        }
-    });
+    initThumbnailsIn(document);
 
     // Trip thumbnails: a small route map (markers + road-following line) per trip.
     document.querySelectorAll('.trip-thumb').forEach((el) => {
@@ -309,29 +310,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Whole-card navigation to ride detail. Ignore clicks on nested
     // links/buttons/forms so Edit / Accept / Reject and the map thumbnail
     // link keep working.
-    const shareBtn = document.getElementById('share-btn');
-    if (shareBtn) {
-        shareBtn.addEventListener('click', async () => {
-            const url = shareBtn.dataset.shareUrl;
-            const title = shareBtn.dataset.shareTitle;
-            try {
-                if (navigator.share) {
-                    await navigator.share({ title: title, url: url });
-                    return;
-                }
-            } catch (e) { if (e.name === 'AbortError') return; }
-            try {
-                await navigator.clipboard.writeText(url);
-                const label = shareBtn.querySelector('.share-btn-label');
-                const prev = label.textContent;
-                shareBtn.classList.add('copied');
-                label.textContent = 'Link copied!';
-                setTimeout(() => { shareBtn.classList.remove('copied'); label.textContent = prev; }, 1800);
-            } catch (e) {
-                window.prompt('Copy this link:', url);
-            }
-        });
-    }
+    // The #share-btn click is handled by the shared delegated handler in base.html.
 
     // Follow / unfollow toggle. Optimistically flip the button, POST to the
     // matching endpoint, and revert the label if the request fails.
@@ -351,7 +330,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await res.json();
                 const following = !!data.following;
                 followBtn.setAttribute('aria-pressed', following ? 'true' : 'false');
-                label.textContent = following ? 'Following' : 'Follow';
+                label.textContent = following ? '{{ t("Following") }}' : '{{ t("Follow") }}';
             } catch (e) {
                 // Leave the previous state untouched on failure.
             } finally {

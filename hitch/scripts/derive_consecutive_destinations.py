@@ -115,10 +115,7 @@ def load_rides(conn):
     """Named, no-destination rides from hitchwiki/hitchmap, grouped by nickname and sorted
     by submission time. Each entry: (dt, lat, lon, d, source)."""
     by_user = defaultdict(list)
-    q = (
-        "SELECT d, stops, hitchhikers, submission_time, source FROM ride_event "
-        "WHERE source IN ('hitchwiki.org', 'hitchmap.com')"
-    )
+    q = "SELECT d, stops, hitchhikers, submission_time, source FROM ride_event WHERE source IN ('hitchwiki.org', 'hitchmap.com')"
     for d, stops_json, hh_json, sub, source in conn.execute(q):
         if not d or not sub:
             continue

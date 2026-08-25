@@ -14,8 +14,12 @@ from flask_security import login_user, logout_user
 from hitch.blueprints.utils.notifications import ensure_welcome_notification
 from hitch.blueprints.utils.send_welcome_email import maybe_send_welcome_email
 from hitch.extensions import db, security
+from hitch.usernames import find_user_ci
 
 oauth_bp = Blueprint("oauth", __name__)
+
+SIGNUP_PROMPT_SOURCE = "anon-signup"
+SIGNUP_PROMPT_SESSION_KEY = "signup_prompt_source"
 
 
 def _wiki_base():
@@ -47,6 +51,12 @@ def login():
     if code:
         return _handle_callback(code)
 
+    # The anonymous post-ride prompt starts a multi-page, cross-origin OAuth
+    # flow. Keep only this allowlisted attribution marker in the signed session;
+    # query parameters do not survive the redirect through Hitchwiki.
+    if request.args.get("source") == SIGNUP_PROMPT_SOURCE:
+        session[SIGNUP_PROMPT_SESSION_KEY] = SIGNUP_PROMPT_SOURCE
+
     return render_template("security/login_user.html")
 
 
@@ -60,6 +70,38 @@ def _finish_login(target, needs_profile):
     if session.pop("oauth_popup", False):
         return render_template("security/oauth_popup_done.html", needs_profile=needs_profile)
     return redirect(target)
+
+
+def _new_user_target(signup_prompt_source):
+    """Return the first-login URL, adding attribution only for our known prompt."""
+    params = {"welcome": "1"}
+    if signup_prompt_source == SIGNUP_PROMPT_SOURCE:
+        params["signup_prompt"] = "account-created"
+    return f"/?{urlencode(params)}"
+
+
+def _existing_user_target(signup_prompt_source):
+    """Return the existing-user post-login URL.
+
+    A visitor who already has a Maps account (created on an earlier visit,
+    or simply an existing Hitchwiki user whose *Maps* account already
+    exists) but clicks "sign up" on the anon-signup prompt completes a real,
+    successful login here -- but the old unconditional "/me" target left
+    that outcome invisible to signup_prompt tracking, which only ever fired
+    "account-created" for the brand-new-user branch above. Confirmed live
+    (2026-08-25, KnyttesBot test account, decisions PR#32 "use KnyttesBot
+    hitchwiki account for this"): a second OAuth round-trip through the
+    exact anon-signup flow landed on /me with no tracking marker at all,
+    even though the login fully succeeded -- exactly the under-counting
+    Till suspected was deflating signup_prompt_account_creation_per_signup_choice_28d.
+    Mirrors _new_user_target's redirect-to-map-with-a-marker shape so the
+    client can log a distinct "logged-in" completion action; any login NOT
+    sourced from the anon-signup prompt keeps the original /me destination
+    unchanged.
+    """
+    if signup_prompt_source == SIGNUP_PROMPT_SOURCE:
+        return f"/?{urlencode({'signup_prompt': 'logged-in'})}"
+    return "/me"
 
 
 @oauth_bp.route("/login/oauth")
@@ -92,16 +134,43 @@ def register():
 
 @oauth_bp.route("/logout")
 def logout():
-    logout_user()
+    # Clear our own session data first, THEN call logout_user(). logout_user() doesn't
+    # delete the remember-me cookie inline -- it sets session["_remember"] = "clear", a
+    # marker Flask-Login reads at response time to expire the cookie. Calling
+    # session.clear() afterwards would wipe that marker, leaving the remember cookie alive
+    # so the next request re-authenticates the user (the "logout didn't log me out" bug).
     session.clear()
+    logout_user()
     return redirect("/")
+
+
+def _oauth_error(message, status=400):
+    """Render an OAuth failure so it reaches the user, not a bare error string.
+
+    Issue #120's whole complaint: a state mismatch (usually just a stale
+    session -- the login tab sat open too long, or was opened twice) left the
+    visitor on "State mismatch - possible CSRF attack" with no styling, no
+    explanation, and, in the popup flow, no way back to the app at all --
+    account.js's message listener never fires because nothing was ever
+    posted to the opener, so the popup just sits there orphaned.
+
+    Popup flow: mirror _finish_login's success path (oauth_popup_done.html)
+    -- post the failure to the opener over the same "hitchwiki-auth" channel
+    and show the message in the popup itself, so the reader can actually see
+    what happened before closing it themselves. Full-page flow: back to the
+    login page with the message inline, so the login button is still one
+    click away instead of a dead end.
+    """
+    if session.pop("oauth_popup", False):
+        return render_template("security/oauth_popup_error.html", message=message)
+    return render_template("security/login_user.html", oauth_error=message), status
 
 
 def _handle_callback(code):
     """Exchange authorization code for access token, fetch profile, login/create user."""
     state = request.args.get("state")
     if state != session.pop("oauth_state", None):
-        return "State mismatch - possible CSRF attack", 403
+        return _oauth_error("State mismatch - possible CSRF attack. Please try logging in again.", 403)
 
     wiki_base = _wiki_base()
     token_url = f"{wiki_base}/rest.php/oauth2/access_token"
@@ -124,7 +193,7 @@ def _handle_callback(code):
 
     if token_response.status_code != 200:
         current_app.logger.error(f"OAuth token exchange failed: {token_response.status_code} {token_response.text}")
-        return "Login failed: could not complete OAuth exchange. Please try again.", 400
+        return _oauth_error("Login failed: could not complete OAuth exchange. Please try again.")
 
     access_token = token_response.json()["access_token"]
 
@@ -141,17 +210,23 @@ def _handle_callback(code):
 
     if profile_response.status_code != 200:
         current_app.logger.error(f"OAuth profile fetch failed: {profile_response.status_code} {profile_response.text}")
-        return "Login failed: could not fetch your Hitchwiki profile. Please try again.", 400
+        return _oauth_error("Login failed: could not fetch your Hitchwiki profile. Please try again.")
 
     profile = profile_response.json()
     hitchwiki_username = profile.get("username")
     email = profile.get("email")
 
     if not hitchwiki_username:
-        return "Login failed: Hitchwiki did not return a username.", 400
+        return _oauth_error("Login failed: Hitchwiki did not return a username.")
 
-    # Find or create local user
-    user = security.datastore.find_user(username=hitchwiki_username)
+    # Find or create local user. Matched case-insensitively (hitch/usernames.py): an
+    # account created here from an earlier import or a differently-cased spelling is the
+    # same person, and an exact match would silently create them a second, empty account.
+    user = find_user_ci(hitchwiki_username)
+    # Consume attribution only after the OAuth exchange and profile lookup have
+    # succeeded, so a transient error/retry does not lose it. Existing users do
+    # not count as a newly created Maps account and clear the marker here too.
+    signup_prompt_source = session.pop(SIGNUP_PROMPT_SESSION_KEY, None)
     if user is None:
         user = security.datastore.create_user(
             username=hitchwiki_username,
@@ -175,7 +250,7 @@ def _handle_callback(code):
         # redirect rather than being re-derived later from the user row. The full-page
         # path lands on the map with ?welcome=1 so the first-run intro (welcome.js) runs
         # before the profile-setup form; the popup path opens the intro via postMessage.
-        return _finish_login("/?welcome=1", needs_profile=True)
+        return _finish_login(_new_user_target(signup_prompt_source), needs_profile=True)
 
     # Existing user - just log in
     login_user(user, remember=True)
@@ -185,4 +260,4 @@ def _handle_callback(code):
     # Back-fills the welcome notification for users who registered before notifications
     # existed; idempotent, so existing users get it exactly once.
     ensure_welcome_notification(user)
-    return _finish_login("/me", needs_profile=False)
+    return _finish_login(_existing_user_target(signup_prompt_source), needs_profile=False)

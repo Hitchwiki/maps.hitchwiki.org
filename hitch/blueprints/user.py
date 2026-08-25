@@ -1,28 +1,57 @@
 import io
 import json
 import os
+import time
 from datetime import datetime
 from types import SimpleNamespace
+from urllib.parse import quote
 
 import pandas as pd
-from flask import Blueprint, current_app, jsonify, redirect, render_template, request, send_file, url_for
+import requests
+from flask import (
+    Blueprint,
+    Response,
+    current_app,
+    g,
+    has_request_context,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    session,
+    url_for,
+)
 from flask_security import current_user
-from sqlalchemy import text
+from pydantic import ValidationError
+from sqlalchemy import func, text
 
-from hitch.blueprints.publish_ride import construct_hitchhiker_from_current_user
+from hitch.blueprints.publish_ride import ANONYMOUS_NICKNAME, construct_hitchhiker_from_current_user
+from hitch.blueprints.utils.driver_info_choices import ALLOWED_REASONS_TO_HITCHHIKE, REASON_TO_HITCHHIKE_CHOICES
 from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import HitchhikingRecord
-from hitch.blueprints.utils.notifications import notify_new_follower
+from hitch.blueprints.utils.notifications import notify_new_follower, unread_count
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
+from hitch.blueprints.utils.profile_images import (
+    AVATAR_SOURCES,
+    avatar_view,
+    delete_uploaded_image,
+    store_uploaded_image,
+)
 from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON
+from hitch.blueprints.utils.ride_gpx import rides_gpx
+from hitch.blueprints.utils.ride_images import attach_ride_images
 from hitch.blueprints.utils.ride_score import score_fields
+from hitch.blueprints.utils.ride_sources import ride_is_replaceable
+from hitch.blueprints.utils.store_published_ride import store_published_ride
 from hitch.extensions import db, security
 from hitch.forms import UserEditForm
 from hitch.helpers import get_db, get_dirs, haversine_np
-from hitch.models import CoHitchhiker, Follow, Notification, RideEvent, RidePlace, RideReport, Trip, TripRide, User
+from hitch.models import CoHitchhiker, Follow, Notification, RideEvent, RidePlace, RideReport, Trip, TripRide, User, UserAvatar
+from hitch.scripts.races import current_races
+from hitch.translations import t
+from hitch.usernames import canonical_username, find_user_ci, same_username, username_key
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
-
-THIS_NOSTR_SOURCE = os.getenv("THIS_NOSTR_SOURCE", "maps.hitchwiki.org")
 
 user_bp = Blueprint("user", __name__)
 
@@ -33,22 +62,77 @@ def form():
         return redirect("/login")
 
     form = UserEditForm()
+    # WTForms field labels/choices are set once at class-definition time (module import),
+    # long before any request -- and so before g.lang exists -- so t() there would always
+    # render English. Translate them here instead, per request, overwriting the field's
+    # `.text`/`.choices` before render. Choice *values* (form.gender.data on submit) are
+    # untouched, only the displayed label -- so this is safe regardless of language.
+    # origin_country's ~250 pycountry names are left untranslated (a much bigger,
+    # separate task, same as place names elsewhere in the app).
+    form.gender.label.text = t("Gender")
+    form.gender.choices = [(v, t(lbl)) for v, lbl in form.gender.choices]
+    form.year_of_birth.label.text = t("Year of Birth")
+    form.hitchhiking_since.label.text = t("Hitchhiking Since")
+    form.origin_country.label.text = t("Where are you from?")
+    form.origin_country.choices = [(v, t(lbl) if v == "" else lbl) for v, lbl in form.origin_country.choices]
+    form.origin_city.label.text = t("Which city are you from?")
+    form.hitchwiki_username.label.text = t("Hitchwiki Username")
+    form.trustroots_username.label.text = t("Trustroots Username")
+    form.email_notifications.label.text = t("Receive notifications and updates via email")
+    form.nearby_hitchhikers_email.label.text = t("Email me about other hitchhikers who were close by")
+    form.allow_messages.label.text = t("Let other hitchhikers message me (adds a Chat button to my profile)")
+    form.message_email_notifications.label.text = t("Email me when I receive a new message")
+    form.distance_unit.label.text = t("Distance units")
+    form.distance_unit.choices = [(v, t(lbl)) for v, lbl in form.distance_unit.choices]
+    form.avatar_source.label.text = t("Profile picture")
+    form.avatar_source.choices = [
+        ("none", t("No profile picture")),
+        ("upload", t("Upload a picture")),
+        ("gravatar", t("Use my Gravatar")),
+    ]
+    form.avatar_image.label.text = t("Choose a picture")
+    form.submit.label.text = t("Submit")
 
     if form.validate_on_submit():
         updated_user = security.datastore.find_user(username=current_user.username)
-        updated_user.gender = form.gender.data
+        avatar = UserAvatar.query.filter_by(user_id=updated_user.id).first()
+        source = form.avatar_source.data if form.avatar_source.data in AVATAR_SOURCES else "none"
+        old_filename = avatar.filename if avatar else None
+        new_filename = None
+        if source == "upload" and form.avatar_image.data:
+            try:
+                new_filename = store_uploaded_image(form.avatar_image.data)
+            except ValueError as err:
+                form.avatar_image.errors.append(str(err))
+                return render_template("security/edit_user.html", form=form)
+        elif source == "upload" and not old_filename:
+            form.avatar_image.errors.append(t("Choose a picture to upload."))
+            return render_template("security/edit_user.html", form=form)
+
+        if avatar is None:
+            avatar = UserAvatar(user_id=updated_user.id)
+            db.session.add(avatar)
+        avatar.source = source
+        avatar.filename = new_filename or (old_filename if source == "upload" else None)
+        updated_user.gender = form.gender.data or None
         updated_user.year_of_birth = form.year_of_birth.data
         updated_user.hitchhiking_since = form.hitchhiking_since.data
-        updated_user.origin_country = form.origin_country.data
-        updated_user.origin_city = form.origin_city.data
+        updated_user.origin_country = form.origin_country.data or None
+        updated_user.origin_city = form.origin_city.data or None
         updated_user.hitchwiki_username = form.hitchwiki_username.data
         updated_user.trustroots_username = form.trustroots_username.data
         updated_user.email_notifications = form.email_notifications.data
         updated_user.nearby_hitchhikers_email = form.nearby_hitchhikers_email.data
         updated_user.allow_messages = form.allow_messages.data
         updated_user.message_email_notifications = form.message_email_notifications.data
+        updated_user.distance_unit = form.distance_unit.data
         security.datastore.put(updated_user)
         security.datastore.commit()
+        if old_filename and old_filename != avatar.filename:
+            delete_uploaded_image(old_filename)
+        # Track only a successful save, and only once after the redirect. A click event on
+        # the form would count rejected images and validation failures as adoption.
+        session["track_profile_picture_saved"] = source
         return redirect("/me")
 
     form.gender.data = current_user.gender
@@ -62,6 +146,9 @@ def form():
     form.nearby_hitchhikers_email.data = current_user.nearby_hitchhikers_email
     form.allow_messages.data = current_user.allow_messages
     form.message_email_notifications.data = current_user.message_email_notifications
+    form.distance_unit.data = current_user.distance_unit or "metric"
+    avatar = UserAvatar.query.filter_by(user_id=current_user.id).first()
+    form.avatar_source.data = avatar.source if avatar else "none"
 
     return render_template("security/edit_user.html", form=form)
 
@@ -113,6 +200,12 @@ def _ride_needs_detail(ride_info):
     return ride_info.get("completion", 0) < 100 or ride_info.get("missing_destination")
 
 
+def _profile_image_for(user):
+    """Public image metadata for one registered user, with one bounded lookup."""
+    avatar = UserAvatar.query.filter_by(user_id=user.id).first()
+    return avatar_view(avatar, user.email)
+
+
 @user_bp.route("/me/incomplete_rides.json", methods=["GET"])
 def incomplete_rides_json():
     """How many of the user's rides still want more detail — for the avatar nudge dot.
@@ -124,7 +217,11 @@ def incomplete_rides_json():
     # Anonymous users have no rides to nudge about; skip the query entirely.
     rides = [] if current_user.is_anonymous else _get_rides_for_user(current_user)
     count = sum(1 for ride in rides if _ride_needs_detail(ride))
-    resp = jsonify({"count": count})
+    payload = {"count": count}
+    if not current_user.is_anonymous:
+        profile_image = _profile_image_for(current_user)
+        payload["profile_image_url"] = profile_image["url"] if profile_image else None
+    resp = jsonify(payload)
     # Per-user, like /me.json — never let a shared cache serve one user's count to another.
     resp.headers["Cache-Control"] = "private, no-store"
     return resp
@@ -147,7 +244,7 @@ def me_json():
         places = _ride_places([r.get("d_tag") for r in visible])
         shown = []
         for ride in visible:
-            entry = {k: v for k, v in ride.items() if k != "submission_sort_key"}
+            entry = {k: v for k, v in ride.items() if k not in ("submission_sort_key", "start_sort_key")}
             place = places.get(entry.get("d_tag"))
             entry["from_place"] = place.from_place if place else None
             entry["to_place"] = place.to_place if place else None
@@ -173,6 +270,7 @@ def me_json():
                 "logged_in": True,
                 "username": current_user.username,
                 "profile_url": "/me",
+                "profile_image_url": (profile_image["url"] if (profile_image := _profile_image_for(current_user)) else None),
                 "insights": {
                     "rides": total_rides,
                     "distance_km": total_km,
@@ -191,10 +289,13 @@ def me_json():
     return resp
 
 
-# TODO: properly delete the user after their confirmation
+# Superseded by /delete-account (a real page with the actual limits/warnings
+# spelled out, not a bare one-liner) -- kept as a redirect, not removed, since
+# this URL was live and linked from the account page itself for a while and
+# may be bookmarked or indexed.
 @user_bp.route("/delete-user", methods=["GET"])
 def delete_user():
-    return f"To delete your account please send an email to {current_app.config['EMAIL']} with the subject 'Delete my account'."
+    return redirect("/delete-account", code=301)
 
 
 @user_bp.route("/is_username_used/<username>", methods=["GET"])
@@ -202,7 +303,8 @@ def is_username_used(username):
     """Endpoint to check if a username is already used."""
     current_app.logger.info(f"Received request to check if username {username} is used.")
 
-    user = security.datastore.find_user(username=username)
+    # Case-insensitive: "germanytoindia" is used if "Germanytoindia" exists.
+    user = find_user_ci(username)
 
     if user:
         return jsonify({"used": True})
@@ -238,7 +340,19 @@ def show_account(username, is_me: bool = False):
     if is_me and current_user.is_anonymous:
         return redirect("/login")
 
-    user = current_user if is_me else security.datastore.find_user(username=username)
+    user = current_user if is_me else find_user_ci(username)
+
+    # One person, one profile URL. A ride imported from hitchmap.com links here under the
+    # spelling its author typed there ("GermanyToIndia") while their account is spelled the
+    # way Hitchwiki stores it ("Germanytoindia"); serving both would be two pages for one
+    # person, each with half their rides in the eyes of anything that keys on the URL.
+    # Redirect onto the account's own spelling, keeping the language prefix (url_for resolves
+    # the mirrored endpoint we were reached through) and any query string.
+    if not is_me and user is not None and user.username != username:
+        target = url_for(request.endpoint, username=user.username)
+        if request.query_string:
+            target = f"{target}?{request.query_string.decode()}"
+        return redirect(target, code=301)
 
     current_app.logger.info(
         f"Received request to show user account for {current_user.username}"
@@ -263,19 +377,11 @@ def show_account(username, is_me: bool = False):
             trustroots_username=None,
         )
 
-    # In-app notifications are private, so only load them when viewing your own page.
-    # Capture them (newest first) before marking unread ones read, so the red bell on
-    # the account button clears once the user has actually seen the list.
-    notifications = []
-    if is_me:
-        notifications = (
-            Notification.query.filter_by(user_id=current_user.id)
-            .order_by(Notification.created_at.desc(), Notification.id.desc())
-            .all()
-        )
-        if any(not n.is_read for n in notifications):
-            Notification.query.filter_by(user_id=current_user.id, is_read=False).update({"is_read": True})
-            db.session.commit()
+    # The list itself lives on /notifications now; the account page only carries the bell
+    # icon, so all it needs is whether there is anything to see. Unread ones are marked
+    # read on the notifications page, not here — otherwise merely opening the profile would
+    # clear the mark on messages the user never actually looked at.
+    unread_notifications = unread_count(current_user) if is_me else 0
 
     if is_me:
         rides_data = _get_rides_for_user(current_user)
@@ -288,6 +394,8 @@ def show_account(username, is_me: bool = False):
 
     single_source = _single_external_source(user.username)
     source_label = _EXTERNAL_SOURCE_LABELS.get(single_source)
+    source_url_template = _EXTERNAL_SOURCE_PROFILE_URLS.get(single_source)
+    source_url = source_url_template.format(username=quote(user.username, safe="")) if source_url_template else None
     # Unregistered stubs normally hide the Hitchwiki profile link, but for names whose rides
     # all came from Hitchwiki-derived sources the nickname *is* a Hitchwiki username, so keep it.
     show_hitchwiki_link = single_source in _HITCHWIKI_SOURCES
@@ -306,6 +414,8 @@ def show_account(username, is_me: bool = False):
     # only if that user opted into receiving messages (allow_messages). Same gate the send
     # endpoint enforces server-side, so the button never appears where a POST would 403.
     can_message = user_known and not is_me and not current_user.is_anonymous and bool(user.allow_messages)
+    profile_image = _profile_image_for(user) if user_known else None
+    profile_picture_saved = session.pop("track_profile_picture_saved", None) if is_me else None
 
     return render_template(
         "security/account.html",
@@ -313,14 +423,24 @@ def show_account(username, is_me: bool = False):
         is_me=is_me,
         rides=rides_data,
         trips=trips_data,
-        notifications=notifications,
+        unread_notifications=unread_notifications,
         user_known=user_known,
         source_label=source_label,
+        source_url=source_url,
         show_hitchwiki_link=show_hitchwiki_link,
         age=age,
         can_follow=can_follow,
         is_following=is_following,
         can_message=can_message,
+        profile_image=profile_image,
+        profile_picture_saved=profile_picture_saved,
+        # /account/<anything> answers 200 by design (see the stub above), which makes it
+        # an unbounded URL space a crawler can wander forever -- and each page costs a
+        # couple of seconds of database work. A name that belongs to no registered user
+        # AND has no rides has nothing on it, so it is a soft 404: keep serving it to
+        # whoever typed the URL, but keep it out of the index. Pages with rides on them,
+        # registered or not, stay indexable -- those are real contributor profiles.
+        noindex=not user_known and not rides_data,
     )
 
 
@@ -442,8 +562,12 @@ def _ride_distance_km(info):
 
     Mirrors show.py: great-circle distance scaled by the road-detour factor, with rides
     under 1 km discarded as unrealistically short (they are treated as having no
-    destination there, so a record must not be built out of one).
+    destination there, so a record must not be built out of one), and a give-up carrying
+    no distance at all -- its second stop is where the hitchhiker meant to go, not
+    anywhere a car took them.
     """
+    if info.get("no_ride"):
+        return None
     coords = (info["pickup_lat"], info["pickup_lon"], info["destination_lat"], info["destination_lon"])
     if any(c is None for c in coords):
         return None
@@ -483,11 +607,11 @@ def _achievements(values):
             cards.append(
                 {
                     "emoji": emoji,
-                    "name": name,
-                    "blurb": blurb,
+                    "name": t(name),
+                    "blurb": t(blurb),
                     "current": min(current, threshold),
                     "target": threshold,
-                    "unit": ladder["unit"],
+                    "unit": t(ladder["unit"]),
                     "earned": current >= threshold,
                     "progress": min(current / threshold, 1.0),
                 }
@@ -502,7 +626,7 @@ def show_insights(username):
     Only registered users have the precomputed lifetime totals (show.py writes them onto
     the `user` row), so an unknown hitchhiker nickname has nothing to show here.
     """
-    user = security.datastore.find_user(username=username)
+    user = find_user_ci(username)
     if user is None:
         return redirect(url_for("user.show_account", username=username))
 
@@ -528,7 +652,7 @@ def _toggle_follow(username, follow):
     if current_user.is_anonymous:
         return jsonify({"error": "login_required"}), 401
 
-    target = security.datastore.find_user(username=username)
+    target = find_user_ci(username)
     if target is None:
         return jsonify({"error": "user_not_found"}), 404
     # Following yourself is meaningless; reject it so it never lands in the table.
@@ -563,41 +687,16 @@ def unfollow_user(username):
 
 @user_bp.route("/contributors", methods=["GET"])
 def contributors():
-    query = """select
-            u.username AS hitchhiker,
-            COUNT(*) AS total_contributions
-        from points p left join user u on p.user_id = u.id
-        where p.user_id is not null
-        group by p.user_id
-        order by total_contributions desc"""
-    overall_contributions = pd.read_sql(
-        query,
-        get_db(),
-    )
-    overall_contributions.index = overall_contributions.index + 1
+    """Legacy contributor ranking, superseded by /leaderboard.
 
-    query = """select
-            u.username AS hitchhiker,
-            COUNT(*) AS total_contributions
-        from points p left join user u on p.user_id = u.id
-        where p.user_id is not null
-            and strftime('%Y-%m', p.datetime) = strftime('%Y-%m', 'now')
-        group by p.user_id
-        order by total_contributions desc;"""
-    monthly_contributions = pd.read_sql(
-        query,
-        get_db(),
-    )
-    monthly_contributions.index = monthly_contributions.index + 1
-
-    return render_template(
-        "security/contributors.html",
-        is_logged_in=not current_user.is_anonymous,
-        overall_contributions=overall_contributions.to_html(),
-        short_overall_contributions=overall_contributions.head(10).to_html(),
-        monthly_contributions=monthly_contributions.to_html(),
-        short_monthly_contributions=monthly_contributions.head(10).to_html(),
-    )
+    It counted rows in `points` -- the legacy hitchmap.com review table, which no
+    longer exists in the production database, so every request 500s (Search Console
+    reports these under "Server error (5xx)", once per language mirror). The page is
+    linked from nowhere and cannot be repaired without the table; /leaderboard is the
+    ranking built from the ride data we actually hold, so send callers there. A 301
+    rather than a 404 because the URL is old enough to have inbound links.
+    """
+    return redirect(url_for(f"{request.blueprint}.leaderboard"), code=301)
 
 
 @user_bp.route("/claim-review/<review_id>", methods=["GET", "POST"])
@@ -654,7 +753,14 @@ def claim_review(review_id: int):
 
 
 def _extract_ride_info(ride, ride_type):
-    """Extract display info from a RideEvent row."""
+    """Extract display info from a RideEvent row.
+
+    The keys here are the ride-card contract the shared `_ride_card.html` macro renders
+    (see its docstring): every server-side ride list — profile, trip, activities feed,
+    leaderboard — feeds it the same dict, so a ride reads the same wherever it is shown.
+    `images` is not filled in here: it needs one query per *list*, not per ride, so the
+    callers batch it through attach_ride_images.
+    """
     content = ride.content if ride.content else {}
     stops = content.get("stops") or []
     pickup_lat, pickup_lon = None, None
@@ -673,11 +779,40 @@ def _extract_ride_info(ride, ride_type):
     submission_dt = pd.to_datetime(ride.submission_time, errors="coerce", utc=True) if ride.submission_time else None
     submission_display = submission_dt.strftime("%Y-%m-%d %H:%M") if submission_dt is not None and pd.notna(submission_dt) else ""
     submission_sort_key = submission_dt.value if submission_dt is not None and pd.notna(submission_dt) else None
+    # When the ride actually happened (first stop's departure_time, RFC 9557) — a different
+    # concept from submission_time, which is when the record was written. Trips are ordered
+    # by this one, so a journey logged days afterwards still reads in the order it was
+    # hitched, and a batch of rides typed in one sitting doesn't collapse into upload order.
+    # None when the ride never recorded a start time; such a ride can't join a trip at all.
+    departure = stops[0].get("departure_time") if stops else None
+    start_dt = pd.to_datetime(departure, errors="coerce", utc=True) if departure else None
+    start_display = start_dt.strftime("%Y-%m-%d %H:%M") if start_dt is not None and pd.notna(start_dt) else ""
+    start_sort_key = start_dt.value if start_dt is not None and pd.notna(start_dt) else None
+    hitchhikers = content.get("hitchhikers") or []
+    nickname = (hitchhikers[0].get("nickname") if hitchhikers else None) or ANONYMOUS_NICKNAME
+    # An anonymous rider may be stored with a gender suffix ("Anonymous:female"); a card
+    # shows the plain sentinel, and must not link it as if it were a username.
+    if nickname.split(":", 1)[0] == ANONYMOUS_NICKNAME:
+        nickname = ANONYMOUS_NICKNAME
+    # Print (and link) the name the way its owner's account is spelled: the nickname on the
+    # ride is whatever they typed on whichever platform it came from, and one person showing
+    # up as "GermanyToIndia" on an imported ride and "Germanytoindia" on a ride logged here
+    # reads as two hitchhikers. Unregistered nicknames are left exactly as logged.
+    nickname = canonical_username(nickname)
     info = {
         "type": ride_type,
         "d_tag": ride.d,
+        # Who logged it. Lists showing one person's rides pass show_name=false to the card
+        # macro, but the activities feed and the leaderboards mix authors and need it.
+        "hitchhiker_name": nickname,
         "created": submission_display,
         "submission_sort_key": submission_sort_key,
+        "start": start_display,
+        "start_sort_key": start_sort_key,
+        # What a ride list should print: when it was hitched, falling back to when it was
+        # typed up. "2026-08-01 11:32" on a ride from last summer is the record's birthday,
+        # not the ride's, and reads as wrong to the person who was there.
+        "when": start_display or submission_display,
         "rating": int(ride.rating) if ride.rating else 0,
         "comment": ride.comment or "",
         "pickup_lat": pickup_lat,
@@ -690,22 +825,41 @@ def _extract_ride_info(ride, ride_type):
     # coords off the info dict, so it has to run once the dict exists.
     info["wait_min"] = _ride_wait_minutes(ride)
     info["ride_min"] = _ride_duration_minutes(ride)
-    distance = _ride_distance_km(info)
-    info["distance_km"] = round(distance, 1) if distance is not None else None
-    info["completion"] = _ride_completion_pct(ride)
     # A ride that never recorded where it ended is incomplete data the user can still fix,
     # so the modal flags it. A `no_ride` record is a give-up: the hitchhiker was never
     # picked up, so having no destination is correct there and must not be flagged. The
     # UI still labels it, just as a fact rather than a problem — hence both flags.
     gave_up = content.get("no_ride") is not None
     info["gave_up"] = gave_up
+    # Same fact under the name the card macro and the spot pane both use, so a give-up is
+    # badged identically in a profile list and on the map. Set before the distance below,
+    # which reads it to keep a give-up out of every distance figure.
+    info["no_ride"] = gave_up
+    distance = _ride_distance_km(info)
+    info["distance_km"] = round(distance, 1) if distance is not None else None
+    info["completion"] = _ride_completion_pct(ride)
     info["missing_destination"] = destination_lat is None and not gave_up
     return info
 
 
-def _norm_nickname(s):
-    """MediaWiki-style: first letter is case-insensitive so "John" matches "john" and vice versa."""
-    return (s[:1].upper() + s[1:]) if s else s
+def _request_cached(key, build):
+    """Memoize `build()` under `key` for the lifetime of one request.
+
+    The profile views ask the same expensive question more than once per request:
+    /account/<username> resolves _rides_by_hitchhiker twice (the ride list and the
+    external-source badge), and _owner_deleted_dtags once per trip on top of that.
+
+    Safe because nothing here is written and re-read within a single request — deleting a
+    ride (main.py `delete_ride`) commits and redirects, so the next read of the deleted
+    set is already a new request. Outside a request context the value is simply rebuilt,
+    so scripts and tests importing these helpers are unaffected.
+    """
+    if not has_request_context():
+        return build()
+    cache = g.setdefault("_profile_query_cache", {})
+    if key not in cache:
+        cache[key] = build()
+    return cache[key]
 
 
 def _owner_deleted_dtags():
@@ -716,17 +870,32 @@ def _owner_deleted_dtags():
     OWNER_DELETE_REASON). show.py drops these from the map data; every profile-side view
     has to drop them too, or the owner keeps seeing a ride they deleted.
     """
-    rows = db.session.query(RideReport.ride_d_tag).filter_by(reason=OWNER_DELETE_REASON).all()
-    return {d_tag for (d_tag,) in rows}
+
+    def build():
+        rows = db.session.query(RideReport.ride_d_tag).filter_by(reason=OWNER_DELETE_REASON).all()
+        return {d_tag for (d_tag,) in rows}
+
+    return _request_cached("owner_deleted_dtags", build)
 
 
 def _rides_by_hitchhiker(username):
     """RideEvent rows listing `username` among their hitchhikers, newest first.
 
-    Rides deleted by their author are excluded."""
+    Rides deleted by their author are excluded.
+
+    Cached per request: the json_each pre-filter below cannot use an index (it walks the
+    `hitchhikers` array of every one of ~79k rides, ~2 s), and a single account page needs
+    the answer more than once.
+    """
+    # Keyed on the case-insensitive identity, so the two spellings of one person that a
+    # profile page can hold at once (the account's and a ride's) share the one answer.
+    return _request_cached(("rides_by_hitchhiker", username_key(username)), lambda: _query_rides_by_hitchhiker(username))
+
+
+def _query_rides_by_hitchhiker(username):
     # Pre-filter in SQL using JSON1 so we don't load and JSON-parse every RideEvent in Python.
-    # This is a permissive case-insensitive match; the Python filter below still applies the
-    # exact MediaWiki-style _norm_nickname comparison for correctness.
+    # SQL `lower()` is how hitch/usernames.username_key is expressed in the database; the
+    # Python pass below re-applies it (and drops author-deleted rides) on the candidates.
     candidates = (
         db.session.query(RideEvent)
         .filter(
@@ -739,13 +908,13 @@ def _rides_by_hitchhiker(username):
         .order_by(RideEvent.created_at.desc())
         .all()
     )
-    normalized_username = _norm_nickname(username)
+    key = username_key(username)
     deleted = _owner_deleted_dtags()
     return [
         ride
         for ride in candidates
         if ride.d not in deleted
-        and normalized_username in [_norm_nickname(h.get("nickname")) for h in ((ride.content or {}).get("hitchhikers") or [])]
+        and key in [username_key(h.get("nickname")) for h in ((ride.content or {}).get("hitchhikers") or [])]
     ]
 
 
@@ -754,6 +923,12 @@ def _rides_by_hitchhiker(username):
 # came from a single one of these sources, so visitors know the name is an external stub
 # (e.g. a legacy hitchmap.com contributor) rather than a Hitchwiki Maps account.
 _EXTERNAL_SOURCE_LABELS = {"hitchmap.com": "Hitchmap", "triphopping.com": "Triphopping"}
+
+# Sources that host a public profile page per contributor, so the badge after the name can
+# link back to the original account. `{username}` is filled with the URL-quoted nickname.
+# Rendered nofollow+ugc: the nickname comes from user-submitted ride data, so we neither
+# vouch for the target nor want to pass ranking to an unbounded set of external profiles.
+_EXTERNAL_SOURCE_PROFILE_URLS = {"hitchmap.com": "https://hitchmap.com/account/{username}"}
 
 # Sources whose ride nicknames are Hitchwiki usernames. A stub page for such a name is
 # really that person's Hitchwiki account, so we still link to their Hitchwiki profile even
@@ -771,7 +946,7 @@ def _single_external_source(username):
 
 
 def _get_rides_for_user(user, include_pending_co=True, display_only=False):
-    """Return merged list of own rides and pending co-hitchhiker rides, newest first.
+    """Return merged list of own rides and pending co-hitchhiker rides, newest ride first.
 
     `user` may be a real User object or any object with a `.username` attribute
     (e.g. a stub for an unregistered hitchhiker name found only in ride events).
@@ -779,13 +954,19 @@ def _get_rides_for_user(user, include_pending_co=True, display_only=False):
     username = user.username
     own_rides = []
     for ride in _rides_by_hitchhiker(username):
-        content = ride.content if ride.content else {}
-        ride_type = "own_external" if display_only or content.get("source") != THIS_NOSTR_SOURCE else "own"
+        # "own" is what puts an Edit link on the card, so it tracks what we can actually
+        # republish — rides logged here plus the imports we own the Nostr key for — not
+        # just rides whose source is this site. `display_only` is someone else's profile.
+        ride_type = "own" if not display_only and ride_is_replaceable(ride) else "own_external"
         own_rides.append(_extract_ride_info(ride, ride_type))
 
     co_rides = []
     if include_pending_co:
-        pending = CoHitchhiker.query.filter_by(co_hitchhiker=username, accepted="open").all()
+        # Invites are stored under the invited account's own spelling, but rows written
+        # before that rule may carry whatever the inviter typed — match case-insensitively.
+        pending = CoHitchhiker.query.filter(
+            func.lower(CoHitchhiker.co_hitchhiker) == username_key(username), CoHitchhiker.accepted == "open"
+        ).all()
         deleted = _owner_deleted_dtags()
         for ch in pending:
             if ch.nostr_ride_event_d_tag in deleted:
@@ -795,44 +976,62 @@ def _get_rides_for_user(user, include_pending_co=True, display_only=False):
                 co_rides.append(_extract_ride_info(ride, "co_hitchhiker"))
 
     combined = own_rides + co_rides
-    # Rides without a submission_time sort to the bottom regardless of direction:
-    # `has_time=False` ranks before `True` when reverse=True, so those entries land last.
+    # Ordered by when the ride was actually hitched, newest first — a batch of old rides
+    # typed up in one sitting otherwise jumps to the top of the list purely because it was
+    # entered today. Rides that never recorded a start time can't join that ordering, so
+    # they form a second block below it, newest submission first. `is not None` ranks False
+    # before True under reverse=True, so each "no time" group lands after its dated group.
     combined.sort(
-        key=lambda r: (r["submission_sort_key"] is not None, r["submission_sort_key"] or 0),
+        key=lambda r: (
+            r["start_sort_key"] is not None,
+            r["start_sort_key"] or 0,
+            r["submission_sort_key"] is not None,
+            r["submission_sort_key"] or 0,
+        ),
         reverse=True,
     )
     for r in combined:
         del r["submission_sort_key"]
-    return combined
+    # `start_sort_key` deliberately survives: the trip builder filters on it to decide
+    # which rides may be picked at all (see _selectable_rides_for_current_user).
+    return attach_ride_images(combined)
 
 
 def _rides_for_trip(trip_id):
-    """Resolve a trip's member d-tags into ride-info dicts, newest first.
+    """Resolve a trip's member d-tags into ride-info dicts, oldest first.
 
+    Ordered by when each ride was *hitched* (`start_sort_key`), not by when it was
+    submitted: legs of one journey are often typed up afterwards in whatever order they
+    come to mind, and only the ride's own start time puts them back in travel order.
+    Oldest first, because a trip is read the way it was travelled — first leg at the top,
+    matching the route line drawn above it, which runs start → finish.
     Rides whose d-tag no longer resolves to a RideEvent (e.g. deleted on Nostr) and rides
-    their author deleted are omitted. The internal `submission_sort_key` is kept here
-    (unlike _get_rides_for_user) because the trip route/date-span helpers need it to order
-    rides chronologically.
+    their author deleted are omitted. The internal `start_sort_key` is kept here (unlike
+    `submission_sort_key` in _get_rides_for_user) because the trip route/date-span helpers
+    need it to order rides chronologically. A ride with no start time can no longer be
+    added to a trip, but rows predating that rule may still exist, so it is still handled.
     """
     members = TripRide.query.filter_by(trip_id=trip_id).all()
     deleted = _owner_deleted_dtags()
-    rides = [
-        _extract_ride_info(ride, "trip")
-        for member in members
-        if member.ride_d_tag not in deleted and (ride := db.session.query(RideEvent).filter_by(d=member.ride_d_tag).first())
-    ]
-    rides.sort(
-        key=lambda r: (r["submission_sort_key"] is not None, r["submission_sort_key"] or 0),
-        reverse=True,
-    )
-    return rides
+    wanted = [member.ride_d_tag for member in members if member.ride_d_tag not in deleted]
+    # One query for the whole trip rather than one per member ride: a long trip is dozens
+    # of rides, and a round trip to SQLite each is what made /account/<user> take 20 s for
+    # the site's biggest trip (before `ride_event.d` was indexed, ~0.3 s apiece).
+    by_dtag = {}
+    for ride in db.session.query(RideEvent).filter(RideEvent.d.in_(wanted)).all() if wanted else []:
+        by_dtag.setdefault(ride.d, ride)
+    rides = [_extract_ride_info(ride, "trip") for d_tag in wanted if (ride := by_dtag.get(d_tag))]
+    # `is None` ranks False (dated) before True, so undated legacy rides trail the
+    # sequence instead of claiming the "first leg" slot at the top.
+    rides.sort(key=lambda r: (r["start_sort_key"] is None, r["start_sort_key"] or 0))
+    return attach_ride_images(rides)
 
 
 def _trip_date_span(rides):
     """Human-readable date range covering a trip's rides, or '' if none are dated.
 
-    submission_sort_key is epoch nanoseconds (pandas Timestamp.value)."""
-    keys = [r["submission_sort_key"] for r in rides if r.get("submission_sort_key")]
+    start_sort_key is epoch nanoseconds (pandas Timestamp.value)."""
+    keys = [r["start_sort_key"] for r in rides if r.get("start_sort_key")]
     if not keys:
         return ""
     start, end = pd.Timestamp(min(keys)), pd.Timestamp(max(keys))
@@ -849,8 +1048,11 @@ def _trip_route_points(rides):
     """Ordered [{lat, lon}] tracing the trip oldest→newest.
 
     Each ride contributes its pickup then destination (when present); consecutive
-    duplicate coordinates are collapsed so a shared spot isn't drawn twice."""
-    ordered = sorted(rides, key=lambda r: (r.get("submission_sort_key") is not None, r.get("submission_sort_key") or 0))
+    duplicate coordinates are collapsed so a shared spot isn't drawn twice.
+
+    Same ordering as the ride list (_rides_for_trip), so the line and the cards below it
+    tell the story in the same direction; undated legacy rides sort last either way."""
+    ordered = sorted(rides, key=lambda r: (r.get("start_sort_key") is None, r.get("start_sort_key") or 0))
     pts = []
     for r in ordered:
         for lat, lon in ((r["pickup_lat"], r["pickup_lon"]), (r["destination_lat"], r["destination_lon"])):
@@ -897,9 +1099,18 @@ def _get_trips_for_user(user):
 
 
 def _selectable_rides_for_current_user():
-    """Rides the current user may put in a trip: their own logged rides (incl. external),
-    excluding pending co-hitchhiker invitations they haven't accepted."""
-    return [r for r in _get_rides_for_user(current_user) if r["type"] in ("own", "own_external")]
+    """Rides the current user may put in a trip, plus how many were held back.
+
+    Their own logged rides (incl. external), excluding pending co-hitchhiker invitations
+    they haven't accepted — and excluding any ride with no recorded start time. A trip is
+    ordered and drawn by when each ride was hitched, so a ride that never recorded that
+    has no place in the sequence: it would land at one end of the list and pull the route
+    line to whichever spot happened to sort first. The count of held-back rides is
+    returned so the builder can say why a ride is missing instead of silently dropping it.
+    """
+    own = [r for r in _get_rides_for_user(current_user) if r["type"] in ("own", "own_external")]
+    selectable = [r for r in own if r["start_sort_key"] is not None]
+    return selectable, len(own) - len(selectable)
 
 
 @user_bp.route("/create-trip", methods=["GET"])
@@ -907,7 +1118,16 @@ def create_trip():
     """Render the trip builder for a brand-new trip."""
     if current_user.is_anonymous:
         return redirect("/login")
-    return render_template("security/edit_trip.html", trip=None, rides=_selectable_rides_for_current_user(), selected_dtags=[])
+    rides, undated = _selectable_rides_for_current_user()
+    return render_template(
+        "security/edit_trip.html",
+        trip=None,
+        rides=rides,
+        undated_count=undated,
+        selected_dtags=[],
+        selected_reasons=[],
+        reason_to_hitchhike_choices=REASON_TO_HITCHHIKE_CHOICES,
+    )
 
 
 @user_bp.route("/edit-trip/<int:trip_id>", methods=["GET"])
@@ -919,9 +1139,88 @@ def edit_trip(trip_id):
     if trip is None or trip.user_id != current_user.id:
         return redirect("/me")
     selected = [tr.ride_d_tag for tr in TripRide.query.filter_by(trip_id=trip.id).all()]
+    rides, undated = _selectable_rides_for_current_user()
     return render_template(
-        "security/edit_trip.html", trip=trip, rides=_selectable_rides_for_current_user(), selected_dtags=selected
+        "security/edit_trip.html",
+        trip=trip,
+        rides=rides,
+        undated_count=undated,
+        selected_dtags=selected,
+        selected_reasons=[r for r in (trip.reasons_to_hitchhike or "").split(",") if r],
+        reason_to_hitchhike_choices=REASON_TO_HITCHHIKE_CHOICES,
     )
+
+
+def _apply_trip_reasons_to_rides(reasons, d_tags):
+    """Add the trip's reasons to hitchhike to each of its rides, by set union.
+
+    A trip is one journey with one motive, so stating it once should not mean opening
+    twenty ride forms. The rule is union, never replacement: a ride that recorded a
+    reason of its own (a leg someone hitched to a race, say) keeps it, and a reason
+    removed from the trip is *not* stripped from the rides — the rides are the record of
+    what happened, this is only the fastest way to write to all of them at once.
+
+    Rides are stored on Nostr, so "adding a reason" means republishing each changed ride
+    under its own `d` tag, exactly as an edit does. Only the current user's own rides are
+    touched (the caller has already filtered to those), and only ones we can replace: a
+    ride imported from another platform would fork into a duplicate instead of changing.
+
+    Returns (updated, skipped) counts. Never raises: the trip itself is already saved by
+    the time this runs, and a relay hiccup must not turn that into a 500.
+    """
+    if not reasons or not d_tags:
+        return 0, 0
+
+    rides = RideEvent.query.filter(RideEvent.d.in_(list(d_tags))).all()
+    pending = []  # (ride, record) pairs that actually change
+    skipped = 0
+    for ride in rides:
+        if not ride_is_replaceable(ride):
+            skipped += 1
+            continue
+        try:
+            record = HitchhikingRecord.model_validate(ride.content or {})
+        except ValidationError:
+            # Content we can't re-serialise can't be republished without losing fields.
+            current_app.logger.exception("trip reasons: unparseable content for %s", ride.d)
+            skipped += 1
+            continue
+        # The reasons belong to *this* hitchhiker, so they go on their own entry — never
+        # on a co-hitchhiker's, who has their own reasons for being in that car.
+        entry = next(
+            (h for h in (record.hitchhikers or []) if same_username(h.nickname, current_user.username)),
+            None,
+        )
+        if entry is None:
+            skipped += 1
+            continue
+        merged = list(dict.fromkeys([*(entry.reasons_to_hitchhike or []), *reasons]))
+        if merged == list(entry.reasons_to_hitchhike or []):
+            continue  # already says all of this — nothing to republish
+        entry.reasons_to_hitchhike = merged
+        pending.append((ride, record))
+
+    if not pending:
+        return 0, skipped
+
+    updated = 0
+    try:
+        poster = HitchhikingDataStandardToNostrPoster()
+        try:
+            for ride, record in pending:
+                # Original tags → same `d` and published_at, so each ride is replaced
+                # rather than duplicated. wait=False: one pause for the whole batch
+                # (flush below), or a twenty-ride trip would hold the request for a
+                # minute and a half.
+                poster.post(ride_record=record, tags=ride.tags, wait=False)
+                store_published_ride(poster.last_event)
+                updated += 1
+            poster.flush()
+        finally:
+            poster.close()
+    except Exception:
+        current_app.logger.exception("trip reasons: could not republish every ride")
+    return updated, skipped
 
 
 @user_bp.route("/save-trip", methods=["POST"])
@@ -933,11 +1232,23 @@ def save_trip():
     trip_id = request.form.get("trip_id", type=int)
     name = (request.form.get("name") or "").strip() or "Untitled trip"
     description = (request.form.get("description") or "").strip() or None
+    # Same vocabulary and same comma-separated shape the /ride form posts. Unknown codes
+    # are dropped rather than rejected: this is a chip picker, so anything else is a
+    # crafted POST, and the trip is still worth saving.
+    reasons = [
+        r
+        for r in dict.fromkeys(c.strip() for c in (request.form.get("reasons_to_hitchhike") or "").split(","))
+        if r in ALLOWED_REASONS_TO_HITCHHIKE
+    ]
 
     # Only accept d-tags that actually belong to the current user's rides, so a crafted
     # POST can't attach someone else's ride to a trip. dict.fromkeys de-dupes while
     # preserving order (the unique (trip_id, d_tag) constraint would otherwise trip up).
-    valid_dtags = {r["d_tag"] for r in _selectable_rides_for_current_user()}
+    # The same set also enforces the start-time rule (a ride with no recorded start time
+    # is not selectable), so a hand-rolled POST can't smuggle an undated ride in either.
+    # An older trip that already held one loses it on the next save — deliberate: the
+    # membership rule is the same one everywhere rather than grandfathered per trip.
+    valid_dtags = {r["d_tag"] for r in _selectable_rides_for_current_user()[0]}
     selected = [d for d in dict.fromkeys(request.form.getlist("ride_d_tags")) if d in valid_dtags]
 
     if trip_id:
@@ -946,10 +1257,11 @@ def save_trip():
             return redirect("/me")
         trip.name = name
         trip.description = description
+        trip.reasons_to_hitchhike = ",".join(reasons) or None
         # Membership is replaced wholesale on every save — simpler than diffing.
         TripRide.query.filter_by(trip_id=trip.id).delete()
     else:
-        trip = Trip(user_id=current_user.id, name=name, description=description)
+        trip = Trip(user_id=current_user.id, name=name, description=description, reasons_to_hitchhike=",".join(reasons) or None)
         db.session.add(trip)
         db.session.flush()  # assign trip.id before we reference it below
 
@@ -957,7 +1269,152 @@ def save_trip():
         db.session.add(TripRide(trip_id=trip.id, ride_d_tag=d_tag))
     db.session.commit()
 
+    # After the commit: the trip is saved whatever the relays do next, and each ride the
+    # republish touches is written back into ride_event by store_published_ride.
+    _apply_trip_reasons_to_rides(reasons, selected)
+
     return redirect(f"/trip/{trip.id}")
+
+
+# ── Auto-grouped trips (in-ride tracker) ──────────────────────────────────────
+# A tracked journey that produced more than one ride is grouped into a trip without
+# being asked: those rides are consecutive legs of one hitch by construction, so making
+# someone rebuild that grouping by hand in /create-trip is busywork. inride.js posts to
+# /auto-trip once the journey's rides have all reached the server.
+
+# Ceiling on the rides one auto-trip may contain. A real journey is a handful of legs;
+# the cap stops a crafted POST sweeping an unbounded slice of the ride table into one page.
+AUTO_TRIP_MAX_RIDES = 40
+# Only recently published rides can be auto-grouped. The tracker posts within seconds of
+# the last leg (or, offline, whenever the device next reconnects), so a generous window
+# still covers every honest case while keeping historical rides out of reach.
+AUTO_TRIP_MAX_AGE_S = 30 * 24 * 3600
+
+# Photon's reverse lookup answers with the nearest *feature*, which at a roadside pickup
+# is usually a street or a POI; its `city` field is filled in exactly then, so prefer that
+# over `name`. Same preference order as route_preview.place_label — but deliberately with
+# no reverse_geocoder fallback: that library loads a ~30 MB table into the process, and
+# unlike route_preview (a short-lived subprocess) this runs inside the waitress workers,
+# which this host has been OOM-killed over before.
+_PLACE_TYPES = {"city", "town", "village", "hamlet", "municipality", "locality", "district", "county", "state"}
+_PLACE_TIMEOUT_S = 4
+_PLACE_USER_AGENT = "maps.hitchwiki.org trip naming (+https://maps.hitchwiki.org)"
+
+
+def _place_label(lat, lon):
+    """Nearest settlement name for a coordinate, or None when it can't be resolved."""
+    try:
+        response = requests.get(
+            "https://photon.komoot.io/reverse",
+            params={"lat": lat, "lon": lon, "lang": "en", "limit": 1},
+            headers={"User-Agent": _PLACE_USER_AGENT},
+            timeout=_PLACE_TIMEOUT_S,
+        )
+        response.raise_for_status()
+        props = response.json()["features"][0]["properties"]
+        if props.get("type") in _PLACE_TYPES and props.get("name"):
+            return props["name"]
+        for key in ("city", "locality", "district", "county", "state", "country"):
+            if props.get(key):
+                return props[key]
+        return props.get("name") or None
+    except (requests.RequestException, ValueError, KeyError, IndexError):
+        return None
+
+
+def _auto_trip_name(rides):
+    """Generic name for an auto-grouped trip: "<start> → <end>, <Month Year>".
+
+    Collapses to "<start>, <Month Year>" when both ends resolve to the same place or the
+    journey never recorded where it ended, and to "Hitchhiking trip, <Month Year>" when
+    nothing reverse-geocodes (Photon down, or a coordinate far from any settlement). The
+    owner can rename it afterwards — this only has to beat "Untitled trip".
+    """
+    ordered = sorted(rides, key=lambda r: (r.get("start_sort_key") is None, r.get("start_sort_key") or 0))
+    points = _trip_route_points(ordered)
+    start = _place_label(points[0]["lat"], points[0]["lon"]) if points else None
+    end = _place_label(points[-1]["lat"], points[-1]["lon"]) if len(points) > 1 else None
+
+    where = f"{start} → {end}" if start and end and end != start else (start or "Hitchhiking trip")
+    keys = [r["start_sort_key"] for r in ordered if r.get("start_sort_key")]
+    when = pd.Timestamp(min(keys)) if keys else pd.Timestamp.now()
+    # Trip.name is VARCHAR(255); place names are short but the cap keeps a pathological
+    # Photon answer from being silently truncated by the database instead.
+    return f"{where}, {when.strftime('%B %Y')}"[:255]
+
+
+def _ride_hitchhiker_nicknames(ride):
+    """Nicknames listed on a ride event ("Anonymous" for an unattributed one)."""
+    return [(h or {}).get("nickname") for h in ((ride.content or {}).get("hitchhikers") or [])]
+
+
+def _may_auto_group(ride, user):
+    """Whether `user` (possibly anonymous) may put `ride` into an auto-trip.
+
+    A logged-in hitchhiker has to be listed on the ride. An anonymous visitor has no
+    identity to check against, so the only rides they can group are ones with no named
+    hitchhiker at all — which is exactly what an anonymous journey produces, and stops a
+    crafted POST bundling someone else's attributed rides onto a trip page.
+    """
+    nicknames = _ride_hitchhiker_nicknames(ride)
+    if user.is_anonymous:
+        return bool(nicknames) and all(n == ANONYMOUS_NICKNAME for n in nicknames)
+    return any(same_username(user.username, n) for n in nicknames if n)
+
+
+def _trip_payload(trip, created):
+    return {"ok": True, "trip_id": trip.id, "name": trip.name, "url": f"/trip/{trip.id}", "created": created}
+
+
+@user_bp.route("/auto-trip", methods=["POST"])
+def auto_trip():
+    """Group the rides of one finished in-ride journey into a trip. Form in, JSON out.
+
+    Returns the existing trip untouched when any of the rides is already in one, so the
+    client's offline retry can repeat the call without minting duplicate trips.
+    """
+    raw = [d.strip() for d in (request.form.get("ride_d_tags") or "").split(",")]
+    d_tags = [d for d in dict.fromkeys(raw) if d][:AUTO_TRIP_MAX_RIDES]
+    if len(d_tags) < 2:
+        return jsonify({"ok": False, "error": "need at least two rides"}), 400
+
+    # Already grouped — this is a repeat of a call that did land. Hand back the same trip
+    # rather than creating a second one holding the same rides.
+    already = TripRide.query.filter(TripRide.ride_d_tag.in_(d_tags)).first()
+    if already:
+        trip = db.session.get(Trip, already.trip_id)
+        if trip:
+            return jsonify(_trip_payload(trip, created=False))
+
+    cutoff = int(time.time()) - AUTO_TRIP_MAX_AGE_S
+    rides = [
+        ride
+        for d_tag in d_tags
+        if (ride := db.session.query(RideEvent).filter_by(d=d_tag).first()) is not None
+        and (ride.created_at or 0) >= cutoff
+        and _may_auto_group(ride, current_user)
+    ]
+    # Same rule the manual builder enforces: a trip is ordered by when each ride was
+    # hitched, so a ride with no start time can't be in one. The tracker records a start
+    # time for every leg it logs, so this only bites a leg whose clock data went missing.
+    infos = [info for ride in rides if (info := _extract_ride_info(ride, "trip"))["start_sort_key"] is not None]
+    dated = {info["d_tag"] for info in infos}
+    rides = [ride for ride in rides if ride.d in dated]
+    if len(rides) < 2:
+        return jsonify({"ok": False, "error": "no groupable rides"}), 400
+
+    trip = Trip(
+        # None for an anonymous journey: there is no account to own it. See models.Trip.
+        user_id=None if current_user.is_anonymous else current_user.id,
+        name=_auto_trip_name(infos),
+        description=None,
+    )
+    db.session.add(trip)
+    db.session.flush()  # assign trip.id before we reference it below
+    for ride in rides:
+        db.session.add(TripRide(trip_id=trip.id, ride_d_tag=ride.d))
+    db.session.commit()
+    return jsonify(_trip_payload(trip, created=True))
 
 
 @user_bp.route("/delete-trip/<int:trip_id>", methods=["POST"])
@@ -979,7 +1436,9 @@ def show_trip(trip_id):
     trip = db.session.get(Trip, trip_id)
     if trip is None:
         return redirect("/")
-    owner = db.session.get(User, trip.user_id)
+    # An auto-grouped anonymous trip has no user_id; session.get(User, None) is an error,
+    # not a miss, so the guard has to come first. The template already renders ownerless.
+    owner = db.session.get(User, trip.user_id) if trip.user_id else None
     is_owner = not current_user.is_anonymous and current_user.id == trip.user_id
     rides = _rides_for_trip(trip.id)
     date_span = _trip_date_span(rides)
@@ -1007,7 +1466,7 @@ def trip_preview_image(trip_id):
     if trip is None:
         return redirect("/")
 
-    owner = db.session.get(User, trip.user_id)
+    owner = db.session.get(User, trip.user_id) if trip.user_id else None
     rides = _rides_for_trip(trip.id)
     points = _trip_route_points(rides)
     description = _trip_preview_description(owner, _trip_date_span(rides), rides)
@@ -1186,7 +1645,10 @@ def _paste_tiles(img, zoom, origin_x, origin_y):
         tx, ty = job
         return job, _fetch_tile(zoom, tx % n, ty)
 
-    with ThreadPoolExecutor(max_workers=8) as pool:
+    # 4, not 8: matches route_preview.py's own concurrency, since a cache miss on
+    # either path hits the same OSM tile server and its usage policy is shared,
+    # not per-endpoint.
+    with ThreadPoolExecutor(max_workers=4) as pool:
         for (tx, ty), tile in pool.map(fetch, jobs):
             if tile is None:
                 continue
@@ -1196,17 +1658,52 @@ def _paste_tiles(img, zoom, origin_x, origin_y):
 
 
 def _fetch_tile(zoom, x, y):
+    """One tile, from the disk cache shared with route_preview.py's /dir/
+    previews, or from OSM on a miss.
+
+    Trip previews used to hit tile.openstreetmap.org live on every request
+    with no cache at all -- unlike /dir/'s link previews, which OSM's own
+    tile-usage policy required a disk cache for from the start (see
+    route_preview.py's fetch_tile). A trip preview URL gets refetched by
+    every messenger's link-unfurl crawler each time it's shared, so the
+    same coordinates get requested repeatedly; caching this one too, in the
+    exact same dist/tiles/<z>/<x>/<y>.png layout, means it shares hits with
+    /dir/'s cache for free instead of doubling live OSM traffic for
+    overlapping map areas.
+    """
     from PIL import Image
+
+    path = os.path.join(get_dirs()["dist"], "tiles", str(zoom), str(x), f"{y}.png")
+    if os.path.isfile(path):
+        try:
+            img = Image.open(path).convert("RGB")
+            # Bump mtime on every hit, same reasoning as route_preview.py:
+            # cron.sh's age-based prune should read "last used", not "last
+            # fetched", so a tile in active rotation never ages out.
+            os.utime(path, None)
+            return img
+        except OSError:
+            pass  # truncated cache entry; refetch below
 
     url = f"https://tile.openstreetmap.org/{zoom}/{x}/{y}.png"
     try:
-        import requests
-
-        resp = requests.get(url, timeout=5, headers={"User-Agent": "hitchmap-trip-preview"})
+        resp = requests.get(
+            url, timeout=5, headers={"User-Agent": "maps.hitchwiki.org trip previews (+https://maps.hitchwiki.org)"}
+        )
         if resp.status_code != 200:
             return None
-        return Image.open(io.BytesIO(resp.content)).convert("RGB")
+        content = resp.content
     except Exception:
+        return None
+
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "wb") as f:
+        f.write(content)
+    os.replace(tmp, path)  # never leave a half-written tile in the cache
+    try:
+        return Image.open(path).convert("RGB")
+    except OSError:
         return None
 
 
@@ -1215,7 +1712,6 @@ def _truncate_text(value, max_len):
     return value if len(value) <= max_len else value[: max_len - 1].rstrip() + "…"
 
 
-# TODO: check if all data from the new co-hitchhiker added to the new event and that no data was lost
 @user_bp.route("/accept-co-hitchhiking-ride/<ride_d_tag>", methods=["GET", "POST"])
 def accept_co_hitchhiker(ride_d_tag: str):
     if current_user.is_anonymous:
@@ -1224,28 +1720,50 @@ def accept_co_hitchhiker(ride_d_tag: str):
     conn = get_db()
     cursor = conn.cursor()
 
-    # TODO: only allow if the current user is actually listed as co-hitchhiker
+    # Scoped to the current user's own username, so this can only ever flip a row
+    # where they are genuinely the invited co-hitchhiker -- but the UPDATE matching
+    # zero rows (never invited, or already-accepted-then-retried on a stale link)
+    # must stop here. Previously nothing checked this, so ANY logged-in user could
+    # hit this route with ANY ride's d_tag (public, visible on /ride/<d_tag>) and
+    # still fall through to the code below, which added them as a co-hitchhiker and
+    # republished the ride to Nostr regardless of whether they were ever invited.
     cursor.execute(
-        "UPDATE co_hitchhiker SET accepted = 'yes' WHERE nostr_ride_event_d_tag = ? and co_hitchhiker = ?",
-        (ride_d_tag, current_user.username),
+        "UPDATE co_hitchhiker SET accepted = 'yes' WHERE nostr_ride_event_d_tag = ? and lower(co_hitchhiker) = ?",
+        (ride_d_tag, username_key(current_user.username)),
     )
+    was_invited = cursor.rowcount > 0
     conn.commit()
     conn.close()
+
+    if not was_invited:
+        return redirect("/me")
 
     ### Update the Nostr event
 
     # Find the nostr event
     ride_row = db.session.query(RideEvent).filter_by(d=ride_d_tag).first()
+    if ride_row is None:
+        # The co_hitchhiker row referenced a ride that no longer exists (deleted
+        # since the invite) -- nothing to republish.
+        return redirect("/me")
 
     # manipulate it
     ride_record: dict = HitchhikingRecord.model_validate(ride_row.content)
-    this_hitchhiker = construct_hitchhiker_from_current_user()
-    print(f"Adding co-hitchhiker {this_hitchhiker} to ride {ride_d_tag}")
-    ride_record.hitchhikers.append(this_hitchhiker)
-    # post the updated event
-    poster = HitchhikingDataStandardToNostrPoster()
-    _ = poster.post(ride_record=ride_record, tags=ride_row.tags)
-    poster.close()
+    # Accepting is only supposed to happen once; a repeat visit to this link (a
+    # double-click, or a browser back-button replay) must not append a second,
+    # duplicate hitchhiker entry to the ride.
+    already_listed = next(
+        (h for h in (ride_record.hitchhikers or []) if same_username(h.nickname, current_user.username)),
+        None,
+    )
+    if already_listed is None:
+        this_hitchhiker = construct_hitchhiker_from_current_user()
+        print(f"Adding co-hitchhiker {this_hitchhiker} to ride {ride_d_tag}")
+        ride_record.hitchhikers.append(this_hitchhiker)
+        # post the updated event
+        poster = HitchhikingDataStandardToNostrPoster()
+        _ = poster.post(ride_record=ride_record, tags=ride_row.tags)
+        poster.close()
 
     return redirect("/me")
 
@@ -1255,9 +1773,10 @@ def reject_co_hitchhiker(ride_d_tag: str):
     if current_user.is_anonymous:
         return redirect("/login")
 
-    CoHitchhiker.query.filter_by(nostr_ride_event_d_tag=ride_d_tag, co_hitchhiker=current_user.username).update(
-        {"accepted": "no"}
-    )
+    CoHitchhiker.query.filter(
+        CoHitchhiker.nostr_ride_event_d_tag == ride_d_tag,
+        func.lower(CoHitchhiker.co_hitchhiker) == username_key(current_user.username),
+    ).update({"accepted": "no"}, synchronize_session=False)
     db.session.commit()
 
     return redirect("/me")
@@ -1266,6 +1785,114 @@ def reject_co_hitchhiker(ride_d_tag: str):
 @user_bp.route("/my-rides", methods=["GET"])
 def my_rides():
     return redirect("/me")
+
+
+def _download_filename(username, extension):
+    """A safe download filename. The username reaches a Content-Disposition header, and
+    nicknames are free text — anything outside this set would let a crafted name inject
+    header syntax or path separators."""
+    safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in username) or "rides"
+    return f"hitchwiki-maps-{safe}.{extension}"
+
+
+@user_bp.route("/notifications", methods=["GET"])
+def show_notifications():
+    """The user's in-app notifications, on their own page.
+
+    Private, hence noindex: the list is only ever the logged-in user's own. Opening this
+    page is what marks unread notifications read (and so clears the red mark on the
+    account button and the profile's bell) — the notifications are captured before the
+    update so this render still shows which ones were new.
+    """
+    if current_user.is_anonymous:
+        return redirect("/login")
+
+    notifications = (
+        Notification.query.filter_by(user_id=current_user.id)
+        .order_by(Notification.created_at.desc(), Notification.id.desc())
+        .all()
+    )
+    if any(not n.is_read for n in notifications):
+        Notification.query.filter_by(user_id=current_user.id, is_read=False).update({"is_read": True})
+        db.session.commit()
+
+    return render_template("security/notifications.html", notifications=notifications, noindex=True)
+
+
+@user_bp.route("/me/downloads", methods=["GET"])
+def my_downloads():
+    """Private export page: your own rides, in formats you can take elsewhere.
+
+    Only ever renders for the logged-in user's own data — there is no
+    /account/<username>/downloads counterpart, because a person's full ride
+    records (exact coordinates, times, driver details) are theirs to export,
+    even though each individual ride is public on the map.
+    """
+    if current_user.is_anonymous:
+        return redirect("/login")
+
+    rides = _rides_by_hitchhiker(current_user.username)
+    with_destination = sum(1 for r in rides if len((r.content or {}).get("stops") or []) > 1)
+    return render_template(
+        "security/downloads.html",
+        user=current_user,
+        ride_count=len(rides),
+        route_count=with_destination,
+        waypoint_count=len(rides) - with_destination,
+    )
+
+
+@user_bp.route("/me/rides.gpx", methods=["GET"])
+def my_rides_gpx():
+    """Every ride logged under the current user's name, as GPX."""
+    if current_user.is_anonymous:
+        return redirect("/login")
+
+    rides = _rides_by_hitchhiker(current_user.username)
+    body = rides_gpx(rides, current_user.username)
+    return Response(
+        body,
+        mimetype="application/gpx+xml",
+        headers={
+            "Content-Disposition": f'attachment; filename="{_download_filename(current_user.username, "gpx")}"',
+            # Private data behind a login — never let a shared proxy hold a copy.
+            "Cache-Control": "private, no-store",
+        },
+    )
+
+
+@user_bp.route("/me/rides.json", methods=["GET"])
+def my_rides_json():
+    """The same rides as the raw signed Nostr events.
+
+    The lossless companion to the GPX: GPX can only carry what fits a waypoint or
+    a route (plus our extensions), while this is byte-for-byte what was published,
+    signature included, so it can be verified or re-imported elsewhere.
+    """
+    if current_user.is_anonymous:
+        return redirect("/login")
+
+    rides = _rides_by_hitchhiker(current_user.username)
+    payload = [
+        {
+            "id": r.id,
+            "kind": r.kind,
+            "pubkey": r.pubkey,
+            "sig": r.sig,
+            "created_at": r.created_at,
+            "tags": r.tags,
+            "content": r.content,
+        }
+        for r in rides
+    ]
+    return Response(
+        json.dumps(payload, ensure_ascii=False, indent=1),
+        mimetype="application/json",
+        headers={
+            "Content-Disposition": f'attachment; filename="{_download_filename(current_user.username, "json")}"',
+            "Cache-Control": "private, no-store",
+        },
+    )
 
 
 def _read_leaderboard_json(filename):
@@ -1311,3 +1938,15 @@ def leaderboard():
         longest_rides=_read_leaderboard_json("longest_rides.json"),
         longest_24h=_read_leaderboard_json("longest_24h.json"),
     )
+
+
+@user_bp.route("/races", methods=["GET"])
+def races():
+    """Podiums for the city-to-city races defined in RACES.md.
+
+    Standings are precomputed by show.py into dist/races.json — ranking every hitchhiker's
+    ride chains per race is far too heavy for a request. Which races are *shown* is decided
+    here rather than there, so a race opens and closes on its date instead of on the next
+    cron run: only races running now or starting within the next month.
+    """
+    return render_template("races.html", races=current_races(_read_leaderboard_json("races.json")))

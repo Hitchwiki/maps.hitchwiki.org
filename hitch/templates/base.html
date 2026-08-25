@@ -1,21 +1,163 @@
 <!DOCTYPE html>
-<html lang="en" {% block html_attribs %}{% endblock html_attribs %}>
+<html lang="{{ g.lang }}" {% block html_attribs %}{% endblock html_attribs %}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- Google Analytics 4 — cookieless mode (client_storage: 'none' disables all cookies) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-84G3GNXSME"></script>
+    {# Umami (self-hosted at 1p.hitchhiking.org, shared with the other Hitchwiki
+       sites). It identifies visitors by a daily-rotating salted hash of IP+UA,
+       so it sets no cookie and touches no browser storage — no consent banner
+       is required, and a visitor cannot be followed across days. That also means
+       every funnel we measure is session-scoped by construction.
+
+       Loaded from /1p/ on our own origin, not from 1p.hitchhiking.org: blocklists
+       match the analytics hostname, and this audience blocks more than most. Caddy
+       proxies /1p/* to the Umami container (umami_first_party snippet in the
+       hitchwiki-private repo); the tracker derives its collect URL from its own
+       script src, so it posts to /1p/api/send without further configuration. #}
+    {# Must load before the (deferred) tracker: it defines the before-send hook,
+       which is what lets a consented visitor's very first pageview carry their
+       durable id. Calling identify() after load would leave that pageview in a
+       different session from the rest of the visit. #}
+    <script src="/static/visitor_consent.js"></script>
+    {# The /1p/ proxy is a single point of failure that nothing here could see
+       fail. On 2026-08-09 it started answering /1p/script.js with a 404 on this
+       origin (and with HTML on hitchwiki.org and europe.hitchwiki.org) while the
+       Umami container itself stayed up and the sites that load it straight from
+       1p.hitchhiking.org kept reporting normally — six days of every event from
+       all three first-party sites lost, and the only symptom was a slowly
+       shrinking "last 7 days" number that reads as a traffic decline.
+
+       So: keep /1p/ as the primary path (it is still what gets past the
+       blocklists this audience runs), and fall back to the analytics origin
+       when it does not produce a working tracker. Defined before the tag so the
+       tag's onerror can reach it.
+
+       onerror alone only catches a clean network failure (404, connection
+       refused, CORS) -- this comment already says /1p/ served plain HTML on
+       hitchwiki.org/europe.hitchwiki.org during the same incident, and a
+       sibling repo's port of this exact fix learned the hard way (2026-08-24)
+       that HTML shape is usually a redirect the browser follows and loads as
+       a 200, which never fires onerror at all. This origin's failure has
+       been a clean 404 both times so far, but a setTimeout backstop costs
+       nothing and means the next occurrence doesn't have to be the same
+       shape as the last one for this to still work. #}
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-84G3GNXSME', {
-        'anonymize_ip': true,
-        'client_storage': 'none',
-        'allow_google_signals': false,
-        'allow_ad_personalization_signals': false
-      });
+      window.hmLoadTrackerFallback = function () {
+        // Never two trackers: a second script would double every pageview.
+        if (window.umami || window.hmTrackerFallbackTried) return;
+        window.hmTrackerFallbackTried = true;
+        var s = document.createElement("script");
+        s.src = "https://1p.hitchhiking.org/script.js";
+        s.setAttribute("data-website-id", "f3576395-def8-4d09-9725-7f74dde89c72");
+        s.setAttribute("data-before-send", "hmVisitorBeforeSend");
+        // Anything hmTrack queued while the first-party path was failing is
+        // still worth sending once a tracker finally exists.
+        s.addEventListener("load", function () { if (window.hmTrackFlush) window.hmTrackFlush(); });
+        document.head.appendChild(s);
+      };
+      setTimeout(window.hmLoadTrackerFallback, 4000);
+    </script>
+    <script
+      defer
+      src="/1p/script.js"
+      data-website-id="f3576395-def8-4d09-9725-7f74dde89c72"
+      data-before-send="hmVisitorBeforeSend"
+      onerror="window.hmLoadTrackerFallback()"
+    ></script>
+    <script>
+      // Funnel events are fired from map.js / the ride form through this one
+      // helper. It must never throw: the tracker is `defer`, so early clicks can
+      // land before it loads, and ad-blockers stop it loading at all — in both
+      // cases the product feature has to carry on working untracked.
+      //
+      // A dropped call is not the same as an untracked one, though. `defer` means
+      // the tracker does not execute until parsing finishes, so anything fired
+      // from an inline script *during* parsing found no `window.umami` and was
+      // silently discarded. That is not hypothetical: `ride_form_started` fires
+      // at parse time in ride_form.html and recorded **0 events in 28 days**,
+      // against 697 `ride_form_submitted` from the same script block — the only
+      // difference between them being that one runs at parse time and the other
+      // on submit. It has been the sole never-firing event since the funnel
+      // shipped on 2026-07-21. So queue what arrives early and flush it once the
+      // tracker is there.
+      (function () {
+        var queue = [];
+        // Bounded: if the tracker never loads this is dead weight, and no page
+        // legitimately fires 20 events before it finishes parsing.
+        var QUEUE_MAX = 20;
+        function flush() {
+          if (!window.umami) return false;
+          for (var i = 0; i < queue.length; i++) {
+            try { window.umami.track(queue[i][0], queue[i][1]); } catch (e) {}
+          }
+          queue.length = 0;
+          return true;
+        }
+        // Returns whatever window.umami.track() returns (a promise once the tracker is
+        // loaded, undefined otherwise) so a caller that needs two events strictly
+        // ordered -- see trackRideShare in map.js -- can chain off it. Every existing
+        // caller ignores the return value, so returning it changes nothing for them.
+        window.hmTrack = function (name, data) {
+          try {
+            if (window.umami) { return window.umami.track(name, data || {}); }
+            if (queue.length < QUEUE_MAX) queue.push([name, data || {}]);
+          } catch (e) {}
+        };
+        // A/B variant assignment: one random pick from `variants`, persisted in
+        // localStorage so the same visitor always sees the same variant. No
+        // server involvement -- Umami already accepts arbitrary event
+        // properties via hmTrack's `data` argument (see e.g. ride_form_blocked's
+        // `reason`), so tagging any funnel event with `{variant: hmVariant(...)}`
+        // is enough to read a conversion rate per variant later, with no new
+        // infrastructure. Falls back to `variants[0]` (the control) if
+        // localStorage is blocked (private browsing, some ad-blockers) rather
+        // than reassigning a fresh variant on every page view.
+        window.hmVariant = function (experimentName, variants) {
+          var key = "hm_ab_" + experimentName;
+          try {
+            var v = localStorage.getItem(key);
+            if (v && variants.indexOf(v) !== -1) return v;
+            v = variants[Math.floor(Math.random() * variants.length)];
+            localStorage.setItem(key, v);
+            return v;
+          } catch (e) {
+            return variants[0];
+          }
+        };
+        // Deferred scripts run after parsing but before DOMContentLoaded, so that
+        // is the first moment the queue can drain. `load` is the backstop; if the
+        // tracker is still absent by then it is blocked or failed, and the queue
+        // is dropped rather than held for a page view that will never be sent.
+        // Exposed so a fallback tracker (loaded later, if the primary /1p/
+        // path 404s) can drain whatever queued while there was no tracker at
+        // all -- see hmLoadTrackerFallback below.
+        window.hmTrackFlush = flush;
+        document.addEventListener("DOMContentLoaded", flush);
+        window.addEventListener("load", function () { if (!flush()) queue.length = 0; });
+      })();
+    </script>
+    <script>
+      // `?ref=<tag>` on the landing URL attributes a visit to whatever placed the
+      // link (a wiki banner, a newsletter send, ...) -- a level Umami's own
+      // referrer-domain tracking can't reach: it can say hitchwiki.org sent
+      // someone, but not which link on that page did it, or split two links to
+      // us from the same page. Capped/sanitised since it's raw visitor-
+      // controlled input landing straight in an analytics property. Fired once,
+      // then stripped from the address bar (same reasoning as the `?ride=`
+      // handoff in map.js's success overlay) so a shared/bookmarked URL doesn't
+      // carry someone else's attribution tag forward.
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        var ref = params.get("ref");
+        if (!ref) return;
+        ref = ref.slice(0, 64).replace(/[^a-zA-Z0-9_-]/g, "");
+        if (!ref) return;
+        window.hmTrack("referred_via", { ref: ref });
+        params.delete("ref");
+        var qs = params.toString();
+        history.replaceState({}, "", window.location.pathname + (qs ? "?" + qs : "") + window.location.hash);
+      })();
     </script>
 
     {# Root-relative: a relative "favicon.ico" resolves against the current path,
@@ -24,27 +166,195 @@
     <link rel="apple-touch-icon" href="/static/logo_192.png" />
     <link rel="manifest" href="/manifest.json" />
 
-    <title>{% block title %}{{ "%s | Hitchhiking Map"|format(title) if title else "Hitchhiking Map" }}{% endblock %}</title>
-    <meta name="description" content="{% block meta_description %}Discover hitchhiking spots worldwide on an interactive map. See community ratings, waiting times, and trip data. Share your own rides.{% endblock %}" />
-    <meta property="og:title" content="{% block og_title %}Hitchhiking Map – Find & Share Hitchhiking Spots on a Map{% endblock %}" />
-    <meta property="og:description" content="{% block og_description %}Discover hitchhiking spots worldwide on an interactive map. See community ratings, waiting times, and trip data. Share your own rides.{% endblock %}" />
+    <title>{% block title %}{{ "%s | Hitchhiking Map"|format(title) if title else t("Hitchhiking Map") }}{% endblock %}</title>
+    {# Self-referencing canonical. Statically generated pages (cities.py, route_pages.py)
+       pass canonical_url explicitly; live-rendered pages get it from the
+       inject_canonical_url context processor (hitch/__init__.py), which defaults it to
+       the current URL. Every route is mirrored under 31 language prefixes, so a page
+       without one exists at 31 uncanonicalised URLs -- what Search Console reports as
+       "Duplicate without user-selected canonical". Still guarded, because a page that
+       genuinely has no canonical (an error page) should omit the tag, not emit an empty one. #}
+    {% block canonical %}{% if canonical_url %}<link rel="canonical" href="{{ canonical_url }}" />{% endif %}{% endblock %}
+    {# Any view can pass noindex=True to keep a page out of the index. Links on it are
+       still followed (that is robots' default, so it is left unstated). Used for pages
+       that exist for whoever typed the URL but sit in an unbounded URL space, where
+       indexing them would only produce soft 404s -- see show_account's empty stubs. #}
+    {% block robots %}{% if noindex %}<meta name="robots" content="noindex" />{% endif %}{% endblock %}
+    <meta name="description" content="{% block meta_description %}{{ t('Discover hitchhiking spots worldwide on an interactive map. See community ratings, waiting times, and trip data. Share your own rides.') }}{% endblock %}" />
+    <meta property="og:title" content="{% block og_title %}{{ t('Hitchhiking Map – Find & Share Hitchhiking Spots on a Map') }}{% endblock %}" />
+    <meta property="og:description" content="{% block og_description %}{{ t('Discover hitchhiking spots worldwide on an interactive map. See community ratings, waiting times, and trip data. Share your own rides.') }}{% endblock %}" />
     <meta property="og:type" content="website" />
     {# Site label shown by link-preview unfurlers; without it they fall back to the
        bare domain, which renders as "Hitchwiki". #}
     <meta property="og:site_name" content="Hitchwiki Maps" />
     {# base_url drops the query and fragment, so a link shared with filters or a
        #map= viewport still previews as the page it actually is. #}
-    <meta property="og:url" content="{% block og_url %}{{ request.base_url }}{% endblock %}" />
+    {# `request` exists only when Flask serves the page live; during static
+       generation (cities.py) it is undefined, so guard it with `is defined` or
+       the whole render aborts. Static city pages supply canonical_url instead. #}
+    <meta property="og:url" content="{% block og_url %}{{ canonical_url if canonical_url else (request.base_url if request is defined else '') }}{% endblock %}" />
+    {# Site-level schema.org markup -- WebSite + Organization, the same on every
+       page (not per-page content like the OG tags above), so search engines and
+       LLM crawlers have a baseline structured fact about what this site is and
+       who publishes it. Deliberately minimal: no SearchAction, no per-page Place/
+       TravelAction markup -- this is a starting baseline, not the full build
+       ASSETS.md §12 scopes if the LLM-referrer channel grows past its current
+       negligible level (checked 2026-08-16: ~17 visits/90d across the whole
+       Hitchwiki portfolio). #}
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Hitchhiking Map",
+      "alternateName": "Hitchwiki Maps",
+      "url": "https://maps.hitchwiki.org/",
+      "description": "Discover hitchhiking spots worldwide on an interactive map. See community ratings, waiting times, and trip data. Share your own rides.",
+      "publisher": {
+        "@type": "Organization",
+        "name": "Hitchwiki",
+        "url": "https://hitchwiki.org/"
+      }
+    }
+    </script>
+    {# Tells search engines each /<lang>/... mirror is a translation of this exact
+       page, not a duplicate -- see lang_switch_url (hitch/__init__.py) for how the
+       paths relate. Guarded the same way as og_url above: absent during cities.py's
+       static generation, which has no request. #}
+    {# https:// is stated rather than taken from request.host_url, which yields http://
+       in production (waitress strips the X-Forwarded-Proto that ProxyFix would need --
+       same trap as main._external_https). An hreflang pointing at http:// names a URL
+       that only redirects, so the cluster does not reciprocate and search engines
+       discount the whole set of translations. #}
+    {# emit_hreflang (inject_hreflang_flag, hitch/__init__.py) is false on pages whose
+       mirrors are noindexed -- /spot/<id> and /account/<name>. Listing noindexed URLs as
+       alternates is a contradiction search engines resolve by discarding the cluster. #}
+    {% if request is defined and emit_hreflang %}
+    {% for code in SUPPORTED_LANGUAGES %}
+    <link rel="alternate" hreflang="{{ code }}" href="https://{{ request.host }}{{ lang_switch_url(code) }}" />
+    {% endfor %}
+    <link rel="alternate" hreflang="x-default" href="https://{{ request.host }}{{ lang_switch_url('en') }}" />
+    {# Statically generated pages (cities.py) have no request to derive the sibling
+       URLs from, so the generator passes them in explicitly. Without these the 31
+       language versions of a city page compete with each other as duplicates
+       instead of being understood as translations of one page. #}
+    {% elif alternate_urls %}
+    {% for code, href in alternate_urls %}
+    <link rel="alternate" hreflang="{{ code }}" href="{{ href }}" />
+    {% endfor %}
+    <link rel="alternate" hreflang="x-default" href="{{ alternate_urls[0][1] }}" />
+    {% endif %}
     {# Only pages that can render a picture of themselves (currently a shared route)
        set og_image. Without an image a messenger shows a text-only card, which is
        the honest result for pages that have no single representative view. #}
     {% block og_image %}{% endblock %}
 
+    {# Shared "Share" button, used across every page (ride detail, account,
+       activities, leaderboard, city pages) and every map bottom-sheet. The
+       click handler lives once at the bottom of <body>; see share-btn script. #}
+    <style>
+      .share-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: #f0f0f0;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        color: #333;
+        font: inherit;
+        font-size: 0.85em;
+        cursor: pointer;
+        text-decoration: none;
+        line-height: 1.2;
+      }
+      .share-btn:hover { background: #e4e4e4; text-decoration: none; }
+      .share-btn.copied { background: #d4edda; border-color: #28a745; color: #155724; }
+    </style>
+
+    {# Portrait-only on phones. `orientation: portrait` in manifest.json is a real
+       lock, but only for the installed PWA -- a phone browsing in an ordinary tab
+       has no API that can refuse rotation, so landscape is blocked visually here
+       instead. Inline rather than in style.css because not every template that
+       extends this one loads style.css, and a gate that only covers some pages
+       is worse than none.
+
+       The query is deliberately narrow: `pointer: coarse` keeps every mouse-driven
+       browser out (a short laptop window is landscape under 500px tall too), and
+       max-height 500px keeps tablets out -- an iPad in landscape is 768px tall.
+       z-index sits an order of magnitude above the highest in style.css (10001,
+       the test-mode button), since nothing on the page may show through. #}
+    <style>
+      #rotate-gate { display: none; }
+      @media (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
+        #rotate-gate {
+          display: flex;
+          position: fixed;
+          inset: 0;
+          z-index: 100000;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 14px;
+          padding: 24px;
+          background: #fff;
+          color: #333;
+          text-align: center;
+          font-size: 1.05rem;
+          line-height: 1.4;
+        }
+        /* The gate covers the page, but a landscape phone can still scroll the
+           document behind it, which moves content the user cannot see. */
+        body { overflow: hidden; }
+      }
+      #rotate-gate svg { width: 56px; height: 56px; stroke: #666; }
+    </style>
+
     {% block head %}{% endblock %}
   </head>
 
   <body {% block body_attribs %}{% endblock body_attribs %}>
+    {# Hidden at every size except a landscape phone -- see the #rotate-gate style
+       above. First child of <body> so it paints before the map does. #}
+    <div id="rotate-gate" role="alertdialog" aria-live="assertive">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="7" y="2" width="10" height="20" rx="2" />
+        <path d="M3 8a9 9 0 0 1 3-4" />
+        <path d="M21 16a9 9 0 0 1-3 4" />
+        <path d="M3 4v4h4" />
+        <path d="M21 20v-4h-4" />
+      </svg>
+      <div>{{ t("Please rotate your phone back to portrait") }}</div>
+    </div>
     {% block main %}{% endblock %}
     {% block scripts %}{% endblock %}
+
+    {# One delegated handler for every .share-btn on the page. Native share sheet
+       when available (mobile / installed PWA — where there's no address bar to
+       copy from, which is the whole reason these exist), else copy to clipboard
+       with a "Link copied!" confirmation on the button's .share-btn-label.
+       The URL to share is data-share-url; falling back to the current location
+       lets filter/zoom-dependent views (map view, insights) share "as-is". #}
+    <script>
+      document.addEventListener('click', async function (e) {
+        var btn = e.target.closest && e.target.closest('.share-btn');
+        if (!btn) return;
+        e.preventDefault();
+        var url = btn.dataset.shareUrl || window.location.href;
+        var title = btn.dataset.shareTitle || document.title;
+        try {
+          if (navigator.share) { await navigator.share({ title: title, url: url }); return; }
+        } catch (err) { if (err && err.name === 'AbortError') return; }
+        try {
+          await navigator.clipboard.writeText(url);
+          var label = btn.querySelector('.share-btn-label');
+          if (label) {
+            var prev = label.textContent;
+            btn.classList.add('copied');
+            label.textContent = '{{ t("Link copied!") }}';
+            setTimeout(function () { btn.classList.remove('copied'); label.textContent = prev; }, 1800);
+          }
+        } catch (err) { window.prompt('Copy this link:', url); }
+      });
+    </script>
   </body>
 </html>

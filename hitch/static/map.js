@@ -5,19 +5,117 @@ if ("serviceWorker" in navigator) {
 
 // Helpers and variables
 var $$ = (e) => document.querySelector(e);
+
+// --- i18n -------------------------------------------------------------------
+// JS-side twin of hitch/translations/__init__.py's t(): looks a string up by its
+// English source text in the dict map.html injected as window.__TRANSLATIONS__
+// (only for the current request's language -- see client_translations_json() /
+// register_i18n in hitch/__init__.py), falling back to the English source
+// whenever the language is "en" or the string has no translation yet. vars is a
+// plain {name: value} object substituted into "{name}" placeholders -- no
+// format-spec support like Python's t() since callers here always pass an
+// already-formatted display string (e.g. formatDistance's output).
+//
+// Named tr(), not t(): this file already uses `t` all over as a local variable/
+// parameter name (e.g. the wiki-text renderer's `t = t.replace(...)` pipeline),
+// and shadowing a one-letter global there would be an easy, silent bug.
+function tr(text, vars) {
+  var dict = window.__TRANSLATIONS__ || {};
+  var s = window.__LANG__ && window.__LANG__ !== "en" && dict[text] ? dict[text] : text;
+  if (vars) {
+    Object.keys(vars).forEach((k) => {
+      s = s.split("{" + k + "}").join(vars[k]);
+    });
+  }
+  return s;
+}
+
+// --- Weekdays ---------------------------------------------------------------
+// Every ride date the site shows is prefixed with its weekday: which day of the
+// week a ride happened is a hitchhiking fact in its own right (a Sunday service
+// area is a different place than a Tuesday one), and nobody reads that off a bare
+// date. Both lists are Monday-first and come from the server (window.__WEEKDAYS__,
+// see client_weekdays_json in hitch/__init__.py) rather than from
+// toLocaleDateString: a server-rendered ride card and a client-rendered one sit on
+// the same page, and browser ICU data for the smaller languages this site speaks
+// (Georgian, Mongolian) is not something we can assume. English is the fallback for
+// a page that never injected the blob.
+const WEEKDAY_ABBR_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const WEEKDAY_NAMES_EN = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+function weekdayAbbrs() {
+  const w = window.__WEEKDAYS__;
+  return (w && w.abbr && w.abbr.length === 7) ? w.abbr : WEEKDAY_ABBR_EN;
+}
+
+function weekdayNames() {
+  const w = window.__WEEKDAYS__;
+  return (w && w.names && w.names.length === 7) ? w.names : WEEKDAY_NAMES_EN;
+}
+
+// JS weeks start on Sunday (getDay() === 0); the tables start on Monday.
+function weekdayIndex(date) {
+  return (date.getDay() + 6) % 7;
+}
+
+// --- Distance units -------------------------------------------------------
+// Every distance in the data (spots, rides, routing graph) is in kilometres; the user's
+// profile setting only changes how we render it. These helpers are global on purpose so
+// map.js, routing.js and account.js all format through the same place.
+const KM_PER_MILE = 1.609344;
+function distanceUnit() {
+  return window.DISTANCE_UNIT === "imperial" ? "imperial" : "metric";
+}
+function distanceUnitLabel() {
+  return distanceUnit() === "imperial" ? "mi" : "km";
+}
+// km -> the number to display (miles when the user picked imperial).
+function toDisplayDistance(km) {
+  return distanceUnit() === "imperial" ? km / KM_PER_MILE : km;
+}
+// A user-entered distance (in their unit) -> km, so filters can compare against ride data.
+function fromDisplayDistance(value) {
+  return distanceUnit() === "imperial" ? value * KM_PER_MILE : value;
+}
+// "412 km" / "256 mi". decimals defaults to 0; pass null for a bare number.
+function formatDistance(km, decimals = 0) {
+  if (km == null || Number.isNaN(km)) return "-";
+  return toDisplayDistance(km).toFixed(decimals) + " " + distanceUnitLabel();
+}
+// Long unit name for chart axis labels.
+function distanceAxisLabel() {
+  return distanceUnit() === "imperial" ? "miles" : "kilometres";
+}
+// Pre-computed km stats/histograms (country_insights.json, per-spot files) rescaled for
+// display. Bin *counts* are unit-independent — only the value axis moves — so a linear
+// scale of the bounds is exact, no re-binning needed. Returns the input untouched in metric.
+function scaleStatsToDisplay(stats) {
+  if (!stats || distanceUnit() !== "imperial") return stats;
+  const out = { ...stats };
+  ["mean", "median", "stdev", "min", "max"].forEach((k) => {
+    if (typeof out[k] === "number") out[k] = toDisplayDistance(out[k]);
+  });
+  return out;
+}
+function scaleHistToDisplay(hist) {
+  if (!hist || distanceUnit() !== "imperial") return hist;
+  return {
+    ...hist,
+    lo: toDisplayDistance(hist.lo),
+    hi: toDisplayDistance(hist.hi),
+    binWidth: toDisplayDistance(hist.binWidth),
+  };
+}
 var allMarkers = [],
   destinationMarkers = [],
   active = [],
   oldActive = [],
   oldMarkers = [],
   destLineGroup = null,
-  filterDestLineGroup = null,
-  filterMarkerGroup = null,
   map,
   bars = document.querySelectorAll(".sidebar, .topbar"),
   heatmapLayer = null,
   heatmapData = null,
-  heatmapActive = false,
   normalLayer = null,
   heatmapLegend = null,
   spotsData = null,
@@ -47,6 +145,15 @@ function createMap() {
     preferCanvas: true,
     attributionControl: false,
     zoomControl: false,
+    // Without this, panning past +-180 deg longitude (or just starting at world
+    // zoom/center 0,0, as this map does) shows correct OSM tiles -- they tile
+    // seamlessly by design -- but every marker layer (spots, clusters, the
+    // heatmap overlay) only exists in the single "home" copy of the world, so
+    // the map reads as empty out there (issue #115). worldCopyJump makes
+    // Leaflet snap the view back to the home copy once you've panned exactly
+    // one world-width away, so overlays are always visible without needing to
+    // duplicate every marker across infinite copies.
+    worldCopyJump: true,
   });
   L.control.zoom({ position: "bottomright" }).addTo(map);
   L.control.attribution({ position: "bottomright" }).addTo(map);
@@ -54,7 +161,7 @@ function createMap() {
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution:
-      '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> | Data: <a href="/copyright">maps.hitchwiki.org</a> &amp; <a href="https://hitchmap.com/copyright.html">Hitchmap</a> (<a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a>)',
+      '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> | Data: <a href="/copyright">maps.hitchwiki.org</a> &amp; <a href="https://hitchmap.com/copyright.html" rel="nofollow">Hitchmap</a> (<a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a>)',
   }).addTo(map);
 
   return map;
@@ -124,7 +231,10 @@ async function loadMarkers(map) {
         allMarkers.push(marker);
       });
 
-      markerCluster.addTo(map);
+      // Never `markerCluster.addTo(map)` directly — syncSpotLayer() owns which
+      // spot layer is attached, so a filter restored from the URL before the
+      // markers finished loading still wins.
+      syncSpotLayer();
     })
     .catch((error) => {
       console.error("Error loading markers:", error);
@@ -133,6 +243,12 @@ async function loadMarkers(map) {
     .finally(() => {
       const overlay = document.getElementById("spots-loading-overlay");
       if (overlay) overlay.classList.add("hidden");
+      // The map isn't usable until the markers are on it, so bottom-anchored entry
+      // points (the in-ride "Start Hitchhiking" launcher) stay hidden until now —
+      // offering to start a journey over an empty basemap is noise. Set in `finally`,
+      // not `then`: a failed spots fetch still leaves a working map, and the launcher
+      // does not depend on spot data.
+      document.body.classList.add("spots-loaded");
     });
 }
 
@@ -181,15 +297,63 @@ async function loadHeatmapData() {
   }
 }
 
-// Toggle heatmap layer (also updates ?heatmap= query param so the state is shareable)
-async function toggleHeatmap() {
-  if (heatmapActive) {
-    await setHeatmapActive(false);
-    setQueryParameter('heatmap', false);
-  } else {
-    const ok = await setHeatmapActive(true);
-    if (ok) setQueryParameter('heatmap', true);
+// Borders drawn on top of the heatmap. Without them the overlay is a field of colour
+// with no landmarks — it covers the base map's own boundaries at 0.7 opacity, so
+// "is this Poland or Belarus" was unanswerable without switching the heatmap off.
+//
+// Every line is drawn twice: a light casing underneath, the dark line on top. A single
+// dark line disappears into the dark-green and dark-red ends of the scale and a single
+// white one into the yellow middle, so neither colour works alone over this palette.
+const HEATMAP_BORDER_LINE = "#1f2933";
+const HEATMAP_BORDER_CASING = "#ffffff";
+
+let heatmapBorderLayer = null;
+let heatmapBorderPromise = null;
+
+// Country outlines everywhere + first-level admin borders (states, provinces, federal
+// subjects) inside the few countries big enough for a national outline to leave most of
+// the heatmap unlabelled — see hitch/scripts/build_admin1_borders.py. The admin lines are
+// dashed and fainter so they never read as national borders.
+function loadHeatmapBorderLayer() {
+  if (!heatmapBorderPromise) {
+    heatmapBorderPromise = (async () => {
+      // Canvas, not SVG: these are ~15k vertices of pure decoration that nothing clicks,
+      // and the pane is pointer-events: none anyway.
+      const renderer = L.canvas({ pane: "heatmapborders" });
+      // pane/renderer belong in the layer options rather than in `style` — resetStyle()
+      // rebuilds a layer's options from the ones it was constructed with.
+      const borders = (data, style) =>
+        L.geoJSON(data, {
+          pane: "heatmapborders",
+          renderer,
+          interactive: false,
+          style: { fill: false, ...style },
+        });
+      const [countries, admin1] = await Promise.all([
+        loadCountriesGeoJson(),
+        fetch("/static/admin1_borders.geojson")
+          .then((r) => (r.ok ? r.json() : null))
+          // The admin lines are a nicety; a missing file must still leave the countries drawn.
+          .catch(() => null),
+      ]);
+
+      const layers = [];
+      if (admin1) {
+        layers.push(borders(admin1, { color: HEATMAP_BORDER_CASING, weight: 2.5, opacity: 0.5 }));
+        layers.push(borders(admin1, { color: HEATMAP_BORDER_LINE, weight: 0.8, opacity: 0.55, dashArray: "4,3" }));
+      }
+      // Added last so a national border always wins where the two run side by side.
+      layers.push(borders(countries, { color: HEATMAP_BORDER_CASING, weight: 3, opacity: 0.6 }));
+      layers.push(borders(countries, { color: HEATMAP_BORDER_LINE, weight: 1.1, opacity: 0.85 }));
+      return L.layerGroup(layers);
+    })().catch((error) => {
+      console.warn("Could not load heatmap borders:", error);
+      // Reset so a later switch into heatmap mode retries instead of inheriting the failure.
+      heatmapBorderPromise = null;
+      return null;
+    });
   }
+  return heatmapBorderPromise;
 }
 
 // Apply or remove the heatmap layer/legend without touching the URL.
@@ -201,19 +365,19 @@ async function setHeatmapActive(active) {
 
   if (!active) {
     if (heatmapLayer) map.removeLayer(heatmapLayer);
+    if (heatmapBorderLayer) map.removeLayer(heatmapBorderLayer);
     if (legendPane) legendPane.style.display = 'none';
     setTestBtnBelowLegend(false);
     positionLegendPane();
     if (btn) btn.classList.remove('active');
-    if (text) text.textContent = 'Heatmap';
-    heatmapActive = false;
+    if (text) text.textContent = tr('Heatmap');
     return true;
   }
 
   if (!heatmapData) {
     heatmapData = await loadHeatmapData();
     if (!heatmapData) {
-      alert('Heatmap data is not available');
+      alert(tr('Heatmap data is not available'));
       return false;
     }
   }
@@ -232,9 +396,17 @@ async function setHeatmapActive(active) {
   positionLegendPane();
 
   heatmapLayer.addTo(map);
+  // Awaited after the overlay is up: the borders are a second fetch, and holding the
+  // heatmap back for them would leave the user on a blank map for the round trip.
+  loadHeatmapBorderLayer().then((layer) => {
+    heatmapBorderLayer = layer;
+    // The overlay itself is the condition, not `mapMode`: the fetch can land after the
+    // user has left heatmap mode, and on a cached second activation it resolves before
+    // applyMapMode has even assigned the new mode.
+    if (layer && map.hasLayer(heatmapLayer) && !map.hasLayer(layer)) layer.addTo(map);
+  });
   if (btn) btn.classList.add('active');
-  if (text) text.textContent = 'Normal';
-  heatmapActive = true;
+  if (text) text.textContent = tr('Normal');
   return true;
 }
 
@@ -288,6 +460,10 @@ function populateHeatmapLegend(legendData) {
 (async () => {
   // Create map + geocoder synchronously so zoom/search appear in final position immediately
   map = createMap();
+  // Before loadMarkers: fixed bottom-anchored chrome (in-ride launcher/dock, outbox
+  // chip) is mounted as soon as window.map exists, so --bottom-pane-h has to be known
+  // by then or those elements render over the bottom action pane until spots load.
+  setupBottomPaneVar();
   setupGeocoder();
   // Added before the locate control so it stacks directly above the GPS button.
   setupMapModeControl();
@@ -307,6 +483,9 @@ function populateHeatmapLegend(legendData) {
 
   // User-proposed spots (blue markers) — non-blocking overlay, like events.
   loadProposedSpotMarkers(map);
+
+  // Rides logged since the last show.py run — non-blocking, like the overlays above.
+  loadPendingRides(map);
 
   setupEventListeners();
 
@@ -341,13 +520,10 @@ function populateHeatmapLegend(legendData) {
       setMapMode(mapMode === 'heatmap' ? 'spots' : 'heatmap'));
   }
 
-  // Restore the requested map mode from the URL: ?mapmode=countries takes
-  // precedence, otherwise the legacy ?heatmap=true selects heatmap mode.
-  if (getQueryParameter('mapmode') === 'countries') {
-    await setMapMode('countries');
-  } else if (getQueryParameter('heatmap') === 'true') {
-    await setMapMode('heatmap');
-  }
+  // Restore the requested map mode from the URL. applyMapMode, not setMapMode: the
+  // URL already says this, so there is nothing to write back.
+  const initialMode = mapModeFromUrl();
+  if (initialMode !== mapMode) await applyMapMode(initialMode);
 
   // These functions make the navigation work
   handleHashChange();
@@ -374,6 +550,58 @@ function populateHeatmapLegend(legendData) {
 })();
 
 
+// Beacon the picked search result to the server so we can see which places
+// people look up — the geocoder runs client-side, so this is the only signal.
+// sendBeacon is fire-and-forget and survives the page being navigated away.
+function logSearchRequest(geocode) {
+  // Mirrored into Umami as a funnel/journey step. Deliberately without the place
+  // name: the server CSV already records which places are looked up, and a
+  // free-text place per session is exactly the high-cardinality, re-identifying
+  // detail the cookieless setup is meant to keep out of the analytics store.
+  hmTrack('search_used');
+  try {
+    if (!geocode || !geocode.center) return;
+    const body = JSON.stringify({
+      name: geocode.name || "",
+      lat: +geocode.center.lat.toFixed(5),
+      lon: +geocode.center.lng.toFixed(5),
+    });
+    const blob = new Blob([body], { type: "application/json" });
+    if (navigator.sendBeacon) navigator.sendBeacon("/log-search-request", blob);
+  } catch (e) { /* logging must never break search */ }
+}
+
+// Beacon the settled filter combination to the server so we can see which
+// filters people actually use, and — via the match count — which ones return
+// something worth looking at. Filtering is client-side, so this is the only
+// signal. Debounced: every keystroke in a text filter re-runs applyParams, and
+// we want one row per intent, not per character. Deduped against the last row
+// sent so re-running navigate() (marker click, pane change) doesn't re-log an
+// unchanged filter set.
+let filterLogTimer = null;
+let lastLoggedFilters = null;
+
+function logFilterRequest(filters, matches) {
+  const signature = JSON.stringify(filters);
+  if (signature === lastLoggedFilters) return;
+  clearTimeout(filterLogTimer);
+  filterLogTimer = setTimeout(() => {
+    try {
+      lastLoggedFilters = signature;
+      // Inside the debounce so Umami sees one event per intent, not per
+      // keystroke. Only the names of the active filters are sent — the values
+      // include free text and usernames, which don't belong in analytics.
+      const active = Object.keys(filters).filter((k) => filters[k]);
+      if (active.length) {
+        hmTrack('filters_applied', { filters: active.sort().join('|'), matches: matches });
+      }
+      const body = JSON.stringify({ filters: filters, matches: matches });
+      const blob = new Blob([body], { type: "application/json" });
+      if (navigator.sendBeacon) navigator.sendBeacon("/log-filter-request", blob);
+    } catch (e) { /* logging must never break filtering */ }
+  }, 2000);
+}
+
 // Set up the geocoder for location search
 function setupGeocoder() {
   var geocoderOpts = {
@@ -381,7 +609,7 @@ function setupGeocoder() {
     defaultMarkGeocode: false,
     position: "topleft",
     provider: "photon",
-    placeholder: "Search",
+    placeholder: tr("Search"),
     zoom: 11,
     geocoder: L.Control.Geocoder.photon(),
   };
@@ -399,8 +627,8 @@ function setupGeocoder() {
     geocoderController.getContainer()
   );
   routeBtn.href = "#routing";
-  routeBtn.title = "Route planning";
-  routeBtn.setAttribute("aria-label", "Route planning");
+  routeBtn.title = tr("Route planning");
+  routeBtn.setAttribute("aria-label", tr("Route planning"));
   routeBtn.innerHTML = '<i class="fa-solid fa-route"></i>';
   // Keep clicks on the button from reaching the map (pan/zoom on the control).
   L.DomEvent.disableClickPropagation(routeBtn);
@@ -410,8 +638,8 @@ function setupGeocoder() {
   // until wanted, and one tap from the search bar.
   const filterBtn = L.DomUtil.create("a", "geocoder-filter-btn", geocoderController.getContainer());
   filterBtn.href = "#";
-  filterBtn.title = "Filters";
-  filterBtn.setAttribute("aria-label", "Filters");
+  filterBtn.title = tr("Filters");
+  filterBtn.setAttribute("aria-label", tr("Filters"));
   filterBtn.innerHTML = '<i class="fa-solid fa-sliders"></i>';
   L.DomEvent.disableClickPropagation(filterBtn);
   L.DomEvent.on(filterBtn, "click", function (ev) {
@@ -422,6 +650,7 @@ function setupGeocoder() {
 
   geocoderController.on("markgeocode", function (e) {
     var zoom = geocoderOpts.zoom || map.getZoom();
+    logSearchRequest(e.geocode);   // record which place was searched (server has no other signal)
     map.setView(e.geocode.center, zoom);
     geocoderInput.value = "";
   });
@@ -535,18 +764,28 @@ function showLocation(e) {
   // stale in sync with the dot, signalling the fix is a one-time snapshot.
   setLocateButtonState("active");
   if (locateButtonEl) restartFade(locateButtonEl, "locate-fading");
+
+  // Thin-coverage nudge (B32): a locate-button fix is a real GPS position, which
+  // is the trigger Till asked for. No extra permission prompt — this handler only
+  // runs after requestLocation() already succeeded. inride may not be mounted yet
+  // on a very fast first fix; the on-load granted-permission path covers that.
+  if (window.inride && window.inride.thinCoverageBanner) {
+    window.inride.thinCoverageBanner.onFix(e.latlng.lat, e.latlng.lng);
+  }
 }
 
 // locationerror handler: permission denied, position unavailable, or timeout.
 function onLocationError(e) {
   setLocateButtonState(locationMarker ? "active" : "idle");
-  alert("Could not get your location: " + e.message);
+  alert(tr("Could not get your location:") + " " + e.message);
 }
 
 // OsmAnd-style "current location" button. Anchored bottom-right above the zoom
 // control. Requirement: geolocation must NOT be requested on page load — the
-// only call to map.locate()/navigator.geolocation happens in the tap handler
-// (wired in Task 2). This task only renders the idle button.
+// only call to map.locate() happens in the tap handler (wired in Task 2).
+// hitchhiking-automation B32 reuses an *already-granted* permission on load
+// (inride.thinCoverageBanner.check) and this locationfound hook; neither
+// prompts. This task only renders the idle button.
 // ---- Map mode switcher (Spots / Heatmap / Countries) -----------------------
 
 // Score (1..5) -> choropleth colour, matching the country page badge colours.
@@ -601,11 +840,22 @@ function countryStyle(feature) {
 
 let countryRatings = null;
 
+// The country boundaries, fetched at most once per page: three unrelated things want
+// them (the choropleth, the name→ISO lookup, the heatmap outlines) and the file is
+// ~250 KB, so each of them holding its own fetch was a download per map mode.
+let countriesGeoJsonPromise = null;
+function loadCountriesGeoJson() {
+  if (!countriesGeoJsonPromise) {
+    countriesGeoJsonPromise = fetch("/static/countries.geojson").then((r) => r.json());
+  }
+  return countriesGeoJsonPromise;
+}
+
 // Build the country choropleth layer once (fetches boundaries + ratings).
 async function loadCountryLayer() {
   if (countryLayer) return countryLayer;
   const [geo, ratings] = await Promise.all([
-    fetch("/static/countries.geojson").then((r) => r.json()),
+    loadCountriesGeoJson(),
     fetch("/country_ratings.json").then((r) => (r.ok ? r.json() : {})).catch(() => ({})),
   ]);
   countryRatings = ratings;
@@ -711,6 +961,15 @@ function renderCountryWikitext(raw) {
   // lines (no [[ ]]), so stripWikiImages below won't catch them — drop the
   // whole block, otherwise the filenames leak through as prose text.
   t = t.replace(/<gallery[^>]*>[\s\S]*?<\/gallery>/gi, "");
+  // Stray raw HTML tags (e.g. a section opening with a bare "<br>" right after
+  // its heading, confirmed live in Luxembourg (City)'s "Motorway exit for
+  // Brussels" section via the spot-pane excerpt) would otherwise survive into
+  // the escape step below and print as literal "&lt;br&gt;" text. <br> becomes
+  // a line break (it's doing real formatting work); anything else is just
+  // dropped -- this renderer only ever emits its own <p>/<h4>/<a>/<strong>/
+  // <em> tags, never wiki-authored markup verbatim.
+  t = t.replace(/<br\s*\/?>/gi, "\n");
+  t = t.replace(/<\/?[a-zA-Z][a-zA-Z0-9]*(?:\s[^<>]*)?>/g, "");
   t = stripWikiTemplates(t);
   t = t.replace(/__[A-Z]+__/g, ""); // magic words (__TOC__, __NOTOC__, …)
   t = stripWikiImages(t); // [[File:...]] / [[Image:...]] embeds
@@ -752,9 +1011,12 @@ function renderCountryWikitext(raw) {
       if (heading) {
         flush();
         const label = heading[1].trim();
-        // Drop the redundant top-level "Hitchhiking" heading — the sheet is
-        // already titled with the country name.
-        if (label.toLowerCase() !== "hitchhiking") out.push(`<h4>${label}</h4>`);
+        // Drop a fetched section's own top-level heading when the caller already
+        // shows an equivalent title itself: "Hitchhiking" (the sheet is titled with
+        // the country name) and "Legality of Hitchhiking" (the legality block has
+        // its own static <h3>, see loadCountrySheetLegality).
+        const lower = label.toLowerCase();
+        if (lower !== "hitchhiking" && lower !== "legality of hitchhiking") out.push(`<h4>${label}</h4>`);
       } else {
         para.push(line);
       }
@@ -770,7 +1032,7 @@ let countryCcByName = null;
 async function getCountryCc(name) {
   try {
     if (!countryCcByName) {
-      const geo = await fetch("/static/countries.geojson").then((r) => r.json());
+      const geo = await loadCountriesGeoJson();
       countryCcByName = {};
       for (const f of geo.features) countryCcByName[f.properties.name] = f.properties.cc;
     }
@@ -822,11 +1084,15 @@ async function loadCountryInsights(cc) {
   wrap.hidden = false;
 
   renderCountryMetric("wait", entry.wait, "min", "waiting-time");
-  renderCountryMetric("distance", entry.distance, "km", "distance");
+  // The JSON is in km; rescale stats and histogram bounds for an imperial reader.
+  const distanceMetric = entry.distance
+    ? { ...entry.distance, stats: scaleStatsToDisplay(entry.distance.stats), hist: scaleHistToDisplay(entry.distance.hist) }
+    : entry.distance;
+  renderCountryMetric("distance", distanceMetric, distanceUnitLabel(), "distance");
 
   countryInsightsLastDraw = {
     wait: entry.wait ? entry.wait.hist : null,
-    distance: entry.distance ? entry.distance.hist : null,
+    distance: distanceMetric ? distanceMetric.hist : null,
   };
   // Draw after a frame so the sheet has its final width before we size canvases.
   requestAnimationFrame(redrawCountryInsightsCharts);
@@ -851,25 +1117,30 @@ function redrawCountryInsightsCharts() {
   if (countryInsightsLastDraw.wait)
     renderHistogram($$("#country-wait-chart"), countryInsightsLastDraw.wait, { xLabel: "minutes" });
   if (countryInsightsLastDraw.distance)
-    renderHistogram($$("#country-distance-chart"), countryInsightsLastDraw.distance, { xLabel: "kilometres" });
+    renderHistogram($$("#country-distance-chart"), countryInsightsLastDraw.distance, { xLabel: distanceAxisLabel() });
 }
 
-function countryWikiApi(title, params) {
+function countryWikiApi(title, params, wikiBase) {
   return (
-    COUNTRY_WIKI_BASE + "api.php?action=parse&redirects=1&format=json&origin=*" +
+    (wikiBase || COUNTRY_WIKI_BASE) + "api.php?action=parse&redirects=1&format=json&origin=*" +
     params + "&page=" + encodeURIComponent(title)
   );
 }
 
-// Find the index of the top-level "== Hitchhiking ==" section, or null if the
-// article has none. Country articles usually put the practical advice under this
-// heading, which is more useful than the lead's generic intro.
-async function findHitchhikingSection(title) {
+// Find the index of a top-level section whose heading exactly matches `heading`
+// (case-insensitive), or null if the article has none. `wikiBase` defaults to
+// the English wiki (COUNTRY_WIKI_BASE); the optional override exists for
+// countryWikiApi's other callers, not currently exercised with a non-English
+// base -- heading text isn't parallel across languages (see research/
+// country-sheet-localization-scoping-2026-08-24.md), so a local-language
+// article always falls through to its lead section (0) instead of a
+// heading search; see loadCountrySheetLead below.
+async function findTopLevelSection(title, heading, wikiBase) {
   try {
-    const data = await fetch(countryWikiApi(title, "&prop=sections")).then((r) => r.json());
+    const data = await fetch(countryWikiApi(title, "&prop=sections", wikiBase)).then((r) => r.json());
     const sections = (data && data.parse && data.parse.sections) || [];
     const match = sections.find(
-      (s) => s.toclevel === 1 && s.line && s.line.trim().toLowerCase() === "hitchhiking"
+      (s) => s.toclevel === 1 && s.line && s.line.trim().toLowerCase() === heading
     );
     return match ? match.index : null;
   } catch (e) {
@@ -877,59 +1148,320 @@ async function findHitchhikingSection(title) {
   }
 }
 
+// The top-level "== Hitchhiking ==" section, or null if the article has none.
+// Country articles usually put the practical advice under this heading, which is
+// more useful than the lead's generic intro.
+function findHitchhikingSection(title) {
+  return findTopLevelSection(title, "hitchhiking");
+}
+
+// The top-level "== Legality of Hitchhiking ==" section, or null if the article
+// has none (a handful of non-independent-country entries). Present on 233 of 237
+// country articles as of 2026-08-21 (see research/hitchwiki-legality-map-
+// scoping-2026-08-21.md in the automation repo) -- either real, sourced legal
+// text or the wiki's own honest "the law here has not been checked" placeholder.
+// Both are safe to show verbatim: this only surfaces what the wiki already says,
+// never a classification this app invents.
+function findLegalitySection(title) {
+  return findTopLevelSection(title, "legality of hitchhiking");
+}
+
+// Fill a "keep reading on Hitchwiki" call to action. Wiki text on the map is an
+// excerpt, and Hitchwiki is where it can actually be extended — so the link is an
+// invitation to read on and contribute, not just a source credit (that stays in the
+// separate attribution line, which CC BY-SA requires).
+function setWikiCta(el, url, label) {
+  if (!el) return;
+  if (!url) {
+    el.hidden = true;
+    return;
+  }
+  el.href = url;
+  el.innerHTML = `<span>${escapeHtml(label)}</span><span class="wiki-cta-arrow" aria-hidden="true">→</span>`;
+  el.hidden = false;
+}
+
+// B362: sparse {cc: {lang: title}} map, verified live 2026-08-24 against
+// every one of the 177 countries this app knows and all 30 non-English
+// SUPPORTED_LANGUAGES (research/country-wiki-names-verified-2026-08-24.json
+// in the automation repo -- 5,310 real lookups, only exact matches kept, no
+// guessing). Real coverage is intentionally uneven: 55% for Russian, 34-43%
+// for French/German/Spanish, much lower for thinner wikis -- most (country,
+// language) pairs have no entry at all, which is the correct, honest state
+// (those wikis genuinely have no article for that country), not a gap to
+// paper over. Absence here must always mean "use English," never an error.
+let countryWikiLocalTitles = null;
+async function getCountryWikiLocalTitle(cc, lang) {
+  if (!cc || !lang || lang === "en") return null;
+  try {
+    if (!countryWikiLocalTitles) {
+      countryWikiLocalTitles = await fetch("/static/country_wiki_local_titles.json").then((r) => (r.ok ? r.json() : {}));
+    }
+    return (countryWikiLocalTitles[cc] && countryWikiLocalTitles[cc][lang]) || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Fetch a country article's lead section (0) from a specific wiki base/title,
+// or null on any failure -- never throws, so the caller can try a
+// local-language wiki first and fall back to English unconditionally.
+async function fetchCountryLead(title, wikiBase) {
+  try {
+    const data = await fetch(countryWikiApi(title, "&prop=wikitext&section=0", wikiBase)).then((r) => r.json());
+    const wikitext = data && data.parse && data.parse.wikitext && data.parse.wikitext["*"];
+    return wikitext || null;
+  } catch (e) {
+    return null;
+  }
+}
+
 // Fetch and render a country's Hitchwiki summary: the "== Hitchhiking ==" section
-// when present, otherwise the lead section.
+// when present, otherwise the lead section. B362: tries the map's own current
+// UI language first (window.__LANG__) when a verified local-language article
+// exists for this country; any failure at any step falls back to the
+// existing always-worked English path unchanged, so this can only ever be a
+// strict improvement over the pre-B362 behavior, never a regression.
 async function loadCountrySheetLead(name) {
-  const title = COUNTRY_WIKI_TITLE_ALIASES[name] || name;
-  const wikiUrl = COUNTRY_WIKI_BASE + encodeURIComponent(title.replace(/ /g, "_"));
-  $$("#country-sheet-source").innerHTML =
-    `Text from <a href="${wikiUrl}" target="_blank" rel="noopener">Hitchwiki: ${escapeHtml(title)}</a>, ` +
-    `licensed <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA</a>.`;
+  let title = COUNTRY_WIKI_TITLE_ALIASES[name] || name;
+  let wikiBase = COUNTRY_WIKI_BASE;
+  let usedLocalLang = false;
+
+  const lang = window.__LANG__;
+  if (lang && lang !== "en") {
+    const cc = await getCountryCc(name);
+    const localTitle = await getCountryWikiLocalTitle(cc, lang);
+    if (localTitle) {
+      const localBase = `https://hitchwiki.org/${lang}/`;
+      const localWikitext = await fetchCountryLead(localTitle, localBase);
+      if (localWikitext && substituteWikiPageName(localWikitext, localTitle).trim()) {
+        title = localTitle;
+        wikiBase = localBase;
+        usedLocalLang = true;
+      }
+    }
+  }
+
+  const wikiUrl = wikiBase + encodeURIComponent(title.replace(/ /g, "_"));
+  $$("#country-sheet-source").innerHTML = tr("Text from {link}, licensed {license}.", {
+    link: `<a href="${wikiUrl}" target="_blank" rel="noopener">Hitchwiki: ${escapeHtml(title)}</a>`,
+    license: `<a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA</a>`,
+  });
 
   const lead = $$("#country-sheet-lead");
   try {
-    // Prefer the Hitchhiking section; fall back to the lead (section 0).
-    const section = (await findHitchhikingSection(title)) || "0";
-    const data = await fetch(countryWikiApi(title, "&prop=wikitext&section=" + section)).then((r) => r.json());
-    const wikitext = data && data.parse && data.parse.wikitext && data.parse.wikitext["*"];
+    // Local-language attempts already resolved to the lead (section 0) above
+    // -- heading text isn't parallel across languages, so only the English
+    // path tries the more specific "Hitchhiking" heading first.
+    const section = usedLocalLang ? "0" : (await findHitchhikingSection(title)) || "0";
+    const data = await fetch(countryWikiApi(title, "&prop=wikitext&section=" + section, wikiBase)).then((r) => r.json());
+    let wikitext = data && data.parse && data.parse.wikitext && data.parse.wikitext["*"];
     if (!wikitext) {
-      lead.innerHTML = `<p class="country-status">No Hitchwiki summary could be loaded for ${escapeHtml(name)}.</p>`;
+      lead.innerHTML = `<p class="country-status">${tr("No Hitchwiki summary could be loaded for {name}.", { name: escapeHtml(name) })}</p>`;
       return;
     }
+    wikitext = substituteWikiPageName(wikitext, title);
     const html = renderCountryWikitext(wikitext);
-    lead.innerHTML = html || `<p class="country-status">No summary text available for ${escapeHtml(name)}.</p>`;
+    lead.innerHTML = html || `<p class="country-status">${tr("No summary text available for {name}.", { name: escapeHtml(name) })}</p>`;
+    // Only invite people over once we know the article actually rendered — a CTA
+    // pointing at a page that failed to load would send them to a red link.
+    if (html) setWikiCta($$("#country-sheet-cta"), wikiUrl, tr("Read the full {title} article on Hitchwiki", { title }));
   } catch (e) {
     console.warn("Could not load Hitchwiki section:", e);
-    lead.innerHTML = `<p class="country-status">No Hitchwiki summary could be loaded for ${escapeHtml(name)}.</p>`;
+    lead.innerHTML = `<p class="country-status">${tr("No Hitchwiki summary could be loaded for {name}.", { name: escapeHtml(name) })}</p>`;
+  }
+}
+
+// Fetch and render a country's "Legality of Hitchhiking" section verbatim, when
+// the article has one. Independent of loadCountrySheetLead: a missing/failed
+// legality section must not affect the main lead text, and vice versa.
+async function loadCountrySheetLegality(name) {
+  const title = COUNTRY_WIKI_TITLE_ALIASES[name] || name;
+  const wrap = $$("#country-sheet-legality");
+  const body = $$("#country-sheet-legality-body");
+  wrap.hidden = true;
+  body.innerHTML = "";
+  try {
+    const section = await findLegalitySection(title);
+    if (section == null) return; // no Legality section on this article
+    const data = await fetch(countryWikiApi(title, "&prop=wikitext&section=" + section)).then((r) => r.json());
+    const wikitext = data && data.parse && data.parse.wikitext && data.parse.wikitext["*"];
+    if (!wikitext) return;
+    const html = renderCountryWikitext(substituteWikiPageName(wikitext, title));
+    if (!html) return;
+    body.innerHTML = html;
+    wrap.hidden = false;
+    // No baseline exists for how often this new block is actually seen -- track
+    // it the same way route_start_cta_exposure tracks a new UI surface, so a
+    // later run can tell whether this shipped unmeasured or genuinely used.
+    hmTrack("country_legality_shown", { country: name });
+  } catch (e) {
+    console.warn("Could not load Hitchwiki legality section:", e);
+  }
+}
+
+// --- Spot-level Hitchwiki excerpt ---------------------------------------------
+// A spot's `hitchwiki_article` (preferred) or `hitchwiki_map` link, built by
+// sync_hitchwiki.py, already points at the exact section of a Hitchwiki article
+// relevant to it -- often a specific entry/exit/motorway-section subheading (e.g.
+// "Luxembourg (City)#Motorway_exit_for_Brussels"), not just the article's lead.
+// The fragment is the article's own real MediaWiki section anchor (hwpybot issue
+// #5 fixed this repo's coordinate links to use the real anchor rather than a
+// guessed one), so resolving it back to a section index is a straight match
+// against prop=sections' own `anchor` field -- see findSectionByAnchor below.
+const spotWikiExcerptCache = new Map(); // url -> rendered HTML ("" means nothing to show)
+
+async function findSectionByAnchor(title, anchor) {
+  try {
+    const data = await fetch(countryWikiApi(title, "&prop=sections")).then((r) => r.json());
+    const sections = (data && data.parse && data.parse.sections) || [];
+    const match = sections.find((s) => s.anchor === anchor);
+    return match ? match.index : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Parse a spot's hitchwiki_article/hitchwiki_map URL into { title, anchor }.
+// Titles are stored with literal spaces/punctuation ("Luxembourg (City)"), not
+// the underscored/percent-encoded form links use -- see sync_hitchwiki.py.
+function parseSpotWikiUrl(url) {
+  const rest = url.slice(COUNTRY_WIKI_BASE.length);
+  const hashIdx = rest.indexOf("#");
+  if (hashIdx === -1) return { title: rest, anchor: null };
+  return { title: rest.slice(0, hashIdx), anchor: decodeURIComponent(rest.slice(hashIdx + 1)) };
+}
+
+// Fill the spot pane's excerpt container for the article/section `url` points at.
+// `marker` guards against a fast second click: if the pane has moved on to a
+// different spot by the time this fetch resolves, the result is cached (so the
+// next open of this spot is instant) but never written into the wrong pane.
+async function loadSpotWikiExcerpt(marker, container, url) {
+  if (spotWikiExcerptCache.has(url)) {
+    const cached = spotWikiExcerptCache.get(url);
+    if (cached && active && active[0] === marker) container.innerHTML = cached;
+    return;
+  }
+  const { title, anchor } = parseSpotWikiUrl(url);
+  try {
+    const section = (anchor && (await findSectionByAnchor(title, anchor))) || "0";
+    const data = await fetch(countryWikiApi(title, "&prop=wikitext&section=" + section)).then((r) => r.json());
+    const wikitext = data && data.parse && data.parse.wikitext && data.parse.wikitext["*"];
+    const html = wikitext ? renderCountryWikitext(substituteWikiPageName(wikitext, title)) : "";
+    const rendered = html
+      ? `<div class="spot-wiki-excerpt-text">${html}</div><p class="spot-wiki-excerpt-source">${tr(
+          "Text from {link}, licensed {license}.",
+          {
+            link: `<a href="${countryWikiLink(title)}" target="_blank" rel="noopener">Hitchwiki: ${escapeHtml(title)}</a>`,
+            license: `<a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA</a>`,
+          },
+        )}</p>`
+      : "";
+    spotWikiExcerptCache.set(url, rendered);
+    if (rendered && active && active[0] === marker) {
+      container.innerHTML = rendered;
+      hmTrack("spot_wiki_excerpt_shown", {});
+    }
+  } catch (e) {
+    console.warn("Could not load Hitchwiki spot excerpt:", e);
   }
 }
 
 // Open the country info sheet for `name` (invoked from navigate() via #country/<name>).
 async function openCountrySheet(name) {
   clear();
+  // No exposure tracking existed for Countries mode at all before this -- without
+  // it, country_legality_shown has no denominator (40 fires could be 90% coverage
+  // or 1%). Fired once per open regardless of what the sheet ends up rendering.
+  hmTrack("country_sheet_opened", { country: name });
   $$("#country-sheet-name").textContent = name;
+  // Share the deep link that reopens this country sheet. The path form, not the
+  // old #country/<name>: several messengers strip a #fragment when auto-linking a
+  // pasted URL, and only the path can carry the country's own link preview.
+  $$("#share-country-btn").dataset.shareUrl = `${location.origin}/country/${encodeURIComponent(name)}`;
+  $$("#share-country-btn").dataset.shareTitle = tr("Hitchhiking in {name} – Hitchwiki Maps", { name });
   $$("#country-sheet-rating").style.display = "none";
   $$("#country-sheet-insights").hidden = true;
-  $$("#country-sheet-lead").innerHTML = `<p class="country-status">Loading from Hitchwiki…</p>`;
+  $$("#country-sheet-lead").innerHTML = `<p class="country-status">${tr("Loading from Hitchwiki…")}</p>`;
   $$("#country-sheet-source").innerHTML = "";
+  $$("#country-sheet-cta").hidden = true;
+  $$("#country-sheet-legality").hidden = true;
+  $$("#country-sheet-legality-body").innerHTML = "";
   bar(".sidebar.country");
   updateBottomPaneVar();
   setSheetSnap($$(".sidebar.country"), "full", COUNTRY_SHEET_SNAPS);
   loadCountrySheetLead(name);
+  loadCountrySheetLegality(name);
   // Rating + histograms are keyed by ISO code, resolved from the country name.
   const cc = await getCountryCc(name);
   loadCountrySheetRating(cc);
   loadCountryInsights(cc);
 }
 
+// --- Which spot markers are on the map ---------------------------------------
+// Two independent inputs decide this and they used to be expressed in
+// incompatible ways: the map mode (Countries replaces spots with the choropleth)
+// removed a *layer*, while the filters hid whole Leaflet *panes* via CSS
+// (`body.filtering` set `display:none` on the marker and overlay panes) and
+// re-drew the matches into a private pane stacked above everything else.
+// That pane trick had two side effects the filters never intended:
+//   * it hid every other marker on the map, not just the unmatched spots — the
+//     propose-a-spot pin, the location picker, event pins — leaving only the
+//     shadow pane's drop shadow behind, i.e. a pin-shaped shadow and no pin;
+//   * the matches, living outside the overlay pane, escaped the pane-level rules
+//     real spots obey (`body.zoomed-out` dims the overlay pane to 30%), so with a
+//     filter on they stayed fully opaque over the heatmap while unfiltered spots
+//     faded out — the same markers behaving two different ways.
+// So there is now one rule instead of two mechanisms: at most one spot layer is
+// attached to the map at a time, and it is an ordinary layer in the ordinary
+// panes. Everything else on the map is left alone.
+let spotsWanted = true; // false in Countries mode
+let filterLayer = null; // matches of the active filter, or null when no filter is set
+// The same matches as a plain array. handleMapClick's tap-to-nearest-spot needs to
+// sort them, which a LayerGroup cannot do (it used to be handed the group itself
+// and threw `markers.sort is not a function` on every mobile tap while filtering).
+let filteredMarkers = null;
+
+function syncSpotLayer() {
+  const showFiltered = spotsWanted && !!filterLayer;
+  const showAll = spotsWanted && !filterLayer;
+  setLayerAttached(markerCluster, showAll);
+  setLayerAttached(filterLayer, showFiltered);
+}
+
+function setLayerAttached(layer, attached) {
+  if (!layer) return;
+  if (attached && !map.hasLayer(layer)) layer.addTo(map);
+  else if (!attached && map.hasLayer(layer)) map.removeLayer(layer);
+}
+
 // Show or hide the hitchhiking-spot markers (hidden in Countries mode).
 function setSpotsVisible(visible) {
-  if (!markerCluster) return;
-  if (visible) {
-    if (!map.hasLayer(markerCluster)) markerCluster.addTo(map);
-  } else if (map.hasLayer(markerCluster)) {
-    map.removeLayer(markerCluster);
+  spotsWanted = visible;
+  syncSpotLayer();
+}
+
+// Install the current filter result: an array of spot markers, or null to go back
+// to showing all of them. The markers are copies of the real ones (a Leaflet layer
+// can only have one parent, and the originals belong to markerCluster) that
+// delegate their click to the original, so the spot pane still opens against the
+// marker that carries the ride data.
+function setFilteredMarkers(markers) {
+  if (filterLayer) {
+    map.removeLayer(filterLayer);
+    filterLayer = null;
   }
+  filteredMarkers = markers;
+  if (markers) {
+    filterLayer = L.layerGroup(
+      markers.map((spot) => {
+        const copy = L.circleMarker(spot.getLatLng(), Object.assign({}, spot.options));
+        copy.on("click", (e) => spot.fire("click", e));
+        return copy;
+      })
+    );
+  }
+  syncSpotLayer();
 }
 
 // --- Hitchwiki events ---------------------------------------------------------
@@ -964,8 +1496,9 @@ async function loadEventMarkers(map) {
     marker.addTo(eventLayer);
   });
 
-  // Events follow the spot markers: visible in spots/heatmap modes, hidden in Countries.
-  if (mapMode !== "countries") eventLayer.addTo(map);
+  // Events follow the spot markers, so they belong to spots mode only. The load is
+  // async and can land after a mode was already applied, so ask the mode, don't assume.
+  if (mapMode === "spots") eventLayer.addTo(map);
   console.log(`Loaded ${eventsData.length} event(s)`);
 }
 
@@ -1018,6 +1551,141 @@ function relativeAge(iso) {
   return Math.floor(s / 86400) + "d ago";
 }
 
+// Rides logged since show.py last generated the map files, keyed by the spot they
+// belong to. handleMarkerClick merges these into what it fetches from
+// rides/by-spot/<sid>.json so a just-logged ride is in the spot pane immediately.
+let pendingRidesBySpot = new Map();
+
+// Newest Date.parse-able submission_time among rides, or -Infinity if none parse.
+// Shared by both pending-merge paths below so a missing/unparseable timestamp never
+// regresses latest_ms or writes NaN into it.
+function newestSubmissionMs(rides) {
+  return rides.reduce((max, r) => {
+    const raw = typeof r.submission_time === "string" ? r.submission_time : "";
+    // show.py computes latest_ms for spots.json from this same naive string interpreted
+    // as UTC (pandas to_datetime on a UTC host). Date.parse treats a naive string as
+    // LOCAL time instead, so without normalising here the two scales could disagree by
+    // up to 14 hours and corrupt the Math.max below. Only append Z when the string has
+    // no zone of its own — one that already states a Z or a +HH:MM/-HH:MM offset must
+    // keep it.
+    const iso = raw && !/(?:Z|[+-]\d{2}:\d{2})$/.test(raw) ? raw + "Z" : raw;
+    const t = Date.parse(iso);
+    return Number.isNaN(t) ? max : Math.max(max, t);
+  }, -Infinity);
+}
+
+// Rides that carry both destination coordinates, split into the parallel dest_lats/
+// dest_lons arrays spots.json uses (renderPoints' arrows, the distance filter).
+function pendingDestArrays(rides) {
+  const withDest = rides.filter((r) => r.dest_lat != null && r.dest_lon != null);
+  return { lats: withDest.map((r) => r.dest_lat), lons: withDest.map((r) => r.dest_lon) };
+}
+
+// Fetch /pending_rides.json and fold it into the markers. Non-blocking overlay like
+// loadProposedSpotMarkers, and must run after loadMarkers (it reads allMarkers and adds
+// to markerCluster). Silent on any failure: a missing endpoint or a bad payload leaves
+// the map exactly as the generated files drew it.
+async function loadPendingRides(map) {
+  if (!window.PendingRides) return;
+  let data;
+  try {
+    const resp = await fetch("/pending_rides.json");
+    if (!resp.ok) return;
+    data = await resp.json();
+  } catch (error) {
+    console.warn("Could not load pending rides:", error);
+    return;
+  }
+  if (!Array.isArray(data) || !data.length) return;
+
+  const spots = allMarkers.map((m) => {
+    const latlng = m.getLatLng();
+    return { lat: latlng.lat, lon: latlng.lng, spotId: m.options.spotId };
+  });
+  const plan = window.PendingRides.planPendingMerge(data, spots);
+
+  const markersBySpotId = new Map(allMarkers.map((m) => [m.options.spotId, m]));
+  for (const group of plan.attach) {
+    const marker = markersBySpotId.get(group.spotId);
+    if (!marker) continue;
+    // Only the count moves. show.py's mean rating is taken over a filtered ride set
+    // (low-value rides are dropped from detail views but still counted here), and that
+    // filter is not reproducible client-side — a recomputed colour would be subtly
+    // wrong for ten minutes, which is worse than a stale one.
+    marker.options._data.review_count = (marker.options._data.review_count || 0) + group.rides.length;
+
+    // Recent-activity filter reads latest_ms; without this a pending ride would be
+    // invisible to the one filter meant to surface fresh activity. Never lower it — the
+    // generated value can already be newer than this batch (rides don't arrive in
+    // submission order).
+    const newestPendingMs = newestSubmissionMs(group.rides);
+    if (Number.isFinite(newestPendingMs)) {
+      marker.options._data.latest_ms = Math.max(marker.options._data.latest_ms || -Infinity, newestPendingMs);
+    }
+
+    // renderPoints() draws destination arrows from dest_lats/dest_lons, and the distance
+    // filter reads them too; append any pending rides that carry a destination.
+    const dest = pendingDestArrays(group.rides);
+    if (dest.lats.length) {
+      const hadDests = !!(marker.options._data.dest_lats && marker.options._data.dest_lats.length);
+      marker.options._data.dest_lats = (marker.options._data.dest_lats || []).concat(dest.lats);
+      marker.options._data.dest_lons = (marker.options._data.dest_lons || []).concat(dest.lons);
+      if (!hadDests) destinationMarkers.push(marker);
+    }
+
+    pendingRidesBySpot.set(group.spotId, group.rides);
+  }
+
+  for (const spot of plan.create) {
+    addPendingSpotMarker(spot);
+    pendingRidesBySpot.set(spot.spotId, spot.rides);
+  }
+
+  console.log(`Loaded ${data.length} pending ride(s) into ${plan.attach.length + plan.create.length} spot(s)`);
+}
+
+// Draw a marker for a spot that has no entry in spots.json yet — the first ride ever
+// logged there. Styled exactly like loadMarkers' circle markers so it is
+// indistinguishable from a generated one, and carries the same spotId/_data contract
+// that handleMarkerClick depends on.
+function addPendingSpotMarker(spot) {
+  const rating = spot.rating || 3;
+  const color = { 1: "red", 2: "orange", 3: "yellow", 4: "lightgreen", 5: "lightgreen" }[Math.round(rating)];
+  const opacity = { 1: 0.3, 2: 0.4, 3: 0.6, 4: 0.8, 5: 0.8 }[Math.round(rating)];
+  const coords = new L.latLng(spot.lat, spot.lon);
+
+  const data = { lat: spot.lat, lon: spot.lon, rating: rating, review_count: spot.review_count, text: "" };
+  // Recent-activity filter reads latest_ms — a brand-new spot's only rides are the
+  // pending ones, so this is the sole source for it.
+  const latestMs = newestSubmissionMs(spot.rides);
+  if (Number.isFinite(latestMs)) data.latest_ms = latestMs;
+  // renderPoints() draws destination arrows from dest_lats/dest_lons, and the distance
+  // filter reads them; populate from whichever pending rides carry a destination.
+  const dest = pendingDestArrays(spot.rides);
+  if (dest.lats.length) {
+    data.dest_lats = dest.lats;
+    data.dest_lons = dest.lons;
+  }
+
+  const marker = L.circleMarker(coords, {
+    radius: 5,
+    // Mirror loadMarkers exactly so a pending-created marker is indistinguishable from
+    // a generated one.
+    weight: 1 + (spot.review_count > 2),
+    fillOpacity: opacity,
+    color: "black",
+    fillColor: color,
+    spotId: spot.spotId,
+    _data: data,
+  });
+  marker.on("click", async (e) => await handleMarkerClick(marker, coords, e));
+  if (spot.review_count >= 3)
+    marker.on("add", (_) => setTimeout((_) => marker.bringToFront(), 0));
+  if (data.dest_lats?.length) destinationMarkers.push(marker);
+  marker.addTo(markerCluster);
+  allMarkers.push(marker);
+}
+
 // Load /proposed_spots.json (served live from the DB) and add each as a blue circle
 // marker into the shared spot cluster. Non-blocking overlay, like loadEventMarkers.
 // Must run after loadMarkers (which creates markerCluster).
@@ -1062,13 +1730,13 @@ function startProposeSpotFromGesture(latlng, containerPoint) {
 
   const ui = L.DomUtil.create("div", "propose-spot-ui location-selection-ui");
   ui.innerHTML =
-    "<h4>Propose a hitch spot</h4>" +
-    "<p>Drag the pin to fine-tune, add a short note (optional), then propose.</p>" +
+    `<h4>${tr("Propose a hitch spot")}</h4>` +
+    `<p>${tr("Drag the pin to fine-tune, add a short note (optional), then propose.")}</p>` +
     '<textarea class="propose-spot-comment" maxlength="500" rows="2" ' +
-    'placeholder="Why is this a good spot? (optional)"></textarea>' +
+    `placeholder="${tr("Why is this a good spot? (optional)")}"></textarea>` +
     '<div class="lsel-actions">' +
-    '<button class="lsel-confirm">Propose spot</button>' +
-    '<button class="lsel-cancel">Cancel</button>' +
+    `<button class="lsel-confirm">${tr("Propose spot")}</button>` +
+    `<button class="lsel-cancel">${tr("Cancel")}</button>` +
     "</div>";
   document.body.appendChild(ui);
   document.body.classList.add("selecting-location");
@@ -1114,7 +1782,7 @@ function startProposeSpotFromGesture(latlng, containerPoint) {
     } catch (err) {
       console.error("Could not propose spot:", err);
       confirmBtn.disabled = false;
-      alert("Sorry, could not save your proposed spot. Please try again.");
+      alert(tr("Sorry, could not save your proposed spot. Please try again."));
     }
   });
 }
@@ -1139,14 +1807,24 @@ function formatEventDates(ev) {
 
 function openEventSheet(ev) {
   clear();
-  $$("#event-sheet-name").textContent = ev.name || "Event";
+  $$("#event-sheet-name").textContent = ev.name || tr("Event");
   $$("#event-sheet-dates").textContent = formatEventDates(ev);
   const wikiUrl = ev.url || COUNTRY_WIKI_BASE + encodeURIComponent((ev.title || ev.name || "").replace(/ /g, "_"));
+  // Sharing an event shares the Hitchwiki page it comes from, not a map URL.
+  $$("#share-event-btn").dataset.shareUrl = wikiUrl;
+  $$("#share-event-btn").dataset.shareTitle = ev.name || tr("Hitchhiking event");
   $$("#event-sheet-source").innerHTML = ev.title
-    ? `Text from <a href="${escapeHtml(wikiUrl)}" target="_blank" rel="noopener">Hitchwiki: ${escapeHtml(ev.title)}</a>, ` +
-      `licensed <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA</a>.`
+    ? tr("Text from {link}, licensed {license}.", {
+        link: `<a href="${escapeHtml(wikiUrl)}" target="_blank" rel="noopener">Hitchwiki: ${escapeHtml(ev.title)}</a>`,
+        license: `<a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA</a>`,
+      })
     : "";
-  $$("#event-sheet-description").innerHTML = `<p class="sheet-status">Loading from Hitchwiki…</p>`;
+  $$("#event-sheet-description").innerHTML = `<p class="sheet-status">${tr("Loading from Hitchwiki…")}</p>`;
+  // The event page is on Hitchwiki and stays the place to update it, so invite the
+  // reader over rather than only crediting the source below. Same condition as the
+  // credit line: without a known page we'd only have a guessed title-from-name URL,
+  // which can land on a non-existent article.
+  setWikiCta($$("#event-sheet-cta"), ev.url || ev.title ? wikiUrl : "", tr("Read this event on Hitchwiki"));
   bar(".sidebar.event");
   updateBottomPaneVar();
   setSheetSnap($$(".sidebar.event"), "full", EVENT_SHEET_SNAPS);
@@ -1195,32 +1873,69 @@ async function loadEventSheetText(ev) {
   const desc = (ev.description || "").trim();
   body.innerHTML = desc
     ? desc.split(/\n\n+/).map((p) => `<p>${escapeHtml(p).replace(/\n/g, "<br>")}</p>`).join("")
-    : `<p class="sheet-status">No description available.</p>`;
+    : `<p class="sheet-status">${tr("No description available.")}</p>`;
 }
 
-// Single source of truth for which map mode is active.
-async function setMapMode(mode) {
-  mapMode = mode;
-
-  // Countries mode replaces spots with the choropleth; the other modes show spots.
-  if (mode === "countries") {
-    await setHeatmapActive(false);
-    setSpotsVisible(false);
-    setEventsVisible(false);
-    const layer = await loadCountryLayer();
-    if (!map.hasLayer(layer)) layer.addTo(map);
+// Put the map into `mode` without touching the URL. The three modes are mutually
+// exclusive — each one owns the map:
+//   spots     — the hitchhiking-spot markers
+//   heatmap   — the predicted-waiting-time overlay, and nothing else on top of it
+//   countries — the choropleth
+// Heatmap used to share the screen with the spots. Nothing hid them; they merely
+// faded, because `body.zoomed-out` dims the overlay pane to 30% below zoom 9 — so
+// the spots looked gone at the zoom you normally read a heatmap at, and came back
+// at zoom 9+. Two things then made that inconsistency visible: cluster bubbles
+// (below zoom 7) live in the marker pane and were never dimmed at all, and a filter
+// draws its matches unclustered, so they stayed on screen over the heatmap. The
+// mode now decides outright instead of an opacity rule deciding by accident.
+async function applyMapMode(mode) {
+  // Settle the heatmap first, because it is the one mode that can refuse: with no
+  // heatmap.json setHeatmapActive alerts and returns false. Committing to the mode
+  // anyway would hide the spots and leave the user on an empty map, so fall back.
+  if (mode === "heatmap") {
+    if (!(await setHeatmapActive(true))) mode = "spots";
   } else {
-    if (countryLayer && map.hasLayer(countryLayer)) map.removeLayer(countryLayer);
-    setSpotsVisible(true);
-    setEventsVisible(true);
-    await setHeatmapActive(mode === "heatmap");
+    await setHeatmapActive(false);
   }
 
+  mapMode = mode;
+
+  if (mode === "countries") {
+    const layer = await loadCountryLayer();
+    if (!map.hasLayer(layer)) layer.addTo(map);
+  } else if (countryLayer && map.hasLayer(countryLayer)) {
+    map.removeLayer(countryLayer);
+  }
+  setSpotsVisible(mode === "spots");
+  // Events are their own overlay, not spots: they stay with the markers in spots
+  // mode and step aside for the two full-map views.
+  setEventsVisible(mode === "spots");
+
   updateMapModeButtons();
-  // Keep the state shareable. Heatmap keeps using the legacy ?heatmap param so
-  // existing deep-links stay valid; Countries mode uses ?mapmode=countries.
-  setQueryParameter("heatmap", mode === "heatmap");
-  setQueryParameter("mapmode", mode === "countries" ? "countries" : false);
+}
+
+// Single source of truth for which map mode is active: applies it and records it in
+// the URL. applyParams() reconciles the other direction (URL -> mode) by calling
+// applyMapMode directly, because writing the URL from there would re-enter navigate().
+async function setMapMode(mode) {
+  await applyMapMode(mode);
+  // Record what was actually applied, not what was asked for — applyMapMode falls
+  // back to spots when the heatmap can't load, and the URL must not claim otherwise.
+  // Heatmap keeps using the legacy ?heatmap param so existing deep-links stay valid;
+  // Countries mode uses ?mapmode=countries.
+  // Both params must land in a SINGLE write: the mode is spread across two params,
+  // so two writes make the URL briefly describe a third mode, and the navigate()
+  // that fires on the intermediate state re-applies it on top of this one.
+  setQueryParameters({
+    heatmap: mapMode === "heatmap",
+    mapmode: mapMode === "countries" ? "countries" : false,
+  });
+}
+
+// The mode named by the current URL. Countries wins over the legacy ?heatmap flag.
+function mapModeFromUrl() {
+  if (getQueryParameter("mapmode") === "countries") return "countries";
+  return getQueryParameter("heatmap") === "true" ? "heatmap" : "spots";
 }
 
 function updateMapModeButtons() {
@@ -1385,7 +2100,7 @@ function toggleTestModeCallout() {
   exit.textContent = "Exit test mode";
   exit.addEventListener("click", function () {
     setTestMode(false); // removes the button + closes this callout via renderTestModeIndicator
-    showTestToast("Test mode off");
+    showTapToast("Test mode off");
   });
   c.appendChild(exit);
   document.body.appendChild(c);
@@ -1409,7 +2124,9 @@ function toggleTestModeCallout() {
 }
 
 let _testToastTimer = null;
-function showTestToast(msg) {
+// Small centred toast used by the test-mode tap easter egg.
+// `ms` overrides the default lifetime for a message that has to outlast a slow request.
+function showTapToast(msg, ms) {
   let t = document.getElementById("test-mode-toast");
   if (!t) {
     t = document.createElement("div");
@@ -1419,7 +2136,7 @@ function showTestToast(msg) {
   }
   t.textContent = msg;
   if (_testToastTimer) clearTimeout(_testToastTimer);
-  _testToastTimer = setTimeout(function () { if (t && t.parentNode) t.remove(); }, 1500);
+  _testToastTimer = setTimeout(function () { if (t && t.parentNode) t.remove(); }, ms || 1500);
 }
 
 let _heatTapCount = 0;
@@ -1436,21 +2153,21 @@ function registerHeatmapTap() {
     _heatTapCount = 0;
     clearTimeout(_heatTapResetTimer);
     setTestMode(true);
-    showTestToast("🧪 Test mode on — rides won't be saved");
+    showTapToast("🧪 Test mode on — rides won't be saved");
     return;
   }
   if (_heatTapCount >= TEST_MODE_COUNTDOWN_FROM) {
     const remaining = TEST_MODE_TAPS - _heatTapCount;
-    showTestToast(remaining + (remaining === 1 ? " more tap" : " more taps") + " to test mode…");
+    showTapToast(remaining + (remaining === 1 ? " more tap" : " more taps") + " to test mode…");
   }
 }
 
 // Vertical Spots/Heatmap/Countries switcher, sitting just above the locate button.
 function setupMapModeControl() {
   const modes = [
-    { mode: "spots", icon: "fa-solid fa-thumbs-up", title: "Spots" },
-    { mode: "heatmap", icon: "fa fa-fire", title: "Waiting-time heatmap" },
-    { mode: "countries", icon: "fa-solid fa-earth-europe", title: "Country hitchability" },
+    { mode: "spots", icon: "fa-solid fa-thumbs-up", title: tr("Spots") },
+    { mode: "heatmap", icon: "fa fa-fire", title: tr("Waiting-time heatmap") },
+    { mode: "countries", icon: "fa-solid fa-earth-europe", title: tr("Country hitchability") },
   ];
   const ModeControl = L.Control.extend({
     options: { position: "bottomright" },
@@ -1499,6 +2216,11 @@ const FEATURE_HINTS = [
   { key: "hintSeen.routes", el: () => $$(".geocoder-route-btn"), placement: "below" },
   { key: "hintSeen.filters", el: () => $$(".geocoder-filter-btn"), placement: "below" },
   { key: "hintSeen.activities", el: () => $$("#action-activities"), placement: "above" },
+  // Last in the queue on purpose: the four above point at map features someone came
+  // here to use, while this one points at the menu, whose first card is the call for
+  // volunteers (/help). Anyone who has already worked through the other hints sees it
+  // on their next load, which is exactly the returning user worth asking.
+  { key: "hintSeen.menu", el: () => $$("#action-menu"), placement: "above" },
 ];
 
 const HINT_ARROW_ICON = { left: "fa-arrow-right", below: "fa-arrow-up", above: "fa-arrow-down" };
@@ -1590,9 +2312,9 @@ function setupLocateControl() {
       const container = L.DomUtil.create("div", "leaflet-bar locate-control");
       const btn = L.DomUtil.create("a", "locate-control-btn", container);
       btn.href = "#";
-      btn.title = "Show my location";
+      btn.title = tr("Show my location");
       btn.setAttribute("role", "button");
-      btn.setAttribute("aria-label", "Show my location");
+      btn.setAttribute("aria-label", tr("Show my location"));
       btn.innerHTML = '<i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i>';
       // Keep taps on the button from reaching the map (pan/zoom/add-point).
       L.DomEvent.disableClickPropagation(container);
@@ -1640,10 +2362,19 @@ function setupEventListeners() {
   setupFilterEventListeners();
 
   // Bottom action pane handlers
-  var addSpotBtn = document.getElementById('action-add-spot');
-  if (addSpotBtn) {
-    addSpotBtn.addEventListener('click', function() {
-      window.location.href = "/ride";
+  // The pane's "Add your ride" button is gone; its job (funnel step 2, the
+  // add_ride_clicked → ride_form_submitted drop-off) belongs to the "Log a past ride"
+  // halves in inride.js (#inr-log-past-btn) and the spot sheet (#spot-log-past), which
+  // report the same event with a different `source`.
+
+  // The Activities dot is server-rendered (main.activities_badge) and the visit itself
+  // is what clears it — but the page opens in a new tab, so this one would keep showing
+  // a dot for something the user is reading right now. Drop it on click; the next load
+  // of this page asks the server again.
+  var activitiesDot = document.getElementById('activities-dot');
+  if (activitiesDot) {
+    document.getElementById('action-activities').addEventListener('click', function() {
+      activitiesDot.remove();
     });
   }
 
@@ -1662,16 +2393,28 @@ function setupEventListeners() {
   }
 
 
-  let filterMapPane = map.createPane("filtering");
-  filterMapPane.style.zIndex = 450;
+  // Destination arrow heads of the selected spot. A custom pane defaults to
+  // `z-index: auto`, which paints *below* the tile pane (z 200) — the line that
+  // set this one used to be overwritten by a copy-paste ("filterMapPane" was
+  // assigned twice), so the arrow heads were being drawn under the map tiles.
+  // 455 puts them above the destination lines in the overlay pane (400) and the
+  // country choropleth (450), below the planned route (routing.js, 455 < 460) and
+  // the markers (600).
+  let arrowPane = map.createPane("arrowlines");
+  arrowPane.style.zIndex = 455;
 
-  map.createPane("arrowlines");
-  filterMapPane.style.zIndex = 1450;
-
-  // Dedicated pane for the heatmap image overlay so it stays visible while
-  // filtering (the filtering CSS hides .leaflet-overlay-pane).
+  // Dedicated pane for the heatmap image overlay, below the overlay pane (400)
+  // so spot markers and routes always draw on top of it.
   let heatmapPane = map.createPane("heatmap");
   heatmapPane.style.zIndex = 350;
+
+  // Country/state outlines drawn over the heatmap (see loadHeatmapBorderLayer).
+  // Directly above the heatmap image (350) and below everything else, so the lines
+  // read the heatmap without ever covering a marker. Nothing here is clickable —
+  // pointer-events off, or the canvas would swallow taps meant for the map.
+  let bordersPane = map.createPane("heatmapborders");
+  bordersPane.style.zIndex = 360;
+  bordersPane.style.pointerEvents = "none";
 
   // Country-choropleth pane. Sits above the default overlay pane (z 400) so its
   // SVG paths receive clicks — the map uses preferCanvas, and an empty overlay
@@ -1709,10 +2452,12 @@ function handleMapClick(e) {
   // open an underlying spot instead of the country sheet.
   if (window.innerWidth < 780 && mapMode !== "countries") {
     var layerPoint = map.latLngToLayerPoint(e.latlng);
-    let markers = document.body.classList.contains("filtering")
-      ? filterMarkerGroup
-      : allMarkers;
-    var circles = markers.sort(
+    // Only the spots actually on screen may be tapped: with a filter on, the
+    // unmatched ones are gone from the map and must not be reachable by a tap.
+    let markers = filteredMarkers || allMarkers;
+    // Copy before sorting — allMarkers is shared state and sorting it in place
+    // would reorder the array every other consumer iterates.
+    var circles = markers.slice().sort(
       (a, b) =>
         a.getLatLng().distanceTo(e.latlng) - b.getLatLng().distanceTo(e.latlng)
     );
@@ -1782,6 +2527,9 @@ function setupFilterEventListeners() {
   maxDateFilter.addEventListener("change", () =>
     setQueryParameter("maxdate", maxDateFilter.value)
   );
+  weekdayFilter.addEventListener("change", () =>
+    setQueryParameter("weekday", weekdayFilter.value)
+  );
 }
 
 // Handle changes in the URL hash; used for initialization of the map
@@ -1811,6 +2559,14 @@ function handleHashChange() {
     showSuccessOverlay();
   }
 
+  // #success-anon / #success-invite are the same success, prefixed by a one-time
+  // sign-up nudge (anonymous submitter / anonymous co-hitchhiker).
+  if (window.location.hash == "#success-anon" || window.location.hash == "#success-invite") {
+    const kind = window.location.hash == "#success-anon" ? "anon" : "invite";
+    history.replaceState(null, null, " ");
+    showPostSubmitOverlay(kind);
+  }
+
   if (window.location.hash == "#success-duplicate") {
     history.replaceState(null, null, " ");
     bar(".sidebar.success-duplicate");
@@ -1826,9 +2582,9 @@ function handleHashChange() {
     bar(".sidebar.registered");
   }
 
-  if (window.location.pathname === "/hitchhiking.html") {
-    var actionAddSpot = document.getElementById('action-add-spot');
-    if (actionAddSpot) actionAddSpot.remove();
+  if (appPath() === "/hitchhiking.html") {
+    // (The pane's "Add your ride" button used to be removed here too; it no longer
+    // exists — the contribution bar is gated on HIDE_ADD_SPOT_BUTTON instead.)
     var filterPaneEl = document.getElementById('filter-pane');
     if (filterPaneEl) filterPaneEl.remove();
   }
@@ -1849,11 +2605,11 @@ function reportDuplicate(marker) {
     let activePoint = active[0].getLatLng();
 
     if (activePoint.equals(point)) {
-      alert("A marker cannot be a duplicate of itself.");
+      alert(tr("A marker cannot be a duplicate of itself."));
       return;
     }
 
-    if (confirm(`Are you sure you want to report a duplicate?`)) {
+    if (confirm(tr("Are you sure you want to report a duplicate?"))) {
       document.body.innerHTML += `<form id=dupform method=POST action=report-duplicate><input name=report value=${[
         activePoint.lat,
         activePoint.lng,
@@ -1879,14 +2635,18 @@ function formatRideDate(iso) {
   if (!iso) return "";
   const d = new Date(iso);
   if (isNaN(d)) return "";
-  return d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+  return weekdayAbbrs()[weekdayIndex(d)] + " " + d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 }
 
 function formatRideDateTime(iso) {
   if (!iso) return "";
   const d = new Date(iso);
   if (isNaN(d)) return "";
-  return d.toLocaleString(undefined, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  return (
+    weekdayAbbrs()[weekdayIndex(d)] +
+    " " +
+    d.toLocaleString(undefined, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+  );
 }
 
 function highlightStars(stars, upTo) {
@@ -1899,22 +2659,40 @@ function renderRideCards(rides) {
   if (!rides.length) return "";
   return rides.map((r) => {
     const rating = r.rating > 0 ? "&nbsp;" + "⭐".repeat(r.rating) : "";
-    const wait = r.wait != null && !Number.isNaN(r.wait) ? `${r.wait} min wait` : "";
+    const wait = r.wait != null && !Number.isNaN(r.wait) ? tr("{wait} min wait", { wait: r.wait }) : "";
+    // How far the ride got, next to how long the wait was — the same two facts, in the
+    // same order, that the server-rendered cards put at the top (_ride_card.html).
+    const distance = r.distance != null && !Number.isNaN(r.distance) ? formatDistance(r.distance) : "";
     const date = formatRideDate(r.ride_datetime || r.submission_time);
-    const metaBits = [date, wait].filter(Boolean).join(" · ");
+    const metaBits = [date, wait, distance].filter(Boolean).join(" · ");
     const startTime = r.ride_datetime ? formatRideDateTime(r.ride_datetime) : "";
     const timesLine = startTime
       ? `<div class="ride-times" style="font-size:0.85em; color:#666;">▶ ${startTime}</div>`
       : "";
-    const name = r.hitchhiker_name && r.hitchhiker_name !== "Anonymous"
-      ? `<a class="hitchhiker-name" href="/account/${encodeURIComponent(r.hitchhiker_name)}">${escapeHtml(r.hitchhiker_name)}</a>`
-      : `<span class="hitchhiker-name">Anonymous</span>`;
+    const anonymous = !r.hitchhiker_name || r.hitchhiker_name === "Anonymous";
+    const name = anonymous
+      ? `<span class="hitchhiker-name">${tr("Anonymous")}</span>`
+      : `<a class="hitchhiker-name" href="/account/${encodeURIComponent(r.hitchhiker_name)}">${escapeHtml(r.hitchhiker_name)}</a>`;
+    // A spot's arrows are drawn as one anonymous bundle (renderPoints reads the spot's
+    // whole dest_lats/dest_lons), so with a handful of rides there is no way to tell
+    // which line belongs to which card. This button names one: hover (or tap) it and
+    // that ride's own line is drawn on top of the bundle. Only rides that recorded a
+    // destination get one — there is nothing to point at otherwise.
+    const destBtn =
+      r.dest_lat != null && r.dest_lon != null
+        ? `<button type="button" class="ride-dest-btn" data-dest-lat="${r.dest_lat}" data-dest-lon="${r.dest_lon}"` +
+          ` data-ride-key="${escapeHtml(r.id || `${r.dest_lat},${r.dest_lon}`)}"` +
+          ` title="${escapeHtml(tr("Show where this ride went"))}" aria-label="${escapeHtml(tr("Show where this ride went"))}">` +
+          `<i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i></button>`
+        : "";
     const comment = r.comment ? `<div class="ride-comment">${escapeHtml(r.comment)}</div>` : "";
     const href = r.id ? `/ride/${encodeURIComponent(r.id)}` : "";
     const clickable = href ? ` data-ride-href="${href}" role="link" tabindex="0" style="cursor:pointer;"` : "";
+    const noRideBadge = r.no_ride ? `<span class="no-ride-badge">🚫 ${tr("No ride")}</span>` : "";
+    const cardClass = r.no_ride ? "ride-card ride-card--no-ride" : "ride-card";
     return `
-      <div class="ride-card"${clickable}>
-        <div class="ride-meta">${metaBits}${rating} &mdash; ${name}</div>
+      <div class="${cardClass}"${clickable}>
+        <div class="ride-meta">${noRideBadge}${metaBits}${rating} &mdash; ${name}${destBtn}</div>
         ${timesLine}
         ${comment}
       </div>`;
@@ -1922,13 +2700,138 @@ function renderRideCards(rides) {
 }
 
 // Navigate to ride detail page when a ride-card is clicked, except when the
-// click lands on a nested link (e.g. the hitchhiker username).
+// click lands on a nested link (e.g. the hitchhiker username) or on a control of
+// its own (the destination-highlight button, which acts on the map instead).
 document.addEventListener("click", (e) => {
   const card = e.target.closest(".ride-card[data-ride-href]");
   if (!card) return;
-  if (e.target.closest("a")) return;
+  if (e.target.closest("a, button")) return;
   window.location.href = card.dataset.rideHref;
 });
+
+// ---- Per-ride destination highlight -----------------------------------------
+// The line for one ride, drawn over the spot's bundle of destination arrows by the
+// button in its card. Hovering previews it; clicking pins it (and frames both ends),
+// so a phone — which has no hover — still gets the same answer, and so the line
+// survives moving the pointer away to read the map.
+let rideDestHighlight = null;
+let pinnedRideDest = null; // { key, lat, lon } of the pinned card, or null
+
+function drawRideDestHighlight(lat, lon) {
+  if (!active || !active.length) return;
+  if (rideDestHighlight) rideDestHighlight.remove();
+  const from = active[0].getLatLng();
+  rideDestHighlight = L.layerGroup([
+    L.polyline([from, [lat, lon]], { color: "#e8590c", weight: 4, opacity: 0.95, pane: "arrowlines" }),
+    L.circleMarker([lat, lon], {
+      radius: 6,
+      color: "#e8590c",
+      weight: 2,
+      fillColor: "#e8590c",
+      fillOpacity: 1,
+      pane: "arrowlines",
+    }),
+  ]).addTo(map);
+}
+
+function eraseRideDestHighlight() {
+  if (rideDestHighlight) {
+    rideDestHighlight.remove();
+    rideDestHighlight = null;
+  }
+}
+
+// Drop the highlight entirely — pin included. Called whenever the cards it points
+// from are replaced or the spot is deselected, since a line drawn from a marker that
+// is no longer open belongs to nothing on screen.
+function clearRideDestHighlight() {
+  pinnedRideDest = null;
+  eraseRideDestHighlight();
+  document.querySelectorAll(".ride-dest-btn.active").forEach((b) => b.classList.remove("active"));
+}
+
+function rideDestFromButton(btn) {
+  return { key: btn.dataset.rideKey, lat: Number(btn.dataset.destLat), lon: Number(btn.dataset.destLon) };
+}
+
+// pointerover/out (which bubble, so one delegated pair covers every card) also fire
+// when the pointer crosses between the button and its icon; `relatedTarget` inside the
+// same button means the pointer never actually left it, and redrawing there would
+// flicker the line on every such crossing.
+const leftSameButton = (e, btn) => btn.contains(e.relatedTarget);
+
+document.addEventListener("pointerover", (e) => {
+  const btn = e.target.closest(".ride-dest-btn");
+  if (!btn || leftSameButton(e, btn)) return;
+  const d = rideDestFromButton(btn);
+  if (pinnedRideDest && pinnedRideDest.key === d.key) return;
+  drawRideDestHighlight(d.lat, d.lon);
+});
+
+document.addEventListener("pointerout", (e) => {
+  const btn = e.target.closest(".ride-dest-btn");
+  if (!btn || leftSameButton(e, btn)) return;
+  // Leaving a hover preview restores whatever was pinned, rather than clearing the map.
+  if (pinnedRideDest) drawRideDestHighlight(pinnedRideDest.lat, pinnedRideDest.lon);
+  else eraseRideDestHighlight();
+});
+
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".ride-dest-btn");
+  if (!btn) return;
+  const d = rideDestFromButton(btn);
+  if (pinnedRideDest && pinnedRideDest.key === d.key) {
+    clearRideDestHighlight();
+    return;
+  }
+  clearRideDestHighlight();
+  pinnedRideDest = d;
+  btn.classList.add("active");
+  drawRideDestHighlight(d.lat, d.lon);
+  frameRideDest(d.lat, d.lon);
+});
+
+// Fit spot + destination on screen. The bottom sheet covers the lower part of the map,
+// so the padding it needs is however much of the window it currently occupies —
+// otherwise the destination lands behind the very card that asked for it.
+function frameRideDest(lat, lon) {
+  if (!active || !active.length) return;
+  const bounds = L.latLngBounds([active[0].getLatLng(), [lat, lon]]);
+  const sheet = $$(".sidebar.show-spot");
+  const rect = sheet && sheet.classList.contains("visible") ? sheet.getBoundingClientRect() : null;
+  const bottomPad = rect ? Math.max(20, Math.min(window.innerHeight - rect.top, window.innerHeight * 0.6)) : 20;
+  map.fitBounds(bounds, { paddingTopLeft: [30, 30], paddingBottomRight: [30, bottomPad] });
+}
+
+// Photos attached to the rides logged at this spot, as one horizontally scrollable
+// strip at the top of the pane. Flattened across rides in the order the cards are shown
+// (newest ride first), each thumbnail linking to the ride it belongs to — a photo is
+// only meaningful next to the report it came with.
+function renderSpotPhotos(rides) {
+  const strip = $$("#spot-photos");
+  if (!strip) return;
+  const photos = [];
+  (rides || []).forEach((r) => {
+    (r.images || []).forEach((url) => photos.push({ url, rideId: r.id }));
+  });
+
+  // hidden rather than empty: an empty flex row still occupies its gap and padding,
+  // which would push every spot pane down for a feature almost no spot uses yet.
+  strip.hidden = photos.length === 0;
+  if (!photos.length) {
+    strip.innerHTML = "";
+    return;
+  }
+
+  strip.innerHTML = photos.map((p) => {
+    const href = p.rideId ? `/ride/${encodeURIComponent(p.rideId)}` : "";
+    const open = href ? `<a class="spot-photo" href="${href}">` : `<span class="spot-photo">`;
+    const close = href ? "</a>" : "</span>";
+    // loading=lazy: only the first couple of thumbnails are on screen in the strip,
+    // and the rest shouldn't cost a phone its data to scroll past.
+    return `${open}<img src="${encodeURI(p.url)}" alt="${tr("Photo of this spot")}" loading="lazy">${close}`;
+  }).join("");
+}
 
 // A spot needs at least this many rides carrying a value before its distribution is
 // worth drawing — below that the bars say nothing the average doesn't already say.
@@ -2033,33 +2936,46 @@ function renderSpotSummary(data) {
   drawSpotHistograms();
 }
 
-// `hists` is omitted by the GPX export, which wants the plain summary lines only.
+// `hists` defaults to nothing so a caller that only wants the plain summary lines
+// (no canvases to paint) can leave them out.
 function summaryText(data, hists = { wait: null, distance: null }) {
-  const osmLink = data.osm_id ? `<div>🚏 <a href="https://www.openstreetmap.org/node/${data.osm_id}" target="_blank" rel="noopener noreferrer">Official hitchhiking spot</a></div>` : '';
+  const osmLink = data.osm_id ? `<div>🚏 <a href="https://www.openstreetmap.org/node/${data.osm_id}" target="_blank" rel="noopener noreferrer">${tr("Official hitchhiking spot")}</a></div>` : '';
   const carPoolingLink = data.car_pooling
-    ? `<div>🚗 <a href="https://www.openstreetmap.org/${data.car_pooling.osm_type}/${data.car_pooling.id}" target="_blank" rel="noopener noreferrer">Car pooling spot</a></div>`
+    ? `<div>🚗 <a href="https://www.openstreetmap.org/${data.car_pooling.osm_type}/${data.car_pooling.id}" target="_blank" rel="noopener noreferrer">${tr("Car pooling spot")}</a></div>`
     : '';
   const fuelLink = data.fuel
-    ? `<div>⛽ <a href="https://www.openstreetmap.org/${data.fuel.osm_type}/${data.fuel.id}" target="_blank" rel="noopener noreferrer">Gas station</a></div>`
+    ? `<div>⛽ <a href="https://www.openstreetmap.org/${data.fuel.osm_type}/${data.fuel.id}" target="_blank" rel="noopener noreferrer">${tr("Gas station")}</a></div>`
     : '';
+  // Phrased as an invitation, not a label: the wiki article is where the advice for
+  // this spot actually lives, and we want map users to carry on reading there.
   const hitchwikiLink = data.hitchwiki_article
-    ? `<div>📄 <a href="${data.hitchwiki_article}" target="_blank" rel="noopener noreferrer">Mentioned on Hitchwiki</a></div>`
+    ? `<div>📄 <a href="${data.hitchwiki_article}" target="_blank" rel="noopener noreferrer">${tr("Read about this spot on Hitchwiki")}</a></div>`
     : '';
   const hitchwikiMapLink = data.hitchwiki_map
-    ? `<div>🗺️ <a href="${data.hitchwiki_map}" target="_blank" rel="noopener noreferrer">On Hitchwiki</a></div>`
+    ? `<div>🗺️ <a href="${data.hitchwiki_map}" target="_blank" rel="noopener noreferrer">${tr("Read about this area on Hitchwiki")}</a></div>`
+    : '';
+  // Filled in asynchronously by loadSpotWikiExcerpt once this markup is in the DOM
+  // (see applySpotRideFilter) -- fetching Hitchwiki's API takes a round trip this
+  // synchronous function can't wait on. Empty when neither link above exists.
+  const spotWikiExcerpt = data.hitchwiki_article || data.hitchwiki_map
+    ? `<div id="spot-wiki-excerpt" class="spot-wiki-excerpt"></div>`
     : '';
 
-  const wait = !data.wait || Number.isNaN(data.wait) ? "-" : data.wait.toFixed(0) + " min";
-  const distance = !data.distance || Number.isNaN(data.distance) ? "-" : data.distance.toFixed(0) + " km";
+  const wait = !data.wait || Number.isNaN(data.wait) ? "-" : tr("{n} min", { n: data.wait.toFixed(0) });
+  const distance = !data.distance || Number.isNaN(data.distance) ? "-" : formatDistance(data.distance);
+  // "-" like the two above rather than the bare value: with a filter active the subset
+  // may contain no rated ride at all, and `undefined.toFixed` / a printed "undefined"
+  // is not an answer.
+  const rating = !data.rating || Number.isNaN(data.rating) ? "-" : data.rating.toFixed(0);
 
   // Lines are <div>s rather than <br>-separated text: each histogram is a block
   // element, and a <br> after one would open an empty line under the chart.
-  return `<div>Rating: ${data.rating && data.rating.toFixed(0)}/5</div>
-    <div>Waiting time: ${wait}</div>
+  return `<div>${tr("Rating: {rating}/5", { rating })}</div>
+    <div>${tr("Waiting time: {wait}", { wait })}</div>
     ${spotHistogramMarkup(hists.wait, "spot-wait-hist", "min")}
-    <div>Ride distance: ${distance}</div>
-    ${spotHistogramMarkup(hists.distance, "spot-distance-hist", "km")}
-    ${osmLink}${carPoolingLink}${fuelLink}${hitchwikiLink}${hitchwikiMapLink}`;
+    <div>${tr("Ride distance: {distance}", { distance })}</div>
+    ${spotHistogramMarkup(scaleHistToDisplay(hists.distance), "spot-distance-hist", distanceUnitLabel())}
+    ${osmLink}${carPoolingLink}${fuelLink}${hitchwikiLink}${hitchwikiMapLink}${spotWikiExcerpt}`;
 }
 
 async function handleMarkerClick(marker, point, e) {
@@ -2073,6 +2989,12 @@ async function handleMarkerClick(marker, point, e) {
 
   reportDuplicate(marker);
   setSpotUrl(point.lat, point.lng);
+
+  // Funnel step 1: the visitor is looking up a spot. Only the ride count is
+  // reported — the spot id is a coordinate pair, and pinning a session to a
+  // precise location is exactly the kind of data this cookieless setup exists
+  // to avoid collecting.
+  hmTrack('spot_opened', { rides: (marker.options._data || {}).review_count || 0 });
 
   // Show the spot pane immediately with a loading spinner for rides
   markerClick(marker);
@@ -2101,6 +3023,14 @@ async function handleMarkerClick(marker, point, e) {
     console.error(`Error loading rides for spot ${spotId}:`, error);
   }
 
+  // Fold in rides show.py has not generated yet. Deduped on the d tag, so a ride that
+  // is in both (the files regenerated after this page loaded its pending list) renders
+  // once. A brand-new spot has no file at all — the 404 branch above leaves spotRides
+  // empty and this supplies its single ride.
+  if (window.PendingRides) {
+    spotRides = window.PendingRides.mergeSpotRides(spotRides, pendingRidesBySpot.get(spotId));
+  }
+
   // Sort newest-first by submission time so the freshest ride is at the top
   spotRides.sort((a, b) => {
     const ta = Date.parse(a.submission_time || a.ride_datetime || 0) || 0;
@@ -2108,18 +3038,87 @@ async function handleMarkerClick(marker, point, e) {
     return tb - ta;
   });
 
-  marker.options._data.rides = spotRides;
+  // Kept unfiltered: applySpotRideFilter re-derives the visible subset from this every
+  // time the filters change, and a spot pane left open across a filter change must be
+  // able to get rides *back*, not just lose them.
+  marker.options._data.allRides = spotRides;
 
-  // Re-render the summary now that the fetched spot details and rides are merged in
-  // (the first render in markerClick only had the slim spots.json fields, so it could
-  // show the averages but not the distributions).
-  renderSpotSummary(marker.options._data);
+  // The spot's name arrives with this fetch, not with spots.json. Guard on the pane
+  // still showing this marker: clicking a second spot while the first is in flight
+  // would otherwise stamp the first spot's name onto the second one's pane.
+  const spotName = marker.options._data.name;
+  if (spotName && active && active[0] === marker) {
+    const nameEl = $$("#spot-name");
+    nameEl.textContent = spotName;
+    nameEl.hidden = false;
+    $$("#share-spot-btn").dataset.shareTitle = `${spotName} – Hitchwiki Maps`;
+  }
 
-  // Update rides content now that the fetch is complete
-  $$("#spot-text").innerHTML = renderRideCards(spotRides);
-  if (spotRides.length === 0 && (!marker.options._data.distance || Number.isNaN(marker.options._data.distance)))
-    $$("#extra-text").innerHTML = "No comments/ride info.";
+  // Renders the summary (now that the fetched spot details and rides are merged in —
+  // the first render in markerClick only had the slim spots.json fields, so it could
+  // show the averages but not the distributions), the photos and the ride list.
+  applySpotRideFilter(marker);
+}
+
+// Which of the open spot's rides the pane shows, and everything drawn from them.
+//
+// A ride-level filter that let this spot onto the map did so because *some* ride here
+// matched; listing the rest alongside it answers a question nobody asked. So the pane
+// lists only the matching rides — and the summary above them is recomputed from the
+// same subset, because a filtered histogram under an unfiltered average would be two
+// different claims about one spot. Spot-level filters (min rides, min rating, official
+// spot, gas station) are not ride facts and never hide a ride here.
+function applySpotRideFilter(marker) {
+  const data = marker.options._data;
+  const all = data.allRides || [];
+  const rideFilter = buildRideFilter();
+  const shown = rideFilter ? all.filter(rideFilter) : all;
+  data.rides = shown;
+
+  // The per-spot file's averages are the server's, over every ride here; once a filter
+  // narrows the set they describe rides the pane is no longer showing. `data` itself is
+  // the marker's own state and must keep the unfiltered values for the next open.
+  const view = rideFilter ? { ...data, ...spotAverages(shown) } : data;
+  renderSpotSummary(view);
+  renderSpotPhotos(shown);
+
+  // renderSpotSummary just rebuilt #spot-wiki-excerpt (if this spot has a wiki
+  // link) from scratch, so it needs refilling every call, not just the first —
+  // a filter change re-renders the summary while the pane stays open.
+  // loadSpotWikiExcerpt's own cache means a repeat call for the same URL (e.g.
+  // toggling a filter with no distance/rating change) costs no extra fetch.
+  const spotWikiUrl = data.hitchwiki_article || data.hitchwiki_map;
+  const spotWikiContainer = $$("#spot-wiki-excerpt");
+  if (spotWikiUrl && spotWikiContainer) loadSpotWikiExcerpt(marker, spotWikiContainer, spotWikiUrl);
+
+  // The cards below are about to be replaced, taking their highlight buttons with them.
+  clearRideDestHighlight();
+
+  const hidden = all.length - shown.length;
+  const note = hidden > 0 ? `<div class="spot-filter-note">${spotFilterNote(shown.length, all.length)}</div>` : "";
+  $$("#spot-text").innerHTML = note + renderRideCards(shown);
+  // "No comments/ride info" is about the spot having nothing to say. A spot whose rides
+  // were all filtered out has plenty to say — the note above already explains itself.
+  if (all.length === 0 && (!data.distance || Number.isNaN(data.distance)))
+    $$("#extra-text").innerHTML = tr("No comments/ride info.");
   else $$("#extra-text").innerHTML = "";
+}
+
+function spotFilterNote(shown, total) {
+  if (shown === 0) return tr("No ride here matches your filters (of {total}).", { total });
+  return tr("Showing {shown} of {total} rides that match your filters.", { shown, total });
+}
+
+// Mean rating / waiting time / distance over a set of rides, in the shape summaryText
+// reads them. Only used when a filter is active — unfiltered, the per-spot file's
+// server-computed averages stay authoritative. A stat no ride in the subset recorded
+// comes back null, which summaryText prints as "-" rather than inventing a zero.
+function spotAverages(rides) {
+  const mean = (key) => {
+    const values = rides.map((r) => r[key]).filter((v) => typeof v === "number" && !Number.isNaN(v));
+    return values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
+  };
+  return { rating: mean("rating"), wait: mean("wait"), distance: mean("distance") };
 }
 
 function markerClick(marker) {
@@ -2132,6 +3131,15 @@ function markerClick(marker) {
   updateBottomPaneVar();
   setSpotSheetSnap("full");
   $$("#spot-header").innerText = `${data.lat.toFixed(4)}, ${data.lon.toFixed(4)}`;
+  // Reset the name and share title to their unnamed defaults: the name only arrives
+  // once handleMarkerClick's fetch lands, and the previous spot's must not linger.
+  const nameEl = $$("#spot-name");
+  nameEl.textContent = "";
+  nameEl.hidden = true;
+  // Same reason as the name: photos arrive with handleMarkerClick's fetch, so the
+  // previous spot's must not still be on screen while this one's are in flight.
+  renderSpotPhotos(data.rides);
+  $$("#share-spot-btn").dataset.shareTitle = tr("Hitchhiking spot on Hitchwiki Maps");
   $$("#spot-google-link").href = window.ontouchstart
     ? `geo:${data.lat},${data.lon}`
     : `https://www.google.com/maps/place/${data.lat},${data.lon}`;
@@ -2155,7 +3163,27 @@ function markerClick(marker) {
     hitchBtn.onclick = function () {
       if (!window.inride || !window.L) return;
       clear(); // close the spot sheet before the waiting UI takes over
-      window.inride.journeyFlow.startFromChoose(L.latLng(data.lat, data.lon));
+      window.inride.journeyFlow.startFromChoose(
+        L.latLng(data.lat, data.lon),
+        "spot-sheet",
+      );
+    };
+  }
+
+  // "Log a past ride" — the other half of the same row: the /ride form, seeded with this
+  // spot's coordinates so a ride logged from here lands on the existing anchor instead of
+  // a new one a few metres off. Same sessionStorage handoff the star rating below uses.
+  const logPastBtn = $$("#spot-log-past");
+  if (logPastBtn) {
+    logPastBtn.onclick = function () {
+      sessionStorage.setItem("rideFormData", JSON.stringify({
+        pickup_lat: data.lat,
+        pickup_lon: data.lon,
+        destination_lat: "",
+        destination_lon: "",
+      }));
+      hmTrack("add_ride_clicked", { source: "spot-sheet" });
+      window.location.href = "/ride";
     };
   }
 
@@ -2189,36 +3217,14 @@ function markerClick(marker) {
   // fragment when auto-linking a pasted URL, so a `/#lat,lon` link arrived
   // without coordinates. The #map= viewport is appended for recipients whose
   // client keeps it, and is safely ignorable when it's stripped.
+  // Deliberately without the /<lang> prefix even when the sharer is reading a
+  // translation: /spot/<id> is the canonical, indexable address of the spot (the
+  // mirrors are noindex — see LANG_MIRROR_NOINDEX_PREFIXES in hitch/__init__.py),
+  // and the recipient gets the page in their own language rather than the sharer's.
   const spotPath = `/spot/${data.lat.toFixed(5)}_${data.lon.toFixed(5)}`;
   const spotUrl = `${location.origin}${spotPath}#map=17/${data.lat.toFixed(5)}/${data.lon.toFixed(5)}`;
-  const shareText = `Hitchhiking spot at ${data.lat.toFixed(4)}, ${data.lon.toFixed(4)}`;
-  const shareBtn = $$("#share-spot-btn");
-  const shareMenu = $$("#share-spot-menu");
-
-  if (navigator.share) {
-    shareMenu.hidden = true;
-    shareBtn.onclick = () => navigator.share({ title: shareText, url: spotUrl });
-  } else {
-    shareBtn.onclick = (e) => {
-      e.stopPropagation();
-      shareMenu.hidden = !shareMenu.hidden;
-    };
-    document.addEventListener('click', () => { shareMenu.hidden = true; }, { once: false });
-
-    $$("#share-copy-link").onclick = (e) => {
-      e.preventDefault();
-      navigator.clipboard.writeText(spotUrl).then(() => {
-        const orig = $$("#share-copy-link").textContent;
-        $$("#share-copy-link").textContent = 'Copied!';
-        setTimeout(() => { $$("#share-copy-link").textContent = orig; }, 1500);
-      });
-      shareMenu.hidden = true;
-    };
-
-    $$("#share-whatsapp").href = `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + spotUrl)}`;
-    $$("#share-telegram").href = `https://t.me/share/url?url=${encodeURIComponent(spotUrl)}&text=${encodeURIComponent(shareText)}`;
-    $$("#share-signal").href = `sgnl://send?text=${encodeURIComponent(shareText + ' ' + spotUrl)}`;
-  }
+  // The shared delegated handler in base.html reads data-share-url at click time.
+  $$("#share-spot-btn").dataset.shareUrl = spotUrl;
 }
 
 function bar(selector) {
@@ -2372,18 +3378,26 @@ function updateBottomPaneVar() {
   }
 }
 
-function setupSpotSheet() {
-  const sheet = $$(".sidebar.show-spot");
-  const closeBtn = $$("#spot-close");
-  if (!sheet) return;
-  if (closeBtn) closeBtn.onclick = navigateHome;
-
+// Measure the pane once and keep it up to date. Must run BEFORE the spots fetch,
+// not after it with the rest of the UI wiring: everything anchored to
+// --bottom-pane-h (the in-ride launcher and dock, the outbox chip, the toast) falls
+// back to a 0px pane while the var is unset, which put those elements on top of the
+// bottom action pane for the whole of the initial load and then jumped them upwards
+// once markers finished.
+function setupBottomPaneVar() {
   updateBottomPaneVar();
   if (document.fonts && document.fonts.ready) {
     document.fonts.ready.then(updateBottomPaneVar);
   }
   window.addEventListener("resize", updateBottomPaneVar);
   window.addEventListener("orientationchange", updateBottomPaneVar);
+}
+
+function setupSpotSheet() {
+  const sheet = $$(".sidebar.show-spot");
+  const closeBtn = $$("#spot-close");
+  if (!sheet) return;
+  if (closeBtn) closeBtn.onclick = navigateHome;
 
   setupBottomSheet({
     sheet,
@@ -2458,33 +3472,481 @@ function setupEventSheet() {
   });
 }
 
-function showSuccessOverlay() {
+// The ride form stashes the facts of the just-submitted ride here before the
+// full-page POST navigates away — the redirect is a bare /#success, so this is the
+// only way the success overlay can know what was logged.
+const LAST_RIDE_KEY = "hmLastRide";
+
+function takeLastRide() {
+  try {
+    const raw = sessionStorage.getItem(LAST_RIDE_KEY);
+    // Consumed once: a later /#success (a duplicate report, a reload) must not
+    // offer a card for a ride that was already shared.
+    sessionStorage.removeItem(LAST_RIDE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// The trip the in-ride tracker grouped a finished journey's rides into, or null.
+//
+// Held rather than rendered on arrival because the two events race in both directions:
+// the grouping POST only resolves once every ride of the journey has uploaded, while an
+// anonymous journey shows the sign-up nudge first and opens the success overlay later.
+// Whichever happens second does the rendering.
+let lastTripCreated = null;
+
+// Whether the visitor shared before leaving the currently-open success overlay. Read by
+// `close` so that a share followed by the × is not also counted as a dismissal — a
+// dismiss means "left without sharing", which is what makes it the funnel's drop-off.
+let shareCompleted = false;
+let shareVariant = "control";
+const chooseVariant = window.hmVariant || function (_name, variants) { return variants[0]; };
+
+function trackRideShare(properties) {
+  const primary = hmTrack("ride_share", Object.assign({ variant: shareVariant }, properties));
+  const outcomeEvent = {
+    clicked: "ride_share_clicked",
+    shared: "ride_share_shared",
+    dismiss: "ride_share_dismissed",
+  }[properties.action];
+  if (outcomeEvent) {
+    // Umami's tracker (script.js) keeps one session-cache token that only advances once
+    // a request's response has landed, and stamps every outgoing event with whatever
+    // value it currently holds. Two hmTrack calls fired in the same synchronous tick
+    // both read the same (stale) token before either response arrives, so the second
+    // request collides with the first server-side and is dropped -- confirmed live:
+    // ride_share_clicked/ride_share_shared read exactly 0 events ever, against hundreds
+    // of ride_share fires with action=clicked/shared, and this was the only call site
+    // in the whole app that fired two hmTrack events back to back. Chaining off the
+    // first call's own promise lets its response update the token first.
+    Promise.resolve(primary).then(function () {
+      hmTrack(outcomeEvent, Object.assign({ variant: shareVariant }, properties));
+    });
+  }
+}
+
+// `opts` is how a caller that never navigated hands the ride in directly:
+// {ride, dTag}. The /ride form's redirect can't do that (the POST navigates away), so
+// it goes through sessionStorage + ?ride= instead; the in-ride tracker, which submits
+// over fetch and stays on the page, passes its last logged ride here.
+function showSuccessOverlay(opts) {
   const overlay = $$("#success-overlay");
-  if (overlay) {
-    overlay.style.display = "flex";
-    
-    // Add click handler for the close button
-    const closeBtn = $$("#success-close-btn");
-    if (closeBtn) {
-      // Dismissing the overlay returns to the map the user submitted from — no
-      // navigation, so the restored viewport stays exactly where they left it.
-      closeBtn.onclick = function() {
-        overlay.style.display = "none";
+  if (!overlay) return;
+  overlay.style.display = "flex";
+  shareVariant = chooseVariant("ride-share-value-v1", ["control", "help-friend"]);
+  hmTrack("ride_share_exposure", { variant: shareVariant });
+  const shareTitle = $$("#success-share-block h2");
+  const shareSub = $$("#success-share-block .success-share-sub");
+  const shareButton = $$("#success-share-btn");
+  if (shareTitle) {
+    shareTitle.textContent = tr(
+      shareVariant === "help-friend" ? "Help a friend try hitchhiking" : "Show your friends"
+    );
+  }
+  if (shareSub) {
+    shareSub.textContent = tr(
+      shareVariant === "help-friend"
+        ? "Share a real ride and show them where hitchhiking worked for you."
+        : "Send them the map of your ride — it's how most hitchhikers find us."
+    );
+  }
+  if (shareButton) {
+    shareButton.textContent = tr(
+      shareVariant === "help-friend" ? "Share this ride" : "Share my ride"
+    );
+  }
+  // A trip note belongs to the journey that was handed in via opts. Reached from a bare
+  // #success (the /ride form's redirect) there is no journey, so anything left over from
+  // an earlier one in this session must not show.
+  if (!opts) lastTripCreated = null;
+  renderTripCreatedNote();
+  renderReturnNudge();
+  shareCompleted = false;
+
+  // Dismissing the overlay returns to the map the user submitted from — no
+  // navigation, so the restored viewport stays exactly where they left it. Every
+  // exit is available without sharing: the ×, "Not now", the backdrop, and Esc.
+  let closed = false;
+  const close = function (via) {
+    // Guarded because the dismiss below must be counted once per overlay, and the exits
+    // can overlap (Esc while the pointer is going down on the backdrop).
+    if (closed) return;
+    closed = true;
+    // All four exits report, not just "Not now": the ×, the backdrop and Esc used to
+    // close silently, so the dismiss count was an undercount of abandonment rather than
+    // a measure of it. `via` says which one, so the button can still be read on its own.
+    if (!shareCompleted) trackRideShare({ action: "dismiss", via: via || "other" });
+    overlay.style.display = "none";
+    document.removeEventListener("keydown", onKey);
+    lastTripCreated = null; // the note has been seen; the next journey brings its own
+  };
+  const onKey = function (e) {
+    if (e.key === "Escape") close("esc");
+  };
+  document.addEventListener("keydown", onKey);
+  const closeBtn = $$("#success-close-btn");
+  if (closeBtn) {
+    closeBtn.onclick = function () {
+      close("not-now");
+    };
+  }
+  const dismissBtn = $$("#success-dismiss");
+  // Wrapped rather than passed straight through: the handler's argument is the click
+  // event, which would land in `via` as an object.
+  if (dismissBtn) {
+    dismissBtn.onclick = function () {
+      close("x");
+    };
+  }
+  // feedback_form_responses_total has read exactly 0 for 3+ days against ~800
+  // overlay views/week -- previously unknown whether that meant "nobody clicks"
+  // or "people click but don't finish the form." This is the only way to tell
+  // them apart from here (the link is target="_blank", so this fires alongside
+  // the real navigation, not instead of it).
+  const feedbackLink = $$("#success-feedback-link");
+  if (feedbackLink) {
+    feedbackLink.onclick = function () {
+      hmTrack("feedback_link_clicked", { source: "success-overlay" });
+    };
+  }
+  overlay.onclick = function (e) {
+    if (e.target === overlay) close("backdrop");
+  };
+
+  setupShareCard(opts);
+}
+
+function renderTripCreatedNote() {
+  const note = $$("#success-trip-note");
+  if (!note) return; // an old cached copy of the overlay markup (see setupShareCard)
+  note.textContent = "";
+  note.style.display = "none";
+  if (!lastTripCreated || !lastTripCreated.url) return;
+  const link = document.createElement("a");
+  link.href = lastTripCreated.url;
+  link.textContent = lastTripCreated.name || tr("your trip");
+  note.textContent = tr("Your rides were grouped into a trip:") + " ";
+  note.appendChild(link);
+  note.style.display = "block";
+}
+
+// Called by inride.js once /auto-trip replies.
+function showTripCreated(trip) {
+  lastTripCreated = trip;
+  renderTripCreatedNote();
+}
+
+// Marks this browser as having completed a ride submission before, so the nudge below
+// shows exactly once per browser rather than on every success overlay. A client-side
+// proxy for "first ride" rather than a server-side one on purpose: 84% of rides carry no
+// user_id (ASSETS.md), so a per-account check would miss most submitters entirely, and
+// this is the only signal available for an anonymous one. Trade-off, not free: a cleared
+// browser or a second device reads as first-time again, and there is no way to tell that
+// apart from a real first ride from here — the dump-based retention read (EXP-005) is
+// still the accurate measure for logged-in accounts; this nudge is reach, not attribution.
+const RETURNED_BEFORE_KEY = "hmLoggedRideBefore";
+
+function renderReturnNudge() {
+  const note = $$("#success-return-nudge");
+  if (!note) return; // an old cached copy of the overlay markup (see setupShareCard)
+  if (localStorage.getItem(RETURNED_BEFORE_KEY)) {
+    note.style.display = "none";
+    return;
+  }
+  localStorage.setItem(RETURNED_BEFORE_KEY, "1");
+  note.textContent = tr(
+    "This was your first logged ride. Most first-timers never log a second one — if you hitch again, come back and add it. It takes a minute, and it's what keeps the map current."
+  );
+  note.style.display = "block";
+  hmTrack("first_ride_nudge_shown", {});
+}
+
+// Builds the shareable image and wires the share button. Anything that goes wrong
+// (no stashed ride, no network for the tiles, a browser without canvas export)
+// degrades to sharing just the text + link — never to a broken overlay.
+function setupShareCard(opts) {
+  const block = $$("#success-share-block");
+  const shareBtn = $$("#success-share-btn");
+  const status = $$("#share-card-status");
+  const img = $$("#share-card-img");
+  const caption = $$("#share-card-caption");
+  // sw.js caches "/", so a returning visitor can run this (new) map.js against a
+  // cached copy of the old overlay markup. Bail out to the plain success message
+  // rather than throwing on the missing elements.
+  if (!shareBtn || !status || !img || !caption) return;
+  // A caller that handed the ride in directly wins over the stash — but the stash is
+  // still consumed, so a stale entry can't resurface on the next plain /#success.
+  const stashed = takeLastRide();
+  const ride = (opts && opts.ride) || stashed;
+
+  // The submit redirect carries the new ride's d tag as ?ride=<d_tag>. Read it, then
+  // drop it from the URL: it is a one-shot hand-off, not part of the map's address.
+  // replaceState, not pushState — canonicalising is not a navigation.
+  const params = new URLSearchParams(window.location.search);
+  const urlDTag = params.get("ride");
+  if (urlDTag) history.replaceState({}, "", "/" + window.location.hash);
+  // May be a promise: the in-ride tracker opens this overlay while the last ride is
+  // still uploading, and the d tag it links to only exists once the server replies.
+  const dTag = (opts && opts.dTag) || urlDTag;
+
+  let card = null;
+
+  const shareTextOnly = function () {
+    // Fallback link when we never learned where the ride started: the map itself.
+    const url = card ? card.url : window.location.origin + "/";
+    const text = card ? card.text : tr("Check out Hitchwiki Maps — the hitchhiking map");
+    return doShare({ text: text, url: url, files: null });
+  };
+
+  if (!ride || !window.hmShareCard) {
+    // Nothing to draw — keep the nudge, drop the picture.
+    if (block) block.style.display = "none";
+    shareBtn.textContent = tr("Share Hitchwiki Maps");
+    shareBtn.onclick = shareTextOnly;
+    return;
+  }
+
+  shareBtn.disabled = true;
+  Promise.resolve(dTag)
+    .then(function (resolved) {
+      return window.hmShareCard.build(ride, resolved);
+    })
+    .then(function (result) {
+      card = result;
+      img.src = result.dataUrl;
+      img.style.display = "block";
+      status.style.display = "none";
+      caption.textContent = result.text;
+      shareBtn.disabled = false;
+      shareBtn.onclick = function () {
+        return doShare({ text: result.text, url: result.url, files: [result.blob] });
       };
+    })
+    .catch(function (err) {
+      console.warn("share card failed", err);
+      if (block) block.style.display = "none";
+      shareBtn.disabled = false;
+      shareBtn.onclick = shareTextOnly;
+    });
+
+  // Native share sheet with the image attached where that is supported; otherwise
+  // copy the text + link and download the image so it can still be attached by hand.
+  function doShare(payload) {
+    const message = payload.text + " " + payload.url;
+    const file =
+      payload.files && typeof File === "function"
+        ? new File(payload.files, "hitchwiki-ride.png", { type: "image/png" })
+        : null;
+    const canShareFile = !!(
+      file &&
+      navigator.canShare &&
+      navigator.canShare({ files: [file] }) &&
+      navigator.share
+    );
+
+    // The click itself, before the OS share sheet opens. Only completed shares were
+    // reported before, and backing out of the sheet is deliberately silent below, so a
+    // visitor who opened it and changed their mind was indistinguishable from one who
+    // never pressed the button. `mode` is the path this click is about to take, so it
+    // pairs with the "shared" event of the same mode; `card` says whether there was a
+    // picture to share or only the text fallback.
+    trackRideShare({
+      action: "clicked",
+      mode: canShareFile ? "image" : navigator.share ? "link" : "copy",
+      card: !!card,
+    });
+
+    // The URL goes inside the text rather than in `url`: share targets that accept
+    // files routinely drop the separate url field, which would strip the link.
+    if (canShareFile) {
+      return navigator
+        .share({ files: [file], text: message })
+        .then(function () { shareCompleted = true; trackRideShare({ action: "shared", mode: "image" }); })
+        .catch(function (err) {
+          if (err && err.name === "AbortError") return; // backing out is not a failure
+          return copyFallback(message, payload.files);
+        });
     }
-    
-    // Close overlay when clicking outside the content
-    overlay.onclick = function(e) {
-      if (e.target === overlay) {
-        overlay.style.display = "none";
-      }
+    if (navigator.share) {
+      return navigator
+        .share({ title: "Hitchwiki Maps", text: payload.text, url: payload.url })
+        .then(function () { shareCompleted = true; trackRideShare({ action: "shared", mode: "link" }); })
+        .catch(function (err) {
+          if (err && err.name === "AbortError") return;
+          return copyFallback(message, payload.files);
+        });
+    }
+    return copyFallback(message, payload.files);
+  }
+
+  function copyFallback(message, blobs) {
+    if (blobs && blobs.length && card) {
+      const a = document.createElement("a");
+      a.href = card.dataUrl;
+      a.download = "hitchwiki-ride.png";
+      a.click();
+    }
+    const done = function () {
+      shareCompleted = true;
+      trackRideShare({ action: "shared", mode: "copy" });
+      shareBtn.textContent = tr("Copied — paste it anywhere!");
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(message).then(done, function () {
+        window.prompt(tr("Copy this:"), message);
+        done();
+      });
+    }
+    window.prompt(tr("Copy this:"), message);
+    done();
+  }
+}
+
+// The post-submit sign-up nudges are shown at most once per browser — a prompt that
+// returns after every anonymous ride is nagging, and a second impression tells us
+// nothing new about whether the first one converted.
+const SIGNUP_PROMPT_SEEN_KEY = "signupPromptSeen";
+const INVITE_PROMPT_SEEN_KEY = "invitePromptSeen";
+
+function promptSeen(key) {
+  try {
+    return localStorage.getItem(key) === "1";
+  } catch (e) {
+    // No localStorage (private mode / blocked storage) means we can't remember a
+    // dismissal, so treat the prompt as already seen rather than show it forever.
+    return true;
+  }
+}
+
+function markPromptSeen(key) {
+  try {
+    localStorage.setItem(key, "1");
+  } catch (e) {}
+}
+
+// Fire-and-forget: the overlays are client-side, so this is the only way the server
+// learns whether they drive sign-ups. sendBeacon survives the page navigating to /login.
+function logSignupPrompt(prompt, action) {
+  // Mirrored into Umami so the sign-up nudge shows up as a step in the same
+  // funnel as the rest of the flow; the server-side log stays as the durable
+  // record (it survives ad-blockers, which drop the tracker entirely).
+  hmTrack('signup_prompt', { prompt: prompt, action: action });
+  try {
+    const blob = new Blob([JSON.stringify({ prompt: prompt, action: action })], {
+      type: "application/json",
+    });
+    if (navigator.sendBeacon) navigator.sendBeacon("/log-signup-prompt", blob);
+  } catch (e) {}
+}
+
+function showSignupPromptOverlay(opts) {
+  const overlay = $$("#signup-prompt-overlay");
+  if (!overlay) return showSuccessOverlay(opts);
+  markPromptSeen(SIGNUP_PROMPT_SEEN_KEY);
+  logSignupPrompt("anon-signup", "shown");
+  overlay.style.display = "flex";
+
+  // Both buttons are explicit, and the backdrop deliberately doesn't dismiss: an
+  // unlogged exit would leave the conversion numbers unreadable.
+  $$("#signup-prompt-yes").onclick = function () {
+    logSignupPrompt("anon-signup", "signup");
+    window.location.href = "/login?source=anon-signup";
+  };
+  $$("#signup-prompt-no").onclick = function () {
+    logSignupPrompt("anon-signup", "stay-anonymous");
+    overlay.style.display = "none";
+    showSuccessOverlay(opts);
+  };
+  // Same feedback_link_clicked event as the success overlay's own copy of this
+  // link -- source distinguishes which placement it fired from.
+  const feedbackLink = $$("#signup-prompt-feedback-link");
+  if (feedbackLink) {
+    feedbackLink.onclick = function () {
+      hmTrack("feedback_link_clicked", { source: "signup-prompt" });
     };
   }
 }
 
+// The OAuth callback adds this one-time marker when the anonymous post-ride
+// prompt's login completes -- "account-created" for a brand-new Maps account,
+// "logged-in" for a visitor who already had one (oauth.py's
+// _existing_user_target; without this second marker, a real successful
+// login through this exact flow was invisible to signup_prompt tracking,
+// undercounting the true completion rate). Track it through the same
+// analytics + durable server-log path as the prompt choices, then remove it
+// immediately so refresh/back does not count the login twice.
+function trackSignupPromptAccountCreated() {
+  const url = new URL(window.location.href);
+  const outcome = url.searchParams.get("signup_prompt");
+  if (outcome !== "account-created" && outcome !== "logged-in") return;
+  logSignupPrompt("anon-signup", outcome);
+  url.searchParams.delete("signup_prompt");
+  window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+}
+
+trackSignupPromptAccountCreated();
+
+function showInvitePromptOverlay(opts) {
+  const overlay = $$("#invite-prompt-overlay");
+  if (!overlay) return showSuccessOverlay(opts);
+  markPromptSeen(INVITE_PROMPT_SEEN_KEY);
+  logSignupPrompt("co-hitchhiker-invite", "shown");
+  overlay.style.display = "flex";
+
+  // The invite carries the inviter's name so a sign-up arriving through it is
+  // attributable in the access log.
+  const url =
+    window.location.origin +
+    "/login" +
+    (window.USERNAME ? "?invite=" + encodeURIComponent(window.USERNAME) : "");
+  const shareBtn = $$("#invite-prompt-share");
+  const done = function () {
+    overlay.style.display = "none";
+    showSuccessOverlay(opts);
+  };
+
+  shareBtn.onclick = async function () {
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: tr("Join me on Hitchwiki Maps"), url: url });
+        logSignupPrompt("co-hitchhiker-invite", "invite");
+        return done();
+      }
+    } catch (err) {
+      // Backing out of the share sheet is not a decision — leave the overlay up
+      // and log nothing, so they can still share or skip.
+      if (err && err.name === "AbortError") return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      shareBtn.textContent = tr("Link copied!");
+    } catch (e) {
+      window.prompt(tr("Copy this invite link:"), url);
+    }
+    logSignupPrompt("co-hitchhiker-invite", "invite");
+    setTimeout(done, 1500);
+  };
+  $$("#invite-prompt-skip").onclick = function () {
+    logSignupPrompt("co-hitchhiker-invite", "skip");
+    done();
+  };
+}
+
+// Entry point for the three post-submit hashes. Each nudge falls through to the
+// plain success overlay once it has had its one showing.
+function showPostSubmitOverlay(kind, opts) {
+  if (kind === "anon" && !promptSeen(SIGNUP_PROMPT_SEEN_KEY)) showSignupPromptOverlay(opts);
+  else if (kind === "invite" && !promptSeen(INVITE_PROMPT_SEEN_KEY)) showInvitePromptOverlay(opts);
+  else showSuccessOverlay(opts);
+}
 
 
-function arrowLine(from, to, opts = {}) {
+
+// The arrow heads carry the whole drawing (the connecting line is not stroked), so
+// the pane below is where a destination arrow actually lives.
+function arrowLine(from, to) {
   return L.polylineDecorator([from, to], {
     patterns: [
       {
@@ -2508,20 +3970,20 @@ function arrowLine(from, to, opts = {}) {
 }
 
 function renderPoints() {
+  // The per-ride highlight is drawn from the open spot's marker; a re-render means the
+  // selection (or the filtered ride set behind those cards) has changed, so it can no
+  // longer refer to anything the pane is showing.
+  clearRideDestHighlight();
   if (destLineGroup) destLineGroup.remove();
 
   destLineGroup = L.layerGroup();
-
-  let opts = document.body.classList.contains("filtering")
-    ? { pane: "filtering" }
-    : {};
 
   for (let a of active) {
     let lats = a.options._data.dest_lats;
     let lons = a.options._data.dest_lons;
     if (lats && lats.length) {
       for (let i in lats) {
-        arrowLine(a.getLatLng(), [lats[i], lons[i]], opts).addTo(destLineGroup);
+        arrowLine(a.getLatLng(), [lats[i], lons[i]]).addTo(destLineGroup);
       }
     }
   }
@@ -2611,52 +4073,11 @@ function storageAvailable(type) {
   }
 }
 
-function exportAsGPX() {
-  var script = document.createElement("script");
-  script.src = "https://cdn.jsdelivr.net/npm/togpx@0.5.4/togpx.js";
-  script.onload = function () {
-    let features = allMarkers.map((m) => ({
-      type: "Feature",
-      properties: {
-        text: summaryText(m.options._data) + "\n\n" + m.options._data.text,
-        url: `https://maps.hitchwiki.org/${m.options._data.lat},${m.options._data.lon}`,
-      },
-      geometry: {
-        coordinates: [m.options._data.lon, m.options._data.lat],
-        type: "Point",
-      },
-    }));
-    let geojson = {
-      type: "FeatureCollection",
-      features,
-    };
-
-    let div = document.createElement("div");
-    function toPlainText(html) {
-      div.innerHTML = html.replace(/\<(b|h)r\>/g, "\n");
-      return div.textContent;
-    }
-
-    let gpxStr = togpx(geojson, {
-      creator: "Hitchwiki Maps",
-      featureDescription: (f) => toPlainText(f.text),
-      featureLink: (f) => f.url,
-    });
-
-    function downloadGPX(data) {
-      const blob = new Blob([data], { type: "application/gpx+xml" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "hitchhiking.gpx";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-
-    downloadGPX(gpxStr);
-  };
-  document.body.appendChild(script);
-}
+// The GPX export used to be built here from `allMarkers` via a CDN copy of togpx.
+// It is now the pre-generated /spots.gpx (hitch/scripts/show.py, write_spots_gpx),
+// linked directly from the menu: the browser only ever holds spots.json, which
+// carries no spot name, waiting time or ride distance, so every description this
+// produced read "Waiting time: -" and no marker had a name.
 
 const recentToggle = document.getElementById("recent-toggle");
 const osmToggle = document.getElementById("osm-toggle");
@@ -2682,21 +4103,175 @@ const vehicleFilter = document.getElementById("vehicle-filter");
 const methodFilter = document.getElementById("method-filter");
 const minDateFilter = document.getElementById("min-date-filter");
 const maxDateFilter = document.getElementById("max-date-filter");
+const weekdayFilter = document.getElementById("weekday-filter");
 const clearFilters = document.getElementById("clear-filters");
 
-function setQueryParameter(key, value) {
-  const url = new URL(window.location.href); // Get the current URL
+// Values of #weekday-filter, in the same Monday-first order as the weekday tables.
+// Stable English keys rather than indices so a shared ?weekday=sat link stays readable
+// and means the same day whatever language the recipient opens it in.
+const WEEKDAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
-  // Set or update the query parameter
-  if (value) {
-    url.searchParams.set(key, value);
-  } else {
-    url.searchParams.delete(key);
+// The Monday-0 weekday indices the filter currently selects, or null when it's off.
+function selectedWeekdays() {
+  const v = weekdayFilter.value;
+  if (!v) return null;
+  if (v === "weekdays") return new Set([0, 1, 2, 3, 4]);
+  if (v === "weekend") return new Set([5, 6]);
+  const i = WEEKDAY_KEYS.indexOf(v);
+  return i < 0 ? null : new Set([i]);
+}
+
+// ---------------------------------------------------------------------------
+// Ride-level filters
+//
+// A filter that describes a *ride* — who logged it, what it was, when it happened —
+// answers two questions: which spots stay on the map, and which rides the open spot
+// pane lists. Both come from the one predicate below, or a spot would survive a
+// "Saturdays only" filter and then show you its Tuesday rides.
+// ---------------------------------------------------------------------------
+
+// The rides in a spot pane (rides/by-spot/<id>.json and /pending_rides.json) and the
+// entries in rides_index.json describe the same rides under different key names — the
+// index is short-keyed because every visitor downloads it. These accessors are the one
+// place that knows both names, so the predicate below doesn't care which shape it was
+// handed. Written as accessors rather than one normalising object because the predicate
+// runs over all ~74k index entries on every keystroke in the search box: each check
+// then costs only the field it actually reads, and nothing is allocated per ride.
+//
+// Tested on `undefined`, not null: the index always carries its keys (null when the
+// ride lacks the fact), while the per-spot files omit the sparse ones entirely.
+function rideUser(r) {
+  return r.u !== undefined ? r.u : r.hitchhiker_name;
+}
+function rideVehicle(r) {
+  return r.v !== undefined ? r.v : r.vehicle_kind;
+}
+function rideMethods(r) {
+  return r.m !== undefined ? r.m : r.signal_methods;
+}
+function rideKm(r) {
+  return r.km !== undefined ? r.km : r.distance;
+}
+// The index ships a 200-char excerpt, the per-spot file the whole comment, so a needle
+// past that cut matches in the pane but not on the map. Erring towards showing the ride
+// is the right way round for a search box.
+function rideComment(r) {
+  return r.c !== undefined ? r.c : r.comment;
+}
+// Epoch ms from either an already-parsed index timestamp or an ISO string; null when
+// the ride has no such time.
+function rideStampMs(v) {
+  if (typeof v === "number") return v;
+  if (!v) return null;
+  const ms = Date.parse(v);
+  return Number.isNaN(ms) ? null : ms;
+}
+function rideDatetimeMs(r) {
+  return rideStampMs(r.rd !== undefined ? r.rd : r.ride_datetime);
+}
+function rideSubmittedMs(r) {
+  return rideStampMs(r.t !== undefined ? r.t : r.submission_time);
+}
+
+// The weekday a ride counts as, or null when it carries no usable date. Read off the
+// ride's own datetime, falling back to when it was logged — the same rule the ride
+// card's printed date follows, so the filter always agrees with what you see. Keying
+// on the ride datetime alone would be purer but would hide 87% of rides, since only a
+// minority of records carry one at all.
+function rideWeekday(r) {
+  const ms = rideDatetimeMs(r) != null ? rideDatetimeMs(r) : rideSubmittedMs(r);
+  return ms == null ? null : weekdayIndex(new Date(ms));
+}
+
+// One predicate for every filter that describes the ride itself, or null when none of
+// them is active (so callers can skip the work entirely rather than filter by a
+// tautology). MediaWiki-style username match: only the first letter is
+// case-insensitive, the rest matches as typed.
+//
+// `attributesOnly` leaves out min-distance and Last-24h, which applyParams answers at
+// marker level instead — against the spot's whole destination list and its newest
+// ride — so that path keeps choosing spots exactly as it did before.
+function buildRideFilter({ attributesOnly = false } = {}) {
+  const normalizeFirstLetter = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+  const username = userFilter.value ? normalizeFirstLetter(userFilter.value) : null;
+  const wantedKind = vehicleFilter.value || null;
+  const wantedMethod = methodFilter.value || null;
+  const minMs = minDateFilter.value ? Date.parse(minDateFilter.value + "T00:00:00Z") : null;
+  // The max bound covers the end of its day so a user-entered max date is inclusive.
+  const maxMs = maxDateFilter.value ? Date.parse(maxDateFilter.value + "T23:59:59.999Z") : null;
+  const wantedWeekdays = selectedWeekdays();
+  const commentNeedle = textFilter.value ? textFilter.value.toLowerCase() : null;
+  // The box is typed in the user's unit; ride distances are always km, so convert
+  // before comparing.
+  const minKm = !attributesOnly && distanceFilter.value ? fromDisplayDistance(parseFloat(distanceFilter.value)) : null;
+  const recentCutoffMs = !attributesOnly && recentToggle.checked ? Date.now() - 24 * 60 * 60 * 1000 : null;
+
+  if (
+    !username && !wantedKind && !wantedMethod && minMs == null && maxMs == null &&
+    !wantedWeekdays && !commentNeedle && minKm == null && recentCutoffMs == null
+  ) {
+    return null;
   }
 
-  // Update the URL without reloading
+  return (ride) => {
+    if (username) {
+      const user = rideUser(ride);
+      if (!(user && normalizeFirstLetter(user).includes(username))) return false;
+    }
+    // Treat rides with unspecified vehicle as cars, since most rides are cars.
+    if (wantedKind) {
+      const vehicle = rideVehicle(ride);
+      if (vehicle !== wantedKind && !(wantedKind === "car" && vehicle == null)) return false;
+    }
+    // Method filter: keep rides whose method list contains the selected method.
+    if (wantedMethod) {
+      const methods = rideMethods(ride);
+      if (!(Array.isArray(methods) && methods.includes(wantedMethod))) return false;
+    }
+    if (minMs != null || maxMs != null) {
+      const ms = rideDatetimeMs(ride);
+      if (ms == null) return false;
+      if (minMs != null && ms < minMs) return false;
+      if (maxMs != null && ms > maxMs) return false;
+    }
+    if (wantedWeekdays) {
+      const wd = rideWeekday(ride);
+      if (wd == null || !wantedWeekdays.has(wd)) return false;
+    }
+    if (commentNeedle) {
+      const comment = rideComment(ride);
+      if (!(comment && comment.toLowerCase().includes(commentNeedle))) return false;
+    }
+    if (minKm != null) {
+      const km = rideKm(ride);
+      if (!(km != null && km >= minKm)) return false;
+    }
+    if (recentCutoffMs != null) {
+      const submitted = rideSubmittedMs(ride);
+      if (!(submitted != null && submitted >= recentCutoffMs)) return false;
+    }
+    return true;
+  };
+}
+
+// Write several query parameters in ONE history entry and ONE navigate().
+// Writing them one at a time makes the URL pass through a state that describes a
+// mode nobody asked for (dropping ?heatmap before adding ?mapmode=countries reads
+// as "spots" in between), and each intermediate write kicks off its own async
+// applyParams() -> applyMapMode(); the loser of that race then overwrites the mode
+// the user actually picked. See setMapMode.
+function setQueryParameters(entries) {
+  const url = new URL(window.location.href);
+  Object.entries(entries).forEach(([key, value]) => {
+    if (value) url.searchParams.set(key, value);
+    else url.searchParams.delete(key);
+  });
   window.history.replaceState({}, "", url.toString());
   navigate();
+}
+
+function setQueryParameter(key, value) {
+  setQueryParameters({ [key]: value });
 }
 
 function getQueryParameter(key) {
@@ -2723,8 +4298,57 @@ function clearParams() {
 // input so old shared links keep resolving to the same spot.
 // ---------------------------------------------------------------------------
 
+// Every route is mirrored under /<lang> for each non-English language (the server
+// registers main_bp/user_bp once per language), so the map is served at /de/spot/<id>
+// just as much as at /spot/<id>. The path regexes below stay root-anchored and are
+// matched against appPath(); writers put the prefix back. Without this a shared
+// /mn/spot/<id> link opened the bare world map — the spot was named by a path nothing
+// recognised — and that empty page is what Google indexed.
+const LANG_PREFIX = window.__LANG__ && window.__LANG__ !== "en" ? `/${window.__LANG__}` : "";
+
+// The current path with that prefix removed: "/de/spot/x_y" -> "/spot/x_y".
+function appPath(pathname) {
+  const p = pathname === undefined ? window.location.pathname : pathname;
+  if (!LANG_PREFIX) return p;
+  if (p === LANG_PREFIX) return "/";
+  return p.startsWith(`${LANG_PREFIX}/`) ? p.slice(LANG_PREFIX.length) : p;
+}
+
+// The inverse: a root-relative app path as it must appear in the address bar, so
+// navigating within the map keeps the language the visitor is reading. The map root
+// keeps its trailing slash ("/fi/", not "/fi") — that is the URL Flask serves the
+// mirror at, and the one sw.js caches it under; "/fi" only 308s onto it.
+function langPath(path) {
+  return path === "/" ? `${LANG_PREFIX}/` : LANG_PREFIX + path;
+}
+
 const MAP_HASH_RE = /^#?map=(\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)$/;
 const SPOT_PATH_RE = /^\/spot\/(-?\d+\.\d+)_(-?\d+\.\d+)\/?$/;
+// /country/<name> — the indexable form of the older #country/<name>. A fragment
+// never reaches the server and is stripped by crawlers, so every country shared
+// the single URL "/" and none could rank or carry its own description.
+const COUNTRY_PATH_RE = /^\/country\/([^/]+)\/?$/;
+
+// The country named by the path, or null. The legacy hash is handled separately
+// in navigate(), which rewrites it to this path.
+function countryFromUrl() {
+  const m = COUNTRY_PATH_RE.exec(appPath());
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+// Point the address bar at a country without reloading. pushState, not replace:
+// opening a country sheet IS a navigation, so back should close it — except when
+// we are only canonicalising the legacy #country/<name> form, where pushing would
+// leave the back button on a URL that immediately reopens the same sheet.
+function setCountryUrl(name, canonicalising) {
+  const url = new URL(window.location.href);
+  const path = `/country/${encodeURIComponent(name)}`;
+  if (appPath(url.pathname) === path && !url.hash) return;
+  url.pathname = langPath(path);
+  // Drop a #country/<name> hash we are replacing; keep a #map= viewport.
+  if (url.hash && !parseMapHash(url.hash)) url.hash = "";
+  window.history[canonicalising ? "replaceState" : "pushState"]({}, "", url);
+}
 // Shared route permalink, written by routing.js (updateShareUrl) and served by
 // Flask's render_directions so the link can carry its own OpenGraph preview.
 const DIR_PATH_RE = /^\/dir\/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)\/?$/;
@@ -2732,10 +4356,10 @@ const DIR_PATH_RE = /^\/dir\/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+
 // The path the map was served under (/, /light, /hitchhiking.html …). Closing a
 // spot must return here, not unconditionally to "/", or the map variations and
 // their template tweaks would be lost on the way back. A /spot/ or /dir/ path is
-// selection state, not a variation — both close back to "/".
+// selection state, not a variation — both close back to "/" (in the current language).
 const BASE_PATH =
-  SPOT_PATH_RE.test(window.location.pathname) || DIR_PATH_RE.test(window.location.pathname)
-    ? "/"
+  SPOT_PATH_RE.test(appPath()) || DIR_PATH_RE.test(appPath())
+    ? langPath("/")
     : window.location.pathname;
 
 // Decimals such that one digit of the coordinate is worth about one screen
@@ -2757,7 +4381,7 @@ function parseMapHash(hash) {
 
 // The spot the current URL names, from the canonical path or a legacy link.
 function spotFromUrl() {
-  const m = SPOT_PATH_RE.exec(window.location.pathname);
+  const m = SPOT_PATH_RE.exec(appPath());
   if (m) return { lat: +m[1], lon: +m[2] };
   const lat = getQueryParameter("lat"),
     lon = getQueryParameter("lon");
@@ -2822,7 +4446,7 @@ function urlNamesSpot(lat, lon) {
 function setSpotUrl(lat, lon) {
   const url = new URL(window.location.href);
   const path = `/spot/${lat.toFixed(5)}_${lon.toFixed(5)}`;
-  const samePath = url.pathname === path;
+  const samePath = appPath(url.pathname) === path;
   const canonicalising = urlNamesSpot(lat, lon);
   const legacyParams = url.searchParams.has("lat") || url.searchParams.has("lon");
   // Keep a #map= viewport, drop any other hash (#lat,lon, #dir/…): it described
@@ -2830,7 +4454,7 @@ function setSpotUrl(lat, lon) {
   // would also stop updateMapHash() from ever tracking the map again.
   const staleHash = !!url.hash && !parseMapHash(url.hash);
   if (samePath && !legacyParams && !staleHash) return;
-  url.pathname = path;
+  url.pathname = langPath(path);
   url.searchParams.delete("lat");
   url.searchParams.delete("lon");
   if (staleHash) url.hash = "";
@@ -2841,7 +4465,15 @@ function setSpotUrl(lat, lon) {
 // hash, and the map variation we were served under are all kept.
 function clearSpotUrl() {
   const url = new URL(window.location.href);
-  if (!SPOT_PATH_RE.test(url.pathname) && !url.searchParams.has("lat") && !url.searchParams.has("lon")) {
+  // /country/<name> is pane state in the path just like /spot/<id>, so closing a
+  // pane has to reset it too — otherwise navigate() re-reads the path and
+  // immediately reopens the country sheet the user just closed.
+  if (
+    !SPOT_PATH_RE.test(appPath(url.pathname)) &&
+    !COUNTRY_PATH_RE.test(appPath(url.pathname)) &&
+    !url.searchParams.has("lat") &&
+    !url.searchParams.has("lon")
+  ) {
     return;
   }
   url.pathname = BASE_PATH;
@@ -2852,10 +4484,15 @@ function clearSpotUrl() {
 }
 
 async function applyParams() {
-  // Sync heatmap visibility with ?heatmap=true so links can deep-link into the heatmap view
-  const heatmapWanted = getQueryParameter("heatmap") == "true";
-  if (heatmapWanted !== heatmapActive) {
-    await setHeatmapActive(heatmapWanted);
+  // Sync the map mode with the URL so links can deep-link into any of the three
+  // views. This used to reconcile only the heatmap *layer*, leaving `mapMode` stale —
+  // a second owner of "is the heatmap on" that could contradict the mode switcher.
+  // Reconciling the mode itself keeps one owner; applyMapMode() rather than
+  // setMapMode() because the URL already says this, and writing it back would
+  // re-enter navigate().
+  const wantedMode = mapModeFromUrl();
+  if (wantedMode !== mapMode) {
+    await applyMapMode(wantedMode);
   }
 
   recentToggle.checked = getQueryParameter("recent") == "true";
@@ -2873,6 +4510,7 @@ async function applyParams() {
   methodFilter.value = getQueryParameter("method") || "";
   minDateFilter.value = getQueryParameter("mindate") || "";
   maxDateFilter.value = getQueryParameter("maxdate") || "";
+  weekdayFilter.value = getQueryParameter("weekday") || "";
 
   if (
     recentToggle.checked ||
@@ -2888,16 +4526,12 @@ async function applyParams() {
     vehicleFilter.value ||
     methodFilter.value ||
     minDateFilter.value ||
-    maxDateFilter.value
+    maxDateFilter.value ||
+    weekdayFilter.value
   ) {
-    if (filterMarkerGroup) filterMarkerGroup.remove();
-    if (filterDestLineGroup) filterDestLineGroup.remove();
-
     let filterMarkers = distanceFilter.value
         ? destinationMarkers
         : allMarkers;
-    // display filtering state and show filter pane
-    document.body.classList.add("filtering");
     var fp = document.getElementById('filter-pane');
     if (fp) fp.classList.add('visible');
 
@@ -2907,39 +4541,11 @@ async function applyParams() {
     // and intersecting spot IDs would falsely match a spot when one ride
     // satisfies one filter and a *different* ride at the same spot satisfies
     // another.
-    const hasRideAttrFilter =
-      userFilter.value || vehicleFilter.value || methodFilter.value || minDateFilter.value || maxDateFilter.value || textFilter.value;
-    if (hasRideAttrFilter) {
+    const rideAttrFilter = buildRideFilter({ attributesOnly: true });
+    if (rideAttrFilter) {
       const rides = await loadRidesIndex();
-      // MediaWiki-style match: only the first letter is case-insensitive, rest matches as-is
-      const normalizeFirstLetter = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
-      const username = userFilter.value ? normalizeFirstLetter(userFilter.value) : null;
-      const wantedKind = vehicleFilter.value || null;
-      const wantedMethod = methodFilter.value || null;
-      const minMs = minDateFilter.value ? Date.parse(minDateFilter.value + "T00:00:00Z") : null;
-      // The max bound covers the end of its day so a user-entered max date is inclusive.
-      const maxMs = maxDateFilter.value ? Date.parse(maxDateFilter.value + "T23:59:59.999Z") : null;
-      // Comment search runs against the truncated excerpt (`c`) in rides_index.json,
-      // so matches deep in long comments may be missed.
-      const commentNeedle = textFilter.value ? textFilter.value.toLowerCase() : null;
-
       const matchingSpotIds = new Set(
-        rides
-          .filter(ride => {
-            if (username && !(ride.u && normalizeFirstLetter(ride.u).includes(username))) return false;
-            // Treat rides with unspecified vehicle as cars, since most rides are cars.
-            if (wantedKind && ride.v !== wantedKind && !(wantedKind === "car" && ride.v == null)) return false;
-            // Method filter: keep rides whose method list contains the selected method.
-            if (wantedMethod && !(Array.isArray(ride.m) && ride.m.includes(wantedMethod))) return false;
-            if (minMs != null || maxMs != null) {
-              if (ride.rd == null) return false;
-              if (minMs != null && ride.rd < minMs) return false;
-              if (maxMs != null && ride.rd > maxMs) return false;
-            }
-            if (commentNeedle && !(ride.c && ride.c.toLowerCase().includes(commentNeedle))) return false;
-            return true;
-          })
-          .map(ride => ride.sid)
+        rides.filter(rideAttrFilter).map(ride => ride.sid)
       );
       filterMarkers = filterMarkers.filter(marker =>
         matchingSpotIds.has(marker.options.spotId)
@@ -2995,22 +4601,51 @@ async function applyParams() {
     if (hitchwikiToggle.checked) {
       filterMarkers = filterMarkers.filter((x) => !!x.options._data.wiki);
     }
-    // duplicate all markers to the filtering pane
-    filterMarkers = filterMarkers.map((spot) => {
-      let loc = spot.getLatLng();
-      let marker = new L.circleMarker(
-        loc,
-        Object.assign({}, spot.options, { pane: "filtering" })
-      );
-      marker.on("click", (e) => spot.fire("click", e));
-      return marker;
-    });
+    // Record what was asked for and how much it found, now that every filter
+    // has been applied.
+    logFilterRequest(
+      {
+        recent: recentToggle.checked,
+        osmonly: osmToggle.checked,
+        carpoolingonly: carPoolingToggle.checked,
+        fuelonly: fuelToggle.checked,
+        hitchwikionly: hitchwikiToggle.checked,
+        user: userFilter.value,
+        text: textFilter.value,
+        mindistance: distanceFilter.value,
+        minrides: minRidesFilter.value,
+        minrating: minRatingFilter.value,
+        vehicle: vehicleFilter.value,
+        method: methodFilter.value,
+        mindate: minDateFilter.value,
+        maxdate: maxDateFilter.value,
+        weekday: weekdayFilter.value,
+      },
+      filterMarkers.length
+    );
 
-    filterMarkerGroup = L.layerGroup(filterMarkers, {
-      pane: "filtering",
-    }).addTo(map);
+    setFilteredMarkers(filterMarkers);
   } else {
-    document.body.classList.remove("filtering");
+    setFilteredMarkers(null);
+    // Filters are gone: forget the last logged set so that re-applying the same
+    // filters later counts as a fresh intent rather than a duplicate.
+    clearTimeout(filterLogTimer);
+    lastLoggedFilters = null;
+  }
+
+  // Filters can be changed with a spot pane open (on #insights the pane is mounted
+  // right above the charts), so the list behind it has to be re-derived here too —
+  // otherwise the map moves and the open spot keeps showing the previous selection.
+  // Both branches: clearing the filters must put the hidden rides back.
+  refreshOpenSpotRides();
+}
+
+// Re-apply the ride filter to whichever spot pane is open, if any. No-op before its
+// rides have been fetched — handleMarkerClick renders them once they land.
+function refreshOpenSpotRides() {
+  const marker = active && active[0];
+  if (marker && marker.options && marker.options._data && marker.options._data.allRides) {
+    applySpotRideFilter(marker);
   }
 }
 
@@ -3032,6 +4667,10 @@ async function navigate() {
   if (spot) {
     mainArgs = [spot.lat, spot.lon];
   }
+
+  // Same rule as the spot path: /country/<name> names the open pane, and only a
+  // hash that is itself navigation state (the legacy #country/…) may override it.
+  const pathCountry = !mainArgs[0] || isMapHash ? countryFromUrl() : null;
 
   // #insights swaps the map for the insights view. Filter pane stays visible
   // so users can keep narrowing the selection and see the histograms update.
@@ -3063,14 +4702,23 @@ async function navigate() {
     updateBottomPaneVar();
     setSheetSnap($$(".sidebar.menu"), "full", MENU_SHEET_SNAPS);
   } else if (mainArgs[0] == "country" && args[1]) {
-    // #country/<name> opens the Hitchwiki country info sheet.
-    openCountrySheet(decodeURIComponent(args[1]));
+    // Legacy #country/<name>: open the sheet, then rewrite the URL to the
+    // indexable /country/<name> path. replaceState, since canonicalising an
+    // equivalent URL is not a navigation.
+    const legacyName = decodeURIComponent(args[1]);
+    openCountrySheet(legacyName);
+    setCountryUrl(legacyName, true);
+  } else if (pathCountry) {
+    openCountrySheet(pathCountry);
   } else if (mainArgs[0] == "select-pickup" || mainArgs[0] == "select-destination") {
     clear();
     setupLocationSelection(mainArgs[0], args[1]);
   } else if (mainArgs[0] == "success") {
     history.replaceState(null, null, " ");
     showSuccessOverlay();
+  } else if (mainArgs[0] == "success-anon" || mainArgs[0] == "success-invite") {
+    history.replaceState(null, null, " ");
+    showPostSubmitOverlay(mainArgs[0] == "success-anon" ? "anon" : "invite");
   } else if (mainArgs[0] == "success-duplicate") {
     history.replaceState(null, null, " ");
     bar(".sidebar.success-duplicate");
@@ -3106,7 +4754,7 @@ async function navigate() {
     }
     // No exact marker match — pan to the coordinates
     map.setView([lat, lon], zoom || 14);
-  } else if (mainArgs[0] == "dir" || DIR_PATH_RE.test(window.location.pathname)) {
+  } else if (mainArgs[0] == "dir" || DIR_PATH_RE.test(appPath())) {
     // Shareable route link (/dir/from/to, or the legacy #dir/from/to) — routing.js
     // (openFromUrl) opens the planner and computes; don't clear() it out from under it.
   } else {
@@ -3129,49 +4777,21 @@ const INSIGHTS_BAR_COLOR_TOP = "#4a9bff";
 const INSIGHTS_OUTLIER_STDEVS = 3;
 
 function applyRideFilters(rides) {
-  const normalizeFirstLetter = (s) =>
-    s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
-  const username = userFilter.value ? normalizeFirstLetter(userFilter.value) : null;
-  const wantedKind = vehicleFilter.value || null;
-  const wantedMethod = methodFilter.value || null;
-  const minMs = minDateFilter.value
-    ? Date.parse(minDateFilter.value + "T00:00:00Z")
-    : null;
-  const maxMs = maxDateFilter.value
-    ? Date.parse(maxDateFilter.value + "T23:59:59.999Z")
-    : null;
-  const commentNeedle = textFilter.value ? textFilter.value.toLowerCase() : null;
-  const minDistanceKm = distanceFilter.value ? parseFloat(distanceFilter.value) : null;
   const minRides = minRidesFilter.value ? parseInt(minRidesFilter.value, 10) : null;
   const minRating = minRatingFilter.value ? parseFloat(minRatingFilter.value) : null;
-  const recentCutoffMs = recentToggle.checked
-    ? Date.now() - 24 * 60 * 60 * 1000
-    : null;
   const osmOnly = osmToggle.checked;
   const wikiOnly = hitchwikiToggle.checked;
   const cpOnly = carPoolingToggle.checked;
   const fuelOnly = fuelToggle.checked;
+  // Everything that can be decided about a ride on its own — the same predicate the
+  // map and the spot pane use, so all three describe one set of rides.
+  const rideFilter = buildRideFilter();
 
+  // The spot-presence flags are layered on here rather than in the shared predicate:
+  // they describe the ride's *spot*, so every ride at one spot answers alike, and the
+  // spot pane (whose marker already passed them) would only pay to re-check them.
   let filtered = rides.filter((ride) => {
-    if (username && !(ride.u && normalizeFirstLetter(ride.u).includes(username)))
-      return false;
-    // Match the map's vehicle filter: rides with no vehicle counted as cars.
-    if (wantedKind && ride.v !== wantedKind && !(wantedKind === "car" && ride.v == null))
-      return false;
-    // Method filter: keep rides whose method list contains the selected method.
-    if (wantedMethod && !(Array.isArray(ride.m) && ride.m.includes(wantedMethod)))
-      return false;
-    if (minMs != null || maxMs != null) {
-      if (ride.rd == null) return false;
-      if (minMs != null && ride.rd < minMs) return false;
-      if (maxMs != null && ride.rd > maxMs) return false;
-    }
-    if (commentNeedle && !(ride.c && ride.c.toLowerCase().includes(commentNeedle)))
-      return false;
-    if (minDistanceKm != null && !(ride.km != null && ride.km >= minDistanceKm))
-      return false;
-    if (recentCutoffMs != null && !(ride.t != null && ride.t >= recentCutoffMs))
-      return false;
+    if (rideFilter && !rideFilter(ride)) return false;
     if (osmOnly && !ride.osm) return false;
     if (wikiOnly && !ride.wiki) return false;
     if (cpOnly && !ride.cp) return false;
@@ -3219,6 +4839,7 @@ function anyFilterActive() {
       methodFilter.value ||
       minDateFilter.value ||
       maxDateFilter.value ||
+      weekdayFilter.value ||
       recentToggle.checked ||
       osmToggle.checked ||
       carPoolingToggle.checked ||
@@ -3458,12 +5079,12 @@ function renderSelectionCard(containerId, statsSet) {
   const el = document.getElementById(containerId);
   if (!el) return;
   const rows = [
-    ["Rides", statsSet.totalCount.toLocaleString()],
-    ["Spots", statsSet.spotCount.toLocaleString()],
+    [tr("Rides"), statsSet.totalCount.toLocaleString()],
+    [tr("Spots"), statsSet.spotCount.toLocaleString()],
   ];
   el.innerHTML = `
     <div class="insights-stat-card">
-      <div class="insights-stat-title">Selection</div>
+      <div class="insights-stat-title">${tr("Selection")}</div>
       ${rows
         .map(
           ([k, v]) =>
@@ -3548,7 +5169,7 @@ function redrawInsightsCharts() {
   const waitCanvas = document.getElementById("insights-wait-chart");
   const distCanvas = document.getElementById("insights-distance-chart");
   drawHistogram(waitCanvas, insightsLastDraw.wait.clipped, { xLabel: "minutes" });
-  drawHistogram(distCanvas, insightsLastDraw.distance.clipped, { xLabel: "kilometres" });
+  drawHistogram(distCanvas, insightsLastDraw.distance.clipped, { xLabel: distanceAxisLabel() });
 }
 
 async function showInsightsView() {
@@ -3574,7 +5195,7 @@ async function showInsightsView() {
     .map((r) => r.w)
     .filter((v) => v != null && !Number.isNaN(v) && v >= 0);
   const distValues = filtered
-    .map((r) => r.km)
+    .map((r) => (r.km == null ? r.km : toDisplayDistance(r.km)))
     .filter((v) => v != null && !Number.isNaN(v) && v >= 0);
 
   const waitStats = computeStats(waitValues);
@@ -3589,7 +5210,7 @@ async function showInsightsView() {
 
   renderSelectionCard("insights-stats", stats);
   renderChartSummary("insights-wait-summary", waitStats, "min");
-  renderChartSummary("insights-distance-summary", distStats, "km");
+  renderChartSummary("insights-distance-summary", distStats, distanceUnitLabel());
   renderChartNote("insights-wait-note", waitClip.hidden, waitValues.length, "waiting-time");
   renderChartNote("insights-distance-note", distClip.hidden, distValues.length, "distance");
   setInsightsSubtitle(
@@ -3649,7 +5270,7 @@ var AddSpotButton = L.Control.extend({
     );
     var container = L.DomUtil.create("a", "", controlDiv);
     container.href = "javascript:void(0);";
-    container.innerText = "🚗💨 Add your ride";
+    container.innerText = "🚗💨 " + tr("Add your ride");
 
     container.onclick = function (e) {      
       // Redirect directly to ride form instead of crosshair selection
@@ -3700,7 +5321,7 @@ var AccountButton = L.Control.extend({
     );
     var container = L.DomUtil.create("a", "", controlDiv);
     container.href = "/me";
-    container.innerHTML = "👤 Your account";
+    container.innerHTML = "👤 " + tr("Your account");
 
     return controlDiv;
   },
@@ -3717,7 +5338,7 @@ var RoutingButton = L.Control.extend({
     );
     var container = L.DomUtil.create("a", "", controlDiv);
     container.href = "#routing";
-    container.innerHTML = "🗺️ Route";
+    container.innerHTML = "🗺️ " + tr("Route");
     return controlDiv;
   },
 });
@@ -3733,7 +5354,7 @@ var HeatmapInfoButton = L.Control.extend({
     );
     var container = L.DomUtil.create("a", "", controlDiv);
     container.href = "javascript:void(0);";
-    container.innerHTML = "\u2139 What can I see here?";
+    container.innerHTML = "\u2139 " + tr("What can I see here?");
 
     container.onclick = function (e) {
       navigateHome();
@@ -3841,18 +5462,23 @@ function setupLocationSelection(selectionType, initialCoords, opts = {}) {
     // the original "Select Pickup/Destination Location" copy.
     let heading, instruction, confirmLabel;
     if (opts.isNewSpot && opts.existingSpot) {
-        heading = 'Add a ride to this spot';
-        instruction = 'This matches an existing hitch spot. Confirm to add your ride here.';
-        confirmLabel = 'Add ride';
+        heading = tr('Add a ride to this spot');
+        instruction = tr('This matches an existing hitch spot. Confirm to add your ride here.');
+        confirmLabel = tr('Add ride');
     } else if (opts.isNewSpot) {
-        heading = 'Add a hitch spot here?';
-        instruction = 'Drag the pin to fine-tune, then confirm.';
-        confirmLabel = 'Add spot';
+        heading = tr('Add a hitch spot here?');
+        instruction = tr('Drag the pin to fine-tune, then confirm.');
+        confirmLabel = tr('Add spot');
     } else {
-        const what = selectionType === 'select-pickup' ? 'Pickup' : 'Destination';
-        heading = `Select ${what} Location`;
-        instruction = `Click on the map or drag the marker to choose your ${what.toLowerCase()} location`;
-        confirmLabel = 'Confirm Location';
+        // Two full strings per side rather than composing one template with a
+        // lowercased {what}: German capitalizes every noun, so a translated
+        // "Abholung" lowercased to "abholung" would be wrong mid-sentence.
+        const isPickup = selectionType === 'select-pickup';
+        heading = isPickup ? tr('Select Pickup Location') : tr('Select Destination Location');
+        instruction = isPickup
+            ? tr('Click on the map or drag the marker to choose your pickup location')
+            : tr('Click on the map or drag the marker to choose your destination location');
+        confirmLabel = tr('Confirm Location');
     }
 
     // Add custom UI for location selection — a compact card pinned to the bottom
@@ -4003,13 +5629,16 @@ function setupAddSpotGesture() {
 // or null. Markers hidden inside a cluster are skipped so we only ever snap to a
 // pin the user can actually see.
 function findNearbySpotMarker(containerPoint, thresholdPx = 22) {
-    // Only snap to spots that are actually shown. Countries mode removes the cluster
-    // from the map (but leaves markerCluster non-null), so guard on layer visibility —
-    // otherwise a tap could snap to an invisible spot.
-    if (!markerCluster || !map.hasLayer(markerCluster)) return null;
+    // Only snap to spots that are actually on screen — otherwise a long press
+    // silently jumps the new pin onto a spot the user cannot see. Countries mode
+    // shows none; a filter narrows them to the matches (drawn flat, no clustering);
+    // otherwise it's the cluster's currently un-clustered markers.
+    if (!spotsWanted) return null;
+    if (!filteredMarkers && !(markerCluster && map.hasLayer(markerCluster))) return null;
+    const candidates = filteredMarkers || allMarkers;
     let best = null, bestDist = thresholdPx;
-    for (const marker of allMarkers) {
-        if (markerCluster && markerCluster.getVisibleParent(marker) !== marker) continue;
+    for (const marker of candidates) {
+        if (!filteredMarkers && markerCluster.getVisibleParent(marker) !== marker) continue;
         const d = map.latLngToContainerPoint(marker.getLatLng()).distanceTo(containerPoint);
         if (d <= bestDist) {
             bestDist = d;
@@ -4053,7 +5682,6 @@ function startAddSpotFromGesture(latlng, containerPoint) {
 window.map = map; // intentional: exposes the Leaflet instance for inride.js (marker placement, layer removal)
 window.getLocationMarker = () => locationMarker;
 window.setMapMode = setMapMode;
-window.toggleHeatmap = toggleHeatmap;
 window.startAddSpotFromGesture = startAddSpotFromGesture;
 window.startProposeSpotFromGesture = startProposeSpotFromGesture;
 window.setupLocationSelection = setupLocationSelection;

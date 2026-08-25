@@ -28,7 +28,10 @@
     <div class="email-container" style="max-width: 100%; width: 100%; margin: 0 auto; background-color: #FFFDF7; border-top: 4px solid #C99416;">
         <div class="header" style="text-align: center; padding: 24px 20px; background-color: #F1D666; border-bottom: 1px solid #C99416;">
             <a href="https://maps.hitchwiki.org" style="text-decoration: none;">
-                <img src="https://hitchwiki.org/en/images/logo.png" width="144" height="152" alt="Hitchwiki" style="border: 0; display: block; margin: 0 auto;"/>
+                {# The site's own mark, not hitchwiki.org's wordmark -- the mail comes from
+                   Hitchwiki Maps and has to show what the site shows. Absolute URL because a
+                   mail client resolves a relative src against nothing. #}
+                <img src="https://maps.hitchwiki.org/static/logo.png" width="144" height="144" alt="Hitchwiki Maps" style="border: 0; display: block; margin: 0 auto;"/>
             </a>
             <p class="tagline" style="color: #5E2802; font-size: 14px; font-style: italic; margin: 10px 0 0 0;">the map to hitchhiking the world</p>
         </div>
