@@ -46,6 +46,29 @@ test("confirmed placement records every way the pin can move", () => {
   }
 });
 
+test("the finish drop-off and wait-elsewhere pickers are also wired to onOutcome (B358/B368)", () => {
+  // pinConfirm's onOutcome hook existed for both of these call sites before this,
+  // but nothing passed it -- the "Confirm Drop-off" (autoLocate:true, same GPS
+  // shape as the start picker) and "Wait somewhere else" (autoLocate:false)
+  // pickers had zero outcome tracking, the exact coverage gap B358 flagged.
+  assert.match(
+    SOURCE,
+    /hmTrack\("journey_finish_picker", Object\.assign\(\{ outcome: outcome \}, details\)\)/,
+  );
+  assert.match(
+    SOURCE,
+    /hmTrack\("journey_wait_picker", Object\.assign\(\{ outcome: outcome \}, details\)\)/,
+  );
+  // Each new onOutcome sits inside its own pinConfirm call, not just anywhere in the
+  // file -- check it's paired with that picker's own distinguishing confirmLabel.
+  const finishBlockStart = SOURCE.indexOf('confirmLabel: T("Confirm Drop-off")');
+  const finishBlockEnd = SOURCE.indexOf("});", finishBlockStart);
+  assert.ok(
+    SOURCE.slice(finishBlockStart, finishBlockEnd).includes("journey_finish_picker"),
+    "onOutcome must be inside the Confirm Drop-off pinConfirm call",
+  );
+});
+
 test("journey start source survives the login redirect and stays bounded", () => {
   assert.match(SOURCE, /const START_SOURCES = \["start-bar", "spot-sheet", "map-gesture", "route-results"\]/);
   assert.match(SOURCE, /START_SOURCES\.includes\(source\) \? source : "unknown"/);

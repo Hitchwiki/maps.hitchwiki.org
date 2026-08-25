@@ -720,6 +720,13 @@
         color: "orange",
         autoLocate: true,
         myLocation: true,
+        // Same outcome vocabulary as the start-bar's journey_start_picker (B358's own
+        // flagged next step: this picker was the other autoLocate:true pinConfirm call
+        // site with no outcome tracking at all, leaving auto-location-failure rate on
+        // arrival completely invisible).
+        onOutcome: function (outcome, details) {
+          hmTrack("journey_finish_picker", Object.assign({ outcome: outcome }, details));
+        },
         onConfirm: askAndSubmit,
         // Aborting the picker must not discard the journey: stay in-ride with the button
         // released so Finish can be pressed again.
@@ -768,6 +775,13 @@
             // The confirmed drop-off is a better default here than a fresh fix.
             autoLocate: false,
             myLocation: true,
+            // autoLocate is off here (seeded from the just-confirmed drop-off instead), so
+            // auto-location-* outcomes never fire -- confirmed/cancelled/location-button-*
+            // are the only ones possible. Tracked anyway for the same reason as the other
+            // pinConfirm call sites: abandonment here (cancelled) is otherwise invisible.
+            onOutcome: function (outcome, details) {
+              hmTrack("journey_wait_picker", Object.assign({ outcome: outcome }, details));
+            },
             onConfirm: journeyFlow.nextRide,
             // Return to this dialog, or the user is stranded with no way to End Hitch.
             onCancel: () => journeyFlow.whatsNext(dropoff),
