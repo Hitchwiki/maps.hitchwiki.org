@@ -4,7 +4,6 @@ import argparse
 from pathlib import Path
 from xml.etree import ElementTree
 
-
 MARKER = "<!-- hitchwiki-maps-coverage-report -->"
 
 
@@ -58,7 +57,8 @@ def main():
 | Python (`hitch/`) | {status(args.python_status)} | {python_lines} | {python_branches} | — |
 | JavaScript unit tests | {status(args.javascript_status)} | {js_lines} | {js_branches} | {js_functions} |
 
-Coverage is collected from the deterministic pull-request suite. Live Nostr relay checks remain excluded so a third-party outage cannot make a PR flaky.
+Coverage is collected from the deterministic pull-request suite. Live Nostr
+relay checks remain excluded so a third-party outage cannot make a PR flaky.
 """
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(body)
