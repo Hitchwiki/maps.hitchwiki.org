@@ -1120,18 +1120,24 @@ function redrawCountryInsightsCharts() {
     renderHistogram($$("#country-distance-chart"), countryInsightsLastDraw.distance, { xLabel: distanceAxisLabel() });
 }
 
-function countryWikiApi(title, params) {
+function countryWikiApi(title, params, wikiBase) {
   return (
-    COUNTRY_WIKI_BASE + "api.php?action=parse&redirects=1&format=json&origin=*" +
+    (wikiBase || COUNTRY_WIKI_BASE) + "api.php?action=parse&redirects=1&format=json&origin=*" +
     params + "&page=" + encodeURIComponent(title)
   );
 }
 
 // Find the index of a top-level section whose heading exactly matches `heading`
-// (case-insensitive), or null if the article has none.
-async function findTopLevelSection(title, heading) {
+// (case-insensitive), or null if the article has none. `wikiBase` defaults to
+// the English wiki (COUNTRY_WIKI_BASE); the optional override exists for
+// countryWikiApi's other callers, not currently exercised with a non-English
+// base -- heading text isn't parallel across languages (see research/
+// country-sheet-localization-scoping-2026-08-24.md), so a local-language
+// article always falls through to its lead section (0) instead of a
+// heading search; see loadCountrySheetLead below.
+async function findTopLevelSection(title, heading, wikiBase) {
   try {
-    const data = await fetch(countryWikiApi(title, "&prop=sections")).then((r) => r.json());
+    const data = await fetch(countryWikiApi(title, "&prop=sections", wikiBase)).then((r) => r.json());
     const sections = (data && data.parse && data.parse.sections) || [];
     const match = sections.find(
       (s) => s.toclevel === 1 && s.line && s.line.trim().toLowerCase() === heading
@@ -1175,11 +1181,68 @@ function setWikiCta(el, url, label) {
   el.hidden = false;
 }
 
+// B362: sparse {cc: {lang: title}} map, verified live 2026-08-24 against
+// every one of the 177 countries this app knows and all 30 non-English
+// SUPPORTED_LANGUAGES (research/country-wiki-names-verified-2026-08-24.json
+// in the automation repo -- 5,310 real lookups, only exact matches kept, no
+// guessing). Real coverage is intentionally uneven: 55% for Russian, 34-43%
+// for French/German/Spanish, much lower for thinner wikis -- most (country,
+// language) pairs have no entry at all, which is the correct, honest state
+// (those wikis genuinely have no article for that country), not a gap to
+// paper over. Absence here must always mean "use English," never an error.
+let countryWikiLocalTitles = null;
+async function getCountryWikiLocalTitle(cc, lang) {
+  if (!cc || !lang || lang === "en") return null;
+  try {
+    if (!countryWikiLocalTitles) {
+      countryWikiLocalTitles = await fetch("/static/country_wiki_local_titles.json").then((r) => (r.ok ? r.json() : {}));
+    }
+    return (countryWikiLocalTitles[cc] && countryWikiLocalTitles[cc][lang]) || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Fetch a country article's lead section (0) from a specific wiki base/title,
+// or null on any failure -- never throws, so the caller can try a
+// local-language wiki first and fall back to English unconditionally.
+async function fetchCountryLead(title, wikiBase) {
+  try {
+    const data = await fetch(countryWikiApi(title, "&prop=wikitext&section=0", wikiBase)).then((r) => r.json());
+    const wikitext = data && data.parse && data.parse.wikitext && data.parse.wikitext["*"];
+    return wikitext || null;
+  } catch (e) {
+    return null;
+  }
+}
+
 // Fetch and render a country's Hitchwiki summary: the "== Hitchhiking ==" section
-// when present, otherwise the lead section.
+// when present, otherwise the lead section. B362: tries the map's own current
+// UI language first (window.__LANG__) when a verified local-language article
+// exists for this country; any failure at any step falls back to the
+// existing always-worked English path unchanged, so this can only ever be a
+// strict improvement over the pre-B362 behavior, never a regression.
 async function loadCountrySheetLead(name) {
-  const title = COUNTRY_WIKI_TITLE_ALIASES[name] || name;
-  const wikiUrl = COUNTRY_WIKI_BASE + encodeURIComponent(title.replace(/ /g, "_"));
+  let title = COUNTRY_WIKI_TITLE_ALIASES[name] || name;
+  let wikiBase = COUNTRY_WIKI_BASE;
+  let usedLocalLang = false;
+
+  const lang = window.__LANG__;
+  if (lang && lang !== "en") {
+    const cc = await getCountryCc(name);
+    const localTitle = await getCountryWikiLocalTitle(cc, lang);
+    if (localTitle) {
+      const localBase = `https://hitchwiki.org/${lang}/`;
+      const localWikitext = await fetchCountryLead(localTitle, localBase);
+      if (localWikitext && substituteWikiPageName(localWikitext, localTitle).trim()) {
+        title = localTitle;
+        wikiBase = localBase;
+        usedLocalLang = true;
+      }
+    }
+  }
+
+  const wikiUrl = wikiBase + encodeURIComponent(title.replace(/ /g, "_"));
   $$("#country-sheet-source").innerHTML = tr("Text from {link}, licensed {license}.", {
     link: `<a href="${wikiUrl}" target="_blank" rel="noopener">Hitchwiki: ${escapeHtml(title)}</a>`,
     license: `<a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA</a>`,
@@ -1187,9 +1250,11 @@ async function loadCountrySheetLead(name) {
 
   const lead = $$("#country-sheet-lead");
   try {
-    // Prefer the Hitchhiking section; fall back to the lead (section 0).
-    const section = (await findHitchhikingSection(title)) || "0";
-    const data = await fetch(countryWikiApi(title, "&prop=wikitext&section=" + section)).then((r) => r.json());
+    // Local-language attempts already resolved to the lead (section 0) above
+    // -- heading text isn't parallel across languages, so only the English
+    // path tries the more specific "Hitchhiking" heading first.
+    const section = usedLocalLang ? "0" : (await findHitchhikingSection(title)) || "0";
+    const data = await fetch(countryWikiApi(title, "&prop=wikitext&section=" + section, wikiBase)).then((r) => r.json());
     let wikitext = data && data.parse && data.parse.wikitext && data.parse.wikitext["*"];
     if (!wikitext) {
       lead.innerHTML = `<p class="country-status">${tr("No Hitchwiki summary could be loaded for {name}.", { name: escapeHtml(name) })}</p>`;
