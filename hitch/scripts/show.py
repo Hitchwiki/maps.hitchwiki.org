@@ -1321,10 +1321,6 @@ gpx_path = os.path.join(dirs["dist"], "spots.gpx")
 gpx_size = write_spots_gpx(gpx_path, _spot_waypoints(), len(spots_data), pd.Timestamp.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"))
 logger.info(f"Wrote {gpx_path} ({gpx_size / 1e6:.1f} MB, {len(spots_data)} spots) (+ .gz sidecar)")
 
-# TODO: Remove spots_with_destination.json - replaced by spots.json with ride filtering
-# places_with_destination = places[~places.distance.isnull()]
-# write_json_file(places_with_destination[point_columns], "spots_with_destination.json")
-
 # Recent rides are used to display them in tabular format on a separate page
 recent = rides_df.dropna(subset=["submission_time"]).sort_values("submission_time", ascending=False).iloc[:1000]
 recent["url"] = "#" + recent.lat.astype(str) + "," + recent.lon.astype(str)
