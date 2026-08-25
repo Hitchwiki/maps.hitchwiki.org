@@ -94,9 +94,13 @@
           queue.length = 0;
           return true;
         }
+        // Returns whatever window.umami.track() returns (a promise once the tracker is
+        // loaded, undefined otherwise) so a caller that needs two events strictly
+        // ordered -- see trackRideShare in map.js -- can chain off it. Every existing
+        // caller ignores the return value, so returning it changes nothing for them.
         window.hmTrack = function (name, data) {
           try {
-            if (window.umami) { window.umami.track(name, data || {}); return; }
+            if (window.umami) { return window.umami.track(name, data || {}); }
             if (queue.length < QUEUE_MAX) queue.push([name, data || {}]);
           } catch (e) {}
         };

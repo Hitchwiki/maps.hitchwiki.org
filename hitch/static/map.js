@@ -3505,14 +3505,25 @@ let shareVariant = "control";
 const chooseVariant = window.hmVariant || function (_name, variants) { return variants[0]; };
 
 function trackRideShare(properties) {
-  hmTrack("ride_share", Object.assign({ variant: shareVariant }, properties));
+  const primary = hmTrack("ride_share", Object.assign({ variant: shareVariant }, properties));
   const outcomeEvent = {
     clicked: "ride_share_clicked",
     shared: "ride_share_shared",
     dismiss: "ride_share_dismissed",
   }[properties.action];
   if (outcomeEvent) {
-    hmTrack(outcomeEvent, Object.assign({ variant: shareVariant }, properties));
+    // Umami's tracker (script.js) keeps one session-cache token that only advances once
+    // a request's response has landed, and stamps every outgoing event with whatever
+    // value it currently holds. Two hmTrack calls fired in the same synchronous tick
+    // both read the same (stale) token before either response arrives, so the second
+    // request collides with the first server-side and is dropped -- confirmed live:
+    // ride_share_clicked/ride_share_shared read exactly 0 events ever, against hundreds
+    // of ride_share fires with action=clicked/shared, and this was the only call site
+    // in the whole app that fired two hmTrack events back to back. Chaining off the
+    // first call's own promise lets its response update the token first.
+    Promise.resolve(primary).then(function () {
+      hmTrack(outcomeEvent, Object.assign({ variant: shareVariant }, properties));
+    });
   }
 }
 
