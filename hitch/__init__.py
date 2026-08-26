@@ -38,10 +38,10 @@ if ENVIRONMENT not in ["prod", "dev"]:
 # served as application/octet-stream and some phones would offer to "open with" nothing.
 mimetypes.add_type("application/gpx+xml", ".gpx")
 
-# Where volunteers actually land. Both are linked from several places (the menu sheet,
-# /help, future emails), and the Signal invite in particular is a rotating group link --
-# defined once here and exposed as a template global so replacing it is a one-line change
-# rather than a hunt through templates.
+# Community entry points. General hitchhiking conversation belongs in the public Matrix
+# room; Signal is specifically for discussing the map project. Keep both centralized so
+# templates cannot quietly send general chat to the project channel again.
+GENERAL_CHAT_URL = "https://matrix.to/#/#hitchhiking:hitchhiking.org"
 SIGNAL_CHAT_URL = "https://signal.group/#CjQKIFSj0oaPjMY_eB1uHfXEuxH459W6gtfEke0krGgTabZBEhB1ZK3YP53QSPBuviWzHO_F"
 HITCHWIKI_ROLES_URL = "https://hitchwiki.org/en/Roles"
 
@@ -284,6 +284,7 @@ def register_template_globals(app):
         return f"{path}{sep}v={version}"
 
     # Community entry points, so the menu sheet and /help can never drift apart on them.
+    app.jinja_env.globals["GENERAL_CHAT_URL"] = GENERAL_CHAT_URL
     app.jinja_env.globals["SIGNAL_CHAT_URL"] = SIGNAL_CHAT_URL
     app.jinja_env.globals["HITCHWIKI_ROLES_URL"] = HITCHWIKI_ROLES_URL
 
