@@ -384,9 +384,13 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     <div class="wiki-contribute-notice">
         <i class="fa fa-book"></i>
         {{ t("You wrote a lot of detail about this ride.") }}
-        <a href="{{ wiki_contribute_url }}" target="_blank" rel="noopener">{{ t("Add your notes to the Hitchwiki article for this place") }}</a>
+        <a href="{{ wiki_contribute_url }}" target="_blank" rel="noopener"
+           onclick="if (window.hmTrack) window.hmTrack('wiki_contribute_clicked', {})">{{ t("Add your notes to the Hitchwiki article for this place") }}</a>
         {{ t("so other hitchhikers can find them.") }}
     </div>
+    <script>
+        if (window.hmTrack) window.hmTrack('wiki_contribute_shown', {});
+    </script>
     {% endif %}
 
     <div class="location-grid">
