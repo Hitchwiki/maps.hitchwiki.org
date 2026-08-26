@@ -1815,7 +1815,8 @@
     },
 
     // Start-of-journey modal: optional co-hitcher entry (reuses /search_usernames).
-    // onStart(coHitchhikers[]) fires on "Start hitching"; dismissing aborts the start.
+    // onStart(coHitchhikers[]) fires on "Start hitching" or when the visitor skips
+    // this optional step by dismissing it. A programmatic close remains inert.
     coHitcherSheet(onStart) {
       if (journeyUI._openDialog) journeyUI._openDialog.close();
       const selected = [];
@@ -1835,7 +1836,7 @@
       closeX.className = "inr-sheet__close";
       closeX.setAttribute("aria-label", T("Close"));
       closeX.innerHTML = "&times;";
-      closeX.addEventListener("click", function () { close(); });
+      closeX.addEventListener("click", function () { close("close-x"); });
       sheet.appendChild(closeX);
 
       const titleEl = document.createElement("h4");
@@ -1970,18 +1971,25 @@
         // Fold a half-typed username into the list so it isn't silently lost.
         if (input.value.trim()) addName(input.value);
         const list = selected.slice();
-        close();
+        close("button");
         onStart(list);
       });
       sheet.appendChild(startBtn);
 
-      function close() {
+      let closed = false;
+      function close(reason) {
+        if (closed) return;
+        closed = true;
         if (scrim.parentNode) scrim.parentNode.removeChild(scrim);
         if (sheet.parentNode) sheet.parentNode.removeChild(sheet);
         journeyUI._openDialog = null;
+        // Reaching this sheet already follows an explicit start choice and, for
+        // anonymous visitors, a confirmed location plus "Continue anonymously".
+        // Closing an optional companion step should skip it, not erase that intent.
+        // Do not start on the no-reason close used by the one-dialog-at-a-time guard.
+        if (reason === "scrim" || reason === "close-x") onStart(selected.slice());
       }
-      // Scrim tap dismisses WITHOUT starting (abort) — no journey begins.
-      scrim.addEventListener("click", close);
+      scrim.addEventListener("click", function () { close("scrim"); });
 
       document.body.appendChild(scrim);
       document.body.appendChild(sheet);
