@@ -3125,6 +3125,33 @@ function spotAverages(rides) {
   return { rating: mean("rating"), wait: mean("wait"), distance: mean("distance") };
 }
 
+// A spot opening is not an exposure of its journey-start action: most opens are
+// ordinary map browsing, and on short screens the action can begin below the
+// scrollport. Observe the button itself against the sheet's scrolling body so the
+// denominator for clicks is "people who could see it", not every spot inspected.
+let spotStartCtaObserver = null;
+function observeSpotStartCta(hitchBtn) {
+  if (spotStartCtaObserver) {
+    spotStartCtaObserver.disconnect();
+    spotStartCtaObserver = null;
+  }
+  if (!hitchBtn || hitchBtn.style.display === "none" ||
+      typeof IntersectionObserver === "undefined") return;
+
+  const sheetBody = $$("#spot-sheet-body");
+  if (!sheetBody) return;
+  spotStartCtaObserver = new IntersectionObserver((entries) => {
+    const visible = entries.some((entry) =>
+      entry.target === hitchBtn && entry.isIntersecting && entry.intersectionRatio >= 0.75
+    );
+    if (!visible) return;
+    hmTrack("spot_start_cta_viewed");
+    spotStartCtaObserver.disconnect();
+    spotStartCtaObserver = null;
+  }, { root: sheetBody, threshold: [0.75] });
+  spotStartCtaObserver.observe(hitchBtn);
+}
+
 function markerClick(marker) {
   var data = marker.options._data;
   active = [marker];
@@ -3164,8 +3191,10 @@ function markerClick(marker) {
   if (hitchBtn) {
     const journeyActive = window.inride && window.inride.journeyStore && window.inride.journeyStore.get();
     hitchBtn.style.display = window.inride && !journeyActive ? "" : "none";
+    observeSpotStartCta(hitchBtn);
     hitchBtn.onclick = function () {
       if (!window.inride || !window.L) return;
+      hmTrack("spot_start_cta_clicked");
       clear(); // close the spot sheet before the waiting UI takes over
       window.inride.journeyFlow.startFromChoose(
         L.latLng(data.lat, data.lon),
