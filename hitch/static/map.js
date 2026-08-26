@@ -1265,7 +1265,11 @@ async function loadCountrySheetLead(name) {
     lead.innerHTML = html || `<p class="country-status">${tr("No summary text available for {name}.", { name: escapeHtml(name) })}</p>`;
     // Only invite people over once we know the article actually rendered — a CTA
     // pointing at a page that failed to load would send them to a red link.
-    if (html) setWikiCta($$("#country-sheet-cta"), wikiUrl, tr("Read the full {title} article on Hitchwiki", { title }));
+    if (html) {
+      const languageOutcome = usedLocalLang ? "local" : (lang && lang !== "en" ? "english-fallback" : "english-ui");
+      hmTrack("country_wiki_lead_shown", { outcome: languageOutcome });
+      setWikiCta($$("#country-sheet-cta"), wikiUrl, tr("Read the full {title} article on Hitchwiki", { title }));
+    }
   } catch (e) {
     console.warn("Could not load Hitchwiki section:", e);
     lead.innerHTML = `<p class="country-status">${tr("No Hitchwiki summary could be loaded for {name}.", { name: escapeHtml(name) })}</p>`;

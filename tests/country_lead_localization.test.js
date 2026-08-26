@@ -106,3 +106,12 @@ test("fetchCountryLead returns null (not throws) on a failed or empty fetch", as
   const { fetchCountryLead: f2 } = loadCountryWiki(throwingFetch, "fr");
   assert.strictEqual(await f2("Allemagne", "https://hitchwiki.org/fr/"), null);
 });
+
+test("a successfully rendered lead records local, fallback, or English UI outcome", () => {
+  const block = countryWikiBlock();
+  assert.match(
+    block,
+    /const languageOutcome = usedLocalLang \? "local" : \(lang && lang !== "en" \? "english-fallback" : "english-ui"\);/,
+  );
+  assert.match(block, /if \(html\) \{[\s\S]{0,300}hmTrack\("country_wiki_lead_shown", \{ outcome: languageOutcome \}\);/);
+});
