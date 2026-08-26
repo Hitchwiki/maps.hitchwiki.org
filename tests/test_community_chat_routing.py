@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-
 ROOT = Path(__file__).parents[1]
 INIT = (ROOT / "hitch" / "__init__.py").read_text()
 MAP = (ROOT / "hitch" / "templates" / "map.html").read_text()
