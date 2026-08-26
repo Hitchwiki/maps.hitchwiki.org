@@ -124,3 +124,105 @@ class TestRidePageRendersThem:
 
             _db.session.query(RideEvent).delete()
             _db.session.commit()
+
+
+class TestWikiContributePrompt:
+    """The ride's own author, on a long enough comment, gets a link to fold their
+    notes into the nearest Hitchwiki article — nobody else, and only when there is
+    somewhere to send them (see the "never write new content ourselves" rule: this
+    invites the author to write it, it does not draft anything)."""
+
+    UNIQUIFIER = "wiki-contribute-test-uniquifier"
+    USERNAME = "wiki-contribute-author"
+
+    @pytest.fixture
+    def author(self, app, client):
+        from hitch.models import User
+
+        with app.app_context():
+            user = User(
+                username=self.USERNAME,
+                email="author@example.com",
+                password="x",
+                active=True,
+                fs_uniquifier=self.UNIQUIFIER,
+            )
+            _db.session.add(user)
+            _db.session.commit()
+            user_id = user.id
+        with client.session_transaction() as sess:
+            sess["_user_id"] = self.UNIQUIFIER
+            sess["_fresh"] = True
+        yield user_id
+        with app.app_context():
+            _db.session.query(User).filter_by(id=user_id).delete()
+            _db.session.commit()
+
+    def _publish(self, app, comment):
+        import tests.test_instant_ride_row as fixtures
+
+        with app.app_context():
+            main_bp._store_published_ride(fixtures._StubEvent(self._raw_event_as(fixtures, comment)))
+
+    def _raw_event_as(self, fixtures, comment):
+        from tests.conftest import TEST_PUBKEY
+
+        raw = fixtures._raw_event(comment=comment)
+        raw["pubkey"] = TEST_PUBKEY
+        content = json.loads(raw["content"])
+        content["hitchhikers"] = [{"nickname": self.USERNAME}]
+        raw["content"] = json.dumps(content)
+        return raw
+
+    def teardown_ride(self, app):
+        with app.app_context():
+            from hitch.models import RideEvent
+
+            _db.session.query(RideEvent).delete()
+            _db.session.commit()
+
+    def test_a_long_comment_from_the_owner_gets_the_prompt(self, app, client, dist, author):
+        _write_spot_file(dist, "Dresden Hauptbahnhof")
+        by_spot = dist / "rides" / "by-spot" / f"{SPOT_ID}.json"
+        payload = json.loads(by_spot.read_text())
+        payload["spot"]["hitchwiki_article"] = "https://hitchwiki.org/en/Dresden"
+        by_spot.write_text(json.dumps(payload))
+
+        self._publish(app, "x" * 250)
+        try:
+            html = client.get("/ride/maps.hitchwiki.org-abc").get_data(as_text=True)
+            assert "https://hitchwiki.org/en/Dresden" in html
+            assert "Add your notes to the Hitchwiki article" in html
+        finally:
+            self.teardown_ride(app)
+
+    def test_a_short_comment_gets_no_prompt(self, app, client, dist, author):
+        _write_spot_file(dist, "Dresden Hauptbahnhof")
+        by_spot = dist / "rides" / "by-spot" / f"{SPOT_ID}.json"
+        payload = json.loads(by_spot.read_text())
+        payload["spot"]["hitchwiki_article"] = "https://hitchwiki.org/en/Dresden"
+        by_spot.write_text(json.dumps(payload))
+
+        self._publish(app, "short")
+        try:
+            html = client.get("/ride/maps.hitchwiki.org-abc").get_data(as_text=True)
+            assert "Add your notes to the Hitchwiki article" not in html
+        finally:
+            self.teardown_ride(app)
+
+    def test_a_non_owner_never_sees_the_prompt(self, app, client, dist):
+        _write_spot_file(dist, "Dresden Hauptbahnhof")
+        by_spot = dist / "rides" / "by-spot" / f"{SPOT_ID}.json"
+        payload = json.loads(by_spot.read_text())
+        payload["spot"]["hitchwiki_article"] = "https://hitchwiki.org/en/Dresden"
+        by_spot.write_text(json.dumps(payload))
+
+        import tests.test_instant_ride_row as fixtures
+
+        with app.app_context():
+            main_bp._store_published_ride(fixtures._StubEvent(fixtures._raw_event(comment="x" * 250, event_id="e-other")))
+        try:
+            html = client.get("/ride/maps.hitchwiki.org-abc").get_data(as_text=True)
+            assert "Add your notes to the Hitchwiki article" not in html
+        finally:
+            self.teardown_ride(app)
