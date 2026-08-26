@@ -299,6 +299,7 @@ def _spot_preview(spot_id):
         "count": len(rides) if ratings else None,
         "wait": spot.get("wait"),
         "distance": spot.get("distance"),
+        "hitchwiki_article": spot.get("hitchwiki_article"),
     }
 
 
@@ -921,8 +922,7 @@ def waiting_time_statistics():
         data = {}
 
     groups = data.get("groups") or [
-        {"size": size, "median_minutes": None, "rides": 0, "combinations": []}
-        for size in range(1, 5)
+        {"size": size, "median_minutes": None, "rides": 0, "combinations": []} for size in range(1, 5)
     ]
     return render_template(
         "statistics.html",
@@ -1166,9 +1166,22 @@ def ride_detail(d_tag):
     spot_id = spot_id_for(pickup_lat, pickup_lon) if pickup_lat is not None and pickup_lon is not None else None
     og_title, og_description = _ride_preview_meta(ride_view, spot_id)
     ride_images = [{"url": image_url(img.filename), "width": img.width, "height": img.height} for img in images_for_ride(d_tag)]
+
+    # Nudge the ride's own author to fold their notes into the nearest Hitchwiki
+    # article — never anyone else, and never text we wrote for them (see the
+    # "never write new content" rule). Gated on the same length a comment needs
+    # to survive a link-preview trim uncut: shorter than that, there's rarely
+    # anything past "nice driver" worth a wiki edit.
+    wiki_contribute_url = None
+    if ride_view["is_owner"] and ride.comment and len(ride.comment) >= RIDE_COMMENT_PREVIEW_CHARS:
+        spot_preview = _spot_preview(spot_id) if spot_id else None
+        if spot_preview:
+            wiki_contribute_url = spot_preview.get("hitchwiki_article")
+
     return render_template(
         "ride_detail.html",
         ride=ride_view,
+        wiki_contribute_url=wiki_contribute_url,
         ride_images=ride_images,
         already_reported=already_reported,
         owner_deleted=owner_deleted,
