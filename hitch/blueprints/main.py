@@ -1585,10 +1585,17 @@ def ride_form():
                         # foreign_coordinate_intermediate_stops in the POST handler below),
                         # so listing it here as an editable "Stop N" text entry would be
                         # misleading about what removing it actually does.
+                        # `.get("latitude") is None`, not a falsy check -- a stop sitting
+                        # exactly on the equator has latitude 0.0, which is a real
+                        # coordinate, not a missing one. A falsy check misclassified it as
+                        # label-only here while foreign_coordinate_intermediate_stops (below)
+                        # correctly treated it as coordinate-bearing, so on save it was both
+                        # re-offered as an editable label chip and separately preserved --
+                        # duplicating the stop.
                         ride_data["ride_stops"] = [
                             (s.get("label") or "").strip()
                             for s in stops[1:-1]
-                            if isinstance(s, dict) and not (s.get("location") or {}).get("latitude")
+                            if isinstance(s, dict) and (s.get("location") or {}).get("latitude") is None
                         ]
                         ride_data["ride_stops"] = [label for label in ride_data["ride_stops"] if label]
 

@@ -247,3 +247,71 @@ def test_editing_a_ride_preserves_a_foreign_coordinate_stop(app, client, monkeyp
         _db.session.query(RideEvent).filter_by(d=d_tag).delete()
         _db.session.query(User).filter_by(username=username).delete()
         _db.session.commit()
+
+
+def test_editing_a_ride_does_not_offer_an_equator_stop_as_a_label(app, client, monkeypatch):
+    """A coordinate-bearing intermediate stop sitting exactly on the equator
+    (latitude 0.0) must not be misread as label-only -- 0.0 is a real coordinate,
+    not a missing one. Getting this wrong pre-fills it into the editable ride_stops
+    chip list *and* separately preserves it via foreign_coordinate_intermediate_stops,
+    so resaving the form would duplicate the stop."""
+    from hitch.extensions import db as _db
+    from hitch.models import RideEvent, User
+    from tests.conftest import TEST_PUBKEY
+
+    username = "equatorstopowner"
+    d_tag = "hitchmap-equator-stop-test"
+    with app.app_context():
+        _db.session.query(RideEvent).filter_by(d=d_tag).delete()
+        _db.session.query(User).filter_by(username=username).delete()
+        user = User(
+            username=username,
+            email="equatorstopowner@example.com",
+            password="x",
+            active=True,
+            fs_uniquifier="equator-stop-test-uniquifier",
+        )
+        _db.session.add(user)
+        _db.session.add(
+            RideEvent(
+                id="equatorstopevt",
+                pubkey=TEST_PUBKEY,
+                sig="s" * 128,
+                kind=36820,
+                created_at=1_800_000_000,
+                d=d_tag,
+                tags=[["d", d_tag], ["published_at", "1800000000"]],
+                content={
+                    "version": "1.0.0",
+                    "source": "hitchmap.com",
+                    "comment": "old ride",
+                    "rating": 4,
+                    "submission_time": "2026-07-01T10:00:00",
+                    "hitchhikers": [{"nickname": username}],
+                    "stops": [
+                        {"location": {"latitude": 52.0, "longitude": 13.0}},
+                        {"location": {"latitude": 0.0, "longitude": 13.05}, "label": "on the equator"},
+                        {"location": {"latitude": 52.1, "longitude": 13.1}},
+                    ],
+                },
+            )
+        )
+        _db.session.commit()
+
+    with client.session_transaction() as sess:
+        sess["_user_id"] = "equator-stop-test-uniquifier"
+        sess["_fresh"] = True
+
+    r = client.get(f"/ride?edit={d_tag}")
+    assert r.status_code == 200
+    body = r.get_data(as_text=True)
+    # The coordinate-bearing equator stop must not appear as a pre-filled editable
+    # label -- it is preserved separately on save, not through this list.
+    assert "on the equator" not in body
+
+    with client.session_transaction() as sess:
+        sess.clear()
+    with app.app_context():
+        _db.session.query(RideEvent).filter_by(d=d_tag).delete()
+        _db.session.query(User).filter_by(username=username).delete()
+        _db.session.commit()
