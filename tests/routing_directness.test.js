@@ -53,9 +53,19 @@ assert.deepStrictEqual(
 );
 assert.strictEqual(C.firstBoardingPoint({ legs: [{ mode: "walk" }] }), null);
 
-assert.match(source, /hmVariant\("route-start-cta-v1", \["control", "cta"\]\)/);
-assert.match(source, /hmTrack\("route_start_cta_exposure", \{ variant: variant \}\)/);
-assert.match(source, /hmTrack\("route_start_cta_clicked", \{ variant: variant \}\)/);
+assert.match(source, /hmVariant\("route-start-cta-v2", \["control", "cta"\]\)/);
+assert.match(source, /hmTrack\("route_start_cta_v2_assignment", \{ variant: variant \}\)/);
+assert.match(source, /IntersectionObserver/);
+assert.match(source, /hmTrack\("route_start_cta_v2_viewed", \{ variant: variant \}\)/);
+assert.match(source, /hmTrack\("route_start_cta_v2_clicked", \{ variant: variant \}\)/);
+const optionsMarkup = source.slice(
+  source.indexOf("body.innerHTML ="),
+  source.indexOf('return body.querySelector(".rp-options")'),
+);
+assert.ok(
+  optionsMarkup.indexOf('class="rp-start-cta"') < optionsMarkup.indexOf('class="rp-options"'),
+  "the journey CTA must precede the tall route-card list so it is above the fold",
+);
 assert.match(source, /startFromChoose\([\s\S]*?"route-results"/);
 assert.match(source, /hmVariant\("route-none-start-v1", \["control", "cta"\]\)/);
 assert.match(source, /hmTrack\("route_none_start_exposure_" \+ variant\)/);
