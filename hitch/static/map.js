@@ -1265,7 +1265,11 @@ async function loadCountrySheetLead(name) {
     lead.innerHTML = html || `<p class="country-status">${tr("No summary text available for {name}.", { name: escapeHtml(name) })}</p>`;
     // Only invite people over once we know the article actually rendered — a CTA
     // pointing at a page that failed to load would send them to a red link.
-    if (html) setWikiCta($$("#country-sheet-cta"), wikiUrl, tr("Read the full {title} article on Hitchwiki", { title }));
+    if (html) {
+      const languageOutcome = usedLocalLang ? "local" : (lang && lang !== "en" ? "english-fallback" : "english-ui");
+      hmTrack("country_wiki_lead_shown", { outcome: languageOutcome });
+      setWikiCta($$("#country-sheet-cta"), wikiUrl, tr("Read the full {title} article on Hitchwiki", { title }));
+    }
   } catch (e) {
     console.warn("Could not load Hitchwiki section:", e);
     lead.innerHTML = `<p class="country-status">${tr("No Hitchwiki summary could be loaded for {name}.", { name: escapeHtml(name) })}</p>`;
@@ -3121,6 +3125,33 @@ function spotAverages(rides) {
   return { rating: mean("rating"), wait: mean("wait"), distance: mean("distance") };
 }
 
+// A spot opening is not an exposure of its journey-start action: most opens are
+// ordinary map browsing, and on short screens the action can begin below the
+// scrollport. Observe the button itself against the sheet's scrolling body so the
+// denominator for clicks is "people who could see it", not every spot inspected.
+let spotStartCtaObserver = null;
+function observeSpotStartCta(hitchBtn) {
+  if (spotStartCtaObserver) {
+    spotStartCtaObserver.disconnect();
+    spotStartCtaObserver = null;
+  }
+  if (!hitchBtn || hitchBtn.style.display === "none" ||
+      typeof IntersectionObserver === "undefined") return;
+
+  const sheetBody = $$("#spot-sheet-body");
+  if (!sheetBody) return;
+  spotStartCtaObserver = new IntersectionObserver((entries) => {
+    const visible = entries.some((entry) =>
+      entry.target === hitchBtn && entry.isIntersecting && entry.intersectionRatio >= 0.75
+    );
+    if (!visible) return;
+    hmTrack("spot_start_cta_viewed");
+    spotStartCtaObserver.disconnect();
+    spotStartCtaObserver = null;
+  }, { root: sheetBody, threshold: [0.75] });
+  spotStartCtaObserver.observe(hitchBtn);
+}
+
 function markerClick(marker) {
   var data = marker.options._data;
   active = [marker];
@@ -3160,8 +3191,10 @@ function markerClick(marker) {
   if (hitchBtn) {
     const journeyActive = window.inride && window.inride.journeyStore && window.inride.journeyStore.get();
     hitchBtn.style.display = window.inride && !journeyActive ? "" : "none";
+    observeSpotStartCta(hitchBtn);
     hitchBtn.onclick = function () {
       if (!window.inride || !window.L) return;
+      hmTrack("spot_start_cta_clicked");
       clear(); // close the spot sheet before the waiting UI takes over
       window.inride.journeyFlow.startFromChoose(
         L.latLng(data.lat, data.lon),

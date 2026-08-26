@@ -523,7 +523,13 @@
       onClose: (reason) => {
         if (reason !== "scrim" && reason !== "cancel-x") return;
         hmTrack("journey_track_prompt_outcome", { outcome: "dismissed" });
-        journeyFlow.beginWithCoHitchers(p, source);
+        // Dismissing this optional account prompt already means "continue
+        // anonymously". Do not immediately replace it with the optional
+        // co-hitchhiker sheet: live funnel data showed that second sheet became
+        // another hidden stop (only 2/13 dismissals reached journey_started).
+        // Start with an empty companion list; the explicit anonymous button still
+        // opens the co-hitchhiker sheet for people who choose that path.
+        journeyFlow.start(p, [], source);
       },
     });
   };
@@ -1229,6 +1235,8 @@
     //   seed       {lat, lon} | null — initial pin position; null → current map centre
     //   color      "orange" (drop-off) | "green" (waiting spot)
     //   autoLocate bool — request GPS in the background and snap the pin if untouched
+    //   notifyAutoLocateFailure bool — explain a failed background fix instead of
+    //     silently leaving the pin at the map centre
     //   myLocation bool — show the "Use my location" button
     //   onConfirm(dest {lat, lon})
     //   onCancel() — optional
@@ -1335,8 +1343,15 @@
               outcome("auto-location-ignored");
             }
           },
-          // Silent: the user never asked for this fix, and the pin is already usable.
-          function () { setLocating(false); outcome("auto-location-failed"); }
+          function () {
+            setLocating(false);
+            outcome("auto-location-failed");
+            if (opts.notifyAutoLocateFailure) {
+              // Reuse the explicit-button failure guidance: the picker is usable,
+              // but the visitor now knows the pin was not moved to their location.
+              journeyUI.error(T("Couldn't get your location — drag the pin instead."));
+            }
+          }
         );
       }
 
@@ -1800,7 +1815,8 @@
     },
 
     // Start-of-journey modal: optional co-hitcher entry (reuses /search_usernames).
-    // onStart(coHitchhikers[]) fires on "Start hitching"; dismissing aborts the start.
+    // onStart(coHitchhikers[]) fires on "Start hitching" or when the visitor skips
+    // this optional step by dismissing it. A programmatic close remains inert.
     coHitcherSheet(onStart) {
       if (journeyUI._openDialog) journeyUI._openDialog.close();
       const selected = [];
@@ -1820,7 +1836,7 @@
       closeX.className = "inr-sheet__close";
       closeX.setAttribute("aria-label", T("Close"));
       closeX.innerHTML = "&times;";
-      closeX.addEventListener("click", function () { close(); });
+      closeX.addEventListener("click", function () { close("close-x"); });
       sheet.appendChild(closeX);
 
       const titleEl = document.createElement("h4");
@@ -1955,18 +1971,25 @@
         // Fold a half-typed username into the list so it isn't silently lost.
         if (input.value.trim()) addName(input.value);
         const list = selected.slice();
-        close();
+        close("button");
         onStart(list);
       });
       sheet.appendChild(startBtn);
 
-      function close() {
+      let closed = false;
+      function close(reason) {
+        if (closed) return;
+        closed = true;
         if (scrim.parentNode) scrim.parentNode.removeChild(scrim);
         if (sheet.parentNode) sheet.parentNode.removeChild(sheet);
         journeyUI._openDialog = null;
+        // Reaching this sheet already follows an explicit start choice and, for
+        // anonymous visitors, a confirmed location plus "Continue anonymously".
+        // Closing an optional companion step should skip it, not erase that intent.
+        // Do not start on the no-reason close used by the one-dialog-at-a-time guard.
+        if (reason === "scrim" || reason === "close-x") onStart(selected.slice());
       }
-      // Scrim tap dismisses WITHOUT starting (abort) — no journey begins.
-      scrim.addEventListener("click", close);
+      scrim.addEventListener("click", function () { close("scrim"); });
 
       document.body.appendChild(scrim);
       document.body.appendChild(sheet);
@@ -2312,6 +2335,10 @@
         // fix is worth it: same pattern as "Confirm Drop-off" below, non-blocking and
         // silent on denial/failure, only moves the pin if the user hasn't touched it.
         autoLocate: true,
+        // A silent background failure currently cuts confirmation from 79% (GPS
+        // succeeded) to 38% (GPS failed): tell the visitor why the pin stayed at
+        // the map centre and what already-supported fallback to use.
+        notifyAutoLocateFailure: true,
         myLocation: true,
         onOutcome: function (outcome, details) {
           hmTrack("journey_start_picker", Object.assign({ outcome: outcome }, details));

@@ -199,6 +199,16 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     margin-bottom: 1rem;
     font-size: 0.95em;
 }
+.wiki-contribute-notice {
+    background: #eef4fb;
+    border: 1px solid #b8d1ec;
+    color: #2c4c70;
+    border-radius: 6px;
+    padding: 0.6rem 0.9rem;
+    margin-bottom: 1rem;
+    font-size: 0.95em;
+}
+.wiki-contribute-notice a { color: #1a5aa8; font-weight: 600; }
 .like-btn {
     display: inline-flex;
     align-items: center;
@@ -368,6 +378,19 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
         <i class="fa fa-eye-slash"></i> This ride has been deleted and is no longer shown on the map.
         It may take a few minutes to disappear.
     </div>
+    {% endif %}
+
+    {% if wiki_contribute_url %}
+    <div class="wiki-contribute-notice">
+        <i class="fa fa-book"></i>
+        {{ t("You wrote a lot of detail about this ride.") }}
+        <a href="{{ wiki_contribute_url }}" target="_blank" rel="noopener"
+           onclick="if (window.hmTrack) window.hmTrack('wiki_contribute_clicked', {})">{{ t("Add your notes to the Hitchwiki article for this place") }}</a>
+        {{ t("so other hitchhikers can find them.") }}
+    </div>
+    <script>
+        if (window.hmTrack) window.hmTrack('wiki_contribute_shown', {});
+    </script>
     {% endif %}
 
     <div class="location-grid">
