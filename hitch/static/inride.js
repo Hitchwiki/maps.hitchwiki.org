@@ -523,7 +523,13 @@
       onClose: (reason) => {
         if (reason !== "scrim" && reason !== "cancel-x") return;
         hmTrack("journey_track_prompt_outcome", { outcome: "dismissed" });
-        journeyFlow.beginWithCoHitchers(p, source);
+        // Dismissing this optional account prompt already means "continue
+        // anonymously". Do not immediately replace it with the optional
+        // co-hitchhiker sheet: live funnel data showed that second sheet became
+        // another hidden stop (only 2/13 dismissals reached journey_started).
+        // Start with an empty companion list; the explicit anonymous button still
+        // opens the co-hitchhiker sheet for people who choose that path.
+        journeyFlow.start(p, [], source);
       },
     });
   };

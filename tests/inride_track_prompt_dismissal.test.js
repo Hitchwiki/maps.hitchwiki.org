@@ -53,11 +53,19 @@ test("both explicit choices are tracked before they act", () => {
   );
 });
 
-test("a scrim/cancel-x dismissal still starts the journey anonymously, tracked as dismissed", () => {
+test("a scrim/cancel-x dismissal directly starts anonymously, tracked as dismissed", () => {
   assert.match(
     SOURCE,
-    /onClose: \(reason\) => \{\s*if \(reason !== "scrim" && reason !== "cancel-x"\) return;\s*hmTrack\("journey_track_prompt_outcome", \{ outcome: "dismissed" \}\);\s*journeyFlow\.beginWithCoHitchers\(p, source\);\s*\}/,
+    /onClose: \(reason\) => \{[\s\S]{0,900}if \(reason !== "scrim" && reason !== "cancel-x"\) return;[\s\S]{0,900}hmTrack\("journey_track_prompt_outcome", \{ outcome: "dismissed" \}\);[\s\S]{0,900}journeyFlow\.start\(p, \[\], source\);[\s\S]{0,100}\}/,
   );
+  // Opening the optional co-hitchhiker sheet here recreates the measured second
+  // gate: dismissing that sheet aborts the start. Only the explicit anonymous
+  // choice should retain the companion-selection step.
+  const dismissBranch = SOURCE.slice(
+    SOURCE.indexOf("onClose: (reason) => {", SOURCE.indexOf("journey_track_prompt_shown")),
+    SOURCE.indexOf("    });", SOURCE.indexOf("onClose: (reason) => {", SOURCE.indexOf("journey_track_prompt_shown"))),
+  );
+  assert.doesNotMatch(dismissBranch, /beginWithCoHitchers/);
 });
 
 test("a dialog forced closed by another dialog opening does not auto-start a journey", () => {
