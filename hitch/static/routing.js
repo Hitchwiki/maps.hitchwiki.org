@@ -1042,10 +1042,11 @@
         '<button type="button" class="share-btn" data-share-title="' + T("Hitchhiking route – Hitchwiki Maps") + '">' +
         '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>' +
         '<span class="share-btn-label">' + T("Share") + '</span></button>' +
-        '</div><div class="rp-options"></div>' +
+        '</div>' +
         '<button type="button" class="rp-start-cta" hidden>' +
         '<i class="fa-solid fa-thumbs-up" aria-hidden="true"></i> ' +
-        T("Start hitchhiking at the first spot") + '</button>';
+        T("Start hitchhiking at the first spot") + '</button>' +
+        '<div class="rp-options"></div>';
     }
     return body.querySelector(".rp-options");
   }
@@ -1234,16 +1235,35 @@
       row.querySelector(".rp-details-btn").addEventListener("click", () => toggleDetails(row, rt, i));
       box.appendChild(row);
     });
-    const variant = hmVariant("route-start-cta-v1", ["control", "cta"]);
-    hmTrack("route_start_cta_exposure", { variant: variant });
+    // v1 put this button after all three (often tall) route cards and counted
+    // assignment as exposure before the button entered the scroll viewport. On a
+    // 390x844 production render it sat 741px below that viewport. Start a clean
+    // assignment and count a view only when the repositioned CTA is actually visible.
+    const variant = hmVariant("route-start-cta-v2", ["control", "cta"]);
+    hmTrack("route_start_cta_v2_assignment", { variant: variant });
     const cta = resultsSheet() && resultsSheet().querySelector(".rp-start-cta");
     if (cta) {
       cta.hidden = variant !== "cta";
+      if (variant === "cta" && !cta.dataset.viewObserverAttached) {
+        cta.dataset.viewObserverAttached = "1";
+        if (typeof IntersectionObserver === "function") {
+          const observer = new IntersectionObserver(function (entries) {
+            if (!entries.some(function (entry) { return entry.isIntersecting; })) return;
+            hmTrack("route_start_cta_v2_viewed", { variant: variant });
+            observer.disconnect();
+          }, { threshold: 0.5 });
+          observer.observe(cta);
+        } else {
+          // The CTA now precedes the cards and is in the initial sheet viewport;
+          // preserve measurement in older browsers without breaking the action.
+          hmTrack("route_start_cta_v2_viewed", { variant: variant });
+        }
+      }
       cta.onclick = function () {
         const rt = RJ.routes[RJ.highlight || 0];
         const boarding = firstBoardingPoint(rt);
         if (!boarding || !window.inride || !window.inride.journeyFlow) return;
-        hmTrack("route_start_cta_clicked", { variant: variant });
+        hmTrack("route_start_cta_v2_clicked", { variant: variant });
         close();
         window.inride.journeyFlow.startFromChoose(
           { lat: boarding[0], lon: boarding[1] },
