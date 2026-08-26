@@ -1229,6 +1229,8 @@
     //   seed       {lat, lon} | null — initial pin position; null → current map centre
     //   color      "orange" (drop-off) | "green" (waiting spot)
     //   autoLocate bool — request GPS in the background and snap the pin if untouched
+    //   notifyAutoLocateFailure bool — explain a failed background fix instead of
+    //     silently leaving the pin at the map centre
     //   myLocation bool — show the "Use my location" button
     //   onConfirm(dest {lat, lon})
     //   onCancel() — optional
@@ -1335,8 +1337,15 @@
               outcome("auto-location-ignored");
             }
           },
-          // Silent: the user never asked for this fix, and the pin is already usable.
-          function () { setLocating(false); outcome("auto-location-failed"); }
+          function () {
+            setLocating(false);
+            outcome("auto-location-failed");
+            if (opts.notifyAutoLocateFailure) {
+              // Reuse the explicit-button failure guidance: the picker is usable,
+              // but the visitor now knows the pin was not moved to their location.
+              journeyUI.error(T("Couldn't get your location — drag the pin instead."));
+            }
+          }
         );
       }
 
@@ -2312,6 +2321,10 @@
         // fix is worth it: same pattern as "Confirm Drop-off" below, non-blocking and
         // silent on denial/failure, only moves the pin if the user hasn't touched it.
         autoLocate: true,
+        // A silent background failure currently cuts confirmation from 79% (GPS
+        // succeeded) to 38% (GPS failed): tell the visitor why the pin stayed at
+        // the map centre and what already-supported fallback to use.
+        notifyAutoLocateFailure: true,
         myLocation: true,
         onOutcome: function (outcome, details) {
           hmTrack("journey_start_picker", Object.assign({ outcome: outcome }, details));

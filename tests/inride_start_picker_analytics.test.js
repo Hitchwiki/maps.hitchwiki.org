@@ -33,6 +33,18 @@ test("location outcomes distinguish failure, use, and a late ignored fix", () =>
   }
 });
 
+test("the start picker explains a failed automatic location fix", () => {
+  const startBlock = SOURCE.slice(
+    SOURCE.indexOf("const startLauncher ="),
+    SOURCE.indexOf("// ── Entry point from map gestures"),
+  );
+  assert.match(startBlock, /autoLocate: true,\s*[\s\S]*?notifyAutoLocateFailure: true,/);
+  assert.match(
+    SOURCE,
+    /if \(opts\.notifyAutoLocateFailure\) \{[\s\S]*?Couldn't get your location — drag the pin instead\./,
+  );
+});
+
 test("confirmed placement records every way the pin can move", () => {
   for (const placement of [
     "map-centre",
