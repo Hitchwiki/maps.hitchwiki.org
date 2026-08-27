@@ -265,11 +265,12 @@
                 <input type="hidden" id="signal" name="signal" value="{{ selected_signals|join(',') }}">
                 {# Same multi-select chips as the in-ride "How was the spot?" sheet (inride.js),
                    reusing its .inr-chips / .inr-optchip styles so both entry points look alike.
-                   Codes must stay thumb / sign / ask — they're what /ride stores. #}
+                   Codes must stay thumb / sign / ask / unsolicited — they're what /ride stores. #}
                 <div id="signal-chips" class="inr-chips">
                     <button type="button" class="inr-optchip" data-code="thumb">👍 {{ t("Thumb") }}</button>
                     <button type="button" class="inr-optchip" data-code="sign">📝 {{ t("Sign") }}</button>
                     <button type="button" class="inr-optchip" data-code="ask">🗣 {{ t("Asking") }}</button>
+                    <button type="button" class="inr-optchip" data-code="unsolicited">🙌 {{ t("Unsolicited") }}</button>
                 </div>
                 {# Only asked once a sign is actually one of the methods — what a sign said is
                    the single most reusable fact about it ("which town do I write?"), but it is

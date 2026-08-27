@@ -1613,7 +1613,7 @@ def ride_form():
                         ride_data["ride_stops"] = [label for label in ride_data["ride_stops"] if label]
 
                 # Extract signals — flatten methods across all Signal entries
-                method_to_form = {"sign": "sign", "thumb": "thumb", "asking": "ask"}
+                method_to_form = {"sign": "sign", "thumb": "thumb", "asking": "ask", "unsolicited": "unsolicited"}
                 selected = []
                 for sig in content.get("signals", []) or []:
                     for method in sig.get("methods", []) or []:
@@ -1762,7 +1762,7 @@ def ride_form():
 
         signals_selected = [s for s in data["signal"] if s and s != "null"]
         for s in signals_selected:
-            assert s in ["thumb", "sign", "ask"], f"Signal must be one of thumb, sign, ask - got {s}."
+            assert s in ["thumb", "sign", "ask", "unsolicited"], f"Signal must be one of thumb, sign, ask, unsolicited - got {s}."
         data["signal"] = signals_selected
 
         # What the sign said. Only kept when a sign was one of the chosen methods — the
