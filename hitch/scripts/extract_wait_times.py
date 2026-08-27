@@ -39,6 +39,11 @@ import sqlite3
 import sys
 import time
 
+if __package__:
+    from hitch.scripts.map_revision import dist_dir_for_database, mark_map_data_dirty
+else:
+    from map_revision import dist_dir_for_database, mark_map_data_dirty
+
 # A comment is worth an LLM call only if it names a "<number> min[ute[s]]" span. This is
 # the user-specified cheap gate: it fires on both real waits ("waited 20 min") and journey
 # durations ("30 min to Berlin"); the LLM stage removes the latter. \b before the digit so
@@ -261,6 +266,8 @@ def cmd_store(args):
     conn.commit()
     total = conn.execute("SELECT COUNT(*) FROM derived_ride_wait").fetchone()[0]
     conn.close()
+    if rows:
+        mark_map_data_dirty(dist_dir_for_database(args.db))
     print(f"stored/updated {len(rows)} rows; table now has {total}")
 
 

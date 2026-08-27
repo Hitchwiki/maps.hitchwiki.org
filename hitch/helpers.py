@@ -1,8 +1,11 @@
+import contextlib
 import gzip
 import html
 import logging
 import os
 import sqlite3
+import stat
+import tempfile
 
 import numpy as np
 import pandas as pd
@@ -155,3 +158,36 @@ def write_json_file(data: pd.DataFrame | dict, filename):
         f.write(payload.encode("utf-8"))
 
     logger.info(f"Wrote json of length {len(data)} to: {filepath} (+ .gz sidecar)")
+
+
+def write_json_if_changed(filepath, data):
+    """Atomically write JSON only when its serialized contents changed.
+
+    Per-spot ride files are generated independently. Avoiding a rewrite preserves their
+    mtime for downstream caches and, more importantly, avoids churning tens of thousands
+    of files when a run changes only a few spots.
+    """
+    payload = simplejson.dumps(data, ignore_nan=True)
+    try:
+        with open(filepath, encoding="utf-8") as f:
+            if f.read() == payload:
+                return False
+    except FileNotFoundError:
+        pass
+
+    try:
+        mode = stat.S_IMODE(os.stat(filepath).st_mode)
+    except FileNotFoundError:
+        mode = 0o644
+
+    fd, temporary_path = tempfile.mkstemp(dir=os.path.dirname(filepath), prefix=".tmp-")
+    try:
+        os.fchmod(fd, mode)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(payload)
+        os.replace(temporary_path, filepath)
+    except Exception:
+        with contextlib.suppress(FileNotFoundError):
+            os.unlink(temporary_path)
+        raise
+    return True

@@ -22,6 +22,7 @@ from shapely.geometry import Polygon
 
 from hitch.extensions import db
 from hitch.models import ServiceArea
+from hitch.scripts.map_revision import mark_map_data_dirty
 from hitch.scripts.osm_areas_common import (
     clear_checkpoint,
     cluster_bbox,
@@ -88,6 +89,7 @@ def main():
     clusters, start = resume_clusters(NAME, coords)
 
     t0 = time.perf_counter()
+    map_data_changed = False
     for i in range(start, len(clusters)):
         south, west, north, east = cluster_bbox(clusters[i])
         bbox = f"{south},{west},{north},{east}"
@@ -115,6 +117,7 @@ out geom;
                     geometry_wkt=shapely.convex_hull(poly).wkt,
                 )
             )
+            map_data_changed = True
 
         # Commit + checkpoint periodically so an interrupted run keeps its progress.
         if (i + 1) % COMMIT_EVERY == 0:
@@ -126,6 +129,8 @@ out geom;
             )
 
     db.session.commit()
+    if map_data_changed:
+        mark_map_data_dirty()
     clear_checkpoint(NAME)
     logger.info(f"SYNC SERVICE AREAS FINISHED — {db.session.query(ServiceArea).count()} areas in table")
 

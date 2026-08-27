@@ -24,6 +24,7 @@ from shapely.ops import polygonize, unary_union
 
 from hitch.extensions import db
 from hitch.models import RoadIsland
+from hitch.scripts.map_revision import mark_map_data_dirty
 from hitch.scripts.osm_areas_common import (
     clear_checkpoint,
     load_spot_coords,
@@ -112,6 +113,7 @@ def main():
     # De-dupe against what's already stored (resume / re-run safe): adjacent clusters and
     # earlier runs can rediscover the same island, and we never delete existing rows.
     seen = {wkt for (wkt,) in db.session.query(RoadIsland.geometry_wkt).all()}
+    initial_count = len(seen)
     logger.info(f"{len(seen)} road islands already in table")
 
     t0 = time.perf_counter()
@@ -129,6 +131,8 @@ def main():
             logger.info(f"  …{i + 1}/{len(clusters)} clusters, {len(seen)} islands ({time.perf_counter() - t0:.0f}s)")
 
     db.session.commit()
+    if len(seen) != initial_count:
+        mark_map_data_dirty()
     clear_checkpoint(NAME)
     logger.info(f"SYNC ROAD ISLANDS FINISHED — {len(seen)} islands in table")
 

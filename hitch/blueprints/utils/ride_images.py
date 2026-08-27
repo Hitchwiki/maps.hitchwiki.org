@@ -33,6 +33,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 from hitch.extensions import db
 from hitch.helpers import dirs
 from hitch.models import RideImage
+from hitch.scripts.map_revision import mark_map_data_dirty
 
 logger = logging.getLogger(__name__)
 
@@ -263,6 +264,8 @@ def claim_draft_images(draft_token, d_tag):
             row.ride_d_tag = d_tag
             row.draft_token = None
         db.session.commit()
+        if rows:
+            mark_map_data_dirty()
         return rows
     except Exception:
         db.session.rollback()
@@ -276,6 +279,7 @@ def delete_ride_image(row):
     filename = row.filename
     db.session.delete(row)
     db.session.commit()
+    mark_map_data_dirty()
     # File last: an orphaned file wastes disk, an orphaned row shows a broken image.
     _unlink(filename)
 

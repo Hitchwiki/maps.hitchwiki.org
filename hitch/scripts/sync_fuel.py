@@ -19,6 +19,7 @@ import requests
 from hitch.extensions import db
 from hitch.helpers import get_dirs
 from hitch.models import OsmFuelStationSpot
+from hitch.scripts.map_revision import mark_map_data_dirty
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger(__name__)
@@ -170,6 +171,7 @@ db.session.commit()
 for start in range(0, len(rows), INSERT_CHUNK):
     db.session.bulk_insert_mappings(OsmFuelStationSpot, rows[start : start + INSERT_CHUNK])
     db.session.commit()
+mark_map_data_dirty()
 
 final_count = db.session.query(OsmFuelStationSpot).count()
 logger.info(f"SYNC FUEL SCRIPT FINISHED — {final_count} stations saved (prior: {prior_count}, skipped: {skipped})")

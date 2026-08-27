@@ -9,6 +9,7 @@ from flask import current_app
 
 from hitch.extensions import db
 from hitch.models import RideEvent
+from hitch.scripts.map_revision import mark_map_data_dirty
 from hitch.scripts.nostr_ride_parsing import parse_post_to_ride_fields
 
 
@@ -37,18 +38,23 @@ def store_published_ride(event):
     if event is None:
         return
     try:
+        changed = False
         fields = parse_post_to_ride_fields(event.to_dict())
         if fields is None or not fields.get("d"):
             return
         row = db.session.query(RideEvent).filter_by(pubkey=fields["pubkey"], d=fields["d"]).first()
         if row is None:
             db.session.add(RideEvent(**fields))
+            changed = True
         elif fields["created_at"] >= (row.created_at or 0):
             # An edit publishes a new event id under the same (pubkey, d), so every
             # column is overwritten — including the primary key.
             for column, value in fields.items():
                 setattr(row, column, value)
+            changed = True
         db.session.commit()
+        if changed:
+            mark_map_data_dirty()
     except Exception:
         db.session.rollback()
         current_app.logger.exception("Could not store the published ride locally; the Nostr fetch cron will import it")

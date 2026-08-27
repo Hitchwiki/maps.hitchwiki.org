@@ -41,6 +41,11 @@ import sqlite3
 import sys
 import time
 from collections import defaultdict
+
+if __package__:
+    from hitch.scripts.map_revision import dist_dir_for_database, mark_map_data_dirty
+else:
+    from map_revision import dist_dir_for_database, mark_map_data_dirty
 from datetime import datetime
 
 KIND = "derived-consecutive-ride"
@@ -251,6 +256,8 @@ def main(argv=None):
     conn.commit()
     after = conn.execute("SELECT COUNT(*) FROM derived_ride_location").fetchone()[0]
     conn.close()
+    if after != before:
+        mark_map_data_dirty(dist_dir_for_database(args.db))
     print(
         f"inserted {after - before} new rows ({len(rows) - (after - before)} skipped as already present); table now has {after}"
     )

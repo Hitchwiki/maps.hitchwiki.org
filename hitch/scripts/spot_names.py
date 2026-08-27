@@ -46,6 +46,11 @@ from datetime import datetime, timezone
 
 import requests
 
+if __package__:
+    from hitch.scripts.map_revision import mark_map_data_dirty
+else:
+    from map_revision import mark_map_data_dirty
+
 # Resolve the DB path the same way hitch/settings.py does: db/{DATABASE_NAME}.
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
@@ -193,6 +198,9 @@ def main():
         counts = resolve_pending(conn, spots, limit=args.limit, dry_run=args.dry_run)
     finally:
         conn.close()
+
+    if not args.dry_run and counts["named"] + counts["unnamed"]:
+        mark_map_data_dirty(os.path.dirname(os.path.abspath(args.spots)))
 
     logger.info(
         f"Geocoded {counts['total']} spots: {counts['named']} named, "

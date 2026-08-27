@@ -8,6 +8,7 @@ from sqlalchemy import func, tuple_
 from hitch.extensions import db
 from hitch.helpers import get_dirs
 from hitch.models import RideEvent
+from hitch.scripts.map_revision import mark_map_data_dirty
 from hitch.scripts.nostr_ride_parsing import parse_post_to_ride_fields
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
@@ -99,9 +100,12 @@ for fields in parsed:
         # Same or older revision than what we have — nothing to do.
         unchanged += 1
 
-db.session.commit()
-
-logger.info(f"Upsert complete: {inserted} inserted, {updated} updated, {unchanged} unchanged")
+if inserted or updated:
+    db.session.commit()
+    mark_map_data_dirty(dirs["dist"])
+    logger.info(f"Upsert complete: {inserted} inserted, {updated} updated, {unchanged} unchanged")
+else:
+    logger.info(f"Skipping upsert commit: no rides inserted or updated ({unchanged} boundary event(s) unchanged)")
 
 # --- Apply NIP-09 deletions ---
 # Run after the upsert so that a ride which was edited (new id, re-inserted above) and then
@@ -126,7 +130,14 @@ if authorised_pubkeys_by_id:
         if row.pubkey in authorised_pubkeys_by_id.get(row.id, ()):
             db.session.delete(row)
             removed += 1
-    db.session.commit()
+    if removed:
+        db.session.commit()
+        mark_map_data_dirty(dirs["dist"])
+        logger.info(f"Committed {removed} authorised NIP-09 deletion(s)")
+    else:
+        logger.info("Skipping deletion commit: no authorised rides were removed")
+else:
+    logger.info("Skipping deletion commit: no NIP-09 deletion events were fetched")
 
 logger.info(f"Applied deletions: {len(deletions)} kind-5 events seen, {removed} rides removed")
 logger.info("FETCH NOSTR INCREMENTAL SCRIPT FINISHED")
