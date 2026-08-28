@@ -318,6 +318,7 @@
       destLat: body.destination_lat,
       destLon: body.destination_lon,
       waitMin: body.wait,
+      comment: body.comment || "",
       departedAt: body.datetime_ride,
       arrivedAt: body.arrival_datetime,
     };

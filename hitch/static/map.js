@@ -3567,6 +3567,16 @@ function trackRideShare(properties) {
 function showSuccessOverlay(opts) {
   const overlay = $$("#success-overlay");
   if (!overlay) return;
+  // Consume the full-page form's hand-off here rather than inside the share-card
+  // renderer: the contribution nudge and the card need the same just-logged ride.
+  // A direct in-ride hand-off wins, but stale storage is still cleared.
+  const stashedRide = takeLastRide();
+  const successRide = (opts && opts.ride) || stashedRide;
+  const successOpts = opts
+    ? Object.assign({}, opts, { ride: successRide })
+    : successRide
+      ? { ride: successRide }
+      : opts;
   overlay.style.display = "flex";
   shareVariant = chooseVariant("ride-share-value-v1", ["control", "help-friend"]);
   hmTrack("ride_share_exposure", { variant: shareVariant });
@@ -3596,6 +3606,7 @@ function showSuccessOverlay(opts) {
   if (!opts) lastTripCreated = null;
   renderTripCreatedNote();
   renderReturnNudge();
+  renderWikiContributionNudge(successRide);
   shareCompleted = false;
 
   // Dismissing the overlay returns to the map the user submitted from — no
@@ -3648,7 +3659,7 @@ function showSuccessOverlay(opts) {
     if (e.target === overlay) close("backdrop");
   };
 
-  setupShareCard(opts);
+  setupShareCard(successOpts);
 }
 
 function renderTripCreatedNote() {
@@ -3696,6 +3707,49 @@ function renderReturnNudge() {
   hmTrack("first_ride_nudge_shown", {});
 }
 
+// The ride-detail version of this invitation reached zero authors: /ride/<d> is a
+// share destination, not part of the logging flow. Put the same invitation where the
+// author actually is, while keeping the same conservative 200-character threshold.
+const WIKI_CONTRIBUTE_COMMENT_CHARS = 200;
+
+async function renderWikiContributionNudge(ride) {
+  const note = $$("#success-wiki-contribute");
+  if (!note) return;
+  note.textContent = "";
+  note.style.display = "none";
+  if (!ride || String(ride.comment || "").trim().length < WIKI_CONTRIBUTE_COMMENT_CHARS) return;
+
+  const lat = Number(ride.pickupLat);
+  const lon = Number(ride.pickupLon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+  const spotId = `${lat.toFixed(5)}_${lon.toFixed(5)}`;
+  const marker = allMarkers.find((m) => m.options && m.options.spotId === spotId);
+  // spots.json carries only a presence flag; avoid a detail fetch for the other ~45k spots.
+  if (!marker || !(marker.options._data || {}).wiki) return;
+
+  try {
+    const response = await fetch(`/rides/by-spot/${encodeURIComponent(spotId)}.json`);
+    if (!response.ok) return;
+    const payload = await response.json();
+    const url = payload && payload.spot && payload.spot.hitchwiki_article;
+    if (!url) return;
+    const link = document.createElement("a");
+    link.href = url;
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.textContent = tr("Add your notes to the Hitchwiki article for this place");
+    link.onclick = function () {
+      hmTrack("wiki_contribute_clicked", { source: "success-overlay" });
+    };
+    note.appendChild(link);
+    note.style.display = "block";
+    hmTrack("wiki_contribute_shown", { source: "success-overlay" });
+  } catch (e) {
+    // This is an optional invitation. A missing/stale detail file must never damage
+    // the post-submit success screen or its share action.
+  }
+}
+
 // Builds the shareable image and wires the share button. Anything that goes wrong
 // (no stashed ride, no network for the tiles, a browser without canvas export)
 // degrades to sharing just the text + link — never to a broken overlay.
@@ -3709,10 +3763,9 @@ function setupShareCard(opts) {
   // cached copy of the old overlay markup. Bail out to the plain success message
   // rather than throwing on the missing elements.
   if (!shareBtn || !status || !img || !caption) return;
-  // A caller that handed the ride in directly wins over the stash — but the stash is
-  // still consumed, so a stale entry can't resurface on the next plain /#success.
-  const stashed = takeLastRide();
-  const ride = (opts && opts.ride) || stashed;
+  // showSuccessOverlay already resolved the direct/stashed hand-off once so every
+  // post-submit feature sees the same ride.
+  const ride = opts && opts.ride;
 
   // The submit redirect carries the new ride's d tag as ?ride=<d_tag>. Read it, then
   // drop it from the URL: it is a one-shot hand-off, not part of the map's address.
