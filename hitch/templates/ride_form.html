@@ -1230,12 +1230,30 @@
 
         // If there's unfinished text in the input, validate and add it before submitting
         if (partial !== '') {
-            const xhr = new XMLHttpRequest();
-            xhr.open('GET', '/is_username_used/' + encodeURIComponent(partial), false);
-            xhr.send();
-            const result = JSON.parse(xhr.responseText);
+            let result;
+            try {
+                const xhr = new XMLHttpRequest();
+                xhr.open('GET', '/is_username_used/' + encodeURIComponent(partial), false);
+                xhr.send();
+                result = JSON.parse(xhr.responseText);
+            } catch (e) {
+                // A proxy 502 during an outage, or a dropped connection, lands here:
+                // the raw response isn't JSON and JSON.parse throws straight out of the
+                // onsubmit handler, so the form silently does nothing and no event is
+                // recorded. Give the same visible, scrolled-into-view feedback the rest
+                // of validateForm() gives, and count it so this stops being invisible.
+                hmTrack('ride_form_blocked', { reason: 'cohitchhiker-check-error' });
+                errorMsg.textContent = {{ t("Could not check the co-hitchhiker's name — please remove it or try again.")|tojson }};
+                errorMsg.scrollIntoView({ block: 'center' });
+                return false;
+            }
             if (!result.used) {
+                // Untracked until now: a typo'd co-hitchhiker name is a hard submit
+                // block with the error buried deep in the optional "You" box. Track it
+                // and scroll it into view like every other block reason.
+                hmTrack('ride_form_blocked', { reason: 'cohitchhiker-unknown' });
                 errorMsg.textContent = {{ t('User "{name}" does not exist')|tojson }}.replace('{name}', partial);
+                errorMsg.scrollIntoView({ block: 'center' });
                 return false;
             }
             document.getElementById('co-hitchhiker-hidden').value =
