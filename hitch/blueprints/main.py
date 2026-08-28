@@ -1986,6 +1986,21 @@ def ride_form():
         # success overlay's share card links to /ride/<d_tag>, which now resolves
         # immediately (see _store_published_ride). map.js strips the param once read.
         success_query = f"/?ride={quote(d_tag)}"
+
+        # Surface the "fold your own notes into the nearest Hitchwiki article" nudge on the
+        # success overlay when this ride carries a long note and its pickup sits near a
+        # wiki article. Same gate as the /ride/<d_tag> version below (RIDE_COMMENT_PREVIEW_CHARS,
+        # spot near an article), but that page is a share target the author almost never
+        # reopens, so the nudge recorded 0 impressions in its first weeks (B425). The author
+        # is reliably on this overlay right after logging the note. Never for an edit (same
+        # reason the sign-up nudge isn't) and never our own text — just a link to the article.
+        # _spot_preview reads the generated per-spot file, so a brand-new spot's article link
+        # only appears once show.py catches up; an existing roadside spot has it immediately.
+        if not edit_d_tag and comment and len(comment) >= RIDE_COMMENT_PREVIEW_CHARS and lat is not None and lon is not None:
+            _wiki_spot = _spot_preview(spot_id_for(lat, lon))
+            if _wiki_spot and _wiki_spot.get("hitchwiki_article"):
+                success_query += f"&wc={quote(_wiki_spot['hitchwiki_article'], safe='')}"
+
         redirect_url = f"{success_query}#success"
         if not edit_d_tag:
             if current_user.is_anonymous:

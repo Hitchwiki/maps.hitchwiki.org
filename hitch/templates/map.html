@@ -828,6 +828,13 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
              exactly that moment, and unlike an email it also reaches anonymous
              submitters, who have no other re-engagement channel at all. -->
         <p id="success-return-nudge" class="success-trip-note" style="display: none;"></p>
+        <!-- Shown when the server passed ?wc=<article-url> on the success redirect: this
+             ride's note is long enough to be worth a wiki edit and its pickup is near a
+             Hitchwiki article. Asks the author to fold their OWN notes in (never text we
+             wrote). Replaces the old placement on /ride/<d_tag>, which the author never
+             reopened, so it fired 0 times in its first weeks (B425, hitchhiking-automation).
+             The link + tracking are wired in map.js renderWikiContributeNudge(). -->
+        <p id="success-wiki-contribute" class="success-trip-note" style="display: none;"></p>
         <div id="success-share-block">
             <h2>{{ t("Show your friends") }}</h2>
             <p class="success-share-sub">{{ t("Send them the map of your ride — it's how most hitchhikers find us.") }}</p>

@@ -3596,6 +3596,7 @@ function showSuccessOverlay(opts) {
   if (!opts) lastTripCreated = null;
   renderTripCreatedNote();
   renderReturnNudge();
+  renderWikiContributeNudge();
   shareCompleted = false;
 
   // Dismissing the overlay returns to the map the user submitted from — no
@@ -3694,6 +3695,39 @@ function renderReturnNudge() {
   );
   note.style.display = "block";
   hmTrack("first_ride_nudge_shown", {});
+}
+
+// Shown when the server put ?wc=<article-url> on the success redirect: this ride's
+// note is long enough to be worth a wiki edit and the pickup is near a Hitchwiki
+// article (main.py applies the same gate the /ride/<d_tag> nudge uses). Asks the
+// author to fold their own notes into that article — we never write the content,
+// only point at the page. This is the moment the author is reliably here; the old
+// placement on /ride/<d_tag> was a share-target page they never reopened, so it
+// recorded 0 impressions in weeks (B425). Emits the same wiki_contribute_shown /
+// wiki_contribute_clicked events as that version, tagged source:"success-overlay".
+function renderWikiContributeNudge() {
+  const note = $$("#success-wiki-contribute");
+  if (!note) return; // old cached copy of the overlay markup (see setupShareCard)
+  note.textContent = "";
+  note.style.display = "none";
+  const url = new URLSearchParams(window.location.search).get("wc");
+  // The value is our own DB's hitchwiki_article, but validate the scheme anyway —
+  // it arrives via the address bar and this builds an <a href>.
+  if (!url || !/^https?:\/\//i.test(url)) return;
+  note.appendChild(
+    document.createTextNode(tr("Your note has details that could help the next hitchhiker. "))
+  );
+  const link = document.createElement("a");
+  link.href = url;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.textContent = tr("Add them to this spot's Hitchwiki article");
+  link.addEventListener("click", function () {
+    hmTrack("wiki_contribute_clicked", { source: "success-overlay" });
+  });
+  note.appendChild(link);
+  note.style.display = "block";
+  hmTrack("wiki_contribute_shown", { source: "success-overlay" });
 }
 
 // Builds the shareable image and wires the share button. Anything that goes wrong
