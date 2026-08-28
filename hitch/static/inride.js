@@ -1519,6 +1519,43 @@
       signalField.appendChild(signalChipsEl);
       sheet.appendChild(signalField);
 
+      // ── Driver's stated reason: optional, single-select, no free text ─────────
+      // These are existing ReasonToPickUpEnum codes already accepted by /ride.
+      // Keep the high-completion pickup sheet to five plain-language choices;
+      // the full edit sheet still exposes every standard value later.
+      let driverReason = "";
+      const reasonField = document.createElement("div");
+      reasonField.className = "inr-field";
+      const reasonLabel = document.createElement("label");
+      reasonLabel.textContent = T("What did the driver say made them stop? (optional)");
+      reasonField.appendChild(reasonLabel);
+      const reasonChipsEl = document.createElement("div");
+      reasonChipsEl.className = "inr-chips";
+      [
+        { code: "was_hitchhiker", label: "🎒 " + T("Hitchhiked before") },
+        { code: "social_exchange", label: "💬 " + T("Wanted company") },
+        { code: "curiosity", label: "❓ " + T("Curious") },
+        { code: "sympathy", label: "🤝 " + T("Wanted to help") },
+        { code: "environmental", label: "🌱 " + T("Empty seat") },
+      ].forEach(function (opt) {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "inr-optchip";
+        chip.textContent = opt.label;
+        chip.setAttribute("data-code", opt.code);
+        chip.addEventListener("click", function () {
+          driverReason = driverReason === opt.code ? "" : opt.code;
+          reasonChipsEl.querySelectorAll(".inr-optchip").forEach(function (candidate) {
+            candidate.classList.toggle(
+              "inr-optchip--on", candidate.getAttribute("data-code") === driverReason
+            );
+          });
+        });
+        reasonChipsEl.appendChild(chip);
+      });
+      reasonField.appendChild(reasonChipsEl);
+      sheet.appendChild(reasonField);
+
       // ── Optional comment ───────────────────────────────────────────────────────
       const commentField = document.createElement("div");
       commentField.className = "inr-field";
@@ -1558,8 +1595,10 @@
           rating: rating,
           vehicle_kind: vehicleKind,
           signal: Array.from(signals),
+          driver_reason_to_pick_up: driverReason ? [driverReason] : [],
           comment: textarea.value.trim(),
         };
+        if (driverReason) hmTrack("driver_reason_answered", { reason: driverReason });
         close();
         onSave(details);
       });
@@ -1576,6 +1615,7 @@
 
       document.body.appendChild(scrim);
       document.body.appendChild(sheet);
+      hmTrack("driver_reason_prompt_shown");
       journeyUI._openDialog = { close };
       return { close };
     },
