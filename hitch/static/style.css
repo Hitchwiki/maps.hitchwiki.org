@@ -3721,6 +3721,16 @@ body.routing-active .leaflet-control-container .leaflet-control-geocoder { displ
 }
 
 .rp-options { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.rp-intent { margin: 8px 0 2px; }
+.rp-intent-label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; }
+.rp-intent-choices { display: flex; flex-wrap: wrap; gap: 6px; }
+.rp-intent-choices button {
+  border: 1px solid #ccc; border-radius: 999px; background: #fff;
+  padding: 6px 10px; color: #444; font-size: 13px;
+}
+.rp-intent-choices button.rp-intent-selected {
+  border-color: #297a38; background: #e8f5eb; color: #1c612a;
+}
 .rp-option {
   display: flex; align-items: stretch; gap: 10px;
   text-align: left; border: 1px solid #e4e4e4; background: #fff;
