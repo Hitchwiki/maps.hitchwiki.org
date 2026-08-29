@@ -600,7 +600,7 @@
           const reason = diagnoseNoRouteReason(FB || RJ.router, from, to, DEFAULT_MAX_WALK);
           hmTrack('route_none', { reason: reason });
           setStatus(diagnoseNoRoute(FB || RJ.router, from, to, DEFAULT_MAX_WALK, !!FB));
-          showNoRouteStartAction();
+          showNoRouteStartAction(from);
           return;
         }
         hmTrack('route_found', { graph: 'oneoff', options: alt.length });
@@ -641,16 +641,21 @@
   // from their searched origin recovers intent that the planner would otherwise
   // strand. Variant is encoded in fixed event names so aggregate analytics never
   // need an event-data query (which would expose session ids and route URLs).
-  function showNoRouteStartAction() {
+  // `origin` is the [lat, lon] the search actually ran from, captured in compute()
+  // before the fallback-router download. Don't read RJ.start here: that download
+  // is async, and a user who closes or edits the planner while "checking one-off
+  // rides…" is showing clears RJ.start — which used to silently drop this CTA for
+  // ~4 of every 5 no-route results (EXP-171 exposure shortfall, 43 of 230).
+  function showNoRouteStartAction(origin) {
     const cta = panel && panel.querySelector(".rp-no-route-cta");
-    if (!cta || !RJ.start) return;
+    if (!cta || !origin) return;
     const variant = hmVariant("route-none-start-v1", ["control", "cta"]);
     hmTrack("route_none_start_exposure_" + variant);
     cta.hidden = variant !== "cta";
     cta.onclick = function () {
-      if (!window.inride || !window.inride.journeyFlow || !RJ.start) return;
+      if (!window.inride || !window.inride.journeyFlow) return;
       hmTrack("route_none_start_clicked_cta");
-      const start = RJ.start.latlng;
+      const start = origin;
       close();
       window.inride.journeyFlow.startFromChoose(
         { lat: start[0], lon: start[1] },
