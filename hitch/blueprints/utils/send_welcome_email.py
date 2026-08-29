@@ -22,12 +22,18 @@ _SYNTHETIC_EMAIL_SUFFIX = "@hitchwiki.oauth"
 WELCOME_SUBJECT = "Welcome to the Hitchwiki Map"
 
 
-def _send_via_sparkpost(to_email, to_name, subject, html, text, transactional=True):
+def _send_via_sparkpost(to_email, to_name, subject, html, text, transactional=True, campaign=None):
     """POST a single transmission to SparkPost. Raises on HTTP error.
 
     `transactional` marks the message type on SparkPost's side. Transactional emails
     (e.g. the one-time welcome) bypass list-unsubscribe suppression; non-transactional
     (marketing/digest) emails honour it, so recurring digests should pass False.
+
+    `campaign` sets SparkPost's `campaign_id` on the transmission. All three app
+    sends share the Hitchwiki SparkPost account with the newsletter, so without a
+    per-flow campaign id the metrics API reports them as one undifferentiated pile
+    and we cannot tell a welcome open from a newsletter open. Each caller passes a
+    stable slug ("welcome-email", "nearby-hitchhikers", "inactive-user-reminder").
     """
     base_url = current_app.config["SPARKPOST_BASE_URL"].rstrip("/")
     api_key = current_app.config["SPARKPOST_API_KEY"]
@@ -52,6 +58,8 @@ def _send_via_sparkpost(to_email, to_name, subject, html, text, transactional=Tr
         },
         "recipients": [{"address": {"email": to_email, "name": to_name or ""}}],
     }
+    if campaign:
+        payload["campaign_id"] = campaign
     response = requests.post(
         f"{base_url}/transmissions",
         headers={"Authorization": api_key, "Content-Type": "application/json"},
@@ -67,7 +75,7 @@ def send_welcome_email(user):
     name = user.username or "there"
     html = render_template("email/welcome.html", name=name)
     text = render_template("email/welcome.txt", name=name)
-    return _send_via_sparkpost(user.email, name, WELCOME_SUBJECT, html, text)
+    return _send_via_sparkpost(user.email, name, WELCOME_SUBJECT, html, text, campaign="welcome-email")
 
 
 def maybe_send_welcome_email(user):
