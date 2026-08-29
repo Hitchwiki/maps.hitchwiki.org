@@ -45,3 +45,31 @@ def test_return_event_only_fires_after_a_real_map_pick():
     # _funnel_session_started write-back cannot trigger a false return event.
     assert "_funnel_pick_type: type" in TEMPLATE
     assert "if (data._funnel_pick_type) {" in TEMPLATE
+
+
+def test_section_depth_is_instrumented_and_deduped():
+    # B436 slice 3: ride_form_field_reached tells how deep abandoners get.
+    assert "hmTrack('ride_form_field_reached', { section: section, mode: HM_FORM_MODE }" in TEMPLATE
+    # deduped across the full-page map round-trips via sessionStorage
+    assert "d._funnel_sections = Object.keys(reached)" in TEMPLATE
+    assert "(d._funnel_sections || []).forEach" in TEMPLATE
+    # both interaction kinds (real inputs and chip buttons)
+    assert "document.addEventListener('focusin', note)" in TEMPLATE
+    assert "document.addEventListener('click', note)" in TEMPLATE
+
+
+def test_every_marked_section_is_reachable_by_the_listener():
+    import re
+
+    marked = set(re.findall(r'data-funnel-section="([^"]+)"', TEMPLATE))
+    assert marked == {
+        "rating",
+        "wait",
+        "comment",
+        "you-and-signal",
+        "vehicle",
+        "driver",
+        "photos",
+    }
+    # the listener resolves the section via closest('[data-funnel-section]')
+    assert "ev.target.closest('[data-funnel-section]')" in TEMPLATE
