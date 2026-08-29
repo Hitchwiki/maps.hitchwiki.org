@@ -16,6 +16,11 @@ def test_safe_draft_is_short_lived_and_excludes_sensitive_fields():
     for field in ("pickup_lat", "destination_lat", "datetime_ride", "comment", "co_hitchhiker", "license_plate", "draft_token"):
         assert field not in allowlist
 
+    content_start = TEMPLATE.index("function safeRideFormDraftHasContent")
+    content_end = TEMPLATE.index("function readSafeRideFormDraft", content_start)
+    # Vehicle kind defaults to car, so it cannot alone prove that the person typed anything.
+    assert "values.vehicle_kind" not in TEMPLATE[content_start:content_end]
+
 
 def test_restore_is_optional_measured_and_cleared_only_after_success():
     assert "ride_form_draft_saved" in TEMPLATE
