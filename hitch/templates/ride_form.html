@@ -640,6 +640,10 @@
             // aggregate-only funnel marker through those map round-trips so telemetry
             // does not count one contributor as three abandoned forms.
             _funnel_session_started: HM_FORM_SESSION_STARTED,
+            // Which pick this map round-trip is for. Read back in restoreFormData to
+            // fire ride_form_returned_from_map and tell "went to the map and came
+            // back with a point" from "went and bailed" — B435's two invisible drains.
+            _funnel_pick_type: type,
             // Photos are already uploaded and live under this token on the server, so
             // carrying the token is all that is needed to get the tiles back — which is
             // exactly why they are uploaded on pick rather than held in the file input,
@@ -680,6 +684,11 @@
             initialCoords = '/' + coords.pickup[0] + ',' + coords.pickup[1] + ',10';
         }
         
+        // Funnel: the form is being left for the full-page map to pick a point.
+        // ~40% of new-mode sessions never submit (EXP-337) and this navigation is
+        // one of the two documented drains; pair it with ride_form_returned_from_map.
+        hmTrack('ride_form_map_pick_started', { type: type, mode: HM_FORM_MODE });
+
         // Redirect to map with selection mode
         window.location.href = '/#select-' + type + initialCoords;
     }
@@ -689,7 +698,21 @@
         const formData = sessionStorage.getItem('rideFormData');
         if (formData) {
             const data = JSON.parse(formData);
-            
+
+            // Funnel: back from the full-page map. _funnel_pick_type is only set by
+            // selectLocation, so this never fires on a plain first render. picked
+            // reports whether a coordinate for that pick actually came back.
+            if (data._funnel_pick_type) {
+                const pickedCoord = data._funnel_pick_type === 'destination'
+                    ? data.destination_lat
+                    : data.pickup_lat;
+                hmTrack('ride_form_returned_from_map', {
+                    type: data._funnel_pick_type,
+                    picked: pickedCoord ? 'yes' : 'no',
+                    mode: HM_FORM_MODE
+                });
+            }
+
             // Restore form fields
             if (data.rate) {
                 const rateInput = document.querySelector(`input[name="rate"][value="${data.rate}"]`);
