@@ -2954,6 +2954,13 @@ function summaryText(data, hists = { wait: null, distance: null }) {
   const hitchwikiMapLink = data.hitchwiki_map
     ? `<div>🗺️ <a href="${data.hitchwiki_map}" target="_blank" rel="noopener noreferrer">${tr("Read about this area on Hitchwiki")}</a></div>`
     : '';
+  // No article sits on this spot, but one is within ~15 km — offer it, always with the
+  // distance spelled out so it reads as "there is hitchhiking advice for the area", never
+  // as a claim that the article is about this exact spot. `spot_wiki_nearby_shown` fires
+  // from handleMarkerClick, next to the exact-match excerpt event.
+  const hitchwikiNearbyLink = !data.hitchwiki_article && !data.hitchwiki_map && data.hitchwiki_nearby
+    ? `<div>📄 <a href="${data.hitchwiki_nearby.url}" target="_blank" rel="noopener noreferrer">${tr("Nearest Hitchwiki article: {title} (~{km} km)", { title: data.hitchwiki_nearby.title, km: data.hitchwiki_nearby.km })}</a></div>`
+    : '';
   // Filled in asynchronously by loadSpotWikiExcerpt once this markup is in the DOM
   // (see applySpotRideFilter) -- fetching Hitchwiki's API takes a round trip this
   // synchronous function can't wait on. Empty when neither link above exists.
@@ -2975,7 +2982,7 @@ function summaryText(data, hists = { wait: null, distance: null }) {
     ${spotHistogramMarkup(hists.wait, "spot-wait-hist", "min")}
     <div>${tr("Ride distance: {distance}", { distance })}</div>
     ${spotHistogramMarkup(scaleHistToDisplay(hists.distance), "spot-distance-hist", distanceUnitLabel())}
-    ${osmLink}${carPoolingLink}${fuelLink}${hitchwikiLink}${hitchwikiMapLink}${spotWikiExcerpt}`;
+    ${osmLink}${carPoolingLink}${fuelLink}${hitchwikiLink}${hitchwikiMapLink}${hitchwikiNearbyLink}${spotWikiExcerpt}`;
 }
 
 async function handleMarkerClick(marker, point, e) {
@@ -3015,6 +3022,12 @@ async function handleMarkerClick(marker, point, e) {
         // Click-time spot info (wait/distance averages, OSM / car-pooling /
         // Hitchwiki links) ships in the per-spot file, not spots.json.
         Object.assign(marker.options._data, payload.spot || {});
+        // Funnel: a spot with no article within 100 m was offered the nearest one
+        // instead. Distance bucket only, no spot id — same privacy rule as spot_opened.
+        const near = (payload.spot || {}).hitchwiki_nearby;
+        if (near && !(payload.spot || {}).hitchwiki_article && !(payload.spot || {}).hitchwiki_map) {
+          hmTrack('spot_wiki_nearby_shown', { km: Math.round(near.km) });
+        }
       }
     } else if (resp.status !== 404) {
       console.error(`Failed to load rides for spot ${spotId}: HTTP ${resp.status}`);

@@ -20,7 +20,7 @@ from sklearn.exceptions import InconsistentVersionWarning
 from hitch.blueprints.utils.notifications import load_race_podiums, notify_new_race_podiums
 from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON, REPORTS_TO_HIDE
 from hitch.blueprints.utils.ride_images import image_url
-from hitch.helpers import e, get_bearing, get_db, get_dirs, haversine_np, write_json_file
+from hitch.helpers import e, find_nearest_wide_in_grid, get_bearing, get_db, get_dirs, haversine_np, write_json_file
 from hitch.scripts.races import build_races, estimate_arrival
 from hitch.scripts.spot_naming import resolve_spot_name
 from hitch.scripts.spots_gpx import spot_waypoint, write_spots_gpx
@@ -866,6 +866,12 @@ def find_nearest_in_grid(lat, lon, grid, max_distance_km=0.1):
     return best
 
 
+# How far a spot may reach for a "nearest Hitchwiki article" link when nothing sits within
+# the 100 m exact-match radius. EXP-352: within 15 km of a geo-located article covers ~46%
+# of logged-ride demand, vs ~0.1% at the current 100 m point-join. The link is always
+# distance-labelled ("~11 km") so a far match reads honestly and is never a silent excerpt.
+NEARBY_HITCHWIKI_MAX_KM = 15.0
+
 hitchwiki_df = pd.read_sql(
     "select id, title, heading, latitude, longitude, hitchwiki_url from hitchwiki_article_location", get_db()
 )
@@ -881,6 +887,9 @@ osm_spot_grid = build_point_grid(osm_spots_df, lambda r: int(r.id))
 car_pooling_grid = build_point_grid(car_pooling_df, lambda r: {"id": int(r.id), "osm_type": r.osm_type})
 fuel_grid = build_point_grid(fuel_df, lambda r: {"id": int(r.id), "osm_type": r.osm_type})
 hitchwiki_grid = build_point_grid(hitchwiki_df, lambda r: r.hitchwiki_url)
+# Same points, but the value carries the title too — the wide "nearest article" link names
+# the place ("Prague, ~11 km") where the 100 m exact match just says "this spot".
+hitchwiki_wide_grid = build_point_grid(hitchwiki_df, lambda r: (r.hitchwiki_url, r.title))
 logger.info(
     f"Built lookup grids: {len(osm_spots_df)} OSM spots / {len(car_pooling_df)} car-pooling / "
     f"{len(fuel_df)} fuel / {len(hitchwiki_df)} Hitchwiki articles"
@@ -987,6 +996,23 @@ logger.info(f"Found {places['nearby_fuel'].notnull().sum()} places at a fuel sta
 logger.info("Finding nearby Hitchwiki articles")
 places["nearby_hitchwiki_link"] = places.apply(lambda row: find_nearest_in_grid(row["lat"], row["lon"], hitchwiki_grid), axis=1)
 logger.info(f"Found {places['nearby_hitchwiki_link'].notnull().sum()} places with nearby Hitchwiki articles")
+
+logger.info("Finding the nearest Hitchwiki article for spots with none within 100 m")
+
+
+def _nearby_hitchwiki_far(row):
+    # Only spots the 100 m exact join missed — an exact match already renders its own link.
+    if row["nearby_hitchwiki_link"] is not None:
+        return None
+    hit = find_nearest_wide_in_grid(row["lat"], row["lon"], hitchwiki_wide_grid, NEARBY_HITCHWIKI_MAX_KM)
+    if hit is None:
+        return None
+    (url, title), dist_km = hit
+    return {"url": url, "title": title, "km": round(dist_km, 1)}
+
+
+places["nearby_hitchwiki_far"] = places.apply(_nearby_hitchwiki_far, axis=1)
+logger.info(f"Found {places['nearby_hitchwiki_far'].notnull().sum()} spots with a Hitchwiki article 0.1-15 km away")
 
 logger.info("Finding Hitchwiki maps covering spots")
 _hitchwiki_map_bounds = build_hitchwiki_map_bounds(hitchwiki_maps_df)
@@ -1111,6 +1137,15 @@ for _, place in places.iterrows():
         detail["hitchwiki_article"] = place["nearby_hitchwiki_link"]
     if place["hitchwiki_map_link"] is not None:
         detail["hitchwiki_map"] = place["hitchwiki_map_link"]
+    # Fallback link for the ~46% of ride demand that has an article nearby but not within
+    # 100 m — only when neither exact link fired, and always with its distance so the pane
+    # can label it honestly ("~11 km") rather than implying the article is about this spot.
+    if (
+        place["nearby_hitchwiki_link"] is None
+        and place["hitchwiki_map_link"] is None
+        and place["nearby_hitchwiki_far"] is not None
+    ):
+        detail["hitchwiki_nearby"] = place["nearby_hitchwiki_far"]
     spot_details[spot_id] = detail
 
 write_json_file(spots_data, "spots.json")

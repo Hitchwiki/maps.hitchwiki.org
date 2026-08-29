@@ -111,6 +111,43 @@ def haversine_np(lat1, lon1, lat2, lon2, factor=1.25):
     return factor * km
 
 
+def find_nearest_wide_in_grid(lat, lon, grid, max_distance_km):
+    """(value, crow-flies km) of the nearest gridded feature within max_distance_km, else None.
+
+    show.py's `find_nearest_in_grid` scans a fixed 3x3 window of 0.01° cells — correct only
+    for the ~100 m it was built for, since a feature a few km away sits in a cell that window
+    never looks at. This scans every cell whose contents could fall inside the radius:
+    `ceil(max_km / cell_km)` cells north/south, and more east/west because 0.01° of longitude
+    shrinks as `cos(lat)` toward the poles. Distance is crow-flies (`factor=1.0`) so a
+    rendered "~N km" matches what a user measures on the map.
+
+    `grid` is a `build_point_grid` result: `{(round(lat,2), round(lon,2)): [(order, value, plat, plon), ...]}`.
+    """
+    if not grid:
+        return None
+    lat_cell_km = 111.0 * 0.01  # ~1.11 km per 0.01° of latitude, everywhere
+    n_lat = int(max_distance_km / lat_cell_km) + 2
+    coslat = max(float(np.cos(np.radians(lat))), 0.05)  # floor guards the polar 1/cos blow-up
+    n_lon = int(max_distance_km / (lat_cell_km * coslat)) + 2
+    clat, clon = round(lat, 2), round(lon, 2)
+    best_key = None
+    best = None
+    for i in range(-n_lat, n_lat + 1):
+        for j in range(-n_lon, n_lon + 1):
+            cell = grid.get((round(clat + i * 0.01, 2), round(clon + j * 0.01, 2)))
+            if not cell:
+                continue
+            for order, value, plat, plon in cell:
+                dist = float(haversine_np(lat, lon, plat, plon, factor=1.0))
+                if dist > max_distance_km:
+                    continue
+                key = (dist, order)
+                if best_key is None or key < best_key:
+                    best_key = key
+                    best = (value, dist)
+    return best
+
+
 def get_bearing(lon1, lat1, lon2, lat2):
     dLon = lon2 - lon1
     x = np.cos(np.radians(lat2)) * np.sin(np.radians(dLon))
