@@ -1503,6 +1503,7 @@
         { code: "thumb", label: "👍 " + T("Thumb")  },
         { code: "sign",  label: "📝 " + T("Sign")   },
         { code: "ask",   label: "🗣 " + T("Asking") },
+        { code: "unsolicited", label: "🙌 " + T("Unsolicited") },
       ].forEach(function (opt) {
         const chip = document.createElement("button");
         chip.type = "button";

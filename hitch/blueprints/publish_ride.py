@@ -71,6 +71,10 @@ def map_signal(signal: str) -> Signal:
         return Signal(
             methods=["asking"],
         )
+    elif signal == "unsolicited":
+        return Signal(
+            methods=["unsolicited"],
+        )
     else:
         return None
 
@@ -194,7 +198,7 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
         raw_signal = [raw_signal]
     elif raw_signal is None:
         raw_signal = []
-    method_map = {"sign": "sign", "thumb": "thumb", "ask": "asking"}
+    method_map = {"sign": "sign", "thumb": "thumb", "ask": "asking", "unsolicited": "unsolicited"}
     methods = []
     for s in raw_signal:
         m = method_map.get(s)

@@ -518,3 +518,4 @@ deploy/rclone.conf
 client_secret_*.json
 
 *.csv
+/.state/

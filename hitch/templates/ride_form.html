@@ -194,7 +194,7 @@
         <input type="hidden" name="destination_lat" id="destination_lat" value="{{ ride_data.destination_lat if ride_data else '' }}">
         <input type="hidden" name="destination_lon" id="destination_lon" value="{{ ride_data.destination_lon if ride_data else '' }}">
         
-        <div class="form-group">
+        <div class="form-group" data-funnel-section="rating">
             <label>{{ t("How do you rate the spot?") }}</label>
             <div class="rate">
                 {# No `required` here: while unchecked, `.rate:not(:checked) > input` in style.css
@@ -219,21 +219,21 @@
             <span id="rate-error-message" class="error text-danger" style="display:block; font-size:0.85em;"></span>
         </div>
 
-        <div class="form-group">
+        <div class="form-group" data-funnel-section="wait">
             <label for="wait">{{ t("How long did you wait? Leave blank if you don't remember.") }}</label>
             <div>
                 <input type="number" id="wait" name="wait" min="0" max="9999" size="4" value="{{ ride_data.wait if ride_data and ride_data.wait else '' }}"> {{ t("minutes") }}
             </div>
         </div>
         
-        <div class="form-group">
+        <div class="form-group" data-funnel-section="comment">
             <label for="comment">{{ t("Comment (optional)") }}</label>
             <textarea id="comment" name="comment" class="form-control" rows="4">{{ ride_data.comment if ride_data and ride_data.comment else '' }}</textarea>
         </div>
         
         {# "You" mirrors the driver box below: who you were and how you asked, kept together
            so the form reads as two people rather than a flat list of fields. #}
-        <div class="form-group">
+        <div class="form-group" data-funnel-section="you-and-signal">
             <label>{{ t("You (optional)") }}</label>
             <div style="background:#fafafa; border:1px solid #eee; padding:12px; border-radius:4px;">
 
@@ -265,11 +265,12 @@
                 <input type="hidden" id="signal" name="signal" value="{{ selected_signals|join(',') }}">
                 {# Same multi-select chips as the in-ride "How was the spot?" sheet (inride.js),
                    reusing its .inr-chips / .inr-optchip styles so both entry points look alike.
-                   Codes must stay thumb / sign / ask — they're what /ride stores. #}
+                   Codes must stay thumb / sign / ask / unsolicited — they're what /ride stores. #}
                 <div id="signal-chips" class="inr-chips">
                     <button type="button" class="inr-optchip" data-code="thumb">👍 {{ t("Thumb") }}</button>
                     <button type="button" class="inr-optchip" data-code="sign">📝 {{ t("Sign") }}</button>
                     <button type="button" class="inr-optchip" data-code="ask">🗣 {{ t("Asking") }}</button>
+                    <button type="button" class="inr-optchip" data-code="unsolicited">🙌 {{ t("Unsolicited") }}</button>
                 </div>
                 {# Only asked once a sign is actually one of the methods — what a sign said is
                    the single most reusable fact about it ("which town do I write?"), but it is
@@ -297,7 +298,7 @@
         </div>
 
 
-        <div class="form-group" id="vehicle-group">
+        <div class="form-group" id="vehicle-group" data-funnel-section="vehicle">
             <label>{{ t("Vehicle (optional)") }}</label>
             <div class="row">
                 <div class="col-sm-6" style="margin-bottom:8px;">
@@ -333,7 +334,7 @@
             </div>
         </div>
 
-        <div class="form-group" id="driver-group">
+        <div class="form-group" id="driver-group" data-funnel-section="driver">
             <label>{{ t("About the driver (optional)") }}</label>
             <div style="background:#fafafa; border:1px solid #eee; padding:12px; border-radius:4px;">
 
@@ -432,7 +433,7 @@
            submit only claims them. Keeping files in the <input> until submit cannot work
            here: picking a pickup location navigates the page away to the map, and
            re-opening the file picker replaces the whole previous FileList. #}
-        <div class="form-group" id="ride-photos-group"
+        <div class="form-group" id="ride-photos-group" data-funnel-section="photos"
              data-max-images="{{ max_ride_images }}"
              data-images="{{ ride_images|tojson|forceescape }}">
             <label>{{ t("Photos (optional, up to {max})", max=max_ride_images) }}</label>
@@ -639,6 +640,10 @@
             // aggregate-only funnel marker through those map round-trips so telemetry
             // does not count one contributor as three abandoned forms.
             _funnel_session_started: HM_FORM_SESSION_STARTED,
+            // Which pick this map round-trip is for. Read back in restoreFormData to
+            // fire ride_form_returned_from_map and tell "went to the map and came
+            // back with a point" from "went and bailed" — B435's two invisible drains.
+            _funnel_pick_type: type,
             // Photos are already uploaded and live under this token on the server, so
             // carrying the token is all that is needed to get the tiles back — which is
             // exactly why they are uploaded on pick rather than held in the file input,
@@ -679,6 +684,11 @@
             initialCoords = '/' + coords.pickup[0] + ',' + coords.pickup[1] + ',10';
         }
         
+        // Funnel: the form is being left for the full-page map to pick a point.
+        // ~40% of new-mode sessions never submit (EXP-337) and this navigation is
+        // one of the two documented drains; pair it with ride_form_returned_from_map.
+        hmTrack('ride_form_map_pick_started', { type: type, mode: HM_FORM_MODE });
+
         // Redirect to map with selection mode
         window.location.href = '/#select-' + type + initialCoords;
     }
@@ -688,7 +698,21 @@
         const formData = sessionStorage.getItem('rideFormData');
         if (formData) {
             const data = JSON.parse(formData);
-            
+
+            // Funnel: back from the full-page map. _funnel_pick_type is only set by
+            // selectLocation, so this never fires on a plain first render. picked
+            // reports whether a coordinate for that pick actually came back.
+            if (data._funnel_pick_type) {
+                const pickedCoord = data._funnel_pick_type === 'destination'
+                    ? data.destination_lat
+                    : data.pickup_lat;
+                hmTrack('ride_form_returned_from_map', {
+                    type: data._funnel_pick_type,
+                    picked: pickedCoord ? 'yes' : 'no',
+                    mode: HM_FORM_MODE
+                });
+            }
+
             // Restore form fields
             if (data.rate) {
                 const rateInput = document.querySelector(`input[name="rate"][value="${data.rate}"]`);
@@ -845,6 +869,45 @@
         mode: HM_FORM_MODE,
         auth: '{{ "anon" if current_user.is_anonymous else "user" }}'
     });
+
+    // B436 slice 3: which sections of the ~25-field form abandoners actually
+    // reach. B435 found ~40% of new-mode sessions never submit and the
+    // instrumented block reasons explain only ~60% of them; the rest is plain
+    // drop-off with no depth signal. Fire ride_form_field_reached once per
+    // section per session (deduped through sessionStorage so the full-page map
+    // round-trips don't re-count sections the user already touched). Sections
+    // are marked with data-funnel-section on their .form-group; location/date
+    // pickup is already covered by ride_form_map_pick_started. Interaction is a
+    // mix of real inputs and chip <button>s, so listen for focusin AND click.
+    (function () {
+        var reached = {};
+        try {
+            var d = JSON.parse(sessionStorage.getItem('rideFormData') || '{}');
+            (d._funnel_sections || []).forEach(function (s) { reached[s] = true; });
+        } catch (e) { /* sessionStorage disabled: dedupe within this page only */ }
+
+        function persist() {
+            try {
+                var d = JSON.parse(sessionStorage.getItem('rideFormData') || '{}');
+                d._funnel_sections = Object.keys(reached);
+                sessionStorage.setItem('rideFormData', JSON.stringify(d));
+            } catch (e) { /* ignore */ }
+        }
+
+        function note(ev) {
+            var el = ev.target && ev.target.closest
+                ? ev.target.closest('[data-funnel-section]') : null;
+            if (!el) return;
+            var section = el.getAttribute('data-funnel-section');
+            if (!section || reached[section]) return;
+            reached[section] = true;
+            hmTrack('ride_form_field_reached', { section: section, mode: HM_FORM_MODE });
+            persist();
+        }
+
+        document.addEventListener('focusin', note);
+        document.addEventListener('click', note);
+    })();
 
     // Add form validation
     function validateForm() {
@@ -1229,12 +1292,30 @@
 
         // If there's unfinished text in the input, validate and add it before submitting
         if (partial !== '') {
-            const xhr = new XMLHttpRequest();
-            xhr.open('GET', '/is_username_used/' + encodeURIComponent(partial), false);
-            xhr.send();
-            const result = JSON.parse(xhr.responseText);
+            let result;
+            try {
+                const xhr = new XMLHttpRequest();
+                xhr.open('GET', '/is_username_used/' + encodeURIComponent(partial), false);
+                xhr.send();
+                result = JSON.parse(xhr.responseText);
+            } catch (e) {
+                // A proxy 502 during an outage, or a dropped connection, lands here:
+                // the raw response isn't JSON and JSON.parse throws straight out of the
+                // onsubmit handler, so the form silently does nothing and no event is
+                // recorded. Give the same visible, scrolled-into-view feedback the rest
+                // of validateForm() gives, and count it so this stops being invisible.
+                hmTrack('ride_form_blocked', { reason: 'cohitchhiker-check-error' });
+                errorMsg.textContent = {{ t("Could not check the co-hitchhiker's name — please remove it or try again.")|tojson }};
+                errorMsg.scrollIntoView({ block: 'center' });
+                return false;
+            }
             if (!result.used) {
+                // Untracked until now: a typo'd co-hitchhiker name is a hard submit
+                // block with the error buried deep in the optional "You" box. Track it
+                // and scroll it into view like every other block reason.
+                hmTrack('ride_form_blocked', { reason: 'cohitchhiker-unknown' });
                 errorMsg.textContent = {{ t('User "{name}" does not exist')|tojson }}.replace('{name}', partial);
+                errorMsg.scrollIntoView({ block: 'center' });
                 return false;
             }
             document.getElementById('co-hitchhiker-hidden').value =
