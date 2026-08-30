@@ -3116,9 +3116,14 @@ function applySpotRideFilter(marker) {
   $$("#spot-text").innerHTML = note + renderRideCards(shown);
   // "No comments/ride info" is about the spot having nothing to say. A spot whose rides
   // were all filtered out has plenty to say — the note above already explains itself.
-  if (all.length === 0 && (!data.distance || Number.isNaN(data.distance)))
-    $$("#extra-text").innerHTML = tr("No comments/ride info.");
+  const noInfo = all.length === 0 && (!data.distance || Number.isNaN(data.distance));
+  if (noInfo) $$("#extra-text").innerHTML = tr("No comments/ride info.");
   else $$("#extra-text").innerHTML = "";
+  // A spot with nothing logged has no card to read and nobody to ask — point the
+  // visitor at the community chat, where a local can answer. Only in that exact
+  // empty state; a spot with even one ride speaks for itself.
+  const emptyChat = $$("#spot-empty-chat");
+  if (emptyChat) emptyChat.hidden = !noInfo;
 }
 
 function spotFilterNote(shown, total) {
@@ -3232,6 +3237,12 @@ function markerClick(marker) {
       window.location.href = "/ride";
     };
   }
+
+  // Community-chat link in the spot pane's empty state (unhidden by
+  // applySpotRideFilter only when the spot has no rides). Track the click so we
+  // can see whether an empty spot is a dead end or a conversation starter.
+  const emptyChatLink = $$("#spot-empty-chat-link");
+  if (emptyChatLink) emptyChatLink.onclick = () => hmTrack("spot_empty_chat_click");
 
   // Show a loading spinner while rides are fetched asynchronously
   $$("#spot-text").innerHTML = '<div class="spot-loading" role="status" aria-live="polite"><i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i><span class="sr-only">Loading rides</span></div>';
