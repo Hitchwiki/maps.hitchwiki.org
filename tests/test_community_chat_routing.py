@@ -14,5 +14,8 @@ def test_general_community_chat_uses_matrix():
 
 
 def test_map_project_discussion_stays_on_signal():
-    assert MAP.count("SIGNAL_CHAT_URL") == 1
+    # 2 as of the empty-spot community-chat nudge (map.html #spot-empty-chat):
+    # the pre-existing footer link, plus this second legitimate use of the
+    # same routing rule (Signal, not Matrix, for map-project discussion).
+    assert MAP.count("SIGNAL_CHAT_URL") == 2
     assert HELP.count("SIGNAL_CHAT_URL") == 3
