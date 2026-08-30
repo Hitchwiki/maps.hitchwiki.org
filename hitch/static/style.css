@@ -3056,10 +3056,27 @@ body.showing-insights .heatmap-legend-pane {
    100% of the dock HEIGHT and overlap its neighbours. Pin every stacked child to
    its content height and full width; the dock's own gap:10px spaces them. */
 .inr-dock--stack > .inr-demo-row,
-.inr-dock--stack > .inr-dock-row {
+.inr-dock--stack > .inr-dock-row,
+.inr-dock--stack > .inr-waitctx {
   flex: 0 0 auto;
   width: 100%;
 }
+/* One line of the nearest spot's own logged history (typical wait, ride count,
+   last-hitched age), shown above the Give Up / Got a Ride row while waiting.
+   Tappable to open that spot's pane. Reformatted user-entered facts only. */
+.inr-waitctx {
+  border: 0;
+  background: rgba(0, 0, 0, 0.62);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.3;
+  padding: 7px 12px;
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+}
+.inr-waitctx:active { transform: scale(0.97); }
 /* Cancel = white × in a red circle, centered beneath the Give Up / Got a Ride row.
    Big enough to read as a clear, deliberate "discard this journey" affordance. */
 .inr-cancel {

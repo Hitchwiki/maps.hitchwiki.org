@@ -964,6 +964,9 @@
       // Show grey pickup pin so the user sees their waiting spot on the map.
       // Also drawn in paused and in-ride so the boarding spot is always visible.
       journeyUI._addPickupPin(j);
+
+      // One line of the nearest spot's own logged history, tappable to open it.
+      journeyUI._renderWaitingContext(j);
     },
 
     // Round red "cancel" button (white × in a red circle) centered beneath the dock —
@@ -1171,6 +1174,81 @@
         });
         journeyUI._pickupPin = L.marker([j.pickup.lat, j.pickup.lon], { icon: greyIcon })
           .addTo(window.map);
+      }
+    },
+
+    // One line of the nearest spot's OWN logged history, for the waiting dock:
+    // "~25 min typical wait · 14 rides logged · last hitched 6d ago". Pure so the
+    // test harness can exercise it without a DOM. Reformatted user-entered facts
+    // only — no new prose, no advice, no cross-spot comparison. Returns null when
+    // the spot is too thin (<3 rides) or nothing useful is known.
+    _spotContextLine(spot, rides, nowMs) {
+      const list = Array.isArray(rides) ? rides : [];
+      if (list.length < 3) return null;
+      const parts = [];
+      const wait = spot && spot.wait;
+      if (typeof wait === "number" && isFinite(wait) && wait > 0) {
+        parts.push(T("~{min} min typical wait", { min: Math.round(wait) }));
+      }
+      parts.push(T("{n} rides logged", { n: list.length }));
+      let lastMs = 0;
+      for (const r of list) {
+        const s = r && (r.ride_datetime || r.submission_time);
+        const t = s ? Date.parse(s) : NaN;
+        if (!isNaN(t) && t > lastMs) lastMs = t;
+      }
+      if (lastMs && nowMs) {
+        const days = Math.floor((nowMs - lastMs) / 86400000);
+        parts.push(days <= 0 ? T("last hitched today") : T("last hitched {days}d ago", { days: days }));
+      }
+      return parts.length >= 2 ? parts.join(" · ") : null;
+    },
+
+    // Find the nearest map marker to the pickup pin; if one sits within ~200 m,
+    // fetch its per-spot file and drop _spotContextLine into the dock. Always
+    // emits waiting_context_shown (has_spot false when nothing is close enough),
+    // so the share of waits with no nearby history becomes a measured number.
+    _renderWaitingContext(j) {
+      try {
+        const pickup = j && j.pickup;
+        if (!pickup || typeof pickup.lat !== "number" || typeof pickup.lon !== "number") return;
+        const markers = (typeof window !== "undefined" && window.allMarkers) || [];
+        let best = null;
+        let bestKm = Infinity;
+        for (const m of markers) {
+          const ll = m && m._latlng;
+          if (!ll) continue;
+          const km = thinCoverageHaversineKm(pickup.lat, pickup.lon, ll.lat, ll.lng);
+          if (km < bestKm) { bestKm = km; best = m; }
+        }
+        const spotId = best && best.options && best.options.spotId;
+        if (!best || bestKm > 0.2 || !spotId) {
+          hmTrack("waiting_context_shown", { has_spot: false, rides: 0 });
+          return;
+        }
+        fetch("/rides/by-spot/" + encodeURIComponent(spotId) + ".json")
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (payload) {
+            if (!payload) return;
+            const spot = Array.isArray(payload) ? {} : (payload.spot || {});
+            const rides = Array.isArray(payload) ? payload : (payload.rides || []);
+            hmTrack("waiting_context_shown", { has_spot: true, rides: rides.length });
+            const line = journeyUI._spotContextLine(spot, rides, Date.now());
+            if (!line || !journeyUI._dockEl) return;
+            const el = document.createElement("button");
+            el.type = "button";
+            el.className = "inr-waitctx";
+            el.textContent = line;
+            el.addEventListener("click", function () {
+              hmTrack("waiting_context_expanded", {});
+              try { best.fire("click"); } catch (e) { /* marker gone */ }
+            });
+            journeyUI._dockEl.insertBefore(el, journeyUI._dockEl.firstChild);
+            journeyUI._waitCtxEl = el;
+          })
+          .catch(function () { /* offline / stale spot file — dock stays as is */ });
+      } catch (e) {
+        /* never let the context line break the waiting dock */
       }
     },
 
