@@ -17,6 +17,7 @@ class MethodEnum(str, Enum):
     asking = "asking"
     invited = "invited"
     prearranged = "prearranged"
+    unsolicited = "unsolicited"
 
 
 class Signal(BaseModel, use_enum_values=True):
