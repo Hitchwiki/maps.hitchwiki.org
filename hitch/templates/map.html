@@ -269,6 +269,13 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
     <h4>{{ t("Rides") }}</h4>
     <div id='spot-text'></div>
     <i id="extra-text"></i>
+    {# Empty-state nudge: a spot with no logged rides has nothing on the page to
+       learn from and no person to ask. map.js unhides this only in that exact
+       case (when #extra-text shows "No comments/ride info."). #}
+    <p id="spot-empty-chat" class="spot-action-link" hidden>
+        {{ t("Know this spot? Other hitchhikers are in the {link} — tell them what it's like.",
+              link='<a href="' ~ SIGNAL_CHAT_URL ~ '" target="_blank" rel="noopener noreferrer" id="spot-empty-chat-link">' ~ t("Signal chat") ~ '</a>')|safe }}
+    </p>
     </div>
 </div>
 <div class="sidebar success-duplicate">
