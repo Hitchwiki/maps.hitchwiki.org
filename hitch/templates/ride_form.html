@@ -270,6 +270,10 @@
                     <button type="button" class="inr-optchip" data-code="thumb">👍 {{ t("Thumb") }}</button>
                     <button type="button" class="inr-optchip" data-code="sign">📝 {{ t("Sign") }}</button>
                     <button type="button" class="inr-optchip" data-code="ask">🗣 {{ t("Asking") }}</button>
+                    {# "unsolicited": the hitchhiker made no signal of any kind and a driver
+                       stopped to offer a ride anyway. Logically exclusive with the others —
+                       initSignalChips clears the rest when it is picked, and vice versa. #}
+                    <button type="button" class="inr-optchip" data-code="unsolicited">🚗 {{ t("Driver just stopped") }}</button>
                 </div>
                 {# Only asked once a sign is actually one of the methods — what a sign said is
                    the single most reusable fact about it ("which town do I write?"), but it is
@@ -1496,10 +1500,18 @@
         }
         chips.forEach(function (chip) {
             chip.addEventListener('click', function () {
-                const codes = getCodes();
+                let codes = getCodes();
                 const idx = codes.indexOf(chip.dataset.code);
                 if (idx === -1) codes.push(chip.dataset.code);
                 else codes.splice(idx, 1);
+                // "Driver just stopped" (unsolicited) means no signal was made at all, so it
+                // cannot coexist with thumb/sign/ask: picking it clears the rest, and picking
+                // any active-signal method clears it.
+                if (chip.dataset.code === 'unsolicited' && idx === -1) {
+                    codes = ['unsolicited'];
+                } else if (chip.dataset.code !== 'unsolicited' && idx === -1) {
+                    codes = codes.filter(c => c !== 'unsolicited');
+                }
                 hidden.value = codes.join(',');
                 renderTags();
             });

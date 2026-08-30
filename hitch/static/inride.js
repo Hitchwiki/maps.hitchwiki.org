@@ -1503,6 +1503,7 @@
         { code: "thumb", label: "👍 " + T("Thumb")  },
         { code: "sign",  label: "📝 " + T("Sign")   },
         { code: "ask",   label: "🗣 " + T("Asking") },
+        { code: "unsolicited", label: "🚗 " + T("Driver just stopped") },
       ].forEach(function (opt) {
         const chip = document.createElement("button");
         chip.type = "button";
@@ -1510,9 +1511,18 @@
         chip.textContent = opt.label;
         chip.setAttribute("data-code", opt.code);
         chip.addEventListener("click", function () {
-          // Toggle: each signal method can be selected independently.
+          // Toggle: each signal method can be selected independently, except "unsolicited"
+          // (driver stopped with no signal made) which is exclusive with thumb/sign/ask.
           if (signals.has(opt.code)) { signals.delete(opt.code); chip.classList.remove("inr-optchip--on"); }
           else { signals.add(opt.code); chip.classList.add("inr-optchip--on"); }
+          const exclusive = opt.code === "unsolicited";
+          if (signals.has(opt.code)) {
+            signalChipsEl.querySelectorAll(".inr-optchip").forEach(function (c) {
+              const other = c.getAttribute("data-code");
+              const clash = exclusive ? other !== "unsolicited" : other === "unsolicited";
+              if (clash) { signals.delete(other); c.classList.remove("inr-optchip--on"); }
+            });
+          }
         });
         signalChipsEl.appendChild(chip);
       });
