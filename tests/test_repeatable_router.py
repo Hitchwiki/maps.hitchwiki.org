@@ -127,3 +127,25 @@ def test_direct_walk_when_destination_is_close():
     assert res["found"]
     assert [leg["mode"] for leg in res["legs"]] == ["walk"]
     assert res["car_km"] == 0
+
+
+def test_node_level_wait_fallback_beats_global_default():
+    # Spot A roots two corridors: A->B logged a 12-min wait, A->C logged none.
+    # A far-away corridor E->F logged a 90-min wait, so the global default_wait
+    # is (12 + 90) / 2 = 51. Boarding A->C should fall back to A's own mean
+    # (12), not the global 51. (IDEAS.md #70 node-level wait fallback.)
+    spots = [
+        [50.0, 14.0], [50.0, 14.5], [50.0, 13.5],  # A, B, C
+        [40.0, 0.0], [40.0, 0.5],                   # E, F (far away)
+    ]
+    trees = [
+        {"s": 0, "nodes": [[1, -1, 2, 12]]},  # A->B, wait 12
+        {"s": 0, "nodes": [[2, -1, 2]]},      # A->C, wait unrecorded
+        {"s": 3, "nodes": [[4, -1, 2, 90]]},  # E->F, wait 90
+    ]
+    router = make_router(spots, trees)
+    assert router.default_wait == 51.0
+    assert router.spot_wait[0] == 12.0
+    res = router.route((50.0, 14.0), (50.0, 13.5))  # A -> C
+    assert res["found"]
+    assert res["wait_minutes"] == 12

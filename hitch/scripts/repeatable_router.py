@@ -197,6 +197,14 @@ class RepeatableRouter:
         # Fallback wait for edges lacking recorded data: the global average, so an
         # unknown-wait corridor isn't treated as instant boarding.
         self.default_wait = round(sum(waits) / len(waits), 1) if waits else 0.0
+        # Node-level wait fallback: a spot's own recorded waits beat the global
+        # mean when a given boardable edge logged none. spot_wait[u] = mean of
+        # the recorded waits across u's boardable edges. (IDEAS.md #70)
+        self.spot_wait = {}
+        for u, edges in self.board.items():
+            ws = [w for *_, w in edges if w is not None]
+            if ws:
+                self.spot_wait[u] = sum(ws) / len(ws)
         self.car_spots = sorted(car_spots)
 
     def _cell(self, lat, lon):
@@ -296,7 +304,9 @@ class RepeatableRouter:
     def _wait(self, u, v):
         """Boarding wait (minutes) to catch a ride along car edge (u, v)."""
         w = self.edge_wait.get((u, v))
-        return w if w is not None else self.default_wait
+        if w is not None:
+            return w
+        return self.spot_wait.get(u, self.default_wait)
 
     def _search(self, start, dest, penalty=None):
         """Corridor-aware Dijkstra returning the predecessor map or None.
@@ -360,7 +370,7 @@ class RepeatableRouter:
                     relax((v, corridor), d + car_min(km) * mult, (st, "car", km, 0.0))
             # Board a car / switch corridors — costs the edge's waiting time.
             for t_id, v, km, wait in self.board.get(spot, ()):
-                w = wait if wait is not None else self.default_wait
+                w = wait if wait is not None else self.spot_wait.get(spot, self.default_wait)
                 mult = penalty.get((spot, v), 1.0) if penalty else 1.0
                 relax((v, t_id), d + car_min(km) * mult + w, (st, "board", km, w))
             # Walk to a nearby spot (leaves you on foot).
