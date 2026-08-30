@@ -7,6 +7,20 @@ const REGEXP = /tile\.openstreetmap\.org\/(?<z>\d+)\/(?<x>\d+)\/(?<y>\d+)/
 // Downloads that must bypass the cache entirely — see the fetch handler.
 const NEVER_CACHE = /\/(spots\.gpx|me\/rides\.(gpx|json))(\?|$)/
 const TILESIZE = 256
+// A roadside signal that connects but never answers is worse than no signal: a
+// bare fetch() has no timeout, so the page hangs indefinitely instead of falling
+// back to the copy already in the cache. Race every network read against this.
+const NET_TIMEOUT_MS = 4000
+
+function fetchWithTimeout(request, ms) {
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('network timeout')), ms)
+        fetch(request).then(
+            (r) => { clearTimeout(timer); resolve(r) },
+            (e) => { clearTimeout(timer); reject(e) }
+        )
+    })
+}
 
 // When the service worker is installing, open the cache and add the precache resources to it
 self.addEventListener('install', (event) => {
@@ -98,11 +112,11 @@ async function handleTileRequest(request, match) {
     let cache = await caches.open(cacheName)
     // Go to the network first
     try {
-        let response = await fetch(request.url)
+        let response = await fetchWithTimeout(request.url, NET_TIMEOUT_MS)
         if (!response.ok) throw new Error('No 200')
         return response
     }
-    // If the network is unavailable, create a replacement tile locally
+    // If the network is unavailable (or too slow), create a replacement tile locally
     catch(e) {
         try {
             places = places || await (await cache.match(TWM)).json()
@@ -174,22 +188,23 @@ self.addEventListener('fetch', (event) => {
         }
 
         // Open the cache
-        event.respondWith(caches.open(cacheName).then((cache) => {
-            // Go to the network first
-            return fetch(event.request).then((fetchedResponse) => {
+        event.respondWith(caches.open(cacheName).then(async (cache) => {
+            const strippedUrl = stripQuery(event.request.url);
+            // Go to the network first, but don't wait forever for it.
+            try {
+                const fetchedResponse = await fetchWithTimeout(event.request, NET_TIMEOUT_MS);
                 // IMPORTANT: Tell the service worker what not to cache
                 if (!['image', 'video', 'audio'].includes(event.request.destination)) {
-                    // Strip query from URL before caching
-                    const strippedUrl = stripQuery(event.request.url);
                     cache.put(strippedUrl, fetchedResponse.clone());
                 }
-
                 return fetchedResponse;
-            }).catch(() => {
-                // If the network is unavailable, get from cache
-                const strippedUrl = stripQuery(event.request.url);
-                return cache.match(strippedUrl);
-            });
+            } catch (e) {
+                // Network was unavailable or too slow — serve the cached copy if we
+                // have one, otherwise fall back to an untimed fetch so a genuinely
+                // slow-but-working connection still eventually loads an uncached page.
+                const cached = await cache.match(strippedUrl);
+                return cached || fetch(event.request);
+            }
         }));
     }
 });
