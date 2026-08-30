@@ -828,6 +828,9 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
              exactly that moment, and unlike an email it also reaches anonymous
              submitters, who have no other re-engagement channel at all. -->
         <p id="success-return-nudge" class="success-trip-note" style="display: none;"></p>
+        <!-- A long ride note is also useful on the matching Hitchwiki page. Filled only
+             when the just-logged ride can be matched to an existing article. -->
+        <p id="success-wiki-contribute" class="success-trip-note" style="display: none;"></p>
         <div id="success-share-block">
             <h2>{{ t("Show your friends") }}</h2>
             <p class="success-share-sub">{{ t("Send them the map of your ride — it's how most hitchhikers find us.") }}</p>

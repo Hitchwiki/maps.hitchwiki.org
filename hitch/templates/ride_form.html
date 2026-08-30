@@ -1259,6 +1259,7 @@
                 destLat: c.destination ? c.destination[0] : '',
                 destLon: c.destination ? c.destination[1] : '',
                 waitMin: document.querySelector('input[name="wait"]')?.value || '',
+                comment: document.querySelector('textarea[name="comment"]')?.value.trim() || '',
                 departedAt: document.getElementById('datetime_ride')?.value || '',
                 arrivedAt: document.getElementById('arrival_datetime')?.value || '',
             }));
