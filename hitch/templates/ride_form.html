@@ -95,6 +95,13 @@
     </div>
     <h2>{{ t("Submit Your Ride Experience") }}</h2>
 
+    <div id="ride-draft-restore" role="status" hidden
+         style="background:#eef7ee; border:1px solid #b8d8b8; padding:0.8rem 1rem; margin:1rem 0; border-radius:5px;">
+        <span>{{ t("Continue your unfinished ride report?") }}</span>
+        <button type="button" id="ride-draft-continue" class="btn btn-sm btn-primary" style="margin-left:0.5rem;">{{ t("Continue") }}</button>
+        <button type="button" id="ride-draft-discard" class="btn btn-sm btn-link">{{ t("Discard") }}</button>
+    </div>
+
     {# Asked first because it reframes everything below it: a give-up has no ride to time,
        so the pickup question right underneath changes wording when this is ticked. The
        input lives outside <form> (like the datetime fields) and is bound with form=. #}
@@ -824,8 +831,12 @@
     // from the account page (account.js rideEditUrl), so it never can.
     var HM_FORM_MODE = '{{ "edit" if request.args.get("edit") else "new" }}';
     var HM_FORM_SESSION_STARTED = false;
+    var HM_HAS_MAP_ROUNDTRIP_DATA = false;
     try {
         var hmDraft = JSON.parse(sessionStorage.getItem('rideFormData') || '{}');
+        HM_HAS_MAP_ROUNDTRIP_DATA = Object.keys(hmDraft).some(function (key) {
+            return key !== '_funnel_session_started';
+        });
         HM_FORM_SESSION_STARTED = !!hmDraft._funnel_session_started;
         if (!HM_FORM_SESSION_STARTED) {
             hmTrack('ride_form_session_started', {
@@ -849,6 +860,125 @@
         mode: HM_FORM_MODE,
         auth: '{{ "anon" if current_user.is_anonymous else "user" }}'
     });
+
+    // Preserve only bounded, non-sensitive choices for 24 hours. Exact places,
+    // times, free text, names, plates, photos and driver details deliberately stay
+    // out of localStorage. sessionStorage continues to own the explicit map-picker
+    // round trip, where preserving the full in-progress form is expected.
+    const RIDE_SAFE_DRAFT_KEY = 'rideFormSafeDraftV1';
+    const RIDE_SAFE_DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+    var RIDE_FORM_WAS_RESTORED = false;
+
+    function safeRideFormDraftValues() {
+        return {
+            rate: document.querySelector('input[name="rate"]:checked')?.value || '',
+            wait: document.getElementById('wait')?.value || '',
+            no_ride: !!document.getElementById('no_ride')?.checked,
+            signal: document.getElementById('signal')?.value || '',
+            reasons_to_hitchhike: document.getElementById('reasons_to_hitchhike')?.value || '',
+            ride_reasons: document.getElementById('ride_reasons')?.value || '',
+            vehicle_kind: document.getElementById('vehicle_kind')?.value || ''
+        };
+    }
+
+    function safeRideFormDraftHasContent(values) {
+        return !!(values.rate || values.wait || values.no_ride || values.signal ||
+            values.reasons_to_hitchhike || values.ride_reasons);
+    }
+
+    function readSafeRideFormDraft() {
+        try {
+            const draft = JSON.parse(localStorage.getItem(RIDE_SAFE_DRAFT_KEY) || 'null');
+            if (!draft || !draft.saved_at || Date.now() - draft.saved_at > RIDE_SAFE_DRAFT_MAX_AGE_MS) {
+                localStorage.removeItem(RIDE_SAFE_DRAFT_KEY);
+                return null;
+            }
+            return draft;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function clearSafeRideFormDraft() {
+        try { localStorage.removeItem(RIDE_SAFE_DRAFT_KEY); } catch (e) {}
+    }
+
+    function persistSafeRideFormDraft() {
+        if (HM_FORM_MODE !== 'new') return;
+        const values = safeRideFormDraftValues();
+        if (!safeRideFormDraftHasContent(values)) return;
+        try {
+            const firstSave = !readSafeRideFormDraft();
+            localStorage.setItem(RIDE_SAFE_DRAFT_KEY, JSON.stringify({
+                saved_at: Date.now(),
+                values: values
+            }));
+            if (firstSave) hmTrack('ride_form_draft_saved', { mode: HM_FORM_MODE });
+        } catch (e) {}
+    }
+
+    function applySafeRideFormDraft(draft) {
+        const values = draft.values || {};
+        if (values.rate) {
+            const rate = document.querySelector(`input[name="rate"][value="${values.rate}"]`);
+            if (rate) rate.checked = true;
+        }
+        if (values.wait !== undefined) document.getElementById('wait').value = values.wait;
+        if (values.no_ride !== undefined) document.getElementById('no_ride').checked = !!values.no_ride;
+        for (const id of ['signal', 'reasons_to_hitchhike', 'ride_reasons']) {
+            if (values[id] !== undefined) document.getElementById(id).value = values[id];
+        }
+        if (values.vehicle_kind !== undefined) document.getElementById('vehicle_kind').value = values.vehicle_kind;
+        syncNoRideLabels();
+        if (window._signalRenderTags) window._signalRenderTags();
+        if (window._hitchhikeReasonRenderTags) window._hitchhikeReasonRenderTags();
+        if (window._rideReasonRenderTags) window._rideReasonRenderTags();
+        RIDE_FORM_WAS_RESTORED = true;
+    }
+
+    function initRideFormDraftRecovery() {
+        if (HM_FORM_MODE !== 'new') return;
+        const box = document.getElementById('ride-draft-restore');
+        let offered = readSafeRideFormDraft();
+        // Returning from the deliberate map-picker round trip already restores the
+        // richer sessionStorage draft. Do not interrupt it with an older safe draft.
+        if (offered && !HM_HAS_MAP_ROUNDTRIP_DATA) {
+            box.hidden = false;
+            hmTrack('ride_form_restore_offered', { mode: HM_FORM_MODE });
+        } else {
+            offered = null;
+        }
+
+        document.getElementById('ride-draft-continue').addEventListener('click', function () {
+            if (offered) applySafeRideFormDraft(offered);
+            offered = null;
+            box.hidden = true;
+        });
+        document.getElementById('ride-draft-discard').addEventListener('click', function () {
+            clearSafeRideFormDraft();
+            offered = null;
+            box.hidden = true;
+        });
+
+        let saveTimer = null;
+        const container = document.querySelector('.container');
+        function scheduleSave(event) {
+            if (event.target.closest('#ride-draft-restore')) return;
+            // Typing into a fresh form while the offer is visible is an implicit
+            // start-over; never merge stale values into the new report.
+            if (offered) {
+                clearSafeRideFormDraft();
+                offered = null;
+                box.hidden = true;
+            }
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(persistSafeRideFormDraft, 400);
+        }
+        container.addEventListener('input', scheduleSave);
+        container.addEventListener('change', scheduleSave);
+        container.addEventListener('click', scheduleSave);
+        if (HM_HAS_MAP_ROUNDTRIP_DATA) persistSafeRideFormDraft();
+    }
 
     // Add form validation
     function validateForm() {
@@ -951,6 +1081,8 @@
             });
         }).then(function (json) {
             if (json.ok === true) {
+                if (RIDE_FORM_WAS_RESTORED) hmTrack('ride_form_restored_submitted', { mode: HM_FORM_MODE });
+                clearSafeRideFormDraft();
                 window.location.href = json.redirect;
                 return;
             }
@@ -1735,6 +1867,7 @@
     // Initialize when page loads
     document.addEventListener('DOMContentLoaded', function() {
         restoreFormData();
+        initRideFormDraftRecovery();
         // Covers the edit case, where the box is checked server-side and never fires change.
         syncNoRideLabels();
         setTimeout(() => {
