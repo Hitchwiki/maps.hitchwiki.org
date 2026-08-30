@@ -1046,6 +1046,13 @@
         '<button type="button" class="rp-start-cta" hidden>' +
         '<i class="fa-solid fa-thumbs-up" aria-hidden="true"></i> ' +
         T("Start hitchhiking at the first spot") + '</button>' +
+        '<div class="rp-intent" aria-label="' + T("When do you plan to hitchhike?") + '">' +
+        '<span class="rp-intent-label">' + T("When do you plan to hitchhike? (optional)") + '</span>' +
+        '<div class="rp-intent-choices">' +
+        '<button type="button" data-intent="today">' + T("Today") + '</button>' +
+        '<button type="button" data-intent="this-week">' + T("This week") + '</button>' +
+        '<button type="button" data-intent="exploring">' + T("Just exploring") + '</button>' +
+        '</div></div>' +
         '<div class="rp-options"></div>';
     }
     return body.querySelector(".rp-options");
@@ -1191,6 +1198,27 @@
     const box = optionsBox();
     if (!box) return;
     box.innerHTML = "";
+    // One anonymous, optional intent choice per rendered route result. Nothing
+    // is retained and this does not schedule a reminder; it only measures the
+    // gap between planning and standing by the road.
+    const intent = resultsSheet() && resultsSheet().querySelector(".rp-intent");
+    if (intent) {
+      intent.dataset.answered = "";
+      intent.querySelectorAll("[data-intent]").forEach(function (button) {
+        button.classList.remove("rp-intent-selected");
+        if (button.dataset.intentBound) return;
+        button.dataset.intentBound = "1";
+        button.addEventListener("click", function () {
+          intent.querySelectorAll("[data-intent]").forEach(function (candidate) {
+            candidate.classList.toggle("rp-intent-selected", candidate === button);
+          });
+          if (intent.dataset.answered) return;
+          intent.dataset.answered = "1";
+          hmTrack("route_intent_selected", { intent: button.dataset.intent });
+        });
+      });
+      hmTrack("route_intent_prompt_shown");
+    }
     // Rank by core (hitching) time so the headline figures match the sort.
     const fastest = routeEnds(RJ.routes[0]).coreMin;
     RJ.routes.forEach((rt, i) => {
