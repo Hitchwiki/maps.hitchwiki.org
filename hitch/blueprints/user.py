@@ -169,6 +169,15 @@ def get_user():
 # user to the full profile rather than shipping an unbounded ride list to every opener.
 RIDES_IN_MODAL_CAP = 50
 
+# The post-submit wiki invitation (map.js renderWikiContributionNudge) asks harder when the
+# author has already proven they write substantial notes. "Substantial" is the same
+# 200-character bar the invitation uses to decide a single note qualifies
+# (WIKI_CONTRIBUTE_COMMENT_CHARS in map.js); a writer at or past this many such notes,
+# lifetime, gets the warmer ask. Lifetime rather than a trailing window: "you've done this
+# before" does not stop being true because the clock rolled past a year.
+WIKI_LONG_NOTE_CHARS = 200
+WIKI_REPEAT_WRITER_NOTES = 4
+
 
 def _ride_places(d_tags):
     """Place names for the given rides, as {d_tag: RidePlace}.
@@ -223,6 +232,28 @@ def incomplete_rides_json():
         payload["profile_image_url"] = profile_image["url"] if profile_image else None
     resp = jsonify(payload)
     # Per-user, like /me.json — never let a shared cache serve one user's count to another.
+    resp.headers["Cache-Control"] = "private, no-store"
+    return resp
+
+
+@user_bp.route("/me/longnote_count.json", methods=["GET"])
+def longnote_count_json():
+    """How many substantial ride notes the logged-in user has written, plus whether that
+    clears the repeat-writer bar — for the post-submit wiki invitation (map.js
+    renderWikiContributionNudge) to decide how warm an ask to show.
+
+    Its own small endpoint, hit only from the success overlay after a qualifying note, not
+    on every page load like /me/incomplete_rides.json. Anonymous callers get 0.
+    """
+    if current_user.is_anonymous:
+        count = 0
+    else:
+        count = sum(
+            1
+            for ride in _rides_by_hitchhiker(current_user.username)
+            if len((ride.comment or "").strip()) >= WIKI_LONG_NOTE_CHARS
+        )
+    resp = jsonify({"count": count, "repeat_writer": count >= WIKI_REPEAT_WRITER_NOTES})
     resp.headers["Cache-Control"] = "private, no-store"
     return resp
 
