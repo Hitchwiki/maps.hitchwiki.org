@@ -28,6 +28,12 @@ test("renders a distance-labelled link when only hitchwiki_nearby is set", () =>
   assert.match(html, /Nearest Hitchwiki article: Prague \(~11\.3 km\)/);
 });
 
+test("carries the id the click tracker (spot_wiki_nearby_clicked, EXP-352) hooks", () => {
+  const html = renderNearbyLink({ hitchwiki_nearby: { url: "https://hitchwiki.org/en/Prague", title: "Prague", km: 11.3 } });
+  assert.match(html, /id="spot-wiki-nearby-link"/);
+  assert.match(SOURCE, /#spot-wiki-nearby-link[\s\S]{0,120}spot_wiki_nearby_clicked/);
+});
+
 test("stays empty when an exact article link exists", () => {
   const html = renderNearbyLink({
     hitchwiki_article: "https://hitchwiki.org/en/Prague#X",
