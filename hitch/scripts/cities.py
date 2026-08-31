@@ -291,6 +291,26 @@ with open(os.path.join(dist_dir, "city", "top_cities.json"), "w", encoding="utf-
     json.dump(top_cities, f)
 logger.info(f"Wrote top_cities.json ({len(top_cities)} cities) for route page generation")
 
+# Nearby-city cross-links. The slice-1 SERP check
+# (research/city-page-serp-check-2026-08-30.md in the automation repo) found ~93%
+# of city pages are not in Google's index at all; the leading untested cause is
+# that a city page carries almost no inbound internal links (the nav bar plus
+# review anchors whose "#" fragment a crawler strips), so nothing leads a crawler
+# to it past the 15k-entry sitemap. Linking each city to its handful of nearest
+# neighbours turns the isolated pages into a graph a crawler can actually walk.
+# Capped low and pointed only at pages that exist — ordinary "nearby destinations"
+# site structure, not a link scheme.
+NEARBY_LINKS = min(6, max(0, len(renderable) - 1))
+_rc_lat = np.radians(np.array([matched[p][0].lat for p in renderable], dtype=float))
+_rc_lng = np.radians(np.array([matched[p][0].lng for p in renderable], dtype=float))
+nearby_by_pos = {}
+for _k, _pos in enumerate(renderable):
+    _d = haversine_km(_rc_lat[_k], _rc_lng[_k], _rc_lat, _rc_lng)
+    _d[_k] = np.inf  # never link a city to itself
+    _cand = np.argpartition(_d, NEARBY_LINKS)[: NEARBY_LINKS + 1]
+    _cand = _cand[np.argsort(_d[_cand])]
+    nearby_by_pos[_pos] = [renderable[j] for j in _cand if np.isfinite(_d[j])][:NEARBY_LINKS]
+
 translated_locs = []  # sitemap entries for the non-English versions
 for pos in renderable:
     city, ride_idx, _total = matched[pos]
@@ -306,6 +326,16 @@ for pos in renderable:
         os.makedirs(folder, exist_ok=True)
         canonical = _city_loc(city.country, city.city, lang)
         place_label = f"{city.city}, {city.country}" if city.country else city.city
+        # A neighbour is linked in this page's language only if it actually has a
+        # page in that language (top-N translated); otherwise fall back to its
+        # English page, which always exists for a renderable city.
+        nearby_links = [
+            (
+                f"{matched[n][0].city}, {matched[n][0].country}" if matched[n][0].country else matched[n][0].city,
+                _city_loc(matched[n][0].country, matched[n][0].city, lang if n in translated_positions else "en"),
+            )
+            for n in nearby_by_pos.get(pos, [])
+        ]
         with open(os.path.join(folder, filename), "w") as f:
             f.write(
                 city_template.render(
@@ -314,6 +344,7 @@ for pos in renderable:
                     reviews=city_rides,
                     canonical_url=canonical,
                     alternate_urls=alternates,
+                    nearby=nearby_links,
                     city_jsonld=_city_jsonld(city, place_label, canonical, city_rides),
                 )
             )

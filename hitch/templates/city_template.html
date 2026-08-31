@@ -47,6 +47,19 @@
             {{ review.text | safe }}
             <hr/>
             {% endfor %}
+
+            {# Links to the nearest other city guides. Built in cities.py so the
+               list points only at pages that exist; gives every city page the
+               inbound internal links it otherwise lacks, so a crawler that finds
+               one city can walk to its neighbours. #}
+            {% if nearby %}
+            <h3>{{ t("Nearby hitchhiking guides") }}</h3>
+            <ul id="nearby-cities">
+                {% for label, url in nearby %}
+                <li><a href="{{ url }}">{{ t("Hitchhiking in {place}", place=label) }}</a></li>
+                {% endfor %}
+            </ul>
+            {% endif %}
         </article>
     </div>
     <br>

@@ -21,7 +21,7 @@ class _FakeCity:
     lng = 13.405
 
 
-def _render(app, lang):
+def _render(app, lang, nearby=None):
     with app.app_context():
         g.lang = lang
         env = Environment(loader=FileSystemLoader("hitch/templates"))
@@ -36,6 +36,7 @@ def _render(app, lang):
             reviews=pd.DataFrame(columns=["text", "user_link", "date"]),
             canonical_url=f"https://maps.hitchwiki.org/{'' if lang == 'en' else lang + '/'}city/Germany/Berlin.html",
             alternate_urls=[],
+            nearby=nearby or [],
             city_jsonld={},
         )
 
@@ -51,3 +52,21 @@ def test_city_page_route_link_survives_translation(app):
     only ever generates one, English-only route tree -- see its own g.lang = "en")."""
     out = _render(app, "de")
     assert 'href="/route/index.html"' in out
+
+
+def test_nearby_city_links_render_when_supplied(app):
+    """cities.py hands the template a list of (label, url) for the nearest other
+    city guides; each becomes an inbound internal link the isolated page lacked."""
+    nearby = [
+        ("Potsdam, Germany", "https://maps.hitchwiki.org/city/Germany/Potsdam.html"),
+        ("Leipzig, Germany", "https://maps.hitchwiki.org/city/Germany/Leipzig.html"),
+    ]
+    out = _render(app, "en", nearby=nearby)
+    assert 'id="nearby-cities"' in out
+    assert 'href="https://maps.hitchwiki.org/city/Germany/Potsdam.html"' in out
+    assert "Leipzig, Germany" in out
+
+
+def test_nearby_block_absent_when_empty(app):
+    out = _render(app, "en", nearby=[])
+    assert 'id="nearby-cities"' not in out
