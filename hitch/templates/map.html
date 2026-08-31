@@ -828,6 +828,12 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
         <!-- Filled in by showTripCreated() when a tracked journey's rides were grouped
              into a trip. Hidden otherwise, and for a single-ride journey. -->
         <p id="success-trip-note" class="success-trip-note" style="display: none;"></p>
+        <!-- B508: log the trip, not the ride. Shown by renderTripLegControls() only
+             when the just-logged past ride has a destination, so the next leg can
+             start from where this one ended. The running d-tag list is threaded
+             through sessionStorage and POSTed to /auto-trip once two legs exist --
+             the same grouping the in-ride tracker already does for live journeys. -->
+        <button type="button" id="success-add-leg" class="success-secondary-btn" style="display: none; margin: 0 auto 12px;">{{ t("Add another leg of this trip") }}</button>
         <!-- Shown once per browser: the first time a submission completes here. EXP-005
              (hitchhiking-automation, 2026-08-14) found only 38.4% of first-time account
              holders log a second ride within 30 days, while the ones who do carry 88.4%

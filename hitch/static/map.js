@@ -3546,6 +3546,122 @@ function takeLastRide() {
   }
 }
 
+// B508 — "log the trip, not the ride" for the retrospective /ride form. The in-ride
+// tracker already groups a live journey's legs into a trip (inride.js finalizeJourney);
+// this is the same thing for someone typing up a past multi-leg day afterwards. The
+// running d-tag list rides in sessionStorage so it survives the form's own POST
+// navigation and the pickup-picker map round-trip, exactly like hmLastRide.
+const TRIP_LEGS_KEY = "hmTripLegs";
+// Matches AUTO_TRIP_MAX_AGE_S (user.py): /auto-trip only groups rides published within
+// this window, so a stale record here could never produce a trip anyway.
+const TRIP_LEGS_MAX_AGE_MS = 30 * 24 * 3600 * 1000;
+
+function readTripLegs() {
+  try {
+    const raw = sessionStorage.getItem(TRIP_LEGS_KEY);
+    if (!raw) return null;
+    const rec = JSON.parse(raw);
+    if (!rec || !Array.isArray(rec.dTags) || !rec.createdAt) return null;
+    if (Date.now() - rec.createdAt > TRIP_LEGS_MAX_AGE_MS) {
+      sessionStorage.removeItem(TRIP_LEGS_KEY);
+      return null;
+    }
+    return rec;
+  } catch (e) {
+    return null;
+  }
+}
+
+function writeTripLegs(rec) {
+  try {
+    sessionStorage.setItem(TRIP_LEGS_KEY, JSON.stringify(rec));
+  } catch (e) {}
+}
+
+// Records the just-logged past ride as a leg, groups the legs into a trip once there
+// are two, and offers "add another leg" when this ride has a destination the next leg
+// can start from. Called from setupShareCard with the form's own resolved d tag (a
+// string — only the in-ride path hands in a promise, and that path groups itself).
+function renderTripLegControls(ride, dTag) {
+  const btn = $$("#success-add-leg");
+  if (!btn) return;
+  btn.style.display = "none";
+  if (!dTag || typeof dTag !== "string") return;
+
+  // Guard the empty/absent case before Number(): the form stashes "" (or null) for a
+  // ride with no destination, and Number("") / Number(null) is 0 — a finite value that
+  // would wrongly pass the check below and offer a next leg starting off the coast of
+  // West Africa.
+  const rawDestLat = ride && ride.destLat;
+  const rawDestLon = ride && ride.destLon;
+  const hasDest =
+    rawDestLat !== "" && rawDestLat != null && rawDestLon !== "" && rawDestLon != null;
+  const destLat = hasDest ? Number(rawDestLat) : NaN;
+  const destLon = hasDest ? Number(rawDestLon) : NaN;
+
+  // Only treat this as a continuing trip when the previous success actually armed one by
+  // its "add another leg" button being clicked (rec.armed). Without that guard, two
+  // unrelated single rides logged from the same browser session — each with a destination
+  // — would silently be grouped into a bogus trip.
+  let rec = readTripLegs();
+  if (rec && rec.armed) {
+    if (rec.dTags.indexOf(dTag) === -1) rec.dTags.push(dTag);
+  } else {
+    rec = { dTags: [dTag], createdAt: Date.now(), armed: false };
+  }
+  rec.lastDepartedAt = (ride && ride.departedAt) || "";
+  writeTripLegs(rec);
+
+  // Group as soon as two legs exist. /auto-trip is idempotent and fire-and-forget, so
+  // re-POSTing the full list on every further leg just refreshes the same trip.
+  if (rec.dTags.length >= 2) {
+    fetch("/auto-trip", {
+      method: "POST",
+      headers: {
+        "X-Requested-With": "add-leg",
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({ ride_d_tags: rec.dTags.join(",") }),
+    })
+      .then(function (r) {
+        return r.ok ? r.json() : null;
+      })
+      .then(function (j) {
+        if (j && j.ok && typeof window.showTripCreated === "function") {
+          window.showTripCreated(j);
+          hmTrack("add_leg_trip_created", { rides: rec.dTags.length });
+        }
+      })
+      .catch(function () {});
+  }
+
+  // Only offer the next leg when we know where this one ended: it starts there. Without
+  // a destination the reopened form would be blank and the button would just be a
+  // second "log a ride".
+  if (!Number.isFinite(destLat) || !Number.isFinite(destLon)) return;
+  btn.style.display = "block";
+  btn.onclick = function () {
+    hmTrack("add_leg_clicked", { legs_so_far: rec.dTags.length });
+    // Arm the trip: the next submission will now append to this record and group it,
+    // rather than starting fresh.
+    rec.armed = true;
+    writeTripLegs(rec);
+    try {
+      // Same sessionStorage hand-off the spot pane's "Log a past ride" uses; the form's
+      // restoreFormData() reads these keys on load.
+      sessionStorage.setItem(
+        "rideFormData",
+        JSON.stringify({
+          pickup_lat: destLat,
+          pickup_lon: destLon,
+          datetime_ride: rec.lastDepartedAt || "",
+        })
+      );
+    } catch (e) {}
+    window.location.href = "/ride";
+  };
+}
+
 // The trip the in-ride tracker grouped a finished journey's rides into, or null.
 //
 // Held rather than rendered on arrival because the two events race in both directions:
@@ -3800,6 +3916,10 @@ function setupShareCard(opts) {
   // May be a promise: the in-ride tracker opens this overlay while the last ride is
   // still uploading, and the d tag it links to only exists once the server replies.
   const dTag = (opts && opts.dTag) || urlDTag;
+
+  // B508: record this leg and offer the next one. Only the /ride form carries ?ride=,
+  // so this never fires for the in-ride path (which groups its own legs).
+  if (urlDTag) renderTripLegControls(ride, urlDTag);
 
   let card = null;
 
