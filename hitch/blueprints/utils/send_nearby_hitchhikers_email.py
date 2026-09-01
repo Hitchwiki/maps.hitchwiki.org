@@ -25,4 +25,6 @@ def send_nearby_hitchhikers_email(user, profiles):
     text = render_template("email/nearby_hitchhikers.txt", name=name, profiles=profiles)
     # Non-transactional: this is a recurring digest, not a one-time account email, so it
     # must honour list-unsubscribe suppression on SparkPost's side.
-    return _send_via_sparkpost(user.email, name, NEARBY_SUBJECT, html, text, transactional=False)
+    return _send_via_sparkpost(
+        user.email, name, NEARBY_SUBJECT, html, text, transactional=False, campaign="nearby-hitchhikers"
+    )

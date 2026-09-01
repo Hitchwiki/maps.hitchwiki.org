@@ -30,4 +30,6 @@ def send_inactive_reminder_email(user, stage):
     text = render_template("email/inactive_reminder.txt", name=name, stage=stage)
     # Non-transactional: this is a recurring nudge, not a one-time account email, so it
     # must honour list-unsubscribe suppression on SparkPost's side.
-    return _send_via_sparkpost(user.email, name, _SUBJECTS[stage], html, text, transactional=False)
+    return _send_via_sparkpost(
+        user.email, name, _SUBJECTS[stage], html, text, transactional=False, campaign="inactive-user-reminder"
+    )
