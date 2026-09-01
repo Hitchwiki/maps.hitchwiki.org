@@ -1809,8 +1809,21 @@ function formatEventDates(ev) {
   return e || s || "";
 }
 
+// True when an event has no end date, or ends more than a year out — the shape of
+// a standing free-hitchhiker house (Autostop House, House of Free Travelers) rather
+// than a dated gathering. Tracked so the two kinds can be told apart in Umami.
+function isStandingEvent(ev) {
+  const end = ev.end ? new Date(ev.end) : null;
+  if (!end || isNaN(end)) return true;
+  return end - Date.now() > 365 * 24 * 3600 * 1000;
+}
+
 function openEventSheet(ev) {
   clear();
+  // #127: the event layer had no telemetry of any kind, so we could not tell
+  // whether a single visitor had ever opened one. has_wiki_page mirrors the CTA
+  // condition below.
+  hmTrack("event_opened", { has_wiki_page: !!(ev.url || ev.title), standing: isStandingEvent(ev) });
   $$("#event-sheet-name").textContent = ev.name || tr("Event");
   $$("#event-sheet-dates").textContent = formatEventDates(ev);
   const wikiUrl = ev.url || COUNTRY_WIKI_BASE + encodeURIComponent((ev.title || ev.name || "").replace(/ /g, "_"));
