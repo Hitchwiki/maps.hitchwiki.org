@@ -2985,6 +2985,19 @@ function summaryText(data, hists = { wait: null, distance: null }) {
     ? `<div id="spot-wiki-excerpt" class="spot-wiki-excerpt"></div>`
     : '';
 
+  // #202 / EXP-432: the most recent ride comment that says how someone *reached*
+  // this spot (which bus, which station, where to walk from) -- surfaced verbatim
+  // here instead of buried in the newest-first ride-card stream below. show.py's
+  // `_access_hint` picks it; we quote it and link to the ride it came from. No
+  // authored text -- this is an existing signed comment.
+  const accessHint = data.access_hint && data.access_hint.c
+    ? `<div class="spot-access-hint">
+        <div class="spot-access-hint-label">🚌 ${tr("How people reached this spot")}</div>
+        <blockquote>${escapeHtml(data.access_hint.c)}</blockquote>
+        ${data.access_hint.id ? `<a id="spot-access-hint-link" href="/ride/${encodeURIComponent(data.access_hint.id)}" target="_blank" rel="noopener noreferrer">${tr("from this ride")}</a>` : ''}
+      </div>`
+    : '';
+
   const wait = !data.wait || Number.isNaN(data.wait) ? "-" : tr("{n} min", { n: data.wait.toFixed(0) });
   const distance = !data.distance || Number.isNaN(data.distance) ? "-" : formatDistance(data.distance);
   // "-" like the two above rather than the bare value: with a filter active the subset
@@ -2999,7 +3012,7 @@ function summaryText(data, hists = { wait: null, distance: null }) {
     ${spotHistogramMarkup(hists.wait, "spot-wait-hist", "min")}
     <div>${tr("Ride distance: {distance}", { distance })}</div>
     ${spotHistogramMarkup(scaleHistToDisplay(hists.distance), "spot-distance-hist", distanceUnitLabel())}
-    ${osmLink}${carPoolingLink}${fuelLink}${hitchwikiLink}${hitchwikiMapLink}${hitchwikiNearbyLink}${spotWikiExcerpt}`;
+    ${osmLink}${carPoolingLink}${fuelLink}${hitchwikiLink}${hitchwikiMapLink}${hitchwikiNearbyLink}${spotWikiExcerpt}${accessHint}`;
 }
 
 async function handleMarkerClick(marker, point, e) {
@@ -3044,6 +3057,11 @@ async function handleMarkerClick(marker, point, e) {
         const near = (payload.spot || {}).hitchwiki_nearby;
         if (near && !(payload.spot || {}).hitchwiki_article && !(payload.spot || {}).hitchwiki_map) {
           hmTrack('spot_wiki_nearby_shown', { km: Math.round(near.km) });
+        }
+        // #202 / EXP-432: an access-describing comment was lifted above the ride
+        // stream for this spot. No spot id, same privacy rule as spot_opened.
+        if ((payload.spot || {}).access_hint) {
+          hmTrack('spot_access_hint_shown', {});
         }
       }
     } else if (resp.status !== 404) {
@@ -3262,6 +3280,11 @@ function markerClick(marker) {
   // (EXP-352): does a distance-labelled nearby-article link actually get opened?
   const wikiNearbyLink = $$("#spot-wiki-nearby-link");
   if (wikiNearbyLink) wikiNearbyLink.onclick = () => hmTrack("spot_wiki_nearby_clicked");
+
+  // "How people reached this spot" — the access-hint quote's link to its source
+  // ride (#202 / EXP-432). Tracked against `spot_access_hint_shown`.
+  const accessHintLink = $$("#spot-access-hint-link");
+  if (accessHintLink) accessHintLink.onclick = () => hmTrack("spot_access_hint_clicked");
 
   // Show a loading spinner while rides are fetched asynchronously
   $$("#spot-text").innerHTML = '<div class="spot-loading" role="status" aria-live="polite"><i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i><span class="sr-only">Loading rides</span></div>';
