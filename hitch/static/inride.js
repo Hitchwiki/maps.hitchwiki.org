@@ -1316,6 +1316,8 @@
     //   autoLocate bool — request GPS in the background and snap the pin if untouched
     //   notifyAutoLocateFailure bool — explain a failed background fix instead of
     //     silently leaving the pin at the map centre
+    //   trackOpen bool — fire onOutcome("opened") when the picker card renders,
+    //     so an opened-then-abandoned session is measured, not inferred
     //   myLocation bool — show the "Use my location" button
     //   onConfirm(dest {lat, lon})
     //   onCancel() — optional
@@ -1379,6 +1381,16 @@
       // pins) so a stray tap on one repositions the pin instead of opening its
       // sheet and swallowing the click. See body.inr-picking rule in style.css.
       document.body.classList.add("inr-picking");
+
+      // Fire the moment the picker card is on screen, before any terminal
+      // outcome. The other outcomes only fire on confirm/cancel/location-result,
+      // so a visitor who opens this card and then closes the tab or backgrounds
+      // the PWA is otherwise invisible — inferred only as the gap between the
+      // button-tap event and the picker-outcome event, which also swallows
+      // people the picker never rendered for. Opt-in (trackOpen) so only the
+      // start-bar picker, where that abandoned cohort is the biggest journey-
+      // funnel leak (idea #138/#152), carries the extra event.
+      if (opts.trackOpen) outcome("opened");
 
       // One geolocation request shared by the background autoLocate and the button, so
       // tapping "Use my location" mid-flight never starts a second fix.
@@ -2468,6 +2480,10 @@
         // succeeded) to 38% (GPS failed): tell the visitor why the pin stayed at
         // the map centre and what already-supported fallback to use.
         notifyAutoLocateFailure: true,
+        // Emit journey_start_picker {outcome:"opened"} when the card renders, so
+        // the ~38% who open it and leave with no resolution stop being an
+        // inferred residual of the button-tap → picker-outcome gap.
+        trackOpen: true,
         myLocation: true,
         onOutcome: function (outcome, details) {
           hmTrack("journey_start_picker", Object.assign({ outcome: outcome }, details));

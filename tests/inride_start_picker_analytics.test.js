@@ -21,6 +21,23 @@ test("the start picker sends one aggregate event with an outcome property", () =
   assert.match(SOURCE, /outcome\("cancelled", \{ placement: placement \}\);\s*cleanup\(\)/);
 });
 
+test("the start picker records that the card was opened, before any terminal outcome", () => {
+  // The opened-then-abandoned cohort is the biggest journey-funnel leak
+  // (idea #138/#152); without this it's only the button-tap → outcome gap.
+  assert.match(SOURCE, /if \(opts\.trackOpen\) outcome\("opened"\)/);
+  const startBlock = SOURCE.slice(
+    SOURCE.indexOf("const startLauncher ="),
+    SOURCE.indexOf("// ── Entry point from map gestures"),
+  );
+  assert.match(startBlock, /trackOpen: true,/);
+  // Only the start-bar picker opts in — the finish/wait pickers must not.
+  const finishStart = SOURCE.indexOf('confirmLabel: T("Confirm Drop-off")');
+  assert.ok(
+    !SOURCE.slice(finishStart, SOURCE.indexOf("});", finishStart)).includes("trackOpen"),
+    "the finish drop-off picker must not opt into trackOpen",
+  );
+});
+
 test("location outcomes distinguish failure, use, and a late ignored fix", () => {
   for (const outcome of [
     "auto-location-used",
