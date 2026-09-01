@@ -3892,17 +3892,43 @@ async function renderWikiContributionNudge(ride) {
     const payload = await response.json();
     const url = payload && payload.spot && payload.spot.hitchwiki_article;
     if (!url) return;
+
+    // A hitchhiker who has already written several long ride notes is the most likely
+    // person to write a good wiki paragraph — address them as one, rather than with the
+    // same cold prompt a first-time note-writer sees. A failed/again-anonymous lookup
+    // just falls back to the standard ask.
+    let repeatWriter = false;
+    try {
+      const countResp = await fetch("/me/longnote_count.json");
+      if (countResp.ok) {
+        const countPayload = await countResp.json();
+        repeatWriter = !!(countPayload && countPayload.repeat_writer);
+      }
+    } catch (e) {
+      // Optional personalisation only — never block the invitation on it.
+    }
+
+    if (repeatWriter) {
+      const lead = document.createElement("p");
+      lead.className = "success-wiki-contribute-lead";
+      lead.textContent = tr(
+        "You write detailed ride notes — the kind of first-hand knowledge this place's Hitchwiki article is missing.",
+      );
+      note.appendChild(lead);
+    }
     const link = document.createElement("a");
     link.href = url;
     link.target = "_blank";
     link.rel = "noopener";
-    link.textContent = tr("Add your notes to the Hitchwiki article for this place");
+    link.textContent = repeatWriter
+      ? tr("Add what you know to the Hitchwiki article for this place")
+      : tr("Add your notes to the Hitchwiki article for this place");
     link.onclick = function () {
-      hmTrack("wiki_contribute_clicked", { source: "success-overlay" });
+      hmTrack("wiki_contribute_clicked", { source: "success-overlay", repeat_writer: repeatWriter });
     };
     note.appendChild(link);
     note.style.display = "block";
-    hmTrack("wiki_contribute_shown", { source: "success-overlay" });
+    hmTrack("wiki_contribute_shown", { source: "success-overlay", repeat_writer: repeatWriter });
   } catch (e) {
     // This is an optional invitation. A missing/stale detail file must never damage
     // the post-submit success screen or its share action.

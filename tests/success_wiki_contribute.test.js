@@ -9,7 +9,7 @@ const start = mapSource.indexOf("const WIKI_CONTRIBUTE_COMMENT_CHARS");
 const end = mapSource.indexOf("// Builds the shareable image", start);
 const helperSource = mapSource.slice(start, end);
 
-function loadHelper({ comment = "x".repeat(200), wiki = true } = {}) {
+function loadHelper({ comment = "x".repeat(200), wiki = true, longNoteCount = 0, failCount = false } = {}) {
   const events = [];
   const fetches = [];
   const note = {
@@ -30,6 +30,13 @@ function loadHelper({ comment = "x".repeat(200), wiki = true } = {}) {
     hmTrack: (name, props) => events.push({ name, props }),
     fetch: async (url) => {
       fetches.push(url);
+      if (url === "/me/longnote_count.json") {
+        if (failCount) throw new Error("network");
+        return {
+          ok: true,
+          json: async () => ({ count: longNoteCount, repeat_writer: longNoteCount >= 4 }),
+        };
+      }
       return {
         ok: true,
         json: async () => ({ spot: { hitchwiki_article: "https://hitchwiki.org/en/Dresden" } }),
@@ -57,13 +64,41 @@ function loadHelper({ comment = "x".repeat(200), wiki = true } = {}) {
 test("a long note at a wiki-linked spot gets the contribution invitation", async () => {
   const h = loadHelper();
   await h.run();
-  assert.deepStrictEqual(h.fetches, ["/rides/by-spot/51.08170_13.73629.json"]);
+  assert.deepStrictEqual(h.fetches, [
+    "/rides/by-spot/51.08170_13.73629.json",
+    "/me/longnote_count.json",
+  ]);
   assert.strictEqual(h.note.style.display, "block");
-  assert.strictEqual(h.note.children[0].href, "https://hitchwiki.org/en/Dresden");
+  const link = h.note.children[h.note.children.length - 1];
+  assert.strictEqual(link.href, "https://hitchwiki.org/en/Dresden");
   assert.strictEqual(h.events[0].name, "wiki_contribute_shown");
   assert.strictEqual(h.events[0].props.source, "success-overlay");
-  h.note.children[0].onclick();
+  assert.strictEqual(h.events[0].props.repeat_writer, false);
+  link.onclick();
   assert.strictEqual(h.events[1].name, "wiki_contribute_clicked");
+  assert.strictEqual(h.events[1].props.repeat_writer, false);
+});
+
+test("a proven repeat note-writer gets the warmer ask and a flagged event", async () => {
+  const h = loadHelper({ longNoteCount: 7 });
+  await h.run();
+  assert.strictEqual(h.note.style.display, "block");
+  const link = h.note.children[h.note.children.length - 1];
+  assert.strictEqual(link.href, "https://hitchwiki.org/en/Dresden");
+  assert.match(link.textContent, /what you know/);
+  assert.strictEqual(h.events[0].name, "wiki_contribute_shown");
+  assert.strictEqual(h.events[0].props.repeat_writer, true);
+  link.onclick();
+  assert.strictEqual(h.events[1].props.repeat_writer, true);
+});
+
+test("a failed longnote lookup still shows the standard invitation", async () => {
+  const h = loadHelper({ failCount: true });
+  await h.run();
+  assert.strictEqual(h.note.style.display, "block");
+  const link = h.note.children[h.note.children.length - 1];
+  assert.strictEqual(link.href, "https://hitchwiki.org/en/Dresden");
+  assert.strictEqual(h.events[0].props.repeat_writer, false);
 });
 
 test("short notes and spots without a wiki article do no detail fetch", async () => {
