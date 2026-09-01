@@ -2976,7 +2976,7 @@ function summaryText(data, hists = { wait: null, distance: null }) {
   // as a claim that the article is about this exact spot. `spot_wiki_nearby_shown` fires
   // from handleMarkerClick, next to the exact-match excerpt event.
   const hitchwikiNearbyLink = !data.hitchwiki_article && !data.hitchwiki_map && data.hitchwiki_nearby
-    ? `<div>📄 <a href="${data.hitchwiki_nearby.url}" target="_blank" rel="noopener noreferrer">${tr("Nearest Hitchwiki article: {title} (~{km} km)", { title: data.hitchwiki_nearby.title, km: data.hitchwiki_nearby.km })}</a></div>`
+    ? `<div>📄 <a id="spot-wiki-nearby-link" href="${data.hitchwiki_nearby.url}" target="_blank" rel="noopener noreferrer">${tr("Nearest Hitchwiki article: {title} (~{km} km)", { title: data.hitchwiki_nearby.title, km: data.hitchwiki_nearby.km })}</a></div>`
     : '';
   // Filled in asynchronously by loadSpotWikiExcerpt once this markup is in the DOM
   // (see applySpotRideFilter) -- fetching Hitchwiki's API takes a round trip this
@@ -3256,6 +3256,12 @@ function markerClick(marker) {
   // can see whether an empty spot is a dead end or a conversation starter.
   const emptyChatLink = $$("#spot-empty-chat-link");
   if (emptyChatLink) emptyChatLink.onclick = () => hmTrack("spot_empty_chat_click");
+
+  // "Nearest Hitchwiki article (~N km)" link, shown by summaryText only when no
+  // article sits on the spot itself. Track the click against `spot_wiki_nearby_shown`
+  // (EXP-352): does a distance-labelled nearby-article link actually get opened?
+  const wikiNearbyLink = $$("#spot-wiki-nearby-link");
+  if (wikiNearbyLink) wikiNearbyLink.onclick = () => hmTrack("spot_wiki_nearby_clicked");
 
   // Show a loading spinner while rides are fetched asynchronously
   $$("#spot-text").innerHTML = '<div class="spot-loading" role="status" aria-live="polite"><i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i><span class="sr-only">Loading rides</span></div>';
