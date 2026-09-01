@@ -73,7 +73,12 @@ assert.match(source, /hmTrack\("route_none_start_clicked_cta"\)/);
 assert.match(source, /class="rp-no-route-cta" hidden/);
 assert.match(
   source,
-  /const start = RJ\.start\.latlng;[\s\S]*?startFromChoose\([\s\S]*?lat: start\[0\], lon: start\[1\][\s\S]*?"route-results"/,
+  /function showNoRouteStartAction\(origin\)[\s\S]*?if \(!cta \|\| !origin\) return;/,
+  "the no-route CTA takes the searched origin as an argument, not live RJ.start (cleared if the planner closes during the async fallback search)",
+);
+assert.match(
+  source,
+  /const start = origin;[\s\S]*?startFromChoose\([\s\S]*?lat: start\[0\], lon: start\[1\][\s\S]*?"route-results"/,
   "the no-route CTA starts from the searched origin without exposing it to analytics",
 );
 
