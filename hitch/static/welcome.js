@@ -32,6 +32,16 @@
       title: "Your rides, your story",
       body: "Log every ride to build your history, stats and map. Each one you share helps the next hitchhiker on the road.",
     },
+    {
+      // Plain readout of an aggregate computed from our own logged rides, not advice.
+      // Source: scripts/b159_driver_gender.py over the rides parquet — of 434 rides
+      // that state the driver's gender, 100 are women (23.0%, 95% CI 19.3-27.2%);
+      // holds up across countries and hitchhiker cohorts. See
+      // research/driver-gender-2026-08-31.md. Refresh the fraction if that rerun moves.
+      emoji: "🚗",
+      title: "Who pulls over",
+      body: "Across the rides logged on this map, about one in four drivers who stopped was a woman.",
+    },
   ];
 
   var _open = null;
@@ -112,6 +122,14 @@
     card.appendChild(footer);
 
     var current = 0;
+    // The first-run carousel had no telemetry, so we could not tell how many new
+    // accounts see it or how far they swipe. One dedup'd event per slide per open.
+    var slideSeen = {};
+    function trackSlide(i) {
+      if (slideSeen[i]) return;
+      slideSeen[i] = true;
+      if (window.hmTrack) window.hmTrack("welcome_slide_shown", { slide: i });
+    }
 
     function goTo(i) {
       i = Math.max(0, Math.min(SLIDES.length - 1, i));
@@ -120,6 +138,7 @@
 
     function render(i) {
       current = i;
+      trackSlide(i);
       dotEls.forEach(function (d, di) {
         d.classList.toggle("is-active", di === i);
       });
