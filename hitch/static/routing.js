@@ -125,7 +125,16 @@
       treeAdj.push(adj);
     });
     const defaultWait = waits.length ? waits.reduce((a, b) => a + b, 0) / waits.length : 0;
-    const R = { spots, treeAdj, board, edgeKm, edgeSupport, defaultWait, nTrees: treeAdj.length,
+    // Node-level wait fallback: for a spot with no recorded wait on a given
+    // boardable edge, its own other rides are still better evidence than the
+    // global mean. spotWait[u] = mean of the recorded waits across u's boardable
+    // edges; used only when the edge itself logged none. (IDEAS.md #70)
+    const spotWait = new Map();
+    board.forEach((edges, u) => {
+      const ws = edges.map((e) => e[3]).filter((w) => w != null);
+      if (ws.length) spotWait.set(u, ws.reduce((a, b) => a + b, 0) / ws.length);
+    });
+    const R = { spots, treeAdj, board, edgeKm, edgeSupport, defaultWait, spotWait, nTrees: treeAdj.length,
       carSpots: [...carSpots], walkAdj: new Map(), grid: null, cellDeg: 0, walkReady: false };
     return R;
   }
@@ -193,7 +202,7 @@
       }
       const bd = R.board.get(spot);
       if (bd) bd.forEach(([tId, v, km, wait]) => {
-        const w = (wait == null) ? R.defaultWait : wait;
+        const w = (wait == null) ? (R.spotWait.get(spot) ?? R.defaultWait) : wait;
         const mult = penalty ? (penalty.get(spot * 1e7 + v) || 1) : 1;
         relax(enc(v, tId), d + cmin(km) * mult + w, [st, "board", km, w]); });
       const wk = R.walkAdj.get(spot);
@@ -275,6 +284,11 @@
   RJ.open = open;
   RJ.close = close;
   RJ.showAgain = showAgain;
+  // Test-only hook: the routing graph builder and Dijkstra core have no DOM
+  // dependency, so headless tests exercise them directly (see
+  // tests/routing_wait_fallback.test.js and the CLAUDE.md note on running
+  // routing.js under node).
+  window.RoutingInternals = { buildRouter, ensureWalk, route };
 
   fetch("/repeatable_routes.json").then((r) => r.json()).then((rep) => {
     RJ.spots = rep.spots;
