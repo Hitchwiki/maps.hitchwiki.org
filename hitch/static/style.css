@@ -3854,6 +3854,12 @@ body.routing-active .leaflet-control-container .leaflet-control-geocoder { displ
 .rp-via { list-style: none; margin: 2px 0 0; padding: 0 0 0 12px; }
 .rp-via li { font-size: 12px; padding: 1px 0; }
 
+/* What riders wrote about a boarding spot, under its ride leg. */
+.rp-evi { margin: 3px 0 0; display: flex; flex-direction: column; gap: 1px; }
+.rp-evi-sum { font-size: 12px; color: #3c4043; }
+.rp-evi-q { font-size: 12px; color: #5f6368; font-style: italic; }
+.rp-evi-d { font-style: normal; color: #80868b; white-space: nowrap; }
+
 /* Time tag floating on each route. */
 .route-tag-wrap { pointer-events: auto; }
 .route-tag {
