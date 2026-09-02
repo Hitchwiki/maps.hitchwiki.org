@@ -4084,10 +4084,21 @@ function setupShareCard(opts) {
 // nothing new about whether the first one converted.
 const SIGNUP_PROMPT_SEEN_KEY = "signupPromptSeen";
 const INVITE_PROMPT_SEEN_KEY = "invitePromptSeen";
+// The co-hitchhiker invite is the one nudge worth repeating: it targets a
+// different travel companion each time, not the same undecided anonymous user.
+const INVITE_PROMPT_MAX_AGE_DAYS = 90;
 
-function promptSeen(key) {
+function promptSeen(key, maxAgeDays) {
   try {
-    return localStorage.getItem(key) === "1";
+    const raw = localStorage.getItem(key);
+    if (!raw) return false;
+    // maxAgeDays lets a nudge return after a while: someone who hitchhikes with
+    // five different people over a year should be asked to invite more than once.
+    // Without it (the anon sign-up prompt) the marker is permanent, as before.
+    if (!maxAgeDays || raw === "1") return true; // "1" is the pre-timestamp marker
+    const ts = parseInt(raw, 10);
+    if (!ts) return true;
+    return Date.now() - ts < maxAgeDays * 86400000;
   } catch (e) {
     // No localStorage (private mode / blocked storage) means we can't remember a
     // dismissal, so treat the prompt as already seen rather than show it forever.
@@ -4097,7 +4108,7 @@ function promptSeen(key) {
 
 function markPromptSeen(key) {
   try {
-    localStorage.setItem(key, "1");
+    localStorage.setItem(key, String(Date.now()));
   } catch (e) {}
 }
 
@@ -4213,7 +4224,8 @@ function showInvitePromptOverlay(opts) {
 // plain success overlay once it has had its one showing.
 function showPostSubmitOverlay(kind, opts) {
   if (kind === "anon" && !promptSeen(SIGNUP_PROMPT_SEEN_KEY)) showSignupPromptOverlay(opts);
-  else if (kind === "invite" && !promptSeen(INVITE_PROMPT_SEEN_KEY)) showInvitePromptOverlay(opts);
+  else if (kind === "invite" && !promptSeen(INVITE_PROMPT_SEEN_KEY, INVITE_PROMPT_MAX_AGE_DAYS))
+    showInvitePromptOverlay(opts);
   else showSuccessOverlay(opts);
 }
 
