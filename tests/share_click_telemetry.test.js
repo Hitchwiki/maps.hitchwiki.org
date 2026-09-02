@@ -42,6 +42,31 @@ test("falls back to the first path segment with no id", () => {
   assert.strictEqual(fn({ dataset: {}, id: "" }), "route");
 });
 
+test("every share surface carries an explicit data-share-context", () => {
+  const shareMacro = fs.readFileSync(
+    path.join(__dirname, "..", "hitch", "templates", "_share.html"),
+    "utf8",
+  );
+  assert.match(shareMacro, /data-share-context="\{\{ context \}\}"/);
+
+  const routing = fs.readFileSync(
+    path.join(__dirname, "..", "hitch", "static", "routing.js"),
+    "utf8",
+  );
+  assert.match(routing, /class="share-btn" data-share-context="route"/);
+
+  const map = fs.readFileSync(
+    path.join(__dirname, "..", "hitch", "templates", "map.html"),
+    "utf8",
+  );
+  for (const ctx of ["spot", "insights", "country", "event", "map-view"]) {
+    assert.ok(
+      map.includes(`data-share-context="${ctx}"`),
+      `map.html missing data-share-context="${ctx}"`,
+    );
+  }
+});
+
 test("exactly one hmTrack call in the click handler, carrying context and method", () => {
   const handler = SOURCE.slice(SOURCE.indexOf("var btn = e.target.closest"));
   const calls = handler.match(/hmTrack\(/g) || [];

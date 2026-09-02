@@ -230,7 +230,7 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
         <a id="spot-google-link" class="spot-action-link" target="_blank" rel="noopener">{{ t("Go to on Google Maps") }}</a>
         <a id="spot-streetview-link" class="spot-action-link" target="_blank" rel="noopener">{{ t("See on Google Street View") }}</a>
         <a id="spot-osm-link" class="spot-action-link" target="_blank" rel="noopener">{{ t("Go to on OpenStreetMap") }}</a>
-        <button type="button" class="share-btn" id="share-spot-btn" data-share-title="{{ t('Hitchhiking spot on Hitchwiki Maps') }}">
+        <button type="button" class="share-btn" id="share-spot-btn" data-share-context="spot" data-share-title="{{ t('Hitchhiking spot on Hitchwiki Maps') }}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
             <span class="share-btn-label">{{ t("Share this spot") }}</span>
         </button>
@@ -525,7 +525,7 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
             <p class="insights-subtitle" id="insights-subtitle">{{ t("Stats for the rides currently selected by your filters.") }}</p>
             <!-- No data-share-url: the shared handler falls back to the current URL,
                  which carries the active filters so the recipient sees the same view. -->
-            <button type="button" class="share-btn" data-share-title="{{ t('Hitchhiking insights – Hitchwiki Maps') }}">
+            <button type="button" class="share-btn" data-share-context="insights" data-share-title="{{ t('Hitchhiking insights – Hitchwiki Maps') }}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                 <span class="share-btn-label">{{ t("Share these insights") }}</span>
             </button>
@@ -628,7 +628,7 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
             <h1 id="country-sheet-name"></h1>
             <span class="country-rating" id="country-sheet-rating" style="display:none;"></span>
         </div>
-        <button type="button" class="share-btn" id="share-country-btn" data-share-title="{{ t('Hitchhiking in this country – Hitchwiki Maps') }}">
+        <button type="button" class="share-btn" id="share-country-btn" data-share-context="country" data-share-title="{{ t('Hitchhiking in this country – Hitchwiki Maps') }}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
             <span class="share-btn-label">{{ t("Share") }}</span>
         </button>
@@ -690,7 +690,7 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
             <h1 id="event-sheet-name"></h1>
             <div class="event-dates" id="event-sheet-dates"></div>
         </div>
-        <button type="button" class="share-btn" id="share-event-btn">
+        <button type="button" class="share-btn" id="share-event-btn" data-share-context="event">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
             <span class="share-btn-label">{{ t("Share") }}</span>
         </button>
@@ -726,6 +726,7 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
      viewport and any active filter query params — letting someone share exactly
      what they're looking at. Sits just below the account button, top-right. -->
 <button type="button" class="share-btn share-view-btn{% if hide_account_button %} no-account{% endif %}"
+        data-share-context="map-view"
         id="share-view-btn" title="{{ t('Share this map view') }}" aria-label="{{ t('Share this map view') }}">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
     <span class="share-btn-label sr-only">{{ t("Share view") }}</span>

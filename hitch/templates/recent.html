@@ -14,7 +14,7 @@
 {% block content %}
 <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
   <h1 style="margin:0;">Activities</h1>
-  {{ share_button(title="Recent hitchhiking activity – Hitchwiki Maps") }}
+  {{ share_button(context="recent", title="Recent hitchhiking activity – Hitchwiki Maps") }}
 </div>
 
 {% if is_logged_in %}

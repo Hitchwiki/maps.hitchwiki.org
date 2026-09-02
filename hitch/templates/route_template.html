@@ -19,7 +19,7 @@
     <article class="mt-6">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
         <h1 style="margin:0;">{{ t("Hitchhiking from {origin} to {destination}", origin=origin.city, destination=destination.city) }}</h1>
-        {{ share_button(url=canonical_url, title=t("Hitchhiking from {origin} to {destination}", origin=origin.city, destination=destination.city)) }}
+        {{ share_button(context="route-guide", url=canonical_url, title=t("Hitchhiking from {origin} to {destination}", origin=origin.city, destination=destination.city)) }}
       </div>
 
       <p>{{ t("About {time} of hitchhiking — roughly {km} km in {rides} ride(s), including about {wait} of waiting by the road. These figures come from rides hitchhikers logged on this map, not from an estimate.", time=info.core_time, km=info.car_km, rides=info.rides, wait=info.wait_time) }}</p>
