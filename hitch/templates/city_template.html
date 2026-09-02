@@ -29,6 +29,18 @@
 
             <a class="map-link" href="/#location,{{city.lat}},{{city.lng}},12"><div id="static-map"></div><span class="map-overlay">{{ t("{city} on Hitchhiking Map", city=city.city) }}</span> </a>
 
+            {# The easiest first hitchhike out of this city. Built in cities.py from
+               our own logged rides -- rating column + parsed waiting_duration, no
+               authored text -- and only shown when a ~1 km cell within 30 km of the
+               centre clears the bar (>=10 rides, mean rating >=4, p90 wait <=60 min). #}
+            {% if first_hitch %}
+            <p class="first-hitch">
+                {{ t("The best-evidenced place to start hitchhiking out of {city} is about {km} km {direction} of the centre.", city=city.city, km=first_hitch.km_from_centre, direction=t(first_hitch.direction)) }}
+                <a href="/#location,{{ first_hitch.lat }},{{ first_hitch.lon }},14" id="first-hitch-spot">{{ t("Show this spot on the map") }}</a>.
+                {{ t("{n} logged rides there average {rating} out of 5, with a typical wait around {wait} minutes.", n=first_hitch.n, rating=first_hitch.mean_rating, wait=first_hitch.median_wait) }}
+            </p>
+            {% endif %}
+
             {# Populated client-side by city_wiki_excerpt.js -- the Hitchwiki API
                sits behind Cloudflare's bot challenge, which blocks this host's
                own server-side requests but lets a real visitor's browser through
@@ -155,5 +167,14 @@
  createStaticMap(container, {{city.lat}}, {{city.lng}}, 12, Math.min(600, window.innerWidth - 40), 300);
  let containerZoomedOut = document.querySelector('#static-map-zoomed-out')
  createStaticMap(containerZoomedOut, {{city.lat}}, {{city.lng}}, 8, Math.min(600, window.innerWidth - 40), 300);
+{% if first_hitch %}
+ if (window.hmTrack) window.hmTrack('city_first_hitch_shown', {city: {{ city.city | tojson }}, km: {{ first_hitch.km_from_centre }}, n: {{ first_hitch.n }}});
+ (function () {
+     var link = document.querySelector('#first-hitch-spot');
+     if (link) link.addEventListener('click', function () {
+         if (window.hmTrack) window.hmTrack('city_first_hitch_clicked', {city: {{ city.city | tojson }}});
+     });
+ })();
+{% endif %}
 </script>
 {% endblock %}
