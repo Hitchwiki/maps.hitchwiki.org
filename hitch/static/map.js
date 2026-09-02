@@ -2992,6 +2992,15 @@ function summaryText(data, hists = { wait: null, distance: null }) {
   // is not an answer.
   const rating = !data.rating || Number.isNaN(data.rating) ? "-" : data.rating.toFixed(0);
 
+  // #238: recency of the spot's ride evidence, as a plain "last confirmed" line —
+  // NOT a quality badge. Stale spots here rate the same as fresh ones (see IDEAS.md
+  // #238), so recency only tells you how current the data is, not how good the spot
+  // is. Reads the spot-level latest_ms (newest submission across every ride here,
+  // filter-independent) so an active ride filter never makes a busy spot look dead.
+  const lastConfirmed = Number.isFinite(data.latest_ms)
+    ? formatRideDate(new Date(data.latest_ms).toISOString())
+    : "";
+
   // Lines are <div>s rather than <br>-separated text: each histogram is a block
   // element, and a <br> after one would open an empty line under the chart.
   return `<div>${tr("Rating: {rating}/5", { rating })}</div>
@@ -2999,6 +3008,7 @@ function summaryText(data, hists = { wait: null, distance: null }) {
     ${spotHistogramMarkup(hists.wait, "spot-wait-hist", "min")}
     <div>${tr("Ride distance: {distance}", { distance })}</div>
     ${spotHistogramMarkup(scaleHistToDisplay(hists.distance), "spot-distance-hist", distanceUnitLabel())}
+    ${lastConfirmed ? `<div class="spot-last-confirmed">${tr("Last confirmed: {date}", { date: lastConfirmed })}</div>` : ''}
     ${osmLink}${carPoolingLink}${fuelLink}${hitchwikiLink}${hitchwikiMapLink}${hitchwikiNearbyLink}${spotWikiExcerpt}`;
 }
 
