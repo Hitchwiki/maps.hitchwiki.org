@@ -24,7 +24,7 @@
         <article class="mt-6">
             <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
                 <h2 style="margin:0;">{{ t("Hitchhiking from {city}", city=city.city) }}</h2>
-                {{ share_button(url=canonical_url, title=t("Hitchhiking in {place} – Hitchwiki Map", place=place_label)) }}
+                {{ share_button(context="city", url=canonical_url, title=t("Hitchhiking in {place} – Hitchwiki Map", place=place_label)) }}
             </div>
 
             <a class="map-link" href="/#location,{{city.lat}},{{city.lng}},12"><div id="static-map"></div><span class="map-overlay">{{ t("{city} on Hitchhiking Map", city=city.city) }}</span> </a>

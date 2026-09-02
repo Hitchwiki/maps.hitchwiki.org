@@ -335,12 +335,30 @@
        The URL to share is data-share-url; falling back to the current location
        lets filter/zoom-dependent views (map view, insights) share "as-is". #}
     <script>
+      {# Which of the nine share surfaces fired: explicit data-share-context wins,
+         else the button id, else the first path segment. Lets us see where
+         sharing actually happens instead of assuming it's the post-ride overlay. #}
+      function shareContext(btn) {
+        if (btn.dataset.shareContext) return btn.dataset.shareContext;
+        if (btn.id) return btn.id.replace(/^share-?/, '').replace(/-?btn$/, '') || 'id';
+        var seg = (window.location.pathname.split('/')[1] || 'map');
+        return seg;
+      }
       document.addEventListener('click', async function (e) {
         var btn = e.target.closest && e.target.closest('.share-btn');
         if (!btn) return;
         e.preventDefault();
         var url = btn.dataset.shareUrl || window.location.href;
         var title = btn.dataset.shareTitle || document.title;
+        {# One event per click. A second hmTrack in the same tick collides with
+           the first server-side (see ride_share_ab.test.js) and reads 0 forever,
+           so method is a property of this single call, not its own event. #}
+        if (window.hmTrack) {
+          window.hmTrack('share_click', {
+            context: shareContext(btn),
+            method: navigator.share ? 'native' : 'clipboard',
+          });
+        }
         try {
           if (navigator.share) { await navigator.share({ title: title, url: url }); return; }
         } catch (err) { if (err && err.name === 'AbortError') return; }

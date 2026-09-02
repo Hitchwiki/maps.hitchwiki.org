@@ -25,7 +25,7 @@
 <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
   <h1 style="margin:0;">{{ t("Leaderboard") }}</h1>
   {# data-share-url is filled in / kept in sync with the active tab by the tab JS. #}
-  {{ share_button(title=t("Hitchhiking leaderboard – Hitchwiki Maps")) }}
+  {{ share_button(context="leaderboard", title=t("Hitchhiking leaderboard – Hitchwiki Maps")) }}
 </div>
 
 <div class="leaderboard-tabs">
