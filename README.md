@@ -204,9 +204,31 @@ How we want to work on Hirchwiki Maps is defined in GOVERNANCE.md and refined in
 
 ## Testing
 
+Run the complete, deterministic test suite (Python API tests with coverage and
+browser-independent JavaScript unit tests):
+
 ```bash
-python -m pytest tests/ -v
+make test
 ```
+
+To run one side while developing:
+
+```bash
+make test-python
+make test-javascript
+```
+
+Tests marked `network` contact live Nostr relays, so they are excluded from
+normal local and pull-request runs. Run them explicitly when checking relay
+health:
+
+```bash
+python -m pytest tests/ -v -m network
+```
+
+Pull requests receive an updated coverage overview comment with Python and
+JavaScript coverage percentages. The same report is available in the GitHub
+Actions run summary.
 
 ## OpenStreetMap Integration
 
