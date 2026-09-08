@@ -1228,8 +1228,12 @@ async function loadCountrySheetLead(name) {
   let usedLocalLang = false;
 
   const lang = window.__LANG__;
+  // Hoisted so the country_wiki_lead_shown event below can report which country
+  // the reader was looking at, not just the language outcome (#269).
+  let countryCc = "";
   if (lang && lang !== "en") {
     const cc = await getCountryCc(name);
+    countryCc = cc || "";
     const localTitle = await getCountryWikiLocalTitle(cc, lang);
     if (localTitle) {
       const localBase = `https://hitchwiki.org/${lang}/`;
@@ -1267,7 +1271,7 @@ async function loadCountrySheetLead(name) {
     // pointing at a page that failed to load would send them to a red link.
     if (html) {
       const languageOutcome = usedLocalLang ? "local" : (lang && lang !== "en" ? "english-fallback" : "english-ui");
-      hmTrack("country_wiki_lead_shown", { outcome: languageOutcome });
+      hmTrack("country_wiki_lead_shown", { outcome: languageOutcome, lang: lang || "en", cc: countryCc || "" });
       setWikiCta($$("#country-sheet-cta"), wikiUrl, tr("Read the full {title} article on Hitchwiki", { title }));
     }
   } catch (e) {
