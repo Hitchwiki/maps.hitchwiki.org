@@ -3719,6 +3719,46 @@ function trackRideShare(properties) {
   }
 }
 
+// #254: inline free-text feedback widget inside the success overlay. Replaces a
+// link-out to a Google Form that got 0 responses ever. The answer is sent as an
+// analytics event (map_feedback_submitted) with the note text, its length and the
+// source -- no endpoint, no DB column, no contact field (a separate privacy
+// question). Re-runs on every overlay open, so it resets its own state each time
+// and guards against an old cached copy of the markup (root == null).
+function setupMapFeedback(source) {
+  const root = $$("#map-feedback");
+  if (!root) return;
+  const toggle = $$("#map-feedback-toggle");
+  const panel = $$("#map-feedback-panel");
+  const text = $$("#map-feedback-text");
+  const send = $$("#map-feedback-send");
+  const thanks = $$("#map-feedback-thanks");
+  if (!toggle || !panel || !text || !send || !thanks) return;
+  // Reset: the overlay is reused across submissions, so a note left from last time
+  // (or a "thank you" still showing) must not carry over.
+  text.value = "";
+  panel.hidden = true;
+  thanks.hidden = true;
+  toggle.hidden = false;
+  let opened = false;
+  toggle.onclick = function () {
+    panel.hidden = false;
+    toggle.hidden = true;
+    text.focus();
+    if (!opened) {
+      opened = true;
+      hmTrack("map_feedback_opened", { source: source });
+    }
+  };
+  send.onclick = function () {
+    const note = text.value.trim().slice(0, 500);
+    if (!note) return;
+    hmTrack("map_feedback_submitted", { source: source, chars: note.length, text: note });
+    panel.hidden = true;
+    thanks.hidden = false;
+  };
+}
+
 // `opts` is how a caller that never navigated hands the ride in directly:
 // {ride, dTag}. The /ride form's redirect can't do that (the POST navigates away), so
 // it goes through sessionStorage + ?ride= instead; the in-ride tracker, which submits
@@ -3803,17 +3843,9 @@ function showSuccessOverlay(opts) {
       close("x");
     };
   }
-  // feedback_form_responses_total has read exactly 0 for 3+ days against ~800
-  // overlay views/week -- previously unknown whether that meant "nobody clicks"
-  // or "people click but don't finish the form." This is the only way to tell
-  // them apart from here (the link is target="_blank", so this fires alongside
-  // the real navigation, not instead of it).
-  const feedbackLink = $$("#success-feedback-link");
-  if (feedbackLink) {
-    feedbackLink.onclick = function () {
-      hmTrack("feedback_link_clicked", { source: "success-overlay" });
-    };
-  }
+  // #254: the Google Form linked from here had 0 responses ever. Replaced with
+  // an inline free-text field whose answer rides an analytics event.
+  setupMapFeedback("success-overlay");
   overlay.onclick = function (e) {
     if (e.target === overlay) close("backdrop");
   };

@@ -823,8 +823,23 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
 <div id="success-overlay" class="success-overlay" style="display: none;">
     <div class="success-content success-share-content">
         <button type="button" id="success-dismiss" class="success-dismiss" aria-label="{{ t('Close') }}">&times;</button>
-        <p class="success-feedback">{{ t("Ride saved — thank you! We'd love to hear your thoughts: {link}.",
-                link='<a id="success-feedback-link" href="https://docs.google.com/forms/d/e/1FAIpQLSdGLlPKhjRXIjG2VB-BlkxbsagNeXce5eI3sKFHe-_scJMFnw/viewform?usp=header" target="_blank" rel="noopener">' ~ t("share feedback") ~ '</a>')|safe }}</p>
+        <!-- #254: the Google Form this line used to link to had 0 responses ever
+             (2 link-clicks / 28d). Replaced with an inline free-text field so the
+             feedback lands in one tap without leaving the app. The answer is sent
+             as an analytics event (map_feedback_submitted) — no endpoint, no DB
+             column. No contact field in this slice: that is a separate privacy
+             question. setupMapFeedback() in map.js wires it and resets it per open. -->
+        <div class="success-feedback map-feedback" id="map-feedback" data-source="success-overlay">
+            <p class="map-feedback-prompt">{{ t("Ride saved — thank you!") }}
+                <button type="button" class="map-feedback-link" id="map-feedback-toggle">{{ t("Anything we could do better?") }}</button>
+            </p>
+            <div class="map-feedback-panel" id="map-feedback-panel" hidden>
+                <textarea id="map-feedback-text" class="map-feedback-text" rows="3" maxlength="500"
+                          placeholder="{{ t('What worked, what did not, what is missing…') }}"></textarea>
+                <button type="button" id="map-feedback-send" class="success-secondary-btn">{{ t("Send feedback") }}</button>
+            </div>
+            <p class="map-feedback-thanks" id="map-feedback-thanks" hidden>{{ t("Thank you — we read every note.") }}</p>
+        </div>
         <!-- Filled in by showTripCreated() when a tracked journey's rides were grouped
              into a trip. Hidden otherwise, and for a single-ride journey. -->
         <p id="success-trip-note" class="success-trip-note" style="display: none;"></p>
