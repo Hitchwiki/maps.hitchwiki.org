@@ -298,10 +298,13 @@ SOURCE_STRINGS = [
     "Ride distance",
     "Ride saved!",
     "Ride saved — thank you!",
-    # #254: inline feedback widget in the success overlay
+    # #254: inline feedback widget (success overlay, signup-prompt overlay, sampled popup)
     "Anything we could do better?",
     "What worked, what did not, what is missing…",
     "Thank you — we read every note.",
+    "Email (optional, only if you want a reply)",
+    "What matters to you here?",
+    "Enjoying the map? Tell us what is missing.",
     "rides dataset on Hugging Face",
     "Route Planning",
     "Route planning is under development.",
@@ -319,7 +322,6 @@ SOURCE_STRINGS = [
     "Share this map view",
     "Share this spot",
     "Share view",
-    "share your thoughts",
     "Show only spots at a gas station",
     "Show your friends",
     "Help a friend try hitchhiking",
@@ -351,7 +353,7 @@ SOURCE_STRINGS = [
     "you've been.",
     "waving",
     "We don't understand hitchhikers' preferences around anonymity well yet. If you tell us what matters to you, we can build "
-    "for it — {link}.",
+    "for it.",
     "We'll copy an invite link you can send them however you like.",
     "Yes, let's sign up",
     "You don't have to give up your privacy: pick a username and an email address that can't be traced back to you personally. "

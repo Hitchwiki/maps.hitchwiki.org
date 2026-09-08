@@ -2360,6 +2360,39 @@ ul.no-style {
   margin: 8px 0 0;
   color: #2e7d32 !important;
 }
+.map-feedback-email {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+}
+/* #254 slice 2: the sampled post-action popup. Fixed card, bottom-centre, above
+   the map dock; the × in the corner hides #ambient-feedback-wrap. */
+#ambient-feedback-wrap {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 88px;
+  z-index: 1200;
+  max-width: 340px;
+  width: calc(100% - 32px);
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.25);
+  padding: 14px 16px;
+}
+#ambient-feedback-wrap .map-feedback-dismiss {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  color: #666;
+}
 
 /* The auto-grouped-trip line. Tinted rather than plain grey like .success-feedback:
    it is the one piece of news on this overlay the user did not ask for, so it has to
