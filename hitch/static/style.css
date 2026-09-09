@@ -2852,6 +2852,61 @@ body.showing-insights .heatmap-legend-pane {
 }
 .install-hint-close:hover { color: #222; }
 
+/* In-product feedback prompt (feedback.js). A small card pinned bottom-centre, above
+   the mobile action dock — it appears infrequently after a completed action, or on
+   demand from the "share feedback" links. Deliberately not a full-screen overlay: it
+   must not block the map the visitor just came back to. */
+.feedback-panel {
+  position: fixed;
+  bottom: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1150;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 420px;
+  max-width: calc(100vw - 24px);
+  padding: 14px 16px;
+  background: #fff;
+  color: #222;
+  border: 1px solid #e2e2e2;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  font-size: 14px;
+  line-height: 1.4;
+}
+.feedback-panel[hidden] { display: none; }
+.feedback-close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  background: transparent;
+  border: 0;
+  color: #888;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+}
+.feedback-close:hover { color: #222; }
+.feedback-title { font-weight: 600; margin: 0 20px 0 0; }
+.feedback-note,
+.feedback-email {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font: inherit;
+}
+.feedback-note { resize: vertical; min-height: 60px; }
+.feedback-actions { display: flex; gap: 8px; }
+.feedback-actions .success-close-btn,
+.feedback-actions .success-secondary-btn { flex: 1 1 auto; }
+.feedback-thanks { margin: 0; font-weight: 600; color: #2e7d32; }
+.feedback-thanks[hidden] { display: none; }
+
 /* "You are here" dot (inner element of the Leaflet divIcon). Resting colour is
    the fresh blue; the freshness fade to grey is a keyframes animation (below). */
 .user-location-dot {

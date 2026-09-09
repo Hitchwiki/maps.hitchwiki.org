@@ -93,6 +93,7 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
 <script src="{{ asset_url('/static/account.js') }}"></script>
 <script src="{{ asset_url('/static/welcome.js') }}"></script>
 <script src="{{ asset_url('/static/country_gpx.js') }}" defer></script>
+<script src="{{ asset_url('/static/feedback.js') }}" defer></script>
 <script>
 // Install-to-homescreen hint logic. Self-contained — no dependency on map.js.
 // Storage key holds the dismissal timestamp (ms); reappears after 30 days.
@@ -796,7 +797,7 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
         <p>{{ t("Want to remember your trips? With an account your rides stay yours — you can find them again, edit them, and see everywhere you've been.") }}</p>
         <p class="signup-prompt-note">{{ t("You don't have to give up your privacy: pick a username and an email address that can't be traced back to you personally. We never show your email, and nothing forces the name to be your real one.") }}</p>
         <p class="signup-prompt-note">{{ t("We don't understand hitchhikers' preferences around anonymity well yet. If you tell us what matters to you, we can build for it — {link}.",
-                link='<a id="signup-prompt-feedback-link" href="https://docs.google.com/forms/d/e/1FAIpQLSdGLlPKhjRXIjG2VB-BlkxbsagNeXce5eI3sKFHe-_scJMFnw/viewform" target="_blank" rel="noopener">' ~ t("share your thoughts") ~ '</a>')|safe }}</p>
+                link='<a id="signup-prompt-feedback-link" href="#" role="button">' ~ t("share your thoughts") ~ '</a>')|safe }}</p>
         <div class="signup-prompt-actions">
             <button id="signup-prompt-yes" class="success-close-btn">{{ t("Yes, let's sign up") }}</button>
             <button id="signup-prompt-no" class="success-secondary-btn">{{ t("I want to stay anonymous") }}</button>
@@ -818,13 +819,33 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
     </div>
 </div>
 
+<!-- In-product feedback prompt. Pops up infrequently right after a completed action
+     (see hitch/static/feedback.js), replacing the Google Form the map used to link to
+     — which drew 0 responses in its lifetime. Anonymous visitors can optionally leave
+     an email so we can follow up once. -->
+<div id="feedback-panel" class="feedback-panel" hidden>
+    <button type="button" id="feedback-close" class="feedback-close" aria-label="{{ t('Close') }}">&times;</button>
+    <p class="feedback-title">{{ t("Got a moment? Tell us what worked or what didn't.") }}</p>
+    <textarea id="feedback-note" class="feedback-note" rows="3"
+              placeholder="{{ t('Your feedback…') }}"></textarea>
+    {% if not is_logged_in %}
+    <input type="email" id="feedback-email" class="feedback-email"
+           placeholder="{{ t('Email (optional — only if you want a reply)') }}">
+    {% endif %}
+    <div class="feedback-actions">
+        <button type="button" id="feedback-send" class="success-close-btn">{{ t("Send") }}</button>
+        <button type="button" id="feedback-skip" class="success-secondary-btn">{{ t("No thanks") }}</button>
+    </div>
+    <p id="feedback-thanks" class="feedback-thanks" hidden>{{ t("Thank you!") }}</p>
+</div>
+
 <!-- Full-screen success overlay. Most of it is the share nudge: the feedback ask is a
      single line at the top, and the rest of the space sells passing the ride on. -->
 <div id="success-overlay" class="success-overlay" style="display: none;">
     <div class="success-content success-share-content">
         <button type="button" id="success-dismiss" class="success-dismiss" aria-label="{{ t('Close') }}">&times;</button>
         <p class="success-feedback">{{ t("Ride saved — thank you! We'd love to hear your thoughts: {link}.",
-                link='<a id="success-feedback-link" href="https://docs.google.com/forms/d/e/1FAIpQLSdGLlPKhjRXIjG2VB-BlkxbsagNeXce5eI3sKFHe-_scJMFnw/viewform?usp=header" target="_blank" rel="noopener">' ~ t("share feedback") ~ '</a>')|safe }}</p>
+                link='<a id="success-feedback-link" href="#" role="button">' ~ t("share feedback") ~ '</a>')|safe }}</p>
         <!-- Filled in by showTripCreated() when a tracked journey's rides were grouped
              into a trip. Hidden otherwise, and for a single-ride journey. -->
         <p id="success-trip-note" class="success-trip-note" style="display: none;"></p>

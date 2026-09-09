@@ -436,7 +436,12 @@
       });
       tryCreateTrip();
     }
-    if (!opts || opts.share !== false) showJourneySuccess(log[log.length - 1]);
+    if (!opts || opts.share !== false) {
+      // Tell the success overlay (map.js) that its feedback prompt, if it rolls one,
+      // is closing out a whole journey rather than a single logged ride.
+      window.__hmFeedbackContext = "journey-finished";
+      showJourneySuccess(log[log.length - 1]);
+    }
   }
 
   // Enqueue the finished ride durably, THEN proceed — the journey never blocks on the

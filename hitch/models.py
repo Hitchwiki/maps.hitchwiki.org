@@ -521,3 +521,32 @@ class ProposedSpot(db.Model):
     username = db.Column(db.String(255), nullable=True)
     ip = db.Column(db.String(64), nullable=True)
     created_at = db.Column(db.DateTime, default=db.func.now())
+
+
+class FeedbackNote(db.Model):
+    """A free-text note a visitor left through the in-product feedback prompt.
+
+    Replaces the Google Form the map used to link to (0 responses in its lifetime).
+    The prompt pops up infrequently right after a completed action (a logged ride,
+    a finished journey) — see hitch/static/feedback.js. Not published to Nostr and
+    not related to any ride: it lives only in this table, like ProposedSpot, so the
+    fetch_nostr ride_event rebuild never touches it.
+
+    When the visitor is logged in we snapshot their username (denormalised, same as
+    ProposedSpot) so a later rename/deletion still shows who wrote it. When they are
+    anonymous the prompt offers an *optional* email field so we can follow up once —
+    `email` is only ever what the visitor typed in on purpose, never harvested.
+    """
+
+    id = db.Column(db.Integer, primary_key=True)
+    note = db.Column(db.Text, nullable=False)
+    # Which action triggered the prompt: "ride-submitted", "journey-finished", ...
+    context = db.Column(db.String(64), nullable=True)
+    # The page the prompt was shown on (request path), for a bit of context.
+    page = db.Column(db.String(255), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
+    username = db.Column(db.String(255), nullable=True)
+    # Voluntary: only set when an anonymous visitor chose to type it in.
+    email = db.Column(db.String(255), nullable=True)
+    ip = db.Column(db.String(64), nullable=True)
+    created_at = db.Column(db.DateTime, default=db.func.now())

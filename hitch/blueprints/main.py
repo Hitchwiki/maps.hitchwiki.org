@@ -94,6 +94,7 @@ from hitch.extensions import db
 from hitch.helpers import get_db, get_dirs
 from hitch.models import (
     CoHitchhiker,
+    FeedbackNote,
     Follow,
     ProposedSpot,
     RideComment,
@@ -657,6 +658,46 @@ def log_signup_prompt_endpoint():
     if action in PROMPT_ACTIONS.get(prompt, ()):
         log_signup_prompt(prompt, action)
     return ("", 204)
+
+
+FEEDBACK_NOTE_MAX = 4000
+FEEDBACK_EMAIL_MAX = 254
+FEEDBACK_CONTEXTS = {"ride-submitted", "journey-finished", "route-planned", "manual"}
+
+
+# The in-product feedback prompt (hitch/static/feedback.js) posts here. It replaces the
+# Google Form the map linked to, which drew 0 responses in its lifetime. Anonymous
+# submissions are allowed (the form itself is); an anonymous visitor may optionally add
+# an email so we can follow up once. Stored only in feedback_note — never Nostr.
+@main_bp.route("/feedback", methods=["POST"])
+def submit_feedback():
+    data = request.form
+    note = (data.get("note") or "").strip()[:FEEDBACK_NOTE_MAX]
+    if not note:
+        return jsonify({"ok": False, "error": "empty"}), 400
+
+    context = data.get("context") if data.get("context") in FEEDBACK_CONTEXTS else None
+    # A logged-in user's account already carries their email; only take a typed one from
+    # an anonymous visitor, and only keep it when it is plausibly an address.
+    email = None
+    if current_user.is_anonymous:
+        typed = (data.get("email") or "").strip()[:FEEDBACK_EMAIL_MAX]
+        if typed and "@" in typed and "." in typed.split("@")[-1] and " " not in typed:
+            email = typed
+
+    db.session.add(
+        FeedbackNote(
+            note=note,
+            context=context,
+            page=(data.get("page") or "")[:255] or None,
+            user_id=None if current_user.is_anonymous else current_user.id,
+            username=None if current_user.is_anonymous else current_user.username,
+            email=email,
+            ip=get_client_ip(),
+        )
+    )
+    db.session.commit()
+    return jsonify({"ok": True})
 
 
 @main_bp.route("/dir/<start>/<dest>/preview.png")

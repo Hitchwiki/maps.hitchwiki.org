@@ -3784,6 +3784,13 @@ function showSuccessOverlay(opts) {
     overlay.style.display = "none";
     document.removeEventListener("keydown", onKey);
     lastTripCreated = null; // the note has been seen; the next journey brings its own
+    // A completed ride submission is a natural moment to ask for feedback; the panel
+    // rate-limits itself so this only actually surfaces once in a long while. inride.js
+    // sets __hmFeedbackContext when the overlay is closing out a whole journey.
+    if (window.hmFeedback) {
+      window.hmFeedback.maybePrompt(window.__hmFeedbackContext || "ride-submitted");
+    }
+    window.__hmFeedbackContext = null;
   };
   const onKey = function (e) {
     if (e.key === "Escape") close("esc");
@@ -3803,15 +3810,13 @@ function showSuccessOverlay(opts) {
       close("x");
     };
   }
-  // feedback_form_responses_total has read exactly 0 for 3+ days against ~800
-  // overlay views/week -- previously unknown whether that meant "nobody clicks"
-  // or "people click but don't finish the form." This is the only way to tell
-  // them apart from here (the link is target="_blank", so this fires alongside
-  // the real navigation, not instead of it).
+  // The Google Form this used to link to drew 0 responses in its lifetime; the
+  // link now opens the in-product feedback panel instead (feedback.js).
   const feedbackLink = $$("#success-feedback-link");
   if (feedbackLink) {
-    feedbackLink.onclick = function () {
-      hmTrack("feedback_link_clicked", { source: "success-overlay" });
+    feedbackLink.onclick = function (e) {
+      e.preventDefault();
+      if (window.hmFeedback) window.hmFeedback.open("ride-submitted");
     };
   }
   overlay.onclick = function (e) {
@@ -4134,12 +4139,13 @@ function showSignupPromptOverlay(opts) {
     overlay.style.display = "none";
     showSuccessOverlay(opts);
   };
-  // Same feedback_link_clicked event as the success overlay's own copy of this
-  // link -- source distinguishes which placement it fired from.
+  // Opens the in-product feedback panel (feedback.js), same as the success
+  // overlay's copy of this link -- context distinguishes the placement.
   const feedbackLink = $$("#signup-prompt-feedback-link");
   if (feedbackLink) {
-    feedbackLink.onclick = function () {
-      hmTrack("feedback_link_clicked", { source: "signup-prompt" });
+    feedbackLink.onclick = function (e) {
+      e.preventDefault();
+      if (window.hmFeedback) window.hmFeedback.open("ride-submitted");
     };
   }
 }
