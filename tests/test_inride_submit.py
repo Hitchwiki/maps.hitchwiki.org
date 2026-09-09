@@ -130,3 +130,65 @@ def test_ride_form_header_gets_transient_503_on_publish_failure(client, monkeypa
     data = resp.get_json()
     assert data["ok"] is False
     assert data["transient"] is True
+
+
+# B544 slice 2: the spot rating is optional on the retrospective /ride form. Someone
+# logging a ride from memory often does not recall a star count, and blocking the
+# submit lost ~289 silent abandoners / 28 d. A ride-form POST with no `rate` must
+# succeed and the published record must carry a null rating.
+def test_ride_form_submit_succeeds_without_rating(client, monkeypatch):
+    captured = {}
+
+    class _CapturingPoster:
+        last_event = None
+
+        def post(self, ride_record, tags=None, d_tag=None):
+            captured["rating"] = ride_record.rating
+            return "dtag123"
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(main, "HitchhikingDataStandardToNostrPoster", _CapturingPoster)
+    resp = client.post(
+        "/ride",
+        data={
+            "wait": "12",
+            "signal": "thumb",
+            "comment": "",
+            "pickup_lat": "48.2",
+            "pickup_lon": "16.37",
+            "destination_lat": "48.5",
+            "destination_lon": "16.9",
+            "datetime_ride": "2026-07-02T14:00",
+            "arrival_datetime": "2026-07-02T14:41",
+        },
+        headers={"X-Requested-With": "ride-form"},
+    )
+    assert resp.status_code == 200, resp.get_json()
+    assert resp.get_json()["ok"] is True
+    assert captured["rating"] is None
+
+
+# The live-journey tracker still requires a rating server-side: an out-of-range value
+# is rejected as before, and this path always sends one.
+def test_inride_submit_still_rejects_out_of_range_rating(client, monkeypatch):
+    monkeypatch.setattr(main, "HitchhikingDataStandardToNostrPoster", _FakePoster)
+    resp = client.post(
+        "/ride",
+        data={
+            "rate": "7",
+            "wait": "12",
+            "signal": "thumb",
+            "comment": "",
+            "pickup_lat": "48.2",
+            "pickup_lon": "16.37",
+            "destination_lat": "48.5",
+            "destination_lon": "16.9",
+            "datetime_ride": "2026-07-02T14:00",
+            "arrival_datetime": "2026-07-02T14:41",
+        },
+        headers={"X-Requested-With": "inride"},
+    )
+    assert resp.status_code == 400
+    assert resp.get_json()["ok"] is False
