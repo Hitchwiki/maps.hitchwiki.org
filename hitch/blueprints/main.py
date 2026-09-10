@@ -1774,11 +1774,17 @@ def ride_form():
             data["driver_reason_to_pick_up"] = []
             data["driver_languages"] = ""
             data["ride_reasons"] = []
-        rating = int(data["rate"])
+        # The spot rating is optional on the retrospective /ride form (B544 slice 2):
+        # someone logging a ride from memory often does not recall a star count, and
+        # blocking the submit lost ~289 abandoners / 28 d. The live-journey tracker
+        # ("inride") still always sends a rating — it is required client-side there.
+        raw_rate = str(data.get("rate", "")).strip()
+        rating = int(raw_rate) if raw_rate != "" else None
+        data["rate"] = raw_rate
         data["wait"] = int(data["wait"]) if data["wait"] != "" else None
         wait = data["wait"]
         assert wait is None or wait >= 0, f"Wait time must be non-negative, the wait time is {wait}."
-        assert rating in range(1, 6), f"Rating must be between 1 and 5, the rating is {rating}."
+        assert rating is None or rating in range(1, 6), f"Rating must be between 1 and 5, the rating is {rating}."
         comment = None if data["comment"] == "" else data["comment"]
         assert comment is None or len(comment) < 10000, (
             f"Comment must be less than 10000 characters, the comment length is {len(comment)}."

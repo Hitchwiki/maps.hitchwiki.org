@@ -372,7 +372,14 @@ rides_df["arrows"] = rounded_dir.replace(
 )
 
 logger.info("Generating texts")
-rating_text = "rating: " + rides_df["rating"].astype(str) + "/5"
+# The retrospective /ride form allows a rating-less ride (B544 slice 2), so guard
+# the NaN case instead of rendering "rating: nan/5" into the spot detail text.
+rating_text = np.where(
+    rides_df["rating"].notna(),
+    "rating: " + rides_df["rating"].fillna(0).astype(int).astype(str) + "/5",
+    "",
+)
+rating_text = pd.Series(rating_text, index=rides_df.index)
 destination_text = (
     ", ride: " + np.round(rides_df["distance"]).astype(str).str.replace(".0", "", regex=False) + " km " + rides_df["arrows"]
 )
