@@ -22,6 +22,7 @@ from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON, REPORTS_TO_H
 from hitch.blueprints.utils.ride_images import image_url
 from hitch.helpers import e, find_nearest_wide_in_grid, get_bearing, get_db, get_dirs, haversine_np, write_json_file
 from hitch.scripts.races import build_races, estimate_arrival
+from hitch.scripts.spot_access_hint import access_hint
 from hitch.scripts.spot_naming import resolve_spot_name
 from hitch.scripts.spots_gpx import spot_waypoint, write_spots_gpx
 
@@ -1335,10 +1336,16 @@ for r in rides_data:
         }
     )
 
+_access_hint_count = 0
 for sid, spot_rides in rides_by_spot.items():
+    spot_detail = spot_details.get(sid, {})
+    hint = access_hint(spot_rides)
+    if hint:
+        spot_detail = {**spot_detail, "access_hint": hint}
+        _access_hint_count += 1
     with open(os.path.join(by_spot_dir, f"{sid}.json"), "w") as f:
-        json.dump({"spot": spot_details.get(sid, {}), "rides": spot_rides}, f)
-logger.info(f"Wrote {len(rides_by_spot)} per-spot ride files")
+        json.dump({"spot": spot_detail, "rides": spot_rides}, f)
+logger.info(f"Wrote {len(rides_by_spot)} per-spot ride files ({_access_hint_count} with an access hint)")
 
 
 # dist/spots.gpx: the whole map as GPX, for the menu's download link. Streamed so the

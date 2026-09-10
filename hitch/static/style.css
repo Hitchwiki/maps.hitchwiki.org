@@ -1198,6 +1198,38 @@ body.spots-loaded.has-start-bar:not(.inride-active) .leaflet-bottom.leaflet-righ
   text-decoration: underline;
 }
 
+/* #202 / EXP-432: "How people reached this spot" -- the most recent ride comment
+   that describes the transit/walking approach, lifted out of the ride stream. */
+.sidebar.show-spot .spot-access-hint {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #eee;
+}
+.sidebar.show-spot .spot-access-hint-label {
+  font-weight: 600;
+  color: #222;
+  margin-bottom: 0.4rem;
+}
+.sidebar.show-spot .spot-access-hint blockquote {
+  margin: 0;
+  padding: 0 0 0 0.75rem;
+  border-left: 3px solid #ddd;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #333;
+  white-space: pre-wrap;
+}
+.sidebar.show-spot .spot-access-hint a {
+  display: inline-block;
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+  color: #1a73e8;
+  text-decoration: none;
+}
+.sidebar.show-spot .spot-access-hint a:hover {
+  text-decoration: underline;
+}
+
 /* "Read on at Hitchwiki" call to action, shared by the country and event sheets.
    Wiki text shown on the map is only an excerpt; this is the hand-off that sends
    readers (and potential editors) to Hitchwiki itself, so it reads as an action
