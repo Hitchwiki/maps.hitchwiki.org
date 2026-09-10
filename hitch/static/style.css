@@ -2393,6 +2393,28 @@ ul.no-style {
   margin-top: 0;
 }
 
+/* #191 — the ride card shown full-screen to hand to the driver. Above the success
+   overlay (z-index 9999) so it covers it, plain black so the card is the only thing
+   on the phone that is being passed across. */
+.driver-card-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  cursor: pointer;
+}
+
+.driver-card-backdrop img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

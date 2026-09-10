@@ -3935,6 +3935,46 @@ async function renderWikiContributionNudge(ride) {
   }
 }
 
+// #191 / EXP-428 — the driver-facing surface. The success overlay is otherwise
+// entirely hitchhiker-facing; "Show the driver" reopens the ride card the visitor
+// just made as a full-screen image they can turn towards the driver who dropped
+// them off (a recognised map, a real ride logged — no authored copy, just the card
+// that already exists). The bet (a driver who stops again, driver word-of-mouth) is
+// unmeasurable; the tap rate is the instrument. Denominator: shown_to_driver_available,
+// fired once whenever the button is offered. >10% taps reopens a driver branch, <2%
+// kills it, measured against live in-car finishes (~53-73 / 28 d).
+function wireShowDriverButton(dataUrl) {
+  const btn = $$("#success-show-driver-btn");
+  if (!btn || !dataUrl) return;
+  btn.style.display = "block";
+  hmTrack("shown_to_driver_available", {});
+  btn.onclick = function () {
+    hmTrack("shown_to_driver", {});
+    showDriverFullscreen(dataUrl);
+  };
+}
+
+// A plain black backdrop with the card image scaled to fit. Tap anywhere or Esc to
+// dismiss — no controls, because the phone is being handed to someone else.
+function showDriverFullscreen(dataUrl) {
+  const back = document.createElement("div");
+  back.className = "driver-card-backdrop";
+  const image = document.createElement("img");
+  image.src = dataUrl;
+  image.alt = tr("Your hitchhiking ride as a shareable image");
+  back.appendChild(image);
+  const close = function () {
+    back.remove();
+    document.removeEventListener("keydown", onKey);
+  };
+  const onKey = function (e) {
+    if (e.key === "Escape") close();
+  };
+  back.addEventListener("click", close);
+  document.addEventListener("keydown", onKey);
+  document.body.appendChild(back);
+}
+
 // Builds the shareable image and wires the share button. Anything that goes wrong
 // (no stashed ride, no network for the tiles, a browser without canvas export)
 // degrades to sharing just the text + link — never to a broken overlay.
@@ -3948,6 +3988,13 @@ function setupShareCard(opts) {
   // cached copy of the old overlay markup. Bail out to the plain success message
   // rather than throwing on the missing elements.
   if (!shareBtn || !status || !img || !caption) return;
+  // Hidden until this run's card actually renders — the overlay markup is reused, so a
+  // previous ride's "Show the driver" button must not linger over a failed card.
+  const driverBtn = $$("#success-show-driver-btn");
+  if (driverBtn) {
+    driverBtn.style.display = "none";
+    driverBtn.onclick = null;
+  }
   // showSuccessOverlay already resolved the direct/stashed hand-off once so every
   // post-submit feature sees the same ride.
   const ride = opts && opts.ride;
@@ -3994,6 +4041,7 @@ function setupShareCard(opts) {
       img.style.display = "block";
       status.style.display = "none";
       caption.textContent = result.text;
+      wireShowDriverButton(result.dataUrl);
       shareBtn.disabled = false;
       shareBtn.onclick = function () {
         return doShare({ text: result.text, url: result.url, files: [result.blob] });

@@ -852,6 +852,13 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
                 <img id="share-card-img" class="share-card-img" alt="{{ t('Your hitchhiking ride as a shareable image') }}" style="display: none;">
             </div>
             <p id="share-card-caption" class="share-card-caption"></p>
+            <!-- #191 / EXP-428: the only driver-facing surface this project can ship
+                 without anyone else's permission. The finish flow is otherwise entirely
+                 hitchhiker-facing; this turns the ride card the visitor into something
+                 they can hold up to the driver who just dropped them off. Tap rate is
+                 the instrument (shown_to_driver / shown_to_driver_available), measured
+                 against live in-car finishes: >10% reopens a driver branch, <2% kills it. -->
+            <button type="button" id="success-show-driver-btn" class="success-secondary-btn" style="display: none; margin: 12px auto 0;">{{ t("Show the driver") }}</button>
         </div>
         <div class="signup-prompt-actions">
             <button type="button" id="success-share-btn" class="success-close-btn">{{ t("Share my ride") }}</button>
