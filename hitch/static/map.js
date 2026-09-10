@@ -3143,6 +3143,14 @@ function applySpotRideFilter(marker) {
   const spotWikiContainer = $$("#spot-wiki-excerpt");
   if (spotWikiUrl && spotWikiContainer) loadSpotWikiExcerpt(marker, spotWikiContainer, spotWikiUrl);
 
+  // "Nearest Hitchwiki article (~N km)" link (EXP-352). Bind the click here, not in
+  // handleMarkerClick: the link's markup is part of summaryText, which renderSpotSummary
+  // above rebuilds from `data.hitchwiki_nearby` -- a field that arrives in the async
+  // per-spot fetch, after handleMarkerClick has already run. Binding there hit a null
+  // element every time, so the event never fired (0 clicks / 439 impressions, 28 d).
+  const wikiNearbyLink = $$("#spot-wiki-nearby-link");
+  if (wikiNearbyLink) wikiNearbyLink.onclick = () => hmTrack("spot_wiki_nearby_clicked");
+
   // The cards below are about to be replaced, taking their highlight buttons with them.
   clearRideDestHighlight();
 
@@ -3279,11 +3287,10 @@ function markerClick(marker) {
   const emptyChatLink = $$("#spot-empty-chat-link");
   if (emptyChatLink) emptyChatLink.onclick = () => hmTrack("spot_empty_chat_click");
 
-  // "Nearest Hitchwiki article (~N km)" link, shown by summaryText only when no
-  // article sits on the spot itself. Track the click against `spot_wiki_nearby_shown`
-  // (EXP-352): does a distance-labelled nearby-article link actually get opened?
-  const wikiNearbyLink = $$("#spot-wiki-nearby-link");
-  if (wikiNearbyLink) wikiNearbyLink.onclick = () => hmTrack("spot_wiki_nearby_clicked");
+  // "Nearest Hitchwiki article (~N km)" link (EXP-352): the click handler is bound in
+  // applySpotRideFilter, after the async per-spot fetch has populated hitchwiki_nearby
+  // and renderSpotSummary has put the link in the DOM -- not here, where it doesn't
+  // exist yet.
 
   // "How people reached this spot" — the access-hint quote's link to its source
   // ride (#202 / EXP-432). Tracked against `spot_access_hint_shown`.
