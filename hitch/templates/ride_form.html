@@ -1018,6 +1018,23 @@
         hmTrack('ride_form_submitted', { destination: coords.destination ? 'yes' : 'no', mode: HM_FORM_MODE });
         hmTrack('ride_form_session_submitted', { destination: coords.destination ? 'yes' : 'no', mode: HM_FORM_MODE });
 
+        // Driver-motive coverage on THIS surface. The "Why did they pick you up?"
+        // chips (#driver_reason_to_pick_up, in the optional #driver-group box) are
+        // the same question inride.js asks with driver_reason_answered — but that
+        // event only fires on the live-journey path, so form-side completion has
+        // never been measured. The `surface` property keeps the two populations
+        // separable. No UI change: this only reads what the user already entered.
+        (function trackDriverReasonCoverage() {
+            const raw = (document.getElementById('driver_reason_to_pick_up')?.value || '').trim();
+            if (raw) {
+                raw.split(',').map(function (s) { return s.trim(); }).filter(Boolean).forEach(function (reason) {
+                    hmTrack('driver_reason_answered', { reason: reason, surface: 'form' });
+                });
+            } else {
+                hmTrack('driver_reason_field_blank', { surface: 'form' });
+            }
+        })();
+
         // The hidden client_d_tag makes the server idempotent. Disabling here still
         // avoids needless duplicate requests and duplicate analytics events: a
         // double-tap or slow-network double-click previously published two rides.
