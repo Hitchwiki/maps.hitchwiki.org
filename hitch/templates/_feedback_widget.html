@@ -1,0 +1,40 @@
+{# Reusable inline free-text feedback widget (#254 slice 2).
+
+   One tap opens a textarea. The note rides an analytics event
+   (map_feedback_submitted {source, chars, has_email}) AND is posted to
+   /log-feedback, which appends it to logs/feedback.csv with the logged-in
+   username attached server-side (or the optional email an anonymous visitor
+   volunteered). Replaces a link-out to a Google Form that got 0 responses ever.
+
+   The markup is class-based (no ids) so a page can render several instances;
+   setupMapFeedback(rootEl, source) in map.js wires and resets one instance.
+
+   allow_email: when true, show an optional "email so we can follow up" field.
+   Pass allow_email=(not is_logged_in) -- a logged-in visitor is already
+   identifiable, so /log-feedback attaches their name and the field is noise.
+
+   dismissible: render a × that hides the widget's outer container (used by the
+   ambient post-action popup, which nobody asked to see).
+
+   Usage: {% from "_feedback_widget.html" import feedback_widget %}
+          {{ feedback_widget("success-overlay", t("Ride saved — thank you!")) }} #}
+{% macro feedback_widget(source, prompt, allow_email=false, dismissible=false) %}
+<div class="map-feedback" data-source="{{ source }}"{% if allow_email %} data-allow-email="1"{% endif %}>
+    {% if dismissible %}
+    <button type="button" class="map-feedback-dismiss" aria-label="{{ t('Close') }}">&times;</button>
+    {% endif %}
+    <p class="map-feedback-prompt">{{ prompt }}
+        <button type="button" class="map-feedback-link map-feedback-toggle">{{ t("Anything we could do better?") }}</button>
+    </p>
+    <div class="map-feedback-panel" hidden>
+        <textarea class="map-feedback-text" rows="3" maxlength="500"
+                  placeholder="{{ t('What worked, what did not, what is missing…') }}"></textarea>
+        {% if allow_email %}
+        <input type="email" class="map-feedback-email" maxlength="120" autocomplete="email"
+               placeholder="{{ t('Email (optional, only if you want a reply)') }}">
+        {% endif %}
+        <button type="button" class="map-feedback-send success-secondary-btn">{{ t("Send feedback") }}</button>
+    </div>
+    <p class="map-feedback-thanks" hidden>{{ t("Thank you — we read every note.") }}</p>
+</div>
+{% endmacro %}

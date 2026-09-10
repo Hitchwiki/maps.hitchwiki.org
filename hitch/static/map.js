@@ -3106,6 +3106,10 @@ async function handleMarkerClick(marker, point, e) {
   // the first render in markerClick only had the slim spots.json fields, so it could
   // show the averages but not the distributions), the photos and the ride list.
   applySpotRideFilter(marker);
+
+  // #254 slice 2: a rare, cooled-down free-text feedback prompt after a real
+  // in-app action. No-op unless the dice and the 60-day cooldown both allow it.
+  maybeShowAmbientFeedback("spot-opened");
 }
 
 // Which of the open spot's rides the pane shows, and everything drawn from them.
@@ -3742,6 +3746,100 @@ function trackRideShare(properties) {
   }
 }
 
+// #254: inline free-text feedback widget. Replaces a link-out to a Google Form
+// that got 0 responses ever. Rendered by the feedback_widget() Jinja macro in
+// several places (success overlay, signup-prompt overlay, a sampled post-action
+// popup), so the markup is class-based and this wires ONE instance given its
+// root element. The note rides an analytics event (map_feedback_submitted) and
+// is posted to /log-feedback, which attaches the logged-in username server-side
+// or the optional email an anonymous visitor volunteered. Re-runs whenever its
+// container is shown, so it resets its own state each time and tolerates an old
+// cached copy of the markup (missing children -> bail).
+function setupMapFeedback(root, source) {
+  if (typeof root === "string") root = $$(root);
+  if (!root) return;
+  const toggle = root.querySelector(".map-feedback-toggle");
+  const panel = root.querySelector(".map-feedback-panel");
+  const text = root.querySelector(".map-feedback-text");
+  const email = root.querySelector(".map-feedback-email");
+  const send = root.querySelector(".map-feedback-send");
+  const thanks = root.querySelector(".map-feedback-thanks");
+  if (!toggle || !panel || !text || !send || !thanks) return;
+  // Reset: a widget instance is reused across submissions, so a note left from
+  // last time (or a "thank you" still showing) must not carry over.
+  text.value = "";
+  if (email) email.value = "";
+  panel.hidden = true;
+  thanks.hidden = true;
+  toggle.hidden = false;
+  let opened = false;
+  toggle.onclick = function () {
+    panel.hidden = false;
+    toggle.hidden = true;
+    text.focus();
+    if (!opened) {
+      opened = true;
+      hmTrack("map_feedback_opened", { source: source });
+    }
+  };
+  send.onclick = function () {
+    const note = text.value.trim().slice(0, 500);
+    if (!note) return;
+    const addr = email ? email.value.trim().slice(0, 120) : "";
+    hmTrack("map_feedback_submitted", { source: source, chars: note.length, text: note, has_email: !!addr });
+    postMapFeedback(source, note, addr);
+    panel.hidden = true;
+    thanks.hidden = false;
+  };
+}
+
+// Durable server-side record of a feedback note. The analytics event carries the
+// same text for the funnel view, but ad-blockers drop it and it cannot see who
+// is signed in -- /log-feedback attaches the username server-side from the
+// session, and takes the optional reply email a signed-out visitor typed.
+// sendBeacon so the note survives the overlay closing / a navigation.
+function postMapFeedback(source, text, email) {
+  try {
+    const blob = new Blob([JSON.stringify({ source: source, text: text, email: email })], {
+      type: "application/json",
+    });
+    if (navigator.sendBeacon) navigator.sendBeacon("/log-feedback", blob);
+  } catch (e) {}
+}
+
+// #254 slice 2 (Till's ask): "just let some free form feedback field pop up
+// randomly infrequently after actions in the app." Called after a spot open.
+// Low probability per eligible action, and once shown it sets a long cooldown so
+// a visitor sees it at most a few times a year.
+const AMBIENT_FEEDBACK_KEY = "mapFeedbackAmbientAt";
+const AMBIENT_FEEDBACK_COOLDOWN_MS = 60 * 24 * 3600 * 1000;
+const AMBIENT_FEEDBACK_CHANCE = 0.03;
+
+function maybeShowAmbientFeedback(trigger) {
+  const wrap = $$("#ambient-feedback-wrap");
+  if (!wrap || !wrap.hidden) return;
+  let last = 0;
+  try {
+    last = Number(localStorage.getItem(AMBIENT_FEEDBACK_KEY)) || 0;
+  } catch (e) {
+    return;
+  }
+  if (Date.now() - last < AMBIENT_FEEDBACK_COOLDOWN_MS) return;
+  if (Math.random() >= AMBIENT_FEEDBACK_CHANCE) return;
+  try {
+    localStorage.setItem(AMBIENT_FEEDBACK_KEY, String(Date.now()));
+  } catch (e) {}
+  const rootEl = wrap.querySelector(".map-feedback");
+  setupMapFeedback(rootEl, "ambient-" + trigger);
+  wrap.hidden = false;
+  hmTrack("map_feedback_ambient_shown", { trigger: trigger });
+  const dismiss = wrap.querySelector(".map-feedback-dismiss");
+  if (dismiss)
+    dismiss.onclick = function () {
+      wrap.hidden = true;
+    };
+}
+
 // `opts` is how a caller that never navigated hands the ride in directly:
 // {ride, dTag}. The /ride form's redirect can't do that (the POST navigates away), so
 // it goes through sessionStorage + ?ride= instead; the in-ride tracker, which submits
@@ -3826,17 +3924,9 @@ function showSuccessOverlay(opts) {
       close("x");
     };
   }
-  // feedback_form_responses_total has read exactly 0 for 3+ days against ~800
-  // overlay views/week -- previously unknown whether that meant "nobody clicks"
-  // or "people click but don't finish the form." This is the only way to tell
-  // them apart from here (the link is target="_blank", so this fires alongside
-  // the real navigation, not instead of it).
-  const feedbackLink = $$("#success-feedback-link");
-  if (feedbackLink) {
-    feedbackLink.onclick = function () {
-      hmTrack("feedback_link_clicked", { source: "success-overlay" });
-    };
-  }
+  // #254: the Google Form linked from here had 0 responses ever. Replaced with
+  // an inline free-text field whose answer rides an analytics event + /log-feedback.
+  setupMapFeedback($$('.map-feedback[data-source="success-overlay"]'), "success-overlay");
   overlay.onclick = function (e) {
     if (e.target === overlay) close("backdrop");
   };
@@ -4216,14 +4306,10 @@ function showSignupPromptOverlay(opts) {
     overlay.style.display = "none";
     showSuccessOverlay(opts);
   };
-  // Same feedback_link_clicked event as the success overlay's own copy of this
-  // link -- source distinguishes which placement it fired from.
-  const feedbackLink = $$("#signup-prompt-feedback-link");
-  if (feedbackLink) {
-    feedbackLink.onclick = function () {
-      hmTrack("feedback_link_clicked", { source: "signup-prompt" });
-    };
-  }
+  // #254: this overlay linked to the same dead Google Form as the success one.
+  // Replaced with the inline widget -- and here the email field matters, since
+  // this overlay only ever shows to an anonymous visitor.
+  setupMapFeedback($$('.map-feedback[data-source="signup-prompt"]'), "signup-prompt");
 }
 
 // The OAuth callback adds this one-time marker when the anonymous post-ride

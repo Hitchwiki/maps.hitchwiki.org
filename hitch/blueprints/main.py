@@ -57,6 +57,8 @@ from hitch.blueprints.utils.driver_info_choices import (
     RIDE_REASON_CHOICES,
     RIDE_REASON_DESCRIPTION_BY_CODE,
 )
+from hitch.blueprints.utils.feedback_log import is_known_source as is_known_feedback_source
+from hitch.blueprints.utils.feedback_log import log_feedback
 from hitch.blueprints.utils.filter_request_log import FILTER_FIELDS, log_filter_request
 from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import HitchhikingRecord
 from hitch.blueprints.utils.iso_country_codes import ISO_3166_1_ALPHA_2
@@ -656,6 +658,28 @@ def log_signup_prompt_endpoint():
     prompt, action = data.get("prompt"), data.get("action")
     if action in PROMPT_ACTIONS.get(prompt, ()):
         log_signup_prompt(prompt, action)
+    return ("", 204)
+
+
+# Fire-and-forget beacon from map.js when someone sends the in-app feedback
+# widget (feedback_widget() macro). The note also rides an analytics event, but
+# ad-blockers drop that and it cannot see the session — here the logged-in
+# username is attached server-side, or the optional reply email an anonymous
+# visitor typed. Stored in logs/feedback.csv, never the DB. Always 204.
+@main_bp.route("/log-feedback", methods=["POST"])
+def log_feedback_endpoint():
+    data = request.get_json(silent=True) or {}
+    source = (data.get("source") or "")[:40]
+    text = (data.get("text") or "").strip()[:500]
+    email = (data.get("email") or "").strip()[:120]
+    if not text or not is_known_feedback_source(source):
+        return ("", 204)
+    # A volunteered reply address only — reject anything that is not plausibly an
+    # email rather than store junk.
+    if email and ("@" not in email or " " in email or "." not in email.split("@")[-1]):
+        email = ""
+    username = "" if current_user.is_anonymous else current_user.username
+    log_feedback(source, username, email, text)
     return ("", 204)
 
 
