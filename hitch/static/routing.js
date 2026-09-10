@@ -288,7 +288,7 @@
   // dependency, so headless tests exercise them directly (see
   // tests/routing_wait_fallback.test.js and the CLAUDE.md note on running
   // routing.js under node).
-  window.RoutingInternals = { buildRouter, ensureWalk, route };
+  window.RoutingInternals = { buildRouter, ensureWalk, route, buildItinerary, fillLegEvidence };
 
   fetch("/repeatable_routes.json").then((r) => r.json()).then((rep) => {
     RJ.spots = rep.spots;
@@ -379,6 +379,78 @@
       labelCache.set(key, name);
       el.textContent = name;
     });
+  }
+
+  // What hitchhikers actually wrote about a boarding spot, surfaced on the car
+  // leg that boards there — the map's answer to komoot showing photos along a
+  // road. Rating, the spot's typical wait, and the most recent substantial
+  // comment with its date (most recent, not longest: a five-year-old essay is
+  // worth less than last month's "police moved me on"). Pulled lazily from the
+  // same per-spot file the spot pane uses, cached so re-expanding a route or
+  // switching options costs no extra requests. No photo here: the privacy
+  // question on route-embedded spot photos is unresolved.
+  const EVIDENCE_MIN_COMMENT = 40;
+  const evidenceCache = new Map();
+  function fillLegEvidence(bodyEl, c) {
+    if (typeof fetch !== "function" || !bodyEl) return;
+    const key = c[0].toFixed(5) + "_" + c[1].toFixed(5);
+    const render = (d) => {
+      if (!d) return;
+      const box = document.createElement("div");
+      box.className = "rp-evi";
+      const sum = document.createElement("span");
+      sum.className = "rp-evi-sum";
+      const bits = [];
+      if (d.rating != null) bits.push("★ " + d.rating.toFixed(1));
+      if (d.waitMin != null) bits.push(T("~{time} wait", { time: fmtTime(d.waitMin) }));
+      bits.push(T(d.count === 1 ? "{n} logged ride" : "{n} logged rides", { n: d.count }));
+      sum.textContent = bits.join("  ·  ");
+      box.appendChild(sum);
+      if (d.comment) {
+        const q = document.createElement("span");
+        q.className = "rp-evi-q";
+        q.textContent = "“" + d.comment + "”";
+        if (d.commentDate) {
+          const dt = document.createElement("span");
+          dt.className = "rp-evi-d";
+          dt.textContent = d.commentDate;
+          q.appendChild(document.createTextNode(" "));
+          q.appendChild(dt);
+        }
+        box.appendChild(q);
+      }
+      bodyEl.appendChild(box);
+      hmTrack("route_evidence_shown", { comment: d.comment ? 1 : 0 });
+    };
+    if (evidenceCache.has(key)) { render(evidenceCache.get(key)); return; }
+    fetch(spotHref(c).replace("/spot/", "/rides/by-spot/") + ".json")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        const rides = (data && data.rides) || [];
+        if (!rides.length) { evidenceCache.set(key, null); return; }
+        const ratings = rides.map((x) => x.rating).filter((x) => typeof x === "number");
+        const waits = rides.map((x) => x.wait).filter((x) => typeof x === "number" && x >= 0).sort((a, b) => a - b);
+        const dateOf = (x) => String(x.ride_datetime || x.submission_time || "").slice(0, 10);
+        const commented = rides
+          .filter((x) => (x.comment || "").trim().length >= EVIDENCE_MIN_COMMENT)
+          .sort((a, b) => (dateOf(a) < dateOf(b) ? 1 : -1));
+        let comment = "", commentDate = "";
+        if (commented.length) {
+          const raw = commented[0].comment.trim().replace(/\s+/g, " ");
+          comment = raw.length > 180 ? raw.slice(0, 179) + "…" : raw;
+          commentDate = dateOf(commented[0]);
+        }
+        const d = {
+          rating: ratings.length ? ratings.reduce((s, x) => s + x, 0) / ratings.length : null,
+          waitMin: waits.length ? waits[Math.floor((waits.length - 1) / 2)] : null,
+          count: rides.length,
+          comment: comment,
+          commentDate: commentDate,
+        };
+        evidenceCache.set(key, d);
+        render(d);
+      })
+      .catch(() => {});
   }
 
   // The first/last-mile walk (origin -> first spot, last spot -> destination) is
@@ -1152,6 +1224,8 @@
           weak ? ` · <span class="rp-weak">${T("1 logged ride")}</span>` : ""}</span>
       </span>`;
     if (weak) li.classList.add("rp-edge-weak");
+    // On a ride leg, show what riders wrote about the spot it boards at.
+    if (leg.mode === "car") fillLegEvidence(li.querySelector(".rp-edge-body"), leg.from);
     // Corridor spots the driver merely passes: worth listing (you can be dropped
     // at one), but noise by default — collapsed behind a count, as transit apps
     // collapse intermediate stops.
