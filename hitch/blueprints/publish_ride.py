@@ -290,7 +290,7 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
     record = HitchhikingRecord(
         version="0.0.0",
         stops=stops,
-        rating=int(custom_object["rate"]),
+        rating=int(custom_object["rate"]) if str(custom_object.get("rate", "")).strip() != "" else None,
         hitchhikers=hitchhikers,
         comment=None if custom_object["comment"] == "" else custom_object["comment"],
         signals=signals,

@@ -98,6 +98,30 @@ test("the finish drop-off and wait-elsewhere pickers are also wired to onOutcome
   );
 });
 
+test("a failed location fix carries the reason it failed, not just 'failed'", () => {
+  // The picker's auto-location failure was one unclassified bucket at ~52% of
+  // GPS attempts (idea #15 / research/journey-picker-gps-failure-split). denied,
+  // timeout, unavailable and no-api have different fixes, so each outcome event
+  // now carries { reason }.
+  assert.match(
+    SOURCE,
+    /getFixWithRetry\([^)]*\)\s*\{\s*\n\s*if \(!navigator\.geolocation\) return Promise\.reject\(\{ code: "no-api" \}\)/,
+  );
+  // TIMEOUT (code 3) is split out from POSITION_UNAVAILABLE (code 2).
+  assert.match(SOURCE, /reject\(\{ code: err\.code === 3 \? "timeout" : "unavailable" \}\)/);
+  // still terminal on PERMISSION_DENIED
+  assert.match(SOURCE, /if \(err\.code === 1\) return reject\(\{ code: "denied" \}\)/);
+  // both picker failure handlers forward the reason
+  assert.match(
+    SOURCE,
+    /outcome\("auto-location-failed", \{ reason: \(err && err\.code\) \|\| "unknown" \}\)/,
+  );
+  assert.match(
+    SOURCE,
+    /outcome\("location-button-failed", \{ reason: \(err && err\.code\) \|\| "unknown" \}\)/,
+  );
+});
+
 test("journey start source survives the login redirect and stays bounded", () => {
   assert.match(SOURCE, /const START_SOURCES = \["start-bar", "spot-sheet", "map-gesture", "route-results"\]/);
   assert.match(SOURCE, /START_SOURCES\.includes\(source\) \? source : "unknown"/);

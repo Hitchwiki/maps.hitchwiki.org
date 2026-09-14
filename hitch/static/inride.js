@@ -143,6 +143,7 @@
   // PERMISSION_DENIED (code 1) is terminal and rejects immediately so the caller
   // can fall back to a manual pin without pointlessly retrying.
   function getFixWithRetry({ tries = 3, timeout = 10000 } = {}) {
+    if (!navigator.geolocation) return Promise.reject({ code: "no-api" });
     return new Promise((resolve, reject) => {
       let n = 0;
       const attempt = () => {
@@ -150,9 +151,12 @@
         navigator.geolocation.getCurrentPosition(
           (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
           (err) => {
+            // W3C PositionError: 1 = PERMISSION_DENIED (terminal, no retry),
+            // 2 = POSITION_UNAVAILABLE, 3 = TIMEOUT. 2 and 3 need different
+            // fixes so they are reported separately.
             if (err.code === 1) return reject({ code: "denied" });
             if (n < tries) return attempt();
-            reject({ code: "unavailable" });
+            reject({ code: err.code === 3 ? "timeout" : "unavailable" });
           },
           { enableHighAccuracy: true, timeout, maximumAge: 0 }
         );
@@ -1434,9 +1438,9 @@
               outcome("auto-location-ignored");
             }
           },
-          function () {
+          function (err) {
             setLocating(false);
-            outcome("auto-location-failed");
+            outcome("auto-location-failed", { reason: (err && err.code) || "unknown" });
             if (opts.notifyAutoLocateFailure) {
               // Reuse the explicit-button failure guidance: the picker is usable,
               // but the visitor now knows the pin was not moved to their location.
@@ -1456,9 +1460,9 @@
               moveTo(fix);
               outcome("location-button-used");
             },
-            function () {
+            function (err) {
               setLocating(false);
-              outcome("location-button-failed");
+              outcome("location-button-failed", { reason: (err && err.code) || "unknown" });
               journeyUI.error(T("Couldn't get your location — drag the pin instead."));
             }
           );

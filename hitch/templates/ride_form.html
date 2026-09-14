@@ -202,7 +202,7 @@
         <input type="hidden" name="destination_lon" id="destination_lon" value="{{ ride_data.destination_lon if ride_data else '' }}">
         
         <div class="form-group">
-            <label>{{ t("How do you rate the spot?") }}</label>
+            <label>{{ t("How do you rate the spot? (optional)") }}</label>
             <div class="rate">
                 {# No `required` here: while unchecked, `.rate:not(:checked) > input` in style.css
                    positions every option (including whichever carries `required`) at
@@ -984,11 +984,14 @@
     function validateForm() {
         const rateError = document.getElementById('rate-error-message');
         if (rateError) rateError.textContent = '';
+        // The spot rating is optional on this retrospective form (it stays required
+        // in the live-journey flow, enforced in inride.js). Someone recording a ride
+        // from memory often does not remember a star count, and B544 measured ~289
+        // silent abandoners here against 88 live-journey rides / 28 d — a blocked
+        // submit on a field they can't answer is a worse outcome than a rating-less
+        // ride. Fire an event so the share of rating-less submits is visible.
         if (!document.querySelector('input[name="rate"]:checked')) {
-            hmTrack('ride_form_blocked', { reason: 'no-rating' });
-            if (rateError) rateError.textContent = {{ t("Please rate the spot before submitting.")|tojson }};
-            document.querySelector('.rate')?.scrollIntoView({ block: 'center' });
-            return false;
+            hmTrack('ride_form_submitted_without_rating', { mode: HM_FORM_MODE });
         }
 
         const coords = getCoordinates();
@@ -1017,6 +1020,23 @@
         // apart from a normal visit.
         hmTrack('ride_form_submitted', { destination: coords.destination ? 'yes' : 'no', mode: HM_FORM_MODE });
         hmTrack('ride_form_session_submitted', { destination: coords.destination ? 'yes' : 'no', mode: HM_FORM_MODE });
+
+        // Driver-motive coverage on THIS surface. The "Why did they pick you up?"
+        // chips (#driver_reason_to_pick_up, in the optional #driver-group box) are
+        // the same question inride.js asks with driver_reason_answered — but that
+        // event only fires on the live-journey path, so form-side completion has
+        // never been measured. The `surface` property keeps the two populations
+        // separable. No UI change: this only reads what the user already entered.
+        (function trackDriverReasonCoverage() {
+            const raw = (document.getElementById('driver_reason_to_pick_up')?.value || '').trim();
+            if (raw) {
+                raw.split(',').map(function (s) { return s.trim(); }).filter(Boolean).forEach(function (reason) {
+                    hmTrack('driver_reason_answered', { reason: reason, surface: 'form' });
+                });
+            } else {
+                hmTrack('driver_reason_field_blank', { surface: 'form' });
+            }
+        })();
 
         // The hidden client_d_tag makes the server idempotent. Disabling here still
         // avoids needless duplicate requests and duplicate analytics events: a
@@ -1864,9 +1884,40 @@
     if (hitchhikeReasonChip) window._hitchhikeReasonRenderTags = hitchhikeReasonChip.renderTags;
     if (rideReasonChip) window._rideReasonRenderTags = rideReasonChip.renderTags;
 
+    // B544 slice 2: fire ride_form_field_reached {field} the first time each key
+    // field is touched, so the ~289 abandoners who leave with no visible
+    // validation block can be located to a step instead of vanishing after
+    // ride_form_session_started.
+    function initRideFormFieldTelemetry() {
+        var reached = {};
+        function mark(field) {
+            if (reached[field]) return;
+            reached[field] = true;
+            hmTrack('ride_form_field_reached', { field: field, mode: HM_FORM_MODE });
+        }
+        document.querySelectorAll('input[name="rate"]').forEach(function (el) {
+            el.addEventListener('change', function () { mark('rating'); });
+        });
+        var textFields = { wait: 'wait', comment: 'comment', datetime_ride: 'departure', arrival_datetime: 'arrival' };
+        Object.keys(textFields).forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.addEventListener('input', function () { mark(textFields[id]); });
+        });
+        // Pickup is set through the map-thumbnail round trip as a property
+        // assignment (no attribute mutation, no input event), so poll for it and
+        // stop once seen.
+        var pickup = document.getElementById('pickup_lat');
+        if (pickup) {
+            var pickupPoll = setInterval(function () {
+                if (pickup.value) { mark('pickup'); clearInterval(pickupPoll); }
+            }, 1000);
+        }
+    }
+
     // Initialize when page loads
     document.addEventListener('DOMContentLoaded', function() {
         restoreFormData();
+        initRideFormFieldTelemetry();
         initRideFormDraftRecovery();
         // Covers the edit case, where the box is checked server-side and never fires change.
         syncNoRideLabels();
