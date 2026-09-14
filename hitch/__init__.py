@@ -19,6 +19,7 @@ from werkzeug.utils import safe_join
 from hitch.blueprints.main import main_bp
 from hitch.blueprints.messages import messages_bp
 from hitch.blueprints.oauth import oauth_bp
+from hitch.blueprints.organizers import organizers_bp
 from hitch.blueprints.user import user_bp
 from hitch.extensions import db, mail, security
 from hitch.helpers import convert_km, current_distance_unit, distance_unit_label, format_distance
@@ -308,6 +309,7 @@ def register_extensions(app):
 
 
 def register_blueprints(app):
+    app.register_blueprint(organizers_bp)
     app.register_blueprint(oauth_bp)
     app.register_blueprint(main_bp)
     app.register_blueprint(user_bp)

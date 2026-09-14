@@ -1,0 +1,28 @@
+body { margin: 0; background: #f4f7f5; color: #18332a; font: 17px/1.6 system-ui, sans-serif; }
+.organizers { max-width: 1080px; margin: auto; padding: 30px 24px 60px; }
+h1 { font-size: clamp(2rem, 5vw, 3rem); line-height: 1.15; max-width: 850px; }
+h2 { font-size: 1.35rem; margin-top: 2rem; }
+a { color: #135a43; text-underline-offset: 3px; }
+.eyebrow { margin-top: 2rem; font-weight: 600; }
+input, textarea, button { font: inherit; border: 1px solid #8baba0; border-radius: 5px; padding: 9px 12px; box-sizing: border-box; max-width: 100%; }
+input, textarea { background: white; color: #18332a; }
+label { display: block; margin-top: 12px; }
+button { background: #145d45; color: white; cursor: pointer; }
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid #da9e25; outline-offset: 3px; }
+.actions { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; margin: 12px 0; }
+#area-map { height: 380px; margin: 20px 0; border: 1px solid #8baba0; border-radius: 8px; }
+#bbox, #report-link, #website-link { width: 100%; margin-bottom: 12px; }
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.metrics > div { background: white; border: 1px solid #cbdcd4; padding: 18px; border-radius: 8px; }
+.metrics strong { display: block; font-size: 2rem; }
+.histogram { list-style: none; padding: 0; max-width: 580px; }
+.histogram li { display: grid; grid-template-columns: 150px 1fr 40px; gap: 12px; align-items: center; }
+.histogram meter { width: 100%; }
+.notice { background: #e7eee9; padding: 4px 20px 16px; border-radius: 8px; margin: 26px 0; }
+.table-scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; background: white; }
+caption { text-align: left; font-weight: 600; padding: 18px 0 8px; }
+th, td { padding: 14px; text-align: left; border-bottom: 1px solid #d5dfd9; vertical-align: top; }
+small { color: #4c6258; }
+footer { margin-top: 30px; }
+@media print { body { background: white; font-size: 11pt; } .organizers { padding: 0; } nav, form, button, #area-map, #website-link, label[for=website-link] { display: none; } .metrics { grid-template-columns: repeat(4, 1fr); } .table-scroll { overflow: visible; } th, td { padding: 6px; } tr { break-inside: avoid; } }

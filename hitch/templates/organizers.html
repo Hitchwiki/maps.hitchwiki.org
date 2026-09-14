@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block meta_description %}Mitfahrbänke auswerten: dokumentierte Fahrten, Wartezeiten und Erfahrungen an offiziellen Mitfahrhalten. Lokale Berichte für Gemeinden erstellen und teilen.{% endblock %}
+{% block og_title %}{{ title }}{% endblock %}
+{% block og_description %}Erfahrungen an offiziellen Mitfahrhalten: einen lokalen Bericht ansehen, Zeiträume vergleichen und Ergebnisse teilen.{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="/static/organizers.css">
+{% endblock %}
+{% block main %}
+<main class="organizers">
+  <nav><a href="/de/">← Hitchwiki Maps</a>{% if report %} · <a href="/mitfahrbaenke">Anderen Bereich auswählen</a>{% endif %}</nav>
+  <p class="eyebrow">Für Gemeinden und Mitfahrinitiativen</p>
+  <h1>{{ 'Ihr lokaler Mitfahrbank-Bericht' if report else 'Wie werden Ihre Mitfahrbänke genutzt?' }}</h1>
+  <p>Auf Hitchwiki Maps dokumentieren Mitfahrende ihre Fahrten und Wartezeiten. Finden Sie Ihre Standorte, lesen Sie Erfahrungsberichte und untersuchen Sie dokumentierte Fahrten im Zeitverlauf.</p>
+  {% if not report %}
+  <h2>Gemeinde oder Mitfahrhalt suchen</h2>
+  <form id="place-search"><label for="place">Ortsname</label><div class="actions"><input id="place" type="search" placeholder="z. B. Birkenfeld" required maxlength="120"><button>Suchen</button></div></form>
+  <p id="search-status" role="status"></p><ul id="search-results"></ul>
+  <p>Wählen Sie einen Ort und verschieben oder vergrößern Sie die Karte. Der Bericht umfasst das <strong>sichtbare Rechteck</strong>, keine Verwaltungsgrenze. Prüfen Sie den Ausschnitt vor dem Öffnen.</p>
+  <div id="area-map" aria-label="Kartenausschnitt für den Bericht"></div>
+  <form action="/mitfahrbaenke/bericht" id="area-form">
+    <label for="bbox">Kartengrenzen (West, Süd, Ost, Nord)</label>
+    <input name="bbox" id="bbox" required placeholder="6.9,49.5,7.4,49.9">
+    <button>Lokalen Bericht öffnen</button>
+  </form>
+  <noscript>Tragen Sie die vier Kartengrenzen ein, um den Bericht ohne JavaScript zu öffnen.</noscript>
+  <h2>Was Sie damit untersuchen können</h2>
+  <ul><li>Welche erfassten Mitfahrhalte haben bereits Erfahrungsberichte?</li><li>Welche Wartezeiten wurden dokumentiert?</li><li>Welche Erfahrungen kamen vor und nach einer lokalen Maßnahme hinzu?</li></ul>
+  <p>Der Bericht ist ohne Anmeldung verfügbar. Teilen Sie seinen Link auf Ihrer Gemeindewebsite oder drucken Sie ihn für Ihre nächste Besprechung. Neue Fahrtberichte fließen nach der nächsten Datenaktualisierung ein.</p>
+  {% else %}
+  <p><strong>Gebiet:</strong> West {{ report.bounds[0] }}, Süd {{ report.bounds[1] }}, Ost {{ report.bounds[2] }}, Nord {{ report.bounds[3] }}. Das Rechteck kann Nachbarorte einschließen.</p>
+  <div id="area-map" aria-label="Ausgewerteter Kartenausschnitt"></div>
+  <form action="/mitfahrbaenke/bericht" class="actions">
+    <input type="hidden" name="bbox" value="{{ report.bbox }}">
+    <label>Von <input name="von" type="date" value="{{ report.start or '' }}" required></label>
+    <label>Bis <input name="bis" type="date" value="{{ report.end or '' }}" required></label>
+    <button>Zeiträume vergleichen</button>
+    <a href="/mitfahrbaenke/bericht?bbox={{ report.bbox|urlencode }}">Alle Fahrten</a>
+  </form>
+  <h2>{{ (report.start|string ~ ' bis ' ~ report.end|string) if report.start else 'Alle dokumentierten Fahrten' }}</h2>
+  <div class="metrics">
+    <div><strong>{{ report.rows|length }}</strong> erfasste offizielle Halte</div>
+    <div><strong>{{ report.with_reports }}</strong> davon mit Fahrtberichten{% if report.start %} im Zeitraum{% endif %}</div>
+    <div><strong>{{ report.stats.count }}</strong> dokumentierte Fahrten</div>
+    <div><strong>{{ report.stats.median if report.stats.median is not none else '—' }}</strong> Minuten Median-Wartezeit (n={{ report.stats.wait_n }})</div>
+  </div>
+  <p>Zusätzlich {{ report.stats.unsuccessful }} dokumentierte Versuche ohne Mitfahrt. Deren Wartezeiten sind nicht in den Wartezeiten erfolgreicher Fahrten enthalten.</p>
+  <h3>Verteilung der Wartezeiten bei dokumentierten Fahrten</h3>
+  {% if report.stats.wait_n %}
+  <ul class="histogram">{% for bin in report.stats.histogram %}<li><span>{{ bin.label }} min</span><meter min="0" max="{{ report.stats.wait_n }}" value="{{ bin.count }}">{{ bin.count }}</meter><span>{{ bin.count }}</span></li>{% endfor %}</ul>
+  {% else %}<p>Keine Wartezeitangaben für diese Auswahl.</p>{% endif %}
+  {% if report.start %}
+  <p>Gleich langer Vergleichszeitraum <strong>{{ report.previous_start }} bis {{ report.previous_end }}</strong>: {{ report.previous.count }} dokumentierte Fahrten, {{ report.previous.unsuccessful }} Versuche ohne Mitfahrt; Median-Wartezeit {{ report.previous.median if report.previous.median is not none else '—' }} Minuten (n={{ report.previous.wait_n }}).</p>
+  {% endif %}
+  <p>Einträge ohne bekanntes Fahrtdatum: {{ report.unknown }}{% if report.start %}; sie sind aus beiden Zeiträumen ausgeschlossen{% else %} und in dieser Gesamtansicht enthalten{% endif %}. Stand der Fahrtdaten: {{ report.updated }}.</p>
+  {% if not report.rows %}<p class="notice">In diesem Ausschnitt sind keine offiziellen Halte in unserer Datenbank erfasst. Das bedeutet nicht, dass es vor Ort keine gibt. Prüfen Sie den Ausschnitt und die Erfassung in OpenStreetMap.</p>{% endif %}
+  <div class="table-scroll"><table>
+    <caption>Erfasste Halte und zugeordnete Erfahrungen</caption>
+    <thead><tr><th>Mitfahrhalt</th><th>Dokumentierte Fahrten</th><th>Median-Wartezeit</th><th>Letztes bekanntes Fahrtdatum</th><th>Erfahrungen</th></tr></thead>
+    <tbody>{% for row in report.rows %}<tr>
+      <td><a href="https://www.openstreetmap.org/node/{{ row.id }}">{{ row.name }}</a></td>
+      <td>{{ row.stats.count }}{% if row.stats.unsuccessful %}<br><small>{{ row.stats.unsuccessful }} Versuche ohne Mitfahrt</small>{% endif %}{% if not row.stats.records %}<br><small>Keine Berichte{{ ' im Zeitraum' if report.start else '' }}</small>{% endif %}</td>
+      <td>{{ row.stats.median if row.stats.median is not none else '—' }} min<br><small>n={{ row.stats.wait_n }}</small></td>
+      <td>{{ row.stats.latest or '—' }}</td>
+      <td>{% for sid in row.spot_ids %}<a href="/spot/{{ sid }}">Fahrtberichte {{ loop.index }}</a><br>{% endfor %}<a href="/spot/{{ '%.5f_%.5f'|format(row.lat, row.lon) }}">Fahrt hier dokumentieren</a></td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  <h2>Bericht verwenden und bekannt machen</h2>
+  <div class="actions"><a href="{{ report.path }}&amp;format=csv" data-organizer-action="csv">Tabelle herunterladen (CSV)</a><button type="button" id="print-report">Drucken / als PDF speichern</button></div>
+  <label for="report-link">Dauerhafter Link mit Gebiet und Zeitraum</label>
+  <input id="report-link" readonly value="{{ report.url }}">
+  <label for="website-link">Link für Ihre Gemeindewebsite (HTML)</label>
+  <textarea id="website-link" readonly rows="3">&lt;a href="{{ report.url }}"&gt;Erfahrungen und Wartezeiten an unseren Mitfahrhalten ansehen und eigene Fahrten dokumentieren – Hitchwiki Maps&lt;/a&gt;</textarea>
+  <p>Verlinken Sie den Bericht auf Ihrer Mobilitätsseite. Die Links zu den einzelnen Halten führen direkt zu den Erfahrungen und zur Fahrtaufnahme.</p>
+  {% endif %}
+  <section class="notice"><h2>Was sagen die Daten über den Erfolg einer Mitfahrbank?</h2>
+    <p>Die freiwillig dokumentierten Fahrten ergänzen Ihre Evaluation. Sie messen weder die gesamte Nutzung noch die Erfolgsquote: Nicht alle Mitfahrenden tragen eine Fahrt ein, und erfolglose Versuche sind nicht vollständig erfasst. Keine Berichte bedeuten keine Daten, nicht keine Nutzung.</p>
+    <p>Die Zuordnung folgt derselben räumlichen Nähe zu einem offiziellen OpenStreetMap-Halt wie auf der Karte. Sie bestätigt nicht, dass die Person tatsächlich auf der Bank wartete. Die OpenStreetMap-Erfassung kann unvollständig oder veraltet sein.</p>
+    <p>Zeitraumvergleiche verwenden ausschließlich bekannte Fahrtdaten, keine Eintragsdaten. Unterschiede können auch durch Jahreszeit, wechselnde Beitragende oder mehr Bekanntheit der Karte entstehen. Ein Vorher-Nachher-Vergleich allein belegt keine Wirkung Ihrer Maßnahme.</p>
+  </section>
+  <footer><a href="/?osmonly=true">Alle offiziellen Spots auf der Karte</a> · <a href="https://huggingface.co/datasets/Hitchwiki/hitchhiking-rides-dataset">Offene Fahrtdaten</a><p>Daten: OpenStreetMap und Hitchwiki Maps · <a href="/copyright">Lizenz und Quellen</a></p></footer>
+</main>
+{% endblock %}
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script id="organizer-data" type="application/json">{{ report|tojson }}</script>
+<script src="/static/organizers.js"></script>
+{% endblock %}
