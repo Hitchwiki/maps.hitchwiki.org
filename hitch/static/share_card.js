@@ -463,10 +463,15 @@
       // for the Nostr fetch cron. Falls back to the starting spot when no d tag
       // reached us: the offline outbox submits over fetch without navigating, and a
       // returning visitor can be running this file against a cached older page.
+      // `?ref=ride-share` lets base.html's referred_via capture (#144) count the
+      // people who follow a shared ride card back to the map — the first read we
+      // have on whether sharing reaches anyone outside the app. Stripped from the
+      // address bar on arrival, so it never propagates past the first hop.
       const spotId = from.lat.toFixed(5) + "_" + from.lon.toFixed(5);
-      const url = dTag
-        ? window.location.origin + "/ride/" + encodeURIComponent(dTag)
-        : window.location.origin + "/spot/" + spotId;
+      const url =
+        (dTag
+          ? window.location.origin + "/ride/" + encodeURIComponent(dTag)
+          : window.location.origin + "/spot/" + spotId) + "?ref=ride-share";
       const text = facts.toName
         ? "Check out my hitchhiking ride from " + facts.fromName + " to " + facts.toName
         : "Check out my hitchhiking ride from " + facts.fromName;
