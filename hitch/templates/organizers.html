@@ -62,7 +62,7 @@
       <td>{{ row.stats.count }}{% if row.stats.unsuccessful %}<br><small>{{ row.stats.unsuccessful }} Versuche ohne Mitfahrt</small>{% endif %}{% if not row.stats.records %}<br><small>Keine Berichte{{ ' im Zeitraum' if report.start else '' }}</small>{% endif %}</td>
       <td>{{ row.stats.median if row.stats.median is not none else '—' }} min<br><small>n={{ row.stats.wait_n }}</small></td>
       <td>{{ row.stats.latest or '—' }}</td>
-      <td>{% for sid in row.spot_ids %}<a href="/spot/{{ sid }}">Fahrtberichte {{ loop.index }}</a><br>{% endfor %}<a href="/spot/{{ '%.5f_%.5f'|format(row.lat, row.lon) }}">Fahrt hier dokumentieren</a></td>
+      <td>{% for sid in row.spot_ids %}<a href="/spot/{{ sid }}">Fahrtberichte {{ loop.index }}</a><br>{% endfor %}<a href="{{ row.map_url }}">Halt auf der Karte / Fahrt dokumentieren</a></td>
     </tr>{% endfor %}</tbody>
   </table></div>
   <h2>Bericht verwenden und bekannt machen</h2>

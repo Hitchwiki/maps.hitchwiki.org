@@ -761,5 +761,6 @@
   "{time} walk": "{time} zu Fuß",
   "{unit} travelled": "{unit} gereist",
   "{wait} min wait": "{wait} Min Wartezeit",
-  "🧪 Test mode is on — this ride was NOT saved or published.": "🧪 Testmodus ist aktiviert — diese Fahrt wurde NICHT gespeichert oder veröffentlicht."
+  "🧪 Test mode is on — this ride was NOT saved or published.": "🧪 Testmodus ist aktiviert — diese Fahrt wurde NICHT gespeichert oder veröffentlicht.",
+  "Gray markers: official stops without ride reports.": "Graue Punkte: offizielle Mitfahrhalte ohne Fahrtberichte."
 }
