@@ -3900,7 +3900,12 @@ function showSuccessOverlay(opts) {
       ? { ride: successRide }
       : opts;
   overlay.style.display = "flex";
-  shareVariant = chooseVariant("ride-share-value-v1", ["control", "help-friend"]);
+  // A/B "ride-share-value-v1" is decided: the "help a friend" arm converted worse
+  // (help_friend 3.21% vs control 5.96% shared, n=514), so we ship the control
+  // wording to everyone. Left as a pinned assignment rather than deleting the
+  // whole variant machinery so the copy below still has one code path and a
+  // future test can reuse chooseVariant.
+  shareVariant = "control";
   hmTrack("ride_share_exposure", { variant: shareVariant });
   const shareTitle = $$("#success-share-block h2");
   const shareSub = $$("#success-share-block .success-share-sub");
