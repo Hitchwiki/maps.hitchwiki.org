@@ -8,7 +8,8 @@ the form:
 e.g. {{Event|Autostop House open to all in Albania|2026-07-01|2026-08-30|42.0681371|19.5121437}}
 
 We pull every page in that category, extract each {{Event|...}} template, keep only
-the events whose end date is still in the future (today included), and write them to
+the events whose end date is still in the future (today included) and whose start
+date is no more than MAX_FUTURE_DAYS (~6 months) out, and write them to
 `dist/events.json`. The map frontend loads that file and draws a special event marker
 at each location; clicking it opens a bottom sheet with the event name, dates, a short
 description pulled from the wiki page, and a link back to Hitchwiki.
@@ -35,6 +36,13 @@ logger = logging.getLogger(__name__)
 API_URL = "https://hitchwiki.org/en/api.php"
 BASE_URL = "https://hitchwiki.org/en/"
 CATEGORY = "Category:Events"
+
+# Requirement: some Category:Events pages are placeholders for editions years out
+# (e.g. Tramprennen has one page per year through 2030, each with a single
+# {{Event|...}} template dated that far ahead), which would otherwise sit on the
+# map indefinitely since nothing else ever makes them "past". Cap how far into
+# the future a start date may be before we show it at all.
+MAX_FUTURE_DAYS = 183
 
 # Hitchwiki sits behind Cloudflare, which serves a 403 "Just a moment..." bot
 # challenge to requests without a browser-like User-Agent. Send one so the API
@@ -202,6 +210,7 @@ def main():
 
     events = []
     skipped_past = 0
+    skipped_far_future = 0
     for title, text in pages.items():
         # Resolve page-name magic words up front so both the {{Event|...}} name field and
         # the description show the page title instead of a literal {{FULLPAGENAME}}.
@@ -220,6 +229,15 @@ def main():
                 skipped_past += 1
                 continue
 
+            start_date = parse_date(start_raw)
+            # Requirement: drop placeholder events dated more than ~6 months out (see
+            # MAX_FUTURE_DAYS above) rather than showing every future edition of an
+            # annual gathering indefinitely. An unparseable start date can't be judged
+            # far-future, so it falls through to being shown (same as before this check).
+            if start_date is not None and (start_date - today).days > MAX_FUTURE_DAYS:
+                skipped_far_future += 1
+                continue
+
             try:
                 lat = float(lat_raw)
                 lon = float(lon_raw)
@@ -227,7 +245,6 @@ def main():
                 logger.warning(f"Skipping event '{name}' on '{title}': bad coordinates '{lat_raw}, {lon_raw}'")
                 continue
 
-            start_date = parse_date(start_raw)
             events.append(
                 {
                     "name": name,
@@ -250,7 +267,10 @@ def main():
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(events, f, ensure_ascii=False, indent=2)
 
-    logger.info(f"Wrote {len(events)} upcoming/ongoing event(s) to {out_path} (skipped {skipped_past} past event(s))")
+    logger.info(
+        f"Wrote {len(events)} upcoming/ongoing event(s) to {out_path} "
+        f"(skipped {skipped_past} past event(s), {skipped_far_future} far-future event(s))"
+    )
     logger.info("SYNC EVENTS SCRIPT FINISHED")
 
 
