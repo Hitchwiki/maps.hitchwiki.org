@@ -153,6 +153,7 @@ def report():
                 "name": tags.get("name") or f"Mitfahrhalt {stop.id}",
                 "lat": stop.latitude,
                 "lon": stop.longitude,
+                "map_url": f"/official-stop/{stop.id}",
                 "stats": summarize(current),
                 "previous": summarize(before),
                 "spot_ids": sorted({r["sid"] for r in current}),

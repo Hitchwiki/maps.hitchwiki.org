@@ -18,7 +18,7 @@
     L.rectangle([[s, w], [n, e]], {color: '#145d45', fillOpacity: 0.03}).addTo(map);
     report.rows.forEach(row => {
       const label = document.createElement('a');
-      label.href = `/spot/${row.lat.toFixed(5)}_${row.lon.toFixed(5)}`;
+      label.href = row.map_url;
       label.textContent = `${row.name}: ${row.stats.count} dokumentierte Fahrten`;
       L.circleMarker([row.lat, row.lon], {radius: 6, color: '#145d45'}).addTo(map).bindPopup(label);
     });

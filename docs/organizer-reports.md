@@ -12,6 +12,15 @@ period and compares it with the immediately preceding period of equal length.
 The page supplies a permanent link and HTML link text for municipal websites.
 Arbitrary area reports are noindex; the landing page is the search entry point.
 
+Report links to a stop use `/official-stop/<osm_node_id>`. This redirects to the
+existing associated ride marker, or to the official node's coordinates when it
+has no reviews. The map loads `/official-stops.json` alongside the generated
+ride spots, adding missing official stops as gray markers without ratings or
+invented ride records. Existing associated markers retain their reviews and
+colors. The registry is read from the existing OSM table, so new stops appear
+without requiring a full ride-data regeneration. Registry-only markers carry
+their own names and OSM links and do not request nonexistent ride-detail files.
+
 ## Evidence and limitations
 
 - All `OsmHitchhikingSpot` nodes in the selected rectangle are listed, including

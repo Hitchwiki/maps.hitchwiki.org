@@ -509,6 +509,7 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
         <div class="filter-pane-row filter-toggles">
             <label><input id="recent-toggle" type="checkbox" value="" /> {{ t("Last 24h") }}</label>
             <label><input id="osm-toggle" type="checkbox" value="" /> {{ t("Official spots") }}</label>
+            <small>{{ t("Gray markers: official stops without ride reports.") }}</small>
             <label><input id="car-pooling-toggle" type="checkbox" value="" /> {{ t("Car pooling") }}</label>
             <label><input id="hitchwiki-toggle" type="checkbox" value="" /> {{ t("Hitchwiki articles") }}</label>
             <button id="clear-filters">{{ t("Clear") }}</button>

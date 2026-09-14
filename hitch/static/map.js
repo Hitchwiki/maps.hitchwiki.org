@@ -167,6 +167,35 @@ function createMap() {
   return map;
 }
 
+// Official-stop helpers: a mapped facility is not evidence of a successful ride.
+function mergeOfficialSpots(spots, official) {
+  const merged = spots.slice();
+  const ids = new Map(spots.map((s, i) => [`${s.lat.toFixed(5)}_${s.lon.toFixed(5)}`, i]));
+  for (const stop of official) {
+    const sid = `${stop.lat.toFixed(5)}_${stop.lon.toFixed(5)}`;
+    const existing = ids.get(stop.map_spot_id) ?? ids.get(sid);
+    if (existing !== undefined) {
+      if (!merged[existing].osm) {
+        merged[existing] = {...merged[existing], osm: true, osm_id: stop.osm_id, name: stop.name};
+      }
+      continue;
+    }
+    ids.set(sid, merged.length);
+    merged.push(stop);
+  }
+  return merged;
+}
+
+function markerAppearance(spot) {
+  if (spot.official_unreviewed && !spot.review_count) return {rating: null, color: '#9ca3af', opacity: 0.7};
+  const rating = spot.rating || 3;
+  return {
+    rating,
+    color: {1: 'red', 2: 'orange', 3: 'yellow', 4: 'lightgreen', 5: 'lightgreen'}[Math.round(rating)],
+    opacity: {1: 0.3, 2: 0.4, 3: 0.6, 4: 0.8, 5: 0.8}[Math.round(rating)],
+  };
+}
+
 // Load markers from JSON data
 async function loadMarkers(map) {
   // If the template warrants a variation, load that variation, otherwise all points
@@ -175,8 +204,11 @@ async function loadMarkers(map) {
       ? `/spots_${MAP_VARIATION}.json`
       : `/spots.json`;
 
-  return fetch(url)
-    .then((response) => response.json())
+  const officialPromise = fetch('/official-stops.json')
+    .then(response => { if (!response.ok) throw new Error(`HTTP ${response.status}`); return response.json(); })
+    .catch(error => { console.warn('Could not load official stops:', error); return []; });
+  return Promise.all([fetch(url).then(response => response.json()), officialPromise])
+    .then(([spots, official]) => mergeOfficialSpots(spots, official))
     .then((data) => {
       // Module-scoped so findNearbySpotMarker() can ask whether a marker is
       // currently hidden inside a cluster (getVisibleParent) when snapping.
@@ -191,21 +223,11 @@ async function loadMarkers(map) {
       
       data.forEach((m, index) => {
         // Add error handling for malformed spot data
-        if (!m.lat || !m.lon) {
+        if (!Number.isFinite(m.lat) || !Number.isFinite(m.lon)) {
           console.warn(`Skipping spot ${index}: missing coordinates`, m);
           return;
         }
-        // Handle null/undefined rating with fallback
-        const rating = m.rating || 3; // Default to 3 if no rating
-        
-        var color = {
-          1: "red",
-          2: "orange",
-          3: "yellow",
-          4: "lightgreen",
-          5: "lightgreen",
-        }[Math.round(rating)];
-        var opacity = { 1: 0.3, 2: 0.4, 3: 0.6, 4: 0.8, 5: 0.8 }[Math.round(rating)];
+        const {rating, color, opacity} = markerAppearance(m);
         var coords = new L.latLng(m.lat, m.lon);
 
         var marker = L.circleMarker(coords, {
@@ -1617,6 +1639,11 @@ async function loadPendingRides(map) {
     // filter is not reproducible client-side — a recomputed colour would be subtly
     // wrong for ten minutes, which is worse than a stale one.
     marker.options._data.review_count = (marker.options._data.review_count || 0) + group.rides.length;
+    if (marker.options._data.official_unreviewed) {
+      marker.options._data.rating = spotAverages(group.rides).rating;
+      const style = markerAppearance(marker.options._data);
+      marker.setStyle({fillColor: style.color, fillOpacity: style.opacity});
+    }
 
     // Recent-activity filter reads latest_ms; without this a pending ride would be
     // invisible to the one filter meant to surface fresh activity. Never lower it — the
@@ -3040,7 +3067,11 @@ async function handleMarkerClick(marker, point, e) {
   const spotId = marker.options.spotId;
   let spotRides = [];
   try {
-    const resp = await fetch(`/rides/by-spot/${encodeURIComponent(spotId)}.json`);
+    // Registry-only markers already carry their name and OSM identity. They have no
+    // generated ride file; pending first rides are merged below without a fake review.
+    const resp = marker.options._data.official_unreviewed
+      ? {ok: true, json: async () => ({rides: []})}
+      : await fetch(`/rides/by-spot/${encodeURIComponent(spotId)}.json`);
     if (resp.ok) {
       const payload = await resp.json();
       // Current files are {spot, rides}; tolerate the older bare-array shape
