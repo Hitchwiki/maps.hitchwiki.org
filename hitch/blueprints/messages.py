@@ -94,7 +94,10 @@ def thread(username):
         return redirect("/messages")
 
     msgs = (
-        db.session.query(Message).filter(_pair_filter(current_user.id, other.id)).order_by(Message.created_at, Message.id).all()
+        db.session.query(Message)
+        .filter(_pair_filter(current_user.id, other.id))
+        .order_by(Message.created_at, Message.id)
+        .all()
     )
 
     # Opening the thread clears the unread state for messages the other person sent me,
