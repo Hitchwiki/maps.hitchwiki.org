@@ -3336,6 +3336,24 @@ body:has(.topbar.visible) #inr-start-bar {
   box-shadow: 0 3px 10px rgba(0, 0, 0, .3);
 }
 
+/* Undo variant: label + action button side by side, same shell as .inr-toast. */
+.inr-toast--undo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.inr-toast__undo {
+  border: none;
+  background: none;
+  color: #6ab7ff;
+  font-size: 13.5px;
+  font-weight: 700;
+  padding: 0;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: .02em;
+}
+
 /* Pending-upload chip: bottom-left pill, clear of the centred dock/chip stack. Shown
    whenever the outbox is non-empty; turns red when an item permanently failed. */
 #inr-outbox-chip {
