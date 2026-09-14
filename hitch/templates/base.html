@@ -356,5 +356,24 @@
         } catch (err) { window.prompt('Copy this link:', url); }
       });
     </script>
+
+    {# #246 slice 2: a hitchhiker's name is already a link to their profile
+       everywhere it renders (ride cards, the spot pane, the leaderboard), but
+       nothing measured whether anyone follows it — the social-layer audit
+       (research/social-layer-audit-2026-09-02.md) found not one social surface
+       emits any engagement telemetry, so "shown and ignored" could only ever be
+       guessed. One delegated handler covers both the server-rendered cards and
+       the ones map.js injects client-side, since it listens on `document`.
+       `source` says which surface the click came from. #}
+    <script>
+      document.addEventListener('click', function (e) {
+        var link = e.target.closest && e.target.closest('a.hitchhiker-name');
+        if (!link || !window.hmTrack) return;
+        var source = e.target.closest('#spot-text') ? 'spot-pane'
+          : e.target.closest('.leaderboard-pane') ? 'leaderboard'
+          : (location.pathname.replace(/^\/[a-z]{2}(\/|$)/, '/').split('/')[1] || 'other');
+        window.hmTrack('profile_link_clicked', { source: source });
+      });
+    </script>
   </body>
 </html>

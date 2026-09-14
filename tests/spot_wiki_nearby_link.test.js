@@ -34,6 +34,19 @@ test("carries the id the click tracker (spot_wiki_nearby_clicked, EXP-352) hooks
   assert.match(SOURCE, /#spot-wiki-nearby-link[\s\S]{0,120}spot_wiki_nearby_clicked/);
 });
 
+test("binds the click handler in the summary-render path, not the early sync block", () => {
+  // Regression (EXP-352, 2026-09-09): the handler was bound in handleMarkerClick,
+  // which runs before the async per-spot fetch populates data.hitchwiki_nearby and
+  // renderSpotSummary puts #spot-wiki-nearby-link in the DOM. $$ returned null every
+  // time, the onclick was never set, and the event logged 0 clicks / 439 impressions
+  // over 28 days. It must sit inside applySpotRideFilter, next to loadSpotWikiExcerpt.
+  const filterStart = SOURCE.indexOf("function applySpotRideFilter");
+  assert.ok(filterStart !== -1, "applySpotRideFilter moved or was renamed");
+  const filterBody = SOURCE.slice(filterStart, SOURCE.indexOf("\nfunction ", filterStart + 1));
+  assert.match(filterBody, /#spot-wiki-nearby-link[\s\S]{0,160}spot_wiki_nearby_clicked/,
+    "the nearby-link click handler must be bound inside applySpotRideFilter");
+});
+
 test("stays empty when an exact article link exists", () => {
   const html = renderNearbyLink({
     hitchwiki_article: "https://hitchwiki.org/en/Prague#X",

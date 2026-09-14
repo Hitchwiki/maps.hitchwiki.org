@@ -2985,6 +2985,19 @@ function summaryText(data, hists = { wait: null, distance: null }) {
     ? `<div id="spot-wiki-excerpt" class="spot-wiki-excerpt"></div>`
     : '';
 
+  // #202 / EXP-432: the most recent ride comment that says how someone *reached*
+  // this spot (which bus, which station, where to walk from) -- surfaced verbatim
+  // here instead of buried in the newest-first ride-card stream below. show.py's
+  // `_access_hint` picks it; we quote it and link to the ride it came from. No
+  // authored text -- this is an existing signed comment.
+  const accessHint = data.access_hint && data.access_hint.c
+    ? `<div class="spot-access-hint">
+        <div class="spot-access-hint-label">🚌 ${tr("How people reached this spot")}</div>
+        <blockquote>${escapeHtml(data.access_hint.c)}</blockquote>
+        ${data.access_hint.id ? `<a id="spot-access-hint-link" href="/ride/${encodeURIComponent(data.access_hint.id)}" target="_blank" rel="noopener noreferrer">${tr("from this ride")}</a>` : ''}
+      </div>`
+    : '';
+
   const wait = !data.wait || Number.isNaN(data.wait) ? "-" : tr("{n} min", { n: data.wait.toFixed(0) });
   const distance = !data.distance || Number.isNaN(data.distance) ? "-" : formatDistance(data.distance);
   // "-" like the two above rather than the bare value: with a filter active the subset
@@ -2999,7 +3012,7 @@ function summaryText(data, hists = { wait: null, distance: null }) {
     ${spotHistogramMarkup(hists.wait, "spot-wait-hist", "min")}
     <div>${tr("Ride distance: {distance}", { distance })}</div>
     ${spotHistogramMarkup(scaleHistToDisplay(hists.distance), "spot-distance-hist", distanceUnitLabel())}
-    ${osmLink}${carPoolingLink}${fuelLink}${hitchwikiLink}${hitchwikiMapLink}${hitchwikiNearbyLink}${spotWikiExcerpt}`;
+    ${osmLink}${carPoolingLink}${fuelLink}${hitchwikiLink}${hitchwikiMapLink}${hitchwikiNearbyLink}${spotWikiExcerpt}${accessHint}`;
 }
 
 async function handleMarkerClick(marker, point, e) {
@@ -3045,6 +3058,11 @@ async function handleMarkerClick(marker, point, e) {
         if (near && !(payload.spot || {}).hitchwiki_article && !(payload.spot || {}).hitchwiki_map) {
           hmTrack('spot_wiki_nearby_shown', { km: Math.round(near.km) });
         }
+        // #202 / EXP-432: an access-describing comment was lifted above the ride
+        // stream for this spot. No spot id, same privacy rule as spot_opened.
+        if ((payload.spot || {}).access_hint) {
+          hmTrack('spot_access_hint_shown', {});
+        }
       }
     } else if (resp.status !== 404) {
       console.error(`Failed to load rides for spot ${spotId}: HTTP ${resp.status}`);
@@ -3088,6 +3106,10 @@ async function handleMarkerClick(marker, point, e) {
   // the first render in markerClick only had the slim spots.json fields, so it could
   // show the averages but not the distributions), the photos and the ride list.
   applySpotRideFilter(marker);
+
+  // #254 slice 2: a rare, cooled-down free-text feedback prompt after a real
+  // in-app action. No-op unless the dice and the 60-day cooldown both allow it.
+  maybeShowAmbientFeedback("spot-opened");
 }
 
 // Which of the open spot's rides the pane shows, and everything drawn from them.
@@ -3120,6 +3142,14 @@ function applySpotRideFilter(marker) {
   const spotWikiUrl = data.hitchwiki_article || data.hitchwiki_map;
   const spotWikiContainer = $$("#spot-wiki-excerpt");
   if (spotWikiUrl && spotWikiContainer) loadSpotWikiExcerpt(marker, spotWikiContainer, spotWikiUrl);
+
+  // "Nearest Hitchwiki article (~N km)" link (EXP-352). Bind the click here, not in
+  // handleMarkerClick: the link's markup is part of summaryText, which renderSpotSummary
+  // above rebuilds from `data.hitchwiki_nearby` -- a field that arrives in the async
+  // per-spot fetch, after handleMarkerClick has already run. Binding there hit a null
+  // element every time, so the event never fired (0 clicks / 439 impressions, 28 d).
+  const wikiNearbyLink = $$("#spot-wiki-nearby-link");
+  if (wikiNearbyLink) wikiNearbyLink.onclick = () => hmTrack("spot_wiki_nearby_clicked");
 
   // The cards below are about to be replaced, taking their highlight buttons with them.
   clearRideDestHighlight();
@@ -3257,11 +3287,15 @@ function markerClick(marker) {
   const emptyChatLink = $$("#spot-empty-chat-link");
   if (emptyChatLink) emptyChatLink.onclick = () => hmTrack("spot_empty_chat_click");
 
-  // "Nearest Hitchwiki article (~N km)" link, shown by summaryText only when no
-  // article sits on the spot itself. Track the click against `spot_wiki_nearby_shown`
-  // (EXP-352): does a distance-labelled nearby-article link actually get opened?
-  const wikiNearbyLink = $$("#spot-wiki-nearby-link");
-  if (wikiNearbyLink) wikiNearbyLink.onclick = () => hmTrack("spot_wiki_nearby_clicked");
+  // "Nearest Hitchwiki article (~N km)" link (EXP-352): the click handler is bound in
+  // applySpotRideFilter, after the async per-spot fetch has populated hitchwiki_nearby
+  // and renderSpotSummary has put the link in the DOM -- not here, where it doesn't
+  // exist yet.
+
+  // "How people reached this spot" — the access-hint quote's link to its source
+  // ride (#202 / EXP-432). Tracked against `spot_access_hint_shown`.
+  const accessHintLink = $$("#spot-access-hint-link");
+  if (accessHintLink) accessHintLink.onclick = () => hmTrack("spot_access_hint_clicked");
 
   // Show a loading spinner while rides are fetched asynchronously
   $$("#spot-text").innerHTML = '<div class="spot-loading" role="status" aria-live="polite"><i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i><span class="sr-only">Loading rides</span></div>';
@@ -3719,6 +3753,100 @@ function trackRideShare(properties) {
   }
 }
 
+// #254: inline free-text feedback widget. Replaces a link-out to a Google Form
+// that got 0 responses ever. Rendered by the feedback_widget() Jinja macro in
+// several places (success overlay, signup-prompt overlay, a sampled post-action
+// popup), so the markup is class-based and this wires ONE instance given its
+// root element. The note rides an analytics event (map_feedback_submitted) and
+// is posted to /log-feedback, which attaches the logged-in username server-side
+// or the optional email an anonymous visitor volunteered. Re-runs whenever its
+// container is shown, so it resets its own state each time and tolerates an old
+// cached copy of the markup (missing children -> bail).
+function setupMapFeedback(root, source) {
+  if (typeof root === "string") root = $$(root);
+  if (!root) return;
+  const toggle = root.querySelector(".map-feedback-toggle");
+  const panel = root.querySelector(".map-feedback-panel");
+  const text = root.querySelector(".map-feedback-text");
+  const email = root.querySelector(".map-feedback-email");
+  const send = root.querySelector(".map-feedback-send");
+  const thanks = root.querySelector(".map-feedback-thanks");
+  if (!toggle || !panel || !text || !send || !thanks) return;
+  // Reset: a widget instance is reused across submissions, so a note left from
+  // last time (or a "thank you" still showing) must not carry over.
+  text.value = "";
+  if (email) email.value = "";
+  panel.hidden = true;
+  thanks.hidden = true;
+  toggle.hidden = false;
+  let opened = false;
+  toggle.onclick = function () {
+    panel.hidden = false;
+    toggle.hidden = true;
+    text.focus();
+    if (!opened) {
+      opened = true;
+      hmTrack("map_feedback_opened", { source: source });
+    }
+  };
+  send.onclick = function () {
+    const note = text.value.trim().slice(0, 500);
+    if (!note) return;
+    const addr = email ? email.value.trim().slice(0, 120) : "";
+    hmTrack("map_feedback_submitted", { source: source, chars: note.length, text: note, has_email: !!addr });
+    postMapFeedback(source, note, addr);
+    panel.hidden = true;
+    thanks.hidden = false;
+  };
+}
+
+// Durable server-side record of a feedback note. The analytics event carries the
+// same text for the funnel view, but ad-blockers drop it and it cannot see who
+// is signed in -- /log-feedback attaches the username server-side from the
+// session, and takes the optional reply email a signed-out visitor typed.
+// sendBeacon so the note survives the overlay closing / a navigation.
+function postMapFeedback(source, text, email) {
+  try {
+    const blob = new Blob([JSON.stringify({ source: source, text: text, email: email })], {
+      type: "application/json",
+    });
+    if (navigator.sendBeacon) navigator.sendBeacon("/log-feedback", blob);
+  } catch (e) {}
+}
+
+// #254 slice 2 (Till's ask): "just let some free form feedback field pop up
+// randomly infrequently after actions in the app." Called after a spot open.
+// Low probability per eligible action, and once shown it sets a long cooldown so
+// a visitor sees it at most a few times a year.
+const AMBIENT_FEEDBACK_KEY = "mapFeedbackAmbientAt";
+const AMBIENT_FEEDBACK_COOLDOWN_MS = 60 * 24 * 3600 * 1000;
+const AMBIENT_FEEDBACK_CHANCE = 0.03;
+
+function maybeShowAmbientFeedback(trigger) {
+  const wrap = $$("#ambient-feedback-wrap");
+  if (!wrap || !wrap.hidden) return;
+  let last = 0;
+  try {
+    last = Number(localStorage.getItem(AMBIENT_FEEDBACK_KEY)) || 0;
+  } catch (e) {
+    return;
+  }
+  if (Date.now() - last < AMBIENT_FEEDBACK_COOLDOWN_MS) return;
+  if (Math.random() >= AMBIENT_FEEDBACK_CHANCE) return;
+  try {
+    localStorage.setItem(AMBIENT_FEEDBACK_KEY, String(Date.now()));
+  } catch (e) {}
+  const rootEl = wrap.querySelector(".map-feedback");
+  setupMapFeedback(rootEl, "ambient-" + trigger);
+  wrap.hidden = false;
+  hmTrack("map_feedback_ambient_shown", { trigger: trigger });
+  const dismiss = wrap.querySelector(".map-feedback-dismiss");
+  if (dismiss)
+    dismiss.onclick = function () {
+      wrap.hidden = true;
+    };
+}
+
 // `opts` is how a caller that never navigated hands the ride in directly:
 // {ride, dTag}. The /ride form's redirect can't do that (the POST navigates away), so
 // it goes through sessionStorage + ?ride= instead; the in-ride tracker, which submits
@@ -3803,17 +3931,9 @@ function showSuccessOverlay(opts) {
       close("x");
     };
   }
-  // feedback_form_responses_total has read exactly 0 for 3+ days against ~800
-  // overlay views/week -- previously unknown whether that meant "nobody clicks"
-  // or "people click but don't finish the form." This is the only way to tell
-  // them apart from here (the link is target="_blank", so this fires alongside
-  // the real navigation, not instead of it).
-  const feedbackLink = $$("#success-feedback-link");
-  if (feedbackLink) {
-    feedbackLink.onclick = function () {
-      hmTrack("feedback_link_clicked", { source: "success-overlay" });
-    };
-  }
+  // #254: the Google Form linked from here had 0 responses ever. Replaced with
+  // an inline free-text field whose answer rides an analytics event + /log-feedback.
+  setupMapFeedback($$('.map-feedback[data-source="success-overlay"]'), "success-overlay");
   overlay.onclick = function (e) {
     if (e.target === overlay) close("backdrop");
   };
@@ -3935,6 +4055,46 @@ async function renderWikiContributionNudge(ride) {
   }
 }
 
+// #191 / EXP-428 — the driver-facing surface. The success overlay is otherwise
+// entirely hitchhiker-facing; "Show the driver" reopens the ride card the visitor
+// just made as a full-screen image they can turn towards the driver who dropped
+// them off (a recognised map, a real ride logged — no authored copy, just the card
+// that already exists). The bet (a driver who stops again, driver word-of-mouth) is
+// unmeasurable; the tap rate is the instrument. Denominator: shown_to_driver_available,
+// fired once whenever the button is offered. >10% taps reopens a driver branch, <2%
+// kills it, measured against live in-car finishes (~53-73 / 28 d).
+function wireShowDriverButton(dataUrl) {
+  const btn = $$("#success-show-driver-btn");
+  if (!btn || !dataUrl) return;
+  btn.style.display = "block";
+  hmTrack("shown_to_driver_available", {});
+  btn.onclick = function () {
+    hmTrack("shown_to_driver", {});
+    showDriverFullscreen(dataUrl);
+  };
+}
+
+// A plain black backdrop with the card image scaled to fit. Tap anywhere or Esc to
+// dismiss — no controls, because the phone is being handed to someone else.
+function showDriverFullscreen(dataUrl) {
+  const back = document.createElement("div");
+  back.className = "driver-card-backdrop";
+  const image = document.createElement("img");
+  image.src = dataUrl;
+  image.alt = tr("Your hitchhiking ride as a shareable image");
+  back.appendChild(image);
+  const close = function () {
+    back.remove();
+    document.removeEventListener("keydown", onKey);
+  };
+  const onKey = function (e) {
+    if (e.key === "Escape") close();
+  };
+  back.addEventListener("click", close);
+  document.addEventListener("keydown", onKey);
+  document.body.appendChild(back);
+}
+
 // Builds the shareable image and wires the share button. Anything that goes wrong
 // (no stashed ride, no network for the tiles, a browser without canvas export)
 // degrades to sharing just the text + link — never to a broken overlay.
@@ -3948,6 +4108,13 @@ function setupShareCard(opts) {
   // cached copy of the old overlay markup. Bail out to the plain success message
   // rather than throwing on the missing elements.
   if (!shareBtn || !status || !img || !caption) return;
+  // Hidden until this run's card actually renders — the overlay markup is reused, so a
+  // previous ride's "Show the driver" button must not linger over a failed card.
+  const driverBtn = $$("#success-show-driver-btn");
+  if (driverBtn) {
+    driverBtn.style.display = "none";
+    driverBtn.onclick = null;
+  }
   // showSuccessOverlay already resolved the direct/stashed hand-off once so every
   // post-submit feature sees the same ride.
   const ride = opts && opts.ride;
@@ -3994,6 +4161,7 @@ function setupShareCard(opts) {
       img.style.display = "block";
       status.style.display = "none";
       caption.textContent = result.text;
+      wireShowDriverButton(result.dataUrl);
       shareBtn.disabled = false;
       shareBtn.onclick = function () {
         return doShare({ text: result.text, url: result.url, files: [result.blob] });
@@ -4084,10 +4252,21 @@ function setupShareCard(opts) {
 // nothing new about whether the first one converted.
 const SIGNUP_PROMPT_SEEN_KEY = "signupPromptSeen";
 const INVITE_PROMPT_SEEN_KEY = "invitePromptSeen";
+// The co-hitchhiker invite is the one nudge worth repeating: it targets a
+// different travel companion each time, not the same undecided anonymous user.
+const INVITE_PROMPT_MAX_AGE_DAYS = 90;
 
-function promptSeen(key) {
+function promptSeen(key, maxAgeDays) {
   try {
-    return localStorage.getItem(key) === "1";
+    const raw = localStorage.getItem(key);
+    if (!raw) return false;
+    // maxAgeDays lets a nudge return after a while: someone who hitchhikes with
+    // five different people over a year should be asked to invite more than once.
+    // Without it (the anon sign-up prompt) the marker is permanent, as before.
+    if (!maxAgeDays || raw === "1") return true; // "1" is the pre-timestamp marker
+    const ts = parseInt(raw, 10);
+    if (!ts) return true;
+    return Date.now() - ts < maxAgeDays * 86400000;
   } catch (e) {
     // No localStorage (private mode / blocked storage) means we can't remember a
     // dismissal, so treat the prompt as already seen rather than show it forever.
@@ -4097,7 +4276,7 @@ function promptSeen(key) {
 
 function markPromptSeen(key) {
   try {
-    localStorage.setItem(key, "1");
+    localStorage.setItem(key, String(Date.now()));
   } catch (e) {}
 }
 
@@ -4134,14 +4313,10 @@ function showSignupPromptOverlay(opts) {
     overlay.style.display = "none";
     showSuccessOverlay(opts);
   };
-  // Same feedback_link_clicked event as the success overlay's own copy of this
-  // link -- source distinguishes which placement it fired from.
-  const feedbackLink = $$("#signup-prompt-feedback-link");
-  if (feedbackLink) {
-    feedbackLink.onclick = function () {
-      hmTrack("feedback_link_clicked", { source: "signup-prompt" });
-    };
-  }
+  // #254: this overlay linked to the same dead Google Form as the success one.
+  // Replaced with the inline widget -- and here the email field matters, since
+  // this overlay only ever shows to an anonymous visitor.
+  setupMapFeedback($$('.map-feedback[data-source="signup-prompt"]'), "signup-prompt");
 }
 
 // The OAuth callback adds this one-time marker when the anonymous post-ride
@@ -4213,7 +4388,8 @@ function showInvitePromptOverlay(opts) {
 // plain success overlay once it has had its one showing.
 function showPostSubmitOverlay(kind, opts) {
   if (kind === "anon" && !promptSeen(SIGNUP_PROMPT_SEEN_KEY)) showSignupPromptOverlay(opts);
-  else if (kind === "invite" && !promptSeen(INVITE_PROMPT_SEEN_KEY)) showInvitePromptOverlay(opts);
+  else if (kind === "invite" && !promptSeen(INVITE_PROMPT_SEEN_KEY, INVITE_PROMPT_MAX_AGE_DAYS))
+    showInvitePromptOverlay(opts);
   else showSuccessOverlay(opts);
 }
 

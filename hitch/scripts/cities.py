@@ -3,7 +3,9 @@
 import html
 import json
 import logging
+import math
 import os
+import statistics
 import urllib.parse
 import zipfile
 from datetime import date
@@ -126,9 +128,31 @@ city_index = env.get_template("city_index.html")
 # Load rides directly from the ride_event table (rides.json may not exist yet on a
 # fresh install; the DB is the canonical source — see CLAUDE.md "Database Storage").
 logger.info("Loading rides from ride_event table")
-rides = pd.read_sql("select stops, comment, hitchhikers, submission_time from ride_event", get_db())
+rides = pd.read_sql("select stops, comment, hitchhikers, submission_time, rating from ride_event", get_db())
 rides["stops"] = rides["stops"].apply(lambda x: json.loads(x) if isinstance(x, str) else x)
 rides["hitchhikers"] = rides["hitchhikers"].apply(lambda x: json.loads(x) if isinstance(x, str) else x)
+rides["rating_num"] = pd.to_numeric(rides["rating"], errors="coerce")
+
+
+def _wait_min(stops):
+    """Minutes waited before the pickup, from stops[0].waiting_duration ("PT25M").
+
+    Same shallow read cities.py already does for coordinates -- no merge of the
+    derived_ride_wait table. Multi-hour ISO durations ("PT1H30M") fail the int()
+    and return None, which is fine: they are all well past the 60-min bar anyway.
+    """
+    if not isinstance(stops, list) or not stops or not isinstance(stops[0], dict):
+        return None
+    w = stops[0].get("waiting_duration")
+    if not isinstance(w, str):
+        return None
+    try:
+        return int(w.replace("PT", "").replace("M", ""))
+    except ValueError:
+        return None
+
+
+rides["wait_min"] = rides["stops"].apply(_wait_min)
 
 
 def _hitchhiker_name(hitchhikers):
@@ -223,6 +247,96 @@ def haversine_km(lat1, lon1, lat2, lon2):
     return 6371 * 2 * np.arcsin(np.sqrt(a))
 
 
+# "The easiest first hitchhike out of this city" (automation repo #244). Within
+# FH_RADIUS_KM of the centre, group our own logged pickups into ~1.1 km cells and
+# pick the best-evidenced one: the spot a first-timer should walk to. Every number
+# is from ride_event (rating column + parsed waiting_duration) -- nothing authored.
+# Bar: a cell needs >= FH_MIN_RIDES rides, mean rating >= FH_BAR_RATING, and a 90th
+# -percentile wait <= FH_BAR_P90_WAIT min, or the city gets no line. Mirrors
+# scripts/b244_city_first_hitch.py in the automation repo, which validated the bar
+# against the same corpus (26 of 54 candidate cities cleared it).
+FH_RADIUS_KM = 30.0
+FH_CELL_DEG = 0.01
+FH_MIN_RIDES = 10
+FH_BAR_RATING = 4.0
+FH_BAR_P90_WAIT = 60.0
+FH_COMPASS = ["north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"]
+
+
+def _hav_km(lat1, lon1, lat2, lon2):
+    """Scalar haversine (km) -- the module `haversine_km` above is vectorised over arrays."""
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dp, dl = math.radians(lat2 - lat1), math.radians(lon2 - lon1)
+    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    return 2 * 6371.0 * math.asin(math.sqrt(a))
+
+
+def _compass(lat1, lon1, lat2, lon2):
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dl = math.radians(lon2 - lon1)
+    y = math.sin(dl) * math.cos(p2)
+    x = math.cos(p1) * math.sin(p2) - math.sin(p1) * math.cos(p2) * math.cos(dl)
+    deg = (math.degrees(math.atan2(y, x)) + 360) % 360
+    return FH_COMPASS[round(deg / 45) % 8]
+
+
+def _p90(values):
+    if not values:
+        return None
+    s = sorted(values)
+    return s[min(len(s) - 1, math.ceil(0.9 * len(s)) - 1)]
+
+
+def _first_hitch(city_lat, city_lng, pickup_rides):
+    """Best-evidenced starting cell for `city`, or None if nothing clears the bar.
+
+    pickup_rides: a DataFrame slice with lat / lon / rating_num / wait_min columns
+    (rides whose pickup is near the city). Returned dict is language-independent,
+    so cities.py computes it once per city and hands the same object to every
+    language's render.
+    """
+    if pickup_rides is None or len(pickup_rides) < FH_MIN_RIDES:
+        return None
+    cells = {}
+    for lat, lon, rating, wait in pickup_rides.itertuples(index=False):
+        if pd.isna(lat) or pd.isna(lon):
+            continue
+        if _hav_km(city_lat, city_lng, lat, lon) > FH_RADIUS_KM:
+            continue
+        key = (round(lat / FH_CELL_DEG) * FH_CELL_DEG, round(lon / FH_CELL_DEG) * FH_CELL_DEG)
+        cells.setdefault(key, []).append(
+            (None if pd.isna(rating) else float(rating), None if wait is None or pd.isna(wait) else float(wait))
+        )
+    best = None
+    for key, pts in cells.items():
+        n = len(pts)
+        if n < FH_MIN_RIDES:
+            continue
+        ratings = [r for r, _ in pts if r is not None]
+        waits = [w for _, w in pts if w is not None]
+        if not ratings:
+            continue
+        mean_r = statistics.mean(ratings)
+        p90_w = _p90(waits)
+        if mean_r < FH_BAR_RATING or (p90_w if p90_w is not None else 999) > FH_BAR_P90_WAIT:
+            continue
+        score = (round(mean_r, 2), -(round(p90_w, 1) if p90_w is not None else 999), n)
+        if best is None or score > best[0]:
+            best = (
+                score,
+                {
+                    "lat": round(key[0], 4),
+                    "lon": round(key[1], 4),
+                    "n": n,
+                    "mean_rating": round(mean_r, 1),
+                    "median_wait": int(round(statistics.median(waits))),
+                    "km_from_centre": round(_hav_km(city_lat, city_lng, key[0], key[1]), 1),
+                    "direction": _compass(city_lat, city_lng, key[0], key[1]),
+                },
+            )
+    return best[1] if best else None
+
+
 total_cities = len(cities)
 # Log progress every ~10% so cron logs show forward motion without spamming a line per city
 log_every = max(1, total_cities // 10)
@@ -256,9 +370,13 @@ for i, city in enumerate(cities.itertuples(), start=1):
     hits = near_pickup | near_dest
     # Rank on the UNCAPPED count: the page shows at most 20 reviews, so capping
     # first would tie thousands of cities at 20 and make the ranking meaningless.
-    matched.append((city, rides.index[hits][:20], int(hits.sum())))
+    # 4th element: the UNCAPPED pickup-only index, kept only when there are enough
+    # of them to bother running _first_hitch (a cell needs >= FH_MIN_RIDES). The
+    # 20-review cap on the 2nd element would otherwise starve the cell analysis.
+    pickup_idx = rides.index[near_pickup] if int(near_pickup.sum()) >= FH_MIN_RIDES else rides.index[:0]
+    matched.append((city, rides.index[hits][:20], int(hits.sum()), pickup_idx))
 
-rendered_cities = [total >= 3 for _, _, total in matched]
+rendered_cities = [m[2] >= 3 for m in matched]
 # The cities that earn every language: best-evidenced first. Keyed by position in
 # `matched` rather than by the row object, since pandas hands out a fresh namedtuple
 # per iteration and identity comparisons on those are a trap.
@@ -313,8 +431,14 @@ for _k, _pos in enumerate(renderable):
 
 translated_locs = []  # sitemap entries for the non-English versions
 for pos in renderable:
-    city, ride_idx, _total = matched[pos]
+    city, ride_idx, _total, pickup_idx = matched[pos]
     city_rides = rides.loc[ride_idx]
+    # Language-independent, so computed once here rather than inside the lang loop.
+    first_hitch = _first_hitch(
+        float(city.lat),
+        float(city.lng),
+        rides.loc[pickup_idx, ["lat", "lon", "rating_num", "wait_min"]] if len(pickup_idx) else None,
+    )
     langs = SUPPORTED_LANGUAGES if pos in translated_positions else ("en",)
     # Every version points at every other (and at the English x-default) so the
     # set reads as one page in 31 languages rather than 31 competing pages.
@@ -346,6 +470,7 @@ for pos in renderable:
                     alternate_urls=alternates,
                     nearby=nearby_links,
                     city_jsonld=_city_jsonld(city, place_label, canonical, city_rides),
+                    first_hitch=first_hitch,
                 )
             )
         if lang != "en":

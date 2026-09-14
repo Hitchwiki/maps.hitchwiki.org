@@ -30,7 +30,17 @@
     return /^[A-Z]{2}$/.test(code) ? `/spots_by_country/${code}.gpx` : null;
   }
 
+  function wireWorldGpx() {
+    const worldLink = document.getElementById("world-gpx-download");
+    if (!worldLink || worldLink.dataset.hmWired) return;
+    worldLink.dataset.hmWired = "1";
+    worldLink.addEventListener("click", function () {
+      if (typeof root.hmTrack === "function") root.hmTrack("world_gpx_downloaded");
+    });
+  }
+
   async function init() {
+    wireWorldGpx();
     const select = document.getElementById("country-gpx-select");
     const link = document.getElementById("country-gpx-download");
     const status = document.getElementById("country-gpx-status");
@@ -74,5 +84,5 @@
     });
   }
 
-  return { entries, size, href, init };
+  return { entries, size, href, init, wireWorldGpx };
 });

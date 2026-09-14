@@ -1198,6 +1198,38 @@ body.spots-loaded.has-start-bar:not(.inride-active) .leaflet-bottom.leaflet-righ
   text-decoration: underline;
 }
 
+/* #202 / EXP-432: "How people reached this spot" -- the most recent ride comment
+   that describes the transit/walking approach, lifted out of the ride stream. */
+.sidebar.show-spot .spot-access-hint {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #eee;
+}
+.sidebar.show-spot .spot-access-hint-label {
+  font-weight: 600;
+  color: #222;
+  margin-bottom: 0.4rem;
+}
+.sidebar.show-spot .spot-access-hint blockquote {
+  margin: 0;
+  padding: 0 0 0 0.75rem;
+  border-left: 3px solid #ddd;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #333;
+  white-space: pre-wrap;
+}
+.sidebar.show-spot .spot-access-hint a {
+  display: inline-block;
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+  color: #1a73e8;
+  text-decoration: none;
+}
+.sidebar.show-spot .spot-access-hint a:hover {
+  text-decoration: underline;
+}
+
 /* "Read on at Hitchwiki" call to action, shared by the country and event sheets.
    Wiki text shown on the map is only an excerpt; this is the hand-off that sends
    readers (and potential editors) to Hitchwiki itself, so it reads as an action
@@ -2332,6 +2364,68 @@ ul.no-style {
   margin: 0 24px 18px 0 !important;
 }
 
+/* #254: inline free-text feedback widget inside the success overlay. */
+.map-feedback-prompt {
+  margin: 0;
+}
+.map-feedback-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #2a7ae2;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.map-feedback-panel {
+  margin-top: 8px;
+}
+.map-feedback-text {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+  resize: vertical;
+}
+.map-feedback-thanks {
+  margin: 8px 0 0;
+  color: #2e7d32 !important;
+}
+.map-feedback-email {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+}
+/* #254 slice 2: the sampled post-action popup. Fixed card, bottom-centre, above
+   the map dock; the × in the corner hides #ambient-feedback-wrap. */
+#ambient-feedback-wrap {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 88px;
+  z-index: 1200;
+  max-width: 340px;
+  width: calc(100% - 32px);
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.25);
+  padding: 14px 16px;
+}
+#ambient-feedback-wrap .map-feedback-dismiss {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  color: #666;
+}
+
 /* The auto-grouped-trip line. Tinted rather than plain grey like .success-feedback:
    it is the one piece of news on this overlay the user did not ask for, so it has to
    read as a notice instead of blending into the feedback ask above it. */
@@ -2391,6 +2485,28 @@ ul.no-style {
 
 .signup-prompt-actions .success-close-btn {
   margin-top: 0;
+}
+
+/* #191 — the ride card shown full-screen to hand to the driver. Above the success
+   overlay (z-index 9999) so it covers it, plain black so the card is the only thing
+   on the phone that is being passed across. */
+.driver-card-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  cursor: pointer;
+}
+
+.driver-card-backdrop img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
 }
 
 @keyframes fadeIn {
@@ -3853,6 +3969,12 @@ body.routing-active .leaflet-control-container .leaflet-control-geocoder { displ
 .rp-via-toggle.open::before { transform: rotate(90deg); }
 .rp-via { list-style: none; margin: 2px 0 0; padding: 0 0 0 12px; }
 .rp-via li { font-size: 12px; padding: 1px 0; }
+
+/* What riders wrote about a boarding spot, under its ride leg. */
+.rp-evi { margin: 3px 0 0; display: flex; flex-direction: column; gap: 1px; }
+.rp-evi-sum { font-size: 12px; color: #3c4043; }
+.rp-evi-q { font-size: 12px; color: #5f6368; font-style: italic; }
+.rp-evi-d { font-style: normal; color: #80868b; white-space: nowrap; }
 
 /* Time tag floating on each route. */
 .route-tag-wrap { pointer-events: auto; }
