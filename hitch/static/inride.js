@@ -31,6 +31,7 @@
 
   const KEY = "inride.journey";
   const PENDING_KEY = "inride.pendingStart"; // only across the login redirect
+  const UNDO_TOAST_MS = 5000; // window for journeyFlow.start's undo toast (#16 slice 2)
 
   const journeyStore = {
     get() {
@@ -586,6 +587,18 @@
       source: startSource(source),
     });
     journeyUI.render(j);
+    // #16 slice 2 (EXP-505): 224/296 cancellations are an accidental Start, self-reported
+    // seconds later through the full "End journey?" dialog. Give the same correction a
+    // one-tap, un-tracked path for the next few seconds instead of taxing it with that
+    // round trip. Guarded by waitSegmentStartMs so a stale toast from an earlier start
+    // can never undo a *different*, already-progressed journey (resume, a later leg).
+    journeyUI.undoToast(T("Started tracking"), function () {
+      const cur = journeyStore.get();
+      if (!cur || cur.state !== "waiting" || cur.legIndex !== 0 || cur.waitSegmentStartMs !== j.waitSegmentStartMs) return;
+      hmTrack("journey_start_undo", { source: startSource(source) });
+      journeyStore.clear();
+      journeyUI.render(null);
+    });
   };
 
   // Show the co-hitcher modal, then seed the journey with whoever was added.
@@ -1302,6 +1315,28 @@
       t.textContent = msg;
       document.body.appendChild(t);
       setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 4000);
+    },
+
+    // Same shell as toast(), but with an action button. Tapping it dismisses the toast
+    // and calls onUndo immediately; letting it time out does nothing — the caller is
+    // responsible for deciding whether the thing it would undo is still undoable.
+    undoToast(msg, onUndo) {
+      const t = document.createElement("div");
+      t.className = "inr-toast inr-toast--undo";
+      const label = document.createElement("span");
+      label.textContent = msg;
+      t.appendChild(label);
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "inr-toast__undo";
+      btn.textContent = T("Undo");
+      btn.addEventListener("click", function () {
+        if (t.parentNode) t.parentNode.removeChild(t);
+        onUndo();
+      });
+      t.appendChild(btn);
+      document.body.appendChild(t);
+      setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, UNDO_TOAST_MS);
     },
 
     // Unified draggable-pin confirm step. Replaces the two near-identical pickers this

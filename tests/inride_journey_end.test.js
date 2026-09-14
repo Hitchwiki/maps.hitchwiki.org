@@ -29,19 +29,50 @@ function memoryStorage() {
 const loaded = [];
 test.after(() => loaded.forEach((stop) => stop()));
 
+// Enough of a DOM node to support undoToast()/toast(): appendChild/removeChild that
+// track parentage, and addEventListener/click for the undo button's tap handler.
+function makeNode() {
+  const node = {
+    style: {},
+    classList: { add() {}, remove() {} },
+    children: [],
+    listeners: {},
+    parentNode: null,
+    appendChild(child) {
+      child.parentNode = node;
+      node.children.push(child);
+      return child;
+    },
+    removeChild(child) {
+      const i = node.children.indexOf(child);
+      if (i >= 0) node.children.splice(i, 1);
+      child.parentNode = null;
+    },
+    addEventListener(evt, fn) {
+      node.listeners[evt] = fn;
+    },
+    click() {
+      if (node.listeners.click) node.listeners.click();
+    },
+  };
+  return node;
+}
+
 function loadInride({ online = true, loggedIn = false, fetchImpl = null, storage = null } = {}) {
   const overlays = [];
   const trips = [];
   const fetches = [];
+  const trackedEvents = [];
   // Real timers, so the d-tag poll can actually settle — but every handle is tracked and
   // cleared by stop(). The module arms a 100 ms poll waiting for window.map (which is
   // never set here), which would otherwise keep the test process alive forever.
   const timers = new Set();
 
+  const documentStub = { addEventListener: () => {}, createElement: () => makeNode(), body: makeNode() };
   const window = {
     RideSubmit,
     IS_LOGGED_IN: loggedIn,
-    hmTrack: () => {},
+    hmTrack: (name, props) => trackedEvents.push({ name, props }),
     addEventListener: () => {},
     location: { origin: "https://maps.example", hash: "", search: "" },
     // The two map.js entry points inride.js calls into.
@@ -51,7 +82,7 @@ function loadInride({ online = true, loggedIn = false, fetchImpl = null, storage
   const sandbox = {
     window,
     self: window,
-    document: { addEventListener: () => {}, createElement: () => ({ style: {}, classList: { add() {}, remove() {} } }), body: { classList: { add() {}, remove() {} } } },
+    document: documentStub,
     localStorage: storage || memoryStorage(),
     sessionStorage: memoryStorage(),
     navigator: { onLine: online, geolocation: {} },
@@ -89,7 +120,7 @@ function loadInride({ online = true, loggedIn = false, fetchImpl = null, storage
     timers.clear();
   };
   loaded.push(stop);
-  return { api: window.inride, overlays, trips, fetches, window, storage: sandbox.localStorage, stop };
+  return { api: window.inride, overlays, trips, fetches, trackedEvents, document: documentStub, window, storage: sandbox.localStorage, stop };
 }
 
 // The /ride reply for an uploaded ride: the server prefixes the client uuid with its source.
@@ -207,6 +238,54 @@ test("the journey log is cleared when the journey ends and when a new one starts
   api.journeyUI.render = () => {}; // start() draws the dock, which needs a real DOM
   api.journeyFlow.start(PICKUP, []);
   assert.strictEqual(api.journeyLogStore.get().length, 0, "a fresh journey inherits nothing");
+});
+
+// ── Start undo toast (#16 slice 2, EXP-505) ───────────────────────────────────
+
+// Digs the undo button out of whatever got appended to document.body by
+// journeyFlow.start()'s undoToast call.
+function findUndoButton(document) {
+  const toast = document.body.children[0];
+  return toast.children[1]; // [label, button]
+}
+
+test("starting a journey shows an undo toast wired to a distinct event", () => {
+  const { api, document } = loadInride({ online: false });
+  api.journeyUI.render = () => {};
+  api.journeyFlow.start(PICKUP, []);
+  assert.strictEqual(document.body.children.length, 1, "one toast appended");
+  const toast = document.body.children[0];
+  assert.strictEqual(toast.className, "inr-toast inr-toast--undo");
+});
+
+test("tapping Undo right after Start fires journey_start_undo, not journey_cancelled, and clears the journey", () => {
+  const { api, document, trackedEvents } = loadInride({ online: false });
+  api.journeyUI.render = () => {};
+  api.journeyFlow.start(PICKUP, []);
+  assert.ok(api.journeyStore.get(), "journey exists after start");
+
+  findUndoButton(document).click();
+
+  assert.strictEqual(api.journeyStore.get(), null, "undo clears the journey");
+  const names = trackedEvents.map((e) => e.name);
+  assert.ok(names.includes("journey_start_undo"));
+  assert.ok(!names.includes("journey_cancelled"), "undo must not pollute the cancellation metric it exists to fix");
+});
+
+test("a stale undo toast cannot discard a journey that has since progressed", () => {
+  const { api, document } = loadInride({ online: false });
+  api.journeyUI.render = () => {};
+  api.journeyFlow.start(PICKUP, []);
+  const undoBtn = findUndoButton(document);
+
+  // The journey moved on — e.g. resumed into a later leg — before the toast was tapped.
+  const cur = api.journeyStore.get();
+  api.journeyStore.set(Object.assign({}, cur, { legIndex: 1 }));
+
+  undoBtn.click();
+
+  assert.ok(api.journeyStore.get(), "the progressed journey must survive a stale undo tap");
+  assert.strictEqual(api.journeyStore.get().legIndex, 1);
 });
 
 // ── Auto-grouped trip ─────────────────────────────────────────────────────────
