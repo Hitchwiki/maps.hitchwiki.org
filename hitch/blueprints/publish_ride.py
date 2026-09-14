@@ -263,7 +263,16 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
     # Tristate: True / False / None (unanswered). `is not None` because an explicit
     # "no" is falsy but still an answer worth publishing.
     driver_would_ride_again = custom_object.get("driver_would_ride_again")
-    if driver_reasons or driver_country or driver_yob or driver_gender or driver_languages or driver_would_ride_again is not None:
+    driver_negative_experiences = custom_object.get("driver_negative_experiences") or []
+    if (
+        driver_reasons
+        or driver_country
+        or driver_yob
+        or driver_gender
+        or driver_languages
+        or driver_would_ride_again is not None
+        or driver_negative_experiences
+    ):
         occupants = [
             Occupant(
                 origin_country=driver_country,
@@ -273,6 +282,7 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
                 was_driver=True,
                 reasons_to_pick_up=list(driver_reasons) or None,
                 would_ride_again=driver_would_ride_again,
+                negative_experiences=list(driver_negative_experiences) or None,
             )
         ]
     else:

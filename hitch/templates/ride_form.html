@@ -365,6 +365,19 @@
                     </div>
                 </div>
 
+                {# Only asked after "No" above. Chips, not free text, so a rare-but-important
+                   safety signal (felt_unsafe) stays easy to tap and easy to analyse at volume. #}
+                <div id="negative-experience-row" style="margin-bottom:10px;" {{ 'hidden' if wra != 'no' else '' }}>
+                    <div style="font-weight:600; margin-bottom:4px;">{{ t("No worries — what made you say that?") }} <span style="font-weight:normal; color:#666;">{{ t("(select all that apply, optional)") }}</span></div>
+                    {% set selected_negative_experiences = ride_data.driver_negative_experiences if ride_data and ride_data.driver_negative_experiences else [] %}
+                    <input type="hidden" id="driver_negative_experiences" name="driver_negative_experiences" value="{{ selected_negative_experiences|join(',') }}">
+                    <div id="negative-experience-chips" class="inr-chips">
+                        {% for code, emoji, label in negative_experience_choices %}
+                        <button type="button" class="inr-optchip" data-code="{{ code }}">{{ emoji }} {{ t(label) }}</button>
+                        {% endfor %}
+                    </div>
+                </div>
+
                 <div style="margin-bottom:10px;">
                     <div style="font-weight:600; margin-bottom:4px;">{{ t("Why did they pick you up?") }} <span style="font-weight:normal; color:#666;">{{ t("(select all that apply)") }}</span></div>
                     {% set selected_reasons = ride_data.driver_reason_to_pick_up if ride_data and ride_data.driver_reason_to_pick_up else [] %}
@@ -640,6 +653,7 @@
             vehicle_license_plate_country: document.getElementById('vehicle_license_plate_country')?.value || '',
             vehicle_license_plate_identifier: document.getElementById('vehicle_license_plate_identifier')?.value || '',
             driver_would_ride_again: document.getElementById('driver_would_ride_again')?.value || '',
+            driver_negative_experiences: document.getElementById('driver_negative_experiences')?.value || '',
             driver_reason_to_pick_up: document.getElementById('driver_reason_to_pick_up')?.value || '',
             driver_origin_country: document.getElementById('driver_origin_country')?.value || '',
             driver_age: document.getElementById('driver_age')?.value || '',
@@ -751,6 +765,10 @@
                 }
             }
             if (data.vehicle_license_plate_identifier !== undefined) document.getElementById('vehicle_license_plate_identifier').value = data.vehicle_license_plate_identifier;
+            if (data.driver_negative_experiences !== undefined) {
+                document.getElementById('driver_negative_experiences').value = data.driver_negative_experiences;
+                if (window._negativeExperienceRenderTags) window._negativeExperienceRenderTags();
+            }
             if (data.driver_would_ride_again !== undefined) {
                 document.getElementById('driver_would_ride_again').value = data.driver_would_ride_again;
                 if (window._wouldRideAgainRender) window._wouldRideAgainRender();
@@ -1688,6 +1706,9 @@
     const rideReasonChip = initToggleChips({
         hiddenId: 'ride_reasons', chipsId: 'ride-reason-chips',
     });
+    const negativeExperienceChip = initToggleChips({
+        hiddenId: 'driver_negative_experiences', chipsId: 'negative-experience-chips',
+    });
     const reasonChip = initChipSelect({
         inputId: 'driver-reason-input', tagsId: 'driver-reason-tags',
         hiddenId: 'driver_reason_to_pick_up', datalistId: 'driver-reason-list',
@@ -1707,6 +1728,8 @@
             buttons.forEach(function (btn) {
                 btn.setAttribute('aria-pressed', String(btn.dataset.value === hidden.value));
             });
+            const row = document.getElementById('negative-experience-row');
+            if (row) row.hidden = hidden.value !== 'no';
         }
         buttons.forEach(function (btn) {
             btn.addEventListener('click', function () {
@@ -1883,6 +1906,7 @@
     if (languageChip) window._driverLanguagesRenderTags = languageChip.renderTags;
     if (hitchhikeReasonChip) window._hitchhikeReasonRenderTags = hitchhikeReasonChip.renderTags;
     if (rideReasonChip) window._rideReasonRenderTags = rideReasonChip.renderTags;
+    if (negativeExperienceChip) window._negativeExperienceRenderTags = negativeExperienceChip.renderTags;
 
     // B544 slice 2: fire ride_form_field_reached {field} the first time each key
     // field is touched, so the ~289 abandoners who leave with no visible

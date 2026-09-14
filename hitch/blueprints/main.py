@@ -40,6 +40,7 @@ from hitch.blueprints.publish_ride import (
 from hitch.blueprints.user import _extract_ride_info
 from hitch.blueprints.utils.driver_info_choices import (
     ALLOWED_GENDERS,
+    ALLOWED_NEGATIVE_EXPERIENCES,
     ALLOWED_REASONS_TO_HITCHHIKE,
     ALLOWED_REASONS_TO_PICK_UP,
     ALLOWED_RIDE_REASONS,
@@ -50,6 +51,8 @@ from hitch.blueprints.utils.driver_info_choices import (
     LANGUAGE_CHOICES,
     LANGUAGE_CODES,
     LANGUAGE_NAME_BY_CODE,
+    NEGATIVE_EXPERIENCE_CHOICES,
+    NEGATIVE_EXPERIENCE_DESCRIPTION_BY_CODE,
     REASON_DESCRIPTION_BY_CODE,
     REASON_TO_HITCHHIKE_CHOICES,
     REASON_TO_HITCHHIKE_DESCRIPTION_BY_CODE,
@@ -1089,11 +1092,17 @@ def ride_detail(d_tag):
             except (TypeError, ValueError):
                 age = None
         would_ride_again = driver_obj.get("would_ride_again")
+        negative_experiences_raw = driver_obj.get("negative_experiences") or []
+        if isinstance(negative_experiences_raw, str):
+            negative_experiences_raw = [negative_experiences_raw]
         driver = {
             # Tristate: True / False / None (unanswered). Templates must test `is not none`,
             # since an explicit "no" is falsy but still an answer worth showing.
             "would_ride_again": would_ride_again if isinstance(would_ride_again, bool) else None,
             "reasons": [REASON_DESCRIPTION_BY_CODE.get(r, r) for r in reasons_raw],
+            "negative_experiences": [
+                NEGATIVE_EXPERIENCE_DESCRIPTION_BY_CODE.get(r, r) for r in negative_experiences_raw
+            ],
             "origin_country_code": country_code,
             "origin_country_name": COUNTRY_NAME_BY_CODE.get(country_code) if country_code else None,
             "age": age,
@@ -1105,6 +1114,7 @@ def ride_detail(d_tag):
             [
                 driver["would_ride_again"] is not None,
                 driver["reasons"],
+                driver["negative_experiences"],
                 driver["origin_country_name"],
                 driver["age"],
                 driver["gender"],
@@ -1545,6 +1555,7 @@ def ride_form():
                     "vehicle_license_plate_country": "",
                     "vehicle_license_plate_identifier": "",
                     "driver_would_ride_again": "",
+                    "driver_negative_experiences": [],
                     "driver_reason_to_pick_up": [],
                     "driver_origin_country": "",
                     "driver_age": "",
@@ -1564,6 +1575,8 @@ def ride_form():
                     # Tristate -> the hidden input's 'yes' / 'no' / '' vocabulary.
                     wra = driver.get("would_ride_again")
                     ride_data["driver_would_ride_again"] = "" if wra is None else ("yes" if wra else "no")
+                    neg_experiences = driver.get("negative_experiences") or []
+                    ride_data["driver_negative_experiences"] = [e for e in neg_experiences if e in ALLOWED_NEGATIVE_EXPERIENCES]
                     ride_data["driver_origin_country"] = (driver.get("origin_country") or "").upper()
                     yob = driver.get("year_of_birth")
                     if yob:
@@ -1714,6 +1727,7 @@ def ride_form():
             reason_to_pick_up_choices=REASON_TO_PICK_UP_CHOICES,
             ride_reason_choices=RIDE_REASON_CHOICES,
             reason_to_hitchhike_choices=REASON_TO_HITCHHIKE_CHOICES,
+            negative_experience_choices=NEGATIVE_EXPERIENCE_CHOICES,
         )
 
     # POST request - process the form submission (same logic as experience route)
@@ -1732,6 +1746,9 @@ def ride_form():
         data["signal"] = [s.strip() for s in (data.get("signal") or "").split(",") if s.strip()]
         data["driver_reason_to_pick_up"] = [
             r.strip() for r in (data.get("driver_reason_to_pick_up") or "").split(",") if r.strip()
+        ]
+        data["driver_negative_experiences"] = [
+            r.strip() for r in (data.get("driver_negative_experiences") or "").split(",") if r.strip()
         ]
         data["ride_reasons"] = [r.strip() for r in (data.get("ride_reasons") or "").split(",") if r.strip()]
         data["reasons_to_hitchhike"] = [r.strip() for r in (data.get("reasons_to_hitchhike") or "").split(",") if r.strip()]
@@ -1772,6 +1789,7 @@ def ride_form():
             ):
                 data[field] = ""
             data["driver_reason_to_pick_up"] = []
+            data["driver_negative_experiences"] = []
             data["driver_languages"] = ""
             data["ride_reasons"] = []
         # The spot rating is optional on the retrospective /ride form (B544 slice 2):
@@ -1820,6 +1838,13 @@ def ride_form():
         wra_raw = (data.get("driver_would_ride_again") or "").strip()
         assert wra_raw in ("", "yes", "no"), f"Invalid would_ride_again: {wra_raw}"
         data["driver_would_ride_again"] = {"yes": True, "no": False}.get(wra_raw)
+
+        # negative_experiences: only meaningful alongside an explicit "no" -- the form
+        # hides the chip row otherwise, and a stale value must not travel with the ride.
+        negative_experiences = [r for r in data["driver_negative_experiences"] if r]
+        for r in negative_experiences:
+            assert r in ALLOWED_NEGATIVE_EXPERIENCES, f"Invalid negative_experience: {r}"
+        data["driver_negative_experiences"] = negative_experiences if wra_raw == "no" else []
 
         # Gender: empty or one of the enum values.
         driver_gender = (data.get("driver_gender") or "").strip()

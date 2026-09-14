@@ -55,6 +55,24 @@ REASON_TO_HITCHHIKE_CHOICES = [
 ALLOWED_REASONS_TO_HITCHHIKE = [code for code, _, _ in REASON_TO_HITCHHIKE_CHOICES]
 REASON_TO_HITCHHIKE_DESCRIPTION_BY_CODE = {code: desc for code, _, desc in REASON_TO_HITCHHIKE_CHOICES}
 
+# Why a hitchhiker would *not* take a ride with this occupant again — the standard's
+# `occupant.negative_experiences`. Keys must stay in sync with NegativeExperienceEnum.
+# Deliberately a gentle, specific chip set rather than a free-text box or a single
+# "bad experience" flag: naming the category is easier to tap than to type, and keeps
+# a rare-but-important safety signal (e.g. felt_unsafe) analysable at volume.
+NEGATIVE_EXPERIENCE_CHOICES = [
+    ("unfriendly", "😐", "They were unfriendly"),
+    ("unsafe_driving", "🚗", "Driving felt unsafe"),
+    ("uncomfortable", "😕", "It felt uncomfortable"),
+    ("inappropriate_behavior", "🚫", "They behaved inappropriately"),
+    ("intoxicated", "🍺", "They seemed intoxicated"),
+    ("aggressive", "😠", "They were aggressive"),
+    ("expected_something_in_return", "🤝", "They expected something in return"),
+    ("felt_unsafe", "⚠️", "I felt unsafe"),
+]
+ALLOWED_NEGATIVE_EXPERIENCES = [code for code, _, _ in NEGATIVE_EXPERIENCE_CHOICES]
+NEGATIVE_EXPERIENCE_DESCRIPTION_BY_CODE = {code: desc for code, _, desc in NEGATIVE_EXPERIENCE_CHOICES}
+
 # (alpha_2, name) — sorted alphabetically by name.
 COUNTRY_CHOICES = sorted(
     [(c.alpha_2, c.name) for c in pycountry.countries],
