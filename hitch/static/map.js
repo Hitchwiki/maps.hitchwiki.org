@@ -2956,7 +2956,7 @@ function renderSpotSummary(data) {
 // `hists` defaults to nothing so a caller that only wants the plain summary lines
 // (no canvases to paint) can leave them out.
 function summaryText(data, hists = { wait: null, distance: null }) {
-  const osmLink = data.osm_id ? `<div>🚏 <a href="https://www.openstreetmap.org/node/${data.osm_id}" target="_blank" rel="noopener noreferrer">${tr("Official hitchhiking spot")}</a></div>` : '';
+  const osmLink = data.osm_id ? `<div>🚏 <a href="https://www.openstreetmap.org/node/${data.osm_id}" target="_blank" rel="noopener noreferrer">${tr("Official hitchhiking spot")}</a></div><div><a href="/mitfahrbaenke?lat=${encodeURIComponent(data.lat)}&lon=${encodeURIComponent(data.lon)}">Betreuen Sie diesen Mitfahrhalt? Lokalen Bericht ansehen.</a></div>` : '';
   const carPoolingLink = data.car_pooling
     ? `<div>🚗 <a href="https://www.openstreetmap.org/${data.car_pooling.osm_type}/${data.car_pooling.id}" target="_blank" rel="noopener noreferrer">${tr("Car pooling spot")}</a></div>`
     : '';
