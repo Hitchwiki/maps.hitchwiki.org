@@ -9,7 +9,8 @@ const source = fs.readFileSync(
 
 test("pickup sheet offers only bounded standard driver-reason codes", () => {
   const expected = [
-    "was_hitchhiker", "social_exchange", "curiosity", "sympathy", "environmental",
+    "was_hitchhiker", "hospitality_norm", "social_exchange", "curiosity",
+    "wanted_driver", "elevated_mood", "sympathy",
   ];
   for (const code of expected) assert.match(source, new RegExp(`code: "${code}"`));
   assert.match(source, /driver_reason_to_pick_up: driverReason \? \[driverReason\] : \[\]/);
