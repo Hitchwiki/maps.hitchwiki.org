@@ -3944,6 +3944,8 @@ function showSuccessOverlay(opts) {
   renderTripCreatedNote();
   renderReturnNudge();
   renderWikiContributionNudge(successRide);
+  renderTrustrootsNudge();
+  renderCampwildNudge();
   shareCompleted = false;
 
   // Dismissing the overlay returns to the map the user submitted from — no
@@ -4103,6 +4105,47 @@ async function renderWikiContributionNudge(ride) {
     // This is an optional invitation. A missing/stale detail file must never damage
     // the post-submit success screen or its share action.
   }
+}
+
+// B590 — Till's instruction: find good points in the flow to point people at
+// Trustroots (finding hosts along a route) and campwild.org (logging a wild
+// camping spot). The moment right after logging a ride is when someone is
+// most concretely mid-trip, so both links live in the same success overlay as
+// the other optional nudges above. Shown unconditionally (there is no reliable
+// signal for "needs a host tonight" or "is camping tonight") and worded so
+// each is self-selecting rather than presented as if it applies to everyone.
+function renderTrustrootsNudge() {
+  const note = $$("#success-trustroots-nudge");
+  if (!note) return; // an old cached copy of the overlay markup (see setupShareCard)
+  note.textContent = "";
+  const link = document.createElement("a");
+  link.href = "https://www.trustroots.org";
+  link.target = "_blank";
+  link.rel = "noopener";
+  link.textContent = tr("Staying on the road? Sign up to Trustroots and look for hosts along your route");
+  link.onclick = function () {
+    hmTrack("trustroots_nudge_clicked", { source: "success-overlay" });
+  };
+  note.appendChild(link);
+  note.style.display = "block";
+  hmTrack("trustroots_nudge_shown", { source: "success-overlay" });
+}
+
+function renderCampwildNudge() {
+  const note = $$("#success-campwild-nudge");
+  if (!note) return; // an old cached copy of the overlay markup (see setupShareCard)
+  note.textContent = "";
+  const link = document.createElement("a");
+  link.href = "https://campwild.org";
+  link.target = "_blank";
+  link.rel = "noopener";
+  link.textContent = tr("Camping tonight? Log the spot on campwild.org so the next hitchhiker finds it");
+  link.onclick = function () {
+    hmTrack("campwild_nudge_clicked", { source: "success-overlay" });
+  };
+  note.appendChild(link);
+  note.style.display = "block";
+  hmTrack("campwild_nudge_shown", { source: "success-overlay" });
 }
 
 // #191 / EXP-428 — the driver-facing surface. The success overlay is otherwise
