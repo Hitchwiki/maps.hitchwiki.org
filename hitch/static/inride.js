@@ -1673,10 +1673,12 @@
       reasonChipsEl.className = "inr-chips";
       [
         { code: "was_hitchhiker", label: "🎒 " + T("Hitchhiked before") },
+        { code: "hospitality_norm", label: "🫶 " + T("Likes helping strangers") },
         { code: "social_exchange", label: "💬 " + T("Wanted company") },
         { code: "curiosity", label: "❓ " + T("Curious") },
-        { code: "sympathy", label: "🤝 " + T("Wanted to help") },
-        { code: "environmental", label: "🌱 " + T("Empty seat") },
+        { code: "wanted_driver", label: "🚗 " + T("Wanted help driving / navigating") },
+        { code: "elevated_mood", label: "😊 " + T("In a good mood / feeling generous") },
+        { code: "sympathy", label: "🤝 " + T("Felt sorry for me") },
       ].forEach(function (opt) {
         const chip = document.createElement("button");
         chip.type = "button";
