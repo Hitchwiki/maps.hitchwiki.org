@@ -10,11 +10,11 @@ import warnings
 
 import numpy as np
 import pandas as pd
+import reverse_geocoder as rg
 from flask import current_app
 from shapely import STRtree
 from shapely.geometry import Point
 from shapely.wkt import loads as wkt_loads
-import reverse_geocoder as rg
 from sklearn.cluster import DBSCAN
 from sklearn.exceptions import InconsistentVersionWarning
 
