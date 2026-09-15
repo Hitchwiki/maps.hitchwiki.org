@@ -862,6 +862,17 @@ function countryStyle(feature) {
 
 let countryRatings = null;
 
+// B594 slice 2: driver-contact-method-by-country (idea #357), keyed by the spot's own
+// reverse-geocoded `country` (show.py). Fetched once, eagerly, at script load rather than
+// lazily like loadCountriesGeoJson() -- renderSpotSummary is synchronous and cannot await a
+// fetch mid-render, so the cache has to already be a plain object (not a promise) by the
+// time a spot is clicked. A click before the ~5 KB file lands just omits the line.
+let driverContactByCountry = null;
+fetch("/static/driver_contact_by_country.json")
+  .then((r) => (r.ok ? r.json() : null))
+  .then((data) => { driverContactByCountry = data; })
+  .catch(() => { driverContactByCountry = null; });
+
 // The country boundaries, fetched at most once per page: three unrelated things want
 // them (the choropleth, the name→ISO lookup, the heatmap outlines) and the file is
 // ~250 KB, so each of them holding its own fetch was a download per map mode.
@@ -3029,6 +3040,27 @@ function summaryText(data, hists = { wait: null, distance: null }) {
       </div>`
     : '';
 
+  // B594 / idea #357: one factual aggregate line -- how drivers are usually approached in
+  // this country, from data/driver_contact_by_country.json (63 countries, n>=30 rides each).
+  // A beginner arriving in a country where `ask` is normal but they only know `thumb` (their
+  // home country's norm) is exactly the gap this targets. `data.country` comes from show.py's
+  // offline reverse-geocode of the spot's own coordinate; a country outside the 63 shipped
+  // (too few logged rides) simply renders nothing.
+  const countryContact = driverContactByCountry && data.country && driverContactByCountry[data.country]
+    ? (() => {
+        const c = driverContactByCountry[data.country];
+        const ask = (c.shares.ask || 0) + (c.shares["ask-sign"] || 0);
+        return `<div class="spot-country-contact">
+            <div class="spot-country-contact-label">🤝 ${tr("How drivers are approached in {country}", { country: c.name })}</div>
+            <div>${tr("Thumb {thumb} · Sign {sign} · Ask {ask}", {
+              thumb: `${Math.round(c.shares.thumb * 100)}%`,
+              sign: `${Math.round(c.shares.sign * 100)}%`,
+              ask: `${Math.round(ask * 100)}%`,
+            })}</div>
+          </div>`;
+      })()
+    : '';
+
   const wait = !data.wait || Number.isNaN(data.wait) ? "-" : tr("{n} min", { n: data.wait.toFixed(0) });
   const distance = !data.distance || Number.isNaN(data.distance) ? "-" : formatDistance(data.distance);
   // "-" like the two above rather than the bare value: with a filter active the subset
@@ -3053,7 +3085,7 @@ function summaryText(data, hists = { wait: null, distance: null }) {
     <div>${tr("Ride distance: {distance}", { distance })}</div>
     ${spotHistogramMarkup(scaleHistToDisplay(hists.distance), "spot-distance-hist", distanceUnitLabel())}
     ${lastConfirmed ? `<div class="spot-last-confirmed">${tr("Last confirmed: {date}", { date: lastConfirmed })}</div>` : ''}
-    ${osmLink}${carPoolingLink}${fuelLink}${hitchwikiLink}${hitchwikiMapLink}${hitchwikiNearbyLink}${spotWikiExcerpt}${accessHint}`;
+    ${osmLink}${carPoolingLink}${fuelLink}${hitchwikiLink}${hitchwikiMapLink}${hitchwikiNearbyLink}${spotWikiExcerpt}${accessHint}${countryContact}`;
 }
 
 async function handleMarkerClick(marker, point, e) {
@@ -3107,6 +3139,13 @@ async function handleMarkerClick(marker, point, e) {
         // stream for this spot. No spot id, same privacy rule as spot_opened.
         if ((payload.spot || {}).access_hint) {
           hmTrack('spot_access_hint_shown', {});
+        }
+        // B594 / idea #357: the driver-contact-by-country line was shown. No spot id,
+        // same privacy rule as spot_opened -- only the country code, an aggregate fact
+        // already public on the spot sheet itself.
+        const spotCountry = (payload.spot || {}).country;
+        if (spotCountry && driverContactByCountry && driverContactByCountry[spotCountry]) {
+          hmTrack('spot_country_contact_shown', { country: spotCountry });
         }
       }
     } else if (resp.status !== 404) {

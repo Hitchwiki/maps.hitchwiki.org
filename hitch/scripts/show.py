@@ -10,6 +10,7 @@ import warnings
 
 import numpy as np
 import pandas as pd
+import reverse_geocoder as rg
 from flask import current_app
 from shapely import STRtree
 from shapely.geometry import Point
@@ -1068,6 +1069,14 @@ except (pd.errors.DatabaseError, sqlite3.OperationalError):
     geocoded_names = {}
 logger.info(f"Loaded {len(geocoded_names)} cached geocoded spot names")
 
+# Offline reverse-geocode of every spot's own coordinate, same batched
+# `rg.search` call country_ratings.py already uses for ride starts (no API
+# calls, no network). Feeds the per-spot `country` field below, which the
+# spot pane uses to look up driver_contact_by_country.json (B594 slice 2).
+logger.info("Reverse-geocoding spot countries")
+_country_results = rg.search(list(zip(places["lat"].tolist(), places["lon"].tolist())))
+places["country"] = [r["cc"] for r in _country_results]
+
 logger.info("Generating JSON data files")
 
 # spots.json is downloaded by every visitor on map load, so it only carries
@@ -1127,6 +1136,11 @@ for _, place in places.iterrows():
     )
     if name:
         detail["name"] = name
+    # ISO-3166-1 alpha-2, from the offline reverse-geocode above. Lives in the
+    # per-spot file, not spots.json, for the same reason `name` does: nothing
+    # needs it before a marker is clicked.
+    if place["country"]:
+        detail["country"] = place["country"]
     # The popup only ever shows these as whole numbers (toFixed(0)), so store
     # them rounded to ints — smaller payload, no precision the UI would use.
     if pd.notna(place["wait"]):

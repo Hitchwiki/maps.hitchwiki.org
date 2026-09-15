@@ -1230,6 +1230,19 @@ body.spots-loaded.has-start-bar:not(.inride-active) .leaflet-bottom.leaflet-righ
   text-decoration: underline;
 }
 
+/* B594 / idea #357: "How drivers are approached in {country}" -- thumb/sign/ask shares
+   from data/driver_contact_by_country.json, keyed by the spot's reverse-geocoded country. */
+.sidebar.show-spot .spot-country-contact {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #eee;
+}
+.sidebar.show-spot .spot-country-contact-label {
+  font-weight: 600;
+  color: #222;
+  margin-bottom: 0.4rem;
+}
+
 /* "Read on at Hitchwiki" call to action, shared by the country and event sheets.
    Wiki text shown on the map is only an excerpt; this is the hand-off that sends
    readers (and potential editors) to Hitchwiki itself, so it reads as an action
