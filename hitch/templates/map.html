@@ -861,6 +861,13 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
         <!-- A long ride note is also useful on the matching Hitchwiki page. Filled only
              when the just-logged ride can be matched to an existing article. -->
         <p id="success-wiki-contribute" class="success-trip-note" style="display: none;"></p>
+        <!-- B590: Till's instruction -- surface Trustroots (finding hosts along a route)
+             and campwild.org (logging a wild camping spot) at the moment someone has
+             just logged a ride, i.e. is actively traveling. Shown to everyone, since
+             there is no reliable signal here for "is about to need a host" or "is
+             camping tonight" -- both links are opt-in by their own wording. -->
+        <p id="success-trustroots-nudge" class="success-trip-note" style="display: none;"></p>
+        <p id="success-campwild-nudge" class="success-trip-note" style="display: none;"></p>
         <div id="success-share-block">
             <h2>{{ t("Show your friends") }}</h2>
             <p class="success-share-sub">{{ t("Send them the map of your ride — it's how most hitchhikers find us.") }}</p>
