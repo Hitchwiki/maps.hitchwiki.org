@@ -3985,6 +3985,7 @@ function showSuccessOverlay(opts) {
   renderWikiContributionNudge(successRide);
   renderTrustrootsNudge();
   renderCampwildNudge();
+  renderDriverPledgeNudge();
   shareCompleted = false;
 
   // Dismissing the overlay returns to the map the user submitted from — no
@@ -4185,6 +4186,37 @@ function renderCampwildNudge() {
   note.appendChild(link);
   note.style.display = "block";
   hmTrack("campwild_nudge_shown", { source: "success-overlay" });
+}
+
+// #377 slice 1(b) — a one-tap commitment device shown right after a successful
+// ride. The bet (a hitchhiker who pledges is likelier than a random driver to
+// actually stop) is unmeasurable directly; the tap rate is the instrument.
+// Denominator: driver_pledge_shown, fired every time the overlay renders — the
+// same shown/clicked pairing #191/EXP-428 already uses below. 14-day tap-rate
+// read against a <5% kill condition (research/idea-377-slice1a-pledge-
+// population-2026-09-16.md sizes the addressable pool at ~1,281 loggers/year).
+const DRIVER_PLEDGE_MADE_KEY = "hmDriverPledgeMade";
+
+function renderDriverPledgeNudge() {
+  const btn = $$("#success-driver-pledge-btn");
+  const note = $$("#success-driver-pledge-note");
+  if (!btn || !note) return; // an old cached copy of the overlay markup (see setupShareCard)
+  note.style.display = "none";
+  note.textContent = "";
+  if (localStorage.getItem(DRIVER_PLEDGE_MADE_KEY)) {
+    btn.style.display = "none";
+    return;
+  }
+  btn.style.display = "block";
+  btn.disabled = false;
+  hmTrack("driver_pledge_shown", {});
+  btn.onclick = function () {
+    hmTrack("driver_pledge_clicked", {});
+    localStorage.setItem(DRIVER_PLEDGE_MADE_KEY, "1");
+    btn.style.display = "none";
+    note.textContent = tr("Pledge made — thank you.");
+    note.style.display = "block";
+  };
 }
 
 // #191 / EXP-428 — the driver-facing surface. The success overlay is otherwise
