@@ -869,6 +869,18 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
              camping tonight" -- both links are opt-in by their own wording. -->
         <p id="success-trustroots-nudge" class="success-trip-note" style="display: none;"></p>
         <p id="success-campwild-nudge" class="success-trip-note" style="display: none;"></p>
+        <!-- #377 slice 1(b): a one-tap commitment device, right after a successful ride --
+             the moment someone is most positively primed about hitchhiking. #368/#377's
+             prior (EXP-529: 18-21% of driver pick-up reasons are a former or current
+             hitchhiker themselves, vs a low-single-digit general-population base rate)
+             is the bet: a hitchhiker who pledges to stop for the next one, someday when
+             they're driving, is far likelier to actually do it than a random driver
+             asked cold. Unmeasurable whether a pledge is kept; the tap rate against
+             shown_to_pledge_available is the instrument, same convention as #191's
+             "Show the driver" button. Shown unconditionally, like the Trustroots/campwild
+             nudges above -- there is no signal for "owns a car" to gate it on. -->
+        <button type="button" id="success-driver-pledge-btn" class="success-secondary-btn" style="display: none; margin: 0 auto 12px;">{{ t("I'll stop for a hitchhiker when I'm driving") }}</button>
+        <p id="success-driver-pledge-note" class="success-trip-note" style="display: none;"></p>
         <div id="success-share-block">
             <h2>{{ t("Show your friends") }}</h2>
             <p class="success-share-sub">{{ t("Send them the map of your ride — it's how most hitchhikers find us.") }}</p>
