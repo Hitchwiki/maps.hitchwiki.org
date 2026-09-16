@@ -75,11 +75,36 @@
     </div>
     {% endfor %}
   {% else %}
-    <p style="color:#666; font-size:0.9em;">{{ t("Nobody has logged this route yet — be the first.") }}</p>
+    <p style="color:#666; font-size:0.9em;">
+      {% if race.corridor_ride_count %}
+        {{ t("Nobody has logged a full chain yet, but {n} ride is already logged near this corridor — be the first to link them up.", n=race.corridor_ride_count) if race.corridor_ride_count == 1 else t("Nobody has logged a full chain yet, but {n} rides are already logged near this corridor — be the first to link them up.", n=race.corridor_ride_count) }}
+      {% else %}
+        {{ t("Nobody has logged this route yet — be the first.") }}
+      {% endif %}
+    </p>
+  {% endif %}
+  {% if race.status != "upcoming" and race.start_lat is defined %}
+  <p style="margin:0.6rem 0 0;">
+    <a href="/dir/{{ race.start_lat }},{{ race.start_lon }}/{{ race.finish_lat }},{{ race.finish_lon }}"
+       class="race-cta" data-race-name="{{ race.name }}">
+      {{ t("See this route on the map") }}
+    </a>
+  </p>
   {% endif %}
 </div>
 {% else %}
 <p style="color:#666; font-size:0.9em;">{{ t("No race is running right now, and none starts within the next month.") }}</p>
 {% endfor %}
+
+<script>
+ if (window.hmTrack) window.hmTrack('race_page_opened', { race_count: {{ races | length }} });
+ (function () {
+   document.querySelectorAll('.race-cta').forEach(function (link) {
+     link.addEventListener('click', function () {
+       if (window.hmTrack) window.hmTrack('race_page_cta_clicked', { race: link.dataset.raceName });
+     });
+   });
+ })();
+</script>
 {% endblock %}
 
