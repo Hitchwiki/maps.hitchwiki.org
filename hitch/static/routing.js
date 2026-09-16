@@ -1287,13 +1287,54 @@
     return ol;
   }
 
+  // A "today" answer is retained on-device (localStorage, same key the in-ride
+  // tracker's own state lives under) for up to 12h and only through the end of
+  // that calendar day — EXP-506 found "today" answerers convert to a journey
+  // at 23% vs 0% for the other two choices, worth a same-day nudge for. Still
+  // anonymous and same-device only: no server write, no cross-session id.
+  // "this-week"/"exploring" clear any prior record instead — replanning with a
+  // cooler answer should downgrade, not leave a stale "today" nudge armed.
+  const ROUTE_INTENT_KEY = "hmRouteIntent";
+  function readRouteIntent() {
+    let raw;
+    try { raw = localStorage.getItem(ROUTE_INTENT_KEY); } catch (e) { return null; }
+    if (!raw) return null;
+    let rec;
+    try { rec = JSON.parse(raw); } catch (e) { rec = null; }
+    if (!rec || rec.day !== todayLocal() || Date.now() - rec.ts > 12 * 3600000) {
+      try { localStorage.removeItem(ROUTE_INTENT_KEY); } catch (e) {}
+      return null;
+    }
+    return rec;
+  }
+  function writeRouteIntent(intent) {
+    try {
+      if (intent === "today") {
+        localStorage.setItem(ROUTE_INTENT_KEY, JSON.stringify({ intent: intent, ts: Date.now(), day: todayLocal() }));
+      } else {
+        localStorage.removeItem(ROUTE_INTENT_KEY);
+      }
+    } catch (e) { /* private browsing / storage full: the nudge is a nice-to-have, not load-bearing */ }
+  }
+  function dismissRouteIntent() {
+    const rec = readRouteIntent();
+    if (!rec) return;
+    try { rec.dismissed = true; localStorage.setItem(ROUTE_INTENT_KEY, JSON.stringify(rec)); } catch (e) {}
+  }
+  function todayLocal() {
+    const d = new Date();
+    return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+  }
+  window.hmRouteIntent = { read: readRouteIntent, dismiss: dismissRouteIntent };
+
   function renderOptions() {
     const box = optionsBox();
     if (!box) return;
     box.innerHTML = "";
-    // One anonymous, optional intent choice per rendered route result. Nothing
-    // is retained and this does not schedule a reminder; it only measures the
-    // gap between planning and standing by the road.
+    // One anonymous, optional intent choice per rendered route result. A
+    // "today" answer is retained on-device for the rest of the day (see
+    // readRouteIntent/writeRouteIntent above) to drive an in-session nudge on
+    // the start bar; the other two answers schedule nothing and retain nothing.
     const intent = resultsSheet() && resultsSheet().querySelector(".rp-intent");
     if (intent) {
       intent.dataset.answered = "";
@@ -1308,6 +1349,8 @@
           if (intent.dataset.answered) return;
           intent.dataset.answered = "1";
           hmTrack("route_intent_selected", { intent: button.dataset.intent });
+          writeRouteIntent(button.dataset.intent);
+          if (window.inride && window.inride.startLauncher) window.inride.startLauncher.renderIntentHint();
         });
       });
       hmTrack("route_intent_prompt_shown");
