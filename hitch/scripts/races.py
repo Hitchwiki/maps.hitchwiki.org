@@ -288,21 +288,51 @@ def current_races(races, now=None, upcoming_months=UPCOMING_MONTHS):
     return visible
 
 
-def build_races(races_md_path, rides_by_name, top=3):
-    """[{name, title, start, finish, from, to, entries: [...]}] for every race in RACES.md."""
+def corridor_ride_count(race, ride_points):
+    """How many logged rides picked up near either end of this race's corridor.
+
+    Deliberately looser than `rank_race`: it only asks "is anyone active near this city
+    at all", with no chain, no destination, no timespan required. `ride_points` is every
+    ride's (lat, lon), unfiltered — the /races page's empty state uses this to show that a
+    corridor isn't actually dead even when nobody has logged a qualifying full chain yet.
+    """
+    radius = race["max_radius_km"]
+    start_city, finish_city = race["start"], race["finish"]
+    count = 0
+    for lat, lon in ride_points:
+        if (
+            haversine_km(lat, lon, start_city["lat"], start_city["lon"]) <= radius
+            or haversine_km(lat, lon, finish_city["lat"], finish_city["lon"]) <= radius
+        ):
+            count += 1
+    return count
+
+
+def build_races(races_md_path, rides_by_name, top=3, ride_points=None):
+    """[{name, title, start, finish, from, to, entries: [...]}] for every race in RACES.md.
+
+    `ride_points` (optional, every ride's (lat, lon) unfiltered) feeds `corridor_ride_count` —
+    omitted, that key is left out rather than reported as 0, since 0 would look like a real
+    (and wrong) finding for a caller that just didn't pass the data.
+    """
     out = []
     for race in parse_races_md(races_md_path):
-        out.append(
-            {
-                "name": race["name"],
-                "title": race["title"],
-                "start": race["start"]["name"],
-                "finish": race["finish"]["name"],
-                "from": race["from"].strftime("%Y-%m-%d"),
-                "to": race["to"].strftime("%Y-%m-%d"),
-                "max_gap_km": race["max_gap_km"],
-                "max_radius_km": race["max_radius_km"],
-                "entries": rank_race(race, rides_by_name, top=top),
-            }
-        )
+        entry = {
+            "name": race["name"],
+            "title": race["title"],
+            "start": race["start"]["name"],
+            "start_lat": race["start"]["lat"],
+            "start_lon": race["start"]["lon"],
+            "finish": race["finish"]["name"],
+            "finish_lat": race["finish"]["lat"],
+            "finish_lon": race["finish"]["lon"],
+            "from": race["from"].strftime("%Y-%m-%d"),
+            "to": race["to"].strftime("%Y-%m-%d"),
+            "max_gap_km": race["max_gap_km"],
+            "max_radius_km": race["max_radius_km"],
+            "entries": rank_race(race, rides_by_name, top=top),
+        }
+        if ride_points is not None:
+            entry["corridor_ride_count"] = corridor_ride_count(race, ride_points)
+        out.append(entry)
     return out

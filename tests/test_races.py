@@ -177,3 +177,29 @@ def test_build_races_shapes_the_json_the_page_reads(tmp_path):
 def test_the_real_races_md_still_parses():
     """A typo in RACES.md must not silently empty the page."""
     assert parse_races_md("RACES.md"), "RACES.md defines no valid race"
+
+
+def test_corridor_ride_count_counts_pickups_near_either_end_no_chain_required():
+    from hitch.scripts.races import corridor_ride_count
+
+    off_target = (48.2082, 16.3738)  # Vienna, near neither end
+    points = [BERLIN, PRAGUE, off_target, (52.53, 13.40)]  # last one still within 20km of Berlin
+    assert corridor_ride_count(RACE, points) == 3
+
+
+def test_build_races_reports_lat_lon_and_corridor_ride_count_when_asked(tmp_path):
+    md = tmp_path / "RACES.md"
+    md.write_text(
+        "## Berlin → Prague\n"
+        "- start: Berlin, Germany, 52.5200, 13.4050\n"
+        "- finish: Prague, Czechia, 50.0755, 14.4378\n"
+        "- from: 2020-01-01\n- to: 2030-01-01\n",
+        encoding="utf-8",
+    )
+    (race,) = build_races(str(md), {}, ride_points=[BERLIN])
+    assert (race["start_lat"], race["start_lon"]) == (BERLIN[0], BERLIN[1])
+    assert (race["finish_lat"], race["finish_lon"]) == (PRAGUE[0], PRAGUE[1])
+    assert race["corridor_ride_count"] == 1
+
+    (race_no_points,) = build_races(str(md), {})
+    assert "corridor_ride_count" not in race_no_points

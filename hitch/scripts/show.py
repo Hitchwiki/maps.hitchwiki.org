@@ -1559,7 +1559,11 @@ else:
     # but wasn't on the previous one just entered the top 3, and that is the moment worth
     # a notification.
     previous_podiums = load_race_podiums(races_path)
-    new_races = build_races(races_md_path, race_rides_by_name)
+    # Unfiltered pickup points (no destination/qualifying-chain requirement) so the page
+    # can show corridor activity even where nobody has logged a full qualifying journey.
+    points_df = window_df[["lat", "lon"]].dropna()
+    ride_points = list(zip(points_df["lat"], points_df["lon"]))
+    new_races = build_races(races_md_path, race_rides_by_name, ride_points=ride_points)
     write_json_file(new_races, "races.json")
     notify_new_race_podiums(previous_podiums, new_races)
 
