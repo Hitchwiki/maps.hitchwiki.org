@@ -2437,7 +2437,13 @@
 
       const bar = document.createElement("div");
       bar.id = "inr-start-bar";
-      bar.className = "inr-split";
+      // Column wrapper so the intent hint (see renderIntentHint) can sit above the
+      // two-button row as a full-width line; the row itself keeps the .inr-split
+      // equal-halves layout the CSS already expects.
+      bar.className = "inr-start-wrap";
+
+      const row = document.createElement("div");
+      row.className = "inr-split";
 
       const btn = document.createElement("button");
       btn.type = "button";
@@ -2464,8 +2470,9 @@
         window.location.href = "/ride";
       });
 
-      bar.appendChild(btn);
-      bar.appendChild(past);
+      row.appendChild(btn);
+      row.appendChild(past);
+      bar.appendChild(row);
       document.body.appendChild(bar);
       // Same reason as the dock/chip: without this a tap falls through to Leaflet and
       // opens whatever spot sits under the bar.
@@ -2479,6 +2486,43 @@
       // Lets CSS lift the map controls only where the bar actually exists (a
       // HIDE_ADD_SPOT_BUTTON deployment returns above and never gets here).
       document.body.classList.add("has-start-bar");
+      startLauncher.renderIntentHint();
+    },
+
+    // A "today" route-intent answer (see routing.js readRouteIntent) earns a one-line
+    // nudge above the two buttons, for as long as it stays valid and nobody's already
+    // acted on it. Called again from routing.js right after the answer is recorded, so
+    // the hint can appear without waiting for a fresh mount().
+    renderIntentHint() {
+      const bar = startLauncher._el;
+      if (!bar) return;
+      const existing = document.getElementById("inr-start-hint");
+      const rec = window.hmRouteIntent && window.hmRouteIntent.read();
+      const shouldShow = !!rec && !rec.dismissed && !journeyStore.get() && journeyLogStore.get().length === 0;
+      if (!shouldShow) {
+        if (existing) existing.remove();
+        return;
+      }
+      if (existing) return;
+      const hint = document.createElement("div");
+      hint.id = "inr-start-hint";
+      const text = document.createElement("span");
+      text.textContent = T("Heading out today? Start tracking when you reach the road.");
+      const close = document.createElement("button");
+      close.type = "button";
+      close.id = "inr-start-hint-close";
+      close.setAttribute("aria-label", T("Dismiss"));
+      close.innerHTML = "&times;";
+      close.addEventListener("click", function (e) {
+        e.stopPropagation();
+        if (window.hmRouteIntent) window.hmRouteIntent.dismiss();
+        hmTrack("route_intent_nudge_dismissed", {});
+        hint.remove();
+      });
+      hint.appendChild(text);
+      hint.appendChild(close);
+      bar.insertBefore(hint, bar.firstChild);
+      hmTrack("route_intent_nudge_shown", {});
     },
 
     _trackHeight(bar) {
