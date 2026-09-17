@@ -275,7 +275,11 @@
             outboxStore.remove(item.id);
           } else if (res.status === 400 && res.json && res.json.transient !== true) {
             // Permanently rejected: this ride is lost unless someone intervenes.
-            hmTrack("journey_ride_rejected", { kind: item.kind, attempts: item.attempts + 1 });
+            hmTrack("journey_ride_rejected", {
+              kind: item.kind,
+              attempts: item.attempts + 1,
+              error: (res.json && res.json.error) || "unknown",
+            });
             outboxStore.update(item.id, {
               status: "failed",
               lastError: (res.json && res.json.error) || T("Rejected"),
