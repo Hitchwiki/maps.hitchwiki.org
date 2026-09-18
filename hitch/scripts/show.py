@@ -24,8 +24,8 @@ from hitch.blueprints.utils.ride_images import image_url
 from hitch.helpers import e, find_nearest_wide_in_grid, get_bearing, get_db, get_dirs, haversine_np, write_json_file
 from hitch.scripts.races import build_races, estimate_arrival
 from hitch.scripts.spot_access_hint import access_hint
-from hitch.scripts.spot_people import spot_people
 from hitch.scripts.spot_naming import resolve_spot_name
+from hitch.scripts.spot_people import spot_people
 from hitch.scripts.spots_gpx import spot_waypoint, write_spots_gpx
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
