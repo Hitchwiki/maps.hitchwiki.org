@@ -3084,6 +3084,7 @@ function summaryText(data, hists = { wait: null, distance: null }) {
     ${spotHistogramMarkup(hists.wait, "spot-wait-hist", "min")}
     <div>${tr("Ride distance: {distance}", { distance })}</div>
     ${spotHistogramMarkup(scaleHistToDisplay(hists.distance), "spot-distance-hist", distanceUnitLabel())}
+    ${data.people ? `<div class="spot-people">${tr("At least {n} people have logged a ride here", { n: data.people })}</div>` : ''}
     ${lastConfirmed ? `<div class="spot-last-confirmed">${tr("Last confirmed: {date}", { date: lastConfirmed })}</div>` : ''}
     ${osmLink}${carPoolingLink}${fuelLink}${hitchwikiLink}${hitchwikiMapLink}${hitchwikiNearbyLink}${spotWikiExcerpt}${accessHint}${countryContact}`;
 }
@@ -3139,6 +3140,11 @@ async function handleMarkerClick(marker, point, e) {
         // stream for this spot. No spot id, same privacy rule as spot_opened.
         if ((payload.spot || {}).access_hint) {
           hmTrack('spot_access_hint_shown', {});
+        }
+        // #458 / EXP-579: the "at least N people" line was shown. No spot id and no
+        // count, same privacy rule as spot_opened.
+        if ((payload.spot || {}).people) {
+          hmTrack('spot_people_shown', {});
         }
         // B594 / idea #357: the driver-contact-by-country line was shown. No spot id,
         // same privacy rule as spot_opened -- only the country code, an aggregate fact
