@@ -8,11 +8,10 @@ const SOURCE = fs.readFileSync(
   "utf8",
 );
 
+// EXP-465: the A/B is decided (control won), so shareVariant is now pinned
+// rather than assigned via chooseVariant -- see the pinning comment in map.js.
 test("share value test has a sticky control and treatment", () => {
-  assert.match(
-    SOURCE,
-    /chooseVariant\("ride-share-value-v1", \["control", "help-friend"\]\)/,
-  );
+  assert.match(SOURCE, /shareVariant = "control";/);
   assert.match(SOURCE, /hmTrack\("ride_share_exposure", \{ variant: shareVariant \}\)/);
   assert.match(SOURCE, /Help a friend try hitchhiking/);
   assert.match(SOURCE, /Share a real ride and show them where hitchhiking worked for you\./);

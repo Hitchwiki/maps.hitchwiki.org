@@ -113,5 +113,5 @@ test("a successfully rendered lead records local, fallback, or English UI outcom
     block,
     /const languageOutcome = usedLocalLang \? "local" : \(lang && lang !== "en" \? "english-fallback" : "english-ui"\);/,
   );
-  assert.match(block, /if \(html\) \{[\s\S]{0,300}hmTrack\("country_wiki_lead_shown", \{ outcome: languageOutcome \}\);/);
+  assert.match(block, /if \(html\) \{[\s\S]{0,300}hmTrack\("country_wiki_lead_shown", \{ outcome: languageOutcome,/);
 });
