@@ -77,6 +77,19 @@ class User(db.Model, fsqla.FsUserMixin):
     total_distance_km = db.Column(db.Float, default=0)
     total_waiting_time_min = db.Column(db.Integer, default=0)
 
+    # Timestamp of this user's most recently logged ride (max `ride_event.submission_time`
+    # across their named rides), recomputed alongside total_rides on every show.py run.
+    # NULL for a user with zero rides. Drives the lapsed-logger reminder in
+    # remind_inactive_users.py, which is a different cohort than inactive_reminder_stage
+    # above (that one only tracks zero-ride users and stops moving once total_rides > 0).
+    last_ride_at = db.Column(db.DateTime, default=None)
+
+    # The last_ride_at value (see above) at the time we last sent this user a "you've gone
+    # quiet" reminder, or NULL if never sent one. Comparing this to the current last_ride_at
+    # is how we send at most one reminder per lapse: if the user logs a new ride, last_ride_at
+    # moves and they become eligible again the next time they go quiet.
+    lapsed_reminder_sent_for = db.Column(db.DateTime, default=None)
+
 
 class UserAvatar(db.Model):
     """A registered user's explicit public profile-image choice.

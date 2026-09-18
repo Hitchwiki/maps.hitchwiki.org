@@ -524,6 +524,7 @@ user_stats = named_rides.groupby("hitchhiker_name").agg(
     total_rides=("hitchhiker_name", "size"),
     total_distance_km=("distance", "sum"),
     total_waiting_time_min=("wait", "sum"),
+    last_ride_at=("submission_time", "max"),
 )
 
 # This runs before any JSON file is written, so the DB write below stays older
@@ -531,7 +532,12 @@ user_stats = named_rides.groupby("hitchhiker_name").agg(
 stats_conn = get_db()
 # No migration framework: ensure the columns exist so a fresh deploy doesn't 500
 # on the first profile load. Idempotent — a re-add raises OperationalError.
-for col, coltype in (("total_rides", "INTEGER"), ("total_distance_km", "REAL"), ("total_waiting_time_min", "INTEGER")):
+for col, coltype in (
+    ("total_rides", "INTEGER"),
+    ("total_distance_km", "REAL"),
+    ("total_waiting_time_min", "INTEGER"),
+    ("last_ride_at", "DATETIME"),
+):
     # Idempotent re-add raises OperationalError when the column already exists.
     with contextlib.suppress(sqlite3.OperationalError):
         stats_conn.execute(f"ALTER TABLE user ADD COLUMN {col} {coltype}")
@@ -543,6 +549,7 @@ stat_updates = [
         int(row.total_rides),
         round(float(row.total_distance_km), 1) if pd.notna(row.total_distance_km) else 0,
         int(row.total_waiting_time_min) if pd.notna(row.total_waiting_time_min) else 0,
+        row.last_ride_at.isoformat() if pd.notna(row.last_ride_at) else None,
         name.lower(),
     )
     for name, row in user_stats.iterrows()
@@ -552,10 +559,13 @@ stat_updates = [
 # would never touch their row and their cached totals would freeze at the last
 # non-zero value (their profile then shows "0 rides" from the live query but stale
 # rides/km/min in Insights and achievements). The reset + re-apply run in one
-# transaction, so no user ever observes a transient zero.
-stats_conn.execute("UPDATE user SET total_rides = 0, total_distance_km = 0, total_waiting_time_min = 0")
+# transaction, so no user ever observes a transient zero. last_ride_at resets to
+# NULL alongside total_rides for the same reason — a user back at zero rides must
+# not still look "recently active" to the lapsed-reminder job.
+stats_conn.execute("UPDATE user SET total_rides = 0, total_distance_km = 0, total_waiting_time_min = 0, last_ride_at = NULL")
 stats_conn.executemany(
-    "UPDATE user SET total_rides = ?, total_distance_km = ?, total_waiting_time_min = ? WHERE lower(username) = ?",
+    "UPDATE user SET total_rides = ?, total_distance_km = ?, total_waiting_time_min = ?, last_ride_at = ? "
+    "WHERE lower(username) = ?",
     stat_updates,
 )
 stats_conn.commit()

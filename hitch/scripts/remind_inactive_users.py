@@ -1,7 +1,8 @@
 """Daily job: email users who signed up but haven't logged a single ride yet, nudging
-them to explore the map and log their current or past rides.
+them to explore the map and log their current or past rides. Also emails users who
+*have* logged rides but have gone quiet, nudging them to add their latest trip.
 
-Runs once a day (deploy/cron.sh). The flow:
+Runs once a day (deploy/cron.sh). The zero-ride flow:
 
   1. Consider every registered user who still has zero logged rides (`total_rides == 0`,
      recomputed from ride nicknames by show.py) and who opted into email (the global
@@ -18,6 +19,21 @@ A user who signs up and only sees this job run after they've already passed 30 d
 (zero rides the whole time) jumps straight to the final stage — see the stage pick in
 `run()`: we always send the *highest* milestone they've reached but not yet been sent,
 so we never spam a backlog of two emails at once.
+
+The lapsed-logger flow (`run_lapsed()`) is a separate cohort with its own gate:
+
+  1. Consider users with `total_rides >= 1` whose most recent ride (`last_ride_at`,
+     recomputed alongside total_rides by show.py) is 28-56 days old — long enough that
+     they've plausibly gone quiet, short enough the nudge is still relevant to a trip
+     they might still be on or just back from.
+  2. Same opt-in (`email_notifications`) and synthetic-address gates as the zero-ride
+     flow, same SparkPost template family (`_LAPSED_STAGE`), reusing `inactive_reminder
+     .html`/`.txt`'s existing stage-branch structure rather than new content.
+  3. `lapsed_reminder_sent_for` stores the `last_ride_at` value at the time we last sent
+     this user a lapsed nudge (not a milestone count, since this cohort can lapse more
+     than once). We send only when it's NULL or older than the user's current
+     `last_ride_at` — one email per lapse. Logging a new ride moves `last_ride_at`
+     forward, which re-arms eligibility next time they go quiet.
 """
 
 import logging
@@ -42,6 +58,17 @@ _SYNTHETIC_EMAIL_SUFFIX = "@hitchwiki.oauth"
 # 7-day nudge, then (if still at zero) the 30-day nudge, then nothing more.
 _STAGES = (7, 30)
 
+# Stage value for the lapsed-logger reminder (users with >=1 ride who've gone quiet).
+# Deliberately outside _STAGES's range so it can't collide with the zero-ride
+# progression logic above, while still keying the same stage-branching template family.
+_LAPSED_STAGE = 100
+
+# Window (days since last ride) a lapsed-logger reminder fires in: old enough the user
+# has plausibly gone quiet, not so old the nudge feels irrelevant to a trip they might
+# still be wrapping up.
+_LAPSED_MIN_DAYS = 28
+_LAPSED_MAX_DAYS = 56
+
 _DAY_SECONDS = 24 * 60 * 60
 
 
@@ -59,6 +86,25 @@ def _ensure_column():
         logger.info("Added missing column user.inactive_reminder_stage")
     except sqlite3.OperationalError:
         pass  # column already exists
+
+
+def _ensure_lapsed_column():
+    """Idempotently add the user.lapsed_reminder_sent_for and user.last_ride_at columns.
+
+    Same rationale as _ensure_column above — no migration framework, so this keeps the
+    job working even if the manual ALTER on prod was missed. last_ride_at is normally
+    added by show.py (which also writes it), but this job queries it directly and runs
+    only once a day, so it can't assume a show.py run has already added the column
+    since the deploy that introduced it.
+    """
+    conn = get_db()
+    for col, coltype in (("lapsed_reminder_sent_for", "DATETIME"), ("last_ride_at", "DATETIME")):
+        try:
+            conn.execute(f"ALTER TABLE user ADD COLUMN {col} {coltype}")
+            conn.commit()
+            logger.info(f"Added missing column user.{col}")
+        except sqlite3.OperationalError:
+            pass  # column already exists
 
 
 def _account_age_days(user, now):
@@ -140,4 +186,52 @@ def run():
     logger.info(f"Done — {sent} reminder emails sent")
 
 
+def run_lapsed():
+    _ensure_lapsed_column()
+
+    if not current_app.config.get("SPARKPOST_API_KEY"):
+        logger.warning("SPARKPOST_API_KEY not set — skipping lapsed-logger reminders")
+        return
+
+    now = int(time.time())
+
+    # Only users with at least one logged ride are candidates for this cohort — the
+    # zero-ride flow above already covers users who've never logged one.
+    candidates = User.query.filter(db.func.coalesce(User.total_rides, 0) >= 1, User.last_ride_at.isnot(None)).all()
+
+    sent = 0
+    for user in candidates:
+        # Same gates as the zero-ride flow: global opt-in, never mail a synthetic
+        # OAuth address.
+        if not user.email_notifications:
+            continue
+        if not user.email or user.email.endswith(_SYNTHETIC_EMAIL_SUFFIX):
+            continue
+
+        last_ride_at = user.last_ride_at
+        if last_ride_at.tzinfo is None:
+            last_ride_at = last_ride_at.replace(tzinfo=timezone.utc)
+        days_since = (now - int(last_ride_at.timestamp())) / _DAY_SECONDS
+        if not (_LAPSED_MIN_DAYS <= days_since <= _LAPSED_MAX_DAYS):
+            continue
+
+        # One email per lapse: skip if we already sent for this exact last_ride_at.
+        # A new ride moves last_ride_at forward and re-arms eligibility.
+        if user.lapsed_reminder_sent_for is not None and user.lapsed_reminder_sent_for == user.last_ride_at:
+            continue
+
+        try:
+            send_inactive_reminder_email(user, _LAPSED_STAGE)
+            user.lapsed_reminder_sent_for = user.last_ride_at
+            db.session.commit()
+            sent += 1
+            logger.info(f"Sent lapsed-logger reminder to {user.username} <{user.email}>")
+        except Exception:
+            db.session.rollback()
+            logger.exception(f"Failed to send lapsed-logger reminder to {user.username}")
+
+    logger.info(f"Done — {sent} lapsed-logger reminder emails sent")
+
+
 run()
+run_lapsed()

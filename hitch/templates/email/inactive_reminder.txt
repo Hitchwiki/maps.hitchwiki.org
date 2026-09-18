@@ -1,6 +1,10 @@
 Hi {{ name }},
 
-{% if stage == 30 -%}
+{% if stage == 100 -%}
+It's been a while since your last logged ride on the Hitchwiki Map
+(https://maps.hitchwiki.org). Been hitchhiking since? Add your latest trip so
+other travellers can find the spots that worked for you.
+{%- elif stage == 30 -%}
 It's been a few weeks since you joined the Hitchwiki Map
 (https://maps.hitchwiki.org), and we noticed you haven't logged a ride yet.
 It's never too late — even one spot from a past trip helps the next traveller.

@@ -12,18 +12,21 @@ from flask import render_template
 from hitch.blueprints.utils.send_welcome_email import _send_via_sparkpost
 
 # Per-stage subject line. The 7-day nudge is a gentle "get started"; the 30-day one
-# is the last nudge, so it reads a little differently.
+# is the last nudge, so it reads a little differently. 100 is the lapsed-logger
+# reminder (see remind_inactive_users.py's _LAPSED_STAGE) — a different cohort
+# (users with rides already logged) sharing this same template/send mechanism.
 _SUBJECTS = {
     7: "Log your first ride on the Hitchwiki Map",
     30: "Still hitchhiking? Add your rides to the map",
+    100: "Add your latest ride to the Hitchwiki Map",
 }
 
 
 def send_inactive_reminder_email(user, stage):
     """Render and send the stage-`stage` inactive-user reminder to `user`.
 
-    `stage` is the milestone in days (7 or 30); it selects both the subject and the
-    template copy. Raises on send failure.
+    `stage` is the milestone in days (7 or 30), or the lapsed-logger sentinel (100);
+    it selects both the subject and the template copy. Raises on send failure.
     """
     name = user.username or "there"
     html = render_template("email/inactive_reminder.html", name=name, stage=stage)
