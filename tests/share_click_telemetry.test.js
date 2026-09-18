@@ -68,7 +68,10 @@ test("every share surface carries an explicit data-share-context", () => {
 });
 
 test("exactly one hmTrack call in the click handler, carrying context and method", () => {
-  const handler = SOURCE.slice(SOURCE.indexOf("var btn = e.target.closest"));
+  const start = SOURCE.indexOf("var btn = e.target.closest");
+  const end = SOURCE.indexOf("</script>", start);
+  assert.ok(start !== -1 && end > start, "share-btn click handler moved or was renamed");
+  const handler = SOURCE.slice(start, end);
   const calls = handler.match(/hmTrack\(/g) || [];
   assert.strictEqual(
     calls.length,
