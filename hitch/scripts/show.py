@@ -532,11 +532,16 @@ user_stats = named_rides.groupby("hitchhiker_name").agg(
 stats_conn = get_db()
 # No migration framework: ensure the columns exist so a fresh deploy doesn't 500
 # on the first profile load. Idempotent — a re-add raises OperationalError.
+# lapsed_reminder_sent_for is not written here (remind_inactive_users.py owns it),
+# but it's a mapped User column, so any full User.query (e.g. /leaderboard) 500s
+# until it exists — guard it here too so the fix lands on this 10-min cron instead
+# of waiting for remind_inactive_users.py's once-a-day run.
 for col, coltype in (
     ("total_rides", "INTEGER"),
     ("total_distance_km", "REAL"),
     ("total_waiting_time_min", "INTEGER"),
     ("last_ride_at", "DATETIME"),
+    ("lapsed_reminder_sent_for", "DATETIME"),
 ):
     # Idempotent re-add raises OperationalError when the column already exists.
     with contextlib.suppress(sqlite3.OperationalError):
