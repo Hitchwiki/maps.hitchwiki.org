@@ -3145,6 +3145,9 @@ async function handleMarkerClick(marker, point, e) {
         // count, same privacy rule as spot_opened.
         if ((payload.spot || {}).people) {
           hmTrack('spot_people_shown', {});
+        } else if ((payload.spot || {}).people_held) {
+          // Holdout arm: qualifies for the line but is not shown it (EXP-582 comparison).
+          hmTrack('spot_people_held', {});
         }
         // B594 / idea #357: the driver-contact-by-country line was shown. No spot id,
         // same privacy rule as spot_opened -- only the country code, an aggregate fact

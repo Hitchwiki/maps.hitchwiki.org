@@ -9,6 +9,8 @@ so the number is a floor and the pane words it "at least N". Below
 Split out of show.py (which does all its work at import time) so it can be tested.
 """
 
+import zlib
+
 MIN_PEOPLE_SHOWN = 3
 _ANONYMOUS = {"", "anonymous"}
 
@@ -21,3 +23,12 @@ def spot_people(rides):
         if name not in _ANONYMOUS:
             names.add(name)
     return len(names) if len(names) >= MIN_PEOPLE_SHOWN else None
+
+
+def people_holdout(spot_id):
+    """Half the qualifying spots (odd crc32 of the id) keep the line hidden, as the comparison group.
+
+    Without it the only contrast is busy spots vs quiet ones, which differ in far more
+    than the line. A crc32 of the coordinate id is stable across rebuilds (unlike ``hash()``), so a spot never flips arm.
+    """
+    return zlib.crc32(str(spot_id).encode()) % 2 == 1
