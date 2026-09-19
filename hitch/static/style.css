@@ -1309,6 +1309,11 @@ body.inr-picking .event-marker {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
   cursor: pointer;
 }
+/* Next edition of a recurring event, more than ~6 months out: same pin, muted. */
+.event-marker-pin.event-marker-far {
+  opacity: 0.6;
+  border-style: dashed;
+}
 /* User-proposed spots reuse the normal blue circle-marker look; only the popup is styled. */
 .proposed-spot-popup strong {
   color: #1a73e8;

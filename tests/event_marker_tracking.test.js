@@ -45,3 +45,8 @@ test("openEventSheet fires event_opened", () => {
     "openEventSheet no longer fires the event_opened telemetry event",
   );
 });
+
+test("event_opened carries far_future so next-edition pins are separable (EXP-590)", () => {
+  assert.match(SOURCE, /hmTrack\("event_opened",[\s\S]*?far_future: !!ev\.far_future/);
+  assert.match(SOURCE, /event-marker-far/);
+});
