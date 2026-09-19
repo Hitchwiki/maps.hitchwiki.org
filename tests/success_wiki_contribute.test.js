@@ -9,7 +9,7 @@ const start = mapSource.indexOf("const WIKI_CONTRIBUTE_COMMENT_CHARS");
 const end = mapSource.indexOf("// Builds the shareable image", start);
 const helperSource = mapSource.slice(start, end);
 
-function loadHelper({ comment = "x".repeat(200), wiki = true, longNoteCount = 0, failCount = false } = {}) {
+function loadHelper({ comment = "x".repeat(200), wiki = true, longNoteCount = 0, failCount = false, spot = null, spotOk = true } = {}) {
   const events = [];
   const fetches = [];
   const note = {
@@ -38,8 +38,8 @@ function loadHelper({ comment = "x".repeat(200), wiki = true, longNoteCount = 0,
         };
       }
       return {
-        ok: true,
-        json: async () => ({ spot: { hitchwiki_article: "https://hitchwiki.org/en/Dresden" } }),
+        ok: spotOk,
+        json: async () => ({ spot: spot || { hitchwiki_article: "https://hitchwiki.org/en/Dresden" } }),
       };
     },
     document: { createElement: () => ({}) },
@@ -101,16 +101,44 @@ test("a failed longnote lookup still shows the standard invitation", async () =>
   assert.strictEqual(h.events[0].props.repeat_writer, false);
 });
 
-test("short notes and spots without a wiki article do no detail fetch", async () => {
+test("short notes do no detail fetch", async () => {
   const short = loadHelper({ comment: "too short" });
   await short.run();
   assert.strictEqual(short.fetches.length, 0);
   assert.strictEqual(short.note.style.display, "none");
+});
 
-  const noWiki = loadHelper({ wiki: false });
-  await noWiki.run();
-  assert.strictEqual(noWiki.fetches.length, 0);
-  assert.strictEqual(noWiki.note.style.display, "none");
+test("a spot with no wiki flag still gets the invitation (the marker flag is no longer a gate)", async () => {
+  const h = loadHelper({ wiki: false });
+  await h.run();
+  assert.strictEqual(h.note.style.display, "block");
+  assert.strictEqual(h.events[0].props.arm, "article");
+});
+
+test("no article but a nearby one: distance-labelled invitation, arm=nearby", async () => {
+  const h = loadHelper({
+    wiki: false,
+    spot: { hitchwiki_nearby: { url: "https://hitchwiki.org/en/Prague", title: "Prague", km: 11.3 } },
+  });
+  await h.run();
+  assert.strictEqual(h.note.style.display, "block");
+  const link = h.note.children[h.note.children.length - 1];
+  assert.strictEqual(link.href, "https://hitchwiki.org/en/Prague");
+  assert.strictEqual(h.events[0].name, "wiki_contribute_shown");
+  assert.strictEqual(h.events[0].props.arm, "nearby");
+  link.onclick();
+  assert.strictEqual(h.events[1].props.arm, "nearby");
+});
+
+test("neither an article nor a nearby one, or a missing detail file: no invitation", async () => {
+  const none = loadHelper({ wiki: false, spot: {} });
+  await none.run();
+  assert.strictEqual(none.note.style.display, "none");
+  assert.strictEqual(none.events.length, 0);
+
+  const missing = loadHelper({ wiki: false, spotOk: false });
+  await missing.run();
+  assert.strictEqual(missing.note.style.display, "none");
 });
 
 test("both ride-entry paths hand the comment to the success overlay", () => {

@@ -4126,16 +4126,24 @@ async function renderWikiContributionNudge(ride) {
   const lon = Number(ride.pickupLon);
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
   const spotId = `${lat.toFixed(5)}_${lon.toFixed(5)}`;
-  const marker = allMarkers.find((m) => m.options && m.options.spotId === spotId);
-  // spots.json carries only a presence flag; avoid a detail fetch for the other ~45k spots.
-  if (!marker || !(marker.options._data || {}).wiki) return;
 
   try {
+    // Only authors of a >=200-char note reach this fetch (~1 in 3 success overlays), so
+    // the per-spot detail file is fetched directly rather than gated on the marker's
+    // `wiki` flag: that flag held the invitation to ~2 shows/28d (#476, EXP-617) because
+    // only ~6% of spots have an article within 100 m.
     const response = await fetch(`/rides/by-spot/${encodeURIComponent(spotId)}.json`);
     if (!response.ok) return;
     const payload = await response.json();
-    const url = payload && payload.spot && payload.spot.hitchwiki_article;
+    const spot = (payload && payload.spot) || {};
+    // Exact article first; otherwise the nearest one, labelled with its distance so it is
+    // never presented as being about this spot (same honesty rule as the spot pane).
+    const exact = spot.hitchwiki_article;
+    const near =
+      !exact && !spot.hitchwiki_map && spot.hitchwiki_nearby && spot.hitchwiki_nearby.url ? spot.hitchwiki_nearby : null;
+    const url = exact || (near && near.url);
     if (!url) return;
+    const arm = exact ? "article" : "nearby";
 
     // A hitchhiker who has already written several long ride notes is the most likely
     // person to write a good wiki paragraph — address them as one, rather than with the
@@ -4164,15 +4172,22 @@ async function renderWikiContributionNudge(ride) {
     link.href = url;
     link.target = "_blank";
     link.rel = "noopener";
-    link.textContent = repeatWriter
-      ? tr("Add what you know to the Hitchwiki article for this place")
-      : tr("Add your notes to the Hitchwiki article for this place");
+    if (near) {
+      link.textContent = tr("Add your notes to the nearest Hitchwiki article: {title} (~{km} km)", {
+        title: near.title,
+        km: near.km,
+      });
+    } else {
+      link.textContent = repeatWriter
+        ? tr("Add what you know to the Hitchwiki article for this place")
+        : tr("Add your notes to the Hitchwiki article for this place");
+    }
     link.onclick = function () {
-      hmTrack("wiki_contribute_clicked", { source: "success-overlay", repeat_writer: repeatWriter });
+      hmTrack("wiki_contribute_clicked", { source: "success-overlay", repeat_writer: repeatWriter, arm });
     };
     note.appendChild(link);
     note.style.display = "block";
-    hmTrack("wiki_contribute_shown", { source: "success-overlay", repeat_writer: repeatWriter });
+    hmTrack("wiki_contribute_shown", { source: "success-overlay", repeat_writer: repeatWriter, arm });
   } catch (e) {
     // This is an optional invitation. A missing/stale detail file must never damage
     // the post-submit success screen or its share action.
