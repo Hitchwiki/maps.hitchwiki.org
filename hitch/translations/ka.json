@@ -60,6 +60,7 @@
   "As GPX (to import into offline maps)": "როგორც GPX (იმპორტისთვის ოფლაინ რუკებში)",
   "Asking": "კითხვის დასმა",
   "At least one ride logged no arrival time; it was estimated from the distance at 75 km/h.": "მინიმუმ ერთი მგზავრობა ჩაწერილია ჩამოსვლის დროის გარეშე; ის შეფასებულია მანძილით 75 კმ/სთ-ზე.",
+  "At least {n} people have logged a ride here": "აქ მინიმუმ {n} ადამიანმა ჩაწერა მგზავრობა",
   "Attribution": "ატრიბუცია",
   "August": "აგვისტო",
   "Back to map": "უკან რუკაზე",

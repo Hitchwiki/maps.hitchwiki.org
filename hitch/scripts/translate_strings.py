@@ -237,6 +237,7 @@ SOURCE_STRINGS = [
     "Histogram of ride distance",
     "Histogram of waiting time",
     "Hitch here",
+    "At least {n} people have logged a ride here",
     "Hitchhiker on a roadside in Luxembourg, 1977",
     "hitchhiking community",
     "Hitchhiking insights – Hitchwiki Maps",

@@ -60,6 +60,7 @@
   "As GPX (to import into offline maps)": "Jako GPX (do importu do map offline)",
   "Asking": "Pytanie",
   "At least one ride logged no arrival time; it was estimated from the distance at 75 km/h.": "Przynajmniej jeden przejazd nie miał zarejestrowanego czasu przyjazdu; został oszacowany na podstawie odległości przy 75 km/h.",
+  "At least {n} people have logged a ride here": "Co najmniej {n} osób zanotowało tu przejazd",
   "Attribution": "Atrybucja",
   "August": "Sierpień",
   "Back to map": "Powrót do mapy",

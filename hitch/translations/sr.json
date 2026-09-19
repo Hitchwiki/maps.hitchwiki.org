@@ -60,6 +60,7 @@
   "As GPX (to import into offline maps)": "Kao GPX (za uvoz u offline mape)",
   "Asking": "Pitanje",
   "At least one ride logged no arrival time; it was estimated from the distance at 75 km/h.": "Najmanje jedna vožnja nema zabeleženo vreme dolaska; procenjeno je na osnovu udaljenosti pri brzini od 75 km/h.",
+  "At least {n} people have logged a ride here": "Najmanje {n} ljudi je ovde zabeležilo vožnju",
   "Attribution": "Pripisivanje",
   "August": "Avgust",
   "Back to map": "Nazad na mapu",

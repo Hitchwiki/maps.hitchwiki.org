@@ -60,6 +60,7 @@
   "As GPX (to import into offline maps)": "GPX-na (et importida võrguvälisesse kaardirakendusse)",
   "Asking": "Küsides",
   "At least one ride logged no arrival time; it was estimated from the distance at 75 km/h.": "Vähemalt üks sõit logitud ilma saabumisajata; see hinnati kauguse põhjal kiirusel 75 km/h.",
+  "At least {n} people have logged a ride here": "Vähemalt {n} inimest on siin sõidu registreerinud.",
   "Attribution": "Viitamine",
   "August": "August",
   "Back to map": "Tagasi kaardile",

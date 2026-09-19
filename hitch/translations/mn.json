@@ -60,6 +60,7 @@
   "As GPX (to import into offline maps)": "GPX хэлбэрээр (оффлайн газрын зурагт импортлох)",
   "Asking": "Асууж байна",
   "At least one ride logged no arrival time; it was estimated from the distance at 75 km/h.": "Ядаж нэг аялал ирэх цаггүй бүртгэгдсэн; 75 км/цагийн хурдтай зайнаас тооцоолсон.",
+  "At least {n} people have logged a ride here": "Энд дор хаяж {n} хүн аяллаа тэмдэглэсэн байна",
   "Attribution": "Холбогдох",
   "August": "Наймдугаар сар",
   "Back to map": "Газрын зураг руу буцах",

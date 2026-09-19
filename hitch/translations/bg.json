@@ -60,6 +60,7 @@
   "As GPX (to import into offline maps)": "Като GPX (за импортиране в офлайн карти)",
   "Asking": "Питане",
   "At least one ride logged no arrival time; it was estimated from the distance at 75 km/h.": "Поне едно пътуване е записано без време на пристигане; беше оценено от разстоянието при 75 км/ч.",
+  "At least {n} people have logged a ride here": "Поне {n} души са записали пътуване тук",
   "Attribution": "Приписване",
   "August": "Август",
   "Back to map": "Обратно към картата",

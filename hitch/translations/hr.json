@@ -60,6 +60,7 @@
   "As GPX (to import into offline maps)": "Kao GPX (za uvoz u offline karte)",
   "Asking": "Pitanje",
   "At least one ride logged no arrival time; it was estimated from the distance at 75 km/h.": "Najmanje jedna vožnja nema zabilježeno vrijeme dolaska; procijenjeno je iz udaljenosti pri 75 km/h.",
+  "At least {n} people have logged a ride here": "Najmanje {n} osoba je ovdje zabilježilo vožnju",
   "Attribution": "Pripisivanje",
   "August": "Kolovoz",
   "Back to map": "Natrag na kartu",

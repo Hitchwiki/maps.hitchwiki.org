@@ -60,6 +60,7 @@
   "As GPX (to import into offline maps)": "Ως GPX (για εισαγωγή σε offline χάρτες)",
   "Asking": "Ρωτώντας",
   "At least one ride logged no arrival time; it was estimated from the distance at 75 km/h.": "Τουλάχιστον μία διαδρομή δεν έχει καταχωρημένη ώρα άφιξης· εκτιμήθηκε από την απόσταση στα 75 χλμ/ώρα.",
+  "At least {n} people have logged a ride here": "Τουλάχιστον {n} άτομα έχουν καταγράψει διαδρομή εδώ",
   "Attribution": "Αναφορά",
   "August": "Αύγουστος",
   "Back to map": "Επιστροφή στο χάρτη",

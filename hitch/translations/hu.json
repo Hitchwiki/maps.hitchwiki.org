@@ -60,6 +60,7 @@
   "As GPX (to import into offline maps)": "GPX formátumban (offline térképekhez importálható)",
   "Asking": "Kérdezés",
   "At least one ride logged no arrival time; it was estimated from the distance at 75 km/h.": "Legalább egy út nem rendelkezik érkezési idővel; a távolság alapján 75 km/h sebességgel becsülték.",
+  "At least {n} people have logged a ride here": "Legalább {n} ember jegyzett fel itt egy fuvart",
   "Attribution": "Hivatkozás",
   "August": "Augusztus",
   "Back to map": "Vissza a térképhez",
