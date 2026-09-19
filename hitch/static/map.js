@@ -1525,7 +1525,7 @@ async function loadEventMarkers(map) {
     if (typeof ev.lat !== "number" || typeof ev.lon !== "number") return;
     const icon = L.divIcon({
       className: "event-marker",
-      html: '<div class="event-marker-pin">🎪</div>',
+      html: `<div class="event-marker-pin${ev.far_future ? " event-marker-far" : ""}">🎪</div>`,
       iconSize: [30, 30],
       iconAnchor: [15, 15],
     });
@@ -1865,7 +1865,7 @@ function openEventSheet(ev) {
   // #127: the event layer had no telemetry of any kind, so we could not tell
   // whether a single visitor had ever opened one. has_wiki_page mirrors the CTA
   // condition below.
-  hmTrack("event_opened", { has_wiki_page: !!(ev.url || ev.title), standing: isStandingEvent(ev) });
+  hmTrack("event_opened", { has_wiki_page: !!(ev.url || ev.title), standing: isStandingEvent(ev), far_future: !!ev.far_future });
   $$("#event-sheet-name").textContent = ev.name || tr("Event");
   $$("#event-sheet-dates").textContent = formatEventDates(ev);
   const wikiUrl = ev.url || COUNTRY_WIKI_BASE + encodeURIComponent((ev.title || ev.name || "").replace(/ /g, "_"));

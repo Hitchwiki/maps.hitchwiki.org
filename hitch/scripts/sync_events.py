@@ -9,7 +9,8 @@ e.g. {{Event|Autostop House open to all in Albania|2026-07-01|2026-08-30|42.0681
 
 We pull every page in that category, extract each {{Event|...}} template, keep only
 the events whose end date is still in the future (today included) and whose start
-date is no more than MAX_FUTURE_DAYS (~6 months) out, and write them to
+date is no more than MAX_FUTURE_DAYS (~6 months) out (plus the soonest later
+edition of each series, flagged `far_future`), and write them to
 `dist/events.json`. The map frontend loads that file and draws a special event marker
 at each location; clicking it opens a bottom sheet with the event name, dates, a short
 description pulled from the wiki page, and a link back to Hitchwiki.
@@ -198,6 +199,23 @@ def wikitext_to_description(text: str, title: str, max_len: int = 600) -> str:
     return text
 
 
+def display_name(name: str, title: str) -> str:
+    """A placeholder name such as "Tramprennen starting point in ..." reads as broken on a
+    pin; fall back to the wiki page title (a formatting fallback, not new copy)."""
+    return title if name.rstrip().endswith(("...", "\u2026")) else name
+
+
+def soonest_per_family(far_events: list[dict]) -> list[dict]:
+    """Keep one far-future edition per recurring series so 2028-2030 placeholders of the
+    same event do not stack on the 2027 pin. A series is the name with digits removed."""
+    best: dict[str, dict] = {}
+    for ev in far_events:
+        key = re.sub(r"\d+", "", ev["name"]).strip().lower()
+        if key not in best or ev["start"] < best[key]["start"]:
+            best[key] = ev
+    return list(best.values())
+
+
 def main():
     logger.info("Starting Hitchwiki events synchronization...")
     today = datetime.date.today()
@@ -209,6 +227,7 @@ def main():
     logger.info(f"Fetched wikitext for {len(pages)} page(s)")
 
     events = []
+    far_events = []
     skipped_past = 0
     skipped_far_future = 0
     for title, text in pages.items():
@@ -234,9 +253,9 @@ def main():
             # MAX_FUTURE_DAYS above) rather than showing every future edition of an
             # annual gathering indefinitely. An unparseable start date can't be judged
             # far-future, so it falls through to being shown (same as before this check).
-            if start_date is not None and (start_date - today).days > MAX_FUTURE_DAYS:
+            far_future = start_date is not None and (start_date - today).days > MAX_FUTURE_DAYS
+            if far_future:
                 skipped_far_future += 1
-                continue
 
             try:
                 lat = float(lat_raw)
@@ -245,9 +264,9 @@ def main():
                 logger.warning(f"Skipping event '{name}' on '{title}': bad coordinates '{lat_raw}, {lon_raw}'")
                 continue
 
-            events.append(
+            (far_events if far_future else events).append(
                 {
-                    "name": name,
+                    "name": display_name(name, title) if far_future else name,
                     "start": start_date.isoformat() if start_date else start_raw,
                     "end": end_date.isoformat(),
                     "lat": lat,
@@ -255,8 +274,13 @@ def main():
                     "title": title,
                     "url": url,
                     "description": description,
+                    **({"far_future": True} if far_future else {}),
                 }
             )
+
+    # Far-future editions stay on the map as one muted "next edition" pin per series
+    # (the cap above still keeps placeholders years out from stacking up).
+    events.extend(soonest_per_family(far_events))
 
     # Show soonest-ending events first.
     events.sort(key=lambda ev: ev["end"])
@@ -267,9 +291,10 @@ def main():
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(events, f, ensure_ascii=False, indent=2)
 
+    kept_far = sum(1 for ev in events if ev.get("far_future"))
     logger.info(
-        f"Wrote {len(events)} upcoming/ongoing event(s) to {out_path} "
-        f"(skipped {skipped_past} past event(s), {skipped_far_future} far-future event(s))"
+        f"Wrote {len(events)} upcoming/ongoing event(s) to {out_path} (skipped {skipped_past} past event(s); "
+        f"{skipped_far_future} far-future event(s) seen, {kept_far} kept as next-edition pins)"
     )
     logger.info("SYNC EVENTS SCRIPT FINISHED")
 
