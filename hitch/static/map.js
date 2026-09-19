@@ -158,11 +158,34 @@ function createMap() {
   L.control.zoom({ position: "bottomright" }).addTo(map);
   L.control.attribution({ position: "bottomright" }).addTo(map);
 
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  // #485 — a switchable satellite base layer. Sibling-map users described Esri's
+  // high-contrast imagery as their favourite feature, for a functional reason:
+  // unmarked country roads — the last mile to many spots — are far easier to
+  // read on imagery than on schematic tiles. Offered as a switcher rather than
+  // a replacement so the default stays the (free, ODbL) OSM layer, and every
+  // switch is counted so the preference becomes measurable here too.
+  const osmLayer = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution:
       '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> | Data: <a href="/copyright">maps.hitchwiki.org</a> &amp; <a href="https://hitchmap.com/copyright.html" rel="nofollow">Hitchmap</a> (<a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a>)',
-  }).addTo(map);
+  });
+  const satelliteLayer = L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    {
+      maxZoom: 19,
+      attribution:
+        "Imagery &copy; Esri, Maxar, Earthstar Geographics &amp; the GIS User Community",
+    },
+  );
+  osmLayer.addTo(map);
+  L.control.layers(
+    { [tr("Map")]: osmLayer, [tr("Satellite")]: satelliteLayer },
+    {},
+    { position: "bottomright" },
+  ).addTo(map);
+  map.on("baselayerchange", function (e) {
+    hmTrack("baselayer_switched", { layer: e.name === tr("Satellite") ? "satellite" : "osm" });
+  });
 
   return map;
 }
