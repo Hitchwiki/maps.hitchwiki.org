@@ -60,6 +60,7 @@
   "As GPX (to import into offline maps)": "GPX-muodossa (offline-karttoihin)",
   "Asking": "Kysyminen",
   "At least one ride logged no arrival time; it was estimated from the distance at 75 km/h.": "Ainakin yksi kyyti kirjattiin ilman saapumisaikaa; se arvioitiin etäisyyden perusteella 75 km/h.",
+  "At least {n} people have logged a ride here": "Ainakin {n} henkilöä on kirjannut kyydin täällä",
   "Attribution": "Lähdeviittaus",
   "August": "Elokuu",
   "Back to map": "Takaisin kartalle",

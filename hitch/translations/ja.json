@@ -60,6 +60,7 @@
   "As GPX (to import into offline maps)": "GPXとして（オフライン地図にインポート）",
   "Asking": "尋ねる",
   "At least one ride logged no arrival time; it was estimated from the distance at 75 km/h.": "少なくとも1つのライドは到着時間が記録されていませんでした; 75 km/hの距離から推定されました。",
+  "At least {n} people have logged a ride here": "少なくとも{n}人がここでライドを記録しています",
   "Attribution": "帰属",
   "August": "8月",
   "Back to map": "地図に戻る",

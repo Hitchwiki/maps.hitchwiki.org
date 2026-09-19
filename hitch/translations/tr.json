@@ -60,6 +60,7 @@
   "As GPX (to import into offline maps)": "GPX olarak (çevrimdışı haritalara aktarmak için)",
   "Asking": "Soruyor",
   "At least one ride logged no arrival time; it was estimated from the distance at 75 km/h.": "En az bir yolculuk varış zamanı kaydedilmedi; mesafeden 75 km/s hızla tahmin edildi.",
+  "At least {n} people have logged a ride here": "Burada en az {n} kişi yolculuk kaydetti.",
   "Attribution": "Atıf",
   "August": "Ağustos",
   "Back to map": "Haritaya geri dön",

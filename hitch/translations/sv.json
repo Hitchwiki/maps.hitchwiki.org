@@ -60,6 +60,7 @@
   "As GPX (to import into offline maps)": "Som GPX (för att importera till offlinekartor)",
   "Asking": "Frågar",
   "At least one ride logged no arrival time; it was estimated from the distance at 75 km/h.": "Minst en resa loggades utan ankomsttid; den uppskattades från distansen vid 75 km/h.",
+  "At least {n} people have logged a ride here": "Minst {n} personer har loggat en tur här",
   "Attribution": "Tillskrivning",
   "August": "Augusti",
   "Back to map": "Tillbaka till kartan",

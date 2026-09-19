@@ -60,6 +60,7 @@
   "As GPX (to import into offline maps)": "Ca GPX (pentru a importa în hărți offline)",
   "Asking": "Întreabă",
   "At least one ride logged no arrival time; it was estimated from the distance at 75 km/h.": "Cel puțin o cursă nu are timp de sosire înregistrat; a fost estimată din distanță la 75 km/h.",
+  "At least {n} people have logged a ride here": "Cel puțin {n} persoane au înregistrat o cursă aici",
   "Attribution": "Atribuire",
   "August": "August",
   "Back to map": "Înapoi la hartă",

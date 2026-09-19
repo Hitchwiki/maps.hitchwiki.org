@@ -60,6 +60,7 @@
   "As GPX (to import into offline maps)": "Kaip GPX (importuoti į neprisijungus naudojamus žemėlapius)",
   "Asking": "Klausia",
   "At least one ride logged no arrival time; it was estimated from the distance at 75 km/h.": "Bent viena kelionė neturi užregistruoto atvykimo laiko; jis buvo apskaičiuotas pagal atstumą 75 km/h greičiu.",
+  "At least {n} people have logged a ride here": "Bent jau {n} žmonės čia užregistravo kelionę",
   "Attribution": "Priskyrimas",
   "August": "Rugpjūtis",
   "Back to map": "Atgal į žemėlapį",

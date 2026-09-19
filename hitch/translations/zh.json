@@ -60,6 +60,7 @@
   "As GPX (to import into offline maps)": "作为GPX（导入离线地图）",
   "Asking": "询问",
   "At least one ride logged no arrival time; it was estimated from the distance at 75 km/h.": "至少有一次搭车没有记录到达时间；根据距离以75公里/小时估算。",
+  "At least {n} people have logged a ride here": "至少有{n}人记录了在这里搭车",
   "Attribution": "归属",
   "August": "八月",
   "Back to map": "返回地图",

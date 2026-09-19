@@ -60,6 +60,7 @@
   "As GPX (to import into offline maps)": "Jako GPX (pro import do offline map)",
   "Asking": "Ptát se",
   "At least one ride logged no arrival time; it was estimated from the distance at 75 km/h.": "Alespoň jedna jízda nemá zaznamenaný čas příjezdu; byla odhadnuta z vzdálenosti při 75 km/h.",
+  "At least {n} people have logged a ride here": "Alespoň {n} lidí zde zaznamenalo jízdu",
   "Attribution": "Přisuzování",
   "August": "Srpen",
   "Back to map": "Zpět na mapu",
