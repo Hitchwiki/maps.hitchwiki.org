@@ -73,3 +73,10 @@ def test_every_marked_section_is_reachable_by_the_listener():
     }
     # the listener resolves the section via closest('[data-funnel-section]')
     assert "ev.target.closest('[data-funnel-section]')" in TEMPLATE
+
+
+def test_submitted_event_carries_auth_like_started():
+    # #475: ride_form_started has always carried auth (anon|user); without it on
+    # ride_form_submitted, an anonymous submit rate cannot be computed.
+    submit = TEMPLATE.index("hmTrack('ride_form_submitted'")
+    assert "auth:" in TEMPLATE[submit : submit + 250]

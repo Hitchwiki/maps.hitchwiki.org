@@ -1098,7 +1098,7 @@
         // rather than on the success page because the post redirects to
         // /?ride=<d_tag>#success on the map, where a pageview alone can't be told
         // apart from a normal visit.
-        hmTrack('ride_form_submitted', { destination: coords.destination ? 'yes' : 'no', mode: HM_FORM_MODE });
+        hmTrack('ride_form_submitted', { destination: coords.destination ? 'yes' : 'no', mode: HM_FORM_MODE, auth: '{{ "anon" if current_user.is_anonymous else "user" }}' });
         hmTrack('ride_form_session_submitted', { destination: coords.destination ? 'yes' : 'no', mode: HM_FORM_MODE });
 
         // Driver-motive coverage on THIS surface. The "Why did they pick you up?"
