@@ -25,6 +25,7 @@ from hitch.helpers import e, find_nearest_wide_in_grid, get_bearing, get_db, get
 from hitch.scripts.races import build_races, estimate_arrival
 from hitch.scripts.spot_access_hint import access_hint
 from hitch.scripts.spot_naming import resolve_spot_name
+from hitch.scripts.spot_people import people_holdout, spot_people
 from hitch.scripts.spots_gpx import spot_waypoint, write_spots_gpx
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
@@ -1379,6 +1380,12 @@ for sid, spot_rides in rides_by_spot.items():
     if hint:
         spot_detail = {**spot_detail, "access_hint": hint}
         _access_hint_count += 1
+    people = spot_people(spot_rides)
+    if people:
+        # Holdout arm keeps the count out of the pane but flags it, so the client can log
+        # `spot_people_held` and the two arms compare like for like (EXP-582).
+        key = "people_held" if people_holdout(sid) else "people"
+        spot_detail = {**spot_detail, key: True if key == "people_held" else people}
     with open(os.path.join(by_spot_dir, f"{sid}.json"), "w") as f:
         json.dump({"spot": spot_detail, "rides": spot_rides}, f)
 logger.info(f"Wrote {len(rides_by_spot)} per-spot ride files ({_access_hint_count} with an access hint)")
