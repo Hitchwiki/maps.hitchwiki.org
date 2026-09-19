@@ -83,3 +83,34 @@ test("exactly one hmTrack call in the click handler, carrying context and method
     /hmTrack\('share_click', \{\s*context: shareContext\(btn\),\s*method: navigator\.share \? 'native' : 'clipboard'/,
   );
 });
+
+function tagShareUrl(origin) {
+  const start = SOURCE.indexOf("function tagShareUrl(url, ctx) {");
+  assert.ok(start !== -1, "base.html no longer has tagShareUrl()");
+  const end = SOURCE.indexOf("\n      }\n", start) + "\n      }".length;
+  const block = SOURCE.slice(start, end) + "\nreturn tagShareUrl;";
+  return new Function("window", "URL", block)({ location: { origin, href: origin + "/" } }, URL);
+}
+
+test("#494: same-origin share links get ?ref=share-<context>, fragment kept", () => {
+  const fn = tagShareUrl("https://maps.hitchwiki.org");
+  assert.strictEqual(
+    fn("https://maps.hitchwiki.org/spot/1_2#map=17/1/2", "spot"),
+    "https://maps.hitchwiki.org/spot/1_2?ref=share-spot#map=17/1/2",
+  );
+});
+
+test("#494: foreign-origin and already-tagged links are left alone", () => {
+  const fn = tagShareUrl("https://maps.hitchwiki.org");
+  assert.strictEqual(fn("https://hitchwiki.org/en/Berlin", "event"), "https://hitchwiki.org/en/Berlin");
+  assert.strictEqual(
+    fn("https://maps.hitchwiki.org/x?ref=ride-share", "spot"),
+    "https://maps.hitchwiki.org/x?ref=ride-share",
+  );
+});
+
+test("#494: context is sanitised and the handler uses the tagged url", () => {
+  const fn = tagShareUrl("https://maps.hitchwiki.org");
+  assert.strictEqual(fn("/a", "we ird!"), "https://maps.hitchwiki.org/a?ref=share-weird");
+  assert.match(SOURCE, /tagShareUrl\(btn\.dataset\.shareUrl \|\| window\.location\.href, shareContext\(btn\)\)/);
+});

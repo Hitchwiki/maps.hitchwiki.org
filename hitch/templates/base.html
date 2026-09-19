@@ -344,11 +344,25 @@
         var seg = (window.location.pathname.split('/')[1] || 'map');
         return seg;
       }
+      {# #494: tag a shared link to our own site with ?ref=share-<context>. The
+         landing capture above already fires referred_via for any ?ref=, so every
+         share surface becomes a countable arrival source (until now only the
+         post-ride card carried one). Same-origin only, an existing ref wins, the
+         #fragment (map viewport) survives, and the tag is opaque -- no user id. #}
+      function tagShareUrl(url, ctx) {
+        try {
+          var u = new URL(url, window.location.href);
+          if (u.origin !== window.location.origin || u.searchParams.has('ref')) return url;
+          var tag = ('share-' + ctx).slice(0, 64).replace(/[^a-zA-Z0-9_-]/g, '');
+          u.searchParams.set('ref', tag);
+          return u.toString();
+        } catch (err) { return url; }
+      }
       document.addEventListener('click', async function (e) {
         var btn = e.target.closest && e.target.closest('.share-btn');
         if (!btn) return;
         e.preventDefault();
-        var url = btn.dataset.shareUrl || window.location.href;
+        var url = tagShareUrl(btn.dataset.shareUrl || window.location.href, shareContext(btn));
         var title = btn.dataset.shareTitle || document.title;
         {# One event per click. A second hmTrack in the same tick collides with
            the first server-side (see ride_share_ab.test.js) and reads 0 forever,
