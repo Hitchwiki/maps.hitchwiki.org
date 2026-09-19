@@ -144,8 +144,11 @@ def get_pages_wikitext(titles: list[str]) -> dict[str, str]:
 
 
 def parse_date(value: str) -> datetime.date | None:
-    """Parse a YYYY-MM-DD (or YYYY/MM/DD) date string, tolerating extra whitespace."""
+    """Parse a YYYY-MM-DD (or YYYY/MM/DD) date string, tolerating extra whitespace
+    and a trailing time of day ("2026-08-02 21:00"), which is dropped."""
     value = value.strip()
+    if re.fullmatch(r"\d{4}[-/]\d{2}[-/]\d{2}[ T]\d{1,2}:\d{2}(:\d{2})?", value):
+        value = value[:10]
     for fmt in ("%Y-%m-%d", "%Y/%m/%d", "%d.%m.%Y", "%d-%m-%Y"):
         try:
             return datetime.datetime.strptime(value, fmt).date()
