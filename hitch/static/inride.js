@@ -2262,6 +2262,11 @@
       sheet.appendChild(commentField);
 
       // ── Save CTA (disabled until a rating is chosen) ──────────────────────────
+      // #438 slice-1 residue: the sheet's own abandonment (opened, closed without
+      // saving) was invisible — journey_gave_up fires only on Save, so the cost of
+      // the required-star gate could not be measured. `saved` separates the two
+      // exits so the dismissal count is closes-without-save, not saves.
+      let saved = false;
       const saveBtn = document.createElement("button");
       saveBtn.type = "button";
       saveBtn.className = "inr-big inr-big--green inr-sheet__save inr-disabled";
@@ -2273,12 +2278,14 @@
       }
       saveBtn.addEventListener("click", function () {
         if (!rating) return;
+        saved = true;
         close();
         onSave({ rating: rating, comment: textarea.value.trim() });
       });
       sheet.appendChild(saveBtn);
 
       function close() {
+        if (!saved) hmTrack("giveup_sheet_dismissed", {});
         if (scrim.parentNode) scrim.parentNode.removeChild(scrim);
         if (sheet.parentNode) sheet.parentNode.removeChild(sheet);
         journeyUI._openDialog = null;
@@ -2287,6 +2294,7 @@
 
       document.body.appendChild(scrim);
       document.body.appendChild(sheet);
+      hmTrack("giveup_sheet_shown", {});
       journeyUI._openDialog = { close };
       return { close };
     },
