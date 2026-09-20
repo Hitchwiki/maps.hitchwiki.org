@@ -98,12 +98,44 @@
         // loaded, undefined otherwise) so a caller that needs two events strictly
         // ordered -- see trackRideShare in map.js -- can chain off it. Every existing
         // caller ignores the return value, so returning it changes nothing for them.
+        // Which shell the visitor is in: "twa" (opened from the Play Store app, whose
+        // launch referrer is android-app://<package>), "pwa" (any other standalone
+        // display mode) or "web". Umami's own referrer filter only sees a session's
+        // *landing* event -- every later SPA navigation carries an internal referrer --
+        // so filtering by it under-counts the app cohort's events and inflates its
+        // bounce rate (2026-09-20 read: 856 TWA visitors, 0 ride submissions, neither
+        // number trustworthy). Tagging every event with `shell` lets the split be read per event.
+        // Sticky per tab session because only the first page load has the referrer.
+        var SURFACE = "web";
+        try {
+          SURFACE = sessionStorage.getItem("hm_shell") || "";
+          if (!SURFACE) {
+            var ref = document.referrer || "";
+            var standalone = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone;
+            SURFACE = ref.indexOf("android-app://org.hitchwiki.maps.twa") === 0 ? "twa" : standalone ? "pwa" : "web";
+            sessionStorage.setItem("hm_shell", SURFACE);
+          }
+        } catch (e) { SURFACE = SURFACE || "web"; }
+        window.hmShell = SURFACE;
+        function tagged(data) {
+          var out = { shell: SURFACE };
+          if (data) for (var k in data) if (Object.prototype.hasOwnProperty.call(data, k)) out[k] = data[k];
+          return out;
+        }
         window.hmTrack = function (name, data) {
           try {
-            if (window.umami) { return window.umami.track(name, data || {}); }
-            if (queue.length < QUEUE_MAX) queue.push([name, data || {}]);
+            if (window.umami) { return window.umami.track(name, tagged(data)); }
+            if (queue.length < QUEUE_MAX) queue.push([name, tagged(data)]);
           } catch (e) {}
         };
+        // One event per tab session per surface: the per-surface denominator for
+        // every rate above (a pageview count cannot be split by surface).
+        try {
+          if (!sessionStorage.getItem("hm_shell_seen")) {
+            sessionStorage.setItem("hm_shell_seen", "1");
+            window.hmTrack("shell_session", {});
+          }
+        } catch (e) {}
         // A/B variant assignment: one random pick from `variants`, persisted in
         // localStorage so the same visitor always sees the same variant. No
         // server involvement -- Umami already accepts arbitrary event
