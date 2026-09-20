@@ -4332,6 +4332,15 @@ function renderCampwildNudge() {
 // population-2026-09-16.md sizes the addressable pool at ~1,281 loggers/year).
 const DRIVER_PLEDGE_MADE_KEY = "hmDriverPledgeMade";
 
+// IDEAS #531: the pledge used to have no second act. When it was made (and where) is kept so
+// inride.js's driverPledgeFollowup can ask, a week later, whether it ever happened.
+function noteDriverPledgeTime(surface) {
+  try {
+    localStorage.setItem("hmDriverPledgedAt", String(Date.now()));
+    localStorage.setItem("hmDriverPledgeSurface", surface);
+  } catch (e) {}
+}
+
 function renderDriverPledgeNudge() {
   const btn = $$("#success-driver-pledge-btn");
   const note = $$("#success-driver-pledge-note");
@@ -4348,6 +4357,7 @@ function renderDriverPledgeNudge() {
   btn.onclick = function () {
     hmTrack("driver_pledge_clicked", { surface: "success_overlay" });
     localStorage.setItem(DRIVER_PLEDGE_MADE_KEY, "1");
+    noteDriverPledgeTime("success_overlay");
     btn.style.display = "none";
     note.textContent = tr("Pledge made — thank you.");
     note.style.display = "block";
@@ -4364,6 +4374,7 @@ function wireSpotCountryPledge() {
   btn.onclick = function () {
     hmTrack("driver_pledge_clicked", { surface: "spot_country_contact" });
     try { localStorage.setItem(DRIVER_PLEDGE_MADE_KEY, "1"); } catch (e) {}
+    noteDriverPledgeTime("spot_country_contact");
     btn.style.display = "none";
     note.textContent = tr("Pledge made — thank you.");
     note.style.display = "block";
