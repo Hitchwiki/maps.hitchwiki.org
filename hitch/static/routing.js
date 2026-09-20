@@ -1191,12 +1191,22 @@
     // base.html falls back to the current URL, which updateShareUrl() keeps as the
     // /dir/<from>/<to> permalink for whatever route is currently shown.
     if (!body.querySelector(".rp-options")) {
+      // #516: the planner's Share button (0.3% of route searches) is the one
+      // pre-trip moment a second person could be brought in. English-only A/B
+      // on the label; the arm also gets its own share context, so both the
+      // share_click event and the recipient's ?ref= split by arm.
+      const shareVariant =
+        window.__LANG__ && window.__LANG__ !== "en"
+          ? "control-i18n"
+          : hmVariant("route-share-label-v1", ["control", "companion"]);
+      const shareCompanion = shareVariant === "companion";
+      hmTrack("route_share_shown", { variant: shareVariant });
       body.innerHTML =
         '<div class="rp-sheet-head">' +
         '<h3 class="rp-sheet-title">' + T("Routes") + '</h3>' +
-        '<button type="button" class="share-btn" data-share-context="route" data-share-title="' + T("Hitchhiking route – Hitchwiki Maps") + '">' +
+        '<button type="button" class="share-btn" data-share-context="' + (shareCompanion ? "route-companion" : "route") + '" data-share-title="' + T("Hitchhiking route – Hitchwiki Maps") + '">' +
         '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>' +
-        '<span class="share-btn-label">' + T("Share") + '</span></button>' +
+        '<span class="share-btn-label">' + (shareCompanion ? "Going with someone? Send them this route" : T("Share")) + '</span></button>' +
         '</div>' +
         '<button type="button" class="rp-start-cta" hidden>' +
         '<i class="fa-solid fa-thumbs-up" aria-hidden="true"></i> ' +

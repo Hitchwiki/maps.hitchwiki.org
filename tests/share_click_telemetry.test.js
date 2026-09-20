@@ -53,7 +53,7 @@ test("every share surface carries an explicit data-share-context", () => {
     path.join(__dirname, "..", "hitch", "static", "routing.js"),
     "utf8",
   );
-  assert.match(routing, /class="share-btn" data-share-context="route"/);
+  assert.match(routing, /class="share-btn" data-share-context="' \+ \(shareCompanion \? "route-companion" : "route"\)/);
 
   const map = fs.readFileSync(
     path.join(__dirname, "..", "hitch", "templates", "map.html"),
