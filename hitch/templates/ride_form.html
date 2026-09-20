@@ -77,10 +77,10 @@
 
 {% block main %}
 {% if current_user.is_anonymous %}
-<div style="background-color: #dc3545; color: #fff; text-align: center; padding: 0.75rem 1rem; font-size: 0.95em;">
+<div id="ride-form-anon-banner" style="background-color: #dc3545; color: #fff; text-align: center; padding: 0.75rem 1rem; font-size: 0.95em;">
     {# The login link sits inside the sentence, so it travels as a placeholder: a
        translator must be free to move it, which splitting the sentence would forbid. #}
-    {% set login_link = '<a href="/login" style="color: #fff; text-decoration: underline;">' ~ t("Log in") ~ '</a>' %}
+    {% set login_link = '<a id="ride-form-login-link" href="/login" style="color: #fff; text-decoration: underline;">' ~ t("Log in") ~ '</a>' %}
     {% if request.args.get('edit') %}
     {{ t("You are not logged in. {login} to track your rides — currently you are reviewing anonymously.", login=login_link)|safe }}
     {% else %}
@@ -901,6 +901,40 @@
         mode: HM_FORM_MODE,
         auth: '{{ "anon" if current_user.is_anonymous else "user" }}'
     });
+
+    // The "Log in" link in the anonymous banner used to be a full-page navigation: a
+    // visitor half-way through the form left it (anonymous sessions finish the form far
+    // less often than logged-in ones, and there was no event to say whether this link is
+    // why). Run OAuth in a popup instead, as the map's account sheet does, so the form and
+    // everything typed into it stay put; the submit is attributed server-side to whoever
+    // is logged in at POST time. Popup blocked (routine on mobile Safari): fall back to
+    // the old full-page link, unchanged.
+    (function wireAnonLoginPopup() {
+        var link = document.getElementById('ride-form-login-link');
+        if (!link) return;
+        link.addEventListener('click', function (e) {
+            var popup = window.open('/login/oauth?popup=1', 'hitchwiki-login', 'width=520,height=640');
+            if (!popup) {
+                hmTrack('ride_form_login_clicked', { mode: HM_FORM_MODE, method: 'page' });
+                return; // let the href navigate
+            }
+            e.preventDefault();
+            hmTrack('ride_form_login_clicked', { mode: HM_FORM_MODE, method: 'popup' });
+            function onMsg(ev) {
+                if (ev.origin !== window.location.origin) return;
+                if (ev.source !== popup) return;
+                if (!ev.data || ev.data.type !== 'hitchwiki-auth') return;
+                // A failure leaves the popup open with a "Try again" link, so keep listening
+                // for its later success message; only a terminal success detaches.
+                if (ev.data.ok === false) return;
+                window.removeEventListener('message', onMsg);
+                hmTrack('ride_form_login_completed', { mode: HM_FORM_MODE });
+                var banner = document.getElementById('ride-form-anon-banner');
+                if (banner) banner.remove();
+            }
+            window.addEventListener('message', onMsg);
+        });
+    })();
 
     // Preserve only bounded, non-sensitive choices for 24 hours. Exact places,
     // times, free text, names, plates, photos and driver details deliberately stay
