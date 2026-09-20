@@ -60,6 +60,12 @@
             <hr/>
             {% endfor %}
 
+            {# An invitation, not advice: every page above is built from rides real
+               hitchhikers logged, and until now nothing on it asked a reader who has
+               hitched here to add theirs (IDEAS #511; ~2.4k city-page views / 28 d).
+               Tracked as city_log_cta_clicked; the ?ref shows up on the /ride pageview. #}
+            <p class="city-log-cta"><a id="city-log-cta" href="/ride?ref=city-page-cta">{{ t("Hitchhiked from or to {city}? Add your ride.", city=city.city) }}</a></p>
+
             {# Links to the nearest other city guides. Built in cities.py so the
                list points only at pages that exist; gives every city page the
                inbound internal links it otherwise lacks, so a crawler that finds
@@ -167,6 +173,12 @@
  createStaticMap(container, {{city.lat}}, {{city.lng}}, 12, Math.min(600, window.innerWidth - 40), 300);
  let containerZoomedOut = document.querySelector('#static-map-zoomed-out')
  createStaticMap(containerZoomedOut, {{city.lat}}, {{city.lng}}, 8, Math.min(600, window.innerWidth - 40), 300);
+ (function () {
+     var cta = document.querySelector('#city-log-cta');
+     if (cta) cta.addEventListener('click', function () {
+         if (window.hmTrack) window.hmTrack('city_log_cta_clicked', {city: {{ city.city | tojson }}});
+     });
+ })();
 {% if first_hitch %}
  if (window.hmTrack) window.hmTrack('city_first_hitch_shown', {city: {{ city.city | tojson }}, km: {{ first_hitch.km_from_centre }}, n: {{ first_hitch.n }}});
  (function () {

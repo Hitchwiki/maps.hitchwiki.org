@@ -99,3 +99,11 @@ def test_first_hitch_block_renders_computed_line(app):
     assert "14 logged rides" in out
     assert "4.6 out of 5" in out
     assert "city_first_hitch_shown" in out
+
+
+def test_city_page_invites_readers_to_add_their_ride(app):
+    """IDEAS #511: the page is built from logged rides but asked no reader to add one."""
+    out = _render(app, "en")
+    assert 'href="/ride?ref=city-page-cta"' in out
+    assert "Hitchhiked from or to Berlin? Add your ride." in out
+    assert "city_log_cta_clicked" in out
