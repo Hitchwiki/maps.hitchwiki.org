@@ -3981,6 +3981,33 @@ function maybeShowAmbientFeedback(trigger) {
 // {ride, dTag}. The /ride form's redirect can't do that (the POST navigates away), so
 // it goes through sessionStorage + ?ride= instead; the in-ride tracker, which submits
 // over fetch and stays on the page, passes its last logged ride here.
+// IDEAS #523: 341 visitors a month press "Not now" on the share card. Whether they ever
+// come back to log another ride is unknown, and it decides whether a "remind me later"
+// path is worth building. Instrument only: remember the deferral, and report the next
+// success overlay that opens within 30 days. Guarded because localStorage throws in
+// private mode and must never break the overlay itself.
+const SHARE_DEFERRED_KEY = "hmShareDeferred";
+const SHARE_DEFERRED_WINDOW_MS = 30 * 86400 * 1000;
+
+function noteShareDeferred() {
+  try {
+    localStorage.setItem(SHARE_DEFERRED_KEY, JSON.stringify({ ts: Date.now() }));
+  } catch (e) {}
+}
+
+// Consumed on read so one deferral counts as at most one return.
+function trackShareDeferredReturn() {
+  try {
+    const raw = localStorage.getItem(SHARE_DEFERRED_KEY);
+    if (!raw) return;
+    localStorage.removeItem(SHARE_DEFERRED_KEY);
+    const ts = Number(JSON.parse(raw).ts);
+    const age = Date.now() - ts;
+    if (!(age >= 0) || age > SHARE_DEFERRED_WINDOW_MS) return;
+    hmTrack("ride_share_deferred_return", { days: Math.floor(age / 86400000) });
+  } catch (e) {}
+}
+
 function showSuccessOverlay(opts) {
   const overlay = $$("#success-overlay");
   if (!overlay) return;
@@ -4008,6 +4035,7 @@ function showSuccessOverlay(opts) {
       ? "control-i18n"
       : chooseVariant("ride-share-driver-v1", ["control", "thank-driver"]);
   hmTrack("ride_share_exposure", { variant: shareVariant });
+  trackShareDeferredReturn();
   const shareTitle = $$("#success-share-block h2");
   const shareSub = $$("#success-share-block .success-share-sub");
   const shareButton = $$("#success-share-btn");
@@ -4053,6 +4081,7 @@ function showSuccessOverlay(opts) {
     // close silently, so the dismiss count was an undercount of abandonment rather than
     // a measure of it. `via` says which one, so the button can still be read on its own.
     if (!shareCompleted) trackRideShare({ action: "dismiss", via: via || "other" });
+    if (!shareCompleted && via === "not-now") noteShareDeferred();
     overlay.style.display = "none";
     document.removeEventListener("keydown", onKey);
     lastTripCreated = null; // the note has been seen; the next journey brings its own
