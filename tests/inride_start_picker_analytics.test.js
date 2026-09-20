@@ -131,3 +131,16 @@ test("journey start source survives the login redirect and stays bounded", () =>
   assert.match(SOURCE, /startFromChoose\(latlng, "map-gesture"\)/);
   assert.match(MAP_SOURCE, /startFromChoose\([\s\S]*?"spot-sheet"/);
 });
+
+test("picker outcomes carry the geolocation permission state, declared before the first outcome fires", () => {
+  // `let permState` is in the temporal dead zone until its declaration runs, so it must sit
+  // above the trackOpen call that reaches outcome() synchronously.
+  const decl = SOURCE.indexOf('let permState = "";');
+  assert.ok(decl > 0, "permState must be declared");
+  assert.ok(
+    decl < SOURCE.indexOf('if (opts.trackOpen) outcome("opened")'),
+    "permState must be declared before outcome('opened') can read it",
+  );
+  assert.match(SOURCE, /navigator\.permissions\.query\(\{ name: "geolocation" \}\)/);
+  assert.match(SOURCE, /Object\.assign\(\{ perm: permState \}, details\)/);
+});

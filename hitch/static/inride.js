@@ -1425,6 +1425,24 @@
       // sheet and swallowing the click. See body.inr-picking rule in style.css.
       document.body.classList.add("inr-picking");
 
+      // Geolocation permission state as it stood when the picker opened ("prompt" = the
+      // browser is about to ask, "denied" = it will fail without asking). Attached to every
+      // outcome after the query resolves (a few ms; "opened" fires before it, so it has no
+      // perm) so failure/confirm rates can be split by whether the auto-locate request hit
+      // an already-blocked permission or a first-time prompt (idea #15/#8: ~92% of tagged
+      // failures are "denied", but that cannot say which of the two it was).
+      let permState = "";
+      if (navigator.permissions && navigator.permissions.query) {
+        try {
+          navigator.permissions.query({ name: "geolocation" }).then(
+            function (status) { permState = status.state; },
+            function () { permState = "error"; }
+          );
+        } catch (e) { permState = "error"; }
+      } else {
+        permState = "unsupported";
+      }
+
       // Fire the moment the picker card is on screen, before any terminal
       // outcome. The other outcomes only fire on confirm/cancel/location-result,
       // so a visitor who opens this card and then closes the tab or backgrounds
@@ -1461,7 +1479,8 @@
       }
 
       function outcome(name, details) {
-        if (opts.onOutcome) opts.onOutcome(name, details || {});
+        if (!opts.onOutcome) return;
+        opts.onOutcome(name, permState ? Object.assign({ perm: permState }, details) : (details || {}));
       }
 
       if (opts.autoLocate) {
