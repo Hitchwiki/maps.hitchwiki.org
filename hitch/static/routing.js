@@ -577,6 +577,7 @@
   function reverseRoute() {
     if (!RJ.start || !RJ.dest) return;
     hmTrack("route_reversed", {});
+    clearTimeout(typeTimer);   // a pending geocode for a half-typed field must not reopen suggestions after the swap
     const from = RJ.start, to = RJ.dest;
     // Each setPoint computes once both ends exist, so write the ends directly and
     // search a single time instead of twice (the first time against a half-swapped pair).

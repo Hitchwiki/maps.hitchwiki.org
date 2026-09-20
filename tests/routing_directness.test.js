@@ -111,6 +111,7 @@ const reverseBody = source
   .slice(source.indexOf("function reverseRoute"), source.indexOf("// ---- point setting"))
   .replace(/\/\/.*$/gm, "");
 assert.doesNotMatch(reverseBody, /setPoint\(/, "reversing must not go through setPoint, which would search once per end");
+assert.match(reverseBody, /clearTimeout\(typeTimer\)/, "a pending geocode is cancelled");
 assert.strictEqual((reverseBody.match(/compute\(\)/g) || []).length, 1, "one search after the swap");
 assert.match(source, /hmTrack\("route_reversed", \{\}\)/);
 
