@@ -82,4 +82,25 @@ assert.match(
   "the no-route CTA starts from the searched origin without exposing it to analytics",
 );
 
+// #497: an uncovered end of a no-route search offers the normal add-a-spot flow.
+assert.match(source, /class="rp-no-route-add" hidden/);
+assert.match(source, /showNoRouteAddSpotAction\(reason, from, to\);/);
+assert.match(
+  source,
+  /function showNoRouteAddSpotAction\(reason, from, to\)[\s\S]*?reason === "gap-in-middle"\) return;/,
+  "a gap in the middle has no single place to point at, so it offers nothing",
+);
+assert.match(source, /hmTrack\("route_none_add_spot_shown", \{ end: end \}\)/);
+assert.match(source, /hmTrack\("route_none_add_spot_clicked", \{ end: end \}\)/);
+assert.match(
+  source,
+  /cleanupLocationSelection\(\);\s*window\.startAddSpotFromGesture\(latlng, null\)/,
+  "a stale location selection is ended before the add-spot flow starts",
+);
+assert.doesNotMatch(
+  source,
+  /route_none_add_spot_[a-z]+", \{[^}]*(lat|lon|at\[)/,
+  "coordinates stay out of analytics",
+);
+
 console.log("routing directness tests passed");
