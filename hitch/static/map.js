@@ -4305,9 +4305,9 @@ function renderDriverPledgeNudge() {
   }
   btn.style.display = "block";
   btn.disabled = false;
-  hmTrack("driver_pledge_shown", {});
+  hmTrack("driver_pledge_shown", { surface: "success_overlay" });
   btn.onclick = function () {
-    hmTrack("driver_pledge_clicked", {});
+    hmTrack("driver_pledge_clicked", { surface: "success_overlay" });
     localStorage.setItem(DRIVER_PLEDGE_MADE_KEY, "1");
     btn.style.display = "none";
     note.textContent = tr("Pledge made — thank you.");
