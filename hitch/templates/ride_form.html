@@ -924,8 +924,10 @@
                 if (ev.origin !== window.location.origin) return;
                 if (ev.source !== popup) return;
                 if (!ev.data || ev.data.type !== 'hitchwiki-auth') return;
+                // A failure leaves the popup open with a "Try again" link, so keep listening
+                // for its later success message; only a terminal success detaches.
+                if (ev.data.ok === false) return;
                 window.removeEventListener('message', onMsg);
-                if (ev.data.ok === false) return; // the popup shows its own error + retry
                 hmTrack('ride_form_login_completed', { mode: HM_FORM_MODE });
                 var banner = document.getElementById('ride-form-anon-banner');
                 if (banner) banner.remove();

@@ -94,3 +94,6 @@ def test_anon_login_link_opens_a_popup_and_keeps_the_form():
     # The message must come from our own origin AND the window we opened.
     assert "ev.origin !== window.location.origin" in TEMPLATE
     assert "ev.source !== popup" in TEMPLATE
+    # A failed attempt (ok:false) must not detach the listener: the popup offers a retry.
+    failed = TEMPLATE.index("if (ev.data.ok === false) return;")
+    assert TEMPLATE.index("window.removeEventListener('message', onMsg);", failed) > failed
