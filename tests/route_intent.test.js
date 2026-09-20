@@ -28,3 +28,11 @@ test("a same-day 'today' answer is retained on-device for the start-bar nudge, o
   assert.match(source, /window\.hmRouteIntent = \{ read: readRouteIntent, dismiss: dismissRouteIntent \}/);
   assert.match(source, /if \(intent === "today"\)/);
 });
+
+test("#516: route Share label is an English-only A/B whose arm has its own share context", () => {
+  assert.match(source, /hmVariant\("route-share-label-v1", \["control", "companion"\]\)/);
+  assert.match(source, /"control-i18n"/);
+  assert.match(source, /hmTrack\("route_share_shown", \{ variant: shareVariant \}\)/);
+  assert.match(source, /shareCompanion \? "route-companion" : "route"/);
+  assert.match(source, /Going with someone\? Send them this route/);
+});
