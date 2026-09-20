@@ -2981,6 +2981,10 @@
       // tracker's own prompts (soft login gate, stale-journey welcome back) take
       // priority over this.
       if (journeyStore.get() || journeyUI._openDialog) return;
+      // Someone who opened a shared route link came for that route; a modal (with a
+      // click-blocking scrim) on top of it is the wrong first impression. Return before
+      // the shown-flag is set, so the banner still appears on their next normal visit.
+      if (/(^|\/)dir\/-?\d/.test(location.pathname)) return;
       let races;
       try {
         const res = await fetch("/races.json");
