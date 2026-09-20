@@ -417,6 +417,12 @@ DIR_POINT_RE = re.compile(r"^-?\d+\.\d{1,7},-?\d+\.\d{1,7}$")
 # give an unfurl roughly ten seconds before they give up.
 PREVIEW_TIMEOUT_S = 25
 
+# A build that fails or times out leaves a marker for this long, so the next visitors
+# get the generic preview at once. Without it a route whose build always fails (the
+# Rome-Naples race link ran the full timeout on every single request) makes every
+# visitor and every unfurl bot wait the whole PREVIEW_TIMEOUT_S again.
+PREVIEW_FAILURE_TTL_S = 3600
+
 
 def _parse_dir_point(point):
     if not DIR_POINT_RE.match(point):
@@ -448,6 +454,10 @@ def _route_preview(start, dest, build=True):
             pass
     if not build:
         return key, None
+    failed = f"{cached}.failed"
+    with contextlib.suppress(OSError):
+        if time.time() - os.path.getmtime(failed) < PREVIEW_FAILURE_TTL_S:
+            return key, None
 
     # The lock lives beside the cache entry, so the directory has to exist before
     # we can take it — on a fresh deploy nothing has written dist/dir/ yet.
@@ -488,6 +498,8 @@ def _route_preview(start, dest, build=True):
         )
     except (subprocess.SubprocessError, OSError) as e:
         current_app.logger.warning("route preview failed for %s: %s", key, e)
+        with contextlib.suppress(OSError):
+            open(failed, "w").close()
         return key, None
     finally:
         with contextlib.suppress(OSError):
