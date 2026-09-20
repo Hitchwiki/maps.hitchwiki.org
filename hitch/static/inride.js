@@ -3040,7 +3040,11 @@
           cls: "inr-grey",
           onClick: function () {
             hmTrack("driver_pledge_clicked", { surface: "race_banner" });
-            try { localStorage.setItem("hmDriverPledgeMade", "1"); } catch (e) {}
+            try {
+              localStorage.setItem("hmDriverPledgeMade", "1");
+              localStorage.setItem("hmDriverPledgedAt", String(Date.now()));
+              localStorage.setItem("hmDriverPledgeSurface", "race_banner");
+            } catch (e) {}
           },
         });
       }
@@ -3055,6 +3059,57 @@
         cancelButton: true,
         actions: actions,
       });
+    },
+  };
+
+  // ── driverPledgeFollowup: a week after a driver pledge, ask if it happened (IDEAS #531) ──
+  // The pledge (success overlay, race banner, spot sheet) is a one-tap commitment device
+  // whose only instrument so far is the tap. This is the second act: one self-report
+  // question, at most twice per device, never during a journey or over another dialog.
+  // Pledges made before this shipped have no timestamp; they are stamped on first sight so
+  // their week starts now rather than asking a person who pledged yesterday.
+  const driverPledgeFollowup = {
+    WAIT_MS: 7 * 86400000,
+    MAX_ASKS: 2,
+
+    check() {
+      try {
+        if (!localStorage.getItem("hmDriverPledgeMade")) return;
+        if (localStorage.getItem("hmDriverFollowupDone")) return;
+        const now = Date.now();
+        const at = Number(localStorage.getItem("hmDriverPledgedAt"));
+        if (!(at > 0)) { localStorage.setItem("hmDriverPledgedAt", String(now)); return; }
+        const asks = Number(localStorage.getItem("hmDriverFollowupAsks")) || 0;
+        const last = Number(localStorage.getItem("hmDriverFollowupLast")) || at;
+        if (asks >= driverPledgeFollowup.MAX_ASKS || now - last < driverPledgeFollowup.WAIT_MS) return;
+        if (journeyStore.get() || journeyUI._openDialog) return;
+        // A shared route link is a visit with a purpose; don't put a modal on top of it.
+        if (/(^|\/)dir\/-?\d/.test(location.pathname)) return;
+        localStorage.setItem("hmDriverFollowupAsks", String(asks + 1));
+        localStorage.setItem("hmDriverFollowupLast", String(now));
+        const surface = localStorage.getItem("hmDriverPledgeSurface") || "unknown";
+        const days = Math.floor((now - at) / 86400000);
+        hmTrack("driver_pledge_followup_shown", { surface: surface, ask: asks + 1 });
+        const answer = function (value) {
+          return function () {
+            try { localStorage.setItem("hmDriverFollowupDone", "1"); } catch (e) {}
+            hmTrack("driver_pledge_followup_answered", { answer: value, surface: surface, days: days });
+          };
+        };
+        journeyUI.dialog({
+          title: T("Have you stopped for a hitchhiker?"),
+          body: T("You pledged to stop for a hitchhiker when you're driving. Has it happened yet?"),
+          centered: true,
+          cancelButton: true,
+          actions: [
+            { label: T("Yes, I have"), cls: "inr-go", onClick: answer("yes") },
+            { label: T("Not yet"), cls: "inr-grey", onClick: answer("not_yet") },
+          ],
+          onClose: function (reason) {
+            if (reason !== "button") hmTrack("driver_pledge_followup_dismissed", { surface: surface, ask: asks + 1 });
+          },
+        });
+      } catch (e) { /* storage blocked — never break the map over a follow-up */ }
     },
   };
 
@@ -3227,7 +3282,7 @@
 
   window.inride = {
     journeyStore, journeyUI, journeyFlow, outboxStore, submitBody, flushOutbox, outboxUI, startLauncher,
-    journeyLogStore, pendingTripStore, finalizeJourney, tryCreateTrip, rideFactsFromBody, raceBanner,
+    journeyLogStore, pendingTripStore, finalizeJourney, tryCreateTrip, rideFactsFromBody, raceBanner, driverPledgeFollowup,
     thinCoverageBanner,
   };
 
@@ -3280,7 +3335,12 @@
     // function doesn't matter. Thin-coverage waits for the race banner's fetch so
     // the two dialogs never race; thinCoverageBanner.check also no-ops if a
     // dialog opened in the meantime.
-    raceBanner.check().then(function () { thinCoverageBanner.check(); });
+    raceBanner.check().then(function () {
+      thinCoverageBanner.check();
+      // Later than the thin-coverage geolocation fix could land, and re-guarded inside, so
+      // it only ever appears when nothing else has claimed the screen.
+      setTimeout(driverPledgeFollowup.check, 6000);
+    });
 
     const j = journeyStore.get();
     if (!j) return;
