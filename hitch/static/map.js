@@ -3982,30 +3982,36 @@ function showSuccessOverlay(opts) {
       : opts;
   overlay.style.display = "flex";
   // A/B "ride-share-value-v1" is decided: the "help a friend" arm converted worse
-  // (help_friend 3.21% vs control 5.96% shared, n=514), so we ship the control
-  // wording to everyone. Left as a pinned assignment rather than deleting the
-  // whole variant machinery so the copy below still has one code path and a
-  // future test can reuse chooseVariant.
-  shareVariant = "control";
+  // (help_friend 3.21% vs control 5.96% shared, n=514), so control wording shipped
+  // to everyone. "ride-share-driver-v1" (IDEAS #510) tests the one audience the card
+  // never addressed: the driver who just gave the ride. It is 90% dismissed (732 of
+  // 812 exposures / 28 d), which reads as a wrong ask rather than a broken button.
+  // English only: the new copy has no translations yet, so a non-English visitor would
+  // see a half-English card and confound the arm; they are tagged "control-i18n" so
+  // the control series a readout compares against stays English-only.
+  shareVariant =
+    window.__LANG__ && window.__LANG__ !== "en"
+      ? "control-i18n"
+      : chooseVariant("ride-share-driver-v1", ["control", "thank-driver"]);
   hmTrack("ride_share_exposure", { variant: shareVariant });
   const shareTitle = $$("#success-share-block h2");
   const shareSub = $$("#success-share-block .success-share-sub");
   const shareButton = $$("#success-share-btn");
   if (shareTitle) {
     shareTitle.textContent = tr(
-      shareVariant === "help-friend" ? "Help a friend try hitchhiking" : "Show your friends"
+      shareVariant === "thank-driver" ? "Thank your driver" : "Show your friends"
     );
   }
   if (shareSub) {
     shareSub.textContent = tr(
-      shareVariant === "help-friend"
-        ? "Share a real ride and show them where hitchhiking worked for you."
+      shareVariant === "thank-driver"
+        ? "Send them the map of your ride, so they can see where they took you."
         : "Send them the map of your ride — it's how most hitchhikers find us."
     );
   }
   if (shareButton) {
     shareButton.textContent = tr(
-      shareVariant === "help-friend" ? "Share this ride" : "Share my ride"
+      shareVariant === "thank-driver" ? "Send my ride to my driver" : "Share my ride"
     );
   }
   // A trip note belongs to the journey that was handed in via opts. Reached from a bare
