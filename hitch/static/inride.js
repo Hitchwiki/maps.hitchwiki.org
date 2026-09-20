@@ -3084,7 +3084,7 @@
         if (asks >= driverPledgeFollowup.MAX_ASKS || now - last < driverPledgeFollowup.WAIT_MS) return;
         if (journeyStore.get() || journeyUI._openDialog) return;
         // A shared route link is a visit with a purpose; don't put a modal on top of it.
-        if (/(^|\/)dir\/-?\d/.test(location.pathname)) return;
+        if (/(^|\/)dir\/-?\d/.test(location.pathname) || location.hash.slice(1).startsWith("dir/")) return;
         localStorage.setItem("hmDriverFollowupAsks", String(asks + 1));
         localStorage.setItem("hmDriverFollowupLast", String(now));
         const surface = localStorage.getItem("hmDriverPledgeSurface") || "unknown";
