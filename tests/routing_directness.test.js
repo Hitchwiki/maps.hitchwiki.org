@@ -92,7 +92,11 @@ assert.match(
 );
 assert.match(source, /hmTrack\("route_none_add_spot_shown", \{ end: end \}\)/);
 assert.match(source, /hmTrack\("route_none_add_spot_clicked", \{ end: end \}\)/);
-assert.match(source, /window\.startAddSpotFromGesture\(latlng, null\)/);
+assert.match(
+  source,
+  /cleanupLocationSelection\(\);\s*window\.startAddSpotFromGesture\(latlng, null\)/,
+  "a stale location selection is ended before the add-spot flow starts",
+);
 assert.doesNotMatch(
   source,
   /route_none_add_spot_[a-z]+", \{[^}]*(lat|lon|at\[)/,

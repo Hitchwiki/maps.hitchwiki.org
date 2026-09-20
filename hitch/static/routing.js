@@ -776,6 +776,9 @@
       const latlng = L.latLng(at[0], at[1]);
       close();
       map.setView([at[0], at[1]], Math.max(map.getZoom(), 13));
+      // A pick already in progress would swallow this as "move the pin" (see
+      // startAddSpotFromGesture), so end it first.
+      if (typeof cleanupLocationSelection === "function") cleanupLocationSelection();
       window.startAddSpotFromGesture(latlng, null);
     };
   }
