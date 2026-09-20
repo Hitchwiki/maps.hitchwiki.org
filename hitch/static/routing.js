@@ -505,6 +505,10 @@
           <button class="rp-clear" tabindex="-1" aria-label="${T("Clear")}">&times;</button>
         </div>
       </div>
+      <button type="button" class="rp-swap" hidden>
+        <i class="fa-solid fa-right-left" aria-hidden="true"></i>
+        ${T("Plan the way back")}
+      </button>
       <div class="rp-suggest" hidden></div>
       <div class="rp-options" hidden></div>
       <div class="rp-status" hidden></div>
@@ -528,6 +532,7 @@
         input.value = ""; clearPoint(field); hideSuggest();
       });
     });
+    panel.querySelector(".rp-swap").addEventListener("click", reverseRoute);
     L.DomEvent.disableClickPropagation(panel);
     L.DomEvent.disableScrollPropagation(panel);
   }
@@ -561,6 +566,29 @@
   }
   function hideSuggest() { const b = panel.querySelector(".rp-suggest"); if (b) { b.hidden = true; b.innerHTML = ""; } }
 
+  // A hitchhiker who has just planned A to B very often needs B to A next (29% of repeat
+  // loggers log a leg back toward an earlier start, two thirds the same day), and the
+  // planner had no way to ask for it short of retyping both ends. Visible only while both
+  // ends are set, so it never floats over an empty planner.
+  function syncSwap() {
+    const btn = panel && panel.querySelector(".rp-swap");
+    if (btn) btn.hidden = !(RJ.start && RJ.dest);
+  }
+  function reverseRoute() {
+    if (!RJ.start || !RJ.dest) return;
+    hmTrack("route_reversed", {});
+    const from = RJ.start, to = RJ.dest;
+    // Each setPoint computes once both ends exist, so write the ends directly and
+    // search a single time instead of twice (the first time against a half-swapped pair).
+    RJ.start = to;
+    RJ.dest = from;
+    fieldInput("start").value = RJ.start.label;
+    fieldInput("dest").value = RJ.dest.label;
+    if (RJ.startMarker) RJ.startMarker.setLatLng(RJ.start.latlng);
+    if (RJ.destMarker) RJ.destMarker.setLatLng(RJ.dest.latlng);
+    compute();
+  }
+
   // ---- point setting -----------------------------------------------------
   function fieldInput(field) { return panel.querySelector(`.rp-field[data-field="${field}"] input`); }
 
@@ -572,6 +600,7 @@
     else RJ[marker] = L.marker(latlng, { icon: pinIcon(field), zIndexOffset: 1000, interactive: false }).addTo(map);
     // Move focus to the empty field so the next map click fills it.
     RJ.activeField = RJ.start && !RJ.dest ? "dest" : RJ.dest && !RJ.start ? "start" : field === "start" ? "dest" : "start";
+    syncSwap();
     if (RJ.start && RJ.dest) compute();
   }
   function clearPoint(field) {
@@ -579,6 +608,7 @@
     const marker = field === "start" ? "startMarker" : "destMarker";
     if (RJ[marker]) { map.removeLayer(RJ[marker]); RJ[marker] = null; }
     RJ.activeField = field;
+    syncSwap();
     clearRoutes();
   }
 

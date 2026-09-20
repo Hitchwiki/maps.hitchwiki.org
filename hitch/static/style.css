@@ -4004,6 +4004,14 @@ body.routing-active .leaflet-control-container .leaflet-control-geocoder { displ
 }
 .rp-no-route-add:hover { background: #e6f4ea; }
 
+/* Plan the way back: a quiet text button under the two fields, not a second primary CTA. */
+.rp-swap {
+  margin-top: 6px; padding: 4px 2px;
+  border: 0; background: none; color: #1a73e8;
+  font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.rp-swap:hover { text-decoration: underline; }
+
 /* Step-by-step itinerary: a time column, a rail of dots and connecting lines,
    and the step content — the shape a transit app uses for a trip. */
 .rp-itin { list-style: none; margin: 8px 0 2px; padding: 0; }
