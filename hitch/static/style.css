@@ -2572,6 +2572,21 @@ ul.no-style {
   padding: 0 14px;
 }
 
+/* Language offer: one pill beside the picker, shown only on an unprefixed page when the
+   browser's language has a translation. */
+.lang-offer {
+  margin-left: auto;
+  margin-right: 8px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: #1a73e8;
+  color: #fff !important;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
 /* Language picker: flag + name button, top-right of the yellow brand bar. */
 .lang-picker {
   position: relative;

@@ -955,4 +955,39 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
 })();
 </script>
+{# Language offer. Language comes only from the URL prefix (see set_locale in hitch/__init__.py),
+   so 72% of pageviews were English pages shown to browsers set to another language. This is one
+   pill in the brand bar, on an *unprefixed* page only, decided in the browser from
+   navigator.languages: the server still renders identical HTML for every visitor and crawler,
+   and no redirect happens. The label is the picker's own flag + endonym, so it needs no new
+   translated string. Shown on at most 5 page loads, or until it is clicked. #}
+<script>
+(function () {
+    var picker = document.getElementById('lang-picker');
+    var active = document.querySelector('#lang-picker .lang-picker-item.active');
+    if (!picker || !active || active.getAttribute('hreflang') !== 'en') return;
+    var KEY = 'hmLangOfferShown';
+    var seen = 0;
+    try { seen = parseInt(localStorage.getItem(KEY) || '0', 10) || 0; } catch (e) { return; }
+    if (seen >= 5) return;
+    var prefs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || 'en'];
+    var first = String(prefs[0] || 'en').toLowerCase().split('-')[0];
+    if (first === 'en') return;
+    var link = document.querySelector('#lang-picker .lang-picker-item[hreflang="' + first + '"]');
+    if (!link) return;
+    var a = document.createElement('a');
+    a.className = 'lang-offer';
+    a.href = link.getAttribute('href');
+    a.setAttribute('hreflang', first);
+    a.textContent = link.textContent.replace(/\s+/g, ' ').trim();
+    picker.parentNode.insertBefore(a, picker);
+    try { localStorage.setItem(KEY, String(seen + 1)); } catch (e) {}
+    function track(name) { if (window.hmTrack) window.hmTrack(name, { lang: first }); }
+    track('lang_banner_shown');
+    a.addEventListener('click', function () {
+        try { localStorage.setItem(KEY, '99'); } catch (e) {}
+        track('lang_banner_clicked');
+    });
+})();
+</script>
 {% endblock %}
