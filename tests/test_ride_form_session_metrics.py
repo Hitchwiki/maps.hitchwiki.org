@@ -80,3 +80,17 @@ def test_submitted_event_carries_auth_like_started():
     # ride_form_submitted, an anonymous submit rate cannot be computed.
     submit = TEMPLATE.index("hmTrack('ride_form_submitted'")
     assert "auth:" in TEMPLATE[submit : submit + 250]
+
+
+def test_anon_login_link_opens_a_popup_and_keeps_the_form():
+    # Anonymous form sessions finish far less often than logged-in ones; the banner's
+    # login link used to be a full-page navigation that discarded the form. It now runs
+    # OAuth in a popup (same as account.js) and only falls back to the href if blocked.
+    assert 'id="ride-form-login-link"' in TEMPLATE
+    assert "window.open('/login/oauth?popup=1'" in TEMPLATE
+    assert "hmTrack('ride_form_login_clicked', { mode: HM_FORM_MODE, method: 'popup' })" in TEMPLATE
+    assert "hmTrack('ride_form_login_clicked', { mode: HM_FORM_MODE, method: 'page' })" in TEMPLATE
+    assert "hmTrack('ride_form_login_completed'" in TEMPLATE
+    # The message must come from our own origin AND the window we opened.
+    assert "ev.origin !== window.location.origin" in TEMPLATE
+    assert "ev.source !== popup" in TEMPLATE
