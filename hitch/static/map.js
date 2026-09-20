@@ -3009,6 +3009,17 @@ window.addEventListener("resize", () => {
 
 // Single entry point for the spot pane's summary: writes the markup and paints the
 // canvases, which the summaryText string alone cannot do.
+// IDEAS #522 slice 2 / #519: the "how drivers are approached in {country}" line reaches
+// ~270 spot-sheet viewers a day, so it is the highest-traffic place a one-tap driver pledge
+// (same string and same DRIVER_PLEDGE_MADE_KEY as the success overlay) can be tested.
+// Visitors who already pledged anywhere are tagged, never assigned to an arm.
+function spotCountryPledgeVariant() {
+  let pledgeMade = false;
+  try { pledgeMade = !!localStorage.getItem("hmDriverPledgeMade"); } catch (e) {}
+  if (pledgeMade) return "already-pledged";
+  return window.hmVariant ? window.hmVariant("spot-country-pledge-v1", ["control", "pledge"]) : "control";
+}
+
 function renderSpotSummary(data) {
   spotHistograms = {
     wait: spotHistogram(data.rides, "wait"),
@@ -3080,6 +3091,7 @@ function summaryText(data, hists = { wait: null, distance: null }) {
               sign: `${Math.round(c.shares.sign * 100)}%`,
               ask: `${Math.round(ask * 100)}%`,
             })}</div>
+            ${spotCountryPledgeVariant() === "pledge" ? `<button type="button" id="spot-country-pledge-btn" class="spot-country-pledge-btn">${tr("I'll stop for a hitchhiker when I'm driving")}</button><div id="spot-country-pledge-note" class="spot-country-pledge-note" style="display: none;"></div>` : ""}
           </div>`;
       })()
     : '';
@@ -3177,7 +3189,9 @@ async function handleMarkerClick(marker, point, e) {
         // already public on the spot sheet itself.
         const spotCountry = (payload.spot || {}).country;
         if (spotCountry && driverContactByCountry && driverContactByCountry[spotCountry]) {
-          hmTrack('spot_country_contact_shown', { country: spotCountry });
+          const pledgeVariant = spotCountryPledgeVariant();
+          hmTrack('spot_country_contact_shown', { country: spotCountry, variant: pledgeVariant });
+          if (pledgeVariant === "pledge") hmTrack("driver_pledge_shown", { surface: "spot_country_contact" });
         }
       }
     } else if (resp.status !== 404) {
@@ -3248,6 +3262,7 @@ function applySpotRideFilter(marker) {
   // the marker's own state and must keep the unfiltered values for the next open.
   const view = rideFilter ? { ...data, ...spotAverages(shown) } : data;
   renderSpotSummary(view);
+  wireSpotCountryPledge();
   renderSpotPhotos(shown);
 
   // renderSpotSummary just rebuilt #spot-wiki-excerpt (if this spot has a wiki
@@ -4309,6 +4324,22 @@ function renderDriverPledgeNudge() {
   btn.onclick = function () {
     hmTrack("driver_pledge_clicked", { surface: "success_overlay" });
     localStorage.setItem(DRIVER_PLEDGE_MADE_KEY, "1");
+    btn.style.display = "none";
+    note.textContent = tr("Pledge made — thank you.");
+    note.style.display = "block";
+  };
+}
+
+// Wires the pledge button rendered inside the spot sheet's country-contact line
+// (IDEAS #522 slice 2). The sheet is rebuilt on every filter change, so this runs after
+// each renderSpotSummary; a pledge made meanwhile removes the button from later renders.
+function wireSpotCountryPledge() {
+  const btn = $$("#spot-country-pledge-btn");
+  const note = $$("#spot-country-pledge-note");
+  if (!btn || !note) return;
+  btn.onclick = function () {
+    hmTrack("driver_pledge_clicked", { surface: "spot_country_contact" });
+    try { localStorage.setItem(DRIVER_PLEDGE_MADE_KEY, "1"); } catch (e) {}
     btn.style.display = "none";
     note.textContent = tr("Pledge made — thank you.");
     note.style.display = "block";
