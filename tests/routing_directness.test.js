@@ -103,4 +103,16 @@ assert.doesNotMatch(
   "coordinates stay out of analytics",
 );
 
+// #499: a planned route can be reversed in one tap; the ends are swapped in place and searched once.
+assert.match(source, /class="rp-swap" hidden/);
+assert.match(source, /function syncSwap\(\)[\s\S]*?btn\.hidden = !\(RJ\.start && RJ\.dest\)/, "hidden unless both ends are set");
+assert.match(source, /RJ\.start = to;\s*RJ\.dest = from;/, "the two ends trade places");
+const reverseBody = source
+  .slice(source.indexOf("function reverseRoute"), source.indexOf("// ---- point setting"))
+  .replace(/\/\/.*$/gm, "");
+assert.doesNotMatch(reverseBody, /setPoint\(/, "reversing must not go through setPoint, which would search once per end");
+assert.match(reverseBody, /clearTimeout\(typeTimer\)/, "a pending geocode is cancelled");
+assert.strictEqual((reverseBody.match(/compute\(\)/g) || []).length, 1, "one search after the swap");
+assert.match(source, /hmTrack\("route_reversed", \{\}\)/);
+
 console.log("routing directness tests passed");
