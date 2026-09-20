@@ -511,6 +511,10 @@
       <button type="button" class="rp-no-route-cta" hidden>
         <i class="fa-solid fa-thumbs-up" aria-hidden="true"></i>
         ${T("Start hitchhiking anyway")}
+      </button>
+      <button type="button" class="rp-no-route-add" hidden>
+        <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+        ${T("Know a hitchhiking spot there? Add it to the map")}
       </button>`;
     document.body.appendChild(panel);
 
@@ -636,6 +640,8 @@
     if (opts) opts.innerHTML = "";
     const noRouteCta = panel && panel.querySelector(".rp-no-route-cta");
     if (noRouteCta) { noRouteCta.hidden = true; noRouteCta.onclick = null; }
+    const noRouteAdd = panel && panel.querySelector(".rp-no-route-add");
+    if (noRouteAdd) { noRouteAdd.hidden = true; noRouteAdd.onclick = null; }
     setStatus(null);
   }
   function setStatus(msg) {
@@ -687,6 +693,7 @@
           hmTrack('route_none', { reason: reason });
           setStatus(diagnoseNoRoute(FB || RJ.router, from, to, DEFAULT_MAX_WALK, !!FB));
           showNoRouteStartAction(from);
+          showNoRouteAddSpotAction(reason, from, to);
           return;
         }
         hmTrack('route_found', { graph: 'oneoff', options: alt.length });
@@ -747,6 +754,29 @@
         { lat: start[0], lon: start[1] },
         "route-results",
       );
+    };
+  }
+
+  // #497: an uncovered end is a place nobody has logged a ride, and the person
+  // searching it is exactly who might know one. Offer the normal add-a-spot flow
+  // there. No text is written for them; the map only points at the gap. Additive
+  // to the start CTA above (own events, no variant split). Only the end that lacks
+  // coverage is offered (destination first when both do); a "gap in the middle"
+  // has no single place to point at, so it gets nothing.
+  function showNoRouteAddSpotAction(reason, from, to) {
+    const btn = panel && panel.querySelector(".rp-no-route-add");
+    if (!btn || reason === "gap-in-middle") return;
+    const end = reason === "start-uncovered" ? "start" : "dest";
+    const at = end === "start" ? from : to;
+    hmTrack("route_none_add_spot_shown", { end: end });
+    btn.hidden = false;
+    btn.onclick = function () {
+      if (typeof window.startAddSpotFromGesture !== "function") return;
+      hmTrack("route_none_add_spot_clicked", { end: end });
+      const latlng = L.latLng(at[0], at[1]);
+      close();
+      map.setView([at[0], at[1]], Math.max(map.getZoom(), 13));
+      window.startAddSpotFromGesture(latlng, null);
     };
   }
 
