@@ -3012,7 +3012,39 @@
       });
       if (!race) return;
       localStorage.setItem(raceBanner._shownKey(race.title), "1");
-      hmTrack("race_banner_shown", { race: race.name });
+      // #519 s1 — the banner reaches people who are on the road right now, and a driver
+      // pledge is one tap. A returning pledger (map.js shares this key) is neither
+      // assigned nor counted: they'd inflate the denominator with people who cannot
+      // click. English copy in both arms, so untranslated text cannot confound the read.
+      let pledgeMade = false;
+      try { pledgeMade = !!localStorage.getItem("hmDriverPledgeMade"); } catch (e) {}
+      const variant = pledgeMade
+        ? "already-pledged"
+        : (window.hmVariant || function (_n, v) { return v[0]; })("race-banner-pledge-v1", ["control", "pledge"]);
+      const withPledge = variant === "pledge";
+      hmTrack("race_banner_shown", { race: race.name, variant: variant });
+      if (withPledge) hmTrack("driver_pledge_shown", { surface: "race_banner" });
+      const actions = [
+        {
+          label: T("See the leaderboard"),
+          cls: "inr-go",
+          onClick: function () {
+            hmTrack("race_banner_leaderboard_clicked", { race: race.name, variant: variant });
+            window.location.href = "/races";
+          },
+        },
+      ];
+      if (withPledge) {
+        actions.push({
+          label: T("I'll stop for a hitchhiker when I'm driving"),
+          cls: "inr-grey",
+          onClick: function () {
+            hmTrack("driver_pledge_clicked", { surface: "race_banner" });
+            try { localStorage.setItem("hmDriverPledgeMade", "1"); } catch (e) {}
+          },
+        });
+      }
+      actions.push({ label: T("Not now"), cls: "inr-grey", onClick: function () {} });
       journeyUI.dialog({
         title: T("{name} is on right now", { name: race.name }),
         body: T(
@@ -3021,17 +3053,7 @@
         ),
         centered: true,
         cancelButton: true,
-        actions: [
-          {
-            label: T("See the leaderboard"),
-            cls: "inr-go",
-            onClick: function () {
-              hmTrack("race_banner_leaderboard_clicked", { race: race.name });
-              window.location.href = "/races";
-            },
-          },
-          { label: T("Not now"), cls: "inr-grey", onClick: function () {} },
-        ],
+        actions: actions,
       });
     },
   };
