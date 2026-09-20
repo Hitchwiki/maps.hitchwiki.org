@@ -1237,6 +1237,23 @@ body.spots-loaded.has-start-bar:not(.inride-active) .leaflet-bottom.leaflet-righ
   padding-top: 0.75rem;
   border-top: 1px solid #eee;
 }
+.sidebar.show-spot .spot-country-pledge-btn {
+  display: inline-block;
+  width: auto;
+  margin-top: 0.5rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+  color: #444;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.sidebar.show-spot .spot-country-pledge-note {
+  margin-top: 0.5rem;
+  color: #2e7d32;
+  font-size: 0.85rem;
+}
 .sidebar.show-spot .spot-country-contact-label {
   font-weight: 600;
   color: #222;
