@@ -15,3 +15,5 @@ assert(re.test("/dir/52.5,13.4/48.1,11.5"));
 assert(re.test("/de/dir/52.5,13.4/48.1,11.5"));
 assert(!re.test("/") && !re.test("/races") && !re.test("/de"));
 console.log("race_banner_route_link ok");
+// Legacy #dir/ links (pathname stays "/") are guarded by the same line.
+assert(body.includes('location.hash.slice(1).startsWith("dir/")'), "legacy #dir guard present");

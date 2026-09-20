@@ -2984,7 +2984,7 @@
       // Someone who opened a shared route link came for that route; a modal (with a
       // click-blocking scrim) on top of it is the wrong first impression. Return before
       // the shown-flag is set, so the banner still appears on their next normal visit.
-      if (/(^|\/)dir\/-?\d/.test(location.pathname)) return;
+      if (/(^|\/)dir\/-?\d/.test(location.pathname) || location.hash.slice(1).startsWith("dir/")) return;
       let races;
       try {
         const res = await fetch("/races.json");
