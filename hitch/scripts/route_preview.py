@@ -223,8 +223,21 @@ def fmt_time(minutes):
     return f"{h}h{m:02d}" if h else f"{m}m"
 
 
+# Mirrors CIRCUITOUS_RATIO in static/routing.js: the planner draws a route this
+# indirect but labels it circuitous. A link preview has no room for that caveat.
+CIRCUITOUS_RATIO = 2
+
+
+def _great_circle_km(a, b):
+    r = math.pi / 180
+    dlat, dlon = (b[0] - a[0]) * r, (b[1] - a[1]) * r
+    h = math.sin(dlat / 2) ** 2 + math.cos(a[0] * r) * math.cos(b[0] * r) * math.sin(dlon / 2) ** 2
+    return 6371.0 * 2 * math.asin(math.sqrt(h))
+
+
 def route_facts(start, dest):
-    """The fastest itinerary's headline numbers, or None when nothing connects."""
+    """The fastest itinerary's headline numbers, or None when nothing connects
+    directly enough to headline."""
     router = load_router()
     # Same two passes as the planner, or a shared /dir/ link would preview "no
     # route" for a route the page itself goes on to draw.
@@ -232,6 +245,14 @@ def route_facts(start, dest):
     if not alts:
         return None
     itin = alts[0]
+    # Live 2026-09-20: Rome -> Naples (~225 km) was previewed as "About 50h50 ...
+    # 4,546 km in roughly 8 rides", the only chain the one-off graph connects
+    # them by. A shared link that advertises a 20x detour as the hitchhiking
+    # route is worse than the generic "plan a route" card, so a route at or past
+    # the planner's circuitous threshold is treated as no headline route.
+    direct_km = _great_circle_km(start, dest)
+    if direct_km >= 0.1 and itin["car_km"] / direct_km >= CIRCUITOUS_RATIO:
+        return None
     legs = itin["legs"]
     # Headline the "core" hitching time the way the planner's own result card
     # does: the first/last mile to and from the spots is usually a bus ride, not
