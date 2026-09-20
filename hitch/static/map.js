@@ -4373,6 +4373,12 @@ function setupShareCard(opts) {
       return window.hmShareCard.build(ride, resolved);
     })
     .then(function (result) {
+      // #513: the thank-driver arm's link carries its own ref, so
+      // referred_via can tell a driver-arm arrival from a control one. Both arms
+      // used to emit ?ref=ride-share, which left EXP-633's arrivals unattributable.
+      if (shareVariant === "thank-driver" && result.url) {
+        result.url = result.url.replace("?ref=ride-share", "?ref=ride-share-driver");
+      }
       card = result;
       img.src = result.dataUrl;
       img.style.display = "block";

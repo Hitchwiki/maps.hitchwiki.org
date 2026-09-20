@@ -75,3 +75,14 @@ test("the outcome event is not sent until the primary ride_share call resolves",
   await new Promise((res) => setTimeout(res, 0));
   assert.deepStrictEqual(calls, ["ride_share", "ride_share_clicked"]);
 });
+
+test("#513: the thank-driver arm's link carries ref=ride-share-driver, control keeps ref=ride-share", () => {
+  const MAP = require("node:fs").readFileSync(
+    require("node:path").join(__dirname, "..", "hitch", "static", "map.js"),
+    "utf8",
+  );
+  assert.match(MAP, /shareVariant === "thank-driver" && result\.url/);
+  assert.match(MAP, /replace\("\?ref=ride-share", "\?ref=ride-share-driver"\)/);
+  // the sanitiser in base.html accepts alphanumerics and dashes only
+  assert.strictEqual("ride-share-driver", "ride-share-driver".replace(/[^a-zA-Z0-9_-]/g, ""));
+});
