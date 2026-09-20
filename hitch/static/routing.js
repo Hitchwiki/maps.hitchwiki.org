@@ -773,9 +773,10 @@
   function showNoRouteStartAction(origin) {
     const cta = panel && panel.querySelector(".rp-no-route-cta");
     if (!cta || !origin) return;
-    const variant = hmVariant("route-none-start-v1", ["control", "cta"]);
-    hmTrack("route_none_start_exposure_" + variant);
-    cta.hidden = variant !== "cta";
+    // Shipped to 100% (IDEAS #532): in the 28 d to 2026-09-20 the arm had 9 taps on 80 exposures
+    // and no harm signal; the button only adds a way forward. Event names unchanged.
+    hmTrack("route_none_start_exposure_cta");
+    cta.hidden = false;
     cta.onclick = function () {
       if (!window.inride || !window.inride.journeyFlow) return;
       hmTrack("route_none_start_clicked_cta");
@@ -1477,12 +1478,14 @@
     // assignment as exposure before the button entered the scroll viewport. On a
     // 390x844 production render it sat 741px below that viewport. Start a clean
     // assignment and count a view only when the repositioned CTA is actually visible.
-    const variant = hmVariant("route-start-cta-v2", ["control", "cta"]);
+    // Shipped to 100% (IDEAS #532): 8 taps on 98 real views (8%), additive button, no harm
+    // signal. Still tagged variant "cta" so the event series stays continuous.
+    const variant = "cta";
     hmTrack("route_start_cta_v2_assignment", { variant: variant });
     const cta = resultsSheet() && resultsSheet().querySelector(".rp-start-cta");
     if (cta) {
-      cta.hidden = variant !== "cta";
-      if (variant === "cta" && !cta.dataset.viewObserverAttached) {
+      cta.hidden = false;
+      if (!cta.dataset.viewObserverAttached) {
         cta.dataset.viewObserverAttached = "1";
         if (typeof IntersectionObserver === "function") {
           const observer = new IntersectionObserver(function (entries) {

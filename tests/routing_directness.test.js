@@ -53,7 +53,7 @@ assert.deepStrictEqual(
 );
 assert.strictEqual(C.firstBoardingPoint({ legs: [{ mode: "walk" }] }), null);
 
-assert.match(source, /hmVariant\("route-start-cta-v2", \["control", "cta"\]\)/);
+assert.doesNotMatch(source, /hmVariant\("route-start-cta-v2"/, "route-start-cta-v2 shipped to 100%");
 assert.match(source, /hmTrack\("route_start_cta_v2_assignment", \{ variant: variant \}\)/);
 assert.match(source, /IntersectionObserver/);
 assert.match(source, /hmTrack\("route_start_cta_v2_viewed", \{ variant: variant \}\)/);
@@ -67,8 +67,8 @@ assert.ok(
   "the journey CTA must precede the tall route-card list so it is above the fold",
 );
 assert.match(source, /startFromChoose\([\s\S]*?"route-results"/);
-assert.match(source, /hmVariant\("route-none-start-v1", \["control", "cta"\]\)/);
-assert.match(source, /hmTrack\("route_none_start_exposure_" \+ variant\)/);
+assert.doesNotMatch(source, /hmVariant\("route-none-start-v1"/, "route-none-start-v1 shipped to 100%");
+assert.match(source, /hmTrack\("route_none_start_exposure_cta"\)/);
 assert.match(source, /hmTrack\("route_none_start_clicked_cta"\)/);
 assert.match(source, /class="rp-no-route-cta" hidden/);
 assert.match(
