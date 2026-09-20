@@ -1510,12 +1510,31 @@ function setSpotsVisible(visible) {
 // can only have one parent, and the originals belong to markerCluster) that
 // delegate their click to the original, so the spot pane still opens against the
 // marker that carries the ride data.
+// IDEAS #528 s2 / EXP-651: 54% of settled `filters_applied` intents matched zero spots and
+// the map went blank with nothing on screen to say why or how to get back. The note names
+// the state and offers Clear. Telemetry rides the same 2 s settle as logFilterRequest so a
+// half-typed word does not count: `filters_zero_match_shown` once per settled empty result,
+// `filters_zero_match_cleared` when the note's button is used.
+let zeroMatchTimer = null;
+function updateFilterEmptyNote(markers) {
+  const note = document.getElementById("filter-empty-note");
+  if (!note) return;
+  const empty = !!markers && markers.length === 0;
+  note.hidden = !empty;
+  clearTimeout(zeroMatchTimer);
+  if (!empty) return;
+  zeroMatchTimer = setTimeout(() => {
+    if (!note.hidden) hmTrack("filters_zero_match_shown", {});
+  }, 2000);
+}
+
 function setFilteredMarkers(markers) {
   if (filterLayer) {
     map.removeLayer(filterLayer);
     filterLayer = null;
   }
   filteredMarkers = markers;
+  updateFilterEmptyNote(markers);
   if (markers) {
     filterLayer = L.layerGroup(
       markers.map((spot) => {
@@ -2439,6 +2458,11 @@ function setupEventListeners() {
   clearFilters.onclick = () => {
     clearParams();
     navigateHome();
+  };
+  const emptyClear = document.getElementById("filter-empty-clear");
+  if (emptyClear) emptyClear.onclick = () => {
+    hmTrack("filters_zero_match_cleared", {});
+    clearFilters.onclick();
   };
 
   setupFilterEventListeners();
