@@ -3307,6 +3307,17 @@ function spotAverages(rides) {
 // scrollport. Observe the button itself against the sheet's scrolling body so the
 // denominator for clicks is "people who could see it", not every spot inspected.
 let spotStartCtaObserver = null;
+// #515: the spot sheet's "Hitch here" button is the most-viewed journey-start door in the
+// product (spot_start_cta_viewed 40,007 / 28 d -> clicked 237, 0.59%) and had never been
+// randomised. Its thumbs-up icon also reads as a "like" rather than "start a tracked
+// journey", so the alt arm changes label AND icon together (a bundle test of "a clearer
+// start button", not of either part alone). English only: the alt copy has no translations,
+// so other languages are tagged "control-i18n" to keep the control series comparable.
+const spotCtaVariant =
+  window.__LANG__ && window.__LANG__ !== "en"
+    ? "control-i18n"
+    : (window.hmVariant || function (_n, v) { return v[0]; })("spot-start-cta-v1", ["control", "start-here"]);
+
 function observeSpotStartCta(hitchBtn) {
   if (spotStartCtaObserver) {
     spotStartCtaObserver.disconnect();
@@ -3322,7 +3333,7 @@ function observeSpotStartCta(hitchBtn) {
       entry.target === hitchBtn && entry.isIntersecting && entry.intersectionRatio >= 0.75
     );
     if (!visible) return;
-    hmTrack("spot_start_cta_viewed");
+    hmTrack("spot_start_cta_viewed", { variant: spotCtaVariant });
     spotStartCtaObserver.disconnect();
     spotStartCtaObserver = null;
   }, { root: sheetBody, threshold: [0.75] });
@@ -3368,10 +3379,13 @@ function markerClick(marker) {
   if (hitchBtn) {
     const journeyActive = window.inride && window.inride.journeyStore && window.inride.journeyStore.get();
     hitchBtn.style.display = window.inride && !journeyActive ? "" : "none";
+    if (spotCtaVariant === "start-here") {
+      hitchBtn.innerHTML = '<i class="fa-solid fa-play" aria-hidden="true"></i> Start hitching here';
+    }
     observeSpotStartCta(hitchBtn);
     hitchBtn.onclick = function () {
       if (!window.inride || !window.L) return;
-      hmTrack("spot_start_cta_clicked");
+      hmTrack("spot_start_cta_clicked", { variant: spotCtaVariant });
       clear(); // close the spot sheet before the waiting UI takes over
       window.inride.journeyFlow.startFromChoose(
         L.latLng(data.lat, data.lon),
