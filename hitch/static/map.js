@@ -4273,9 +4273,23 @@ async function renderWikiContributionNudge(ride) {
     const exact = spot.hitchwiki_article;
     const near =
       !exact && !spot.hitchwiki_map && spot.hitchwiki_nearby && spot.hitchwiki_nearby.url ? spot.hitchwiki_nearby : null;
-    const url = exact || (near && near.url);
+    // 42% of spots (16,646 of 39,410 in spots.json, 2026-09-21) sit inside a Hitchwiki
+    // map page's bounds with no article within 100 m — and show.py withholds
+    // hitchwiki_nearby whenever hitchwiki_map is set — so without this arm those spots
+    // got no invitation at all, and the re-placement's ceiling stayed near the old
+    // gate's. The map URL is the wiki page whose embedded map covers this spot (the
+    // same link the spot pane shows), with the pane's precedence: article > map > nearby.
+    let map = null;
+    if (!exact && !near && spot.hitchwiki_map) {
+      const wikiUrl = String(spot.hitchwiki_map);
+      map = {
+        url: wikiUrl,
+        title: wikiUrl.indexOf(COUNTRY_WIKI_BASE) === 0 ? parseSpotWikiUrl(wikiUrl).title : null,
+      };
+    }
+    const url = exact || (map && map.url) || (near && near.url);
     if (!url) return;
-    const arm = exact ? "article" : "nearby";
+    const arm = exact ? "article" : map ? "map" : "nearby";
 
     // A hitchhiker who has already written several long ride notes is the most likely
     // person to write a good wiki paragraph — address them as one, rather than with the
@@ -4309,6 +4323,13 @@ async function renderWikiContributionNudge(ride) {
         title: near.title,
         km: near.km,
       });
+    } else if (map) {
+      // Labelled by the page's own title so it never reads as being about the spot
+      // itself — the same honesty rule as the nearby arm, and the same page the spot
+      // pane links for these spots. An unparseable URL falls back to the plain ask.
+      link.textContent = map.title
+        ? tr("Add your notes to the Hitchwiki page for this area: {title}", { title: map.title })
+        : tr("Add your notes to the Hitchwiki article for this place");
     } else {
       link.textContent = repeatWriter
         ? tr("Add what you know to the Hitchwiki article for this place")
