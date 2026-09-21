@@ -2596,9 +2596,12 @@ function setupFilterEventListeners() {
   osmToggle.addEventListener("input", () =>
     setQueryParameter("osmonly", osmToggle.checked)
   );
-  carPoolingToggle.addEventListener("input", () =>
-    setQueryParameter("carpoolingonly", carPoolingToggle.checked)
-  );
+  carPoolingToggle.addEventListener("input", () => {
+    // Only the switch-on is counted: nobody has ever measured whether this filter,
+    // live for months, is used at all (IDEAS #559).
+    if (carPoolingToggle.checked) hmTrack("carpool_filter_enabled");
+    setQueryParameter("carpoolingonly", carPoolingToggle.checked);
+  });
   fuelToggle.addEventListener("input", () =>
     setQueryParameter("fuelonly", fuelToggle.checked)
   );
@@ -2902,6 +2905,11 @@ document.addEventListener("click", (e) => {
   frameRideDest(d.lat, d.lon);
 });
 
+// The "Car pooling spot" link leaves for OpenStreetMap; count the departures (#559).
+document.addEventListener("click", (e) => {
+  if (e.target.closest(".spot-carpool-link")) hmTrack("spot_carpool_link_clicked");
+});
+
 // "Route" on a pinned ride destination: open the planner from this spot to that place.
 // The spot pane and its arrows are dropped first so they do not sit over the route.
 document.addEventListener("click", (e) => {
@@ -3080,7 +3088,7 @@ function renderSpotSummary(data) {
 function summaryText(data, hists = { wait: null, distance: null }) {
   const osmLink = data.osm_id ? `<div>🚏 <a href="https://www.openstreetmap.org/node/${data.osm_id}" target="_blank" rel="noopener noreferrer">${tr("Official hitchhiking spot")}</a></div><div><a href="/mitfahrbaenke?lat=${encodeURIComponent(data.lat)}&lon=${encodeURIComponent(data.lon)}">Betreuen Sie diesen Mitfahrhalt? Lokalen Bericht ansehen.</a></div>` : '';
   const carPoolingLink = data.car_pooling
-    ? `<div>🚗 <a href="https://www.openstreetmap.org/${data.car_pooling.osm_type}/${data.car_pooling.id}" target="_blank" rel="noopener noreferrer">${tr("Car pooling spot")}</a></div>`
+    ? `<div>🚗 <a class="spot-carpool-link" href="https://www.openstreetmap.org/${data.car_pooling.osm_type}/${data.car_pooling.id}" target="_blank" rel="noopener noreferrer">${tr("Car pooling spot")}</a></div>`
     : '';
   const fuelLink = data.fuel
     ? `<div>⛽ <a href="https://www.openstreetmap.org/${data.fuel.osm_type}/${data.fuel.id}" target="_blank" rel="noopener noreferrer">${tr("Gas station")}</a></div>`
@@ -3217,6 +3225,9 @@ async function handleMarkerClick(marker, point, e) {
         if (near && !(payload.spot || {}).hitchwiki_article && !(payload.spot || {}).hitchwiki_map) {
           hmTrack('spot_wiki_nearby_shown', { km: Math.round(near.km) });
         }
+        // #559: how often the spot sheet is a car-pooling place at all, so the link's
+        // clicks below have a denominator. No spot id, same privacy rule as spot_opened.
+        if ((payload.spot || {}).car_pooling) hmTrack('carpool_spot_shown');
         // #202 / EXP-432: an access-describing comment was lifted above the ride
         // stream for this spot. No spot id, same privacy rule as spot_opened.
         if ((payload.spot || {}).access_hint) {
