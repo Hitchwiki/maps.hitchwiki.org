@@ -54,6 +54,23 @@
     background: #e8590c;
     border-color: #e8590c;
 }
+/* The Route action only makes sense once the destination is pinned on the map. */
+.ride-card .ride-route-btn {
+    display: none;
+    margin-left: 6px;
+    padding: 2px 7px;
+    border: 1px solid #e8590c;
+    border-radius: 4px;
+    background: #fff;
+    color: #e8590c;
+    font-size: 0.95em;
+    line-height: 1.4;
+    cursor: pointer;
+    vertical-align: middle;
+}
+.ride-card .ride-dest-btn.active + .ride-route-btn {
+    display: inline-block;
+}
 .ride-card .map-thumbnail {
     height: 120px;
     margin: 0.35rem 0 0.2rem;

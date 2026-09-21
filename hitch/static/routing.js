@@ -284,6 +284,7 @@
   RJ.open = open;
   RJ.close = close;
   RJ.showAgain = showAgain;
+  RJ.openBetween = openBetween;
   // Test-only hook: the routing graph builder and Dijkstra core have no DOM
   // dependency, so headless tests exercise them directly (see
   // tests/routing_wait_fallback.test.js and the CLAUDE.md note on running
@@ -910,6 +911,14 @@
     // Reverse-geocode nicer labels in the background.
     reverseLabel("start", p.from); reverseLabel("dest", p.to);
     return true;
+  }
+  // Plan a route between two known points (the spot pane's "Route" button on a ride's
+  // destination). Same steps as a shared /dir/ link, minus the URL round-trip.
+  function openBetween(from, to) {
+    open();
+    setPoint("start", from, coordLabel(from));
+    setPoint("dest", to, coordLabel(to));
+    reverseLabel("start", from); reverseLabel("dest", to);
   }
   function coordLabel(ll) { return ll[0].toFixed(4) + ", " + ll[1].toFixed(4); }
   function reverseLabel(field, ll) {
