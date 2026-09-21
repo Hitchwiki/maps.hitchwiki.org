@@ -3364,6 +3364,8 @@ function applySpotRideFilter(marker) {
   // empty state; a spot with even one ride speaks for itself.
   const emptyChat = $$("#spot-empty-chat");
   if (emptyChat) emptyChat.hidden = !noInfo;
+  // #565: the chat prompt's clicks had no denominator — count each time it is actually shown.
+  if (emptyChat && noInfo) hmTrack("spot_empty_chat_shown");
 }
 
 function spotFilterNote(shown, total) {
