@@ -2910,6 +2910,15 @@ document.addEventListener("click", (e) => {
   if (e.target.closest(".spot-carpool-link")) hmTrack("spot_carpool_link_clicked");
 });
 
+// The spot sheet's Hitchwiki inserts had impressions (spot_wiki_excerpt_shown 10k/28 d) but
+// no click side, so nobody could tell whether they are read or decorative (IDEAS #566).
+// Delegated, because renderSpotSummary rebuilds the markup on every filter change.
+document.addEventListener("click", (e) => {
+  const link = e.target.closest(".spot-wiki-link");
+  if (link) return hmTrack("spot_wiki_link_clicked", { kind: link.dataset.kind });
+  if (e.target.closest(".spot-wiki-excerpt a")) hmTrack("spot_wiki_excerpt_clicked");
+});
+
 // "Route" on a pinned ride destination: open the planner from this spot to that place.
 // The spot pane and its arrows are dropped first so they do not sit over the route.
 document.addEventListener("click", (e) => {
@@ -3096,10 +3105,10 @@ function summaryText(data, hists = { wait: null, distance: null }) {
   // Phrased as an invitation, not a label: the wiki article is where the advice for
   // this spot actually lives, and we want map users to carry on reading there.
   const hitchwikiLink = data.hitchwiki_article
-    ? `<div>📄 <a href="${data.hitchwiki_article}" target="_blank" rel="noopener noreferrer">${tr("Read about this spot on Hitchwiki")}</a></div>`
+    ? `<div>📄 <a class="spot-wiki-link" data-kind="article" href="${data.hitchwiki_article}" target="_blank" rel="noopener noreferrer">${tr("Read about this spot on Hitchwiki")}</a></div>`
     : '';
   const hitchwikiMapLink = data.hitchwiki_map
-    ? `<div>🗺️ <a href="${data.hitchwiki_map}" target="_blank" rel="noopener noreferrer">${tr("Read about this area on Hitchwiki")}</a></div>`
+    ? `<div>🗺️ <a class="spot-wiki-link" data-kind="map" href="${data.hitchwiki_map}" target="_blank" rel="noopener noreferrer">${tr("Read about this area on Hitchwiki")}</a></div>`
     : '';
   // No article sits on this spot, but one is within ~15 km — offer it, always with the
   // distance spelled out so it reads as "there is hitchhiking advice for the area", never
