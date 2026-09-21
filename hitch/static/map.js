@@ -2789,7 +2789,12 @@ function renderRideCards(rides) {
         ? `<button type="button" class="ride-dest-btn" data-dest-lat="${r.dest_lat}" data-dest-lon="${r.dest_lon}"` +
           ` data-ride-key="${escapeHtml(r.id || `${r.dest_lat},${r.dest_lon}`)}"` +
           ` title="${escapeHtml(tr("Show where this ride went"))}" aria-label="${escapeHtml(tr("Show where this ride went"))}">` +
-          `<i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i></button>`
+          `<i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i></button>` +
+          // Shown by CSS only while the destination button above is pinned: the visitor
+          // just saw where this ride went, and this turns "I could go there too" into the
+          // planner with both ends filled in.
+          `<button type="button" class="ride-route-btn" data-dest-lat="${r.dest_lat}" data-dest-lon="${r.dest_lon}">` +
+          `<i class="fa-solid fa-route" aria-hidden="true"></i> ${escapeHtml(tr("Route"))}</button>`
         : "";
     const comment = r.comment ? `<div class="ride-comment">${escapeHtml(r.comment)}</div>` : "";
     const href = r.id ? `/ride/${encodeURIComponent(r.id)}` : "";
@@ -2895,6 +2900,23 @@ document.addEventListener("click", (e) => {
   btn.classList.add("active");
   drawRideDestHighlight(d.lat, d.lon);
   frameRideDest(d.lat, d.lon);
+});
+
+// "Route" on a pinned ride destination: open the planner from this spot to that place.
+// The spot pane and its arrows are dropped first so they do not sit over the route.
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".ride-route-btn");
+  if (!btn || !active || !active.length) return;
+  if (!window.RoutingUI || !window.RoutingUI.openBetween) return;
+  const from = active[0].getLatLng();
+  const to = [parseFloat(btn.dataset.destLat), parseFloat(btn.dataset.destLon)];
+  hmTrack("spot_dest_route_clicked");
+  clearRideDestHighlight();
+  clearSpotUrl();
+  bar();
+  active = [];
+  renderPoints();
+  window.RoutingUI.openBetween([from.lat, from.lng], to);
 });
 
 // Fit spot + destination on screen. The bottom sheet covers the lower part of the map,
