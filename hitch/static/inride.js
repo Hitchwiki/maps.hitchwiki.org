@@ -1158,6 +1158,65 @@
         });
       });
       demoRow.appendChild(addBtn);
+      // ── #496 (driver-answer-dock-v1, ask arm only): a row meant to be HANDED to
+      // the driver mid-ride — the first surface where a driver states their own
+      // reason instead of a hitchhiker attributing one. Reuses the pickup sheet's
+      // seven standard ReasonToPickUp codes and their shipped labels verbatim (no
+      // new content); the tap is recorded under driver_answer_* events only, never
+      // pooled with the hitchhiker-attributed driver_reason_* series, and does not
+      // alter the ride record — attribution vs first-party stays distinguishable.
+      const driverAnswerArm = (window.hmVariant || function (_n, v) { return v[0]; })(
+        "driver-answer-dock-v1", ["control", "ask"]
+      );
+      if (driverAnswerArm === "ask") {
+        const driverRow = document.createElement("div");
+        driverRow.className = "inr-driver-row";
+        const driverLabel = document.createElement("div");
+        driverLabel.className = "inr-driver-row__label";
+        // The pickup sheet's question flipped into the second person, prefixed so the
+        // hitchhiker knows the row is not theirs to answer.
+        driverLabel.textContent = T("For the driver — what made you stop? (optional)");
+        driverRow.appendChild(driverLabel);
+        const driverChipsEl = document.createElement("div");
+        driverChipsEl.className = "inr-chips";
+        [
+          { code: "was_hitchhiker", label: "🎒 " + T("Hitchhiked before") },
+          { code: "hospitality_norm", label: "🫶 " + T("Likes helping strangers") },
+          { code: "social_exchange", label: "💬 " + T("Wanted company") },
+          { code: "curiosity", label: "❓ " + T("Curious") },
+          { code: "wanted_driver", label: "🚗 " + T("Wanted help driving / navigating") },
+          { code: "elevated_mood", label: "😊 " + T("In a good mood / feeling generous") },
+          { code: "sympathy", label: "🤝 " + T("Felt sorry for me") },
+        ].forEach(function (opt) {
+          const chip = document.createElement("button");
+          chip.type = "button";
+          chip.className = "inr-optchip";
+          chip.textContent = opt.label;
+          chip.setAttribute("data-code", opt.code);
+          chip.addEventListener("click", function () {
+            // Single-select, may un-tap to take it back; a re-tap of the same chip
+            // is a correction, not a second answer.
+            const on = chip.classList.toggle("inr-optchip--on");
+            driverChipsEl.querySelectorAll(".inr-optchip").forEach(function (c) {
+              if (c !== chip) c.classList.remove("inr-optchip--on");
+            });
+            if (on) hmTrack("driver_answer_tapped", { reason: opt.code });
+          });
+          driverChipsEl.appendChild(chip);
+        });
+        driverRow.appendChild(driverChipsEl);
+        dock.appendChild(driverRow);
+        // Exposure once per journey, not per dock re-render (render() re-runs on
+        // every store change); the flag lives on the journey record itself.
+        if (!j.driverAnswerShown) {
+          const cur = journeyStore.get();
+          if (cur) {
+            cur.driverAnswerShown = true;
+            journeyStore.set(cur);
+          }
+          hmTrack("driver_answer_row_shown", { arm: driverAnswerArm });
+        }
+      }
       // Insert ABOVE the Finish row (DOM order = top→bottom in the stacked dock).
       // Placed below, it wrapped onto the bottom edge and hid behind the nav / OSM credits.
       dock.appendChild(demoRow);

@@ -3223,9 +3223,30 @@ body.showing-insights .heatmap-legend-pane {
    its content height and full width; the dock's own gap:10px spaces them. */
 .inr-dock--stack > .inr-demo-row,
 .inr-dock--stack > .inr-dock-row,
+.inr-dock--stack > .inr-driver-row,
 .inr-dock--stack > .inr-waitctx {
   flex: 0 0 auto;
   width: 100%;
+}
+/* #496 ask arm: the hand-to-the-driver reason row. Sits at the top of the
+   stacked dock, above the owner's own controls (Add details / Finish), so the
+   row a stranger is meant to tap is the most visible one. Same surface feel as
+   .inr-waitctx (dark translucent card) so it reads as information, not an
+   action the hitchhiker must take. */
+.inr-driver-row {
+  background: rgba(0, 0, 0, 0.62);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+.inr-driver-row__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #ddd;
+  margin-bottom: 6px;
+}
+.inr-driver-row .inr-chips {
+  flex-wrap: wrap;
+  gap: 6px;
 }
 /* One line of the nearest spot's own logged history (typical wait, ride count,
    last-hitched age), shown above the Give Up / Got a Ride row while waiting.
