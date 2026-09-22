@@ -736,6 +736,10 @@ body.filters-open .filters-scrim {
 
 .action-btn {
   display: flex;
+  /* Five translated labels must share the phone width. Content-sized buttons
+     overflow at 390px (Bulgarian's two longest labels visibly touch). */
+  flex: 1 1 0;
+  min-width: 0;
   flex-direction: column;
   align-items: center;
   /* Anchor for .action-dot */
@@ -744,12 +748,11 @@ body.filters-open .filters-scrim {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 6px 12px;
+  padding: 6px 2px;
   font-size: 11px;
   color: #555;
-  min-width: 56px;
   margin: 0;
-  width: auto;
+  width: 20%;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
