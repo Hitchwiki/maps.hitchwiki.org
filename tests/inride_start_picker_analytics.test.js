@@ -132,6 +132,14 @@ test("journey start source survives the login redirect and stays bounded", () =>
   assert.match(MAP_SOURCE, /startFromChoose\([\s\S]*?"spot-sheet"/);
 });
 
+test("journey source survives in local state through first-ride conversion", () => {
+  assert.match(SOURCE, /legIndex: 0,\s*source: startSource\(source\)/);
+  assert.match(
+    SOURCE,
+    /hmTrack\("journey_got_ride", \{[\s\S]*?source: startSource\(j\.source\)/,
+  );
+});
+
 test("picker outcomes carry the geolocation permission state, declared before the first outcome fires", () => {
   // `let permState` is in the temporal dead zone until its declaration runs, so it must sit
   // above the trackOpen call that reaches outcome() synchronously.

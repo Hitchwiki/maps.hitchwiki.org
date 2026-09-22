@@ -582,6 +582,7 @@
       finalWaitMs: null,
       details: null,
       legIndex: 0,
+      source: startSource(source),
     });
     // Entry point of the in-ride funnel. This is a second, separate contribution
     // path from the /ride form — a journey that reaches Finish or Give up submits
@@ -701,7 +702,11 @@
     const j = journeyStore.get(); if (!j || (j.state !== "waiting")) return;
     // The wait paid off. wait_min here is the real thing people want to know
     // about a spot, and it is measured rather than remembered after the fact.
-    hmTrack("journey_got_ride", { wait_min: waitMinutes(j), leg: j.legIndex || 0 });
+    hmTrack("journey_got_ride", {
+      wait_min: waitMinutes(j),
+      leg: j.legIndex || 0,
+      source: startSource(j.source),
+    });
     j.gotRideMs = Date.now();
     j.finalWaitMs = journeyStore.currentWaitMs(j, j.gotRideMs);
     j.details = details; // {rating, vehicle_kind, signal:[...], comment}
