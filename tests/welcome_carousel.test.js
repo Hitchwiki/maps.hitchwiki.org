@@ -17,3 +17,12 @@ test("each carousel slide reports itself once so the surface is measurable", () 
   assert.match(SOURCE, /if \(slideSeen\[i\]\) return;/);
   assert.match(SOURCE, /trackSlide\(i\);/);
 });
+
+test("open({onDone}) tears down and calls back instead of navigating to the profile form (#495)", () => {
+  assert.match(SOURCE, /function open\(opts\)/);
+  assert.match(SOURCE, /if \(!onDone\) return finish\(\);\s+teardown\(\);\s+_open = null;\s+onDone\(\);/);
+  // Every exit path (skip, last-slide button, Escape) goes through done(), never finish() directly.
+  assert.doesNotMatch(SOURCE, /addEventListener\("click", finish\)/);
+  assert.doesNotMatch(SOURCE, /Escape"\) finish\(\)/);
+  assert.match(SOURCE, /window\.location\.href = PROFILE_URL/);
+});

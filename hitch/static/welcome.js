@@ -59,8 +59,13 @@
     window.location.href = PROFILE_URL;
   }
 
-  function open() {
+  // opts.onDone / opts.doneLabel: for visitors who are not new accounts (idea #495, a
+  // friend-referred arrival): finishing tears the carousel down and calls onDone instead of
+  // navigating to the login-gated profile form. Default behaviour is unchanged.
+  function open(opts) {
     if (_open) return _open;
+    var onDone = opts && typeof opts.onDone === "function" ? opts.onDone : null;
+    var doneLabel = (opts && opts.doneLabel) || "Set up your profile";
 
     var scrim = el("div", "welcome-scrim");
     var card = el("div", "welcome-card");
@@ -70,7 +75,7 @@
     var skip = el("button", "welcome-skip", "Skip");
     skip.type = "button";
     skip.setAttribute("aria-label", "Skip the intro and set up your profile");
-    skip.addEventListener("click", finish);
+    skip.addEventListener("click", done);
     card.appendChild(skip);
 
     // Horizontal scroll-snap track: native swiping on touch, and the Next button /
@@ -143,12 +148,12 @@
         d.classList.toggle("is-active", di === i);
       });
       var last = i === SLIDES.length - 1;
-      next.textContent = last ? "Set up your profile" : "Next";
+      next.textContent = last ? doneLabel : "Next";
       next.classList.toggle("welcome-next--cta", last);
     }
 
     next.addEventListener("click", function () {
-      if (current === SLIDES.length - 1) finish();
+      if (current === SLIDES.length - 1) done();
       else goTo(current + 1);
     });
 
@@ -166,7 +171,7 @@
     });
 
     function onKey(e) {
-      if (e.key === "Escape") finish();
+      if (e.key === "Escape") done();
       else if (e.key === "ArrowRight") goTo(current + 1);
       else if (e.key === "ArrowLeft") goTo(current - 1);
     }
@@ -177,6 +182,13 @@
     render(0);
     // Focus the advancing button so keyboard users land inside the dialog.
     next.focus();
+
+    function done() {
+      if (!onDone) return finish();
+      teardown();
+      _open = null;
+      onDone();
+    }
 
     function teardown() {
       document.removeEventListener("keydown", onKey);
