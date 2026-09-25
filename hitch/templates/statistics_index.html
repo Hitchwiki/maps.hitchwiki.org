@@ -21,6 +21,10 @@
     <strong>{{ t("Waiting times") }}</strong>
     <span>{{ t("Compare recorded pickup waits by group size and gender composition.") }}</span>
   </a>
+  <a class="statistics-link" href="{{ url_for(request.blueprint ~ '.hitchhiking_safety') }}">
+    <strong>{{ t("Hitchhiking safety") }}</strong>
+    <span>{{ t("Would hitchhikers accept the same ride again? Pick who was hitchhiking and see their answers.") }}</span>
+  </a>
   <a class="statistics-link" href="{{ url_for(request.blueprint ~ '.ride_collection_statistics_page') }}">
     <strong>{{ t("Ride collection") }}</strong>
     <span>{{ t("See how many rides were collected each week, overall and by source.") }}</span>

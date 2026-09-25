@@ -99,6 +99,12 @@
 # The page reads this small aggregate rather than scanning every ride's JSON blobs in a
 # web worker. Daily is cheap and makes newly logged group/gender combinations visible.
 20 7 * * * cd /app && /usr/bin/flock -n /tmp/wait_statistics.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate wait_statistics' > logs/wait_statistics.log 2>&1
+# daily at 7:30 AM — rebuild /hitchhiking-safety (dist/hitchhiking_safety.json).
+# One row per ride that carries a "would you accept this ride again?" answer (~1.1k of
+# ~84k), which the page filters in the browser; daily is cheap and makes a newly answered
+# ride visible the next morning. Reverse-geocodes each pickup into a country with the
+# offline index, which is why this runs here and never in a request.
+30 7 * * * cd /app && /usr/bin/flock -n /tmp/hitchhiking_safety.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate hitchhiking_safety' > logs/hitchhiking_safety.log 2>&1
 # daily at 7:25 AM — rebuild the small weekly ride/source aggregate.
 25 7 * * * cd /app && /usr/bin/flock -n /tmp/ride_collection_statistics.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate ride_collection_statistics' > logs/ride_collection_statistics.log 2>&1
 # every Monday at 8 AM

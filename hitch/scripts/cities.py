@@ -580,6 +580,7 @@ STATIC_PAGES = [
     (f"{SITE_URL}/recent", "0.6"),
     (f"{SITE_URL}/leaderboard", "0.6"),
     (f"{SITE_URL}/races", "0.6"),
+    (f"{SITE_URL}/hitchhiking-safety", "0.6"),
     (f"{SITE_URL}/statistics", "0.5"),
     (f"{SITE_URL}/statistics/waiting-times", "0.5"),
     (f"{SITE_URL}/statistics/ride-collection", "0.5"),

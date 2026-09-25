@@ -1,0 +1,96 @@
+{% extends "security/base.html" %}
+
+{% set title = t("Hitchhiking safety") %}
+
+{% block head %}
+{{ super() }}
+<style>
+  .overlay { max-width: 900px; }
+  .stats-intro, .stats-note { color: #555; font-size: 0.9em; }
+  .safety-caveat { border-left: 3px solid #d9a441; background: #fffaf0; padding: 0.7rem 0.9rem; font-size: 0.88em; margin: 1rem 0; }
+  .safety-caveat p { margin: 0.4rem 0; }
+  .cohort { border: 1px solid #ddd; border-radius: 8px; padding: 0.9rem; margin: 1.2rem 0; background: #fafafa; }
+  .cohort h2 { font-size: 1.05em; margin: 0 0 0.2rem; }
+  .cohort-card { border: 1px solid #e3e3e3; border-radius: 6px; background: #fff; padding: 0.6rem 0.7rem; margin-top: 0.6rem; }
+  .cohort-card-head { display: flex; justify-content: space-between; align-items: center; }
+  .cohort-remove { background: none; border: none; color: #888; cursor: pointer; font-size: 1.2em; line-height: 1; padding: 0 0.2rem; }
+  .cohort-remove:hover { color: #000; }
+  .cohort-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.5rem 0; }
+  .cohort-chip { border: 1px solid #ccc; border-radius: 999px; background: #fff; cursor: pointer; font: inherit; font-size: 0.82em; padding: 0.22rem 0.7rem; }
+  .cohort-chip.is-on { background: #333; border-color: #333; color: #fff; }
+  .cohort-range { align-items: center; display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.35rem; font-size: 0.85em; }
+  .cohort-range > label { margin: 0; min-width: 11rem; }
+  .cohort-range input[type=number] { width: 4.5rem; display: inline-block; font: inherit; font-size: 0.95em; padding: 0.15rem 0.3rem; }
+  .cohort-hint { color: #888; }
+  .cohort-unknown { display: flex; align-items: center; gap: 0.3rem; margin: 0; width: 100%; color: #666; }
+  .cohort-unknown input { width: auto; }
+  #add-person { border: 1px dashed #aaa; border-radius: 6px; background: #fff; cursor: pointer; font: inherit; font-size: 0.85em; margin-top: 0.6rem; padding: 0.35rem 0.8rem; }
+  #add-person[disabled] { color: #999; cursor: default; }
+  #exact-size-row { align-items: center; display: flex; gap: 0.4rem; font-size: 0.85em; margin-top: 0.7rem; color: #444; }
+  #exact-size-row label { margin: 0; }
+  #exact-size-row input { width: auto; }
+  .stats-summary { display: grid; grid-template-columns: repeat(4, minmax(110px, 1fr)); gap: 0.6rem; margin: 1.2rem 0 0.4rem; }
+  .stats-card { border: 1px solid #ddd; border-radius: 8px; padding: 0.75rem; text-align: center; }
+  .stats-card strong { display: block; font-size: 1.35em; }
+  .stats-card span { color: #666; font-size: 0.78em; }
+  .stats-group { margin-top: 1.8rem; }
+  .stats-group h2 { font-size: 1.05em; border-bottom: 2px solid #ccc; padding-bottom: 0.3rem; }
+  .stats-table { border-collapse: collapse; width: 100%; font-size: 0.88em; }
+  .stats-table th, .stats-table td { border-bottom: 1px solid #eee; padding: 0.5rem 0.35rem; text-align: left; }
+  .stats-table th:nth-child(n+2), .stats-table td:nth-child(n+2) { text-align: right; white-space: nowrap; }
+  .stats-thin { color: #9a6700; }
+  .safety-tags { list-style: none; padding: 0; margin: 0.6rem 0; font-size: 0.9em; }
+  .safety-tags li { padding: 0.2rem 0; }
+  .stats-foot { margin-top: 2rem; padding-top: 0.8rem; border-top: 1px solid #eee; color: #777; font-size: 0.8em; }
+  @media (max-width: 600px) { .stats-summary { grid-template-columns: repeat(2, 1fr); } .cohort-range > label { min-width: 100%; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>{{ t("Hitchhiking safety") }}</h1>
+<p class="stats-intro">
+  {{ t("After a ride, hitchhikers can answer one question about the driver: would you accept this ride again? Describe who was hitchhiking, and every table below re-counts the answers those people gave.") }}
+</p>
+
+<div class="safety-caveat">
+  <p>{{ t("Read this before reading the numbers.") }}</p>
+  <p>{{ t("The question is about one driver, not about hitchhiking. “Yes” means that ride was fine; it is not a measure of how dangerous a road, a country or a kind of person is.") }}</p>
+  <p>{{ t("The answers are self-selected. They come from people who log rides on this site, about rides that ended well enough to be logged at all. Nothing here can tell you about the rides nobody came back to write up.") }}</p>
+  {% if coverage.rides_used %}
+  <p>{{ t("{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.", used=coverage.rides_used, total=coverage.rows_read, no=coverage.rides_used - coverage.yes) }}</p>
+  {% endif %}
+</div>
+
+<div class="cohort">
+  <h2>{{ t("Who was hitchhiking?") }}</h2>
+  <p class="stats-note">{{ t("Leave a field empty to mean “anybody”. Adding a second hitchhiker means two people in the same car, not a second group to compare against.") }}</p>
+  <div id="person-cards"></div>
+  <button type="button" id="add-person">{{ t("+ Add another hitchhiker") }}</button>
+  <div id="exact-size-row" hidden>
+    <input type="checkbox" id="exact-size">
+    <label for="exact-size">{{ t("Only rides where nobody else was hitchhiking along") }}</label>
+  </div>
+</div>
+
+<div id="headline"></div>
+<div id="breakdowns"></div>
+
+<p class="stats-foot">
+  {{ t("A row marked with an asterisk rests on fewer than {n} answers; treat it as an anecdote, not a rate. Percentages are shown with a 95% Wilson confidence interval, which stays wide on small samples instead of pretending to certainty. Ages are the hitchhiker's age at the time of the ride. Time of day comes from the recorded departure time only, never from when the ride was typed in.", n=min_sample) }}
+  {{ t("Rides their author deleted, and rides hidden by community reports, are excluded.") }}
+  {% if generated_at %}{{ t("Recalculated daily; last run {when}.", when=generated_at) }}{% endif %}
+</p>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+  window.__SAFETY_LABELS__ = {{ labels|tojson }};
+  window.__COUNTRY_NAMES__ = {{ country_names|tojson }};
+  {# The /ride/<d> links the page writes must stay inside the language mirror the
+     visitor is reading, the same rule map.js's langPath() follows. #}
+  window.__LANG_PREFIX__ = {{ ("" if g.lang == "en" else "/" ~ g.lang)|tojson }};
+</script>
+<script src="{{ asset_url('/static/safety_stats.js') }}"></script>
+<script src="{{ asset_url('/static/hitchhiking_safety.js') }}"></script>
+{% endblock %}

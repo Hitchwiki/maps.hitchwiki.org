@@ -420,6 +420,7 @@ def register_commands(app):
             "why_not_hitchhike": os.path.join(dist_dir, "why_not_hitchhike.json"),
             "wait_statistics": os.path.join(dist_dir, "statistics.json"),
             "ride_collection_statistics": os.path.join(dist_dir, "ride_collection_statistics.json"),
+            "hitchhiking_safety": os.path.join(dist_dir, "hitchhiking_safety.json"),
             "cities": os.path.join(dist_dir, "city", "index.html"),
         }
 
@@ -439,6 +440,10 @@ def register_commands(app):
             # Same dependency as why_not_hitchhike: the ride table must exist first.
             ("wait_statistics", ""),
             ("ride_collection_statistics", ""),
+            # Same dependency as wait_statistics: reads the ride table directly, so a
+            # fresh install gets a populated /hitchhiking-safety instead of an empty page
+            # until the daily cron first fires.
+            ("hitchhiking_safety", ""),
             *([("cities", "")] if ENVIRONMENT == "prod" else []),
         ]
         for script, args in scripts:

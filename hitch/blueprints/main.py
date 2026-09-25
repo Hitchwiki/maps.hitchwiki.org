@@ -63,7 +63,7 @@ from hitch.blueprints.utils.driver_info_choices import (
 from hitch.blueprints.utils.feedback_log import is_known_source as is_known_feedback_source
 from hitch.blueprints.utils.feedback_log import log_feedback
 from hitch.blueprints.utils.filter_request_log import FILTER_FIELDS, log_filter_request
-from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import HitchhikingRecord
+from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import HitchhikingRecord, MethodEnum
 from hitch.blueprints.utils.iso_country_codes import ISO_3166_1_ALPHA_2
 from hitch.blueprints.utils.license_plate_country_codes import LICENSE_PLATE_COUNTRY_CHOICES
 from hitch.blueprints.utils.notifications import (
@@ -937,6 +937,121 @@ def why_not_hitchhike():
         coverage=data.get("coverage", {}),
         generated_at=data.get("generated_at"),
         weekdays=weekday_names(),
+    )
+
+
+@main_bp.route("/hitchhiking-safety")
+def hitchhiking_safety():
+    """"Would you accept this ride again?", sliced by the cohort the visitor describes.
+
+    The answer is the one safety-adjacent question the ride form actually asks, and it is
+    asked of the driver, not of hitchhiking in general — the page says so, because a 97%
+    "yes" rate reads as "hitchhiking is 97% safe" to anyone who doesn't know what was
+    asked. It is also heavily selected: people who log rides, and rides that ended well
+    enough to be logged at all.
+
+    Only the payload is precomputed (dist/hitchhiking_safety.json, one compact row per
+    answered ride, daily via cron). The cohort itself — up to four hitchhikers, each by
+    gender, age and experience — is applied in the browser: as a server-side aggregate it
+    is combinatorial, and the page's whole point is that the visitor picks the question.
+    A missing file renders an empty page rather than raising, like /why-not-hitchhike
+    before its generator first runs.
+    """
+    path = os.path.join(get_dirs()["dist"], "hitchhiking_safety.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        data = {}
+
+    # Labels are resolved here, never baked into the JSON: main_bp routes are mirrored in
+    # 31 languages off one generated file, so a label in it would be wrong in 30 of them.
+    labels = {
+        "add_person": t("+ Add another hitchhiker"),
+        "max_people": t("Up to 4 hitchhikers"),
+        "person_n": t("Hitchhiker {n}"),
+        "remove_person": t("Remove this hitchhiker"),
+        "age": t("Age"),
+        "age_hint": t("years, at the time of the ride"),
+        "experience": t("Hitchhiking experience"),
+        "experience_hint": t("years since their first ride"),
+        "from": t("from"),
+        "to": t("to"),
+        "include_unrecorded": t("include rides where this wasn’t recorded"),
+        "would_again": t("would ride again"),
+        "would_again_short": t("Would ride again"),
+        "answers": t("answers"),
+        "said_no": t("said no"),
+        "named_people": t("named hitchhikers"),
+        "solo": t("Solo"),
+        "n_people": t("{n} hitchhikers"),
+        "empty": t("No ride with an answer matches this cohort yet. Widen it above."),
+        "load_failed": t("Could not load the ride data. Reload the page to try again."),
+        "ci": t(
+            "95% confidence interval: {lo}–{hi}. With this many answers, that range is the honest "
+            "answer, not the single percentage above."
+        ),
+        "by_driver_gender": t("Driver’s gender"),
+        "by_driver_age": t("Driver’s age"),
+        "by_group": t("How many were hitchhiking"),
+        "by_hitchhiker_gender": t("Hitchhikers’ genders"),
+        "by_daypart": t("Time of day"),
+        "by_wait": t("How long they waited"),
+        "by_distance": t("How far the ride went"),
+        "by_vehicle": t("Vehicle"),
+        "by_signal": t("How they signalled"),
+        "by_rating": t("Rating they gave the spot"),
+        "by_country": t("Country the ride started in"),
+        "what_went_wrong": t("What went wrong"),
+        "no_negatives": t(
+            "Nobody in this cohort tagged what went wrong. That is an absence of reports, not "
+            "evidence that nothing happened — the tags only exist on rides answered “no”, and most "
+            "rides are never reported on at all."
+        ),
+        "read_the_no": t("Read them:"),
+        "daypart_morning": t("Morning (06–11)"),
+        "daypart_afternoon": t("Afternoon (12–17)"),
+        "daypart_evening": t("Evening (18–20)"),
+        "daypart_night": t("Night (21–05)"),
+        "gender_unknown": t("Not recorded"),
+    }
+    labels.update({f"gender_{code}": t(label) for code, label in GENDER_CHOICES})
+    labels.update({f"neg_{code}": t(description) for code, _, description in NEGATIVE_EXPERIENCE_CHOICES})
+    # Vehicle kinds and signal methods are single words the map's filter pane already
+    # translates under the same keys; reuse them rather than minting near-duplicates.
+    labels.update({f"vehicle_{kind}": t(kind) for kind in ALLOWED_VEHICLE_KINDS})
+    labels.update({f"signal_{method}": t(method.value) for method in MethodEnum})
+    # Band keys come from safety_stats.js and are English by construction; they are ranges
+    # of numbers plus one word, so they are translated here rather than restructured.
+    labels.update(
+        {
+            "band_under 20": t("under 20"),
+            "band_20-24": "20-24",
+            "band_25-29": "25-29",
+            "band_30-39": "30-39",
+            "band_40-59": "40-59",
+            "band_60+": "60+",
+            "band_under 5 min": t("under 5 min"),
+            "band_5-14 min": t("5-14 min"),
+            "band_15-29 min": t("15-29 min"),
+            "band_30-59 min": t("30-59 min"),
+            "band_60+ min": t("60+ min"),
+            "band_under 10 km": t("under 10 km"),
+            "band_10-49 km": t("10-49 km"),
+            "band_50-149 km": t("50-149 km"),
+            "band_150-399 km": t("150-399 km"),
+            "band_400+ km": t("400+ km"),
+        }
+    )
+
+    return render_template(
+        "hitchhiking_safety.html",
+        coverage=data.get("coverage", {}),
+        negative_totals=data.get("negative_experiences", {}),
+        min_sample=data.get("min_sample", 10),
+        generated_at=data.get("generated_at"),
+        labels=labels,
+        country_names=COUNTRY_NAME_BY_CODE,
     )
 
 
