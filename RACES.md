@@ -182,3 +182,21 @@ to beat rather than empty.
 - finish: Cologne, Germany, 50.9364, 6.9528
 - from: 2027-10-01
 - to: 2027-10-31
+
+## Prague → Vienna
+- start: Prague, Czechia, 50.0755, 14.4378
+- finish: Vienna, Austria, 48.2082, 16.3738
+- from: 2015-01-01
+- to: 2030-12-31
+
+## Riga → Tallinn
+- start: Riga, Latvia, 56.9475, 24.1069
+- finish: Tallinn, Estonia, 59.4370, 24.7536
+- from: 2015-01-01
+- to: 2030-12-31
+
+## Prague → Brno
+- start: Prague, Czechia, 50.0755, 14.4378
+- finish: Brno, Czechia, 49.1951, 16.6068
+- from: 2015-01-01
+- to: 2030-12-31
