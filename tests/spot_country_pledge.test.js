@@ -3,10 +3,10 @@
 const fs = require("fs");
 const assert = require("assert");
 const src = fs.readFileSync(__dirname + "/../hitch/static/map.js", "utf8");
-assert(src.includes('window.hmVariant("spot-country-pledge-v1", ["control", "pledge"])'), "variant registered");
+// Arm retired 2026-09-25 (EXP-653, 0.1% tap rate): the helper always returns control.
+assert(!src.includes('window.hmVariant("spot-country-pledge-v1"'), "arm no longer assigned");
 const helper = src.slice(src.indexOf("function spotCountryPledgeVariant"), src.indexOf("function renderSpotSummary"));
-assert(helper.includes('localStorage.getItem("hmDriverPledgeMade")') && helper.includes('"already-pledged"'), "prior pledgers are tagged, not assigned");
-assert(src.includes('const DRIVER_PLEDGE_MADE_KEY = "hmDriverPledgeMade"'));
+assert(helper.includes('return "control"'), "always control");
 // Button only renders in the pledge arm, reusing the existing pledge string.
 assert(/spotCountryPledgeVariant\(\) === "pledge" \? `<button[^`]*id="spot-country-pledge-btn"[^`]*I'll stop for a hitchhiker when I'm driving/.test(src));
 // Denominator fires only in the pledge arm, alongside the variant-tagged shown event.
