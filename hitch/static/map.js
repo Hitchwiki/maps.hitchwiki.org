@@ -3077,10 +3077,8 @@ window.addEventListener("resize", () => {
 // (same string and same DRIVER_PLEDGE_MADE_KEY as the success overlay) can be tested.
 // Visitors who already pledged anywhere are tagged, never assigned to an arm.
 function spotCountryPledgeVariant() {
-  let pledgeMade = false;
-  try { pledgeMade = !!localStorage.getItem("hmDriverPledgeMade"); } catch (e) {}
-  if (pledgeMade) return "already-pledged";
-  return window.hmVariant ? window.hmVariant("spot-country-pledge-v1", ["control", "pledge"]) : "control";
+  // Retired 2026-09-25 (EXP-653): 3 taps / 3,028 impressions (0.1%) in the pledge arm.
+  return "control";
 }
 
 function renderSpotSummary(data) {
