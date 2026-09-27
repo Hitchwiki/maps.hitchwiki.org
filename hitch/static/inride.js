@@ -2273,9 +2273,14 @@
       return { close };
     },
 
-    // Slim give-up sheet: rating (required) + optional comment only — no vehicle/signal
-    // chips (no ride happened). Replaces the old /ride redirect so a give-up can be captured
-    // and queued offline. onSave({ rating, comment }) fires when the user taps Save.
+    // Slim give-up sheet: rating + optional comment, no vehicle/signal chips (no ride
+    // happened). Replaces the old /ride redirect so a give-up can be captured and queued
+    // offline. onSave({ rating, comment }) fires when the user taps Save.
+    // #438 slice 2 (2026-09-27): rating is no longer required to Save — the required-star
+    // gate was the sheet's own #434-shaped disease, forcing a person who just failed to
+    // rate a place before they're allowed to close the screen. A row of reason chips is
+    // offered instead, reusing the exact wording the free-text placeholder already
+    // suggested ("no traffic, bad pull-in spot") rather than authoring new advice text.
     giveUpSheet(onSave) {
       if (journeyUI._openDialog) journeyUI._openDialog.close();
 
@@ -2308,7 +2313,7 @@
       subEl.textContent = T("You waited here without a ride — rate the spot so others know.");
       sheet.appendChild(subEl);
 
-      // ── 5-star rating (required — Save stays disabled until a star is tapped) ──
+      // ── 5-star rating (optional since #438 slice 2 — Save no longer waits on it) ──
       let rating = 0;
       const starsEl = document.createElement("div");
       starsEl.className = "inr-stars";
@@ -2319,7 +2324,7 @@
         star.setAttribute("data-value", String(i));
         star.textContent = "★";
         star.addEventListener("click", (function (val) {
-          return function () { rating = val; updateStars(); updateSaveBtn(); };
+          return function () { rating = val; updateStars(); };
         }(i)));
         starsEl.appendChild(star);
         starEls.push(star);
@@ -2328,6 +2333,37 @@
         starEls.forEach(function (s, idx) { s.classList.toggle("inr-star--on", idx < rating); });
       }
       sheet.appendChild(starsEl);
+
+      // ── Give-up reason chips: optional, multi-select, no free text ────────────
+      // Labels are the exact words the sheet's own comment placeholder already
+      // suggested ("no traffic, bad pull-in spot") — a chip-label reorg of existing
+      // product wording, not authored advice content. Tracked so the register can
+      // finally see *why* people give up, not just that they did.
+      const reasons = new Set();
+      const reasonField = document.createElement("div");
+      reasonField.className = "inr-field";
+      const reasonLabel = document.createElement("label");
+      reasonLabel.textContent = T("What happened? (optional)");
+      reasonField.appendChild(reasonLabel);
+      const reasonChipsEl = document.createElement("div");
+      reasonChipsEl.className = "inr-chips";
+      [
+        { code: "no_traffic", label: "🚗 " + T("No traffic") },
+        { code: "bad_pull_in_spot", label: "🅿️ " + T("Bad pull-in spot") },
+      ].forEach(function (opt) {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "inr-optchip";
+        chip.textContent = opt.label;
+        chip.setAttribute("data-code", opt.code);
+        chip.addEventListener("click", function () {
+          if (reasons.has(opt.code)) { reasons.delete(opt.code); chip.classList.remove("inr-optchip--on"); }
+          else { reasons.add(opt.code); chip.classList.add("inr-optchip--on"); hmTrack("giveup_reason_selected", { reason: opt.code }); }
+        });
+        reasonChipsEl.appendChild(chip);
+      });
+      reasonField.appendChild(reasonChipsEl);
+      sheet.appendChild(reasonField);
 
       // ── Optional comment ──────────────────────────────────────────────────────
       const commentField = document.createElement("div");
@@ -2351,7 +2387,7 @@
       commentField.appendChild(licenseNote);
       sheet.appendChild(commentField);
 
-      // ── Save CTA (disabled until a rating is chosen) ──────────────────────────
+      // ── Save CTA (always enabled — #438 slice 2 dropped the required-star gate) ──
       // #438 slice-1 residue: the sheet's own abandonment (opened, closed without
       // saving) was invisible — journey_gave_up fires only on Save, so the cost of
       // the required-star gate could not be measured. `saved` separates the two
@@ -2359,18 +2395,12 @@
       let saved = false;
       const saveBtn = document.createElement("button");
       saveBtn.type = "button";
-      saveBtn.className = "inr-big inr-big--green inr-sheet__save inr-disabled";
-      saveBtn.disabled = true;
+      saveBtn.className = "inr-big inr-big--green inr-sheet__save";
       saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> ' + T("Save");
-      function updateSaveBtn() {
-        saveBtn.disabled = rating === 0;
-        saveBtn.classList.toggle("inr-disabled", rating === 0);
-      }
       saveBtn.addEventListener("click", function () {
-        if (!rating) return;
         saved = true;
         close();
-        onSave({ rating: rating, comment: textarea.value.trim() });
+        onSave({ rating: rating, reasons: Array.from(reasons), comment: textarea.value.trim() });
       });
       sheet.appendChild(saveBtn);
 
