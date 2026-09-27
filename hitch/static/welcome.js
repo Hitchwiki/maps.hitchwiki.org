@@ -41,6 +41,10 @@
       emoji: "🚗",
       title: "Who pulls over",
       body: "Across the rides logged on this map, about one in four drivers who stopped was a woman.",
+      // idea #581: point at guaka's cohort-filterable safety page instead of restating
+      // one number here. ?ref= tags the click so we can tell this slide apart from the
+      // menu link (map.html) in pageview counts.
+      link: { href: "/hitchhiking-safety?ref=welcome-carousel", label: "See more, by who's asking →" },
     },
   ];
 
@@ -102,6 +106,18 @@
 
       slide.appendChild(el("h2", "welcome-title", s.title));
       slide.appendChild(el("p", "welcome-body", s.body));
+      if (s.link) {
+        var link = el("a", "welcome-link", s.link.label);
+        link.href = s.link.href;
+        link.target = "_blank";
+        link.rel = "noopener";
+        // Taps on the card must not reach Leaflet underneath, same as the card itself.
+        if (window.L && window.L.DomEvent) window.L.DomEvent.disableClickPropagation(link);
+        link.addEventListener("click", function () {
+          if (window.hmTrack) window.hmTrack("welcome_link_click", { href: s.link.href });
+        });
+        slide.appendChild(link);
+      }
       track.appendChild(slide);
     });
     card.appendChild(track);

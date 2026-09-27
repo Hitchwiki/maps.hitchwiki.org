@@ -122,6 +122,16 @@
   color: #4b574f;
 }
 
+.welcome-link {
+  display: inline-block;
+  margin: 10px auto 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a9850;
+  text-decoration: none;
+}
+.welcome-link:hover { text-decoration: underline; }
+
 .welcome-footer {
   display: flex;
   align-items: center;
