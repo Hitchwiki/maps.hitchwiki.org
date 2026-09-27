@@ -3227,10 +3227,29 @@ body.showing-insights .heatmap-legend-pane {
 .inr-dock--stack > .inr-demo-row,
 .inr-dock--stack > .inr-dock-row,
 .inr-dock--stack > .inr-driver-row,
+.inr-dock--stack > .inr-share-row,
 .inr-dock--stack > .inr-waitctx {
   flex: 0 0 auto;
   width: 100%;
 }
+/* #492 slice 2: "send my spot" dock row (in-ride-dock-share-v1 share arm). Same
+   full-width dark button feel as .inr-demo-add, solid instead of a fill-bar since
+   there's no progress to show — just one tap target. */
+.inr-share-row { width: 100%; }
+.inr-share-btn {
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  padding: 9px 0;
+  background: #2f80ed;
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
+}
+.inr-share-btn:active { transform: scale(0.99); }
 /* #496 ask arm: the hand-to-the-driver reason row. Sits at the top of the
    stacked dock, above the owner's own controls (Add details / Finish), so the
    row a stranger is meant to tap is the most visible one. Same surface feel as
