@@ -59,11 +59,20 @@
 
   // Destination-less give-up body (rated wait, no ride). Pure so it is unit-testable;
   // co-hitchers who waited together are attached here too.
+  // #438 slice 2: the /ride form has no dedicated give-up-reason column, so the
+  // optional reason chips (already-existing wording, not authored here) are folded
+  // into the comment as a bracketed prefix rather than silently dropped on submit.
   function buildGiveUpBody(j, waitMin, details, id) {
+    const reasonLabels = { no_traffic: "no traffic", bad_pull_in_spot: "bad pull-in spot" };
+    const reasonPrefix = (details.reasons || [])
+      .map((r) => reasonLabels[r]).filter(Boolean).join(", ");
+    const comment = reasonPrefix
+      ? `[${reasonPrefix}] ${details.comment || ""}`.trim()
+      : (details.comment || "");
     return {
       rate: String(details.rating || ""),
       wait: String(waitMin),
-      comment: details.comment || "",
+      comment: comment,
       // Giving up IS a no-ride by definition — same marker the /ride form checkbox sets.
       no_ride: "1",
       signal: "", vehicle_kind: "",
