@@ -3115,6 +3115,23 @@ function summaryText(data, hists = { wait: null, distance: null }) {
   const hitchwikiNearbyLink = !data.hitchwiki_article && !data.hitchwiki_map && data.hitchwiki_nearby
     ? `<div>📄 <a id="spot-wiki-nearby-link" href="${data.hitchwiki_nearby.url}" target="_blank" rel="noopener noreferrer">${tr("Nearest Hitchwiki article: {title} (~{km} km)", { title: data.hitchwiki_nearby.title, km: data.hitchwiki_nearby.km })}</a></div>`
     : '';
+  // Idea #62/#147/#171: true gap spots -- no article within 100 m *and* none within
+  // NEARBY_HITCHWIKI_MAX_KM (15 km), i.e. show.py found nothing at all. 96% of spot
+  // opens land here (event_28d_spot_wiki_excerpt_shown / event_28d_spot_opened =
+  // 4.2%). No content is authored: this only points at Hitchwiki's own search/create
+  // flow, pre-filled with the country name where we have one. Gated on review_count
+  // >= 3 (the same "meaningful spot" floor the map already uses for marker weight/
+  // filters) so a single unreviewed pin doesn't get invited to spawn an article.
+  const hitchwikiGapPrompt = !data.hitchwiki_article && !data.hitchwiki_map && !data.hitchwiki_nearby && (data.review_count || 0) >= 3
+    ? (() => {
+        const countryName = driverContactByCountry && data.country && driverContactByCountry[data.country]
+          ? driverContactByCountry[data.country].name
+          : (data.name || "");
+        const searchUrl = "https://hitchwiki.org/en/index.php?title=Special:Search&search="
+          + encodeURIComponent(countryName) + "&fulltext=1";
+        return `<div>📄 <a id="spot-wiki-gap-link" href="${searchUrl}" target="_blank" rel="noopener noreferrer">${tr("No Hitchwiki article covers this area yet — know it? Start one")}</a></div>`;
+      })()
+    : '';
   // Filled in asynchronously by loadSpotWikiExcerpt once this markup is in the DOM
   // (see applySpotRideFilter) -- fetching Hitchwiki's API takes a round trip this
   // synchronous function can't wait on. Empty when neither link above exists.
@@ -3182,7 +3199,7 @@ function summaryText(data, hists = { wait: null, distance: null }) {
     ${spotHistogramMarkup(scaleHistToDisplay(hists.distance), "spot-distance-hist", distanceUnitLabel())}
     ${data.people ? `<div class="spot-people">${tr("At least {n} people have logged a ride here", { n: data.people })}</div>` : ''}
     ${lastConfirmed ? `<div class="spot-last-confirmed">${tr("Last confirmed: {date}", { date: lastConfirmed })}</div>` : ''}
-    ${osmLink}${carPoolingLink}${fuelLink}${hitchwikiLink}${hitchwikiMapLink}${hitchwikiNearbyLink}${spotWikiExcerpt}${accessHint}${countryContact}`;
+    ${osmLink}${carPoolingLink}${fuelLink}${hitchwikiLink}${hitchwikiMapLink}${hitchwikiNearbyLink}${hitchwikiGapPrompt}${spotWikiExcerpt}${accessHint}${countryContact}`;
 }
 
 async function handleMarkerClick(marker, point, e) {
@@ -3229,8 +3246,12 @@ async function handleMarkerClick(marker, point, e) {
         // Funnel: a spot with no article within 100 m was offered the nearest one
         // instead. Distance bucket only, no spot id — same privacy rule as spot_opened.
         const near = (payload.spot || {}).hitchwiki_nearby;
-        if (near && !(payload.spot || {}).hitchwiki_article && !(payload.spot || {}).hitchwiki_map) {
+        const noWikiCoverage = !(payload.spot || {}).hitchwiki_article && !(payload.spot || {}).hitchwiki_map;
+        if (near && noWikiCoverage) {
           hmTrack('spot_wiki_nearby_shown', { km: Math.round(near.km) });
+        } else if (!near && noWikiCoverage && (marker.options._data.review_count || 0) >= 3) {
+          // Idea #62/#147/#171 gap-spot prompt (see summaryText's hitchwikiGapPrompt).
+          hmTrack('spot_wiki_gap_shown', {});
         }
         // #559: how often the spot sheet is a car-pooling place at all, so the link's
         // clicks below have a denominator. No spot id, same privacy rule as spot_opened.
@@ -3345,6 +3366,11 @@ function applySpotRideFilter(marker) {
   // element every time, so the event never fired (0 clicks / 439 impressions, 28 d).
   const wikiNearbyLink = $$("#spot-wiki-nearby-link");
   if (wikiNearbyLink) wikiNearbyLink.onclick = () => hmTrack("spot_wiki_nearby_clicked");
+
+  // Idea #62/#147/#171 gap-spot prompt: same reasoning as the nearby-link bind above --
+  // the link is part of summaryText, rebuilt from data that arrives after handleMarkerClick.
+  const wikiGapLink = $$("#spot-wiki-gap-link");
+  if (wikiGapLink) wikiGapLink.onclick = () => hmTrack("spot_wiki_gap_clicked");
 
   // The cards below are about to be replaced, taking their highlight buttons with them.
   clearRideDestHighlight();
