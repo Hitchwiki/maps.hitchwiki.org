@@ -624,6 +624,13 @@
   journeyFlow.cancel = function () {
     const j = journeyStore.get();
     if (!j) return;
+    // #452 slice 2: the only prior signal was journey_cancelled itself, which fires
+    // only from the dialog's third button — so there was no way to tell a 10-second
+    // read-the-dialog-and-choose from an instant reflex tap on whichever button is
+    // under the thumb. This event fires every time the dialog opens, regardless of
+    // which of the three buttons (or the scrim/close) ends it, so the "mistake" rate
+    // can be read as a share of opens instead of an absolute count.
+    hmTrack("journey_cancel_dialog_shown", { from_state: j.state, wait_min: waitMinutes(j), leg: j.legIndex || 0 });
     journeyUI.dialog({
       title: T("End this journey?"),
       body: T("How did it go?"),

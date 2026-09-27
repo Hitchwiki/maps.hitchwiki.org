@@ -54,6 +54,7 @@ function makeNode() {
     click() {
       if (node.listeners.click) node.listeners.click();
     },
+    setAttribute() {},
   };
   return node;
 }
@@ -238,6 +239,53 @@ test("the journey log is cleared when the journey ends and when a new one starts
   api.journeyUI.render = () => {}; // start() draws the dock, which needs a real DOM
   api.journeyFlow.start(PICKUP, []);
   assert.strictEqual(api.journeyLogStore.get().length, 0, "a fresh journey inherits nothing");
+});
+
+// ── Cancel-dialog open signal (#452 slice 2) ──────────────────────────────────
+
+test("opening the cancel dialog fires journey_cancel_dialog_shown, independent of the outcome", () => {
+  // journey_cancelled used to be the only signal, and it only fires from the dialog's
+  // discard button — so there was no way to tell a considered cancel from a reflex tap.
+  // This event must fire on every open, regardless of which button (or none) closes it.
+  const { api, trackedEvents } = loadInride({ online: false });
+  api.journeyStore.set({
+    state: "waiting",
+    pickup: PICKUP,
+    legIndex: 2,
+    waitAccumMs: 5 * 60000,
+    waitSegmentStartMs: Date.now(),
+  });
+
+  api.journeyFlow.cancel();
+
+  const shown = trackedEvents.filter((e) => e.name === "journey_cancel_dialog_shown");
+  assert.strictEqual(shown.length, 1);
+  assert.strictEqual(shown[0].props.from_state, "waiting");
+  assert.strictEqual(shown[0].props.leg, 2);
+  assert.strictEqual(shown[0].props.wait_min, 5);
+  // The dialog only opened; journey_cancelled is the discard button's own event, not this one's.
+  assert.strictEqual(trackedEvents.some((e) => e.name === "journey_cancelled"), false);
+});
+
+test("choosing the discard button after the dialog opens fires both events, dialog-shown first", () => {
+  const { api, trackedEvents } = loadInride({ online: false });
+  api.journeyStore.set({
+    state: "waiting",
+    pickup: PICKUP,
+    legIndex: 0,
+    waitAccumMs: 0,
+    waitSegmentStartMs: Date.now(),
+  });
+
+  api.journeyFlow.cancel();
+  const j = api.journeyStore.get();
+  api.journeyFlow._discardCancel(j);
+
+  const names = trackedEvents.map((e) => e.name);
+  assert.deepStrictEqual(
+    names.filter((n) => n === "journey_cancel_dialog_shown" || n === "journey_cancelled"),
+    ["journey_cancel_dialog_shown", "journey_cancelled"],
+  );
 });
 
 // ── Start undo toast (#16 slice 2, EXP-505) ───────────────────────────────────
