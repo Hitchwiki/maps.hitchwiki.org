@@ -1229,6 +1229,58 @@
           hmTrack("driver_answer_row_shown", { arm: driverAnswerArm });
         }
       }
+      // ── #492 slice 2 (in-ride-dock-share-v1): surface the existing "send my
+      // spot" link (#462, /spot/<lat>_<lon>) as a dock row, so a driver sitting
+      // next to the hitchhiker has something concrete to tap mid-ride. No new
+      // asset, no new content — just an existing shareable page moved into an
+      // existing surface. Own click handler because sealTaps(dock) stops the
+      // tap from ever reaching base.html's delegated .share-btn listener.
+      const shareArm = (window.hmVariant || function (_n, v) { return v[0]; })(
+        "in-ride-dock-share-v1", ["control", "share"]
+      );
+      if (shareArm === "share" && j.pickup) {
+        const shareRow = document.createElement("div");
+        shareRow.className = "inr-share-row";
+        const shareBtn = document.createElement("button");
+        shareBtn.type = "button";
+        shareBtn.className = "inr-share-btn";
+        shareBtn.innerHTML = '<i class="fa-solid fa-share-nodes"></i> ' + T("Send this spot");
+        shareBtn.addEventListener("click", function () {
+          const path = "/spot/" + j.pickup.lat.toFixed(5) + "_" + j.pickup.lon.toFixed(5);
+          const url = new URL(path, window.location.origin);
+          // Same ?ref=share-<context> convention as base.html's tagShareUrl (#494),
+          // written by hand here since that delegated handler never sees this tap.
+          url.searchParams.set("ref", "share-journey-spot");
+          hmTrack("journey_spot_share_tapped", { arm: shareArm });
+          const finish = function (method) {
+            hmTrack("journey_spot_shared", { arm: shareArm, method: method });
+          };
+          const fallbackCopy = function () {
+            (navigator.clipboard ? navigator.clipboard.writeText(url.toString()) : Promise.reject())
+              .then(function () { finish("clipboard"); })
+              .catch(function () { window.prompt(T("Copy this link:"), url.toString()); finish("prompt"); });
+          };
+          if (navigator.share) {
+            navigator.share({ title: T("My hitchhiking spot"), url: url.toString() })
+              .then(function () { finish("native"); })
+              .catch(function (err) { if (!err || err.name !== "AbortError") fallbackCopy(); });
+          } else {
+            fallbackCopy();
+          }
+        });
+        shareRow.appendChild(shareBtn);
+        dock.appendChild(shareRow);
+        // Exposure once per journey, not per dock re-render — same pattern as
+        // driverAnswerShown above.
+        if (!j.journeySpotShareShown) {
+          const cur = journeyStore.get();
+          if (cur) {
+            cur.journeySpotShareShown = true;
+            journeyStore.set(cur);
+          }
+          hmTrack("journey_spot_share_row_shown", { arm: shareArm });
+        }
+      }
       // Insert ABOVE the Finish row (DOM order = top→bottom in the stacked dock).
       // Placed below, it wrapped onto the bottom edge and hid behind the nav / OSM credits.
       dock.appendChild(demoRow);
