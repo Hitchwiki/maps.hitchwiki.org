@@ -150,5 +150,15 @@ test("picker outcomes carry the geolocation permission state, declared before th
     "permState must be declared before outcome('opened') can read it",
   );
   assert.match(SOURCE, /navigator\.permissions\.query\(\{ name: "geolocation" \}\)/);
-  assert.match(SOURCE, /Object\.assign\(\{ perm: permState \}, details\)/);
+  assert.match(SOURCE, /Object\.assign\(\{ perm: permState \}, details, extra\)/);
+});
+
+test("picker-locate-v1 skips the cold geolocation prompt only in the English explain arm", () => {
+  assert.match(SOURCE, /"picker-locate-v1", \["control", "explain"\]/);
+  assert.match(SOURCE, /window\.__LANG__ !== "en"\) \? "control-i18n"/);
+  // explain arm waits for the permission query and only skips when the state is "prompt"
+  assert.match(SOURCE, /permReady\.then\(function \(\) \{\s*\n\s*if \(permState !== "prompt"\) \{ startAutoLocate\(\); return; \}/);
+  assert.match(SOURCE, /outcome\("auto-location-skipped"\)/);
+  // every outcome carries the arm so rates split by variant
+  assert.match(SOURCE, /const extra = locateArm \? \{ variant: locateArm \} : \{\};/);
 });
