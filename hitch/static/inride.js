@@ -1555,9 +1555,10 @@
       // an already-blocked permission or a first-time prompt (idea #15/#8: ~92% of tagged
       // failures are "denied", but that cannot say which of the two it was).
       let permState = "";
+      let permReady = Promise.resolve();
       if (navigator.permissions && navigator.permissions.query) {
         try {
-          navigator.permissions.query({ name: "geolocation" }).then(
+          permReady = navigator.permissions.query({ name: "geolocation" }).then(
             function (status) { permState = status.state; },
             function () { permState = "error"; }
           );
@@ -1565,6 +1566,15 @@
       } else {
         permState = "unsupported";
       }
+
+      // picker-locate-v1 (EXP-671 read, 2026-10-01): 57 of 94 auto-locate failures (61%) were
+      // first-time prompts the visitor refused, not already-blocked permissions. The "explain"
+      // arm does not fire the browser prompt cold when the state is "prompt"; it leaves the
+      // "Use my location" button with a one-line reason so the ask follows a tap. English only
+      // (the copy has no translations); other languages are "control-i18n".
+      const locateArm = !opts.autoLocate ? ""
+        : (window.__LANG__ && window.__LANG__ !== "en") ? "control-i18n"
+        : (window.hmVariant || function (_n, v) { return v[0]; })("picker-locate-v1", ["control", "explain"]);
 
       // Fire the moment the picker card is on screen, before any terminal
       // outcome. The other outcomes only fire on confirm/cancel/location-result,
@@ -1603,10 +1613,11 @@
 
       function outcome(name, details) {
         if (!opts.onOutcome) return;
-        opts.onOutcome(name, permState ? Object.assign({ perm: permState }, details) : (details || {}));
+        const extra = locateArm ? { variant: locateArm } : {};
+        opts.onOutcome(name, permState ? Object.assign({ perm: permState }, details, extra) : Object.assign({}, details, extra));
       }
 
-      if (opts.autoLocate) {
+      function startAutoLocate() {
         setLocating(true);
         requestFix().then(
           function (fix) {
@@ -1629,6 +1640,21 @@
             }
           }
         );
+      }
+
+      if (opts.autoLocate) {
+        if (locateArm === "explain" && locBtn) {
+          permReady.then(function () {
+            if (permState !== "prompt") { startAutoLocate(); return; }
+            const why = document.createElement("p");
+            why.className = "lsel-why";
+            why.textContent = "Tap \u201cUse my location\u201d to drop the pin where you are \u2014 your browser will ask once.";
+            locBtn.parentNode.parentNode.insertBefore(why, locBtn.parentNode);
+            outcome("auto-location-skipped");
+          });
+        } else {
+          startAutoLocate();
+        }
       }
 
       if (locBtn) {
