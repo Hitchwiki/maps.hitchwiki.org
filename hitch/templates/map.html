@@ -875,6 +875,10 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
              camping tonight" -- both links are opt-in by their own wording. -->
         <p id="success-trustroots-nudge" class="success-trip-note" style="display: none;"></p>
         <p id="success-campwild-nudge" class="success-trip-note" style="display: none;"></p>
+        {# #591: invite at the moment of need. Someone who just logged a ride is the
+           warmest possible chat joiner; reuses the already-translated menu sentence
+           and the tracked data-chat-place so the click is measurable by place. #}
+        <p class="success-trip-note">{{ t("Or come straight to our {link} — that is where the community talks.", link='<a href="' ~ GENERAL_CHAT_URL ~ '" target="_blank" rel="noopener" data-chat-place="ride_saved">Matrix</a>')|safe }}</p>
         <!-- #377 slice 1(b): a one-tap commitment device, right after a successful ride --
              the moment someone is most positively primed about hitchhiking. #368/#377's
              prior (EXP-529: 18-21% of driver pick-up reasons are a former or current

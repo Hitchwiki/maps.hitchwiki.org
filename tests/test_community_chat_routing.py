@@ -25,8 +25,8 @@ def test_no_template_links_to_the_signal_group():
 
 
 def test_every_chat_link_is_tracked_with_a_place():
-    # 3 links on the map page (empty spot, menu, route sheet), 3 on /help.
-    for text, n in ((MAP, 3), (HELP, 3)):
+    # 4 links on the map page (empty spot, menu, route sheet, ride saved), 3 on /help.
+    for text, n in ((MAP, 4), (HELP, 3)):
         links = re.findall(r"<a[^>]*GENERAL_CHAT_URL[^>]*>", text)
         assert len(links) == n
         assert all("data-chat-place=" in a for a in links), links
