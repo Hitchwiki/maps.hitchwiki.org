@@ -21,3 +21,7 @@ test("journey_started carries the dist bucket and map.js records the device fix"
   const MAP = fs.readFileSync(path.join(__dirname, "..", "hitch", "static", "map.js"), "utf8");
   assert.match(MAP, /window\.hmDeviceLatLng = \{ lat: e\.latlng\.lat, lon: e\.latlng\.lng \}/);
 });
+
+test("journey_started also carries the joint source:dist key", () => {
+  assert.match(SRC, /source_dist: startSource\(source\) \+ ":" \+ startDistBucket\(p\)/);
+});

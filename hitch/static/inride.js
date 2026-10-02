@@ -604,6 +604,9 @@
       co_hitchhikers: (coHitchhikers || []).length,
       source: startSource(source),
       dist: startDistBucket(p),
+      // Umami's values API reads one property at a time, so the source x dist
+      // split (are spot-sheet starts remote taps?) needs its own joint key.
+      source_dist: startSource(source) + ":" + startDistBucket(p),
     });
     journeyUI.render(j);
     // #16 slice 2 (EXP-505): 224/296 cancellations are an accidental Start, self-reported
