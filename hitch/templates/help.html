@@ -127,7 +127,7 @@
     </p>
 
     <div class="cta">
-      <a class="cta-btn" href="{{ SIGNAL_CHAT_URL }}" target="_blank" rel="noopener">{{ t("Join our Signal chat") }}</a>
+      <a class="cta-btn" href="{{ GENERAL_CHAT_URL }}" target="_blank" rel="noopener" data-chat-place="help_top">{{ t("Join our Matrix chat") }}</a>
       <p class="cta-note">{{ t("That is where everything happens. Say hi, tell us where you are from, and we will point you at something useful.") }}</p>
     </div>
 
@@ -200,13 +200,13 @@
 
     <h3>{{ t("How to start") }}</h3>
     <ol class="steps">
-      <li>{{ t("Join the {link}.", link='<a href="' ~ SIGNAL_CHAT_URL ~ '" target="_blank" rel="noopener">' ~ t("Signal chat") ~ '</a>')|safe }}</li>
+      <li>{{ t("Join the {link}.", link='<a href="' ~ GENERAL_CHAT_URL ~ '" target="_blank" rel="noopener" data-chat-place="help_steps">' ~ t("Matrix chat") ~ '</a>')|safe }}</li>
       <li>{{ t("Say hi, and tell us where you are from and what you would enjoy doing.") }}</li>
       <li>{{ t("We will find something concrete for you — and answer every question you have along the way.") }}</li>
     </ol>
 
     <div class="cta">
-      <a class="cta-btn" href="{{ SIGNAL_CHAT_URL }}" target="_blank" rel="noopener">{{ t("Join our Signal chat") }}</a>
+      <a class="cta-btn" href="{{ GENERAL_CHAT_URL }}" target="_blank" rel="noopener" data-chat-place="help_bottom">{{ t("Join our Matrix chat") }}</a>
       <p class="cta-note">{{ t("No commitment, no minimum, no experience needed. Even one message from you helps.") }}</p>
     </div>
 

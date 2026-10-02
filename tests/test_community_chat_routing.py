@@ -1,21 +1,34 @@
-"""General chat belongs on Matrix; map-project discussion belongs on Signal."""
+"""Every community-chat link on the site goes to the Matrix room, and is tracked."""
 
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
 INIT = (ROOT / "hitch" / "__init__.py").read_text()
-MAP = (ROOT / "hitch" / "templates" / "map.html").read_text()
-HELP = (ROOT / "hitch" / "templates" / "help.html").read_text()
+TEMPLATES = ROOT / "hitch" / "templates"
+MAP = (TEMPLATES / "map.html").read_text()
+HELP = (TEMPLATES / "help.html").read_text()
+BASE = (TEMPLATES / "base.html").read_text()
 
 
-def test_general_community_chat_uses_matrix():
+def test_chat_url_is_the_matrix_room():
     assert 'GENERAL_CHAT_URL = "https://matrix.to/#/#hitchhiking:hitchhiking.org"' in INIT
-    assert 'link=\'<a href="\' ~ GENERAL_CHAT_URL' in MAP
 
 
-def test_map_project_discussion_stays_on_signal():
-    # 2 as of the empty-spot community-chat nudge (map.html #spot-empty-chat):
-    # the pre-existing footer link, plus this second legitimate use of the
-    # same routing rule (Signal, not Matrix, for map-project discussion).
-    assert MAP.count("SIGNAL_CHAT_URL") == 2
-    assert HELP.count("SIGNAL_CHAT_URL") == 3
+def test_no_template_links_to_the_signal_group():
+    # Till, 2026-10-02: the map links to the Matrix chat, not the Signal group.
+    assert "SIGNAL_CHAT_URL" not in INIT
+    for path in TEMPLATES.rglob("*.html"):
+        text = path.read_text()
+        assert "SIGNAL_CHAT_URL" not in text, path
+        assert "signal.group" not in text, path
+
+
+def test_every_chat_link_is_tracked_with_a_place():
+    # 3 links on the map page (empty spot, menu, route sheet), 3 on /help.
+    for text, n in ((MAP, 3), (HELP, 3)):
+        links = re.findall(r"<a[^>]*GENERAL_CHAT_URL[^>]*>", text)
+        assert len(links) == n
+        assert all("data-chat-place=" in a for a in links), links
+    assert '"community_chat_click"' in BASE
+    assert "chat_cohort" in BASE
