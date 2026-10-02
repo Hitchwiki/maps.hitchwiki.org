@@ -588,6 +588,9 @@
       // the message as a success (e.data.needsProfile would be undefined here, which
       // used to fall through to refresh(undefined) silently on every failure).
       if (e.data.ok === false) return;
+      // Keep the community_chat_click cohort (base.html) in step with the login. Only a
+      // brand-new account is known to be "new" here; any other login counts as "member".
+      window.hmChatCohort = e.data.needsProfile ? "new" : "member";
       // Brand-new account: close the account sheet and run the first-run intro, which
       // ends on the profile-setup form. Existing users just get the refreshed sheet.
       if (e.data.needsProfile && window.HitchwikiWelcome) {

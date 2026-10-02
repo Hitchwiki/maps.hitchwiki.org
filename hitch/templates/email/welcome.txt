@@ -8,6 +8,8 @@ Here are a few things you can do now:
   * Find spots: browse hitchhiking spots, ratings and tips shared by other hitchhikers.
   * Log your rides: add the spots and rides from your own trips to help the next traveller.
   * Follow hitchhikers: follow other users and see their latest rides.
+  * Meet the community: say hi in our Matrix chat, where hitchhikers ask
+    questions and plan trips: {{ GENERAL_CHAT_URL }}
 
 Open the map: https://maps.hitchwiki.org
 

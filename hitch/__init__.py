@@ -1,5 +1,6 @@
 """Initialize the Flask application at flask init."""
 
+import datetime
 import importlib
 import json
 import mimetypes
@@ -40,11 +41,14 @@ if ENVIRONMENT not in ["prod", "dev"]:
 # served as application/octet-stream and some phones would offer to "open with" nothing.
 mimetypes.add_type("application/gpx+xml", ".gpx")
 
-# Community entry points. General hitchhiking conversation belongs in the public Matrix
-# room; Signal is specifically for discussing the map project. Keep both centralized so
-# templates cannot quietly send general chat to the project channel again.
+# Community entry point. Every chat link on the site goes to the public Matrix room
+# (Till, 2026-10-02: the map links to the Matrix chat, not the Signal group). Kept
+# centralized so no template can hardcode a different channel. Each link carries a
+# data-chat-place attribute; base.html turns a click on one into a
+# `community_chat_click` event, which is how joins from the map are measured.
 GENERAL_CHAT_URL = "https://matrix.to/#/#hitchhiking:hitchhiking.org"
-SIGNAL_CHAT_URL = "https://signal.group/#CjQKIFSj0oaPjMY_eB1uHfXEuxH459W6gtfEke0krGgTabZBEhB1ZK3YP53QSPBuviWzHO_F"
+# A signed-up account younger than this counts as "new" in the chat-click cohort.
+NEW_ACCOUNT_DAYS = 14
 HITCHWIKI_ROLES_URL = "https://hitchwiki.org/en/Roles"
 
 
@@ -287,8 +291,25 @@ def register_template_globals(app):
 
     # Community entry points, so the menu sheet and /help can never drift apart on them.
     app.jinja_env.globals["GENERAL_CHAT_URL"] = GENERAL_CHAT_URL
-    app.jinja_env.globals["SIGNAL_CHAT_URL"] = SIGNAL_CHAT_URL
     app.jinja_env.globals["HITCHWIKI_ROLES_URL"] = HITCHWIKI_ROLES_URL
+
+    @app.context_processor
+    def inject_chat_cohort():
+        """Who clicked a chat link, as a coarse bucket: "anon", "new" (account younger
+        than NEW_ACCOUNT_DAYS) or "member". Lets the community_chat_click event answer
+        "do new users join the chat" without any per-person data. Publicly cached
+        pages are identical for every visitor, so they always say "unknown"."""
+        if not has_request_context() or request.endpoint in _PUBLIC_CACHE_ENDPOINTS:
+            return {"chat_cohort": "unknown"}
+        from flask_security import current_user
+
+        if current_user.is_anonymous:
+            return {"chat_cohort": "anon"}
+        created = getattr(current_user, "create_datetime", None)
+        if created is None:
+            return {"chat_cohort": "member"}
+        age = datetime.datetime.utcnow() - created.replace(tzinfo=None)
+        return {"chat_cohort": "new" if age.days < NEW_ACCOUNT_DAYS else "member"}
 
     # Distance rendering follows the logged-in user's unit preference (User.distance_unit).
     # Exposed as template globals so every page formats km through one place.

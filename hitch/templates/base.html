@@ -128,6 +128,16 @@
             if (queue.length < QUEUE_MAX) queue.push([name, tagged(data)]);
           } catch (e) {}
         };
+        // Every community-chat link carries data-chat-place (GENERAL_CHAT_URL in
+        // hitch/__init__.py). One delegated listener so a new link only needs the
+        // attribute; `cohort` (anon/new/member) is the server's coarse account-age bucket.
+        // A global, not a constant: a popup login keeps the map loaded, so account.js
+        // updates it on login success -- otherwise a brand-new user's click reads "anon".
+        window.hmChatCohort = {{ (chat_cohort or "unknown")|tojson }};
+        document.addEventListener("click", function (ev) {
+          var a = ev.target && ev.target.closest && ev.target.closest("a[data-chat-place]");
+          if (a) window.hmTrack("community_chat_click", { place: a.getAttribute("data-chat-place"), cohort: window.hmChatCohort });
+        }, true);
         // One event per tab session per surface: the per-surface denominator for
         // every rate above (a pageview count cannot be split by surface).
         try {
