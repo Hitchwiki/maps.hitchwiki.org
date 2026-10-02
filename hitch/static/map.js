@@ -746,6 +746,8 @@ function requestLocation() {
 // taps never stack markers on the map.
 function showLocation(e) {
   const radius = e.accuracy; // metres
+  // Remembered for inride's journey_started `dist` bucket (is a start tapped where the user stands?).
+  window.hmDeviceLatLng = { lat: e.latlng.lat, lon: e.latlng.lng };
 
   // While selecting a location (notably the destination leg, which starts with
   // no pin), a GPS-button tap is the user asking to drop the endpoint on their
