@@ -484,6 +484,19 @@
   function startSource(source) {
     return START_SOURCES.includes(source) ? source : "unknown";
   }
+  // How far the start pin is from the device's last known GPS fix (set by map.js on
+  // `locationfound`; never prompts for location). Bucketed so no coordinates are sent.
+  // Answers "are spot-sheet starts tapped where the user stands?" (3.5% pickup rate vs 8.8%
+  // for the start bar, research/journey-source-to-pickup-2026-10-02.md).
+  function startDistBucket(p) {
+    const d = window.hmDeviceLatLng;
+    if (!d || typeof d.lat !== "number" || !p) return "unknown";
+    const r = Math.PI / 180;
+    const x = Math.sin((p.lat - d.lat) * r / 2) ** 2 +
+      Math.cos(d.lat * r) * Math.cos(p.lat * r) * Math.sin((p.lon - d.lon) * r / 2) ** 2;
+    const km = 12742 * Math.asin(Math.sqrt(x));
+    return km < 1 ? "lt1" : km < 5 ? "1to5" : km < 50 ? "5to50" : "gt50";
+  }
   journeyFlow.startFromChoose = function (latlng, source) {
     // Callers pass either a Leaflet LatLng (map.js, entry gestures) or {lat, lon}
     // (pinConfirm). Normalise once here so the redirect stash below can't store
@@ -590,6 +603,7 @@
     hmTrack("journey_started", {
       co_hitchhikers: (coHitchhikers || []).length,
       source: startSource(source),
+      dist: startDistBucket(p),
     });
     journeyUI.render(j);
     // #16 slice 2 (EXP-505): 224/296 cancellations are an accidental Start, self-reported
