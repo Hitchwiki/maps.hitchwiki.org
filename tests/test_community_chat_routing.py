@@ -32,3 +32,11 @@ def test_every_chat_link_is_tracked_with_a_place():
         assert all("data-chat-place=" in a for a in links), links
     assert '"community_chat_click"' in BASE
     assert "chat_cohort" in BASE
+
+
+def test_popup_login_updates_the_chat_cohort():
+    # The OAuth popup keeps the map loaded, so the server-rendered cohort goes stale;
+    # account.js must update the global the click listener reads.
+    assert "cohort: window.hmChatCohort" in BASE
+    account = (ROOT / "hitch" / "static" / "account.js").read_text()
+    assert 'window.hmChatCohort = e.data.needsProfile ? "new" : "member"' in account
