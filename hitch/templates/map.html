@@ -179,7 +179,9 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
     var waited = 0;
     // Small delay so the hint doesn't fight with map load (and the consent box exists).
     setTimeout(function waitForConsent() {
-        if (window.hmVisitorConsent && window.hmVisitorConsent.state() === 'unset' && waited < 60000) {
+        var consentOpen = window.hmVisitorConsent && window.hmVisitorConsent.state() === 'unset';
+        // .inride-scrim = any modal dialog (race banner, welcome back, ...): don't sit on top of it.
+        if ((consentOpen || document.querySelector('.inride-scrim')) && waited < 60000) {
             waited += 500;
             return setTimeout(waitForConsent, 500);
         }
