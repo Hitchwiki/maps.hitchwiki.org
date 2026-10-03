@@ -91,6 +91,7 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
 <script src="{{ asset_url('/static/pending_rides.js') }}"></script>
 <script src="{{ asset_url('/static/share_card.js') }}"></script>
 <script src="{{ asset_url('/static/inride.js') }}"></script>
+<script src="{{ asset_url('/static/push_optin.js') }}"></script>
 <script src="{{ asset_url('/static/account.js') }}"></script>
 <script src="{{ asset_url('/static/welcome.js') }}"></script>
 <script src="{{ asset_url('/static/country_gpx.js') }}" defer></script>
@@ -875,6 +876,12 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
              camping tonight" -- both links are opt-in by their own wording. -->
         <p id="success-trustroots-nudge" class="success-trip-note" style="display: none;"></p>
         <p id="success-campwild-nudge" class="success-trip-note" style="display: none;"></p>
+        {# #292 slice 1: Web Push opt-in, signed-in riders only and only once the server has
+           a VAPID key. A soft in-page ask first, so a "no" never burns the browser-level
+           permission prompt. push_optin.js fills and shows it. #}
+        {% if VAPID_PUBLIC_KEY and current_user.is_authenticated %}
+        <p id="success-push-optin" class="success-trip-note" style="display: none;" data-vapid-key="{{ VAPID_PUBLIC_KEY }}"></p>
+        {% endif %}
         {# #591: invite at the moment of need. Someone who just logged a ride is the
            warmest possible chat joiner; reuses the already-translated menu sentence
            and the tracked data-chat-place so the click is measurable by place. #}

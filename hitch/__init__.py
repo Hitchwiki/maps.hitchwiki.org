@@ -292,6 +292,8 @@ def register_template_globals(app):
     # Community entry points, so the menu sheet and /help can never drift apart on them.
     app.jinja_env.globals["GENERAL_CHAT_URL"] = GENERAL_CHAT_URL
     app.jinja_env.globals["HITCHWIKI_ROLES_URL"] = HITCHWIKI_ROLES_URL
+    # Public half of the Web Push (VAPID) key pair; empty = the opt-in prompt stays off.
+    app.jinja_env.globals["VAPID_PUBLIC_KEY"] = os.getenv("VAPID_PUBLIC_KEY", "")
 
     @app.context_processor
     def inject_chat_cohort():

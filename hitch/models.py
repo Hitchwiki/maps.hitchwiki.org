@@ -133,6 +133,21 @@ class Notification(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=db.func.now())
 
 
+class PushSubscription(db.Model):
+    # One browser's Web Push subscription for a signed-in user. Stored only so a later
+    # slice can deliver the alerts the app already writes into `Notification` (new
+    # follower, new message, comment on a ride) to the phone -- never text written for
+    # the push itself. The person's consent and its revocation both live in the browser
+    # (permission prompt / site settings); `endpoint` is unique because the push service
+    # hands out one per browser profile, and a re-subscribe must update, not duplicate.
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    endpoint = db.Column(db.String(1024), nullable=False, unique=True)
+    p256dh = db.Column(db.String(255), nullable=False)
+    auth = db.Column(db.String(64), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=db.func.now())
+
+
 class Message(db.Model):
     # One message in a 1:1 chat between two registered users. There is no separate
     # "conversation" row: a conversation is simply every Message where {sender, recipient}
