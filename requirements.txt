@@ -34,3 +34,6 @@ waitress==3.0.2
 websocket-client==1.9.0
 wget==3.2
 xyzservices==2025.1.0
+http_ece==1.2.1
+py-vapid==1.9.4
+pywebpush==2.5.0
