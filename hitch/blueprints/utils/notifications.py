@@ -8,10 +8,11 @@ small and the profile only ever shows a recent, relevant list.
 import json
 import os
 
+from flask import current_app
 from sqlalchemy import func
 
 from hitch.extensions import db
-from hitch.models import Notification, User
+from hitch.models import Notification, PushSubscription, User
 from hitch.usernames import username_key
 
 # Keep at most this many notifications per user; older rows are trimmed on insert.
@@ -25,11 +26,60 @@ WELCOME_MESSAGE = (
 )
 
 
+# Only these kinds are ever pushed to a phone: the person-to-person alerts Till approved
+# (a new follower, a message, a comment on their ride). Everything else stays in-app.
+PUSH_KINDS = frozenset({"follow", "message", "ride_comment"})
+
+
 def add_notification(user_id, message, link=None, kind="general"):
     """Create a notification for `user_id`, then trim to the newest MAX_NOTIFICATIONS_PER_USER."""
     db.session.add(Notification(user_id=user_id, message=message, link=link, kind=kind))
     db.session.commit()
     _trim(user_id)
+    if kind in PUSH_KINDS:
+        send_push(user_id, message, link)
+
+
+def send_push(user_id, message, link):
+    """Deliver an existing in-app notification to the user's opted-in browsers (Web Push).
+
+    The body is always the notification text the app already shows in the profile, never
+    copy written for push. Dormant unless VAPID_PRIVATE_KEY is set and pywebpush is
+    installed, and it must never break the action that triggered it, so every failure is
+    swallowed after logging. A 404/410 from the push service means the person revoked
+    permission in their browser, so that subscription is deleted.
+    """
+    private_key = os.getenv("VAPID_PRIVATE_KEY")
+    if not private_key:
+        return
+    subs = PushSubscription.query.filter_by(user_id=user_id).all()
+    if not subs:
+        return
+    try:
+        from pywebpush import WebPushException, webpush
+    except ImportError:
+        current_app.logger.warning("VAPID_PRIVATE_KEY is set but pywebpush is not installed")
+        return
+    payload = json.dumps({"title": "Hitchwiki Maps", "body": message, "url": link or "/"})
+    claims = {"sub": os.getenv("VAPID_SUBJECT", "mailto:play.hitchwiki@gmail.com")}
+    for sub in subs:
+        try:
+            webpush(
+                subscription_info={"endpoint": sub.endpoint, "keys": {"p256dh": sub.p256dh, "auth": sub.auth}},
+                data=payload,
+                vapid_private_key=private_key,
+                vapid_claims=dict(claims),
+                timeout=3,
+            )
+        except WebPushException as e:
+            status = getattr(getattr(e, "response", None), "status_code", None)
+            if status in (404, 410):
+                db.session.delete(sub)
+                db.session.commit()
+            else:
+                current_app.logger.warning("web push failed (%s) for subscription %s", status, sub.id)
+        except Exception:
+            current_app.logger.exception("web push crashed for subscription %s", sub.id)
 
 
 def _trim(user_id):
