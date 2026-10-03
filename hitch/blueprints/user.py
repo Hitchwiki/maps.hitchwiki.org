@@ -46,7 +46,19 @@ from hitch.blueprints.utils.store_published_ride import store_published_ride
 from hitch.extensions import db, security
 from hitch.forms import UserEditForm
 from hitch.helpers import get_db, get_dirs, haversine_np
-from hitch.models import CoHitchhiker, Follow, Notification, RideEvent, RidePlace, RideReport, Trip, TripRide, User, UserAvatar
+from hitch.models import (
+    CoHitchhiker,
+    Follow,
+    Notification,
+    PushSubscription,
+    RideEvent,
+    RidePlace,
+    RideReport,
+    Trip,
+    TripRide,
+    User,
+    UserAvatar,
+)
 from hitch.scripts.races import current_races
 from hitch.translations import t
 from hitch.usernames import canonical_username, find_user_ci, same_username, username_key
@@ -249,9 +261,7 @@ def longnote_count_json():
         count = 0
     else:
         count = sum(
-            1
-            for ride in _rides_by_hitchhiker(current_user.username)
-            if len((ride.comment or "").strip()) >= WIKI_LONG_NOTE_CHARS
+            1 for ride in _rides_by_hitchhiker(current_user.username) if len((ride.comment or "").strip()) >= WIKI_LONG_NOTE_CHARS
         )
     resp = jsonify({"count": count, "repeat_writer": count >= WIKI_REPEAT_WRITER_NOTES})
     resp.headers["Cache-Control"] = "private, no-store"
@@ -714,6 +724,55 @@ def follow_user(username):
 def unfollow_user(username):
     """Make the logged-in user stop following `username`."""
     return _toggle_follow(username, follow=False)
+
+
+@user_bp.route("/push/subscribe", methods=["POST"])
+def push_subscribe():
+    """Store the signed-in user's Web Push subscription (opt-in, from the post-ride prompt).
+
+    Dormant unless VAPID_PUBLIC_KEY is configured: without it the prompt is never
+    rendered, and this refuses rather than collect subscriptions nothing can serve.
+    """
+    if current_user.is_anonymous:
+        return jsonify({"ok": False}), 401
+    if not os.getenv("VAPID_PUBLIC_KEY"):
+        return jsonify({"ok": False}), 404
+    data = request.get_json(silent=True) or {}
+    keys = data.get("keys") or {}
+    endpoint, p256dh, auth = data.get("endpoint"), keys.get("p256dh"), keys.get("auth")
+    # Push endpoints are always https URLs on the browser vendor's service; anything else
+    # is a crafted POST, and the length caps match the column sizes.
+    if not (
+        isinstance(endpoint, str)
+        and endpoint.startswith("https://")
+        and len(endpoint) <= 1024
+        and isinstance(p256dh, str)
+        and 0 < len(p256dh) <= 255
+        and isinstance(auth, str)
+        and 0 < len(auth) <= 64
+    ):
+        return jsonify({"ok": False}), 400
+    sub = PushSubscription.query.filter_by(endpoint=endpoint).first()
+    if sub is None:
+        sub = PushSubscription(endpoint=endpoint, user_id=current_user.id, p256dh=p256dh, auth=auth)
+        db.session.add(sub)
+    else:
+        # Same browser, possibly a different account since: the latest sign-in owns it.
+        sub.user_id, sub.p256dh, sub.auth = current_user.id, p256dh, auth
+    db.session.commit()
+    return jsonify({"ok": True})
+
+
+@user_bp.route("/push/unsubscribe", methods=["POST"])
+def push_unsubscribe():
+    """Forget one browser's subscription (only ever the caller's own)."""
+    if current_user.is_anonymous:
+        return jsonify({"ok": False}), 401
+    endpoint = (request.get_json(silent=True) or {}).get("endpoint")
+    if isinstance(endpoint, str):
+        PushSubscription.query.filter_by(endpoint=endpoint, user_id=current_user.id).delete()
+        db.session.commit()
+    return jsonify({"ok": True})
 
 
 @user_bp.route("/contributors", methods=["GET"])

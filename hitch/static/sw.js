@@ -208,3 +208,22 @@ self.addEventListener('fetch', (event) => {
         }));
     }
 });
+
+// Web Push (#292): shows the alert the server sends. Payload is JSON {title, body, url};
+// the body is always an existing in-app Notification's text, never copy written for push.
+self.addEventListener('push', (event) => {
+    let data = {}
+    try { data = event.data ? event.data.json() : {} } catch (e) { data = {} }
+    if (!data.title) return
+    event.waitUntil(self.registration.showNotification(data.title, {
+        body: data.body || '',
+        icon: '/static/logo_192.png',
+        data: { url: data.url || '/' },
+    }))
+})
+
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close()
+    const url = (event.notification.data && event.notification.data.url) || '/'
+    event.waitUntil(clients.openWindow(url))
+})

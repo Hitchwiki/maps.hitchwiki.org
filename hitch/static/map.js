@@ -4171,6 +4171,7 @@ function showSuccessOverlay(opts) {
   if (!opts) lastTripCreated = null;
   renderTripCreatedNote();
   renderReturnNudge();
+  if (window.HmPushOptin) window.HmPushOptin.render();
   renderWikiContributionNudge(successRide);
   renderTrustrootsNudge();
   renderCampwildNudge();
