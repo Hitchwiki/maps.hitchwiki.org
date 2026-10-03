@@ -169,10 +169,21 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
     }
     document.getElementById('install-hint-close').addEventListener('click', dismiss);
 
-    // Small delay so the hint doesn't fight with map load.
-    setTimeout(function () {
+    // On a first visit the cookie box (#hm-consent) and the race banner are already on
+    // screen; stacking this hint on top of them hides the map. Wait until the cookie
+    // box is answered (poll, give up after 60 s so the hint is never lost entirely).
+    function showHint() {
         hint.hidden = false;
         if (isAndroid && window.hmTrack) window.hmTrack('play_store_shown', { source: 'install_hint' });
+    }
+    var waited = 0;
+    // Small delay so the hint doesn't fight with map load (and the consent box exists).
+    setTimeout(function waitForConsent() {
+        if (document.getElementById('hm-consent') && waited < 60000) {
+            waited += 500;
+            return setTimeout(waitForConsent, 500);
+        }
+        showHint();
     }, 1500);
 })();
 
