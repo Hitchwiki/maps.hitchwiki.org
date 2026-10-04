@@ -15,5 +15,6 @@ def test_outlier_waits_are_ignored():
 def test_csv_roundtrip(tmp_path):
     p = tmp_path / "city" / "place_activity.csv"
     write_place_activity_csv(str(p), [activity_row("Lyon", "France", 45.7578, 4.8351, [10] * 6)])
-    rows = list(csv.DictReader(open(p, encoding="utf-8")))
+    with open(p, encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
     assert list(rows[0]) == COLUMNS and rows[0]["rides_90d"] == "6"

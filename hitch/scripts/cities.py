@@ -396,7 +396,7 @@ logger.info(
 )
 
 write_place_activity_csv(os.path.join(dist_dir, "place_activity.csv"), activity_rows)
-logger.info(f"Wrote place_activity.csv ({len(activity_rows)} cities with >= {ACTIVITY_MIN_RIDES} rides in {ACTIVITY_WINDOW_DAYS} days)")
+logger.info(f"Wrote place_activity.csv ({len(activity_rows)} cities, >= {ACTIVITY_MIN_RIDES} rides in {ACTIVITY_WINDOW_DAYS} d)")
 
 # Hand the ranking to route_pages.py. Matching rides to 48k cities is the slow part
 # of this script (~25 min); the route generator needs exactly the same ranking to
