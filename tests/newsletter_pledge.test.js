@@ -11,5 +11,5 @@ assert(body.includes("localStorage.getItem(DRIVER_PLEDGE_MADE_KEY)"), "silent fo
 assert(body.includes('hmTrack("driver_pledge_shown", { surface: "newsletter" })'));
 assert(body.includes('hmTrack("driver_pledge_clicked", { surface: "newsletter" })'));
 assert(body.includes("I'll stop for a hitchhiker when I'm driving"), "reuses the existing string");
-assert(src.includes("maybeShowNewsletterPledge);"), "invoked at load");
+assert(src.includes("maybeShowNewsletterPledge, 3000);"), "invoked at load");
 console.log("newsletter_pledge ok");

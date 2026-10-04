@@ -4500,10 +4500,10 @@ function maybeShowNewsletterPledge() {
   const box = document.createElement("div");
   box.id = "newsletter-pledge";
   box.style.cssText = "position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:3000;" +
-    "background:#fff;color:#222;padding:10px 14px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.3);text-align:center;";
+    "width:min(86vw,360px);background:#fff;color:#222;padding:10px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.3);text-align:center;";
   const btn = document.createElement("button");
   btn.type = "button";
-  btn.className = "success-secondary-btn";
+  btn.style.cssText = "display:block;width:100%;padding:12px 16px;border:0;border-radius:8px;background:#1a73e8;color:#fff;font-size:15px;font-weight:600;cursor:pointer;";
   btn.textContent = tr("I'll stop for a hitchhiker when I'm driving");
   const note = document.createElement("div");
   note.style.display = "none";
@@ -4519,9 +4519,16 @@ function maybeShowNewsletterPledge() {
   box.appendChild(btn);
   box.appendChild(note);
   document.body.appendChild(box);
+  // The first-visit cookie dialog (rendered ~5 s after load) goes first: hide the card while it is up.
+  let ticks = 0;
+  const guard = setInterval(function () {
+    if (!box.isConnected || ++ticks > 180) return clearInterval(guard);
+    box.style.visibility = document.querySelector(".hm-consent-yes") ? "hidden" : "visible";
+  }, 500);
   hmTrack("driver_pledge_shown", { surface: "newsletter" });
 }
-if (document.body) maybeShowNewsletterPledge(); else document.addEventListener("DOMContentLoaded", maybeShowNewsletterPledge);
+// Delay: the consent dialog renders a moment after load.
+setTimeout(maybeShowNewsletterPledge, 3000);
 
 // Wires the pledge button rendered inside the spot sheet's country-contact line
 // (IDEAS #522 slice 2). The sheet is rebuilt on every filter change, so this runs after
