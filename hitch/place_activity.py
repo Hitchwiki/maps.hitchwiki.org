@@ -31,3 +31,14 @@ def write_place_activity_csv(path, rows):
         w.writerow(COLUMNS)
         w.writerows(sorted(rows, key=lambda r: (r[1], r[0])))
     os.replace(tmp, path)
+
+
+def write_activity_summary(path, rides_7d, rides_28d):
+    """Site-wide counts for the wiki front page line (IDEAS #611)."""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["rides_7d", "rides_28d"])
+        w.writerow([int(rides_7d), int(rides_28d)])
+    os.replace(tmp, path)

@@ -18,3 +18,13 @@ def test_csv_roundtrip(tmp_path):
     with open(p, encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
     assert list(rows[0]) == COLUMNS and rows[0]["rides_90d"] == "6"
+
+
+def test_activity_summary_roundtrip(tmp_path):
+    from hitch.place_activity import write_activity_summary
+
+    p = tmp_path / "activity_summary.csv"
+    write_activity_summary(str(p), 258, 1100)
+    with open(p, encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+    assert rows == [{"rides_7d": "258", "rides_28d": "1100"}]

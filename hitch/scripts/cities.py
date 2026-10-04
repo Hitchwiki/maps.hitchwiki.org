@@ -16,7 +16,7 @@ from flask import g
 from jinja2 import Environment, FileSystemLoader
 
 from hitch.helpers import get_db, get_dirs
-from hitch.place_activity import ACTIVITY_MIN_RIDES, activity_row, write_place_activity_csv
+from hitch.place_activity import ACTIVITY_MIN_RIDES, activity_row, write_activity_summary, write_place_activity_csv
 from hitch.translations import SUPPORTED_LANGUAGES, t
 
 logging.basicConfig(level=logging.INFO)
@@ -397,6 +397,12 @@ logger.info(
 
 write_place_activity_csv(os.path.join(dist_dir, "place_activity.csv"), activity_rows)
 logger.info(f"Wrote place_activity.csv ({len(activity_rows)} cities, >= {ACTIVITY_MIN_RIDES} rides in {ACTIVITY_WINDOW_DAYS} d)")
+_now = pd.Timestamp.now(tz="UTC")
+write_activity_summary(
+    os.path.join(dist_dir, "activity_summary.csv"),
+    (rides["ride_datetime"] >= _now - pd.Timedelta(days=7)).sum(),
+    (rides["ride_datetime"] >= _now - pd.Timedelta(days=28)).sum(),
+)
 
 # Hand the ranking to route_pages.py. Matching rides to 48k cities is the slow part
 # of this script (~25 min); the route generator needs exactly the same ranking to
