@@ -16,6 +16,7 @@ from flask import g
 from jinja2 import Environment, FileSystemLoader
 
 from hitch.helpers import get_db, get_dirs
+from hitch.place_activity import ACTIVITY_MIN_RIDES, activity_row, write_place_activity_csv
 from hitch.translations import SUPPORTED_LANGUAGES, t
 
 logging.basicConfig(level=logging.INFO)
@@ -346,6 +347,10 @@ log_every = max(1, total_cities // 10)
 # Only the matched ride *indices* are kept (<=20 ints each); holding 14.5k
 # DataFrames instead would cost hundreds of MB for data we can re-slice for free.
 matched = []  # (city namedtuple, ride index array, total matching rides)
+# IDEAS #608: rides in the last ACTIVITY_WINDOW_DAYS per city, for the wiki's city articles.
+ACTIVITY_WINDOW_DAYS = 90
+recent_mask = (rides["ride_datetime"] >= pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=ACTIVITY_WINDOW_DAYS)).values
+activity_rows = []  # (city, country, lat, lon, rides, median wait or "")
 for i, city in enumerate(cities.itertuples(), start=1):
     if i % log_every == 0 or i == total_cities:
         logger.info(f"Matching rides to cities: {i}/{total_cities} ({i * 100 // total_cities}%)")
@@ -368,6 +373,9 @@ for i, city in enumerate(cities.itertuples(), start=1):
         near_dest = has_dest.values & (dest_dist <= radius_km)
 
     hits = near_pickup | near_dest
+    recent_hits = hits & recent_mask
+    if int(recent_hits.sum()) >= ACTIVITY_MIN_RIDES:
+        activity_rows.append(activity_row(city.city, city.country, city.lat, city.lng, rides["wait_min"].values[recent_hits]))
     # Rank on the UNCAPPED count: the page shows at most 20 reviews, so capping
     # first would tie thousands of cities at 20 and make the ranking meaningless.
     # 4th element: the UNCAPPED pickup-only index, kept only when there are enough
@@ -386,6 +394,9 @@ logger.info(
     f"{len(renderable)} cities have enough rides to render; "
     f"top {len(translated_positions)} also get all {len(SUPPORTED_LANGUAGES)} languages"
 )
+
+write_place_activity_csv(os.path.join(dist_dir, "place_activity.csv"), activity_rows)
+logger.info(f"Wrote place_activity.csv ({len(activity_rows)} cities, >= {ACTIVITY_MIN_RIDES} rides in {ACTIVITY_WINDOW_DAYS} d)")
 
 # Hand the ranking to route_pages.py. Matching rides to 48k cities is the slow part
 # of this script (~25 min); the route generator needs exactly the same ranking to
