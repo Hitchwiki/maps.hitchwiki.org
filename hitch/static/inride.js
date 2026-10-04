@@ -31,7 +31,7 @@
 
   const KEY = "inride.journey";
   const PENDING_KEY = "inride.pendingStart"; // only across the login redirect
-  const UNDO_TOAST_MS = 5000; // window for journeyFlow.start's undo toast (#16 slice 2)
+  const UNDO_TOAST_MS = 20000; // window for journeyFlow.start's undo toast (#16 slice 2); 5 s caught only 17% of mistaken starts (median cancel is 10.5 s in, EXP-571)
 
   const journeyStore = {
     get() {
