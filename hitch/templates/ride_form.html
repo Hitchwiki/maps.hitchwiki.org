@@ -1215,8 +1215,14 @@
             });
         }).then(function (json) {
             if (json.ok === true) {
-                if (RIDE_FORM_WAS_RESTORED) hmTrack('ride_form_restored_submitted', { mode: HM_FORM_MODE });
                 clearSafeRideFormDraft();
+                if (RIDE_FORM_WAS_RESTORED) {
+                    // Navigation cancels an in-flight analytics request; give it a beat
+                    // (0 of 30 offered restores ever registered a submit before this).
+                    hmTrack('ride_form_restored_submitted', { mode: HM_FORM_MODE });
+                    setTimeout(function () { window.location.href = json.redirect; }, 250);
+                    return;
+                }
                 window.location.href = json.redirect;
                 return;
             }
