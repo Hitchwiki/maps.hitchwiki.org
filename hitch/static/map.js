@@ -4487,6 +4487,42 @@ function renderDriverPledgeNudge() {
   };
 }
 
+// IDEAS #603: the monthly newsletter links to `?pledge=1`, which shows the existing
+// one-tap driver pledge (same string, same shared made-key) on the map. surface=newsletter
+// keeps these taps separable from the in-product surfaces' 68 taps / 28 d baseline.
+function maybeShowNewsletterPledge() {
+  let wanted = false;
+  try {
+    wanted = new URLSearchParams(location.search).get("pledge") === "1" &&
+      !localStorage.getItem(DRIVER_PLEDGE_MADE_KEY);
+  } catch (e) {}
+  if (!wanted) return;
+  const box = document.createElement("div");
+  box.id = "newsletter-pledge";
+  box.style.cssText = "position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:3000;" +
+    "background:#fff;color:#222;padding:10px 14px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.3);text-align:center;";
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "success-secondary-btn";
+  btn.textContent = tr("I'll stop for a hitchhiker when I'm driving");
+  const note = document.createElement("div");
+  note.style.display = "none";
+  btn.onclick = function () {
+    hmTrack("driver_pledge_clicked", { surface: "newsletter" });
+    try { localStorage.setItem(DRIVER_PLEDGE_MADE_KEY, "1"); } catch (e) {}
+    noteDriverPledgeTime("newsletter");
+    btn.style.display = "none";
+    note.textContent = tr("Pledge made — thank you.");
+    note.style.display = "block";
+    setTimeout(function () { box.remove(); }, 4000);
+  };
+  box.appendChild(btn);
+  box.appendChild(note);
+  document.body.appendChild(box);
+  hmTrack("driver_pledge_shown", { surface: "newsletter" });
+}
+if (document.body) maybeShowNewsletterPledge(); else document.addEventListener("DOMContentLoaded", maybeShowNewsletterPledge);
+
 // Wires the pledge button rendered inside the spot sheet's country-contact line
 // (IDEAS #522 slice 2). The sheet is rebuilt on every filter change, so this runs after
 // each renderSpotSummary; a pledge made meanwhile removes the button from later renders.
