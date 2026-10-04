@@ -3,8 +3,9 @@
 import json
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import urlencode
 
-from flask import Blueprint, abort, jsonify, redirect
+from flask import Blueprint, abort, jsonify, redirect, request
 
 from hitch.helpers import get_dirs
 from hitch.models import OsmHitchhikingSpot
@@ -83,4 +84,10 @@ def official_stop(osm_id):
     if stop is None:
         abort(404)
     # Temporary: when a first ride is logged nearby, the representative spot can move.
-    return redirect("/spot/" + map_spot_id(stop, reviewed_links()), code=302)
+    target = "/spot/" + map_spot_id(stop, reviewed_links())
+    # Keep a ?ref= tag (printed bench QR codes, municipality links) so base.html's
+    # referred_via capture can attribute the visit; nothing else is forwarded.
+    ref = request.args.get("ref", "")[:40]
+    if ref:
+        target += "?" + urlencode({"ref": ref})
+    return redirect(target, code=302)
