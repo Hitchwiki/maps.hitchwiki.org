@@ -4,7 +4,7 @@ const fs = require("fs");
 const assert = require("assert");
 const src = fs.readFileSync(__dirname + "/../hitch/static/map.js", "utf8");
 const start = src.indexOf("function maybeShowNewsletterPledge()");
-const body = src.slice(start, src.indexOf("function wireSpotCountryPledge()", start));
+const body = src.slice(start, src.indexOf("// Expose the pieces", start));
 assert(start > 0, "function present");
 assert(body.includes('get("pledge") === "1"'), "keyed on ?pledge=1");
 assert(body.includes("localStorage.getItem(DRIVER_PLEDGE_MADE_KEY)"), "silent for existing pledgers");
