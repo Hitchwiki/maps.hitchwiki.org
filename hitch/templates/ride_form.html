@@ -1025,7 +1025,7 @@
         }
 
         document.getElementById('ride-draft-continue').addEventListener('click', function () {
-            if (offered) applySafeRideFormDraft(offered);
+            if (offered) { applySafeRideFormDraft(offered); hmTrack('ride_form_restore_accepted', { mode: HM_FORM_MODE }); }
             offered = null;
             box.hidden = true;
         });
