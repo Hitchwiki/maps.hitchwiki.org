@@ -4274,6 +4274,27 @@ function renderReturnNudge() {
 // author actually is, while keeping the same conservative 200-character threshold.
 const WIKI_CONTRIBUTE_COMMENT_CHARS = 200;
 
+// Nearest loaded spot within WIKI_NEAREST_SPOT_M of a point, waiting briefly for
+// spots.json (the success overlay can open before the markers finish loading).
+const WIKI_NEAREST_SPOT_M = 300;
+async function nearestSpotIdForWiki(lat, lon) {
+  for (let i = 0; i < 20 && !(allMarkers && allMarkers.length); i++) {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  }
+  if (!allMarkers || !allMarkers.length) return null;
+  const here = L.latLng(lat, lon);
+  let best = null;
+  let bestDist = WIKI_NEAREST_SPOT_M;
+  for (const marker of allMarkers) {
+    const d = here.distanceTo(marker.getLatLng());
+    if (d <= bestDist) {
+      bestDist = d;
+      best = marker;
+    }
+  }
+  return best ? best.options.spotId : null;
+}
+
 async function renderWikiContributionNudge(ride) {
   const note = $$("#success-wiki-contribute");
   if (!note) return;
@@ -4291,8 +4312,18 @@ async function renderWikiContributionNudge(ride) {
     // the per-spot detail file is fetched directly rather than gated on the marker's
     // `wiki` flag: that flag held the invitation to ~2 shows/28d (#476, EXP-617) because
     // only ~6% of spots have an article within 100 m.
-    const response = await fetch(`/rides/by-spot/${encodeURIComponent(spotId)}.json`);
-    if (!response.ok) return;
+    let via = "exact";
+    let response = await fetch(`/rides/by-spot/${encodeURIComponent(spotId)}.json`);
+    if (!response.ok) {
+      // A freshly saved ride sits at its own coordinates, and per-spot files exist only
+      // for clustered spots: 9 prompts shown against ~667 saves in 28d (2026-10-03) while
+      // ~29% of rides carry a >=200-char note. Fall back to the nearest known spot.
+      const nearestId = await nearestSpotIdForWiki(lat, lon);
+      if (!nearestId) return;
+      via = "nearest";
+      response = await fetch(`/rides/by-spot/${encodeURIComponent(nearestId)}.json`);
+      if (!response.ok) return;
+    }
     const payload = await response.json();
     const spot = (payload && payload.spot) || {};
     // Exact article first; otherwise the nearest one, labelled with its distance so it is
@@ -4363,11 +4394,11 @@ async function renderWikiContributionNudge(ride) {
         : tr("Add your notes to the Hitchwiki article for this place");
     }
     link.onclick = function () {
-      hmTrack("wiki_contribute_clicked", { source: "success-overlay", repeat_writer: repeatWriter, arm });
+      hmTrack("wiki_contribute_clicked", { source: "success-overlay", repeat_writer: repeatWriter, arm, via });
     };
     note.appendChild(link);
     note.style.display = "block";
-    hmTrack("wiki_contribute_shown", { source: "success-overlay", repeat_writer: repeatWriter, arm });
+    hmTrack("wiki_contribute_shown", { source: "success-overlay", repeat_writer: repeatWriter, arm, via });
   } catch (e) {
     // This is an optional invitation. A missing/stale detail file must never damage
     // the post-submit success screen or its share action.
