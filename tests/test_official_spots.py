@@ -41,6 +41,7 @@ def test_stable_links_open_the_existing_marker_or_the_unreviewed_stop(client, re
     assert client.get("/official-stop/910001").location == "/spot/50.10000_7.10000"
     assert client.get("/official-stop/910002").location == "/spot/50.20003_7.20003"
     assert client.get("/official-stop/999999999999").status_code == 404
+    assert client.get("/official-stop/910001?ref=bench_koris&x=1").location == "/spot/50.10000_7.10000?ref=bench_koris"
 
 
 def test_registry_survives_missing_generated_files_and_recovers(client, registry):
