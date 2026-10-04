@@ -294,7 +294,13 @@ html {
   height: 40px;
   border-radius: 50%;
   object-fit: cover;
+  /* The link is a flex row: without these the photo shrank to 20x40 beside the icon. */
+  display: block;
+  flex-shrink: 0;
 }
+/* account.js hides the silhouette once the profile photo loads, but Font Awesome's
+   `display` beats the [hidden] attribute, so photo and icon showed side by side. */
+.top-account-btn .fa-circle-user[hidden] { display: none; }
 
 /* Logged-out nudge: a small red notification dot in the corner encourages sign-in. */
 .top-account-btn .account-dot {
