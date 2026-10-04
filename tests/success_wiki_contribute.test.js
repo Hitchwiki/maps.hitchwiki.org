@@ -16,7 +16,7 @@ const parseEnd = mapSource.indexOf("\n}", mapSource.indexOf("function parseSpotW
 const urlHelperSource =
   'const COUNTRY_WIKI_BASE = "https://hitchwiki.org/en/";\n' + mapSource.slice(parseStart, parseEnd);
 
-function loadHelper({ comment = "x".repeat(200), wiki = true, longNoteCount = 0, failCount = false, spot = null, spotOk = true } = {}) {
+function loadHelper({ comment = "x".repeat(200), wiki = true, longNoteCount = 0, failCount = false, spot = null, spotOk = true, exactMissing = false } = {}) {
   const events = [];
   const fetches = [];
   const note = {
@@ -31,7 +31,9 @@ function loadHelper({ comment = "x".repeat(200), wiki = true, longNoteCount = 0,
         spotId: "51.08170_13.73629",
         _data: wiki ? { wiki: true } : {},
       },
+      getLatLng: () => ({ lat: 51.0817, lon: 13.73629 }),
     }],
+    L: { latLng: (lat, lon) => ({ distanceTo: (o) => Math.hypot(lat - o.lat, lon - o.lon) * 111000 }) },
     $$: () => note,
     tr: (s, vars) => s.replace(/\{(\w+)\}/g, (_, k) => String((vars || {})[k])),
     hmTrack: (name, props) => events.push({ name, props }),
@@ -45,7 +47,7 @@ function loadHelper({ comment = "x".repeat(200), wiki = true, longNoteCount = 0,
         };
       }
       return {
-        ok: spotOk,
+        ok: spotOk && !(exactMissing && fetches.filter((f) => f.startsWith("/rides/by-spot/")).length === 1),
         json: async () => ({ spot: spot || { hitchwiki_article: "https://hitchwiki.org/en/Dresden" } }),
       };
     },
@@ -208,4 +210,12 @@ test("both ride-entry paths hand the comment to the success overlay", () => {
   const inride = fs.readFileSync(path.join(__dirname, "..", "hitch", "static", "inride.js"), "utf8");
   assert.match(form, /comment: document\.querySelector\('textarea\[name="comment"\]'/);
   assert.match(inride, /comment: body\.comment \|\| ""/);
+});
+
+test("a fresh ride with no per-spot file falls back to the nearest known spot (via=nearest)", async () => {
+  const h = loadHelper({ exactMissing: true });
+  await h.run();
+  assert.strictEqual(h.note.style.display, "block");
+  assert.strictEqual(h.events[0].name, "wiki_contribute_shown");
+  assert.strictEqual(h.events[0].props.via, "nearest");
 });
