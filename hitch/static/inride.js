@@ -3564,12 +3564,33 @@
     // Resume (restore as-is) or Discard before drawing the timer and dock, so the
     // user isn't silently dropped into a stale journey after overnight or longer.
     if (Date.now() - lastActiveMs(j) > STALE_MS) {
+      // #613: this dialog used to be a silent exit (Resume or throw the journey away, no way
+      // to say "I did get a ride", nothing tracked). Log-a-past-ride seeds the /ride form
+      // with the stored pickup spot, then drops the stale timer.
+      const staleTrack = function (action) {
+        hmTrack("journey_stale_prompt", { action: action, state: j.state, age_h: Math.round((Date.now() - lastActiveMs(j)) / 3600000) });
+      };
+      staleTrack("shown");
       journeyUI.dialog({
         title: T("Welcome back!"),
         body: T("You have a hitching journey from more than 24 hours ago. Continue where you left off?"),
         actions: [
-          { label: T("Resume"),  cls: "inr-go", onClick: function () { journeyUI.render(j); } },
-          { label: T("Discard"), cls: "inr-grey",    onClick: function () { journeyFlow.discard(); } },
+          {
+            label: T("Log a past ride"), cls: "inr-go",
+            onClick: function () {
+              staleTrack("log_past");
+              if (j.pickup) {
+                sessionStorage.setItem("rideFormData", JSON.stringify({
+                  pickup_lat: j.pickup.lat, pickup_lon: j.pickup.lon, destination_lat: "", destination_lon: "",
+                }));
+              }
+              hmTrack("add_ride_clicked", { source: "stale-journey" });
+              journeyFlow.discard();
+              window.location.href = "/ride";
+            },
+          },
+          { label: T("Resume"),  cls: "inr-ghost", onClick: function () { staleTrack("resume"); journeyUI.render(j); } },
+          { label: T("Discard"), cls: "inr-grey",    onClick: function () { staleTrack("discard"); journeyFlow.discard(); } },
         ],
       });
       return;
