@@ -6586,11 +6586,14 @@ function startAddSpotFromGesture(latlng, containerPoint) {
 
 // IDEAS #603: the monthly newsletter links to `?pledge=1`, which shows the existing
 // one-tap driver pledge (same string, same shared made-key) on the map. surface=newsletter
-// keeps these taps separable from the in-product surfaces' 68 taps / 28 d baseline.
+// (surface=wiki when ref=wiki-*, #543 slice 2) keeps these taps separable from the in-product surfaces' 68 taps / 28 d baseline.
 function maybeShowNewsletterPledge() {
   let wanted = false;
+  let surface = "newsletter";
   try {
-    wanted = new URLSearchParams(location.search).get("pledge") === "1" &&
+    const q = new URLSearchParams(location.search);
+    if ((q.get("ref") || "").indexOf("wiki") === 0) surface = "wiki";
+    wanted = q.get("pledge") === "1" &&
       !localStorage.getItem(DRIVER_PLEDGE_MADE_KEY);
   } catch (e) {}
   if (!wanted) return;
@@ -6605,9 +6608,9 @@ function maybeShowNewsletterPledge() {
   const note = document.createElement("div");
   note.style.display = "none";
   btn.onclick = function () {
-    hmTrack("driver_pledge_clicked", { surface: "newsletter" });
+    hmTrack("driver_pledge_clicked", { surface: surface });
     try { localStorage.setItem(DRIVER_PLEDGE_MADE_KEY, "1"); } catch (e) {}
-    noteDriverPledgeTime("newsletter");
+    noteDriverPledgeTime(surface);
     btn.style.display = "none";
     note.textContent = tr("Pledge made — thank you.");
     note.style.display = "block";
@@ -6622,7 +6625,7 @@ function maybeShowNewsletterPledge() {
     if (!box.isConnected || ++ticks > 180) return clearInterval(guard);
     box.style.visibility = document.querySelector(".hm-consent-yes") ? "hidden" : "visible";
   }, 500);
-  hmTrack("driver_pledge_shown", { surface: "newsletter" });
+  hmTrack("driver_pledge_shown", { surface: surface });
 }
 // Delay: the consent dialog renders a moment after load.
 setTimeout(maybeShowNewsletterPledge, 3000);
