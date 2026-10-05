@@ -139,3 +139,9 @@ def test_intro_email_renders_and_is_tagged(app, monkeypatch):
     assert captured["campaign_id"] == "same-city-intro"
     assert "https://maps.hitchwiki.org/messages/Jaki" in captured["content"]["text"]
     assert "Hamburg" in captured["content"]["html"]
+
+
+def test_lowercase_city_borrows_a_neighbours_spelling(people):
+    me, twin = _add(_user("CityLower", "paris", "France"), _user("CityUpper", "Paris", "France"))
+    assert same_city._city_label(me, [twin]) == "Paris"
+    assert same_city._city_label(twin, [me]) == "Paris"

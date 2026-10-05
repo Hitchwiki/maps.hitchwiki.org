@@ -59,8 +59,13 @@ def same_city_users(user, candidates=None):
     return [u for u in candidates if u.id != user.id and u.active and (k := city_key(u)) and _same_place(key, k)]
 
 
-def _city_label(user):
-    return " ".join(user.origin_city.split())
+def _city_label(user, neighbours=()):
+    """The city as the user typed it — unless they typed it all lowercase ("paris"), then
+    a neighbour's capitalised spelling of the same city, so the text doesn't read odd."""
+    label = " ".join(user.origin_city.split())
+    if label.islower():
+        label = next((" ".join(u.origin_city.split()) for u in neighbours if not u.origin_city.islower()), label)
+    return label
 
 
 def _chat_link(username):
@@ -81,7 +86,7 @@ def introduce_new_arrival(user):
         neighbours = same_city_users(user)
         if not neighbours:
             return
-        city = _city_label(user)
+        city = _city_label(user, neighbours)
         if user.allow_messages:
             for other in neighbours:
                 add_notification(
@@ -120,7 +125,7 @@ def send_same_city_intro(dry_run=False):
             continue
         if Notification.query.filter_by(user_id=user.id, kind=INTRO_KIND).first() is not None:
             continue
-        city = _city_label(user)
+        city = _city_label(user, reachable)
         logger.info("%s (%s): %s", user.username, city, ", ".join(u.username for u in reachable))
         if dry_run:
             notified += 1
