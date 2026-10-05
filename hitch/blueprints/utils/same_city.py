@@ -121,7 +121,7 @@ def _who_is_there(from_here, here_now, city):
 
 
 def _chat_link(username):
-    return f"/messages/{username}"
+    return f"/messages/{username}?ref=same_city"
 
 
 def _list_message(users, city):
