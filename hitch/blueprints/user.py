@@ -42,6 +42,7 @@ from hitch.blueprints.utils.ride_gpx import rides_gpx
 from hitch.blueprints.utils.ride_images import attach_ride_images
 from hitch.blueprints.utils.ride_score import score_fields
 from hitch.blueprints.utils.ride_sources import ride_is_replaceable
+from hitch.blueprints.utils.same_city import city_key, introduce_new_arrival
 from hitch.blueprints.utils.store_published_ride import store_published_ride
 from hitch.extensions import db, security
 from hitch.forms import UserEditForm
@@ -107,6 +108,10 @@ def form():
 
     if form.validate_on_submit():
         updated_user = security.datastore.find_user(username=current_user.username)
+        # A user "joins" their city the first time they save one (OAuth signup creates the
+        # account with no city), so that is when same-city hitchhikers get introduced.
+        # Only the first time: editing or re-typing a city must not re-announce anyone.
+        had_city = city_key(updated_user) is not None
         avatar = UserAvatar.query.filter_by(user_id=updated_user.id).first()
         source = form.avatar_source.data if form.avatar_source.data in AVATAR_SOURCES else "none"
         old_filename = avatar.filename if avatar else None
@@ -142,6 +147,8 @@ def form():
         security.datastore.commit()
         if old_filename and old_filename != avatar.filename:
             delete_uploaded_image(old_filename)
+        if not had_city and city_key(updated_user) is not None:
+            introduce_new_arrival(updated_user)
         # Track only a successful save, and only once after the redirect. A click event on
         # the form would count rejected images and validation failures as adoption.
         session["track_profile_picture_saved"] = source

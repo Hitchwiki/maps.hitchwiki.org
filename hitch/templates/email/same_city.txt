@@ -1,0 +1,17 @@
+Hi {{ name }},
+
+{% if others|length == 1 %}Another hitchhiker on Hitchwiki Maps is from {{ city }}, just like you:{% else %}{{ others|length }} other hitchhikers on Hitchwiki Maps are from {{ city }}, just like you:{% endif %}
+{% for u in others %}
+  {{ u }} — say hello: https://maps.hitchwiki.org/messages/{{ u }}{% endfor %}
+
+Swap stories, find a travel buddy, or plan your next trip out of town together.
+
+Safe travels and happy hitchhiking!
+The Hitchwiki team
+
+--
+You receive this one-time email because email notifications are turned on in your
+profile settings, where you also told us which city you are from. You can change either
+any time: https://maps.hitchwiki.org/edit-user
+
+Hitchwiki — the hitchhiker's guide to hitchhiking — https://hitchwiki.org
