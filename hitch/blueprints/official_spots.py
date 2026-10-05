@@ -93,6 +93,7 @@ def official_stop(osm_id):
     return redirect(target, code=302)
 
 
+TRANSLATIONS_DIR = Path(__file__).resolve().parent.parent / "translations"
 BENCH_TOWNS_PATH = Path(__file__).resolve().parent.parent / "data" / "bench_towns.json"
 
 
@@ -112,8 +113,20 @@ def bench_town(slug):
     title = f"Arrêts de covoiturage Rezo Pouce à {town['name']}" if fr else f"Mitfahrbänke in {town['name']}"
     lat = sum(s[1] for s in town["stops"]) / n
     lon = sum(s[2] for s in town["stops"]) / n
+    tr = json.loads((TRANSLATIONS_DIR / ("fr.json" if fr else "de.json")).read_text(encoding="utf-8"))
+    pledge_btn = tr["I'll stop for a hitchhiker when I'm driving"]
+    pledge_note = tr["Pledge made — thank you."]
     return render_template(
-        "bench_town.html", title=title, town=town, n=n, fr=fr, lat=round(lat, 5), lon=round(lon, 5), emit_hreflang=False
+        "bench_town.html",
+        title=title,
+        town=town,
+        n=n,
+        fr=fr,
+        lat=round(lat, 5),
+        lon=round(lon, 5),
+        pledge_btn=pledge_btn,
+        pledge_note=pledge_note,
+        emit_hreflang=False,
     )
 
 
