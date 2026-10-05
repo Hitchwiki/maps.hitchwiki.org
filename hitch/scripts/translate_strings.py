@@ -997,6 +997,168 @@ SOURCE_STRINGS = [
     "Add your notes to the Hitchwiki article for this place",
     "Add what you know to the Hitchwiki article for this place",
     "Pledge made — thank you.",
+    "+ Add another hitchhiker",
+    "1 more tap to claim this ride…",
+    "A ride counts only if it recorded the day it actually happened — a submission date is when someone "
+    "typed the ride in, often weeks later, and would put it on the wrong weekday. The same ride submitted "
+    "twice counts once.",
+    "A ride counts only when it records a waiting time and between one and four hitchhikers. Give-ups are "
+    "excluded because they measure time until stopping, not time until pickup. A dash means no qualifying "
+    "ride; an asterisk marks fewer than 10 rides. Do not treat those small-sample medians as a general "
+    "rule.",
+    "A row marked with an asterisk rests on fewer than {n} answers; treat it as an anecdote, not a rate. "
+    "Percentages are shown with a 95% Wilson confidence interval, which stays wide on small samples instead "
+    "of pretending to certainty. Ages are the hitchhiker's age at the time of the ride. Time of day comes "
+    "from the recorded departure time only, never from when the ride was typed in.",
+    "A spot is listed when, on one weekday:",
+    "About {time} hitchhiking, {km} km in roughly {rides} ride(s), based on rides logged by the hitchhiking community.",
+    "About {time} of hitchhiking — roughly {km} km in {rides} ride(s), including about {wait} of waiting by "
+    "the road. These figures come from rides hitchhikers logged on this map, not from an estimate.",
+    "Add another leg of this trip",
+    "After a ride, hitchhikers can answer one question about the driver: would you accept this ride again? "
+    "Describe who was hitchhiking, and every table below re-counts the answers those people gave.",
+    "All hitchhiking routes",
+    "Almost",
+    "Almost: one ride here waited {w} minutes.",
+    "Almost: only {n} rides so far, {min} are needed.",
+    "Choose a country…",
+    "Claiming this ride…",
+    "Compare recorded pickup waits by group size and gender composition.",
+    "Continue",
+    "Continue your unfinished ride report?",
+    "Could not check the co-hitchhiker's name — please remove it or try again.",
+    "Couldn't claim this ride — try again",
+    "Couldn't reach the server. Your ride wasn't lost — tap Submit to try again.",
+    "Do you really want to claim this ride for yourself? It will be published under your name and this cannot be undone.",
+    "Each route below is built from rides hitchhikers actually logged on this map — the spots to stand at, "
+    "how many rides it takes and how long people waited.",
+    "Every criterion met",
+    "Expect around {wait} of waiting here.",
+    "From {city}",
+    "GPX by country",
+    "Gender combination",
+    "Get from {origin} to {destination} — {km} km. Local transport is usually quicker than walking this stretch.",
+    "Gravatar uses the email address on this account. Selecting it loads your picture from Gravatar on "
+    "public profile visits; Gravatar pictures are not relicensed by Hitchwiki.",
+    "Gray markers: official stops without ride reports.",
+    "Groups of {n}",
+    "Hitch {km} km ({time}) from {origin} to {destination}.",
+    "Hitchhiked from or to {city}? Add your ride.",
+    "Hitchhiking from {origin} to {destination}",
+    "Hitchhiking from {origin} to {destination} – Hitchwiki Map",
+    "Hitchhiking in {city}",
+    "Hitchhiking in {place}",
+    "Hitchhiking routes between cities: how long each takes, how many rides, where to stand and how long people waited.",
+    "Hitchhiking safety",
+    "How do you rate the spot? (optional)",
+    "How long did hitchhikers wait before a recorded pickup? These are medians: half of the rides waited "
+    "less and half waited more.",
+    "How to hitchhike from {origin} to {destination}: about {time} and {rides} ride(s) over {km} km, based "
+    "on rides the community logged. Spots to stand at and typical waiting times.",
+    "Join our Matrix chat",
+    "Know this spot? Other hitchhikers are in the {link} — tell them what it's like.",
+    "Leave a field empty to mean “anybody”. Adding a second hitchhiker means two people in the same car, "
+    "not a second group to compare against.",
+    "Legality of Hitchhiking",
+    "Log in to claim a ride",
+    "Login failed",
+    "Matrix chat",
+    "Median wait",
+    "Nearby city guides",
+    "Nearby hitchhiking guides",
+    "New activity",
+    "No collected rides yet.",
+    "No rides with a recorded waiting time in this group yet.",
+    "No spot meets all four criteria yet.",
+    "No spots match these filters",
+    "Nobody has logged a full chain yet, but {n} ride is already logged near this corridor — be the first to link them up.",
+    "Nobody has logged a full chain yet, but {n} rides are already logged near this corridor — be the first to link them up.",
+    "Nothing close enough to show yet.",
+    "One of your rides is not listed because it has no start time — a trip is ordered by when each ride was "
+    "hitched. Edit the ride and answer “When did you get the ride?” to bring it into a trip.",
+    "One slow ride would have removed any of these.",
+    "Only one logged ride — weak evidence.",
+    "Only rides where nobody else was hitchhiking along",
+    "Only {usable} of {total} rides record a departure time, a destination and a waiting time together — "
+    "everything needed to place a ride on a weekday and judge it. Log those three and this list fills up.",
+    "Open this route in the interactive planner",
+    "Photo attached to this ride",
+    "Photo by {name}, CC BY-SA 4.0",
+    "Photo from Gravatar",
+    "Places where hitchhiking has worked the same way more than once: pick this spot on this weekday, and "
+    "the rides we know about all went to the same faraway place, quickly.",
+    "Read this before reading the numbers.",
+    "Recalculated daily; last run {when}.",
+    "Recalculated weekly; last run {when}.",
+    "Rides added to the shared dataset each week. The first chart combines every source; the charts below "
+    "show each source separately.",
+    "Rides are listed and shown by their start time.",
+    "Rides their author deleted, and rides hidden by community reports, are excluded.",
+    "See how many rides were collected each week, overall and by source.",
+    "See this route on the map",
+    "See this spot",
+    "Show the driver",
+    "Show this spot on the map",
+    "Solo hitchhikers",
+    "Something went wrong. Please try again.",
+    "Step by step",
+    "Stops along the way",
+    "The answers are self-selected. They come from people who log rides on this site, about rides that "
+    "ended well enough to be logged at all. Nothing here can tell you about the rides nobody came back to "
+    "write up.",
+    "The best-evidenced place to start hitchhiking out of {city} is about {km} km {direction} of the centre.",
+    "The question is about one driver, not about hitchhiking. “Yes” means that ride was fine; it is not a "
+    "measure of how dangerous a road, a country or a kind of person is.",
+    "The tables include every possible combination of the four gender values the ride form can record, "
+    "including combinations with no sample yet. Observed rides with missing gender data are listed "
+    "separately as ‘Not recorded’; that is not a gender category. Small samples are shown, not hidden, and "
+    "marked below 10 rides.",
+    "These match everything except one thing, named on each row. All of them span at least two different "
+    "dates, so none is a single afternoon.",
+    "This ride already has a hitchhiker",
+    "This ride comes from another site and can't be claimed here",
+    "This ride was recorded on {source} — claim it there",
+    "Time range",
+    "Try again",
+    "Uploaded pictures are public under CC BY-SA 4.0. Upload only a picture you own or may share under that "
+    "license. Images are resized and location metadata is removed.",
+    "Waiting times and distances are averages from community-logged rides. Travel time assumes 100 km/h in "
+    "a car and 5 km/h walking. They are not guarantees.",
+    "Walk {km} km ({time}) from {origin} to {destination}.",
+    "Weeks start on Monday. A ride is counted when it was collected, not when the hitchhiking trip happened.",
+    "What hitchhikers said along this route",
+    "Who was hitchhiking?",
+    "Why not hitchhike? – Hitchwiki Maps",
+    "Would hitchhikers accept the same ride again? Pick who was hitchhiking and see their answers.",
+    "You wrote a lot of detail about this ride.",
+    "an unnamed place",
+    "and every single one of them waited under {min} minutes",
+    "at least {n} rides started there",
+    "different dates",
+    "e.g. onsen, viewpoint — press Enter to add",
+    "longest wait",
+    "ride(s)",
+    "so other hitchhikers can find them.",
+    "solo",
+    "statistics page",
+    "that destination is at least {km} km away",
+    "the rides",
+    "they all ended within {km} km of each other",
+    "unsolicited",
+    "{name}'s profile picture",
+    "{n} hitchhikers",
+    "{n} logged rides support this leg.",
+    "{n} logged rides there average {rating} out of 5, with a typical wait around {wait} minutes.",
+    "{n} more taps to claim this ride…",
+    "{n} of your rides are not listed because they have no start time — a trip is ordered by when each ride "
+    "was hitched. Edit a ride and answer “When did you get the ride?” to bring it into a trip.",
+    "{origin} to {destination}",
+    "{total} rides with valid collection dates are included.",
+    "{usable} rides qualify to be judged.",
+    "{used} of {total} database rows qualify.",
+    "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build "
+    "below will rest on a handful of rides — the confidence interval next to each percentage is the part "
+    "worth reading.",
 ]
 
 
