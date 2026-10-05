@@ -5,7 +5,7 @@ from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urlencode
 
-from flask import Blueprint, abort, jsonify, redirect, request
+from flask import Blueprint, abort, jsonify, redirect, render_template, request
 
 from hitch.helpers import get_dirs
 from hitch.models import OsmHitchhikingSpot
@@ -91,3 +91,27 @@ def official_stop(osm_id):
     if ref:
         target += "?" + urlencode({"ref": ref})
     return redirect(target, code=302)
+
+
+BENCH_TOWNS_PATH = Path(__file__).resolve().parent.parent / "data" / "bench_towns.json"
+
+
+@lru_cache(maxsize=1)
+def bench_towns():
+    """Snapshot of official stops grouped by town (research/bench-towns-2026-10.md)."""
+    return json.loads(BENCH_TOWNS_PATH.read_text(encoding="utf-8"))
+
+
+@official_spots_bp.route("/mitfahrbank/<slug>")
+def bench_town(slug):
+    town = bench_towns().get(slug)
+    if town is None:
+        abort(404)
+    fr = town["cc"] in ("fr", "be")
+    n = len(town["stops"])
+    title = f"Arrêts de covoiturage Rezo Pouce à {town['name']}" if fr else f"Mitfahrbänke in {town['name']}"
+    lat = sum(s[1] for s in town["stops"]) / n
+    lon = sum(s[2] for s in town["stops"]) / n
+    return render_template(
+        "bench_town.html", title=title, town=town, n=n, fr=fr, lat=round(lat, 5), lon=round(lon, 5), emit_hreflang=False
+    )

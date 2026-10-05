@@ -53,3 +53,13 @@ def test_registry_survives_missing_generated_files_and_recovers(client, registry
     assert len(response.json) >= 2
     path.write_text(original)
     assert client.get("/official-stop/910002").location == "/spot/50.20003_7.20003"
+
+
+def test_bench_town_page_renders_and_unknown_slug_404s(client):
+    r = client.get("/mitfahrbank/moringen-de")
+    assert r.status_code == 200
+    body = r.get_data(as_text=True)
+    assert "Mitfahrbänke in Moringen" in body
+    assert "/official-stop/" in body and "ref=bench-town" in body
+    assert "Arrêt" in client.get("/mitfahrbank/la-hague-fr").get_data(as_text=True)
+    assert client.get("/mitfahrbank/nowhere-xx").status_code == 404
