@@ -922,7 +922,6 @@ SOURCE_STRINGS = [
     "Sport",
     "Fundraising",
     "Non-binary",
-
     # Client-side strings passed to tr()/T() in static JS (inride.js, map.js, routing.js,
     # account.js); tests/test_js_translation_keys.py fails when one has no key.
     "Your profile picture",
@@ -962,7 +961,8 @@ SOURCE_STRINGS = [
     "See the leaderboard",
     "I'll stop for a hitchhiker when I'm driving",
     "{name} is on right now",
-    "Through {to}. Log your rides as you go and you'll show up automatically on the live leaderboard — no tag or special step needed. Mentioning \"{name}\" in your ride comment also helps us see how many racers are logging.",
+    "Through {to}. Log your rides as you go and you'll show up automatically on the live leaderboard — "
+    'no tag or special step needed. Mentioning "{name}" in your ride comment also helps us see how many racers are logging.',
     "Have you stopped for a hitchhiker?",
     "You pledged to stop for a hitchhiker when you're driving. Has it happened yet?",
     "Yes, I have",
@@ -989,7 +989,8 @@ SOURCE_STRINGS = [
     "How drivers are approached in {country}",
     "Thumb {thumb} · Sign {sign} · Ask {ask}",
     "Last confirmed: {date}",
-    "This was your first logged ride. Most first-timers never log a second one — if you hitch again, come back and add it. It takes a minute, and it's what keeps the map current.",
+    "This was your first logged ride. Most first-timers never log a second one — if you hitch again, "
+    "come back and add it. It takes a minute, and it's what keeps the map current.",
     "You write detailed ride notes — the kind of first-hand knowledge this place's Hitchwiki article is missing.",
     "Add your notes to the nearest Hitchwiki article: {title} (~{km} km)",
     "Add your notes to the Hitchwiki page for this area: {title}",
@@ -1085,11 +1086,7 @@ def main():
     lang_name = LANGUAGE_NAMES[args.lang]
     print(f"Translating {len(todo)} string(s) to {lang_name}...")
     translated, usage = _translate_batch(todo, lang_name, api_key)
-    print(
-        "Usage: "
-        f"input={usage.get('prompt_tokens', 0)} "
-        f"output={usage.get('completion_tokens', 0)}"
-    )
+    print(f"Usage: input={usage.get('prompt_tokens', 0)} output={usage.get('completion_tokens', 0)}")
 
     missing = [s for s in todo if s not in translated]
     if missing:
