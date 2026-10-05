@@ -637,6 +637,14 @@ except (OSError, ValueError):
 # more specific question than a city page and is the harder query to rank for.
 for loc in route_locs:
     sitemap_parts.append(_sitemap_url(loc, "0.8"))
+# Mitfahrbank town pages (/mitfahrbank/<slug>, blueprints/official_spots.py), one per
+# town in the committed snapshot hitch/data/bench_towns.json (EXP-798).
+try:
+    with open(os.path.join(dirs["base"], "data", "bench_towns.json"), encoding="utf-8") as f:
+        for _slug in json.load(f):
+            sitemap_parts.append(_sitemap_url(f"{SITE_URL}/mitfahrbank/{_slug}", "0.5"))
+except (OSError, ValueError):
+    logger.warning("No bench_towns.json — skipping Mitfahrbank town URLs in sitemap")
 sitemap_parts.append("</urlset>\n")
 
 with open(os.path.join(dist_dir, "sitemap.xml"), "w", encoding="utf-8") as f:

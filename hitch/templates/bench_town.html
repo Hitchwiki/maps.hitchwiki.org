@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block meta_description %}{% if fr %}{{ n }} arrêt{{ 's' if n > 1 }} officiel{{ 's' if n > 1 }} à {{ town.name }} : voir la carte, lire les expériences et noter votre attente.{% else %}{{ n }} offizielle{{ 'r' if n == 1 else '' }} Mitfahrhalt{{ 'e' if n > 1 }} in {{ town.name }}: Karte ansehen, Erfahrungen lesen und die eigene Wartezeit eintragen.{% endif %}{% endblock %}
+{% block og_title %}{{ title }}{% endblock %}
+{% block main %}
+<main class="organizers">
+  <nav><a href="/">← Hitchwiki Maps</a></nav>
+  <h1>{{ title }}</h1>
+  {% if fr %}
+  <p>{{ n }} arrêt{{ 's' if n > 1 }} officiel{{ 's' if n > 1 }} dans cette commune ({{ town.state }}). Ouvrez un arrêt pour voir les expériences d'autres personnes et ajouter la vôtre.</p>
+  {% else %}
+  <p>{{ n }} offizielle{{ 'r' if n == 1 else '' }} Mitfahrhalt{{ 'e' if n > 1 }} in {{ town.name }}{% if town.state %} ({{ town.state }}){% endif %}. Öffne einen Halt, um Erfahrungen anderer zu lesen und deine eigene Fahrt einzutragen.</p>
+  {% endif %}
+  <p><a href="/?ref=bench-town#map=14/{{ lat }}/{{ lon }}">{{ 'Voir sur la carte' if fr else 'Auf der Karte ansehen' }}</a></p>
+  <ul>
+  {% for osm_id, slat, slon in town.stops[:50] %}
+    <li><a href="/official-stop/{{ osm_id }}?ref=bench-town">{{ 'Arrêt' if fr else 'Mitfahrhalt' }} {{ loop.index }} ({{ slat }}, {{ slon }})</a></li>
+  {% endfor %}
+  </ul>
+</main>
+{% endblock %}
