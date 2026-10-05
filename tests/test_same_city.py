@@ -74,9 +74,9 @@ def test_new_arrival_is_announced_once_from_edit_user(app, client, people):
     assert client.post("/edit-user", data=form).status_code == 302
 
     (to_old,) = _notes(old, "same_city")
-    assert "CityNewbie" in to_old.message and to_old.link == "/messages/CityNewbie"
+    assert "CityNewbie" in to_old.message and to_old.link == "/messages/CityNewbie?ref=same_city"
     (to_new,) = _notes(new, "same_city")
-    assert "CityLocal" in to_new.message and to_new.link == "/messages/CityLocal"
+    assert "CityLocal" in to_new.message and to_new.link == "/messages/CityLocal?ref=same_city"
 
     # Saving the profile again is not "joining" again.
     assert client.post("/edit-user", data=form).status_code == 302
@@ -179,7 +179,7 @@ def test_moving_to_a_city_introduces_both_locals_and_other_travellers(client, pe
     for other in (local, visitor):
         (note,) = _notes(other, "same_city")
         assert note.message == "CityTraveller is currently in Hamburg. Say hello in chat!"
-        assert note.link == "/messages/CityTraveller"
+        assert note.link == "/messages/CityTraveller?ref=same_city"
     assert _notes(elsewhere) == []
     (mine,) = _notes(traveller, "same_city")
     assert mine.message == "You're in Hamburg! From Hamburg: CityHamburger. Currently in Hamburg: CityVisitor. Say hello in chat!"
