@@ -17,6 +17,12 @@ class User(db.Model, fsqla.FsUserMixin):
     hitchhiking_since = db.Column(db.Integer, default=None)
     origin_country = db.Column(db.String(255), default=None)
     origin_city = db.Column(db.String(255), default=None)
+    # Where the hitchhiker is right now (free-text city + country, like origin_*).
+    # current_location_updated_at is stamped whenever either changes, so the profile can
+    # say how old the claim is — "currently in" goes stale the moment someone moves on.
+    current_country = db.Column(db.String(255), default=None)
+    current_city = db.Column(db.String(255), default=None)
+    current_location_updated_at = db.Column(db.DateTime, default=None)
     hitchwiki_username = db.Column(db.String(255), default=None)
     trustroots_username = db.Column(db.String(255), default=None)
     # Up to 5 links to the user's profiles elsewhere, as a JSON list of URLs. Validated,

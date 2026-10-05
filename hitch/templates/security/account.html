@@ -38,6 +38,7 @@ document.addEventListener("DOMContentLoaded", function () {
 .profile-avatar { width: 112px; height: 112px; border-radius: 50%; object-fit: cover; background: #eee; }
 .profile-photo-credit { display: block; color: #666; font-size: 0.78em; margin-top: 3px; }
 .profile-stats { margin: 16px 0; }
+.profile-updated { color: #666; font-size: 0.85em; }
 .profile-links { list-style: none; padding: 0; margin: 8px 0; display: flex; flex-wrap: wrap; gap: 6px 14px; }
 .profile-links a { display: inline-flex; align-items: center; gap: 6px; overflow-wrap: anywhere; }
 .profile-links i { width: 1.1em; text-align: center; }
@@ -209,6 +210,8 @@ document.addEventListener("DOMContentLoaded", function () {
 {% if age_gender %}{{ age_gender }}.<br>{% endif %}
 {% if user.hitchhiking_since %}{{ t("Hitchhiking since {date}", date=user.hitchhiking_since) }}<br>{% endif %}
 {% if origin %}{{ t("From {origin}", origin=origin) }}<br>{% endif %}
+{% set current_place = [user.current_city, user.current_country]|reject("none")|reject("equalto", "")|join(", ") %}
+{% if current_place %}{{ t("Currently in {place}", place=current_place) }}{% if user.current_location_updated_at %} <span class="profile-updated">({{ t("updated {date}", date=user.current_location_updated_at.strftime("%Y-%m-%d")) }})</span>{% endif %}<br>{% endif %}
 {% if escaped_hitchwiki_username %}{{ t("On Hitchwiki:") }} <a href="https://hitchwiki.org/en/User:{{ escaped_hitchwiki_username }}">{{ escaped_hitchwiki_username }}</a><br>{% endif %}
 {% if escaped_trustroots_username %}{{ t("On Trustroots:") }} <a href="https://www.trustroots.org/profile/{{ escaped_trustroots_username }}">{{ escaped_trustroots_username }}</a><br>{% endif %}
 {% if profile_links %}

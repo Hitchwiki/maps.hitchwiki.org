@@ -67,6 +67,7 @@ def test_new_arrival_is_announced_once_from_edit_user(app, client, people):
         "gender": "",
         "origin_country": "Germany",
         "origin_city": "hamburg",
+        "current_country": "",
         "distance_unit": "metric",
         "allow_messages": "y",
     }

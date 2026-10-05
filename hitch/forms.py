@@ -45,6 +45,8 @@ class UserEditForm(FlaskForm):
     )
     origin_country = CountrySelectField("Where are you from?")
     origin_city = StringField("Which city are you from?", validators=[Optional()])
+    current_country = CountrySelectField("Which country are you in right now?")
+    current_city = StringField("Which city are you in right now?", validators=[Optional()])
     hitchwiki_username = StringField("Hitchwiki Username", validators=[Optional()], default=None)
     trustroots_username = StringField("Trustroots Username", validators=[Optional()], default=None)
     # Always MAX_LINKS inputs: validation and normalisation happen in the view

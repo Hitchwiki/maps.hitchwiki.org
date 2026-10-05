@@ -20,7 +20,7 @@ def _png_bytes():
 def _form_data(**extra):
     # SelectField validates submitted values against its choices; send the form's explicit
     # empty choices rather than omitting them (which represents malformed browser input).
-    return {"gender": "", "origin_country": "", "distance_unit": "metric", **extra}
+    return {"gender": "", "origin_country": "", "current_country": "", "distance_unit": "metric", **extra}
 
 
 @pytest.fixture
@@ -68,18 +68,20 @@ def test_gravatar_uses_documented_canonical_sha256_hash():
 def test_upload_is_reencoded_and_publicly_credited(app, client, profile_user, profile_image_dir):
     response = client.post(
         "/edit-user",
-        data=_form_data(**{
-            "avatar_source": "upload",
-            "avatar_image": (io.BytesIO(_png_bytes()), "where-i-live.png"),
-        }),
+        data=_form_data(
+            **{
+                "avatar_source": "upload",
+                "avatar_image": (io.BytesIO(_png_bytes()), "where-i-live.png"),
+            }
+        ),
         content_type="multipart/form-data",
     )
     assert response.status_code == 302
 
     redirected = client.get("/me")
-    assert b'profile_picture_saved' in redirected.data
+    assert b"profile_picture_saved" in redirected.data
     # The session marker is consumed: reloading the profile cannot double-count a save.
-    assert b'profile_picture_saved' not in client.get("/me").data
+    assert b"profile_picture_saved" not in client.get("/me").data
 
     with app.app_context():
         avatar = UserAvatar.query.filter_by(user_id=profile_user).one()

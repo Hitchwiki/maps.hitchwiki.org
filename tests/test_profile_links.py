@@ -69,7 +69,7 @@ def me(app, client):
 
 
 def _form(*links):
-    data = {"gender": "", "origin_country": "", "distance_unit": "metric"}
+    data = {"gender": "", "origin_country": "", "current_country": "", "distance_unit": "metric"}
     data.update({f"profile_links-{i}": link for i, link in enumerate(links)})
     return data
 

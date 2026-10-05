@@ -90,6 +90,9 @@ def form():
     form.origin_country.label.text = t("Where are you from?")
     form.origin_country.choices = [(v, t(lbl) if v == "" else lbl) for v, lbl in form.origin_country.choices]
     form.origin_city.label.text = t("Which city are you from?")
+    form.current_country.label.text = t("Which country are you in right now?")
+    form.current_country.choices = [(v, t(lbl) if v == "" else lbl) for v, lbl in form.current_country.choices]
+    form.current_city.label.text = t("Which city are you in right now?")
     form.hitchwiki_username.label.text = t("Hitchwiki Username")
     form.trustroots_username.label.text = t("Trustroots Username")
     form.email_notifications.label.text = t("Receive notifications and updates via email")
@@ -151,6 +154,10 @@ def form():
         updated_user.hitchhiking_since = form.hitchhiking_since.data
         updated_user.origin_country = form.origin_country.data or None
         updated_user.origin_city = form.origin_city.data or None
+        current = ((form.current_city.data or "").strip() or None, form.current_country.data or None)
+        if current != (updated_user.current_city, updated_user.current_country):
+            updated_user.current_city, updated_user.current_country = current
+            updated_user.current_location_updated_at = datetime.utcnow() if any(current) else None
         updated_user.hitchwiki_username = form.hitchwiki_username.data
         updated_user.trustroots_username = form.trustroots_username.data
         updated_user.profile_links = json.dumps(links) if links else None
@@ -175,6 +182,8 @@ def form():
     form.hitchhiking_since.data = current_user.hitchhiking_since
     form.origin_country.data = current_user.origin_country
     form.origin_city.data = current_user.origin_city
+    form.current_country.data = current_user.current_country
+    form.current_city.data = current_user.current_city
     form.hitchwiki_username.data = current_user.hitchwiki_username
     form.trustroots_username.data = current_user.trustroots_username
     stored_links = load_links(current_user.profile_links)
@@ -440,6 +449,9 @@ def show_account(username, is_me: bool = False):
             hitchhiking_since=None,
             origin_city=None,
             origin_country=None,
+            current_city=None,
+            current_country=None,
+            current_location_updated_at=None,
             hitchwiki_username=None,
             trustroots_username=None,
             profile_links=None,
