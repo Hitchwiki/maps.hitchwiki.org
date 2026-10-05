@@ -107,3 +107,12 @@ def test_city_page_invites_readers_to_add_their_ride(app):
     assert 'href="/ride?ref=city-page-cta"' in out
     assert "Hitchhiked from or to Berlin? Add your ride." in out
     assert "city_log_cta_clicked" in out
+
+
+def test_city_wiki_link_follows_the_page_language(app):
+    """Translated city pages used to send readers to the English wiki article.
+    Other languages go through the wiki search of the same language, which lands
+    on the article when the title matches and on a search page when it doesn't."""
+    assert 'href="https://hitchwiki.org/en/index.php?title=Berlin"' in _render(app, "en")
+    de = _render(app, "de")
+    assert "https://hitchwiki.org/de/index.php?title=Special:Search&amp;go=Go&amp;search=Berlin" in de
