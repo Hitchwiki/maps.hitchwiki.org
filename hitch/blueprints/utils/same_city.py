@@ -1,4 +1,4 @@
-"""Introduce hitchhikers who are from the same city.
+"""Introduce hitchhikers who are from, or currently in, the same city.
 
 `origin_city` is free text the user types on /edit-user ("Hamburg", "hamburg ",
 "Paris"), so "the same city" is decided by `city_key`: case-folded, whitespace-collapsed
@@ -6,12 +6,19 @@ city, plus the country when *both* people picked one — Paris, France and Paris
 must not be introduced to each other, but someone who left the country blank still
 matches on the city alone.
 
-Two entry points:
-- `introduce_new_arrival` — called from /edit-user the first time a user saves a city
-  (accounts are created by OAuth with no city, so this is the moment a hitchhiker
-  "joins" a city). Everyone already there is told, and the newcomer is told who is there.
-- `send_same_city_intro` — the one-off backfill (hitch/scripts/same_city_intro.py) for
-  people who were already in the same city before this existed.
+Each user can name two places — where they are from (`origin_*`) and where they are
+right now (`current_*`) — and the live introductions match either against either: a
+traveller passing through Hamburg wants to meet the people from Hamburg *and* the other
+travellers there this week.
+
+Entry points:
+- `introduce_after_profile_save` — called from /edit-user after every save. It fires when
+  a user saves a hometown for the first time (accounts are created by OAuth with no
+  city, so this is when a hitchhiker "joins" a city), and when their "currently in" city
+  changes to a new one. Both sides are told. Re-saving an unchanged place never re-fires.
+- `send_same_city_intro` — the one-off hometown backfill (hitch/scripts/same_city_intro.py)
+  for people who were already from the same city before this existed. Already run on
+  2026-10-05; hometown-only, as it was sent.
 
 Only people who accept messages are ever *listed*: the whole point is "say hello in
 chat", and listing someone with chat turned off invites a hello they can't receive.
@@ -39,14 +46,23 @@ def _norm(text):
     return " ".join((text or "").split()).casefold()
 
 
+def _key(city, country):
+    city = _norm(city)
+    return (city, _norm(country)) if city else None
+
+
 def city_key(user):
-    """(city, country) match key for `user`, or None when they gave no city."""
-    city = _norm(user.origin_city)
-    return (city, _norm(user.origin_country)) if city else None
+    """Hometown (city, country) match key for `user`, or None when they gave no city."""
+    return _key(user.origin_city, user.origin_country)
 
 
-def _same_place(a, b):
-    return a[0] == b[0] and (not a[1] or not b[1] or a[1] == b[1])
+def current_key(user):
+    """ "Currently in" match key, or None — a country alone is too coarse to introduce on."""
+    return _key(getattr(user, "current_city", None), getattr(user, "current_country", None))
+
+
+def same_place(a, b):
+    return a is not None and b is not None and a[0] == b[0] and (not a[1] or not b[1] or a[1] == b[1])
 
 
 def same_city_users(user, candidates=None):
@@ -56,16 +72,52 @@ def same_city_users(user, candidates=None):
         return []
     if candidates is None:
         candidates = User.query.filter(User.origin_city.isnot(None), User.active.is_(True)).order_by(User.id).all()
-    return [u for u in candidates if u.id != user.id and u.active and (k := city_key(u)) and _same_place(key, k)]
+    return [u for u in candidates if u.id != user.id and u.active and same_place(key, city_key(u))]
 
 
-def _city_label(user, neighbours=()):
+def _city_label(user, neighbours=(), current=False):
     """The city as the user typed it — unless they typed it all lowercase ("paris"), then
     a neighbour's capitalised spelling of the same city, so the text doesn't read odd."""
-    label = " ".join(user.origin_city.split())
+    raw = user.current_city if current else user.origin_city
+    key = _key(raw, None)
+    label = " ".join(raw.split())
     if label.islower():
-        label = next((" ".join(u.origin_city.split()) for u in neighbours if not u.origin_city.islower()), label)
+        spellings = [n.origin_city for n in neighbours] + [getattr(n, "current_city", None) for n in neighbours]
+        label = next((" ".join(c.split()) for c in spellings if c and _key(c, None) == key and not c.islower()), label)
     return label
+
+
+def people_from_or_in(key, exclude_id):
+    """Active users from `key`'s city and users currently in it, as two disjoint lists
+    (someone both from and currently in the city counts as "from"), oldest account first."""
+    candidates = (
+        User.query.filter((User.origin_city.isnot(None)) | (User.current_city.isnot(None)), User.active.is_(True))
+        .order_by(User.id)
+        .all()
+    )
+    from_here, here_now = [], []
+    for u in candidates:
+        if u.id == exclude_id:
+            continue
+        if same_place(key, city_key(u)):
+            from_here.append(u)
+        elif same_place(key, current_key(u)):
+            here_now.append(u)
+    return from_here, here_now
+
+
+def _names(users):
+    names = ", ".join(u.username for u in users[:MAX_LISTED])
+    return names + (f" and {len(users) - MAX_LISTED} more" if len(users) > MAX_LISTED else "")
+
+
+def _who_is_there(from_here, here_now, city):
+    parts = []
+    if from_here:
+        parts.append(f"From {city}: {_names(from_here)}.")
+    if here_now:
+        parts.append(f"Currently in {city}: {_names(here_now)}.")
+    return " ".join(parts) + " Say hello in chat!"
 
 
 def _chat_link(username):
@@ -80,26 +132,42 @@ def _list_message(users, city):
     return f"{len(users)} hitchhikers are from {city} too: {who}. Say hello in chat!"
 
 
-def introduce_new_arrival(user):
-    """`user` just set their city for the first time: tell both sides. Never raises."""
+def _introduce(user, key, current):
+    from_here, here_now = people_from_or_in(key, user.id)
+    neighbours = from_here + here_now
+    if not neighbours:
+        return
+    city = _city_label(user, neighbours, current=current)
+    if user.allow_messages:
+        announcement = (
+            f"{user.username} is currently in {city}. Say hello in chat!"
+            if current
+            else f"{user.username} from {city} just joined Hitchwiki Maps. Say hello in chat!"
+        )
+        for other in neighbours:
+            add_notification(other.id, announcement, link=_chat_link(user.username), kind="same_city")
+    from_here = [u for u in from_here if u.allow_messages]
+    here_now = [u for u in here_now if u.allow_messages]
+    if from_here or here_now:
+        first = (from_here + here_now)[0]
+        message = (f"You're in {city}! " if current else "") + _who_is_there(from_here, here_now, city)
+        add_notification(user.id, message, link=_chat_link(first.username), kind="same_city")
+
+
+def introduce_after_profile_save(user, had_home, old_current):
+    """Introduce `user` after a profile save, given their hometown/current place *before*
+    it. Never raises: a notification must never turn a profile save into a 500."""
     try:
-        neighbours = same_city_users(user)
-        if not neighbours:
-            return
-        city = _city_label(user, neighbours)
-        if user.allow_messages:
-            for other in neighbours:
-                add_notification(
-                    other.id,
-                    f"{user.username} from {city} just joined Hitchwiki Maps. Say hello in chat!",
-                    link=_chat_link(user.username),
-                    kind="same_city",
-                )
-        reachable = [u for u in neighbours if u.allow_messages]
-        if reachable:
-            add_notification(user.id, _list_message(reachable, city), link=_chat_link(reachable[0].username), kind="same_city")
+        home, current = city_key(user), current_key(user)
+        home_joined = not had_home and home is not None
+        moved = current is not None and not same_place(old_current, current)
+        if home_joined:
+            _introduce(user, home, current=False)
+        # Setting hometown and "currently in" to the same city in one save would tell the
+        # same people twice; the hometown introduction already covers it.
+        if moved and not (home_joined and same_place(home, current)):
+            _introduce(user, current, current=True)
     except Exception:
-        # A notification must never turn a profile save into a 500.
         logger.exception("same-city introduction failed for %s", user.username)
 
 

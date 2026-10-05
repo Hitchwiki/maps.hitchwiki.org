@@ -146,3 +146,59 @@ def test_lowercase_city_borrows_a_neighbours_spelling(people):
     me, twin = _add(_user("CityLower", "paris", "France"), _user("CityUpper", "Paris", "France"))
     assert same_city._city_label(me, [twin]) == "Paris"
     assert same_city._city_label(twin, [me]) == "Paris"
+
+
+def _login(client, username):
+    with client.session_transaction() as s:
+        s["_user_id"], s["_fresh"] = UQ + username, True
+
+
+def _profile(origin_city="", origin_country="", current_city="", current_country=""):
+    return {
+        "gender": "",
+        "origin_country": origin_country,
+        "origin_city": origin_city,
+        "current_country": current_country,
+        "current_city": current_city,
+        "distance_unit": "metric",
+        "allow_messages": "y",
+    }
+
+
+def test_moving_to_a_city_introduces_both_locals_and_other_travellers(client, people):
+    local, visitor, elsewhere = _add(
+        _user("CityHamburger", "Hamburg", "Germany"),
+        _user("CityVisitor", "Lyon", "France", current_city="hamburg", current_country="Germany"),
+        _user("CityElsewhere", "Oslo", "Norway"),
+    )
+    (traveller,) = _add(_user("CityTraveller", "Riga", "Latvia"))
+    _login(client, "CityTraveller")
+
+    assert client.post("/edit-user", data=_profile("Riga", "Latvia", "Hamburg", "Germany")).status_code == 302
+
+    for other in (local, visitor):
+        (note,) = _notes(other, "same_city")
+        assert note.message == "CityTraveller is currently in Hamburg. Say hello in chat!"
+        assert note.link == "/messages/CityTraveller"
+    assert _notes(elsewhere) == []
+    (mine,) = _notes(traveller, "same_city")
+    assert mine.message == "You're in Hamburg! From Hamburg: CityHamburger. Currently in Hamburg: CityVisitor. Say hello in chat!"
+
+    # Re-saving the same place is not a new arrival; moving on to another city is.
+    assert client.post("/edit-user", data=_profile("Riga", "Latvia", "Hamburg", "Germany")).status_code == 302
+    assert len(_notes(local, "same_city")) == 1
+    assert client.post("/edit-user", data=_profile("Riga", "Latvia", "Oslo", "Norway")).status_code == 302
+    assert "CityTraveller is currently in Oslo" in _notes(elsewhere, "same_city")[0].message
+
+
+def test_new_hometown_also_reaches_people_currently_there(client, people):
+    (visitor,) = _add(_user("CityPassing", "Lyon", "France", current_city="Wrocław", current_country="Poland"))
+    (newbie,) = _add(_user("CityWroclawian"))
+    _login(client, "CityWroclawian")
+
+    # Hometown and current city are the same: one introduction, not two.
+    assert client.post("/edit-user", data=_profile("Wrocław", "Poland", "Wrocław", "Poland")).status_code == 302
+    (note,) = _notes(visitor, "same_city")
+    assert note.message == "CityWroclawian from Wrocław just joined Hitchwiki Maps. Say hello in chat!"
+    (mine,) = _notes(newbie, "same_city")
+    assert mine.message == "Currently in Wrocław: CityPassing. Say hello in chat!"
