@@ -19,6 +19,9 @@ class User(db.Model, fsqla.FsUserMixin):
     origin_city = db.Column(db.String(255), default=None)
     hitchwiki_username = db.Column(db.String(255), default=None)
     trustroots_username = db.Column(db.String(255), default=None)
+    # Up to 5 links to the user's profiles elsewhere, as a JSON list of URLs. Validated,
+    # parsed and given platform icons by hitch/profile_links.py.
+    profile_links = db.Column(db.Text, default=None)
     email_notifications = db.Column(db.Boolean, default=True, nullable=False, server_default="1")
     # Whether the one-time first-login welcome email has been sent to this user.
     # Defaults to False (incl. for users created before this column existed), so every

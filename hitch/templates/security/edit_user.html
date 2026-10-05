@@ -21,6 +21,14 @@
     <p>{{ form.origin_country.label }} {{ form.origin_country() }}</p>
     <p>{{ form.origin_city.label }} {{ form.origin_city() }}</p>
     <p>{{ form.trustroots_username.label }} {{ form.trustroots_username() }}</p>
+    <fieldset class="profile-links-edit">
+      <legend>{{ t("Your profiles elsewhere") }}</legend>
+      <p style="color:#666; font-size:0.85em;">{{ t("Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.") }}</p>
+      {% for entry in form.profile_links %}
+      <p>{{ entry(placeholder="https://…", inputmode="url", autocomplete="url", maxlength=500, size=40, **{"aria-label": t("Link {n}", n=loop.index)}) }}</p>
+      {% for error in entry.errors %}<p style="color:#b00020">{{ error }}</p>{% endfor %}
+      {% endfor %}
+    </fieldset>
     <br><br>
     <p>{{ t("Pay attention to our {link}", link='<a href="https://github.com/Hitchwiki/maps.hitchwiki.org/blob/main/docs/PRIVACY_POLICY.md">' ~ t("Privacy Policy.") ~ '</a>')|safe }}</p>
     <p>{{ t("This personal information will be shown publicly.") }}</p>

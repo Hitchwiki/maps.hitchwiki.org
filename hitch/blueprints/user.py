@@ -60,6 +60,7 @@ from hitch.models import (
     User,
     UserAvatar,
 )
+from hitch.profile_links import describe_link, load_links, normalize_link
 from hitch.scripts.races import current_races
 from hitch.translations import t
 from hitch.usernames import canonical_username, find_user_ci, same_username, username_key
@@ -107,6 +108,20 @@ def form():
     form.submit.label.text = t("Submit")
 
     if form.validate_on_submit():
+        links = []
+        for entry in form.profile_links:
+            if not (entry.data or "").strip():
+                continue
+            try:
+                link = normalize_link(entry.data)
+            except ValueError:
+                entry.errors = [t("This doesn't look like a web address.")]
+                continue
+            if link not in links:
+                links.append(link)
+        if any(entry.errors for entry in form.profile_links):
+            return render_template("security/edit_user.html", form=form)
+
         updated_user = security.datastore.find_user(username=current_user.username)
         # A user "joins" their city the first time they save one (OAuth signup creates the
         # account with no city), so that is when same-city hitchhikers get introduced.
@@ -138,6 +153,7 @@ def form():
         updated_user.origin_city = form.origin_city.data or None
         updated_user.hitchwiki_username = form.hitchwiki_username.data
         updated_user.trustroots_username = form.trustroots_username.data
+        updated_user.profile_links = json.dumps(links) if links else None
         updated_user.email_notifications = form.email_notifications.data
         updated_user.nearby_hitchhikers_email = form.nearby_hitchhikers_email.data
         updated_user.allow_messages = form.allow_messages.data
@@ -161,6 +177,9 @@ def form():
     form.origin_city.data = current_user.origin_city
     form.hitchwiki_username.data = current_user.hitchwiki_username
     form.trustroots_username.data = current_user.trustroots_username
+    stored_links = load_links(current_user.profile_links)
+    for i, entry in enumerate(form.profile_links):
+        entry.data = stored_links[i] if i < len(stored_links) else ""
     form.email_notifications.data = current_user.email_notifications
     form.nearby_hitchhikers_email.data = current_user.nearby_hitchhikers_email
     form.allow_messages.data = current_user.allow_messages
@@ -423,6 +442,7 @@ def show_account(username, is_me: bool = False):
             origin_country=None,
             hitchwiki_username=None,
             trustroots_username=None,
+            profile_links=None,
         )
 
     # The list itself lives on /notifications now; the account page only carries the bell
@@ -482,6 +502,7 @@ def show_account(username, is_me: bool = False):
         can_message=can_message,
         profile_image=profile_image,
         profile_picture_saved=profile_picture_saved,
+        profile_links=[describe_link(u) for u in load_links(user.profile_links)] if user_known else [],
         # /account/<anything> answers 200 by design (see the stub above), which makes it
         # an unbounded URL space a crawler can wander forever -- and each page costs a
         # couple of seconds of database work. A name that belongs to no registered user

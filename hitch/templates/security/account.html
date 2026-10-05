@@ -10,6 +10,8 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <link rel="stylesheet" href="/static/map_thumbnail.css" />
 <link rel="stylesheet" href="/static/ride_card.css" />
+{# 6.7, not the 6.2 the map pages load: profile-link icons need the X, Bluesky and Threads marks. #}
+{% if profile_links %}<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.7.2/css/all.min.css">{% endif %}
 {% endblock %}
 
 {% from "_ride_card.html" import ride_card %}
@@ -36,6 +38,9 @@ document.addEventListener("DOMContentLoaded", function () {
 .profile-avatar { width: 112px; height: 112px; border-radius: 50%; object-fit: cover; background: #eee; }
 .profile-photo-credit { display: block; color: #666; font-size: 0.78em; margin-top: 3px; }
 .profile-stats { margin: 16px 0; }
+.profile-links { list-style: none; padding: 0; margin: 8px 0; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.profile-links a { display: inline-flex; align-items: center; gap: 6px; overflow-wrap: anywhere; }
+.profile-links i { width: 1.1em; text-align: center; }
 .stats-grid {
     display: flex;
     flex-wrap: wrap;
@@ -206,6 +211,15 @@ document.addEventListener("DOMContentLoaded", function () {
 {% if origin %}{{ t("From {origin}", origin=origin) }}<br>{% endif %}
 {% if escaped_hitchwiki_username %}{{ t("On Hitchwiki:") }} <a href="https://hitchwiki.org/en/User:{{ escaped_hitchwiki_username }}">{{ escaped_hitchwiki_username }}</a><br>{% endif %}
 {% if escaped_trustroots_username %}{{ t("On Trustroots:") }} <a href="https://www.trustroots.org/profile/{{ escaped_trustroots_username }}">{{ escaped_trustroots_username }}</a><br>{% endif %}
+{% if profile_links %}
+{# rel="me" lets Mastodon verify the link back to this profile; nofollow/ugc because the
+   URLs are user-supplied. #}
+<ul class="profile-links">
+  {% for link in profile_links %}
+  <li><a href="{{ link.url }}" rel="me nofollow ugc noopener" target="_blank" title="{{ link.url }}"><i class="{{ link.icon }}" aria-hidden="true"></i> {{ link.label }}</a></li>
+  {% endfor %}
+</ul>
+{% endif %}
 {% elif show_hitchwiki_link and escaped_hitchwiki_username %}
 {{ t("On Hitchwiki:") }} <a href="https://hitchwiki.org/en/User:{{ escaped_hitchwiki_username }}">{{ escaped_hitchwiki_username }}</a><br>
 {% endif %}
