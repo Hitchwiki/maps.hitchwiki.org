@@ -63,3 +63,9 @@ def test_bench_town_page_renders_and_unknown_slug_404s(client):
     assert "/official-stop/" in body and "ref=bench-town" in body
     assert "Arrêt" in client.get("/mitfahrbank/la-hague-fr").get_data(as_text=True)
     assert client.get("/mitfahrbank/nowhere-xx").status_code == 404
+
+
+def test_bench_town_index_lists_towns_and_town_pages_link_back(client):
+    body = client.get("/mitfahrbank/").get_data(as_text=True)
+    assert "/mitfahrbank/moringen-de" in body
+    assert 'href="/mitfahrbank/"' in client.get("/mitfahrbank/moringen-de").get_data(as_text=True)

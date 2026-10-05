@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block meta_description %}Offizielle Mitfahrbänke und Mitfahrhalte in {{ total }} Orten: Ort suchen, Karte ansehen, Erfahrungen lesen.{% endblock %}
+{% block og_title %}{{ title }}{% endblock %}
+{% block main %}
+<main class="organizers">
+  <nav><a href="/">← Hitchwiki Maps</a></nav>
+  <h1>{{ title }}</h1>
+  <p>{{ total }} Orte mit offiziellen Mitfahrhalten.</p>
+  {% for cc, state, items in groups %}
+  <h2>{{ state or cc|upper }} ({{ cc|upper }})</h2>
+  <p>{% for name, slug, n in items %}<a href="/mitfahrbank/{{ slug }}">{{ name }}</a> ({{ n }}){{ ", " if not loop.last }}{% endfor %}</p>
+  {% endfor %}
+</main>
+{% endblock %}
