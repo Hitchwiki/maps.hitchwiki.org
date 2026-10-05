@@ -271,6 +271,7 @@
             // queues it, so without this the funnel would report rides we never
             // received — a hitchhiker on a dead link looks identical to a success.
             hmTrack("journey_ride_uploaded", { kind: item.kind, attempts: item.attempts });
+            if (item.recovered) hmTrack("journey_ride_recovered", { kind: item.kind });
             noteUploaded(item.id, res.json.d_tag);
             outboxStore.remove(item.id);
           } else if (res.status === 400 && res.json && res.json.transient !== true) {
@@ -3616,7 +3617,22 @@
   window.addEventListener("online", function () { flushOutbox(); tryCreateTrip(); });
 
   // On load: restore the chip and, if a previous session left queued rides, flush + tick.
+  // #621: rides rejected before the server accepted same-minute arrival (maps#305) sit
+  // as "failed" and are never auto-retried. Re-queue them once; the server now nudges.
+  function recoverSameMinuteRejects() {
+    try {
+      if (localStorage.getItem("inride.recovered621")) return;
+      localStorage.setItem("inride.recovered621", "1");
+      outboxStore.get().forEach(function (it) {
+        if (it.status === "failed" && /Arrival time must be later/.test(it.lastError || "")) {
+          outboxStore.update(it.id, { status: "pending", recovered: true, lastError: "" });
+        }
+      });
+    } catch (e) {}
+  }
+
   function initOutbox() {
+    recoverSameMinuteRejects();
     outboxUI.refresh();
     if (outboxStore.pending().length) { flushOutbox(); startOutboxTimer(); }
     // A journey finished on a previous visit may still owe its trip — either its rides
