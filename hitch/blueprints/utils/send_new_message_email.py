@@ -32,3 +32,22 @@ def send_new_message_email(recipient, sender_username, preview):
         _send_via_sparkpost(email, name, MESSAGE_SUBJECT, html, text, transactional=False)
     except Exception:
         current_app.logger.exception("Failed to send new-message email to %s", email)
+
+
+REMINDER_SUBJECT = "You have an unread message on Hitchwiki Maps"
+
+
+def send_unread_message_reminder_email(recipient, sender_username, preview):
+    """Remind `recipient` of a message from `sender_username` they still haven't opened.
+
+    Unlike `send_new_message_email` this raises on failure: the caller (the daily
+    remind_unread_messages job) records the reminder as sent only when it actually went
+    out, so a SparkPost outage retries the next day instead of silently eating it.
+    Gating (opt-in, synthetic addresses, one reminder per burst) lives in the caller.
+    """
+    name = recipient.username or "there"
+    html = render_template("email/new_message.html", name=name, sender=sender_username, preview=preview, reminder=True)
+    text = render_template("email/new_message.txt", name=name, sender=sender_username, preview=preview, reminder=True)
+    return _send_via_sparkpost(
+        recipient.email, name, REMINDER_SUBJECT, html, text, transactional=False, campaign="unread-message-reminder"
+    )

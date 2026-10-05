@@ -160,6 +160,10 @@ class Message(db.Model):
     body = db.Column(db.Text, nullable=False)
     is_read = db.Column(db.Boolean, nullable=False, default=False, server_default="0")
     created_at = db.Column(db.DateTime, nullable=False, default=db.func.now())
+    # When the "still unread after a week" reminder email covering this message went out
+    # (remind_unread_messages.py), NULL if none. Set on every message the reminder
+    # covered, so one unread burst is reminded about once, never daily.
+    reminder_sent_at = db.Column(db.DateTime, nullable=True)
 
 
 class Trip(db.Model):

@@ -1,6 +1,6 @@
 Hi {{ name }},
 
-{{ sender }} sent you a message on Hitchwiki Maps:
+{% if reminder %}{{ sender }} sent you a message on Hitchwiki Maps a while ago, and it is still unread:{% else %}{{ sender }} sent you a message on Hitchwiki Maps:{% endif %}
 
   "{{ preview }}"
 

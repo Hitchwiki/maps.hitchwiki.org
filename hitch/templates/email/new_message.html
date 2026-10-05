@@ -39,7 +39,11 @@
             <div class="post-content" style="color: #3B2A1A; font-size: 18px; line-height: 1.8;">
                 <p>Hi {{ name }},</p>
 
+                {% if reminder %}
+                <p><strong>{{ sender }}</strong> sent you a message on Hitchwiki Maps a while ago, and it is still unread:</p>
+                {% else %}
                 <p><strong>{{ sender }}</strong> sent you a message on Hitchwiki Maps:</p>
+                {% endif %}
 
                 <div class="message" style="margin: 12px 0; padding: 12px 16px; background-color: #F8F1DD; border-left: 3px solid #C99416; color: #3B2A1A; font-size: 18px;">
                     {{ preview }}

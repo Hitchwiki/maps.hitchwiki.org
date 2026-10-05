@@ -618,6 +618,7 @@ Two things are worth knowing before editing this:
 - **Daily at 7:25 AM**: `ride_collection_statistics` - Regenerate weekly ride/source totals
 - **Daily at 5:30 AM**: `route_pages` - "Hitchhiking from X to Y" SEO pages. Must run **before** `cities`, which writes `sitemap.xml` and folds in `dist/route/index.json`
 - **Daily at 6 AM**: `cities` - Regenerate per-city pages (all languages) + `sitemap.xml` + `robots.txt`
+- **Daily at 10 AM**: `remind_unread_messages` - One reminder email per chat burst still unread a week after it arrived (`message.reminder_sent_at` stamps the burst so it is never reminded twice; logic in `hitch/blueprints/utils/unread_message_reminders.py`). Same gates as the first new-message email: `message_email_notifications` opt-in, no synthetic `@hitchwiki.oauth` addresses
 - **Daily at midnight**: `notify_nearby_hitchhikers` - Send nearby-hitchhiker notification emails
 - **Daily at 7:30 AM**: `hitchhiking_safety` - Rebuild `/hitchhiking-safety` (`dist/hitchhiking_safety.json`). Daily is cheap and makes a newly answered ride visible the next morning; it reads the ride table directly, so it has no ordering dependency on `show`
 - **Weekly (Sun 1 AM)**: `backup_to_drive.py` - Scrubbed SQLite backup to Google Drive. Runs before the 2 AM routing rebuild so the two heaviest jobs don't overlap (the backup holds a full ~400 MB snapshot plus its gzip on disk)
