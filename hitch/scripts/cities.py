@@ -641,6 +641,7 @@ for loc in route_locs:
 # town in the committed snapshot hitch/data/bench_towns.json (EXP-798).
 try:
     with open(os.path.join(dirs["base"], "data", "bench_towns.json"), encoding="utf-8") as f:
+        sitemap_parts.append(_sitemap_url(f"{SITE_URL}/mitfahrbank/", "0.6"))
         for _slug in json.load(f):
             sitemap_parts.append(_sitemap_url(f"{SITE_URL}/mitfahrbank/{_slug}", "0.5"))
 except (OSError, ValueError):

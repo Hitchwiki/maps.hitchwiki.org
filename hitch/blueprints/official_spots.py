@@ -115,3 +115,15 @@ def bench_town(slug):
     return render_template(
         "bench_town.html", title=title, town=town, n=n, fr=fr, lat=round(lat, 5), lon=round(lon, 5), emit_hreflang=False
     )
+
+
+@official_spots_bp.route("/mitfahrbank/")
+@official_spots_bp.route("/mitfahrbank")
+def bench_town_index():
+    groups = {}
+    for slug, t in bench_towns().items():
+        groups.setdefault((t["cc"], t["state"]), []).append((t["name"], slug, len(t["stops"])))
+    ordered = [(cc, st, sorted(items)) for (cc, st), items in sorted(groups.items())]
+    return render_template(
+        "bench_town_index.html", groups=ordered, total=len(bench_towns()), title="Mitfahrbänke nach Ort", emit_hreflang=False
+    )
