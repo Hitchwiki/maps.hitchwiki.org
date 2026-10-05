@@ -656,7 +656,12 @@ function setupGeocoder() {
     provider: "photon",
     placeholder: tr("Search"),
     zoom: 11,
-    geocoder: L.Control.Geocoder.photon(),
+    // Photon only localises place names for these languages; others would 400.
+    geocoder: L.Control.Geocoder.photon(
+      ["de", "fr", "it"].includes(window.__LANG__)
+        ? { geocodingQueryParams: { lang: window.__LANG__ } }
+        : {},
+    ),
   };
 
   let geocoderController = L.Control.geocoder(geocoderOpts).addTo(map);
