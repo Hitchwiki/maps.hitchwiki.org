@@ -7,7 +7,7 @@ import subprocess
 import sys
 import time
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import lru_cache
 from urllib.parse import quote
 
@@ -2017,7 +2017,14 @@ def ride_form():
         departure_str = (data.get("datetime_ride") or "").strip()
         arrival_str = (data.get("arrival_datetime") or "").strip()
         if departure_str and arrival_str:
-            assert datetime.fromisoformat(arrival_str) > datetime.fromisoformat(departure_str), (
+            dep_dt = datetime.fromisoformat(departure_str)
+            arr_dt = datetime.fromisoformat(arrival_str)
+            if arr_dt == dep_dt:
+                # Both client timestamps are cut to the minute, so "got a ride" and
+                # "finish" tapped within one minute collide. Nudge, don't lose the ride.
+                arrival_str = (dep_dt + timedelta(minutes=1)).isoformat(timespec="minutes")
+                arr_dt = dep_dt + timedelta(minutes=1)
+            assert arr_dt > dep_dt, (
                 "Arrival time must be later than the pickup time."
             )
         data["datetime_ride"] = departure_str

@@ -31,6 +31,11 @@
   function buildFinishBody(j, dest, finishMs, id) {
     const d = j.details || {};
     const csv = (v) => (Array.isArray(v) ? v.join(",") : (v || ""));
+    // isoLocal cuts to the minute; same-minute got-ride/finish would be rejected by the
+    // server (arrival must be later), losing the ride. Nudge arrival by one minute.
+    const rideIso = isoLocal(j.gotRideMs);
+    let arrivalIso = isoLocal(finishMs);
+    if (arrivalIso === rideIso) arrivalIso = isoLocal(j.gotRideMs + 60000);
     return {
       rate: String(d.rating || ""),
       wait: String(Math.round((j.finalWaitMs || 0) / 60000)),
@@ -51,8 +56,8 @@
       co_hitchhiker: (j.coHitchhikers || []).join(","),
       pickup_lat: j.pickup.lat, pickup_lon: j.pickup.lon,
       destination_lat: dest.lat, destination_lon: dest.lon,
-      datetime_ride: isoLocal(j.gotRideMs),
-      arrival_datetime: isoLocal(finishMs),
+      datetime_ride: rideIso,
+      arrival_datetime: arrivalIso,
       client_d_tag: id,
     };
   }
