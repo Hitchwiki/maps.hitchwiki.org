@@ -220,6 +220,21 @@ function markerAppearance(spot) {
 }
 
 // Load markers from JSON data
+// #622: how long until a visitor sees spots? One `map_ready` per page load, bucketed
+// seconds since navigation start, with connection type and whether spots.json came from
+// cache, so slow-connection phone loads can be sized (and bots filtered) from Umami.
+function reportMapReady(spotsUrl) {
+  try {
+    const sec = performance.now() / 1000;
+    const bucket = sec < 2 ? "<2" : sec < 5 ? "2-5" : sec < 10 ? "5-10" : sec < 20 ? "10-20" : sec < 40 ? "20-40" : "40+";
+    const entry = performance.getEntriesByType("resource").find((r) => r.name.indexOf(spotsUrl) !== -1);
+    const cached = entry ? entry.transferSize === 0 : "unknown";
+    const conn = (navigator.connection && navigator.connection.effectiveType) || "unknown";
+    const mobile = window.matchMedia && window.matchMedia("(max-width: 700px)").matches;
+    if (window.hmTrack) window.hmTrack("map_ready", { bucket, conn, cached: String(cached), mobile: mobile ? "yes" : "no" });
+  } catch (e) {}
+}
+
 async function loadMarkers(map) {
   // If the template warrants a variation, load that variation, otherwise all points
   const url =
@@ -280,6 +295,7 @@ async function loadMarkers(map) {
       // spot layer is attached, so a filter restored from the URL before the
       // markers finished loading still wins.
       syncSpotLayer();
+      reportMapReady(url);
     })
     .catch((error) => {
       console.error("Error loading markers:", error);
