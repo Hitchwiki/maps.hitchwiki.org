@@ -109,10 +109,7 @@ def bench_town(slug):
         abort(404)
     fr = town["cc"] in ("fr", "be")
     n = len(town["stops"])
-    if fr:
-        title = f"Arrêts de covoiturage Rezo Pouce à {town['name']}"
-    else:
-        title = f"Mitfahrbänke in {town['name']}"
+    title = f"Arrêts de covoiturage Rezo Pouce à {town['name']}" if fr else f"Mitfahrbänke in {town['name']}"
     lat = sum(s[1] for s in town["stops"]) / n
     lon = sum(s[2] for s in town["stops"]) / n
     return render_template(
