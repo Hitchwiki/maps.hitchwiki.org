@@ -192,3 +192,37 @@ def test_inride_submit_still_rejects_out_of_range_rating(client, monkeypatch):
     )
     assert resp.status_code == 400
     assert resp.get_json()["ok"] is False
+
+
+def _same_minute_post(client, arrival):
+    return client.post(
+        "/ride",
+        data={
+            "rate": "4",
+            "wait": "3",
+            "signal": "thumb",
+            "comment": "",
+            "pickup_lat": "48.2",
+            "pickup_lon": "16.37",
+            "destination_lat": "48.5",
+            "destination_lon": "16.9",
+            "datetime_ride": "2026-07-02T14:00",
+            "arrival_datetime": arrival,
+        },
+        headers={"X-Requested-With": "inride"},
+    )
+
+
+# Got-ride and finish tapped in the same minute used to be rejected (both timestamps are
+# minute-truncated) and the ride was lost; the server now nudges arrival by one minute.
+def test_inride_same_minute_arrival_is_accepted(client, monkeypatch):
+    monkeypatch.setattr(main, "HitchhikingDataStandardToNostrPoster", _FakePoster)
+    resp = _same_minute_post(client, "2026-07-02T14:00")
+    assert resp.status_code == 200, resp.get_json()
+    assert resp.get_json()["ok"] is True
+
+
+def test_inride_arrival_before_pickup_still_rejected(client, monkeypatch):
+    monkeypatch.setattr(main, "HitchhikingDataStandardToNostrPoster", _FakePoster)
+    resp = _same_minute_post(client, "2026-07-02T13:59")
+    assert resp.status_code != 200 or resp.get_json()["ok"] is False

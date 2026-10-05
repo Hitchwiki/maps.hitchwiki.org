@@ -120,3 +120,14 @@ test("toLatLon keeps lon 0 rather than falling through to lng", () => {
 test("toLatLon returns null for a missing point", () => {
   assert.strictEqual(RideSubmit.toLatLon(null), null);
 });
+
+// Same-minute got-ride/finish: isoLocal truncates to the minute and the server requires
+// arrival > pickup, so such rides were rejected and lost (#621).
+test("buildFinishBody nudges arrival by a minute when got-ride and finish share a minute", () => {
+  const t = new Date(2026, 9, 5, 12, 30, 5).getTime();
+  const body = RideSubmit.buildFinishBody(
+    { pickup: { lat: 1, lon: 2 }, gotRideMs: t, details: {} },
+    { lat: 3, lon: 4 }, t + 20000, "id");
+  assert.strictEqual(body.datetime_ride, "2026-10-05T12:30");
+  assert.strictEqual(body.arrival_datetime, "2026-10-05T12:31");
+});
