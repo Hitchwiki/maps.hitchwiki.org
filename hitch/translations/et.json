@@ -984,5 +984,7 @@
   "{total} rides with valid collection dates are included.": "Kaasatud on {total} sõitu kehtivate kogumiskuupäevadega.",
   "{usable} rides qualify to be judged.": "{usable} sõitu sobib hindamiseks.",
   "{used} of {total} database rows qualify.": "{used} andmebaasi reast {total}-st sobib.",
-  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} salvestatud sõidust {total}-st sisaldab vastust, neist {no} „ei“. Enamik allpool koostatavaid kohortidest tugineb vaid käputäiele sõitudele – iga protsendi kõrval olev usaldusvahemik on see osa, mida tasub lugeda."
+  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} salvestatud sõidust {total}-st sisaldab vastust, neist {no} „ei“. Enamik allpool koostatavaid kohortidest tugineb vaid käputäiele sõitudele – iga protsendi kõrval olev usaldusvahemik on see osa, mida tasub lugeda.",
+  "I'm in {city} now": "Olen nüüd linnas {city}",
+  "Saved. Hitchhikers from {city} will be told.": "Salvestatud. {city} liftijaid teavitatakse."
 }

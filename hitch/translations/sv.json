@@ -984,5 +984,7 @@
   "{total} rides with valid collection dates are included.": "{total} åkturer med giltiga insamlingsdatum ingår.",
   "{usable} rides qualify to be judged.": "{usable} åkturer kvalificerar för bedömning.",
   "{used} of {total} database rows qualify.": "{used} av {total} databasrader kvalificerar.",
-  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} av {total} registrerade åkturer har ett svar, {no} av dem ett ”nej”. De flesta kohorter du kan bygga nedan bygger på en handfull åkturer – konfidensintervallet bredvid varje procentsats är den del som är värd att läsa."
+  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} av {total} registrerade åkturer har ett svar, {no} av dem ett ”nej”. De flesta kohorter du kan bygga nedan bygger på en handfull åkturer – konfidensintervallet bredvid varje procentsats är den del som är värd att läsa.",
+  "I'm in {city} now": "Jag är i {city} nu",
+  "Saved. Hitchhikers from {city} will be told.": "Sparat. Liftare från {city} får besked."
 }

@@ -984,5 +984,7 @@
   "{total} rides with valid collection dates are included.": "Враховано {total} поїздок із дійсними датами збору.",
   "{usable} rides qualify to be judged.": "{usable} поїздок підходять для оцінки.",
   "{used} of {total} database rows qualify.": "{used} із {total} рядків бази даних підходять.",
-  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} із {total} записаних поїздок містять відповідь, {no} з них – «ні». Більшість когорт, які ти складеш нижче, спиратимуться на жменьку поїздок – довірчий інтервал поруч із кожним відсотком і є тим, що варто читати."
+  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} із {total} записаних поїздок містять відповідь, {no} з них – «ні». Більшість когорт, які ти складеш нижче, спиратимуться на жменьку поїздок – довірчий інтервал поруч із кожним відсотком і є тим, що варто читати.",
+  "I'm in {city} now": "Я зараз у {city}",
+  "Saved. Hitchhikers from {city} will be told.": "Збережено. Автостопників із {city} повідомлять."
 }

@@ -984,5 +984,7 @@
   "{total} rides with valid collection dates are included.": "包含 {total} 段收集日期有效的行程。",
   "{usable} rides qualify to be judged.": "{usable} 段行程符合评判条件。",
   "{used} of {total} database rows qualify.": "{total} 条数据库记录中有 {used} 条符合条件。",
-  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{total} 段已记录的行程中有 {used} 段带有回答，其中 {no} 段是“否”。你在下面能构建的大多数群组只基于寥寥几段行程——每个百分比旁边的置信区间才是值得一读的部分。"
+  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{total} 段已记录的行程中有 {used} 段带有回答，其中 {no} 段是“否”。你在下面能构建的大多数群组只基于寥寥几段行程——每个百分比旁边的置信区间才是值得一读的部分。",
+  "I'm in {city} now": "我现在在{city}",
+  "Saved. Hitchhikers from {city} will be told.": "已保存。来自{city}的搭车客会收到通知。"
 }

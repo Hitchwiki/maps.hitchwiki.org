@@ -984,5 +984,7 @@
   "{total} rides with valid collection dates are included.": "{total} ritten met geldige verzameldata zijn meegeteld.",
   "{usable} rides qualify to be judged.": "{usable} ritten komen in aanmerking om beoordeeld te worden.",
   "{used} of {total} database rows qualify.": "{used} van de {total} databaserijen komen in aanmerking.",
-  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} van de {total} vastgelegde ritten bevatten een antwoord, {no} daarvan een “nee”. De meeste groepen die je hieronder kunt samenstellen, rusten op een handvol ritten — het betrouwbaarheidsinterval naast elk percentage is het deel dat je moet lezen."
+  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} van de {total} vastgelegde ritten bevatten een antwoord, {no} daarvan een “nee”. De meeste groepen die je hieronder kunt samenstellen, rusten op een handvol ritten — het betrouwbaarheidsinterval naast elk percentage is het deel dat je moet lezen.",
+  "I'm in {city} now": "Ik ben nu in {city}",
+  "Saved. Hitchhikers from {city} will be told.": "Opgeslagen. Lifters uit {city} krijgen bericht."
 }

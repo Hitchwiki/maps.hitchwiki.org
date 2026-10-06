@@ -202,3 +202,35 @@ def test_new_hometown_also_reaches_people_currently_there(client, people):
     assert note.message == "CityWroclawian from Wrocław just joined Hitchwiki Maps. Say hello in chat!"
     (mine,) = _notes(newbie, "same_city")
     assert mine.message == "Currently in Wrocław: CityPassing. Say hello in chat!"
+
+
+def test_one_tap_current_city_introduces_like_the_profile_form(client, people):
+    local, traveller = _add(_user("TapHamburger", "Hamburg", "Germany"), _user("TapTraveller", "Riga", "Latvia"))
+    _login(client, "TapTraveller")
+    assert client.post("/me/current-city", json={"city": "  "}).status_code == 400
+
+    res = client.post("/me/current-city", json={"city": "Hamburg", "country": "Germany"})
+    assert res.get_json() == {"ok": True, "changed": True}
+    _db.session.refresh(traveller)
+    assert (traveller.current_city, traveller.current_country) == ("Hamburg", "Germany")
+    (note,) = _notes(local, "same_city")
+    assert note.message == "TapTraveller is currently in Hamburg. Say hello in chat!"
+
+    # Tapping again is not a new arrival.
+    assert client.post("/me/current-city", json={"city": "Hamburg", "country": "Germany"}).get_json()["changed"] is False
+    assert len(_notes(local, "same_city")) == 1
+
+
+def test_one_tap_current_city_refuses_anonymous_callers(client):
+    assert client.post("/me/current-city", json={"city": "Hamburg"}).status_code == 401
+
+
+def test_one_tap_current_city_maps_a_common_country_name_and_drops_unknown_ones(client, people):
+    (user,) = _add(_user("TapRussia", "Riga", "Latvia"))
+    _login(client, "TapRussia")
+    client.post("/me/current-city", json={"city": "Moscow", "country": "Russia"})
+    _db.session.refresh(user)
+    assert user.current_country == "Russian Federation"
+    client.post("/me/current-city", json={"city": "Nowhere", "country": "Atlantis"})
+    _db.session.refresh(user)
+    assert user.current_country is None

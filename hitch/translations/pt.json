@@ -984,5 +984,7 @@
   "{total} rides with valid collection dates are included.": "{total} caronas com datas de coleta válidas estão incluídas.",
   "{usable} rides qualify to be judged.": "{usable} caronas se qualificam para avaliação.",
   "{used} of {total} database rows qualify.": "{used} de {total} linhas do banco de dados se qualificam.",
-  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} de {total} caronas registradas trazem uma resposta, {no} delas um “não”. A maioria dos grupos que você pode montar abaixo se baseará em poucas caronas — o intervalo de confiança ao lado de cada porcentagem é a parte que vale a pena ler."
+  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} de {total} caronas registradas trazem uma resposta, {no} delas um “não”. A maioria dos grupos que você pode montar abaixo se baseará em poucas caronas — o intervalo de confiança ao lado de cada porcentagem é a parte que vale a pena ler.",
+  "I'm in {city} now": "Estou agora em {city}",
+  "Saved. Hitchhikers from {city} will be told.": "Guardado. Os boleieiros de {city} serão avisados."
 }

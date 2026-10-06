@@ -926,6 +926,9 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
                  the instrument (shown_to_driver / shown_to_driver_available), measured
                  against live in-car finishes: >10% reopens a driver branch, <2% kills it. -->
             <button type="button" id="success-show-driver-btn" class="success-secondary-btn" style="display: none; margin: 12px auto 0;">{{ t("Show the driver") }}</button>
+            {# IDEAS #630: one tap to say where you are now; wired in map.js for signed-in riders only. #}
+            <button type="button" id="success-current-city-btn" class="success-secondary-btn" style="display: none; margin: 12px auto 0;"></button>
+            <p id="success-current-city-note" class="success-share-sub" style="display: none;"></p>
         </div>
         <div class="signup-prompt-actions">
             <button type="button" id="success-share-btn" class="success-close-btn">{{ t("Share my ride") }}</button>

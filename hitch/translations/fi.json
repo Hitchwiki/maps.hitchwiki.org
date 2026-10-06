@@ -984,5 +984,7 @@
   "{total} rides with valid collection dates are included.": "Mukana on {total} kyytiä, joilla on kelvollinen keräyspäivä.",
   "{usable} rides qualify to be judged.": "{usable} kyytiä kelpaa arvioitavaksi.",
   "{used} of {total} database rows qualify.": "{used} / {total} tietokannan riviä kelpaa.",
-  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} / {total} kirjatusta kyydistä sisältää vastauksen, {no} niistä “ei”. Useimmat alla rakentamasi kohortit perustuvat vain kourallisiin kyytejä — kunkin prosentin vieressä oleva luottamusväli on se osa, joka kannattaa lukea."
+  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} / {total} kirjatusta kyydistä sisältää vastauksen, {no} niistä “ei”. Useimmat alla rakentamasi kohortit perustuvat vain kourallisiin kyytejä — kunkin prosentin vieressä oleva luottamusväli on se osa, joka kannattaa lukea.",
+  "I'm in {city} now": "Olen nyt kaupungissa {city}",
+  "Saved. Hitchhikers from {city} will be told.": "Tallennettu. {city}n liftarit saavat tiedon."
 }
