@@ -1384,6 +1384,32 @@
       hmTrack("sign_inverted", { source });
     });
     hmTrack("sign_opened", { source, leg });
+    localSignName(name).then(local => {
+      // Drivers read road signs in the local script ("София", "Praha"), not in the
+      // hitchhiker's UI language: lead with that, keep the user's own name small below.
+      if (!local || !ov.isConnected) return;
+      txt.textContent = local;
+      const sub = document.createElement("div");
+      sub.className = "hm-sign-sub";
+      sub.textContent = name;
+      sub.style.cssText = "font-size:20px;text-align:center;opacity:.6;margin-top:8px";
+      txt.after(sub);
+      fit();
+      hmTrack("sign_local_name", { source });
+    });
+  }
+  // The destination's name as locally written, or null when it is the same as `name`
+  // or can't be found (offline, no city at the point).
+  function localSignName(name) {
+    const d = RJ.dest && RJ.dest.latlng;
+    if (!d || typeof fetch === "undefined") return Promise.resolve(null);
+    return fetch("https://photon.komoot.io/reverse?limit=1&lang=default&layer=city&lat=" + d[0] + "&lon=" + d[1])
+      .then(r => r.json())
+      .then(j => {
+        const n = j && j.features && j.features[0] && j.features[0].properties && j.features[0].properties.name;
+        return n && n.trim().toLowerCase() !== name.trim().toLowerCase() ? n.trim() : null;
+      })
+      .catch(() => null);
   }
 
   function toggleDetails(row, rt, i) {
