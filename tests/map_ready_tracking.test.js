@@ -15,3 +15,8 @@ test("map_ready carries bucket, conn, cached and mobile", () => {
   for (const b of ['"<2"', '"2-5"', '"5-10"', '"10-20"', '"20-40"', '"40+"'])
     assert.ok(SOURCE.includes(b), b);
 });
+
+test("map_boot fires at script start so abandoned loads can be counted", () => {
+  const src = require("node:fs").readFileSync(require("node:path").join(__dirname, "../hitch/static/map.js"), "utf8");
+  assert.match(src, /hmTrack\("map_boot", \{ mobile:/);
+});
