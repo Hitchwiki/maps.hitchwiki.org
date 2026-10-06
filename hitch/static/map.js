@@ -2949,6 +2949,12 @@ document.addEventListener("click", (e) => {
   if (e.target.closest(".spot-wiki-excerpt a")) hmTrack("spot_wiki_excerpt_clicked");
 });
 
+// "How people reached this spot" link (#202 / EXP-432). Delegated: the link is rendered
+// with the spot sheet, so an init-time binding found nothing (0 clicks of 10,263 shown).
+document.addEventListener("click", (e) => {
+  if (e.target.closest("#spot-access-hint-link")) hmTrack("spot_access_hint_clicked");
+});
+
 // "Route" on a pinned ride destination: open the planner from this spot to that place.
 // The spot pane and its arrows are dropped first so they do not sit over the route.
 document.addEventListener("click", (e) => {
@@ -3559,10 +3565,6 @@ function markerClick(marker) {
   // and renderSpotSummary has put the link in the DOM -- not here, where it doesn't
   // exist yet.
 
-  // "How people reached this spot" — the access-hint quote's link to its source
-  // ride (#202 / EXP-432). Tracked against `spot_access_hint_shown`.
-  const accessHintLink = $$("#spot-access-hint-link");
-  if (accessHintLink) accessHintLink.onclick = () => hmTrack("spot_access_hint_clicked");
 
   // Show a loading spinner while rides are fetched asynchronously
   $$("#spot-text").innerHTML = '<div class="spot-loading" role="status" aria-live="polite"><i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i><span class="sr-only">Loading rides</span></div>';
