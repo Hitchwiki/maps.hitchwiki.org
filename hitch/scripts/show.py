@@ -27,6 +27,7 @@ from hitch.scripts.spot_access_hint import access_hint
 from hitch.scripts.spot_naming import resolve_spot_name
 from hitch.scripts.spot_people import people_holdout, spot_people
 from hitch.scripts.spots_gpx import spot_waypoint, write_spots_gpx
+from hitch.spots_core import build_core
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger(__name__)
@@ -57,6 +58,7 @@ def should_regenerate_json():
     # download link 404ing until the next ride lands.
     json_files = [
         "spots.json",
+        "spots.core.json",
         "rides_index.json",
         "spots_recent.json",
         "longest_rides.json",
@@ -1187,6 +1189,8 @@ for _, place in places.iterrows():
     spot_details[spot_id] = detail
 
 write_json_file(spots_data, "spots.json")
+# Slim columnar twin without destination arrays; nothing reads it until the #622 A/B arm.
+write_json_file(build_core(spots_data), "spots.core.json")
 
 # Generate individual rides data
 rides_data = []
