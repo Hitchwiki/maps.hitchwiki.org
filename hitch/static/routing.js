@@ -1403,10 +1403,13 @@
   function localSignName(name) {
     const d = RJ.dest && RJ.dest.latlng;
     if (!d || typeof fetch === "undefined") return Promise.resolve(null);
-    return fetch("https://photon.komoot.io/reverse?limit=1&lang=default&layer=city&lat=" + d[0] + "&lon=" + d[1])
+    return fetch("https://photon.komoot.io/reverse?limit=1&lang=default&layer=city&radius=30&lat=" + d[0] + "&lon=" + d[1])
       .then(r => r.json())
       .then(j => {
-        const n = j && j.features && j.features[0] && j.features[0].properties && j.features[0].properties.name;
+        const p = j && j.features && j.features[0] && j.features[0].properties;
+        // Only a real city: a wider radius otherwise returns districts ("Beyoğlu" for
+        // Istanbul) or provinces, which would put a wrong name on the sign.
+        const n = p && p.osm_value === "city" && p.name;
         return n && n.trim().toLowerCase() !== name.trim().toLowerCase() ? n.trim() : null;
       })
       .catch(() => null);
