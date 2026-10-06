@@ -34,3 +34,8 @@ test("overlay wiring is signed-in only and tracks offer and set", () => {
   assert.match(SOURCE, /hmTrack\("currently_in_set"/);
   assert.match(SOURCE, /wireCurrentCityButton\(ride\);/);
 });
+
+test("reads the full 100k+ city list, falling back to top_cities until it exists", () => {
+  assert.match(SOURCE, /fetch\("\/city\/big_cities\.json"\)/);
+  assert.match(SOURCE, /fetch\("\/city\/top_cities\.json"\)/);
+});
