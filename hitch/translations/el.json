@@ -984,5 +984,7 @@
   "{total} rides with valid collection dates are included.": "Περιλαμβάνονται {total} διαδρομές με έγκυρες ημερομηνίες συλλογής.",
   "{usable} rides qualify to be judged.": "{usable} διαδρομές πληρούν τα κριτήρια για να κριθούν.",
   "{used} of {total} database rows qualify.": "{used} από {total} γραμμές της βάσης δεδομένων πληρούν τα κριτήρια.",
-  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} από {total} καταγεγραμμένες διαδρομές έχουν απάντηση, {no} από αυτές «όχι». Οι περισσότερες ομάδες που μπορείς να φτιάξεις παρακάτω θα στηρίζονται σε λίγες διαδρομές — το διάστημα εμπιστοσύνης δίπλα σε κάθε ποσοστό είναι το κομμάτι που αξίζει να διαβάσεις."
+  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} από {total} καταγεγραμμένες διαδρομές έχουν απάντηση, {no} από αυτές «όχι». Οι περισσότερες ομάδες που μπορείς να φτιάξεις παρακάτω θα στηρίζονται σε λίγες διαδρομές — το διάστημα εμπιστοσύνης δίπλα σε κάθε ποσοστό είναι το κομμάτι που αξίζει να διαβάσεις.",
+  "I'm in {city} now": "Είμαι τώρα στην πόλη {city}",
+  "Saved. Hitchhikers from {city} will be told.": "Αποθηκεύτηκε. Οι οτοστόπ από {city} θα ενημερωθούν."
 }

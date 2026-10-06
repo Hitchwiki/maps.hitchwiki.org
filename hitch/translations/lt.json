@@ -984,5 +984,7 @@
   "{total} rides with valid collection dates are included.": "Įtraukta {total} kelionių su tinkamomis surinkimo datomis.",
   "{usable} rides qualify to be judged.": "Įvertinti tinka {usable} kelionių.",
   "{used} of {total} database rows qualify.": "Tinka {used} iš {total} duomenų bazės eilučių.",
-  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} iš {total} užfiksuotų kelionių turi atsakymą, {no} iš jų — „ne“. Dauguma žemiau sudaromų kohortų remsis saujele kelionių — verta skaityti pasikliautinąjį intervalą šalia kiekvieno procento."
+  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} iš {total} užfiksuotų kelionių turi atsakymą, {no} iš jų — „ne“. Dauguma žemiau sudaromų kohortų remsis saujele kelionių — verta skaityti pasikliautinąjį intervalą šalia kiekvieno procento.",
+  "I'm in {city} now": "Dabar esu {city}",
+  "Saved. Hitchhikers from {city} will be told.": "Išsaugota. {city} autostopininkai bus informuoti."
 }

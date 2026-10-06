@@ -984,5 +984,7 @@
   "{total} rides with valid collection dates are included.": "有効な収集日のあるライドが合計{total}回含まれています。",
   "{usable} rides qualify to be judged.": "{usable}回のライドが評価の対象です。",
   "{used} of {total} database rows qualify.": "データベースの{total}行中{used}行が条件に合います。",
-  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "記録されたライド{total}回中{used}回に回答があり、そのうち{no}回が「いいえ」です。下で作れるコホートの多くは、ほんの数回のライドに基づきます。各割合の隣の信頼区間こそ読む価値があります。"
+  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "記録されたライド{total}回中{used}回に回答があり、そのうち{no}回が「いいえ」です。下で作れるコホートの多くは、ほんの数回のライドに基づきます。各割合の隣の信頼区間こそ読む価値があります。",
+  "I'm in {city} now": "今は{city}にいます",
+  "Saved. Hitchhikers from {city} will be told.": "保存しました。{city}出身のヒッチハイカーに知らせます。"
 }

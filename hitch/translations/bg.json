@@ -984,5 +984,7 @@
   "{total} rides with valid collection dates are included.": "Включени са {total} возения с валидни дати на събиране.",
   "{usable} rides qualify to be judged.": "{usable} возения са годни за оценка.",
   "{used} of {total} database rows qualify.": "{used} от {total} реда в базата данни са годни.",
-  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} от {total} записани возения имат отговор, {no} от тях „не“. Повечето когорти, които можеш да изградиш по-долу, ще се основават на шепа возения — доверителният интервал до всеки процент е частта, която си струва да се прочете."
+  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} от {total} записани возения имат отговор, {no} от тях „не“. Повечето когорти, които можеш да изградиш по-долу, ще се основават на шепа возения — доверителният интервал до всеки процент е частта, която си струва да се прочете.",
+  "I'm in {city} now": "Сега съм в {city}",
+  "Saved. Hitchhikers from {city} will be told.": "Запазено. Стопаджиите от {city} ще бъдат уведомени."
 }

@@ -984,5 +984,7 @@
   "{total} rides with valid collection dates are included.": "Uključeno je {total} vožnji sa važećim datumima prikupljanja.",
   "{usable} rides qualify to be judged.": "{usable} vožnji ispunjava uslove za procenu.",
   "{used} of {total} database rows qualify.": "{used} od {total} redova baze ispunjava uslove.",
-  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} od {total} zabeleženih vožnji ima odgovor, {no} od njih „ne“. Većina kohorti koje možeš sastaviti ispod oslanjaće se na šaku vožnji — interval poverenja pored svakog procenta je deo koji vredi pročitati."
+  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} od {total} zabeleženih vožnji ima odgovor, {no} od njih „ne“. Većina kohorti koje možeš sastaviti ispod oslanjaće se na šaku vožnji — interval poverenja pored svakog procenta je deo koji vredi pročitati.",
+  "I'm in {city} now": "Sada sam u {city}",
+  "Saved. Hitchhikers from {city} will be told.": "Sačuvano. Autostoperi iz {city} biće obavešteni."
 }

@@ -984,5 +984,7 @@
   "{total} rides with valid collection dates are included.": "Iekļauti {total} braucieni ar derīgiem savākšanas datumiem.",
   "{usable} rides qualify to be judged.": "Novērtēšanai derīgi {usable} braucieni.",
   "{used} of {total} database rows qualify.": "{used} no {total} datubāzes rindām ir derīgas.",
-  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} no {total} ierakstītajiem braucieniem ir atbilde, {no} no tām — „nē“. Lielākā daļa zemāk veidojamo kohortu balstīsies uz dažiem braucieniem — vērts lasīt ticamības intervālu blakus katram procentam."
+  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} no {total} ierakstītajiem braucieniem ir atbilde, {no} no tām — „nē“. Lielākā daļa zemāk veidojamo kohortu balstīsies uz dažiem braucieniem — vērts lasīt ticamības intervālu blakus katram procentam.",
+  "I'm in {city} now": "Tagad esmu pilsētā {city}",
+  "Saved. Hitchhikers from {city} will be told.": "Saglabāts. {city} stopētāji tiks informēti."
 }

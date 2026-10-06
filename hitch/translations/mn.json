@@ -984,5 +984,7 @@
   "{total} rides with valid collection dates are included.": "Цуглуулсан огноо хүчинтэй {total} унааг оруулсан.",
   "{usable} rides qualify to be judged.": "{usable} унаа үнэлэгдэх шаардлагыг хангаж байна.",
   "{used} of {total} database rows qualify.": "Өгөгдлийн сангийн {total} мөрийн {used} нь шаардлагыг хангаж байна.",
-  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "Бүртгэсэн {total} унааны {used} нь хариулттай, тэдгээрийн {no} нь “үгүй”. Доор үүсгэж болох ихэнх бүлэг цөөн унаан дээр тулгуурлах болно — хувь бүрийн хажуух итгэх завсар нь унших үнэтэй хэсэг."
+  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "Бүртгэсэн {total} унааны {used} нь хариулттай, тэдгээрийн {no} нь “үгүй”. Доор үүсгэж болох ихэнх бүлэг цөөн унаан дээр тулгуурлах болно — хувь бүрийн хажуух итгэх завсар нь унших үнэтэй хэсэг.",
+  "I'm in {city} now": "Би одоо {city} хотод байна",
+  "Saved. Hitchhikers from {city} will be told.": "Хадгалагдлаа. {city}-ийн хитчхайкерүүдэд мэдэгдэнэ."
 }

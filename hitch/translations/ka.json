@@ -984,5 +984,7 @@
   "{total} rides with valid collection dates are included.": "შედის {total} მგზავრობა სწორი შეგროვების თარიღით.",
   "{usable} rides qualify to be judged.": "შესაფასებლად ვარგისია {usable} მგზავრობა.",
   "{used} of {total} database rows qualify.": "ბაზის {total} სტრიქონიდან {used} ვარგისია.",
-  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "ჩაწერილი {total} მგზავრობიდან {used}-ს აქვს პასუხი, აქედან {no}-ს — „არა“. ქვემოთ აგებული კოჰორტების უმეტესობა რამდენიმე მგზავრობას დაეყრდნობა — ყველაზე მნიშვნელოვანია თითოეული პროცენტის გვერდით ნდობის ინტერვალი."
+  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "ჩაწერილი {total} მგზავრობიდან {used}-ს აქვს პასუხი, აქედან {no}-ს — „არა“. ქვემოთ აგებული კოჰორტების უმეტესობა რამდენიმე მგზავრობას დაეყრდნობა — ყველაზე მნიშვნელოვანია თითოეული პროცენტის გვერდით ნდობის ინტერვალი.",
+  "I'm in {city} now": "ახლა {city}-ში ვარ",
+  "Saved. Hitchhikers from {city} will be told.": "შენახულია. {city}-ის ავტოსტოპერებს შეატყობინებენ."
 }

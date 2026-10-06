@@ -984,5 +984,7 @@
   "{total} rides with valid collection dates are included.": "Uwzględniono przejazdy z poprawnymi datami zebrania: {total}.",
   "{usable} rides qualify to be judged.": "Przejazdów kwalifikujących się do oceny: {usable}.",
   "{used} of {total} database rows qualify.": "Kwalifikuje się {used} z {total} wierszy bazy danych.",
-  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} z {total} zapisanych przejazdów ma odpowiedź, w tym {no} „nie”. Większość kohort, które zbudujesz poniżej, oprze się na garstce przejazdów — warto czytać przedział ufności obok każdego procentu."
+  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} z {total} zapisanych przejazdów ma odpowiedź, w tym {no} „nie”. Większość kohort, które zbudujesz poniżej, oprze się na garstce przejazdów — warto czytać przedział ufności obok każdego procentu.",
+  "I'm in {city} now": "Jestem teraz w {city}",
+  "Saved. Hitchhikers from {city} will be told.": "Zapisano. Autostopowicze z {city} zostaną powiadomieni."
 }

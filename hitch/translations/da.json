@@ -984,5 +984,7 @@
   "{total} rides with valid collection dates are included.": "{total} ture med gyldige indsamlingsdatoer er med.",
   "{usable} rides qualify to be judged.": "{usable} ture kvalificerer til at blive vurderet.",
   "{used} of {total} database rows qualify.": "{used} af {total} databaserækker kvalificerer.",
-  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} af {total} registrerede ture har et svar, {no} af dem et “nej”. De fleste kohorter, du kan bygge nedenfor, vil bygge på en håndfuld ture — konfidensintervallet ved siden af hver procent er den del, der er værd at læse."
+  "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} af {total} registrerede ture har et svar, {no} af dem et “nej”. De fleste kohorter, du kan bygge nedenfor, vil bygge på en håndfuld ture — konfidensintervallet ved siden af hver procent er den del, der er værd at læse.",
+  "I'm in {city} now": "Jeg er i {city} nu",
+  "Saved. Hitchhikers from {city} will be told.": "Gemt. Blaffere fra {city} får besked."
 }
