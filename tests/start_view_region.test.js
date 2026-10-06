@@ -51,3 +51,15 @@ test("the initial-view fallback does not overwrite the region start view", () =>
   assert.match(SOURCE, /window\.hmStartView = startView;/);
   assert.match(SOURCE, /if \(window\.hmStartView\) \{\s*map\.setView\(\[window\.hmStartView\[0\]/);
 });
+
+test("first engagement is re-emitted once with the variant", () => {
+  const events = [];
+  const win = { hmVariant: () => "region", hmTrack: (n, d) => events.push([n, d && d.variant, d && d.action]) };
+  const fn = new Function("location", "navigator", "window", code)({ hash: "", pathname: "/", search: "" }, { languages: ["de-DE"] }, win);
+  fn();
+  win.hmTrack("map_ready", {});
+  win.hmTrack("spot_opened", {});
+  win.hmTrack("route_searched", {});
+  const eng = events.filter((e) => e[0] === "start_view_engaged");
+  assert.deepStrictEqual(eng, [["start_view_engaged", "region", "spot_opened"]]);
+});

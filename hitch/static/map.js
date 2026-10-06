@@ -164,7 +164,19 @@ function startViewForVisitor() {
     }
     if (!view) return null;
     const variant = (window.hmVariant || function (_n, v) { return v[0]; })("start-view-v1", ["world", "region"]);
-    if (window.hmTrack) window.hmTrack("start_view_assigned", { variant: variant });
+    if (window.hmTrack) {
+      window.hmTrack("start_view_assigned", { variant: variant });
+      // Outcome per arm: Umami cannot filter events by another event's property, so
+      // re-emit the first engagement of this page view tagged with the variant.
+      const track = window.hmTrack;
+      const engaging = { spot_opened: 1, route_searched: 1, journey_started: 1 };
+      let done = false;
+      window.hmTrack = function (name, data) {
+        const r = track.apply(this, arguments);
+        if (!done && engaging[name]) { done = true; track.call(this, "start_view_engaged", { variant: variant, action: name }); }
+        return r;
+      };
+    }
     return variant === "region" ? view : null;
   } catch (e) { return null; }
 }
