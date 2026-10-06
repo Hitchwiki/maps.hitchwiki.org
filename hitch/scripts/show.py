@@ -3,6 +3,7 @@ import json
 import logging
 import math
 import os
+import re
 import shutil
 import sqlite3
 import time
@@ -807,6 +808,23 @@ places["dest_lons"] = rides_df.dropna(subset=["dest_lat", "dest_lon"]).groupby([
 # Latest submission time per spot (ISO string) for "recent" filtering
 places["latest_submission"] = rides_df.dropna(subset=["submission_time"]).groupby(["lat", "lon"])["submission_time"].max()
 
+# #643: spots whose NEWEST report says the place itself is gone. Strict, multilingual
+# permanent-structure phrases only; looser "closed"/"construction" wording is mostly
+# temporary or about one ride. Recent reports only: an old one has likely been overtaken.
+GONE_COMMENT_RE = re.compile(
+    r"no longer (exists?|there)|(doesn'?t|does not|didn'?t) exist(s)? (any ?more|any longer)"
+    r"|(was|been|got|were) (demolished|torn down|dismantled)|gibt es nicht mehr|existiert nicht mehr"
+    r"|n'existe plus|ya no existe|non esiste pi[uù]|nie istnieje",
+    re.I,
+)
+GONE_MIN_YEAR = 2023
+_newest = rides_df.dropna(subset=["submission_time"]).sort_values("submission_time").groupby(["lat", "lon"]).tail(1)
+_gone = _newest[
+    (_newest["submission_time"].dt.year >= GONE_MIN_YEAR) & _newest["comment"].fillna("").str.contains(GONE_COMMENT_RE)
+]
+places["gone_year"] = _gone.set_index(["lat", "lon"])["submission_time"].dt.year
+logger.info(f"{len(_gone)} spot(s) whose newest report says the spot is gone")
+
 places.reset_index(inplace=True)
 places.sort_values("rating", inplace=True, ascending=False)
 
@@ -1120,6 +1138,8 @@ for _, place in places.iterrows():
     # in the recent-rides filter. Omitted (like all sparse fields below) when absent.
     if pd.notna(place["latest_submission"]):
         spot_data["latest_ms"] = int(place["latest_submission"].timestamp() * 1000)
+    if pd.notna(place["gone_year"]):
+        spot_data["gone"] = int(place["gone_year"])
     # Destination coords are needed at load time for the direction filter and the
     # destination lines drawn for a selected spot.
     if isinstance(place["dest_lats"], list) and len(place["dest_lats"]):
