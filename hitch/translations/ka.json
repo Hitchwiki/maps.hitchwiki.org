@@ -986,5 +986,7 @@
   "{used} of {total} database rows qualify.": "ბაზის {total} სტრიქონიდან {used} ვარგისია.",
   "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "ჩაწერილი {total} მგზავრობიდან {used}-ს აქვს პასუხი, აქედან {no}-ს — „არა“. ქვემოთ აგებული კოჰორტების უმეტესობა რამდენიმე მგზავრობას დაეყრდნობა — ყველაზე მნიშვნელოვანია თითოეული პროცენტის გვერდით ნდობის ინტერვალი.",
   "I'm in {city} now": "ახლა {city}-ში ვარ",
-  "Saved. Hitchhikers from {city} will be told.": "შენახულია. {city}-ის ავტოსტოპერებს შეატყობინებენ."
+  "Saved. Hitchhikers from {city} will be told.": "შენახულია. {city}-ის ავტოსტოპერებს შეატყობინებენ.",
+  "{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.": "{country}-დან დაწყებული მგზავრობა ჩაწერილი {total} ავტოსტოპერიდან {yes}-მა თქვა, რომ ამ მგზავრობას კვლავ მიიღებდა.",
+  "See the data and its limits": "იხილეთ მონაცემები და მათი შეზღუდვები"
 }

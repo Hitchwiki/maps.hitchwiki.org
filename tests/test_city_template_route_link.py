@@ -21,7 +21,7 @@ class _FakeCity:
     lng = 13.405
 
 
-def _render(app, lang, nearby=None, first_hitch=None):
+def _render(app, lang, nearby=None, first_hitch=None, safety=None):
     with app.app_context():
         g.lang = lang
         env = Environment(loader=FileSystemLoader("hitch/templates"))
@@ -39,6 +39,7 @@ def _render(app, lang, nearby=None, first_hitch=None):
             nearby=nearby or [],
             city_jsonld={},
             first_hitch=first_hitch,
+            safety=safety,
         )
 
 

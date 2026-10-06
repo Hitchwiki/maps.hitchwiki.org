@@ -986,5 +986,7 @@
   "{used} of {total} database rows qualify.": "{used} od {total} vrstic baze je primernih.",
   "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} od {total} zabeleženih voženj ima odgovor, {no} od teh »ne«. Večina skupin, ki jih lahko sestaviš spodaj, bo temeljila na peščici voženj — interval zaupanja ob vsakem odstotku je del, ki ga je vredno prebrati.",
   "I'm in {city} now": "Zdaj sem v {city}",
-  "Saved. Hitchhikers from {city} will be told.": "Shranjeno. Štopar iz {city} bodo obveščeni."
+  "Saved. Hitchhikers from {city} will be told.": "Shranjeno. Štopar iz {city} bodo obveščeni.",
+  "{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.": "{yes} od {total} avtostoparjev, ki so zabeležili vožnjo z začetkom v državi {country}, je dejalo, da bi to vožnjo ponovno sprejeli.",
+  "See the data and its limits": "Oglejte si podatke in njihove omejitve"
 }

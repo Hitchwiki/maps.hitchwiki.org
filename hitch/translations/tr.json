@@ -986,5 +986,7 @@
   "{used} of {total} database rows qualify.": "{total} veritabanı satırından {used} tanesi uygun.",
   "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{total} kayıtlı yolculuğun {used} tanesinde yanıt var, bunların {no} tanesi “hayır”. Aşağıda oluşturabileceğin çoğu grup bir avuç yolculuğa dayanacak – her yüzdenin yanındaki güven aralığı, okumaya değer kısımdır.",
   "I'm in {city} now": "Şu an {city} şehrindeyim",
-  "Saved. Hitchhikers from {city} will be told.": "Kaydedildi. {city} şehrinden otostopçulara haber verilecek."
+  "Saved. Hitchhikers from {city} will be told.": "Kaydedildi. {city} şehrinden otostopçulara haber verilecek.",
+  "{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.": "{country} ülkesinden başlayan bir yolculuk kaydeden {total} otostopçudan {yes} kişi aynı yolculuğu tekrar kabul edeceğini söyledi.",
+  "See the data and its limits": "Verileri ve sınırlarını görün"
 }

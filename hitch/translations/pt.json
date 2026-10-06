@@ -986,5 +986,7 @@
   "{used} of {total} database rows qualify.": "{used} de {total} linhas do banco de dados se qualificam.",
   "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} de {total} caronas registradas trazem uma resposta, {no} delas um “não”. A maioria dos grupos que você pode montar abaixo se baseará em poucas caronas — o intervalo de confiança ao lado de cada porcentagem é a parte que vale a pena ler.",
   "I'm in {city} now": "Estou agora em {city}",
-  "Saved. Hitchhikers from {city} will be told.": "Guardado. Os boleieiros de {city} serão avisados."
+  "Saved. Hitchhikers from {city} will be told.": "Guardado. Os boleieiros de {city} serão avisados.",
+  "{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.": "{yes} de {total} boleiros que registaram uma boleia com partida em {country} disseram que voltariam a aceitar essa boleia.",
+  "See the data and its limits": "Ver os dados e os seus limites"
 }

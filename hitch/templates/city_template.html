@@ -41,6 +41,15 @@
             </p>
             {% endif %}
 
+            {# #640: one published number (the /hitchhiking-safety page's own data) for readers
+               deciding whether to try it. Only for countries with >=10 answers; no authored advice. #}
+            {% if safety %}
+            <p class="city-safety">
+                {{ t("{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.", yes=safety.yes, total=safety.total, country=city.country) }}
+                <a href="/hitchhiking-safety" id="city-safety-link">{{ t("See the data and its limits") }}</a>
+            </p>
+            {% endif %}
+
             {# Populated client-side by city_wiki_excerpt.js -- the Hitchwiki API
                sits behind Cloudflare's bot challenge, which blocks this host's
                own server-side requests but lets a real visitor's browser through
@@ -179,6 +188,15 @@
          if (window.hmTrack) window.hmTrack('city_log_cta_clicked', {city: {{ city.city | tojson }}});
      });
  })();
+{% if safety %}
+ if (window.hmTrack) window.hmTrack('city_safety_shown', {country: {{ city.country | tojson }}, n: {{ safety.total }}});
+ (function () {
+     var link = document.querySelector('#city-safety-link');
+     if (link) link.addEventListener('click', function () {
+         if (window.hmTrack) window.hmTrack('city_safety_clicked', {country: {{ city.country | tojson }}});
+     });
+ })();
+{% endif %}
 {% if first_hitch %}
  if (window.hmTrack) window.hmTrack('city_first_hitch_shown', {city: {{ city.city | tojson }}, km: {{ first_hitch.km_from_centre }}, n: {{ first_hitch.n }}});
  (function () {
