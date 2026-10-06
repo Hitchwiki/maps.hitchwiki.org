@@ -988,5 +988,9 @@
   "I'm in {city} now": "Ik ben nu in {city}",
   "Saved. Hitchhikers from {city} will be told.": "Opgeslagen. Lifters uit {city} krijgen bericht.",
   "{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.": "{yes} van de {total} lifters die een rit met start in {country} registreerden, zeiden dat ze die rit opnieuw zouden accepteren.",
-  "See the data and its limits": "Bekijk de gegevens en hun beperkingen"
+  "See the data and its limits": "Bekijk de gegevens en hun beperkingen",
+  "Save this spot": "Deze plek opslaan",
+  "Saved": "Opgeslagen",
+  "Saved spots": "Opgeslagen plekken",
+  "Start hitching here": "Vanaf hier beginnen met liften"
 }

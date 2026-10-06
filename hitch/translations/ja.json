@@ -988,5 +988,9 @@
   "I'm in {city} now": "今は{city}にいます",
   "Saved. Hitchhikers from {city} will be told.": "保存しました。{city}出身のヒッチハイカーに知らせます。",
   "{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.": "{country}を出発地とする乗車を記録したヒッチハイカー{total}人のうち{yes}人が、その乗車をもう一度受け入れると答えました。",
-  "See the data and its limits": "データとその限界を見る"
+  "See the data and its limits": "データとその限界を見る",
+  "Save this spot": "この場所を保存",
+  "Saved": "保存済み",
+  "Saved spots": "保存した場所",
+  "Start hitching here": "ここからヒッチハイクを始める"
 }

@@ -988,5 +988,9 @@
   "I'm in {city} now": "我现在在{city}",
   "Saved. Hitchhikers from {city} will be told.": "已保存。来自{city}的搭车客会收到通知。",
   "{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.": "在 {country} 出发并记录搭车的 {total} 位搭车者中，有 {yes} 位表示愿意再次接受那次搭乘。",
-  "See the data and its limits": "查看数据及其局限"
+  "See the data and its limits": "查看数据及其局限",
+  "Save this spot": "保存此地点",
+  "Saved": "已保存",
+  "Saved spots": "已保存的地点",
+  "Start hitching here": "从这里开始搭便车"
 }

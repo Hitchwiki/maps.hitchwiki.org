@@ -988,5 +988,9 @@
   "I'm in {city} now": "Я сейчас в {city}",
   "Saved. Hitchhikers from {city} will be told.": "Сохранено. Автостопщики из {city} получат уведомление.",
   "{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.": "{yes} из {total} автостопщиков, записавших поездку с началом в {country}, сказали, что снова согласились бы на эту поездку.",
-  "See the data and its limits": "Посмотреть данные и их ограничения"
+  "See the data and its limits": "Посмотреть данные и их ограничения",
+  "Save this spot": "Сохранить это место",
+  "Saved": "Сохранено",
+  "Saved spots": "Сохранённые места",
+  "Start hitching here": "Начать ловить попутку отсюда"
 }

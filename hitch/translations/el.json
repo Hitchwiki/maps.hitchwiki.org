@@ -988,5 +988,9 @@
   "I'm in {city} now": "Είμαι τώρα στην πόλη {city}",
   "Saved. Hitchhikers from {city} will be told.": "Αποθηκεύτηκε. Οι οτοστόπ από {city} θα ενημερωθούν.",
   "{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.": "{yes} από {total} οτοστόπερ που κατέγραψαν διαδρομή με αφετηρία {country} είπαν ότι θα αποδέχονταν ξανά αυτή τη διαδρομή.",
-  "See the data and its limits": "Δείτε τα δεδομένα και τα όριά τους"
+  "See the data and its limits": "Δείτε τα δεδομένα και τα όριά τους",
+  "Save this spot": "Αποθήκευση αυτού του σημείου",
+  "Saved": "Αποθηκεύτηκε",
+  "Saved spots": "Αποθηκευμένα σημεία",
+  "Start hitching here": "Ξεκίνα οτοστόπ από εδώ"
 }

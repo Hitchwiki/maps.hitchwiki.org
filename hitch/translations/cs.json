@@ -988,5 +988,9 @@
   "I'm in {city} now": "Jsem teď v {city}",
   "Saved. Hitchhikers from {city} will be told.": "Uloženo. Stopaři z {city} se to dozvědí.",
   "{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.": "{yes} z {total} stopařů, kteří zapsali jízdu začínající v zemi {country}, uvedlo, že by tu jízdu přijali znovu.",
-  "See the data and its limits": "Zobrazit data a jejich omezení"
+  "See the data and its limits": "Zobrazit data a jejich omezení",
+  "Save this spot": "Uložit toto místo",
+  "Saved": "Uloženo",
+  "Saved spots": "Uložená místa",
+  "Start hitching here": "Začít stopovat odtud"
 }

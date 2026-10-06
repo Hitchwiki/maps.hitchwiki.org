@@ -988,5 +988,9 @@
   "I'm in {city} now": "Estou agora em {city}",
   "Saved. Hitchhikers from {city} will be told.": "Guardado. Os boleieiros de {city} serão avisados.",
   "{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.": "{yes} de {total} boleiros que registaram uma boleia com partida em {country} disseram que voltariam a aceitar essa boleia.",
-  "See the data and its limits": "Ver os dados e os seus limites"
+  "See the data and its limits": "Ver os dados e os seus limites",
+  "Save this spot": "Guardar este local",
+  "Saved": "Guardado",
+  "Saved spots": "Locais guardados",
+  "Start hitching here": "Começar a pedir boleia aqui"
 }

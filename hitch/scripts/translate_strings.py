@@ -64,6 +64,11 @@ LANGUAGE_NAMES = {
 # in sync by hand -- there's no extraction tool, and duplicating the audit here
 # is deliberate: it's the same list of user-facing strings by design.
 SOURCE_STRINGS = [
+    # Saved spots (map.js, #641).
+    "Save this spot",
+    "Saved",
+    "Saved spots",
+    "Start hitching here",
     # Per-city SEO pages (city_template.html, rendered per language by cities.py).
     # These carry the search query itself -- "Trampen in Berlin" only matches the
     # German page because "Hitchhiking in {place}" is translated here -- so keep

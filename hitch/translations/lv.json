@@ -988,5 +988,9 @@
   "I'm in {city} now": "Tagad esmu pilsētā {city}",
   "Saved. Hitchhikers from {city} will be told.": "Saglabāts. {city} stopētāji tiks informēti.",
   "{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.": "{yes} no {total} stopētājiem, kas reģistrēja braucienu ar sākumu valstī {country}, norādīja, ka šo braucienu pieņemtu vēlreiz.",
-  "See the data and its limits": "Skatīt datus un to ierobežojumus"
+  "See the data and its limits": "Skatīt datus un to ierobežojumus",
+  "Save this spot": "Saglabāt šo vietu",
+  "Saved": "Saglabāts",
+  "Saved spots": "Saglabātās vietas",
+  "Start hitching here": "Sākt stopēt no šejienes"
 }
