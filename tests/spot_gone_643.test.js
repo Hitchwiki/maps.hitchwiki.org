@@ -25,3 +25,9 @@ test("#646 police note: newest-report flag, neutral label, tracked", () => {
   assert.match(MAP, /tr\("Latest report \(\{year\}\) mentions police at this spot"/);
   assert.match(MAP, /hmTrack\("spot_police_note_shown"/);
 });
+
+test("saved-spots panel reuses the gone warning string", () => {
+  const panel = MAP.slice(MAP.indexOf("function toggleSavedSpotsPanel"));
+  assert.match(panel, /_data\.gone/);
+  assert.match(panel, /tr\("Latest report \(\{year\}\) says this spot may be gone"/);
+});
