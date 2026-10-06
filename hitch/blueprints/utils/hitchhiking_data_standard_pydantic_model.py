@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -21,12 +22,12 @@ class MethodEnum(str, Enum):
 
 class Signal(BaseModel, use_enum_values=True):
     methods: list[MethodEnum]
-    sign_content: str | None = None
-    sign_languages: list[str] | None = None
-    asking_content: str | None = None
-    asking_languages: list[str] | None = None
-    total_solicited: int | None = None
-    duration: str | None = None
+    sign_content: Optional[str] = None
+    sign_languages: Optional[list[str]] = None
+    asking_content: Optional[str] = None
+    asking_languages: Optional[list[str]] = None
+    total_solicited: Optional[int] = None
+    duration: Optional[str] = None
 
 
 class ReasonEnum(str, Enum):
@@ -42,8 +43,8 @@ class ReasonEnum(str, Enum):
 
 
 class Ride(BaseModel, use_enum_values=True):
-    vehicle_destination: Location | None = None
-    reasons: list[ReasonEnum] | None = None
+    vehicle_destination: Optional[Location] = None
+    reasons: Optional[list[ReasonEnum]] = None
 
 
 class GenderEnum(str, Enum):
@@ -54,12 +55,12 @@ class GenderEnum(str, Enum):
 
 
 class Person(BaseModel, use_enum_values=True):
-    origin_location: str | None = None
-    origin_country: str | None = None
-    year_of_birth: int | None = None
-    gender: GenderEnum | None = None
-    languages: list[str] | None = None
-    was_driver: bool | None = None
+    origin_location: Optional[str] = None
+    origin_country: Optional[str] = None
+    year_of_birth: Optional[int] = None
+    gender: Optional[GenderEnum] = None
+    languages: Optional[list[str]] = None
+    was_driver: Optional[bool] = None
 
 
 class ReasonToPickUpEnum(str, Enum):
@@ -103,10 +104,10 @@ class NegativeExperienceEnum(str, Enum):
 class Occupant(Person, use_enum_values=True):
     # Upstream narrowed this to a single enum; we keep a list because our driver-info
     # form is a multi-select and rides already published to Nostr carry lists here.
-    reasons_to_pick_up: list[ReasonToPickUpEnum] | None = None
-    would_ride_again: bool | None = None  # Whether the hitchhiker would take a ride with this occupant again
-    positive_experiences: list[PositiveExperienceEnum] | None = None
-    negative_experiences: list[NegativeExperienceEnum] | None = None
+    reasons_to_pick_up: Optional[list[ReasonToPickUpEnum]] = None
+    would_ride_again: Optional[bool] = None  # Whether the hitchhiker would take a ride with this occupant again
+    positive_experiences: Optional[list[PositiveExperienceEnum]] = None
+    negative_experiences: Optional[list[NegativeExperienceEnum]] = None
 
 
 class KindEnum(str, Enum):
@@ -128,10 +129,10 @@ class KindEnum(str, Enum):
 
 class ModeOfTranportation(BaseModel, use_enum_values=True):
     kind: KindEnum = Field(...)
-    make: str | None = None
-    model: str | None = None
-    license_plate_country: str | None = None  # ISO 3166-1 alpha-2
-    license_plate_identifier: str | None = None
+    make: Optional[str] = None
+    model: Optional[str] = None
+    license_plate_country: Optional[str] = None  # ISO 3166-1 alpha-2
+    license_plate_identifier: Optional[str] = None
 
 
 class ReasonToHitchhikeEnum(str, Enum):
@@ -148,9 +149,9 @@ class ReasonToHitchhikeEnum(str, Enum):
 
 
 class Hitchhiker(Person, use_enum_values=True):
-    nickname: str | None = None  # Nickname of the hitchhiker. Assumed unique within the data source.
-    hitchhiking_since: int | None = None  # The year the person hitchhiked for the first time.
-    reasons_to_hitchhike: list[ReasonToHitchhikeEnum] | None = None  # Reasons for a specific hitchhiking ride.
+    nickname: Optional[str] = None  # Nickname of the hitchhiker. Assumed unique within the data source.
+    hitchhiking_since: Optional[int] = None  # The year the person hitchhiked for the first time.
+    reasons_to_hitchhike: Optional[list[ReasonToHitchhikeEnum]] = None  # Reasons for a specific hitchhiking ride.
 
 
 class GiftKindEnum(str, Enum):
@@ -161,8 +162,8 @@ class GiftKindEnum(str, Enum):
 
 class Gift(BaseModel, use_enum_values=True):
     kind: GiftKindEnum = Field(...)
-    description: str | None = None
-    price: tuple[float, str] | None = None  # [amount, currency]
+    description: Optional[str] = None
+    price: Optional[tuple[float, str]] = None  # [amount, currency]
 
 
 class DeclinedRideReasonEnum(str, Enum):
@@ -176,8 +177,8 @@ class DeclinedRideReasonEnum(str, Enum):
 
 
 class DeclinedRide(BaseModel, use_enum_values=True):
-    destination: Location | None = None
-    reasons: list[DeclinedRideReasonEnum] | None = None
+    destination: Optional[Location] = None
+    reasons: Optional[list[DeclinedRideReasonEnum]] = None
 
 
 class NoRideReasonEnum(str, Enum):
@@ -193,36 +194,36 @@ class NoRideReasonEnum(str, Enum):
 
 
 class NoRide(BaseModel, use_enum_values=True):
-    reasons: list[NoRideReasonEnum] | None = None
+    reasons: Optional[list[NoRideReasonEnum]] = None
 
 
 class Stop(BaseModel):
     # Optional, not Field(...): an intermediate stop the hitchhiker names ("onsen",
     # "grandparents' house") but never pinned a coordinate for is still worth recording
     # -- pickup and destination stops always set this, only a mid-journey one may omit it.
-    location: Location | None = None
+    location: Optional[Location] = None
     # Not yet in the upstream hitchhiking-data-standard (proposed, not merged --
     # Hitchwiki/hitchhiking-data-standard#54) but the read side (ride_facts.stop_facts)
     # already expects it, so this vendored copy carries it now rather than waiting.
-    label: str | None = None
-    arrival_time: str | None = None  # RFC 9557 format
-    departure_time: str | None = None  # RFC 9557 format
-    waiting_duration: str | None = None  # ISO 8601 duration format
+    label: Optional[str] = None
+    arrival_time: Optional[str] = None  # RFC 9557 format
+    departure_time: Optional[str] = None  # RFC 9557 format
+    waiting_duration: Optional[str] = None  # ISO 8601 duration format
 
 
 class HitchhikingRecord(BaseModel):
     version: str = Field(...)
     stops: list[Stop] = Field(..., min_items=1)
-    rating: int | None = Field(None, ge=1, le=5)
+    rating: Optional[int] = Field(None, ge=1, le=5)
     hitchhikers: list[Hitchhiker] = Field(..., min_items=1)
-    comment: str | None = None
-    signals: list[Signal] | None = None
-    occupants: list[Occupant] | None = None
-    mode_of_transportation: ModeOfTranportation | None = None
-    ride: Ride | None = None
-    declined_rides: list[DeclinedRide] | None = None
-    no_ride: NoRide | None = None  # Present when the hitchhiker gave up at the spot without getting a ride
-    images: list[str] | None = None  # URLs to images taken during the ride
+    comment: Optional[str] = None
+    signals: Optional[list[Signal]] = None
+    occupants: Optional[list[Occupant]] = None
+    mode_of_transportation: Optional[ModeOfTranportation] = None
+    ride: Optional[Ride] = None
+    declined_rides: Optional[list[DeclinedRide]] = None
+    no_ride: Optional[NoRide] = None  # Present when the hitchhiker gave up at the spot without getting a ride
+    images: Optional[list[str]] = None  # URLs to images taken during the ride
     source: str = Field(...)
     license: str = Field(...)
-    submission_time: str | None = None  # RFC 9557 format
+    submission_time: Optional[str] = None  # RFC 9557 format
