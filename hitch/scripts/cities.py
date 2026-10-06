@@ -8,7 +8,7 @@ import os
 import statistics
 import urllib.parse
 import zipfile
-from datetime import date
+from datetime import date, datetime
 
 import numpy as np
 import pandas as pd
@@ -429,7 +429,16 @@ write_activity_summary(
 )
 
 _profile_rows = get_db().execute("select origin_city, current_city, profile_links from user where active = 1").fetchall()
-write_profile_summary(os.path.join(dist_dir, "profile_summary.csv"), summarize_profiles(_profile_rows))
+write_profile_summary(
+    os.path.join(dist_dir, "profile_summary.csv"),
+    {
+        **summarize_profiles(_profile_rows),
+        **conversation_stats(
+            get_db().execute("select sender_id, recipient_id, created_at from message").fetchall(),
+            datetime.utcnow(),
+        ),
+    },
+)
 
 # Hand the ranking to route_pages.py. Matching rides to 48k cities is the slow part
 # of this script (~25 min); the route generator needs exactly the same ranking to
