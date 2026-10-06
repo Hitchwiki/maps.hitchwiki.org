@@ -995,5 +995,7 @@
   "Start hitching here": "Commencer l'auto-stop ici",
   "This wiki page has no location yet. Search for the place or tap a marker.": "Cette page du wiki n'a pas encore de position. Cherche le lieu ou touche un marqueur.",
   "Latest report ({year}) says this spot may be gone": "Le dernier rapport ({year}) indique que ce lieu n'existe peut-être plus",
-  "Latest report ({year}) mentions police at this spot": "Le dernier rapport ({year}) mentionne la police à cet endroit"
+  "Latest report ({year}) mentions police at this spot": "Le dernier rapport ({year}) mentionne la police à cet endroit",
+  "Make a sign": "Faire une pancarte",
+  "Print": "Imprimer"
 }

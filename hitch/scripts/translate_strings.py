@@ -224,6 +224,8 @@ SOURCE_STRINGS = [
     "Clear",
     "Click on the duplicated marker.",
     "Close",
+    "Make a sign",
+    "Print",
     "Close filters",
     "Contact",
     "Contribute",

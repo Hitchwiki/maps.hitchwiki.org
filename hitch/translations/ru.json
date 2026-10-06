@@ -995,5 +995,7 @@
   "Start hitching here": "Начать ловить попутку отсюда",
   "This wiki page has no location yet. Search for the place or tap a marker.": "У этой вики-страницы пока нет местоположения. Найди место или нажми на маркер.",
   "Latest report ({year}) says this spot may be gone": "Последний отчёт ({year}) говорит, что этого места, возможно, больше нет",
-  "Latest report ({year}) mentions police at this spot": "В последнем отчёте ({year}) на этом месте упоминается полиция"
+  "Latest report ({year}) mentions police at this spot": "В последнем отчёте ({year}) на этом месте упоминается полиция",
+  "Make a sign": "Сделать табличку",
+  "Print": "Печать"
 }
