@@ -2955,6 +2955,12 @@ document.addEventListener("click", (e) => {
   if (e.target.closest("#spot-access-hint-link")) hmTrack("spot_access_hint_clicked");
 });
 
+// Country sheet's "Read the full ... article on Hitchwiki" link: country_wiki_lead_shown
+// (1,277 / 28 d) had no click side. Delegated because the link's content is re-rendered.
+document.addEventListener("click", (e) => {
+  if (e.target.closest("#country-sheet-cta")) hmTrack("country_wiki_lead_clicked");
+});
+
 // "Route" on a pinned ride destination: open the planner from this spot to that place.
 // The spot pane and its arrows are dropped first so they do not sit over the route.
 document.addEventListener("click", (e) => {
