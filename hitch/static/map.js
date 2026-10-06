@@ -4544,6 +4544,75 @@ function wireShowDriverButton(dataUrl) {
   };
 }
 
+// IDEAS #630 / EXP-802 — "Currently in <city>": after a signed-in rider logs a ride, offer
+// one tap to say they are now where it ended. The server turns that into the same
+// same-city introductions as typing it on /edit-user. The city is the largest one
+// (population >= 100k) within CURRENT_CITY_MAX_KM of the destination, from the
+// top_cities.json the city pages already ship; nothing is offered when none is that close.
+const CURRENT_CITY_MAX_KM = 25;
+const CURRENT_CITY_MIN_POP = 100000;
+
+function nearestBigCity(cities, lat, lon) {
+  const rad = Math.PI / 180;
+  let best = null;
+  for (const c of cities) {
+    if (!(c.population >= CURRENT_CITY_MIN_POP)) continue;
+    const dLat = (c.lat - lat) * rad;
+    const dLon = (c.lon - lon) * rad;
+    const h =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat * rad) * Math.cos(c.lat * rad) * Math.sin(dLon / 2) ** 2;
+    const km = 12742 * Math.asin(Math.sqrt(h));
+    if (km <= CURRENT_CITY_MAX_KM && (!best || c.population > best.city.population)) {
+      best = { city: c, km: km };
+    }
+  }
+  return best;
+}
+
+function wireCurrentCityButton(ride) {
+  const btn = $$("#success-current-city-btn");
+  const note = $$("#success-current-city-note");
+  if (!btn || !note) return;
+  btn.style.display = "none";
+  note.style.display = "none";
+  btn.onclick = null;
+  const lat = ride && parseFloat(ride.destLat);
+  const lon = ride && parseFloat(ride.destLon);
+  if (!window.IS_LOGGED_IN || !isFinite(lat) || !isFinite(lon)) return;
+  fetch("/city/top_cities.json")
+    .then(function (r) {
+      return r.ok ? r.json() : [];
+    })
+    .then(function (cities) {
+      const hit = nearestBigCity(cities, lat, lon);
+      if (!hit) return;
+      btn.textContent = tr("I'm in {city} now").replace("{city}", hit.city.city);
+      btn.style.display = "block";
+      hmTrack("currently_in_offered", { dist_km: String(Math.round(hit.km)) });
+      btn.onclick = function () {
+        btn.disabled = true;
+        fetch("/me/current-city", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({ city: hit.city.city, country: hit.city.country }),
+        })
+          .then(function (r) {
+            if (!r.ok) throw new Error("status " + r.status);
+            hmTrack("currently_in_set", { dist_km: String(Math.round(hit.km)) });
+            btn.style.display = "none";
+            note.textContent = tr("Saved. Hitchhikers from {city} will be told.").replace("{city}", hit.city.city);
+            note.style.display = "block";
+          })
+          .catch(function () {
+            btn.disabled = false;
+          });
+      };
+    })
+    .catch(function () {});
+}
+
 // A plain black backdrop with the card image scaled to fit. Tap anywhere or Esc to
 // dismiss — no controls, because the phone is being handed to someone else.
 function showDriverFullscreen(dataUrl) {
@@ -4611,6 +4680,8 @@ function setupShareCard(opts) {
     const text = card ? card.text : tr("Check out Hitchwiki Maps — the hitchhiking map");
     return doShare({ text: text, url: url, files: null });
   };
+
+  wireCurrentCityButton(ride);
 
   if (!ride || !window.hmShareCard) {
     // Nothing to draw — keep the nudge, drop the picture.

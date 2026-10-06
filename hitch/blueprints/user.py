@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from urllib.parse import quote
 
 import pandas as pd
+import pycountry
 import requests
 from flask import (
     Blueprint,
@@ -765,6 +766,55 @@ def follow_user(username):
 def unfollow_user(username):
     """Make the logged-in user stop following `username`."""
     return _toggle_follow(username, follow=False)
+
+
+# worldcities.csv spellings pycountry's lookup does not know.
+_COUNTRY_ALIASES = {
+    "Russia": "RU",
+    "Turkey": "TR",
+    "Congo (Kinshasa)": "CD",
+    "Congo (Brazzaville)": "CG",
+    "Korea, South": "KR",
+    "Korea, North": "KP",
+    "Ivory Coast": "CI",
+    "The Bahamas": "BS",
+    "The Gambia": "GM",
+}
+
+
+def _country_name(raw):
+    """A pycountry name for `raw` ("Russia" -> "Russian Federation"), or None. The form
+    stores pycountry names, and a country that does not match would keep two people in
+    the same city apart; `city_key` matches on the city alone when a side has none."""
+    try:
+        return pycountry.countries.lookup(_COUNTRY_ALIASES.get(raw, raw)).name
+    except LookupError:
+        return None
+
+
+@user_bp.route("/me/current-city", methods=["POST"])
+def set_current_city():
+    """One-tap "I'm in <city> now" from the ride-saved overlay (IDEAS #630). Same effect as
+    typing it on /edit-user: stores the place and introduces the user to people from or
+    in that city. The client picks the city from the destination of the ride just logged."""
+    if current_user.is_anonymous:
+        return jsonify({"ok": False}), 401
+    data = request.get_json(silent=True) or {}
+    city, country = data.get("city"), data.get("country")
+    if not isinstance(city, str) or not city.strip() or len(city) > 255:
+        return jsonify({"ok": False}), 400
+    city = " ".join(city.split())
+    country = _country_name(country) if isinstance(country, str) else None
+    user = current_user._get_current_object()
+    old_current = current_key(user)
+    had_city = city_key(user) is not None
+    if (user.current_city, user.current_country) == (city, country):
+        return jsonify({"ok": True, "changed": False})
+    user.current_city, user.current_country = city, country
+    user.current_location_updated_at = datetime.utcnow()
+    db.session.commit()
+    introduce_after_profile_save(user, had_city, old_current)
+    return jsonify({"ok": True, "changed": True})
 
 
 @user_bp.route("/push/subscribe", methods=["POST"])
