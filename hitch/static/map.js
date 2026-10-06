@@ -4555,7 +4555,7 @@ function wireShowDriverButton(dataUrl) {
 // one tap to say they are now where it ended. The server turns that into the same
 // same-city introductions as typing it on /edit-user. The city is the largest one
 // (population >= 100k) within CURRENT_CITY_MAX_KM of the destination, from the
-// top_cities.json the city pages already ship; nothing is offered when none is that close.
+// big_cities.json (every 100k+ city, from cities.py; top_cities.json until the first run writes it); nothing is offered when none is that close.
 const CURRENT_CITY_MAX_KM = 25;
 const CURRENT_CITY_MIN_POP = 100000;
 
@@ -4587,7 +4587,10 @@ function wireCurrentCityButton(ride) {
   const lat = ride && parseFloat(ride.destLat);
   const lon = ride && parseFloat(ride.destLon);
   if (!window.IS_LOGGED_IN || !isFinite(lat) || !isFinite(lon)) return;
-  fetch("/city/top_cities.json")
+  fetch("/city/big_cities.json")
+    .then(function (r) {
+      return r.ok ? r : fetch("/city/top_cities.json");
+    })
     .then(function (r) {
       return r.ok ? r.json() : [];
     })

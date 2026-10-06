@@ -225,6 +225,28 @@ rides.sort_values("ride_datetime", inplace=True, ascending=False)
 cities = pd.read_csv(cities_csv_path).drop_duplicates().sort_values("city")
 rendered_cities = []
 
+# Every 100k+ city, for the ride-saved overlay's "I'm in <city> now" button (#630). top_cities.json
+# cannot serve that: it is the 400 most-ridden cities, only 48 of them 100k+, and those lie within
+# 25 km of just 13% of logged destinations. All 100k+ cities reach 47%. Written before the slow
+# matching below so a crash later in this script cannot leave the button without its list.
+_big = cities[cities["population"] >= 100000]
+os.makedirs(os.path.join(dist_dir, "city"), exist_ok=True)
+with open(os.path.join(dist_dir, "city", "big_cities.json"), "w", encoding="utf-8") as f:
+    json.dump(
+        [
+            {
+                "city": r.city,
+                "country": r.country,
+                "lat": round(float(r.lat), 4),
+                "lon": round(float(r.lng), 4),
+                "population": int(r.population),
+            }
+            for r in _big.itertuples()
+        ],
+        f,
+        separators=(",", ":"),
+    )
+
 logger.info(f"Processing {len(cities)} cities")
 
 # Radius in km: rides within this distance of a city center are associated with that city.
