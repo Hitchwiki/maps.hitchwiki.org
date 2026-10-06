@@ -998,5 +998,6 @@
   "Latest report ({year}) mentions police at this spot": "A legutóbbi jelentés ({year}) rendőrséget említ ezen a helyen",
   "Make a sign": "Tábla készítése",
   "Print": "Nyomtatás",
-  "Tell someone you're on your way": "Szólj valakinek, hogy úton vagy"
+  "Tell someone you're on your way": "Szólj valakinek, hogy úton vagy",
+  "Nearest logged route starts {km} km away — show it": "A legközelebbi rögzített útvonal {km} km-re kezdődik – megmutatom"
 }

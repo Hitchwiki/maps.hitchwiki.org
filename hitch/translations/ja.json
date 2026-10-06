@@ -998,5 +998,6 @@
   "Latest report ({year}) mentions police at this spot": "最新の報告（{year}年）にこの場所での警察への言及があります",
   "Make a sign": "サインを作る",
   "Print": "印刷",
-  "Tell someone you're on your way": "移動中であることを誰かに知らせる"
+  "Tell someone you're on your way": "移動中であることを誰かに知らせる",
+  "Nearest logged route starts {km} km away — show it": "最寄りの記録済みルートは{km} km先から始まります – 表示"
 }

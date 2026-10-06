@@ -998,5 +998,6 @@
   "Latest report ({year}) mentions police at this spot": "Η τελευταία αναφορά ({year}) αναφέρει αστυνομία σε αυτό το σημείο",
   "Make a sign": "Φτιάξε πινακίδα",
   "Print": "Εκτύπωση",
-  "Tell someone you're on your way": "Πες σε κάποιον ότι είσαι καθ' οδόν"
+  "Tell someone you're on your way": "Πες σε κάποιον ότι είσαι καθ' οδόν",
+  "Nearest logged route starts {km} km away — show it": "Η κοντινότερη καταγεγραμμένη διαδρομή ξεκινά {km} χλμ μακριά – εμφάνιση"
 }

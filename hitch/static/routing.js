@@ -289,7 +289,7 @@
   // dependency, so headless tests exercise them directly (see
   // tests/routing_wait_fallback.test.js and the CLAUDE.md note on running
   // routing.js under node).
-  window.RoutingInternals = { buildRouter, ensureWalk, route, buildItinerary, fillLegEvidence };
+  window.RoutingInternals = { nearestSpot, buildRouter, ensureWalk, route, buildItinerary, fillLegEvidence };
 
   fetch("/repeatable_routes.json").then((r) => r.json()).then((rep) => {
     RJ.spots = rep.spots;
@@ -513,6 +513,7 @@
       <div class="rp-suggest" hidden></div>
       <div class="rp-options" hidden></div>
       <div class="rp-status" hidden></div>
+      <button type="button" class="rp-no-route-snap" hidden></button>
       <button type="button" class="rp-no-route-cta" hidden>
         <i class="fa-solid fa-thumbs-up" aria-hidden="true"></i>
         ${T("Start hitchhiking anyway")}
@@ -674,6 +675,8 @@
     if (noRouteCta) { noRouteCta.hidden = true; noRouteCta.onclick = null; }
     const noRouteAdd = panel && panel.querySelector(".rp-no-route-add");
     if (noRouteAdd) { noRouteAdd.hidden = true; noRouteAdd.onclick = null; }
+    const noRouteSnap = panel && panel.querySelector(".rp-no-route-snap");
+    if (noRouteSnap) { noRouteSnap.hidden = true; noRouteSnap.onclick = null; }
     setStatus(null);
   }
   function setStatus(msg) {
@@ -726,6 +729,7 @@
           setStatus(diagnoseNoRoute(FB || RJ.router, from, to, DEFAULT_MAX_WALK, !!FB));
           showNoRouteStartAction(from);
           showNoRouteAddSpotAction(reason, from, to);
+          showNoRouteSnapAction(FB || RJ.router, reason, from, to);
           return;
         }
         hmTrack('route_found', { graph: 'oneoff', options: alt.length });
@@ -813,6 +817,46 @@
       // startAddSpotFromGesture), so end it first.
       if (typeof cleanupLocationSelection === "function") cleanupLocationSelection();
       window.startAddSpotFromGesture(latlng, null);
+    };
+  }
+
+  // The graph spot closest to pt within maxKm, as [index, km], or null.
+  // Linear over the spot list: it runs once per failed search, never per frame.
+  function nearestSpot(R, pt, maxKm) {
+    let best = null;
+    for (let i = 0; i < R.spots.length; i++) {
+      const km = haversineKm(pt, R.spots[i]);
+      if (km <= maxKm && (!best || km < best[1])) best = [i, km];
+    }
+    return best;
+  }
+
+  // #649: an uncovered end is by definition farther than DEFAULT_MAX_WALK from any
+  // logged spot, and the prose asks the person to move it by hand, which almost
+  // nobody does. When exactly one end is uncovered, silently retry from the nearest
+  // covered spot and, only if that connects, offer the result behind one tap. The
+  // label carries a number and nothing else; the route it shows is the logged one.
+  const SNAP_MAX_KM = 150;
+  function showNoRouteSnapAction(R, reason, from, to) {
+    const btn = panel && panel.querySelector(".rp-no-route-snap");
+    if (!btn || (reason !== "start-uncovered" && reason !== "dest-uncovered")) return;
+    const end = reason === "start-uncovered" ? "start" : "dest";
+    const near = nearestSpot(R, end === "start" ? from : to, SNAP_MAX_KM);
+    if (!near) return;
+    const spot = R.spots[near[0]];
+    const alt = end === "start"
+      ? alternatives(R, spot, to, DEFAULT_MAX_WALK, 3, 0.6)
+      : alternatives(R, from, spot, DEFAULT_MAX_WALK, 3, 0.6);
+    if (!alt.length) return;
+    const km = Math.round(near[1]);
+    hmTrack("route_none_snap_shown", { end: end, km: km });
+    btn.textContent = T("Nearest logged route starts {km} km away — show it", { km: km });
+    btn.hidden = false;
+    btn.onclick = function () {
+      hmTrack("route_none_snap_clicked", { end: end, km: km });
+      clearRoutes();
+      hmTrack("route_found", { graph: "snapped", options: alt.length });
+      showRoutes(alt);
     };
   }
 

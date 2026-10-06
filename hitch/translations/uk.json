@@ -998,5 +998,6 @@
   "Latest report ({year}) mentions police at this spot": "В останньому звіті ({year}) на цьому місці згадується поліція",
   "Make a sign": "Зробити табличку",
   "Print": "Друк",
-  "Tell someone you're on your way": "Повідом комусь, що ти в дорозі"
+  "Tell someone you're on your way": "Повідом комусь, що ти в дорозі",
+  "Nearest logged route starts {km} km away — show it": "Найближчий записаний маршрут починається за {km} км – показати"
 }

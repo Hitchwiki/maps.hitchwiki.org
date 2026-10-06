@@ -998,5 +998,6 @@
   "Latest report ({year}) mentions police at this spot": "Viimane aruanne ({year}) mainib selles kohas politseid",
   "Make a sign": "Tee silt",
   "Print": "Prindi",
-  "Tell someone you're on your way": "Anna kellelegi teada, et oled teel"
+  "Tell someone you're on your way": "Anna kellelegi teada, et oled teel",
+  "Nearest logged route starts {km} km away — show it": "Lähim registreeritud marsruut algab {km} km kaugusel – näita"
 }

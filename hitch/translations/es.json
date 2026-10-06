@@ -998,5 +998,6 @@
   "Latest report ({year}) mentions police at this spot": "El último informe ({year}) menciona a la policía en este lugar",
   "Make a sign": "Hacer un cartel",
   "Print": "Imprimir",
-  "Tell someone you're on your way": "Avisa a alguien de que vas de camino"
+  "Tell someone you're on your way": "Avisa a alguien de que vas de camino",
+  "Nearest logged route starts {km} km away — show it": "La ruta registrada más cercana empieza a {km} km – mostrarla"
 }
