@@ -16,6 +16,7 @@ from flask import g
 from jinja2 import Environment, FileSystemLoader
 
 from hitch.helpers import get_db, get_dirs
+from hitch.profile_summary import summarize as summarize_profiles, write_profile_summary
 from hitch.place_activity import ACTIVITY_MIN_RIDES, activity_row, write_activity_summary, write_place_activity_csv
 from hitch.translations import SUPPORTED_LANGUAGES, t
 
@@ -425,6 +426,9 @@ write_activity_summary(
     (rides["ride_datetime"] >= _now - pd.Timedelta(days=7)).sum(),
     (rides["ride_datetime"] >= _now - pd.Timedelta(days=28)).sum(),
 )
+
+_profile_rows = get_db().execute("select origin_city, current_city, profile_links from user where active = 1").fetchall()
+write_profile_summary(os.path.join(dist_dir, "profile_summary.csv"), summarize_profiles(_profile_rows))
 
 # Hand the ranking to route_pages.py. Matching rides to 48k cities is the slow part
 # of this script (~25 min); the route generator needs exactly the same ranking to
