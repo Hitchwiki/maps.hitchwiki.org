@@ -6820,7 +6820,7 @@ function renderSavedSpotsChip() {
     chip = document.createElement("button");
     chip.type = "button";
     chip.id = "saved-spots-chip";
-    chip.style.cssText = "position:fixed;left:12px;top:70px;z-index:1500;padding:8px 12px;border:0;" +
+    chip.style.cssText = "position:fixed;left:12px;top:104px;z-index:1500;padding:8px 12px;border:0;" +
       "border-radius:18px;background:#fff;color:#222;font-size:14px;font-weight:600;cursor:pointer;" +
       "box-shadow:0 1px 5px rgba(0,0,0,.35);";
     chip.onclick = toggleSavedSpotsPanel;
@@ -6835,7 +6835,7 @@ function toggleSavedSpotsPanel() {
   if (existing) return existing.remove();
   const panel = document.createElement("div");
   panel.id = "saved-spots-panel";
-  panel.style.cssText = "position:fixed;left:12px;top:112px;z-index:1500;max-width:min(320px,90vw);" +
+  panel.style.cssText = "position:fixed;left:12px;top:146px;z-index:1500;max-width:min(320px,90vw);" +
     "max-height:50vh;overflow:auto;padding:8px;border-radius:10px;background:#fff;color:#222;" +
     "box-shadow:0 2px 10px rgba(0,0,0,.4);";
   loadSavedSpots().forEach((spot) => {
