@@ -986,5 +986,7 @@
   "{used} of {total} database rows qualify.": "データベースの{total}行中{used}行が条件に合います。",
   "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "記録されたライド{total}回中{used}回に回答があり、そのうち{no}回が「いいえ」です。下で作れるコホートの多くは、ほんの数回のライドに基づきます。各割合の隣の信頼区間こそ読む価値があります。",
   "I'm in {city} now": "今は{city}にいます",
-  "Saved. Hitchhikers from {city} will be told.": "保存しました。{city}出身のヒッチハイカーに知らせます。"
+  "Saved. Hitchhikers from {city} will be told.": "保存しました。{city}出身のヒッチハイカーに知らせます。",
+  "{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.": "{country}を出発地とする乗車を記録したヒッチハイカー{total}人のうち{yes}人が、その乗車をもう一度受け入れると答えました。",
+  "See the data and its limits": "データとその限界を見る"
 }

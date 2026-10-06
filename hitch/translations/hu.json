@@ -986,5 +986,7 @@
   "{used} of {total} database rows qualify.": "{total} adatbázissorból {used} megfelelő.",
   "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{total} rögzített útból {used} tartalmaz választ, ezek közül {no} „nem“. A lent összeállítható kohorszok többsége maroknyi útra támaszkodik – a százalékok melletti konfidenciaintervallum az, amit érdemes elolvasni.",
   "I'm in {city} now": "Most {city} városában vagyok",
-  "Saved. Hitchhikers from {city} will be told.": "Mentve. A {city}-i stopposokat értesítjük."
+  "Saved. Hitchhikers from {city} will be told.": "Mentve. A {city}-i stopposokat értesítjük.",
+  "{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.": "A(z) {country} országból induló utat rögzítő {total} stoppos közül {yes} azt mondta, hogy újra elfogadná azt az utat.",
+  "See the data and its limits": "Az adatok és korlátaik megtekintése"
 }

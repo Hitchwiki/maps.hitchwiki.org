@@ -986,5 +986,7 @@
   "{used} of {total} database rows qualify.": "{used} z {total} riadkov databázy je spôsobilých.",
   "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} z {total} zaznamenaných jázd obsahuje odpoveď, {no} z nich „nie“. Väčšina skupín, ktoré si nižšie zostavíš, bude vychádzať z hŕstky jázd — stojí za to čítať interval spoľahlivosti vedľa každého percenta.",
   "I'm in {city} now": "Teraz som v meste {city}",
-  "Saved. Hitchhikers from {city} will be told.": "Uložené. Stopári z {city} sa to dozvedia."
+  "Saved. Hitchhikers from {city} will be told.": "Uložené. Stopári z {city} sa to dozvedia.",
+  "{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.": "{yes} z {total} stopárov, ktorí zapísali jazdu začínajúcu v krajine {country}, uviedlo, že by túto jazdu prijali znova.",
+  "See the data and its limits": "Zobraziť údaje a ich obmedzenia"
 }

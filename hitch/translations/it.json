@@ -986,5 +986,7 @@
   "{used} of {total} database rows qualify.": "{used} righe del database su {total} sono idonee.",
   "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} passaggi registrati su {total} hanno una risposta, {no} di loro un “no”. La maggior parte dei gruppi che puoi creare qui sotto si baserà su una manciata di passaggi: l'intervallo di confidenza accanto a ogni percentuale è la parte da leggere.",
   "I'm in {city} now": "Ora sono a {city}",
-  "Saved. Hitchhikers from {city} will be told.": "Salvato. Gli autostoppisti di {city} saranno avvisati."
+  "Saved. Hitchhikers from {city} will be told.": "Salvato. Gli autostoppisti di {city} saranno avvisati.",
+  "{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.": "{yes} autostoppisti su {total} che hanno registrato un passaggio con partenza in {country} hanno detto che accetterebbero di nuovo quel passaggio.",
+  "See the data and its limits": "Vedi i dati e i loro limiti"
 }

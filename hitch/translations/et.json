@@ -986,5 +986,7 @@
   "{used} of {total} database rows qualify.": "{used} andmebaasi reast {total}-st sobib.",
   "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} salvestatud sõidust {total}-st sisaldab vastust, neist {no} „ei“. Enamik allpool koostatavaid kohortidest tugineb vaid käputäiele sõitudele – iga protsendi kõrval olev usaldusvahemik on see osa, mida tasub lugeda.",
   "I'm in {city} now": "Olen nüüd linnas {city}",
-  "Saved. Hitchhikers from {city} will be told.": "Salvestatud. {city} liftijaid teavitatakse."
+  "Saved. Hitchhikers from {city} will be told.": "Salvestatud. {city} liftijaid teavitatakse.",
+  "{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.": "{yes} {total}-st autostopijast, kes logis sõidu algusega riigis {country}, ütles, et võtaks selle sõidu uuesti vastu.",
+  "See the data and its limits": "Vaata andmeid ja nende piire"
 }

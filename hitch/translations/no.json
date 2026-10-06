@@ -986,5 +986,7 @@
   "{used} of {total} database rows qualify.": "{used} av {total} databaserader kvalifiserer.",
   "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} av {total} registrerte turer har et svar, {no} av dem et «nei». De fleste kohortene du kan bygge nedenfor vil hvile på en håndfull turer — konfidensintervallet ved siden av hver prosent er delen det er verdt å lese.",
   "I'm in {city} now": "Jeg er i {city} nå",
-  "Saved. Hitchhikers from {city} will be told.": "Lagret. Haikere fra {city} får beskjed."
+  "Saved. Hitchhikers from {city} will be told.": "Lagret. Haikere fra {city} får beskjed.",
+  "{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.": "{yes} av {total} haikere som loggførte en tur med start i {country}, sa at de ville tatt imot turen igjen.",
+  "See the data and its limits": "Se dataene og begrensningene deres"
 }

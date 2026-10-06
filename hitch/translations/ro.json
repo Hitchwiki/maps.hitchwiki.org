@@ -986,5 +986,7 @@
   "{used} of {total} database rows qualify.": "{used} din {total} rânduri din baza de date sunt eligibile.",
   "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build below will rest on a handful of rides — the confidence interval next to each percentage is the part worth reading.": "{used} din {total} curse înregistrate au un răspuns, {no} dintre ele un „nu”. Majoritatea cohortelor pe care le poți construi mai jos se vor baza pe câteva curse — intervalul de încredere de lângă fiecare procent e partea care merită citită.",
   "I'm in {city} now": "Acum sunt în {city}",
-  "Saved. Hitchhikers from {city} will be told.": "Salvat. Autostopiștii din {city} vor fi anunțați."
+  "Saved. Hitchhikers from {city} will be told.": "Salvat. Autostopiștii din {city} vor fi anunțați.",
+  "{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.": "{yes} din {total} autostopiști care au înregistrat o cursă cu plecare din {country} au spus că ar accepta din nou acea cursă.",
+  "See the data and its limits": "Vezi datele și limitele lor"
 }
