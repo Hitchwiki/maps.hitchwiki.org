@@ -180,15 +180,20 @@ def write_json_file(data: pd.DataFrame | dict, filename):
     logger.info(f"Writing: {filepath}")
     json_data = data.to_dict(orient="records") if hasattr(data, "to_dict") else data
     payload = simplejson.dumps(json_data, ignore_nan=True)
-    with open(filepath, "w", encoding="utf-8") as f:
+    # Write both files under temp names and rename them into place, so a process
+    # killed mid-write (likely a deploy restart during show.py; it left a
+    # 0-byte spots.core.json.gz that was then served) never leaves a truncated file.
+    # Plain first, sidecar second, so the sidecar's mtime is never older than the data
+    # it encodes (the route refuses older sidecars); the catch_all route serves the
+    # .gz with Content-Encoding: gzip so the reverse proxy doesn't recompress multi-MB
+    # payloads on every request. Between the two renames the old sidecar is older than
+    # the new plain file and is skipped, so a reader gets the plain file, never stale data.
+    tmp_plain, tmp_gz = filepath + ".tmp", filepath + ".gz.tmp"
+    with open(tmp_plain, "w", encoding="utf-8") as f:
         f.write(payload)
-
-    # Precompress once at generation time. The catch_all route serves the .gz
-    # sidecar with Content-Encoding: gzip, so the reverse proxy doesn't have to
-    # recompress these multi-MB files on every request. Written after the plain
-    # file so the sidecar's mtime is never older than the data it encodes (the
-    # route refuses sidecars older than the plain file).
-    with gzip.open(filepath + ".gz", "wb", compresslevel=9) as f:
+    with gzip.open(tmp_gz, "wb", compresslevel=9) as f:
         f.write(payload.encode("utf-8"))
+    os.replace(tmp_plain, filepath)
+    os.replace(tmp_gz, filepath + ".gz")
 
     logger.info(f"Wrote json of length {len(data)} to: {filepath} (+ .gz sidecar)")
