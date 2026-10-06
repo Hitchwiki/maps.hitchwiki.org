@@ -11,10 +11,30 @@
   <p>{{ n }} offizielle{{ 'r' if n == 1 else '' }} Mitfahrhalt{{ 'e' if n > 1 }} in {{ town.name }}{% if town.state %} ({{ town.state }}){% endif %}. Öffne einen Halt, um Erfahrungen anderer zu lesen und deine eigene Fahrt einzutragen.</p>
   {% endif %}
   <p><a href="/?ref=bench-town#map=14/{{ lat }}/{{ lon }}">{{ 'Voir sur la carte' if fr else 'Auf der Karte ansehen' }}</a></p>
+  <p><button type="button" id="bench-pledge-btn" style="display:none;padding:10px 14px;border:0;border-radius:8px;background:#1a73e8;color:#fff;font-size:15px;cursor:pointer">{{ pledge_btn }}</button><span id="bench-pledge-note" style="display:none">{{ pledge_note }}</span></p>
   <ul>
   {% for osm_id, slat, slon in town.stops[:50] %}
     <li><a href="/official-stop/{{ osm_id }}?ref=bench-town">{{ 'Arrêt' if fr else 'Mitfahrhalt' }} {{ loop.index }} ({{ slat }}, {{ slon }})</a></li>
   {% endfor %}
   </ul>
 </main>
+<script>
+(function () {
+  var btn = document.getElementById("bench-pledge-btn"), note = document.getElementById("bench-pledge-note");
+  if (!btn) return;
+  try { if (localStorage.getItem("hmDriverPledgeMade")) return; } catch (e) {}
+  btn.style.display = "inline-block";
+  if (window.hmTrack) hmTrack("driver_pledge_shown", { surface: "bench_town" });
+  btn.onclick = function () {
+    if (window.hmTrack) hmTrack("driver_pledge_clicked", { surface: "bench_town" });
+    try {
+      localStorage.setItem("hmDriverPledgeMade", "1");
+      localStorage.setItem("hmDriverPledgedAt", String(Date.now()));
+      localStorage.setItem("hmDriverPledgeSurface", "bench_town");
+    } catch (e) {}
+    btn.style.display = "none";
+    note.style.display = "inline";
+  };
+})();
+</script>
 {% endblock %}
