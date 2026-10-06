@@ -3238,11 +3238,16 @@ function summaryText(data, hists = { wait: null, distance: null }) {
   const goneWarning = Number.isFinite(data.gone)
     ? `<div class="spot-gone-warning" style="background:#fff4e5;border-left:4px solid #f59e0b;padding:6px 10px;margin:4px 0;">${tr("Latest report ({year}) says this spot may be gone", { year: data.gone })}</div>`
     : "";
+  // #646: same idea for "police / security sent people away" in the newest report.
+  const policeNote = Number.isFinite(data.police)
+    ? `<div class="spot-police-note" style="background:#fff4e5;border-left:4px solid #f59e0b;padding:6px 10px;margin:4px 0;">${tr("Latest report ({year}) mentions police at this spot", { year: data.police })}</div>`
+    : "";
+  if (policeNote && window.hmTrack) window.hmTrack("spot_police_note_shown", { year: String(data.police) });
   if (goneWarning && window.hmTrack) window.hmTrack("spot_gone_warning_shown", { year: String(data.gone) });
 
   // Lines are <div>s rather than <br>-separated text: each histogram is a block
   // element, and a <br> after one would open an empty line under the chart.
-  return `${goneWarning}<div>${tr("Rating: {rating}/5", { rating })}</div>
+  return `${goneWarning}${policeNote}<div>${tr("Rating: {rating}/5", { rating })}</div>
     <div>${tr("Waiting time: {wait}", { wait })}</div>
     ${spotHistogramMarkup(hists.wait, "spot-wait-hist", "min")}
     <div>${tr("Ride distance: {distance}", { distance })}</div>

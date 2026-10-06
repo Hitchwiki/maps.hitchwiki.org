@@ -994,5 +994,6 @@
   "Saved spots": "Salvestatud kohad",
   "Start hitching here": "Alusta siit hääletamist",
   "This wiki page has no location yet. Search for the place or tap a marker.": "Sellel viki lehel pole veel asukohta. Otsi kohta või puuduta markerit.",
-  "Latest report ({year}) says this spot may be gone": "Viimane aruanne ({year}) ütleb, et see koht võib olla kadunud"
+  "Latest report ({year}) says this spot may be gone": "Viimane aruanne ({year}) ütleb, et see koht võib olla kadunud",
+  "Latest report ({year}) mentions police at this spot": "Viimane aruanne ({year}) mainib selles kohas politseid"
 }

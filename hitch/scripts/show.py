@@ -825,6 +825,31 @@ _gone = _newest[
 places["gone_year"] = _gone.set_index(["lat", "lon"])["submission_time"].dt.year
 logger.info(f"{len(_gone)} spot(s) whose newest report says the spot is gone")
 
+# #646: spots whose newest report says police/security sent people away or fined them.
+# Neutral label on the sheet ("mentions police"): some matches are "police said stand
+# over there", so we never claim the spot is banned.
+POLICE_COMMENT_RE = re.compile(
+    r"(police|cops?|security guards?|polizei|polic[ií]a|gendarm\w*|policja|policie)[^.!?]{0,60}"
+    r"(made|told|asked|forced|kicked|chased|sent|ordered|fined|stopped|came|moved)[^.!?]{0,40}"
+    r"(leave|go|move|away|out|off|fine|ticket|hitch)"
+    r"|(fined|ticket(ed)?|kicked out|chased away) (by|from)[^.!?]{0,20}(police|cops?|security)",
+    re.I,
+)
+POLICE_NEGATED_RE = re.compile(
+    r"(didn'?t|did not|never|\bno\b|\bnot\b)[^.!?]{0,30}(police|cops?|security)"
+    r"|(police|cops?)[^.!?]{0,25}(didn'?t|did not|never|nice|friendly)",
+    re.I,
+)
+POLICE_MIN_YEAR = 2024
+_comment_txt = _newest["comment"].fillna("")
+_police = _newest[
+    (_newest["submission_time"].dt.year >= POLICE_MIN_YEAR)
+    & _comment_txt.str.contains(POLICE_COMMENT_RE)
+    & ~_comment_txt.str.contains(POLICE_NEGATED_RE)
+]
+places["police_year"] = _police.set_index(["lat", "lon"])["submission_time"].dt.year
+logger.info(f"{len(_police)} spot(s) whose newest report mentions police moving people on")
+
 places.reset_index(inplace=True)
 places.sort_values("rating", inplace=True, ascending=False)
 
@@ -1140,6 +1165,8 @@ for _, place in places.iterrows():
         spot_data["latest_ms"] = int(place["latest_submission"].timestamp() * 1000)
     if pd.notna(place["gone_year"]):
         spot_data["gone"] = int(place["gone_year"])
+    if pd.notna(place["police_year"]):
+        spot_data["police"] = int(place["police_year"])
     # Destination coords are needed at load time for the direction filter and the
     # destination lines drawn for a selected spot.
     if isinstance(place["dest_lats"], list) and len(place["dest_lats"]):
