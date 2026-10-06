@@ -219,6 +219,13 @@ function markerAppearance(spot) {
   };
 }
 
+// #622: one `map_boot` as soon as map.js runs. map_ready only counts people who stayed until
+// spots appeared, so map_ready / map_boot (split by mobile) is the share who gave up first.
+try {
+  const bootMobile = window.matchMedia && window.matchMedia("(max-width: 700px)").matches;
+  if (window.hmTrack) window.hmTrack("map_boot", { mobile: bootMobile ? "yes" : "no", conn: (navigator.connection && navigator.connection.effectiveType) || "unknown" });
+} catch (e) {}
+
 // Load markers from JSON data
 // #622: how long until a visitor sees spots? One `map_ready` per page load, bucketed
 // seconds since navigation start, with connection type and whether spots.json came from
