@@ -998,5 +998,6 @@
   "Latest report ({year}) mentions police at this spot": "Naujausiame pranešime ({year}) šioje vietoje minima policija",
   "Make a sign": "Sukurti ženklą",
   "Print": "Spausdinti",
-  "Tell someone you're on your way": "Praneškite kam nors, kad esate kelyje"
+  "Tell someone you're on your way": "Praneškite kam nors, kad esate kelyje",
+  "Nearest logged route starts {km} km away — show it": "Artimiausias užregistruotas maršrutas prasideda už {km} km – rodyti"
 }

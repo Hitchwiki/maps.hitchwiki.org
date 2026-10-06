@@ -998,5 +998,6 @@
   "Latest report ({year}) mentions police at this spot": "Сүүлийн мэдээлэлд ({year}) энэ газарт цагдаа байсныг дурджээ",
   "Make a sign": "Тэмдэг хийх",
   "Print": "Хэвлэх",
-  "Tell someone you're on your way": "Замдаа яваа гэдгээ хэн нэгэнд хэл"
+  "Tell someone you're on your way": "Замдаа яваа гэдгээ хэн нэгэнд хэл",
+  "Nearest logged route starts {km} km away — show it": "Хамгийн ойрын бүртгэгдсэн маршрут {km} км зайнаас эхэлнэ – харуулах"
 }

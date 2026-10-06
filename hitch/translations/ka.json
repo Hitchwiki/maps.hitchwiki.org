@@ -998,5 +998,6 @@
   "Latest report ({year}) mentions police at this spot": "ბოლო ანგარიშში ({year}) ამ ადგილას პოლიცია არის ნახსენები",
   "Make a sign": "დაამზადე აბრა",
   "Print": "ბეჭდვა",
-  "Tell someone you're on your way": "შეატყობინე ვინმეს, რომ გზაში ხარ"
+  "Tell someone you're on your way": "შეატყობინე ვინმეს, რომ გზაში ხარ",
+  "Nearest logged route starts {km} km away — show it": "უახლოესი დაფიქსირებული მარშრუტი იწყება {km} კმ-ში – ჩვენება"
 }

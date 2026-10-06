@@ -4103,6 +4103,12 @@ body.routing-active .leaflet-control-container .leaflet-control-geocoder { displ
   font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
 }
 .rp-no-route-add:hover { background: #e6f4ea; }
+.rp-no-route-snap {
+  width: 100%; margin-top: 8px; padding: 9px 14px;
+  border: 0; border-radius: 9px; background: #188038; color: #fff;
+  font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.rp-no-route-snap:hover { background: #137333; }
 
 /* Plan the way back: a quiet text button under the two fields, not a second primary CTA. */
 .rp-swap {
