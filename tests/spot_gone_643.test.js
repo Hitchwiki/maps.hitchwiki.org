@@ -11,10 +11,17 @@ test("spot sheet renders the warning first and tracks it", () => {
   assert.match(MAP, /Number\.isFinite\(data\.gone\)/);
   assert.match(MAP, /tr\("Latest report \(\{year\}\) says this spot may be gone"/);
   assert.match(MAP, /hmTrack\("spot_gone_warning_shown"/);
-  assert.match(MAP, /return `\$\{goneWarning\}<div>\$\{tr\("Rating:/);
+  assert.match(MAP, /return `\$\{goneWarning\}\$\{policeNote\}<div>\$\{tr\("Rating:/);
 });
 
 test("show.py emits `gone` only for recent reports", () => {
   assert.match(SHOW, /GONE_MIN_YEAR = 2023/);
   assert.match(SHOW, /spot_data\["gone"\] = int\(place\["gone_year"\]\)/);
+});
+
+test("#646 police note: newest-report flag, neutral label, tracked", () => {
+  assert.match(SHOW, /POLICE_MIN_YEAR = 2024/);
+  assert.match(SHOW, /spot_data\["police"\] = int\(place\["police_year"\]\)/);
+  assert.match(MAP, /tr\("Latest report \(\{year\}\) mentions police at this spot"/);
+  assert.match(MAP, /hmTrack\("spot_police_note_shown"/);
 });

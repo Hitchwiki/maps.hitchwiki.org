@@ -994,5 +994,6 @@
   "Saved spots": "已保存的地点",
   "Start hitching here": "从这里开始搭便车",
   "This wiki page has no location yet. Search for the place or tap a marker.": "这个wiki页面还没有位置。请搜索该地点或点击标记。",
-  "Latest report ({year}) says this spot may be gone": "最新报告（{year}年）称这个地点可能已不存在"
+  "Latest report ({year}) says this spot may be gone": "最新报告（{year}年）称这个地点可能已不存在",
+  "Latest report ({year}) mentions police at this spot": "最新报告（{year}年）提到这个地点有警察"
 }

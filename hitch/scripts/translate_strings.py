@@ -64,6 +64,8 @@ LANGUAGE_NAMES = {
 # in sync by hand -- there's no extraction tool, and duplicating the audit here
 # is deliberate: it's the same list of user-facing strings by design.
 SOURCE_STRINGS = [
+    # Spot police note (map.js, #646).
+    "Latest report ({year}) mentions police at this spot",
     # Spot gone warning (map.js, #643).
     "Latest report ({year}) says this spot may be gone",
     # #0,0 arrival note (map.js, #642).
