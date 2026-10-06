@@ -988,5 +988,9 @@
   "I'm in {city} now": "Dabar esu {city}",
   "Saved. Hitchhikers from {city} will be told.": "Išsaugota. {city} autostopininkai bus informuoti.",
   "{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.": "{yes} iš {total} autostopininkų, užregistravusių kelionę, prasidėjusią šalyje {country}, teigė, kad vėl sutiktų su ta kelione.",
-  "See the data and its limits": "Žiūrėti duomenis ir jų apribojimus"
+  "See the data and its limits": "Žiūrėti duomenis ir jų apribojimus",
+  "Save this spot": "Išsaugoti šią vietą",
+  "Saved": "Išsaugota",
+  "Saved spots": "Išsaugotos vietos",
+  "Start hitching here": "Pradėti stabdyti iš čia"
 }

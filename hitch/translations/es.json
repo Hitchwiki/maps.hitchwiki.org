@@ -988,5 +988,9 @@
   "I'm in {city} now": "Ahora estoy en {city}",
   "Saved. Hitchhikers from {city} will be told.": "Guardado. Se avisará a los autoestopistas de {city}.",
   "{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.": "{yes} de {total} autoestopistas que registraron un viaje con salida en {country} dijeron que volverían a aceptar ese viaje.",
-  "See the data and its limits": "Ver los datos y sus límites"
+  "See the data and its limits": "Ver los datos y sus límites",
+  "Save this spot": "Guardar este lugar",
+  "Saved": "Guardado",
+  "Saved spots": "Lugares guardados",
+  "Start hitching here": "Empezar a hacer autostop aquí"
 }

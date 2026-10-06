@@ -988,5 +988,9 @@
   "I'm in {city} now": "Most {city} városában vagyok",
   "Saved. Hitchhikers from {city} will be told.": "Mentve. A {city}-i stopposokat értesítjük.",
   "{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.": "A(z) {country} országból induló utat rögzítő {total} stoppos közül {yes} azt mondta, hogy újra elfogadná azt az utat.",
-  "See the data and its limits": "Az adatok és korlátaik megtekintése"
+  "See the data and its limits": "Az adatok és korlátaik megtekintése",
+  "Save this spot": "Hely mentése",
+  "Saved": "Mentve",
+  "Saved spots": "Mentett helyek",
+  "Start hitching here": "Autóstop kezdése innen"
 }

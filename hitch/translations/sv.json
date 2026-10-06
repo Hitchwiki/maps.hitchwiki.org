@@ -988,5 +988,9 @@
   "I'm in {city} now": "Jag är i {city} nu",
   "Saved. Hitchhikers from {city} will be told.": "Sparat. Liftare från {city} får besked.",
   "{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.": "{yes} av {total} liftare som loggade en tur med start i {country} sa att de skulle ta emot den skjutsen igen.",
-  "See the data and its limits": "Se data och dess begränsningar"
+  "See the data and its limits": "Se data och dess begränsningar",
+  "Save this spot": "Spara den här platsen",
+  "Saved": "Sparad",
+  "Saved spots": "Sparade platser",
+  "Start hitching here": "Börja lifta härifrån"
 }

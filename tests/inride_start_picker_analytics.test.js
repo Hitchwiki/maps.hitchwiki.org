@@ -123,7 +123,7 @@ test("a failed location fix carries the reason it failed, not just 'failed'", ()
 });
 
 test("journey start source survives the login redirect and stays bounded", () => {
-  assert.match(SOURCE, /const START_SOURCES = \["start-bar", "spot-sheet", "map-gesture", "route-results"\]/);
+  assert.match(SOURCE, /const START_SOURCES = \["start-bar", "spot-sheet", "map-gesture", "route-results", "saved-spot"\]/);
   assert.match(SOURCE, /START_SOURCES\.includes\(source\) \? source : "unknown"/);
   assert.match(SOURCE, /JSON\.stringify\(\{ lat: p\.lat, lon: p\.lon, source: source \}\)/);
   assert.match(SOURCE, /source: startSource\(source\)/);

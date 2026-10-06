@@ -988,5 +988,9 @@
   "I'm in {city} now": "Sada sam u {city}",
   "Saved. Hitchhikers from {city} will be told.": "Sačuvano. Autostoperi iz {city} biće obavešteni.",
   "{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.": "{yes} од {total} аутостопера који су забележили вожњу која почиње у земљи {country} рекло је да би ту вожњу поново прихватило.",
-  "See the data and its limits": "Погледајте податке и њихова ограничења"
+  "See the data and its limits": "Погледајте податке и њихова ограничења",
+  "Save this spot": "Сачувај ово место",
+  "Saved": "Сачувано",
+  "Saved spots": "Сачувана места",
+  "Start hitching here": "Почни аутостоп одавде"
 }

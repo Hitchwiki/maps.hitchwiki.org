@@ -988,5 +988,9 @@
   "I'm in {city} now": "Olen nüüd linnas {city}",
   "Saved. Hitchhikers from {city} will be told.": "Salvestatud. {city} liftijaid teavitatakse.",
   "{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.": "{yes} {total}-st autostopijast, kes logis sõidu algusega riigis {country}, ütles, et võtaks selle sõidu uuesti vastu.",
-  "See the data and its limits": "Vaata andmeid ja nende piire"
+  "See the data and its limits": "Vaata andmeid ja nende piire",
+  "Save this spot": "Salvesta see koht",
+  "Saved": "Salvestatud",
+  "Saved spots": "Salvestatud kohad",
+  "Start hitching here": "Alusta siit hääletamist"
 }

@@ -988,5 +988,9 @@
   "I'm in {city} now": "Olen nyt kaupungissa {city}",
   "Saved. Hitchhikers from {city} will be told.": "Tallennettu. {city}n liftarit saavat tiedon.",
   "{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.": "{yes}/{total} liftarista, jotka kirjasivat kyydin alkaen maasta {country}, sanoi ottavansa kyydin uudelleen vastaan.",
-  "See the data and its limits": "Katso tiedot ja niiden rajoitukset"
+  "See the data and its limits": "Katso tiedot ja niiden rajoitukset",
+  "Save this spot": "Tallenna tämä paikka",
+  "Saved": "Tallennettu",
+  "Saved spots": "Tallennetut paikat",
+  "Start hitching here": "Aloita liftaus tästä"
 }

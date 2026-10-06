@@ -988,5 +988,9 @@
   "I'm in {city} now": "Би одоо {city} хотод байна",
   "Saved. Hitchhikers from {city} will be told.": "Хадгалагдлаа. {city}-ийн хитчхайкерүүдэд мэдэгдэнэ.",
   "{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.": "{country}-аас эхэлсэн аяллыг бүртгэсэн {total} хөсөрчин тутмын {yes} нь тэр унаанд дахин суухыг зөвшөөрнө гэжээ.",
-  "See the data and its limits": "Өгөгдөл ба түүний хязгаарлалтыг харах"
+  "See the data and its limits": "Өгөгдөл ба түүний хязгаарлалтыг харах",
+  "Save this spot": "Энэ газрыг хадгалах",
+  "Saved": "Хадгалсан",
+  "Saved spots": "Хадгалсан газрууд",
+  "Start hitching here": "Эндээс автостоп хийж эхлэх"
 }

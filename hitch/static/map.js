@@ -3611,6 +3611,7 @@ function markerClick(marker) {
   const spotUrl = `${location.origin}${spotPath}#map=17/${data.lat.toFixed(5)}/${data.lon.toFixed(5)}`;
   // The shared delegated handler in base.html reads data-share-url at click time.
   $$("#share-spot-btn").dataset.shareUrl = spotUrl;
+  wireSpotSaveButton(data);
 }
 
 function bar(selector) {
@@ -6740,6 +6741,135 @@ function maybeShowNewsletterPledge() {
 }
 // Delay: the consent dialog renders a moment after load.
 setTimeout(maybeShowNewsletterPledge, 3000);
+
+// #641: save a spot on this device for the trip. Coordinates only, in localStorage (no
+// account, no server). A chip on the map lists them, each with a one-tap start, so the
+// planner who found the spot at home does not need a GPS fix at the roadside.
+const SAVED_SPOTS_KEY = "hmSavedSpots";
+const SAVED_SPOTS_MAX = 20;
+
+function loadSavedSpots() {
+  try {
+    const list = JSON.parse(localStorage.getItem(SAVED_SPOTS_KEY) || "[]");
+    return Array.isArray(list)
+      ? list.filter((s) => s && isFinite(s.lat) && isFinite(s.lon)).slice(0, SAVED_SPOTS_MAX)
+      : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function storeSavedSpots(list) {
+  try {
+    localStorage.setItem(SAVED_SPOTS_KEY, JSON.stringify(list.slice(0, SAVED_SPOTS_MAX)));
+  } catch (e) {
+    /* private mode / quota: saving is a nicety, never an error */
+  }
+}
+
+function sameSpot(a, b) {
+  return Math.abs(a.lat - b.lat) < 1e-5 && Math.abs(a.lon - b.lon) < 1e-5;
+}
+
+function wireSpotSaveButton(data) {
+  const share = $$("#share-spot-btn");
+  if (!share) return;
+  let btn = $$("#spot-save-btn");
+  if (!btn) {
+    btn = document.createElement("button");
+    btn.type = "button";
+    btn.id = "spot-save-btn";
+    btn.className = "share-btn";
+    share.insertAdjacentElement("afterend", btn);
+  }
+  const render = () => {
+    const saved = loadSavedSpots().some((s) => sameSpot(s, data));
+    btn.innerHTML = (saved ? "\u2605 " : "\u2606 ") +
+      '<span class="share-btn-label"></span>';
+    btn.querySelector(".share-btn-label").textContent = saved ? tr("Saved") : tr("Save this spot");
+    btn.setAttribute("aria-pressed", saved ? "true" : "false");
+  };
+  btn.onclick = function () {
+    const list = loadSavedSpots();
+    const i = list.findIndex((s) => sameSpot(s, data));
+    if (i >= 0) {
+      list.splice(i, 1);
+      hmTrack("spot_unsaved");
+    } else {
+      list.unshift({ lat: data.lat, lon: data.lon });
+      hmTrack("spot_saved", { count: Math.min(list.length, SAVED_SPOTS_MAX) });
+    }
+    storeSavedSpots(list);
+    render();
+    renderSavedSpotsChip();
+  };
+  render();
+}
+
+function renderSavedSpotsChip() {
+  let chip = document.getElementById("saved-spots-chip");
+  const list = loadSavedSpots();
+  const journeyActive = window.inride && window.inride.journeyStore && window.inride.journeyStore.get();
+  if (!list.length || journeyActive) {
+    if (chip) chip.remove();
+    const old = document.getElementById("saved-spots-panel");
+    if (old) old.remove();
+    return;
+  }
+  if (!chip) {
+    chip = document.createElement("button");
+    chip.type = "button";
+    chip.id = "saved-spots-chip";
+    chip.style.cssText = "position:fixed;left:12px;top:70px;z-index:1500;padding:8px 12px;border:0;" +
+      "border-radius:18px;background:#fff;color:#222;font-size:14px;font-weight:600;cursor:pointer;" +
+      "box-shadow:0 1px 5px rgba(0,0,0,.35);";
+    chip.onclick = toggleSavedSpotsPanel;
+    document.body.appendChild(chip);
+    hmTrack("saved_spots_chip_shown", { count: list.length });
+  }
+  chip.textContent = "\u2605 " + tr("Saved spots") + " (" + list.length + ")";
+}
+
+function toggleSavedSpotsPanel() {
+  const existing = document.getElementById("saved-spots-panel");
+  if (existing) return existing.remove();
+  const panel = document.createElement("div");
+  panel.id = "saved-spots-panel";
+  panel.style.cssText = "position:fixed;left:12px;top:112px;z-index:1500;max-width:min(320px,90vw);" +
+    "max-height:50vh;overflow:auto;padding:8px;border-radius:10px;background:#fff;color:#222;" +
+    "box-shadow:0 2px 10px rgba(0,0,0,.4);";
+  loadSavedSpots().forEach((spot) => {
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;gap:6px;align-items:center;padding:4px 0;";
+    const go = document.createElement("button");
+    go.type = "button";
+    go.style.cssText = "flex:1;text-align:left;padding:8px;border:0;border-radius:8px;background:#1a73e8;color:#fff;cursor:pointer;";
+    go.textContent = tr("Start hitching here") + " \u00b7 " + spot.lat.toFixed(3) + ", " + spot.lon.toFixed(3);
+    go.onclick = function () {
+      if (!window.inride || !window.L) return;
+      hmTrack("saved_spot_start_clicked");
+      panel.remove();
+      window.inride.journeyFlow.startFromChoose(L.latLng(spot.lat, spot.lon), "saved-spot");
+    };
+    const rm = document.createElement("button");
+    rm.type = "button";
+    rm.style.cssText = "padding:8px;border:0;background:none;cursor:pointer;font-size:16px;";
+    rm.setAttribute("aria-label", tr("Remove"));
+    rm.textContent = "\u2715";
+    rm.onclick = function () {
+      storeSavedSpots(loadSavedSpots().filter((s) => !sameSpot(s, spot)));
+      hmTrack("spot_unsaved");
+      panel.remove();
+      renderSavedSpotsChip();
+    };
+    row.appendChild(go);
+    row.appendChild(rm);
+    panel.appendChild(row);
+  });
+  document.body.appendChild(panel);
+}
+// The in-ride store loads after map.js and the journey may be resumed from storage.
+setTimeout(renderSavedSpotsChip, 1500);
 
 // Expose the pieces the in-ride tracker composes with (it loads after map.js).
 window.map = map; // intentional: exposes the Leaflet instance for inride.js (marker placement, layer removal)

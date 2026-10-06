@@ -481,7 +481,7 @@
   // Soft login gate: logged-in users go straight to start; anonymous users see a
   // prompt so they can choose to log in (and preserve the chosen spot across the
   // redirect) or carry on without an account. No hard block — anonymous is fine.
-  const START_SOURCES = ["start-bar", "spot-sheet", "map-gesture", "route-results"];
+  const START_SOURCES = ["start-bar", "spot-sheet", "map-gesture", "route-results", "saved-spot"];
   function startSource(source) {
     return START_SOURCES.includes(source) ? source : "unknown";
   }

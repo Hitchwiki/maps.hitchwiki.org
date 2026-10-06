@@ -988,5 +988,9 @@
   "I'm in {city} now": "Acum sunt în {city}",
   "Saved. Hitchhikers from {city} will be told.": "Salvat. Autostopiștii din {city} vor fi anunțați.",
   "{yes} of {total} hitchhikers who logged a ride starting in {country} said they would accept that ride again.": "{yes} din {total} autostopiști care au înregistrat o cursă cu plecare din {country} au spus că ar accepta din nou acea cursă.",
-  "See the data and its limits": "Vezi datele și limitele lor"
+  "See the data and its limits": "Vezi datele și limitele lor",
+  "Save this spot": "Salvează acest loc",
+  "Saved": "Salvat",
+  "Saved spots": "Locuri salvate",
+  "Start hitching here": "Începe autostopul de aici"
 }
