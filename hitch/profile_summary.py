@@ -9,6 +9,7 @@ which slightly over-counts matches across countries; it is a growth signal, not 
 import csv
 import os
 from collections import Counter
+from datetime import datetime, timedelta
 
 from hitch.profile_links import describe_link, load_links
 
@@ -63,7 +64,49 @@ def summarize(rows):
     }
 
 
+def _when(value):
+    if isinstance(value, datetime):
+        return value
+    try:
+        return datetime.fromisoformat(str(value).split(".")[0])
+    except ValueError:
+        return None
+
+
+def conversation_stats(messages, now):
+    """messages: (sender_id, recipient_id, created_at) rows. Counts only (IDEAS #634).
+
+    A conversation is the unordered pair; "answered" means the recipient of the first
+    message wrote back within 72 h. Only pairs opened 3-28 days ago are judged, so every
+    one has had the full 72 h. Reply-rate is a whole percent, "" when under SUPPRESS_BELOW pairs.
+    """
+    pairs = {}
+    sent_7d = 0
+    for sender, recipient, created in messages:
+        t = _when(created)
+        if t is None:
+            continue
+        sent_7d += t >= now - timedelta(days=7)
+        pairs.setdefault(frozenset((sender, recipient)), []).append((t, sender))
+    started_7d = judged = answered = 0
+    for msgs in pairs.values():
+        msgs.sort()
+        first_t, first_sender = msgs[0]
+        started_7d += first_t >= now - timedelta(days=7)
+        if now - timedelta(days=28) <= first_t <= now - timedelta(hours=72):
+            judged += 1
+            answered += any(s != first_sender and t - first_t <= timedelta(hours=72) for t, s in msgs)
+    return {
+        "messages_7d": sent_7d,
+        "new_conversations_7d": started_7d,
+        "first_messages_judged_28d": judged,
+        "first_messages_answered_pct": round(100 * answered / judged) if judged >= SUPPRESS_BELOW else "",
+    }
+
+
 def _shown(value):
+    if value == "":
+        return "n/a"
     return f"<{SUPPRESS_BELOW}" if 0 < value < SUPPRESS_BELOW else value
 
 
