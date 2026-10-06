@@ -3233,9 +3233,16 @@ function summaryText(data, hists = { wait: null, distance: null }) {
     ? formatRideDate(new Date(data.latest_ms).toISOString())
     : "";
 
+  // #643: show.py flags spots whose newest report (2023+) says the place is gone. The
+  // report itself is in the comments below; this only surfaces it above the rating.
+  const goneWarning = Number.isFinite(data.gone)
+    ? `<div class="spot-gone-warning" style="background:#fff4e5;border-left:4px solid #f59e0b;padding:6px 10px;margin:4px 0;">${tr("Latest report ({year}) says this spot may be gone", { year: data.gone })}</div>`
+    : "";
+  if (goneWarning && window.hmTrack) window.hmTrack("spot_gone_warning_shown", { year: String(data.gone) });
+
   // Lines are <div>s rather than <br>-separated text: each histogram is a block
   // element, and a <br> after one would open an empty line under the chart.
-  return `<div>${tr("Rating: {rating}/5", { rating })}</div>
+  return `${goneWarning}<div>${tr("Rating: {rating}/5", { rating })}</div>
     <div>${tr("Waiting time: {wait}", { wait })}</div>
     ${spotHistogramMarkup(hists.wait, "spot-wait-hist", "min")}
     <div>${tr("Ride distance: {distance}", { distance })}</div>

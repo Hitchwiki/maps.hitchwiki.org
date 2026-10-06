@@ -993,5 +993,6 @@
   "Saved": "Хадгалсан",
   "Saved spots": "Хадгалсан газрууд",
   "Start hitching here": "Эндээс автостоп хийж эхлэх",
-  "This wiki page has no location yet. Search for the place or tap a marker.": "Энэ вики хуудас байршилгүй байна. Газрыг хайх эсвэл тэмдэг дээр дар."
+  "This wiki page has no location yet. Search for the place or tap a marker.": "Энэ вики хуудас байршилгүй байна. Газрыг хайх эсвэл тэмдэг дээр дар.",
+  "Latest report ({year}) says this spot may be gone": "Сүүлийн мэдээлэл ({year}) энэ газар байхаа больсон байж магадгүй гэж байна"
 }

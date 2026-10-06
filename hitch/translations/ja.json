@@ -993,5 +993,6 @@
   "Saved": "保存済み",
   "Saved spots": "保存した場所",
   "Start hitching here": "ここからヒッチハイクを始める",
-  "This wiki page has no location yet. Search for the place or tap a marker.": "このwikiページにはまだ位置情報がありません。場所を検索するか、マーカーをタップしてください。"
+  "This wiki page has no location yet. Search for the place or tap a marker.": "このwikiページにはまだ位置情報がありません。場所を検索するか、マーカーをタップしてください。",
+  "Latest report ({year}) says this spot may be gone": "最新の報告（{year}年）によると、この場所はもう存在しない可能性があります"
 }
