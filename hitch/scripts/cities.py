@@ -17,6 +17,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from hitch.helpers import get_db, get_dirs
 from hitch.place_activity import ACTIVITY_MIN_RIDES, activity_row, write_activity_summary, write_place_activity_csv
+from hitch.profile_summary import conversation_stats
 from hitch.profile_summary import summarize as summarize_profiles
 from hitch.profile_summary import write_profile_summary
 from hitch.translations import SUPPORTED_LANGUAGES, t
