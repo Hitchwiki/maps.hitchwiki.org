@@ -999,5 +999,6 @@
   "Make a sign": "დაამზადე აბრა",
   "Print": "ბეჭდვა",
   "Tell someone you're on your way": "შეატყობინე ვინმეს, რომ გზაში ხარ",
-  "Nearest logged route starts {km} km away — show it": "უახლოესი დაფიქსირებული მარშრუტი იწყება {km} კმ-ში – ჩვენება"
+  "Nearest logged route starts {km} km away — show it": "უახლოესი დაფიქსირებული მარშრუტი იწყება {km} კმ-ში – ჩვენება",
+  "Continue your last route": "გააგრძელე ბოლო მარშრუტი"
 }

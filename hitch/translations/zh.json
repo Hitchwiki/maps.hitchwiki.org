@@ -999,5 +999,6 @@
   "Make a sign": "制作标牌",
   "Print": "打印",
   "Tell someone you're on your way": "告诉别人你已在路上",
-  "Nearest logged route starts {km} km away — show it": "最近的已记录路线从 {km} 公里外开始 – 显示"
+  "Nearest logged route starts {km} km away — show it": "最近的已记录路线从 {km} 公里外开始 – 显示",
+  "Continue your last route": "继续上次的路线"
 }

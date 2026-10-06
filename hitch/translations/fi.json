@@ -999,5 +999,6 @@
   "Make a sign": "Tee kyltti",
   "Print": "Tulosta",
   "Tell someone you're on your way": "Kerro jollekulle, että olet matkalla",
-  "Nearest logged route starts {km} km away — show it": "Lähin kirjattu reitti alkaa {km} km päässä – näytä"
+  "Nearest logged route starts {km} km away — show it": "Lähin kirjattu reitti alkaa {km} km päässä – näytä",
+  "Continue your last route": "Jatka viimeisintä reittiäsi"
 }
