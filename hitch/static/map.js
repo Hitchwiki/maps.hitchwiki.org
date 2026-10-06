@@ -6898,6 +6898,22 @@ function toggleSavedSpotsPanel() {
       panel.remove();
       renderSavedSpotsChip();
     };
+    // #643: a saved spot whose newest report says it is gone shouldn't look startable.
+    const saved = (typeof allMarkers !== "undefined" ? allMarkers : []).find(
+      (m) => Math.abs(m._latlng.lat - spot.lat) + Math.abs(m._latlng.lng - spot.lon) < 2.2e-5
+    );
+    const goneYear = saved && saved.options && saved.options._data ? saved.options._data.gone : undefined;
+    if (Number.isFinite(goneYear)) {
+      const warn = document.createElement("div");
+      warn.style.cssText = "flex-basis:100%;font-size:12px;color:#b45309;padding:0 8px 4px;";
+      warn.textContent = tr("Latest report ({year}) says this spot may be gone", { year: goneYear });
+      row.style.flexWrap = "wrap";
+      row.appendChild(go);
+      row.appendChild(rm);
+      row.appendChild(warn);
+      panel.appendChild(row);
+      return;
+    }
     row.appendChild(go);
     row.appendChild(rm);
     panel.appendChild(row);
