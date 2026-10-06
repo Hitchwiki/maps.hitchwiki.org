@@ -172,6 +172,7 @@ function startViewForVisitor() {
 // Create the Leaflet map synchronously so controls are in their final position immediately
 function createMap() {
   const startView = startViewForVisitor();
+  window.hmStartView = startView;
   map = L.map("map", {
     center: startView ? [startView[0], startView[1]] : [0, 0],
     zoom: startView ? startView[2] : 1,
@@ -2789,10 +2790,15 @@ function handleHashChange() {
     map.setView([spot.lat, spot.lon], 16);
   } else if (!window.location.hash.includes(",")) {
     if (!restoreView.apply(map)) {
-      map.fitBounds([
-        [-35, -40],
-        [60, 40],
-      ]);
+      // #660: the region arm keeps the view createMap() chose instead of the Atlantic fit.
+      if (window.hmStartView) {
+        map.setView([window.hmStartView[0], window.hmStartView[1]], window.hmStartView[2]);
+      } else {
+        map.fitBounds([
+          [-35, -40],
+          [60, 40],
+        ]);
+      }
     }
   }
 

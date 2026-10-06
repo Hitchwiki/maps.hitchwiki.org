@@ -46,3 +46,8 @@ test("first language with a known region wins", () => {
 test("createMap uses the start view", () => {
   assert.match(SOURCE, /center: startView \? \[startView\[0\], startView\[1\]\] : \[0, 0\]/);
 });
+
+test("the initial-view fallback does not overwrite the region start view", () => {
+  assert.match(SOURCE, /window\.hmStartView = startView;/);
+  assert.match(SOURCE, /if \(window\.hmStartView\) \{\s*map\.setView\(\[window\.hmStartView\[0\]/);
+});
