@@ -999,5 +999,6 @@
   "Make a sign": "Faire une pancarte",
   "Print": "Imprimer",
   "Tell someone you're on your way": "Préviens quelqu'un que tu es en route",
-  "Nearest logged route starts {km} km away — show it": "L’itinéraire enregistré le plus proche commence à {km} km – l’afficher"
+  "Nearest logged route starts {km} km away — show it": "L’itinéraire enregistré le plus proche commence à {km} km – l’afficher",
+  "Continue your last route": "Reprendre votre dernier itinéraire"
 }

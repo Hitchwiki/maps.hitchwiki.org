@@ -999,5 +999,6 @@
   "Make a sign": "Направи табела",
   "Print": "Отпечатай",
   "Tell someone you're on your way": "Кажи на някого, че си на път",
-  "Nearest logged route starts {km} km away — show it": "Най-близкият записан маршрут започва на {km} км — покажи го"
+  "Nearest logged route starts {km} km away — show it": "Най-близкият записан маршрут започва на {km} км — покажи го",
+  "Continue your last route": "Продължи последния си маршрут"
 }

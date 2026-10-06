@@ -4533,3 +4533,10 @@ a.acct-ride__warn:hover { color: #b98900; }
   background: #f5f5f5;
   cursor: pointer;
 }
+
+.rp-resume-chip {
+  position: fixed; left: 12px; bottom: 76px; z-index: 900; padding: 9px 14px;
+  border: 0; border-radius: 999px; background: #188038; color: #fff;
+  font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,.3);
+}

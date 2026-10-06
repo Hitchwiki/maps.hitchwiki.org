@@ -928,6 +928,40 @@
     // language, so nothing is lost by not canonicalising it to the English path,
     // and a reload of the shared link must not switch the UI language.
     history.replaceState(null, "", localisedPath(path) + location.search + hash);
+    try {
+      localStorage.setItem(LAST_ROUTE_KEY, JSON.stringify({ from: f, to: t, ts: Date.now() }));
+    } catch (e) { /* storage unavailable: the resume chip is a nice-to-have */ }
+  }
+  // Same-device memory of the last planned route, for the "continue your last
+  // route" chip (EXP-820): anonymous, no server write, no cross-session id.
+  const LAST_ROUTE_KEY = "hmLastRoute";
+  function readLastRoute() {
+    let rec;
+    try { rec = JSON.parse(localStorage.getItem(LAST_ROUTE_KEY) || "null"); } catch (e) { return null; }
+    if (!rec || !Array.isArray(rec.from) || !Array.isArray(rec.to) || !isFinite(rec.ts)) return null;
+    if (rec.from.concat(rec.to).some((n) => !isFinite(n))) return null;
+    const ageDays = (Date.now() - rec.ts) / 86400000;
+    return ageDays >= 1 && ageDays <= 14 ? rec : null;
+  }
+  function maybeShowResumeChip() {
+    if (routeFromUrl() || location.hash || RJ.active) return;
+    let path = routePath(location.pathname || "");
+    if (path !== "/" && path !== "") return;
+    const rec = readLastRoute();
+    if (!rec) return;
+    try { if (localStorage.getItem("hm_welcome_anon_seen")) return; } catch (e) { return; }
+    const arm = hmVariant("route-resume-v1", ["control", "chip"]);
+    if (arm !== "chip") return;
+    const chip = document.createElement("button");
+    chip.type = "button"; chip.className = "rp-resume-chip";
+    chip.textContent = T("Continue your last route");
+    chip.addEventListener("click", function () {
+      hmTrack("route_resume_clicked", { variant: arm });
+      chip.remove();
+      openBetween(rec.from, rec.to);
+    });
+    document.body.appendChild(chip);
+    hmTrack("route_resume_shown", { variant: arm });
   }
   function parseDirPath(pathname) {
     const m = DIR_PATH_RE.exec(routePath(pathname || ""));
@@ -1655,7 +1689,7 @@
     // A shared/deep route link reopens the same route on load and on back/forward.
     // The canonical form lives in the path, so back/forward onto it is a popstate,
     // not a hashchange; only reopen when the planner isn't already showing it.
-    openFromUrl();
+    if (!openFromUrl()) setTimeout(maybeShowResumeChip, 2500);
     const reopen = () => {
       const p = routeFromUrl();
       if (!p) return;
