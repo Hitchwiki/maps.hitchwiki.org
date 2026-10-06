@@ -202,6 +202,14 @@
       });
   }
 
+  // Delegated: the excerpt (and its links) is rendered after the fetch, so a
+  // listener bound at init would never fire. Partner of city_wiki_excerpt_shown.
+  document.addEventListener("click", function (e) {
+    var t = e.target;
+    if (!t || !t.closest || !window.hmTrack) return;
+    if (t.closest("#city-wiki-excerpt a")) window.hmTrack("city_wiki_excerpt_clicked", {});
+  });
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);
   } else {

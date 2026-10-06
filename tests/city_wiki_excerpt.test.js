@@ -21,6 +21,7 @@ function load() {
   const window = {};
   const document = {
     readyState: "complete",
+    addEventListener: function () {},
     getElementById: function () {
       return null;
     },
