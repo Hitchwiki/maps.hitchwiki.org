@@ -33,3 +33,18 @@ test("open({onDone}) tears down and calls back instead of navigating to the prof
   assert.doesNotMatch(SOURCE, /Escape"\) finish\(\)/);
   assert.match(SOURCE, /window\.location\.href = PROFILE_URL/);
 });
+
+test("anonymous first-visit A/B (#268): both arms assigned at show time, four funnel events tagged", () => {
+  assert.match(SOURCE, /hmVariant\(ANON_EXP, \["control", "welcome"\]\)/);
+  assert.match(SOURCE, /ANON_EXP = "welcome-anon-v1"/);
+  assert.match(SOURCE, /welcome_anon_assigned/);
+  for (const ev of ["spot_opened", "route_searched", "journey_started", "add_ride_clicked"]) {
+    assert.match(SOURCE, new RegExp(ev + ": 1"));
+  }
+  // Logged-in users, ?welcome=1 and friend-share landings are excluded; modals are never stacked on.
+  assert.match(SOURCE, /window\.IS_LOGGED_IN !== false/);
+  assert.match(SOURCE, /\^share-/);
+  assert.match(SOURCE, /\.inride-scrim/);
+  // Anonymous finishers stay on the map, not the login-gated profile form.
+  assert.match(SOURCE, /onDone: function \(\) \{\}/);
+});

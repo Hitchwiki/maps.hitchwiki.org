@@ -231,10 +231,66 @@
     }
   }
 
+  // Idea #268 / EXP-816: anonymous first-time visitors (~99% of first visits, none of whom
+  // ever saw this carousel) get it as an A/B arm. Assignment happens only at the moment the
+  // carousel would show, so both arms are the same population; `welcome_arm` is added to the
+  // four funnel events below for both arms. Slides are the existing ones, no new copy.
+  var ANON_EXP = "welcome-anon-v1";
+  var ANON_SEEN_KEY = "hm_welcome_anon_seen";
+  var ARM_EVENTS = { spot_opened: 1, route_searched: 1, journey_started: 1, add_ride_clicked: 1 };
+
+  function tagArm(arm) {
+    var base = window.hmTrack;
+    if (!base || base._welcomeArm) return;
+    var wrapped = function (name, data) {
+      if (ARM_EVENTS[name]) {
+        var d = { welcome_arm: arm };
+        if (data) for (var k in data) if (Object.prototype.hasOwnProperty.call(data, k)) d[k] = data[k];
+        data = d;
+      }
+      return base.call(this, name, data);
+    };
+    wrapped._welcomeArm = true;
+    window.hmTrack = wrapped;
+  }
+
+  function maybeAnonAuto() {
+    try {
+      if (window.IS_LOGGED_IN !== false || !window.hmVariant) return;
+      // Returning arm members keep their tag on later page loads.
+      var prior = localStorage.getItem("hm_ab_" + ANON_EXP);
+      if (prior) tagArm(prior);
+      var params = new URLSearchParams(window.location.search);
+      if (params.get("welcome") === "1" || /^share-/.test(params.get("ref") || "")) return;
+      if (localStorage.getItem(ANON_SEEN_KEY) || prior) return;
+      var waited = 0;
+      (function attempt() {
+        // Never stack on another modal (race banner, welcome back); give up after 30 s.
+        if (document.querySelector(".inride-scrim") || _open) {
+          waited += 1000;
+          if (waited >= 30000) return;
+          return setTimeout(attempt, 1000);
+        }
+        if (localStorage.getItem(ANON_SEEN_KEY)) return;
+        localStorage.setItem(ANON_SEEN_KEY, String(Date.now()));
+        var arm = window.hmVariant(ANON_EXP, ["control", "welcome"]);
+        tagArm(arm);
+        if (window.hmTrack) window.hmTrack("welcome_anon_assigned", { variant: arm });
+        if (arm === "welcome") {
+          open({ doneLabel: "Explore the map", onDone: function () {} });
+        }
+      })();
+    } catch (e) {
+      /* a missing intro is not worth surfacing an error over */
+    }
+  }
+
   window.HitchwikiWelcome = { open: open };
 
   if (typeof document !== "undefined") {
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", maybeAutoOpen);
     else maybeAutoOpen();
+    // Start the anonymous arm a few seconds in, after the map has loaded.
+    setTimeout(maybeAnonAuto, 4000);
   }
 })();
