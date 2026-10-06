@@ -263,12 +263,12 @@
       var params = new URLSearchParams(window.location.search);
       if (params.get("welcome") === "1" || /^share-/.test(params.get("ref") || "")) return;
       if (localStorage.getItem(ANON_SEEN_KEY) || prior) return;
-      var waited = 0;
       (function attempt() {
-        // Never stack on another modal (race banner, welcome back); give up after 30 s.
-        if (document.querySelector(".inride-scrim") || _open) {
-          waited += 1000;
-          if (waited >= 30000) return;
+        // A fresh visitor first meets the race banner and the cookie box (live check
+        // 2026-10-06: both cover the map at 9 s), so wait until both are answered rather than
+        // stack a third overlay. Visitors who never answer are never assigned.
+        var consentOpen = window.hmVisitorConsent && window.hmVisitorConsent.state() === "unset";
+        if (consentOpen || document.querySelector(".inride-scrim") || _open) {
           return setTimeout(attempt, 1000);
         }
         if (localStorage.getItem(ANON_SEEN_KEY)) return;
