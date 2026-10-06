@@ -1000,5 +1000,10 @@
   "Print": "Tulosta",
   "Tell someone you're on your way": "Kerro jollekulle, että olet matkalla",
   "Nearest logged route starts {km} km away — show it": "Lähin kirjattu reitti alkaa {km} km päässä – näytä",
-  "Continue your last route": "Jatka viimeisintä reittiäsi"
+  "Continue your last route": "Jatka viimeisintä reittiäsi",
+  "Hitchhikers near you": "Liftarit lähelläsi",
+  "Say hello": "Sano hei",
+  "Profile": "Profiili",
+  "Currently in {place}": "Tällä hetkellä: {place}",
+  "updated {date}": "päivitetty {date}"
 }

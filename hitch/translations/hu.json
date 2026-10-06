@@ -1000,5 +1000,10 @@
   "Print": "Nyomtatás",
   "Tell someone you're on your way": "Szólj valakinek, hogy úton vagy",
   "Nearest logged route starts {km} km away — show it": "A legközelebbi rögzített útvonal {km} km-re kezdődik – megmutatom",
-  "Continue your last route": "Folytasd az utolsó útvonalad"
+  "Continue your last route": "Folytasd az utolsó útvonalad",
+  "Hitchhikers near you": "Stopposok a közeledben",
+  "Say hello": "Köszönj",
+  "Profile": "Profil",
+  "Currently in {place}": "Jelenleg itt: {place}",
+  "updated {date}": "frissítve: {date}"
 }

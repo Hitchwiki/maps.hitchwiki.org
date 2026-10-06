@@ -1000,5 +1000,10 @@
   "Print": "Хэвлэх",
   "Tell someone you're on your way": "Замдаа яваа гэдгээ хэн нэгэнд хэл",
   "Nearest logged route starts {km} km away — show it": "Хамгийн ойрын бүртгэгдсэн маршрут {km} км зайнаас эхэлнэ – харуулах",
-  "Continue your last route": "Сүүлийн маршрутаа үргэлжлүүлэх"
+  "Continue your last route": "Сүүлийн маршрутаа үргэлжлүүлэх",
+  "Hitchhikers near you": "Ойролцоох автостопчид",
+  "Say hello": "Мэндлэх",
+  "Profile": "Профайл",
+  "Currently in {place}": "Одоо {place}-д байна",
+  "updated {date}": "{date}-нд шинэчилсэн"
 }

@@ -121,12 +121,15 @@ var allMarkers = [],
   spotsData = null,
   markerCluster = null,
   ridesIndex = null,
-  // Map-mode switcher: "spots" (default), "heatmap", or "countries".
+  // Map-mode switcher: "spots" (default), "heatmap", "countries" or "hitchhikers".
   mapMode = "spots",
   countryLayer = null,
   // Hitchwiki Category:Event markers (dist/events.json), drawn on their own layer.
   eventLayer = null,
   eventsData = null,
+  // Hitchhikers mode: one marker per user at their city (dist/hitchhikers.json).
+  hitchhikerLayer = null,
+  hitchhikerLayerPromise = null,
   mapModeButtons = {};
 
 // Current-location button state. The marker/circle are created lazily on the
@@ -1615,6 +1618,66 @@ async function loadEventMarkers(map) {
   console.log(`Loaded ${eventsData.length} event(s)`);
 }
 
+// --- Hitchhikers -------------------------------------------------------------
+// The map's Hitchhikers mode: every user who said on their profile where they are
+// ("Currently in", if recent) or where they're from, at that city's centre — exactly
+// what their public profile already prints, never finer. Built by
+// hitch/scripts/hitchhikers_map.py. People in one city share a point, so the layer
+// clusters and spiderfies them. Loaded on first use only: most visitors never open it.
+function loadHitchhikerLayer() {
+  if (!hitchhikerLayerPromise) {
+    hitchhikerLayerPromise = fetch("/hitchhikers.json")
+      .then((resp) => (resp.ok ? resp.json() : []))
+      .catch((error) => {
+        console.warn("Could not load hitchhikers:", error);
+        return [];
+      })
+      .then((people) => {
+        hitchhikerLayer = L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 40 });
+        (Array.isArray(people) ? people : []).forEach((p) => {
+          if (typeof p.lat !== "number" || typeof p.lon !== "number") return;
+          const initial = escapeHtml((p.u || "?").charAt(0).toUpperCase());
+          const face = p.img
+            ? // A Gravatar the user picked but never uploaded 404s (d=404): fall back to the initial.
+              `<img src="${escapeHtml(p.img)}" alt="${initial}" loading="lazy" onerror="this.parentNode.textContent=this.alt">`
+            : initial;
+          const icon = L.divIcon({
+            className: "hitchhiker-marker",
+            html: `<div class="hitchhiker-marker-pin${p.k === "current" ? " hitchhiker-marker-current" : ""}">${face}</div>`,
+            iconSize: [32, 32],
+            iconAnchor: [16, 16],
+          });
+          L.marker([p.lat, p.lon], { icon, title: p.u })
+            .bindPopup(() => hitchhikerPopupHtml(p))
+            .addTo(hitchhikerLayer);
+        });
+        console.log(`Loaded ${hitchhikerLayer.getLayers().length} hitchhiker(s)`);
+        return hitchhikerLayer;
+      });
+  }
+  return hitchhikerLayerPromise;
+}
+
+function hitchhikerPopupHtml(p) {
+  const name = encodeURIComponent(p.u);
+  const where =
+    p.k === "current"
+      ? tr("Currently in {place}", { place: escapeHtml(p.place) }) +
+        (p.since ? ` <span class="hitchhiker-since">(${escapeHtml(tr("updated {date}", { date: p.since }))})</span>` : "") +
+        (p.from ? `<br>${tr("From {origin}", { origin: escapeHtml(p.from) })}` : "")
+      : tr("From {origin}", { origin: escapeHtml(p.place) });
+  const hello = p.msg
+    ? ` · <a href="${langPath("/messages/" + name)}?ref=hitchhiker_map">${escapeHtml(tr("Say hello"))}</a>`
+    : "";
+  return (
+    `<div class="hitchhiker-popup">` +
+    `<strong><a href="${langPath("/account/" + name)}">${escapeHtml(p.u)}</a></strong>` +
+    `<p>${where}</p>` +
+    `<p><a href="${langPath("/account/" + name)}">${escapeHtml(tr("Profile"))}</a>${hello}</p>` +
+    `</div>`
+  );
+}
+
 function setEventsVisible(visible) {
   if (!eventLayer) return;
   if (visible) {
@@ -2012,6 +2075,7 @@ async function loadEventSheetText(ev) {
 //   spots     — the hitchhiking-spot markers
 //   heatmap   — the predicted-waiting-time overlay, and nothing else on top of it
 //   countries — the choropleth
+//   hitchhikers — the people: one marker per user at the city they're in or from
 // Heatmap used to share the screen with the spots. Nothing hid them; they merely
 // faded, because `body.zoomed-out` dims the overlay pane to 30% below zoom 9 — so
 // the spots looked gone at the zoom you normally read a heatmap at, and came back
@@ -2037,6 +2101,12 @@ async function applyMapMode(mode) {
   } else if (countryLayer && map.hasLayer(countryLayer)) {
     map.removeLayer(countryLayer);
   }
+  if (mode === "hitchhikers") {
+    const layer = await loadHitchhikerLayer();
+    if (layer && !map.hasLayer(layer)) layer.addTo(map);
+  } else if (hitchhikerLayer && map.hasLayer(hitchhikerLayer)) {
+    map.removeLayer(hitchhikerLayer);
+  }
   setSpotsVisible(mode === "spots");
   // Events are their own overlay, not spots: they stay with the markers in spots
   // mode and step aside for the two full-map views.
@@ -2059,13 +2129,14 @@ async function setMapMode(mode) {
   // that fires on the intermediate state re-applies it on top of this one.
   setQueryParameters({
     heatmap: mapMode === "heatmap",
-    mapmode: mapMode === "countries" ? "countries" : false,
+    mapmode: mapMode === "countries" || mapMode === "hitchhikers" ? mapMode : false,
   });
 }
 
 // The mode named by the current URL. Countries wins over the legacy ?heatmap flag.
 function mapModeFromUrl() {
-  if (getQueryParameter("mapmode") === "countries") return "countries";
+  const named = getQueryParameter("mapmode");
+  if (named === "countries" || named === "hitchhikers") return named;
   return getQueryParameter("heatmap") === "true" ? "heatmap" : "spots";
 }
 
@@ -2299,6 +2370,7 @@ function setupMapModeControl() {
     { mode: "spots", icon: "fa-solid fa-thumbs-up", title: tr("Spots") },
     { mode: "heatmap", icon: "fa fa-fire", title: tr("Waiting-time heatmap") },
     { mode: "countries", icon: "fa-solid fa-earth-europe", title: tr("Country hitchability") },
+    { mode: "hitchhikers", icon: "fa-solid fa-user-group", title: tr("Hitchhikers near you") },
   ];
   const ModeControl = L.Control.extend({
     options: { position: "bottomright" },
@@ -2344,6 +2416,7 @@ function setupMapModeControl() {
 const FEATURE_HINTS = [
   { key: "hintSeen.heatmap", el: () => mapModeButtons.heatmap, placement: "left" },
   { key: "hintSeen.countries", el: () => mapModeButtons.countries, placement: "left" },
+  { key: "hintSeen.hitchhikers", el: () => mapModeButtons.hitchhikers, placement: "left" },
   { key: "hintSeen.routes", el: () => $$(".geocoder-route-btn"), placement: "below" },
   { key: "hintSeen.filters", el: () => $$(".geocoder-filter-btn"), placement: "below" },
   { key: "hintSeen.activities", el: () => $$("#action-activities"), placement: "above" },
@@ -2583,10 +2656,10 @@ function handleMapClick(e) {
   if (window.RoutingUI && window.RoutingUI.active) return;
 
   var added = false;
-  // Countries mode hides the spot markers (but keeps them in `allMarkers`), so
-  // skip the tap-to-nearest-spot shortcut — otherwise tapping a country would
-  // open an underlying spot instead of the country sheet.
-  if (window.innerWidth < 780 && mapMode !== "countries") {
+  // Countries and hitchhikers modes hide the spot markers (but keep them in
+  // `allMarkers`), so skip the tap-to-nearest-spot shortcut — otherwise tapping a
+  // country or a person would open an underlying spot instead.
+  if (window.innerWidth < 780 && mapMode !== "countries" && mapMode !== "hitchhikers") {
     var layerPoint = map.latLngToLayerPoint(e.latlng);
     // Only the spots actually on screen may be tapped: with a filter on, the
     // unmatched ones are gone from the map and must not be reachable by a tap.

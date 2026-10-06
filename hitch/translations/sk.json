@@ -1000,5 +1000,10 @@
   "Print": "Tlačiť",
   "Tell someone you're on your way": "Daj niekomu vedieť, že si na ceste",
   "Nearest logged route starts {km} km away — show it": "Najbližšia zaznamenaná trasa začína {km} km ďaleko – zobraziť",
-  "Continue your last route": "Pokračovať na poslednej trase"
+  "Continue your last route": "Pokračovať na poslednej trase",
+  "Hitchhikers near you": "Stopári vo tvojom okolí",
+  "Say hello": "Pozdraviť",
+  "Profile": "Profil",
+  "Currently in {place}": "Momentálne v: {place}",
+  "updated {date}": "aktualizované {date}"
 }

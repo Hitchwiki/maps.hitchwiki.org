@@ -1000,5 +1000,10 @@
   "Print": "ბეჭდვა",
   "Tell someone you're on your way": "შეატყობინე ვინმეს, რომ გზაში ხარ",
   "Nearest logged route starts {km} km away — show it": "უახლოესი დაფიქსირებული მარშრუტი იწყება {km} კმ-ში – ჩვენება",
-  "Continue your last route": "გააგრძელე ბოლო მარშრუტი"
+  "Continue your last route": "გააგრძელე ბოლო მარშრუტი",
+  "Hitchhikers near you": "ავტოსტოპერები შენ ახლოს",
+  "Say hello": "მიესალმე",
+  "Profile": "პროფილი",
+  "Currently in {place}": "ამჟამად: {place}",
+  "updated {date}": "განახლდა {date}"
 }

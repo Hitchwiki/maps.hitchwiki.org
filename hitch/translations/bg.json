@@ -1000,5 +1000,10 @@
   "Print": "Отпечатай",
   "Tell someone you're on your way": "Кажи на някого, че си на път",
   "Nearest logged route starts {km} km away — show it": "Най-близкият записан маршрут започва на {km} км — покажи го",
-  "Continue your last route": "Продължи последния си маршрут"
+  "Continue your last route": "Продължи последния си маршрут",
+  "Hitchhikers near you": "Автостопаджии наблизо",
+  "Say hello": "Кажи здравей",
+  "Profile": "Профил",
+  "Currently in {place}": "В момента в {place}",
+  "updated {date}": "обновено {date}"
 }

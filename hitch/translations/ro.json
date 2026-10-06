@@ -1000,5 +1000,10 @@
   "Print": "Tipărește",
   "Tell someone you're on your way": "Anunță pe cineva că ești pe drum",
   "Nearest logged route starts {km} km away — show it": "Cel mai apropiat traseu înregistrat începe la {km} km – arată-l",
-  "Continue your last route": "Continuă ultimul traseu"
+  "Continue your last route": "Continuă ultimul traseu",
+  "Hitchhikers near you": "Autostopiști în apropiere",
+  "Say hello": "Salută",
+  "Profile": "Profil",
+  "Currently in {place}": "În prezent în {place}",
+  "updated {date}": "actualizat {date}"
 }

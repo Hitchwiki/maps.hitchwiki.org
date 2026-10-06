@@ -1000,5 +1000,10 @@
   "Print": "Skriv ut",
   "Tell someone you're on your way": "Si fra til noen at du er på vei",
   "Nearest logged route starts {km} km away — show it": "Nærmeste registrerte rute starter {km} km unna – vis den",
-  "Continue your last route": "Fortsett din siste rute"
+  "Continue your last route": "Fortsett din siste rute",
+  "Hitchhikers near you": "Haikere i nærheten",
+  "Say hello": "Si hei",
+  "Profile": "Profil",
+  "Currently in {place}": "Akkurat nå i {place}",
+  "updated {date}": "oppdatert {date}"
 }

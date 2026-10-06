@@ -1000,5 +1000,10 @@
   "Print": "Drukuj",
   "Tell someone you're on your way": "Daj komuś znać, że jesteś w drodze",
   "Nearest logged route starts {km} km away — show it": "Najbliższa zapisana trasa zaczyna się {km} km dalej – pokaż",
-  "Continue your last route": "Wróć do ostatniej trasy"
+  "Continue your last route": "Wróć do ostatniej trasy",
+  "Hitchhikers near you": "Autostopowicze w pobliżu",
+  "Say hello": "Przywitaj się",
+  "Profile": "Profil",
+  "Currently in {place}": "Obecnie w: {place}",
+  "updated {date}": "zaktualizowano {date}"
 }

@@ -1000,5 +1000,10 @@
   "Print": "印刷",
   "Tell someone you're on your way": "移動中であることを誰かに知らせる",
   "Nearest logged route starts {km} km away — show it": "最寄りの記録済みルートは{km} km先から始まります – 表示",
-  "Continue your last route": "前回のルートを続ける"
+  "Continue your last route": "前回のルートを続ける",
+  "Hitchhikers near you": "近くのヒッチハイカー",
+  "Say hello": "あいさつする",
+  "Profile": "プロフィール",
+  "Currently in {place}": "現在地: {place}",
+  "updated {date}": "{date} 更新"
 }

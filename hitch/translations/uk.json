@@ -1000,5 +1000,10 @@
   "Print": "Друк",
   "Tell someone you're on your way": "Повідом комусь, що ти в дорозі",
   "Nearest logged route starts {km} km away — show it": "Найближчий записаний маршрут починається за {km} км – показати",
-  "Continue your last route": "Продовжити останній маршрут"
+  "Continue your last route": "Продовжити останній маршрут",
+  "Hitchhikers near you": "Автостопники поруч",
+  "Say hello": "Привітатися",
+  "Profile": "Профіль",
+  "Currently in {place}": "Зараз у: {place}",
+  "updated {date}": "оновлено {date}"
 }

@@ -131,6 +131,15 @@ The map's bottom-pane **Activities** button (`map.html` `#action-activities`) sh
 - **`BADGE_LOOKBACK_S` (30 days) is a performance bound, not a product rule.** The query runs on the app's most-requested route; against prod it costs 53 ms for a viewer who last looked a month ago, 10 ms for a week, 2 ms for a day — and 556 ms with no bound at all. Anonymous visitors and the ~97% of accounts that follow nobody never reach it (they short-circuit on the follow list).
 - Cleared on click as well as by the visit (`map.js`), because the button opens `/recent` in a new tab and this page stays put.
 
+### Hitchhikers map mode — people at the city they're in or from
+The fourth button of the map-mode switcher (`?mapmode=hitchhikers`, after Spots / Heatmap / Countries) swaps the spots for one marker per user: their profile picture or initial, at the city they said they're **currently in** (solid blue ring) or, failing that, **from** (dashed ring). The popup links to the profile and, for users who accept messages, a "Say hello" chat (`?ref=hitchhiker_map`). It exists so people can find other hitchhikers by place, not only by name.
+
+- **A city centre, never finer** — exactly what the public profile already prints, so the map reveals nothing new. People in one city share a point; the layer is its own `markerClusterGroup`, which spiderfies them.
+- **"Currently in" counts only when it names a city and is ≤ `CURRENT_MAX_AGE_DAYS` (90) old** (`chosen_place`); a traveller who said "Tbilisi" four months ago isn't there any more, so they fall back to their hometown.
+- Data: `hitch/scripts/hitchhikers_map.py` → `dist/hitchhikers.json` every 30 min (`:17/:47`), logic in `hitch/blueprints/utils/hitchhiker_places.py`. Geocodes are cached per (city, country) in `dist/place_geocode_cache.json` (city names only, harmless to be public); a place Photon can't find is cached as `null` and never retried, a *failed request* caches nothing.
+- **The free-text cities are messy, and the geocoder has two guards** (both hit on the real data): Photon is limited to settlement layers (`city`/`locality`/`district`) — unrestricted, "Moscow, Russian Federation" returned an intelligence agency's HQ and "Copenhagen, France" a shop — and the result's name must resemble what was typed (`resembles`, ≥0.7 similarity, retried against the place's local-language name so Praha→Prague passes). A country that doesn't match the city (the dropdown is sometimes a nationality) falls through to the city alone.
+- Loaded lazily on first use of the mode. Closing the route planner restores the spots only in Spots mode (`routing.js`), and the mobile tap-to-nearest-spot shortcut is off in this mode, since the spots aren't on screen.
+
 ### A hitchhiker's name is a case-insensitive identity
 Rides carry a free-text `nickname`, not a foreign key to `user`, so "is this ride mine", "whose profile is this" and "who do I notify" are all string comparisons. **`hitch/usernames.py` owns that comparison** — `username_key` / `same_username` / `find_user_ci` / `canonical_username`. Never compare two hitchhiker names with `==`.
 
@@ -607,6 +616,7 @@ Two things are worth knowing before editing this:
 - **Every 5 minutes**: `fetch_nostr_incremental` - Fetch only new/edited rides from Nostr and upsert them + apply NIP-09 deletions (cheap; replaced the every-30-min full `fetch_nostr`)
 - **Weekly (Mon 00:51)**: `fetch_nostr` - FULL Nostr re-fetch + table rebuild; catches back-dated events and refreshes the public `allPosts.json`/`.csv` exports (deletions are handled by the 5-min incremental job). **The minute must stay off a multiple of 5**: it shares `fetch_nostr.lockfile` with the `*/5` incremental job, and at 00:50 the two started in the same second and this one always lost `flock -n`, so it silently never ran for 11 days
 - **Every 10 minutes**: `show` - Regenerate JSON map data
+- **Every 30 minutes (:17/:47)**: `hitchhikers_map` - `dist/hitchhikers.json` for the map's Hitchhikers mode. Geocodes only places nobody typed before (Photon, ~1/s, ≤300 per run)
 - **Daily at 1:30 AM**: prune `dist/dir/` route link-preview cache — plain `find -mtime +7 -delete`; previews regenerate on demand
 - **Daily at 1:45 AM**: prune `dist/tiles/` OSM tile cache — `find -mtime +90 -delete`. Was unbounded until the 2026-08-22 disk-full outage; `route_preview.py`'s `fetch_tile()` now bumps mtime on every cache hit, so this is an LRU-style eviction (90 days unused), not "older than 90 days since first fetch"
 - **Daily at 2 AM**: `build_ride_routes.py --skip-detailed` - Rebuild the routing graph (`dist/repeatable_routes.json`, `dist/oneoff_routes.json`, `dist/test_routes.json`). Not a `flask generate` script — cron calls the file directly with `python3`

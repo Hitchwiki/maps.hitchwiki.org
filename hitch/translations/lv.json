@@ -1000,5 +1000,10 @@
   "Print": "Drukāt",
   "Tell someone you're on your way": "Pastāsti kādam, ka esi ceļā",
   "Nearest logged route starts {km} km away — show it": "Tuvākais reģistrētais maršruts sākas {km} km attālumā – parādīt",
-  "Continue your last route": "Turpināt pēdējo maršrutu"
+  "Continue your last route": "Turpināt pēdējo maršrutu",
+  "Hitchhikers near you": "Stopētāji tavā tuvumā",
+  "Say hello": "Pasveicini",
+  "Profile": "Profils",
+  "Currently in {place}": "Pašlaik: {place}",
+  "updated {date}": "atjaunināts {date}"
 }

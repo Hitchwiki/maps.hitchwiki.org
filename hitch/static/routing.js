@@ -639,10 +639,10 @@
     hideResultsSheet();
     ["start", "dest"].forEach(clearPoint);
     if (panel) { fieldInput("start").value = ""; fieldInput("dest").value = ""; }
-    // Countries mode hides the spots itself; restoring them here would make them
-    // reappear on top of the choropleth, where they were never shown.
-    const inCountriesMode = typeof getMapMode === "function" && getMapMode() === "countries";
-    if (typeof setSpotsVisible === "function" && !inCountriesMode) setSpotsVisible(true);
+    // Every mode but spots hides the spots itself; restoring them here would make
+    // them reappear on top of the choropleth, the heatmap or the hitchhikers.
+    const inOtherMode = typeof getMapMode === "function" && getMapMode() !== "spots";
+    if (typeof setSpotsVisible === "function" && !inOtherMode) setSpotsVisible(true);
     map.getContainer().style.cursor = "";
     // Drop a shared route link so closing returns to a clean URL. The path form
     // must fall back to BASE_PATH (map.js): leaving "/dir/…" in the address bar

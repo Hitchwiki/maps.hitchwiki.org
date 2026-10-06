@@ -1000,5 +1000,10 @@
   "Print": "Εκτύπωση",
   "Tell someone you're on your way": "Πες σε κάποιον ότι είσαι καθ' οδόν",
   "Nearest logged route starts {km} km away — show it": "Η κοντινότερη καταγεγραμμένη διαδρομή ξεκινά {km} χλμ μακριά – εμφάνιση",
-  "Continue your last route": "Συνέχισε την τελευταία σου διαδρομή"
+  "Continue your last route": "Συνέχισε την τελευταία σου διαδρομή",
+  "Hitchhikers near you": "Οτοστοπίστες κοντά σου",
+  "Say hello": "Πες γεια",
+  "Profile": "Προφίλ",
+  "Currently in {place}": "Αυτή τη στιγμή σε {place}",
+  "updated {date}": "ενημερώθηκε {date}"
 }

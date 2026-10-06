@@ -1000,5 +1000,10 @@
   "Print": "Spausdinti",
   "Tell someone you're on your way": "Praneškite kam nors, kad esate kelyje",
   "Nearest logged route starts {km} km away — show it": "Artimiausias užregistruotas maršrutas prasideda už {km} km – rodyti",
-  "Continue your last route": "Tęsti paskutinį maršrutą"
+  "Continue your last route": "Tęsti paskutinį maršrutą",
+  "Hitchhikers near you": "Autostopininkai šalia tavęs",
+  "Say hello": "Pasisveikink",
+  "Profile": "Profilis",
+  "Currently in {place}": "Šiuo metu: {place}",
+  "updated {date}": "atnaujinta {date}"
 }

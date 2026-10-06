@@ -29,6 +29,11 @@
 # last snapshot, so this only decides when the generated files catch up.
 */30 * * * * cd /app && /usr/bin/flock -n /tmp/show.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate show' > logs/show.log 2>&1
 
+# every 30 min at :17/:47 (off show's :00/:30) — dist/hitchhikers.json for the map's
+# Hitchhikers mode. Cheap: only a city nobody typed before costs a Photon request,
+# so a profile edit reaches the map within half an hour.
+17,47 * * * * cd /app && /usr/bin/flock -n /tmp/hitchhikers_map.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate hitchhikers_map' > logs/hitchhikers_map.log 2>&1
+
 # daily at 4:45 AM — reverse-geocode new rides' endpoints into the ride_place table.
 # Incremental: steady-state runs geocode nothing, so reverse_geocoder never builds its
 # ~150 MB index. Offline by design — that cost must never live in the web workers.

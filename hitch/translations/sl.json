@@ -1000,5 +1000,10 @@
   "Print": "Natisni",
   "Tell someone you're on your way": "Sporoči nekomu, da si na poti",
   "Nearest logged route starts {km} km away — show it": "Najbližja zabeležena pot se začne {km} km stran – pokaži",
-  "Continue your last route": "Nadaljuj zadnjo pot"
+  "Continue your last route": "Nadaljuj zadnjo pot",
+  "Hitchhikers near you": "Štoparji v bližini",
+  "Say hello": "Pozdravi",
+  "Profile": "Profil",
+  "Currently in {place}": "Trenutno v: {place}",
+  "updated {date}": "posodobljeno {date}"
 }

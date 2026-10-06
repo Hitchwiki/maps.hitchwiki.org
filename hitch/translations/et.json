@@ -1000,5 +1000,10 @@
   "Print": "Prindi",
   "Tell someone you're on your way": "Anna kellelegi teada, et oled teel",
   "Nearest logged route starts {km} km away — show it": "Lähim registreeritud marsruut algab {km} km kaugusel – näita",
-  "Continue your last route": "Jätka oma viimast marsruuti"
+  "Continue your last route": "Jätka oma viimast marsruuti",
+  "Hitchhikers near you": "Hääletajad sinu lähedal",
+  "Say hello": "Ütle tere",
+  "Profile": "Profiil",
+  "Currently in {place}": "Praegu: {place}",
+  "updated {date}": "uuendatud {date}"
 }
