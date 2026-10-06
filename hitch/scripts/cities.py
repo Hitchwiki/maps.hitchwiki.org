@@ -17,9 +17,9 @@ from jinja2 import Environment, FileSystemLoader
 
 from hitch.helpers import get_db, get_dirs
 from hitch.place_activity import ACTIVITY_MIN_RIDES, activity_row, write_activity_summary, write_place_activity_csv
-from hitch.safety_by_country import load_counts as load_safety_counts
 from hitch.profile_summary import conversation_stats, write_profile_summary
 from hitch.profile_summary import summarize as summarize_profiles
+from hitch.safety_by_country import load_counts as load_safety_counts
 from hitch.translations import SUPPORTED_LANGUAGES, t
 
 logging.basicConfig(level=logging.INFO)
