@@ -140,11 +140,41 @@ let locationMarker = null;
 let locationAccuracyCircle = null;
 let locationFadeTimer = null;
 
+// #660: a bare-URL first visit opens on the whole world centred in the Atlantic, which
+// shows the visitor nothing they recognise (google.com sends ~5.6k visitors / 28 d,
+// 96% bounce in 24 s). Frame their own country instead, guessed from the browser's
+// language region (no geolocation prompt, nothing sent anywhere). 50/50 A/B.
+const START_VIEW_REGIONS = {
+  US: [39, -98, 4], CA: [56, -96, 3], MX: [23.5, -102, 5], BR: [-14, -52, 4], AR: [-38, -65, 4],
+  CL: [-35, -71, 4], CO: [4.5, -74, 5], GB: [54, -3, 5], IE: [53.3, -8, 6], FR: [46.5, 2.5, 5],
+  DE: [51, 10, 5], AT: [47.5, 14, 6], CH: [46.8, 8.2, 7], IT: [42.5, 12.5, 5], ES: [40, -3.5, 5],
+  PT: [39.5, -8, 6], NL: [52.2, 5.3, 7], BE: [50.6, 4.6, 7], PL: [52, 19, 5], CZ: [49.8, 15.5, 7],
+  SE: [62, 15, 4], NO: [64, 11, 4], FI: [64, 26, 4], DK: [56, 10, 6], RU: [58, 60, 3], UA: [49, 32, 5],
+  TR: [39, 35, 5], IL: [31.5, 35, 7], IN: [22, 79, 4], CN: [35, 103, 4], JP: [37, 138, 5],
+  KR: [36.5, 128, 6], AU: [-27, 134, 4], NZ: [-41, 173, 5], ZA: [-29, 24, 5],
+};
+function startViewForVisitor() {
+  try {
+    if (location.hash || location.pathname !== "/" || location.search) return null;
+    const langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language];
+    let view = null;
+    for (const l of langs) {
+      const m = /^[a-z]{2,3}-([A-Za-z]{2})\b/.exec(l || "");
+      if (m && START_VIEW_REGIONS[m[1].toUpperCase()]) { view = START_VIEW_REGIONS[m[1].toUpperCase()]; break; }
+    }
+    if (!view) return null;
+    const variant = (window.hmVariant || function (_n, v) { return v[0]; })("start-view-v1", ["world", "region"]);
+    if (window.hmTrack) window.hmTrack("start_view_assigned", { variant: variant });
+    return variant === "region" ? view : null;
+  } catch (e) { return null; }
+}
+
 // Create the Leaflet map synchronously so controls are in their final position immediately
 function createMap() {
+  const startView = startViewForVisitor();
   map = L.map("map", {
-    center: [0, 0],
-    zoom: 1,
+    center: startView ? [startView[0], startView[1]] : [0, 0],
+    zoom: startView ? startView[2] : 1,
     preferCanvas: true,
     attributionControl: false,
     zoomControl: false,
