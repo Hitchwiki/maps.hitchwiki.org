@@ -117,8 +117,12 @@
           }
         } catch (e) { SURFACE = SURFACE || "web"; }
         window.hmShell = SURFACE;
+        var AUTO = "n";
+        try { if (navigator.webdriver === true || /HeadlessChrome/.test(navigator.userAgent)) AUTO = "y"; } catch (e) {}
         function tagged(data) {
-          var out = { shell: SURFACE };
+          // Crawler fleets (Linux/1080p, fake google referrer) were 77% of google.com
+          // visitors in 2026-10; `auto` lets every experiment read exclude them per event.
+          var out = { shell: SURFACE, auto: AUTO };
           if (data) for (var k in data) if (Object.prototype.hasOwnProperty.call(data, k)) out[k] = data[k];
           return out;
         }
