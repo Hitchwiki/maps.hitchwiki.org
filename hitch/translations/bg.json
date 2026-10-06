@@ -995,5 +995,7 @@
   "Start hitching here": "Започни стопиране оттук",
   "This wiki page has no location yet. Search for the place or tap a marker.": "Тази уики страница още няма местоположение. Потърси мястото или докосни маркер.",
   "Latest report ({year}) says this spot may be gone": "Последният отзив ({year}) казва, че това място може да не съществува вече",
-  "Latest report ({year}) mentions police at this spot": "Последният отзив ({year}) споменава полиция на това място"
+  "Latest report ({year}) mentions police at this spot": "Последният отзив ({year}) споменава полиция на това място",
+  "Make a sign": "Направи табела",
+  "Print": "Отпечатай"
 }

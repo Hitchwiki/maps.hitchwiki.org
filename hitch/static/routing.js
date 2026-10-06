@@ -1259,6 +1259,55 @@
   }
   // "Details" expands the route into a step-by-step itinerary. Selecting the route
   // as well, so the map always shows what the open itinerary describes.
+  // Full-screen "cardboard sign": the destination town name as large as fits,
+  // to hold up at the roadside. Tap inverts (white-on-black reads better at dusk).
+  function signName() {
+    const label = (RJ.dest && RJ.dest.label) || "";
+    return label.split(",")[0].trim();
+  }
+  function openSign(source, leg) {
+    const name = signName();
+    if (!name || typeof document === "undefined") return;
+    const ov = document.createElement("div");
+    ov.className = "hm-sign";
+    ov.innerHTML = `<div class="hm-sign-text"></div>
+      <div class="hm-sign-bar"><button type="button" class="hm-sign-print">${T("Print")}</button>
+      <button type="button" class="hm-sign-close">${T("Close")}</button></div>`;
+    const txt = ov.querySelector(".hm-sign-text");
+    txt.textContent = name;
+    document.body.appendChild(ov);
+    const fit = () => {
+      let size = 400;
+      txt.style.fontSize = size + "px";
+      while (size > 16 && (txt.scrollWidth > ov.clientWidth * 0.92 || txt.scrollHeight > ov.clientHeight * 0.7)) {
+        size = Math.floor(size * 0.9);
+        txt.style.fontSize = size + "px";
+      }
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    let lock = null;
+    if (navigator.wakeLock) navigator.wakeLock.request("screen").then(l => { lock = l; }).catch(() => {});
+    const close = () => {
+      window.removeEventListener("resize", fit);
+      if (lock) lock.release().catch(() => {});
+      ov.remove();
+    };
+    ov.querySelector(".hm-sign-close").addEventListener("click", e => { e.stopPropagation(); close(); });
+    ov.querySelector(".hm-sign-print").addEventListener("click", e => {
+      e.stopPropagation();
+      hmTrack("sign_printed", { source });
+      document.body.classList.add("hm-printing-sign");
+      window.print();
+      document.body.classList.remove("hm-printing-sign");
+    });
+    ov.addEventListener("click", () => {
+      ov.classList.toggle("hm-sign-inverted");
+      hmTrack("sign_inverted", { source });
+    });
+    hmTrack("sign_opened", { source, leg });
+  }
+
   function toggleDetails(row, rt, i) {
     const steps = row.querySelector(".rp-steps");
     const btn = row.querySelector(".rp-details-btn");
@@ -1477,10 +1526,12 @@
               }) + "</span>" : ""}
           </button>
           <button class="rp-details-btn" type="button" aria-expanded="false">${T("Details")}</button>
+          <button class="rp-sign-btn" type="button">${T("Make a sign")}</button>
           <div class="rp-steps" hidden></div>
         </div>`;
       row.querySelector(".rp-opt-summary").addEventListener("click", () => highlight(i));
       row.querySelector(".rp-details-btn").addEventListener("click", () => toggleDetails(row, rt, i));
+      row.querySelector(".rp-sign-btn").addEventListener("click", () => openSign("route", i));
       box.appendChild(row);
     });
     // v1 put this button after all three (often tall) route cards and counted

@@ -4069,6 +4069,25 @@ body.routing-active .leaflet-control-container .leaflet-control-geocoder { displ
   font: inherit; font-size: 13px; font-weight: 600; color: var(--rc); cursor: pointer;
 }
 .rp-details-btn:hover { text-decoration: underline; }
+.rp-sign-btn {
+  margin: 6px 0 0 14px; background: none; border: 0; padding: 2px 0;
+  font: inherit; font-size: 13px; font-weight: 600; color: var(--rc); cursor: pointer;
+}
+.rp-sign-btn:hover { text-decoration: underline; }
+.hm-sign {
+  position: fixed; inset: 0; z-index: 100000; background: #fff; color: #000;
+  display: flex; align-items: center; justify-content: center; text-align: center;
+}
+.hm-sign-inverted { background: #000; color: #fff; }
+.hm-sign-text { font-weight: 900; line-height: 1.05; max-width: 92vw; word-break: break-word; text-transform: uppercase; }
+.hm-sign-bar { position: absolute; bottom: 12px; left: 0; right: 0; display: flex; gap: 12px; justify-content: center; }
+.hm-sign-bar button { padding: 8px 16px; font: inherit; font-size: 15px; border: 1px solid #888; border-radius: 8px; background: rgba(128,128,128,.25); color: inherit; }
+@media print {
+  @page { size: A4 landscape; margin: 10mm; }
+  body.hm-printing-sign > *:not(.hm-sign) { display: none !important; }
+  .hm-sign { position: static; height: 190mm; }
+  .hm-sign-bar { display: none; }
+}
 
 .rp-start-cta,
 .rp-no-route-cta {

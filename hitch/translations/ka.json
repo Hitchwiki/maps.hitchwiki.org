@@ -995,5 +995,7 @@
   "Start hitching here": "აქედან ავტოსტოპის დაწყება",
   "This wiki page has no location yet. Search for the place or tap a marker.": "ამ ვიკი გვერდს ჯერ არ აქვს მდებარეობა. მოძებნე ადგილი ან შეეხე მარკერს.",
   "Latest report ({year}) says this spot may be gone": "ბოლო ანგარიშის ({year}) მიხედვით, ეს ადგილი შესაძლოა აღარ არსებობს",
-  "Latest report ({year}) mentions police at this spot": "ბოლო ანგარიშში ({year}) ამ ადგილას პოლიცია არის ნახსენები"
+  "Latest report ({year}) mentions police at this spot": "ბოლო ანგარიშში ({year}) ამ ადგილას პოლიცია არის ნახსენები",
+  "Make a sign": "დაამზადე აბრა",
+  "Print": "ბეჭდვა"
 }
