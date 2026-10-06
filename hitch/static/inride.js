@@ -3237,6 +3237,12 @@
       // click-blocking scrim) on top of it is the wrong first impression. Return before
       // the shown-flag is set, so the banner still appears on their next normal visit.
       if (/(^|\/)dir\/-?\d/.test(location.pathname) || location.hash.slice(1).startsWith("dir/")) return;
+      // #654: a first-time visitor straight from a search engine (5.6k google.com visitors
+      // / 28 d, 96% bounce in 24 s) is looking at the map, not racing; a click-blocking
+      // modal about someone else's event is their first impression. Racers arrive via the
+      // app, the race page or links, not search. The shown-flag stays unset so a later
+      // normal visit still gets the banner.
+      if (/^https?:\/\/([a-z0-9-]+\.)*(google|bing|duckduckgo|ecosia|brave)\.[a-z.]+\//i.test(document.referrer || "")) return;
       let races;
       try {
         const res = await fetch("/races.json");
