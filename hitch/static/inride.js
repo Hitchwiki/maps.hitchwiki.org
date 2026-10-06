@@ -1299,6 +1299,42 @@
           hmTrack("journey_spot_share_row_shown", { arm: shareArm });
         }
       }
+      // ── #305 slice 1 (EXP-817): "Tell someone you're on your way". Control arm of
+      // in-ride-dock-share-v1 only, so that test's share arm stays clean. Opens the phone's
+      // share sheet with the existing /spot link; the user writes the message. No plate,
+      // no live location, nothing stored, no text authored by us.
+      if (shareArm === "control" && j.pickup) {
+        const pingRow = document.createElement("div");
+        pingRow.className = "inr-share-row";
+        const pingBtn = document.createElement("button");
+        pingBtn.type = "button";
+        pingBtn.className = "inr-share-btn";
+        pingBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> ' + T("Tell someone you're on your way");
+        pingBtn.addEventListener("click", function () {
+          const url = new URL("/spot/" + j.pickup.lat.toFixed(5) + "_" + j.pickup.lon.toFixed(5), window.location.origin);
+          url.searchParams.set("ref", "share-safety-ping");
+          hmTrack("safety_ping_tapped", {});
+          const copy = function () {
+            (navigator.clipboard ? navigator.clipboard.writeText(url.toString()) : Promise.reject())
+              .catch(function () { window.prompt(T("Copy this link:"), url.toString()); });
+          };
+          if (navigator.share) {
+            navigator.share({ url: url.toString() }).catch(function (err) { if (!err || err.name !== "AbortError") copy(); });
+          } else {
+            copy();
+          }
+        });
+        pingRow.appendChild(pingBtn);
+        dock.appendChild(pingRow);
+        if (!j.safetyPingShown) {
+          const cur = journeyStore.get();
+          if (cur) {
+            cur.safetyPingShown = true;
+            journeyStore.set(cur);
+          }
+          hmTrack("safety_ping_shown", {});
+        }
+      }
       // Insert ABOVE the Finish row (DOM order = top→bottom in the stacked dock).
       // Placed below, it wrapped onto the bottom edge and hid behind the nav / OSM credits.
       dock.appendChild(demoRow);
