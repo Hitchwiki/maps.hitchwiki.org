@@ -45,6 +45,7 @@ test("anonymous first-visit A/B (#268): both arms assigned at show time, four fu
   assert.match(SOURCE, /window\.IS_LOGGED_IN !== false/);
   assert.match(SOURCE, /\^share-/);
   assert.match(SOURCE, /\.inride-scrim/);
+  assert.match(SOURCE, /hmVisitorConsent\.state\(\) === "unset"/);
   // Anonymous finishers stay on the map, not the login-gated profile form.
   assert.match(SOURCE, /onDone: function \(\) \{\}/);
 });
