@@ -5667,6 +5667,24 @@ function refreshOpenSpotRides() {
   }
 }
 
+// #0,0 arrival (wiki pages with no coordinates yet, #642): short dismissable note.
+function showNoLocationNote() {
+  let ref = "";
+  try {
+    ref = decodeURIComponent(new URL(document.referrer).pathname.split("/").pop() || "").slice(0, 80);
+  } catch (e) {}
+  if (window.hmTrack) window.hmTrack("wiki_null_coords_arrival", { ref: ref || "none" });
+  const note = document.createElement("div");
+  note.id = "no-location-note";
+  note.setAttribute("role", "status");
+  note.style.cssText =
+    "position:fixed;left:12px;right:12px;top:104px;z-index:1600;max-width:420px;margin:0 auto;padding:10px 14px;background:#fff;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.3);font-size:14px;cursor:pointer";
+  note.textContent = tr("This wiki page has no location yet. Search for the place or tap a marker.");
+  note.addEventListener("click", () => note.remove());
+  document.body.appendChild(note);
+  setTimeout(() => note.remove(), 12000);
+}
+
 async function navigate() {
   await applyParams();
 
@@ -5768,6 +5786,12 @@ async function navigate() {
     if (nearest && nearestDist < EPS) {
       await handleMarkerClick(nearest, nearest.getLatLng(), null);
       if (map.getZoom() < 3) map.setView(nearest.getLatLng(), zoom || 16);
+      return;
+    }
+    // 0,0 is the wiki's placeholder for "no location yet", not a place: panning
+    // there drops the visitor in open ocean. Keep the current view and say why.
+    if (lat === 0 && lon === 0) {
+      showNoLocationNote();
       return;
     }
     // No exact marker match — pan to the coordinates

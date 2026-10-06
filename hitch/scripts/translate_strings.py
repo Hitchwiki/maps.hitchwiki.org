@@ -64,6 +64,8 @@ LANGUAGE_NAMES = {
 # in sync by hand -- there's no extraction tool, and duplicating the audit here
 # is deliberate: it's the same list of user-facing strings by design.
 SOURCE_STRINGS = [
+    # #0,0 arrival note (map.js, #642).
+    "This wiki page has no location yet. Search for the place or tap a marker.",
     # Saved spots (map.js, #641).
     "Save this spot",
     "Saved",
