@@ -38,3 +38,27 @@ def test_every_js_string_has_a_key_in_every_language():
             keys = json.load(f)
         missing = sorted(f"{name}: {text}" for name, text in literals if text not in keys)
         assert not missing, f"{os.path.basename(path)} lacks keys for: {missing[:5]}"
+
+
+def test_every_server_side_t_string_in_main_py_has_a_key_in_every_language():
+    """The /hitchhiking-safety page strings were English-only in all 30 languages (IDEAS #672)."""
+    import ast
+
+    with open(os.path.join(ROOT, "hitch", "blueprints", "main.py"), encoding="utf8") as f:
+        tree = ast.parse(f.read())
+    literals = {
+        n.args[0].value
+        for n in ast.walk(tree)
+        if isinstance(n, ast.Call)
+        and getattr(n.func, "id", None) in ("t", "_")
+        and n.args
+        and isinstance(n.args[0], ast.Constant)
+        and isinstance(n.args[0].value, str)
+        and " " in n.args[0].value
+    }
+    assert literals
+    for path in sorted(glob.glob(os.path.join(TRANSLATIONS, "*.json"))):
+        with open(path, encoding="utf8") as f:
+            keys = json.load(f)
+        missing = sorted(text for text in literals if text not in keys)
+        assert not missing, f"{os.path.basename(path)} lacks keys for: {missing[:5]}"
