@@ -715,4 +715,27 @@ robots_txt = (
 with open(os.path.join(dist_dir, "robots.txt"), "w", encoding="utf-8") as f:
     f.write(robots_txt)
 
+# llms.txt (llmstxt.org): an index of the pages that exist, in the site's own words (the title
+# and meta description the pages already carry). The wiki serves one too; AI search crawlers
+# are already allowed in robots.txt above.
+llms_txt = (
+    "# Hitchhiking Map\n"
+    "\n"
+    "> Interactive hitchhiking map: find spots from Hitchwiki, Hitchmap, and the community. "
+    "Ratings, heatmaps, route planning, share rides worldwide.\n"
+    "\n"
+    "## Pages\n"
+    "\n"
+    f"- [Hitchhiking Map]({SITE_URL}/): the map of hitchhiking spots, ratings and waiting times\n"
+    f"- [Statistics]({SITE_URL}/statistics): community ride and waiting-time statistics\n"
+    f"- [Hitchhiking safety]({SITE_URL}/hitchhiking-safety): safety figures from community ride reports\n"
+    f"- [Cities]({SITE_URL}/sitemap.xml): every city page, listed in the sitemap\n"
+    "\n"
+    "## Related\n"
+    "\n"
+    "- [Hitchwiki](https://hitchwiki.org/en/Main_Page): the hitchhiking wiki with country and city guides\n"
+)
+with open(os.path.join(dist_dir, "llms.txt"), "w", encoding="utf-8") as f:
+    f.write(llms_txt)
+
 logger.info("CITIES SCRIPT FINISHED")
