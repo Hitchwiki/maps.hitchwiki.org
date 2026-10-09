@@ -1048,5 +1048,21 @@
   "10-49 km": "10-49 km",
   "50-149 km": "50-149 km",
   "150-399 km": "150-399 km",
-  "400+ km": "400+ km"
+  "400+ km": "400+ km",
+  "Which country are you in right now?": "In welk land bevind je je nu?",
+  "Which city are you in right now?": "In welke stad bevind je je nu?",
+  "Profile picture": "Profielfoto",
+  "Choose a picture": "Kies een foto",
+  "No profile picture": "Geen profielfoto",
+  "Upload a picture": "Foto uploaden",
+  "Use my Gravatar": "Mijn Gravatar gebruiken",
+  "Choose a picture to upload.": "Kies een foto om te uploaden.",
+  "This doesn't look like a web address.": "Dit lijkt geen webadres.",
+  "Done. You'll get a notification when something happens on your profile.": "Klaar. Je krijgt een melding wanneer er iets op je profiel gebeurt.",
+  "Want a phone notification when someone follows you, writes to you or comments on your ride? ": "Wil je een melding op je telefoon als iemand je volgt, je een bericht stuurt of reageert op je rit? ",
+  "Yes, notify me": "Ja, meld mij",
+  "No thanks": "Nee bedankt",
+  "Your profiles elsewhere": "Je profielen elders",
+  "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "Maximaal 5 links, bijv. Instagram, Mastodon, Polarsteps of je eigen website. Ze worden op je openbare profiel getoond.",
+  "Link {n}": "Link {n}"
 }

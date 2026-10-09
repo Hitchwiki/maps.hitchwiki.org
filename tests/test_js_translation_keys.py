@@ -40,14 +40,17 @@ def test_every_js_string_has_a_key_in_every_language():
         assert not missing, f"{os.path.basename(path)} lacks keys for: {missing[:5]}"
 
 
-def test_every_server_side_t_string_in_main_py_has_a_key_in_every_language():
+def test_every_server_side_t_string_in_blueprints_has_a_key_in_every_language():
     """The /hitchhiking-safety page strings were English-only in all 30 languages (IDEAS #672)."""
     import ast
 
-    with open(os.path.join(ROOT, "hitch", "blueprints", "main.py"), encoding="utf8") as f:
-        tree = ast.parse(f.read())
+    trees = []
+    for bp in glob.glob(os.path.join(ROOT, "hitch", "blueprints", "*.py")):
+        with open(bp, encoding="utf8") as f:
+            trees.append(ast.parse(f.read()))
     literals = {
         n.args[0].value
+        for tree in trees
         for n in ast.walk(tree)
         if isinstance(n, ast.Call)
         and getattr(n.func, "id", None) in ("t", "_")

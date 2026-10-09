@@ -1048,5 +1048,21 @@
   "10-49 km": "10–49 км",
   "50-149 km": "50–149 км",
   "150-399 km": "150–399 км",
-  "400+ km": "400+ км"
+  "400+ km": "400+ км",
+  "Which country are you in right now?": "В коя държава се намираш в момента?",
+  "Which city are you in right now?": "В кой град се намираш в момента?",
+  "Profile picture": "Профилна снимка",
+  "Choose a picture": "Избери снимка",
+  "No profile picture": "Няма профилна снимка",
+  "Upload a picture": "Качи снимка",
+  "Use my Gravatar": "Използвай моя Gravatar",
+  "Choose a picture to upload.": "Избери снимка за качване.",
+  "This doesn't look like a web address.": "Това не изглежда като уеб адрес.",
+  "Done. You'll get a notification when something happens on your profile.": "Готово. Ще получиш известие, когато се случи нещо в профила ти.",
+  "Want a phone notification when someone follows you, writes to you or comments on your ride? ": "Искаш ли известие на телефона, когато някой те последва, ти пише или коментира пътуването ти? ",
+  "Yes, notify me": "Да, известявай ме",
+  "No thanks": "Не, благодаря",
+  "Your profiles elsewhere": "Твоите профили другаде",
+  "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "До 5 връзки, напр. Instagram, Mastodon, Polarsteps или собствения ти уебсайт. Показват се в публичния ти профил.",
+  "Link {n}": "Връзка {n}"
 }

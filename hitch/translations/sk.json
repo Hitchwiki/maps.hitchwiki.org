@@ -1048,5 +1048,21 @@
   "10-49 km": "10–49 km",
   "50-149 km": "50–149 km",
   "150-399 km": "150–399 km",
-  "400+ km": "400+ km"
+  "400+ km": "400+ km",
+  "Which country are you in right now?": "V akej krajine sa práve nachádzate?",
+  "Which city are you in right now?": "V akom meste sa práve nachádzate?",
+  "Profile picture": "Profilová fotografia",
+  "Choose a picture": "Vybrať fotografiu",
+  "No profile picture": "Bez profilovej fotografie",
+  "Upload a picture": "Nahrať fotografiu",
+  "Use my Gravatar": "Použiť môj Gravatar",
+  "Choose a picture to upload.": "Vyberte fotografiu na nahranie.",
+  "This doesn't look like a web address.": "Toto nevyzerá ako webová adresa.",
+  "Done. You'll get a notification when something happens on your profile.": "Hotovo. Dostanete oznámenie, keď sa niečo stane na vašom profile.",
+  "Want a phone notification when someone follows you, writes to you or comments on your ride? ": "Chcete dostávať oznámenia do telefónu, keď vás niekto sleduje, napíše vám alebo okomentuje vašu jazdu? ",
+  "Yes, notify me": "Áno, upozorňovať ma",
+  "No thanks": "Nie, ďakujem",
+  "Your profiles elsewhere": "Vaše profily inde",
+  "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "Až 5 odkazov, napr. Instagram, Mastodon, Polarsteps alebo vaša vlastná webstránka. Zobrazujú sa na vašom verejnom profile.",
+  "Link {n}": "Odkaz {n}"
 }
