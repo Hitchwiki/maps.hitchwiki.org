@@ -28,3 +28,10 @@ def test_activity_summary_roundtrip(tmp_path):
     with open(p, encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
     assert rows == [{"rides_7d": "258", "rides_28d": "1100"}]
+
+
+def test_country_activity_rows_threshold_and_median():
+    from hitch.place_activity import country_activity_rows
+
+    rows = country_activity_rows({"es": [10] * 12, "fr": [5] * 9, "de": [None] * 10})
+    assert rows == [["DE", 10, ""], ["ES", 12, 10]]

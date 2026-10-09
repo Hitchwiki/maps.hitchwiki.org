@@ -116,6 +116,9 @@
 0 8 * * 1 cd /app && /usr/bin/flock -n /tmp/sync_hitchhiking_rides_dataset.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate sync_hitchhiking_rides_dataset' > logs/sync_hitchhiking_rides_dataset.log 2>&1
 # first of every month at 9 AM — regenerate country hitchability CSV + country_ratings.json / country_insights.json
 0 9 1 * * cd /app && /usr/bin/flock -n /tmp/country_ratings.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate country_ratings' > logs/country_ratings.log 2>&1
+# daily at 7:40 AM — same script, so dist/country_activity.csv (rides in the last 90 days, read by the wiki's country
+# articles, IDEAS #608) is fresh; the monthly run alone would not produce the file until the 1st.
+40 7 * * * cd /app && /usr/bin/flock -n /tmp/country_ratings.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate country_ratings' > logs/country_ratings.log 2>&1
 # every day at midnight
 0 0 * * * cd /app && /usr/bin/flock -n /tmp/notify_nearby_hitchhikers.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate notify_nearby_hitchhikers' > logs/notify_nearby_hitchhikers.log 2>&1
 

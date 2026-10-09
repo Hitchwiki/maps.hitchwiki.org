@@ -32,10 +32,14 @@ import json
 import math
 import os
 import sqlite3
+import sys
 from collections import defaultdict
 from datetime import datetime, timedelta
 
 import reverse_geocoder as rg
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+from hitch.place_activity import country_activity_rows, write_country_activity_csv
 
 # Resolve the DB path the same way hitch/settings.py does: db/{DATABASE_NAME}.
 # Defaults to the production DB name so a manual run on the server just works.
@@ -382,6 +386,7 @@ def main():
 
     # The rating average only reflects rides from the last RATING_WINDOW_YEARS.
     rating_cutoff = datetime.now() - timedelta(days=365.25 * RATING_WINDOW_YEARS)
+    activity_cutoff = datetime.now() - timedelta(days=90)
 
     coords = []
     # Per-ride metrics, index-aligned with `coords` so we can group by country
@@ -418,6 +423,7 @@ def main():
                 "raw_rating": rating,
                 "wait": parse_wait_minutes(stops[0]),
                 "distance": distance,
+                "recent": is_recent(submission_time, activity_cutoff),
             }
         )
 
@@ -435,10 +441,13 @@ def main():
     # Rides that have BOTH a waiting time and a distance, as (wait, distance)
     # pairs — the basis for average distance / wait / wait-per-km / efficiency.
     paired = defaultdict(list)
+    recent_waits = defaultdict(list)
     for res, ride in zip(results, per_ride):
         cc = res["cc"]
         # Every placed ride counts toward the country's total (the MIN_RIDES_FOR_STATS gate).
         totals[cc] += 1
+        if ride["recent"]:
+            recent_waits[cc].append(ride["wait"])
         # Ratings feed the choropleth; only count rides that actually have one.
         if ride["rating"] is not None:
             sums[cc] += ride["rating"]
@@ -487,6 +496,8 @@ def main():
     country_rows.sort(key=lambda r: (r[3] if r[3] != "" else -1, r[1], r[2]), reverse=True)
 
     os.makedirs(DIST_DIR, exist_ok=True)
+    # Ride line on the wiki's country articles (IDEAS #608 slice 3).
+    write_country_activity_csv(os.path.join(DIST_DIR, "country_activity.csv"), country_activity_rows(recent_waits))
     with open(OUTPUT_CSV, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(
