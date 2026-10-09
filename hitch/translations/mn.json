@@ -1048,5 +1048,21 @@
   "10-49 km": "10-49 км",
   "50-149 km": "50-149 км",
   "150-399 km": "150-399 км",
-  "400+ km": "400+ км"
+  "400+ km": "400+ км",
+  "Which country are you in right now?": "Одоо та ямар улсад байна?",
+  "Which city are you in right now?": "Одоо та ямар хотод байна?",
+  "Profile picture": "Профайлын зураг",
+  "Choose a picture": "Зураг сонгох",
+  "No profile picture": "Профайлын зураггүй",
+  "Upload a picture": "Зураг байршуулах",
+  "Use my Gravatar": "Миний Gravatar-ыг ашиглах",
+  "Choose a picture to upload.": "Байршуулах зурагаа сонгоно уу.",
+  "This doesn't look like a web address.": "Энэ нь вэб хаяг мэт харагдахгүй байна.",
+  "Done. You'll get a notification when something happens on your profile.": "Боллоо. Таны профайлд ямар нэгэн зүйл болох үед та мэдэгдэл хүлээж авна.",
+  "Want a phone notification when someone follows you, writes to you or comments on your ride? ": "Хэн нэгэн таныг дагаж, бичиж, эсвэл таны аяллын тайланд сэтгэгдэл бичих үед утасны мэдэгдэл хүлээмээр байна уу? ",
+  "Yes, notify me": "Тийм, мэдэгдэл илгээ",
+  "No thanks": "Үгүй, баярлалаа",
+  "Your profiles elsewhere": "Таны бусад газрын профайлууд",
+  "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "Хамгийн ихдээ 5 холбоос, жишээ нь Instagram, Mastodon, Polarsteps эсвэл өөрийн вэбсайт. Эдгээр нь таны нийтэд харагдах профайлд харагдана.",
+  "Link {n}": "Холбоос {n}"
 }

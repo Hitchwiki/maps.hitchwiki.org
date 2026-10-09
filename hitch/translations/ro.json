@@ -1048,5 +1048,21 @@
   "10-49 km": "10-49 km",
   "50-149 km": "50-149 km",
   "150-399 km": "150-399 km",
-  "400+ km": "400+ km"
+  "400+ km": "400+ km",
+  "Which country are you in right now?": "În ce țară te afli acum?",
+  "Which city are you in right now?": "În ce oraș te afli acum?",
+  "Profile picture": "Poză de profil",
+  "Choose a picture": "Alege o poză",
+  "No profile picture": "Fără poză de profil",
+  "Upload a picture": "Încarcă o poză",
+  "Use my Gravatar": "Folosește Gravatar-ul meu",
+  "Choose a picture to upload.": "Alege o poză de încărcat.",
+  "This doesn't look like a web address.": "Acesta nu pare o adresă web.",
+  "Done. You'll get a notification when something happens on your profile.": "Gata. Vei primi o notificare când se întâmplă ceva pe profilul tău.",
+  "Want a phone notification when someone follows you, writes to you or comments on your ride? ": "Vrei o notificare pe telefon când cineva te urmărește, îți scrie sau comentează călătoria ta? ",
+  "Yes, notify me": "Da, notifică-mă",
+  "No thanks": "Nu, mulțumesc",
+  "Your profiles elsewhere": "Profilurile tale de pe alte platforme",
+  "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "Până la 5 linkuri, de ex. Instagram, Mastodon, Polarsteps sau propriul tău site. Apar pe profilul tău public.",
+  "Link {n}": "Link {n}"
 }

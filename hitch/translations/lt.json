@@ -1048,5 +1048,21 @@
   "10-49 km": "10–49 km",
   "50-149 km": "50–149 km",
   "150-399 km": "150–399 km",
-  "400+ km": "400+ km"
+  "400+ km": "400+ km",
+  "Which country are you in right now?": "Kurioje šalyje dabar esate?",
+  "Which city are you in right now?": "Kuriame mieste dabar esate?",
+  "Profile picture": "Profilio nuotrauka",
+  "Choose a picture": "Pasirinkti nuotrauką",
+  "No profile picture": "Nėra profilio nuotraukos",
+  "Upload a picture": "Įkelti nuotrauką",
+  "Use my Gravatar": "Naudoti mano Gravatar",
+  "Choose a picture to upload.": "Pasirinkite įkeliamą nuotrauką.",
+  "This doesn't look like a web address.": "Tai nepanašu į interneto adresą.",
+  "Done. You'll get a notification when something happens on your profile.": "Atlikta. Gausite pranešimą, kai jūsų profilyje kažkas įvyks.",
+  "Want a phone notification when someone follows you, writes to you or comments on your ride? ": "Ar norite gauti telefono pranešimus, kai kas nors jūs seka, rašo jums ar komentuoja jūsų kelionę? ",
+  "Yes, notify me": "Taip, praneškite man",
+  "No thanks": "Ne, ačiū",
+  "Your profiles elsewhere": "Jūsų profiliai kitur",
+  "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "Iki 5 nuorodų, pvz. Instagram, Mastodon, Polarsteps ar jūsų patių svetainė. Jos rodomos jūsų viešajame profilyje.",
+  "Link {n}": "Nuoroda {n}"
 }

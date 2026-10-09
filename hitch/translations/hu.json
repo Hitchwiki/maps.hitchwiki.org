@@ -1048,5 +1048,21 @@
   "10-49 km": "10–49 km",
   "50-149 km": "50–149 km",
   "150-399 km": "150–399 km",
-  "400+ km": "400+ km"
+  "400+ km": "400+ km",
+  "Which country are you in right now?": "Melyik országban vagy most?",
+  "Which city are you in right now?": "Melyik városban vagy most?",
+  "Profile picture": "Profilkép",
+  "Choose a picture": "Kép kiválasztása",
+  "No profile picture": "Nincs profilkép",
+  "Upload a picture": "Kép feltöltése",
+  "Use my Gravatar": "A Gravatarom használata",
+  "Choose a picture to upload.": "Válassz ki egy feltöltendő képet.",
+  "This doesn't look like a web address.": "Ez nem tűnik webcímnek.",
+  "Done. You'll get a notification when something happens on your profile.": "Kész. Értesítést kapsz, ha valami történik a profilodon.",
+  "Want a phone notification when someone follows you, writes to you or comments on your ride? ": "Szeretnél telefonos értesítést, ha valaki követ téged, ír neked vagy hozzászól az utazásodhoz? ",
+  "Yes, notify me": "Igen, értesíts",
+  "No thanks": "Kösz, nem kell",
+  "Your profiles elsewhere": "Profiljaid máshol",
+  "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "Legfeljebb 5 link, pl. Instagram, Mastodon, Polarsteps vagy a saját weboldalad. Ezek a nyilvános profilodon jelennek meg.",
+  "Link {n}": "{n}. link"
 }

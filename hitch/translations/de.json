@@ -1048,5 +1048,21 @@
   "10-49 km": "10–49 km",
   "50-149 km": "50–149 km",
   "150-399 km": "150–399 km",
-  "400+ km": "400+ km"
+  "400+ km": "400+ km",
+  "Which country are you in right now?": "In welchem Land befindest du dich gerade?",
+  "Which city are you in right now?": "In welcher Stadt befindest du dich gerade?",
+  "Profile picture": "Profilbild",
+  "Choose a picture": "Bild auswählen",
+  "No profile picture": "Kein Profilbild",
+  "Upload a picture": "Bild hochladen",
+  "Use my Gravatar": "Mein Gravatar verwenden",
+  "Choose a picture to upload.": "Wähle ein Bild zum Hochladen aus.",
+  "This doesn't look like a web address.": "Das sieht nicht nach einer Webadresse aus.",
+  "Done. You'll get a notification when something happens on your profile.": "Fertig. Du bekommst eine Benachrichtigung, wenn auf deinem Profil etwas passiert.",
+  "Want a phone notification when someone follows you, writes to you or comments on your ride? ": "Möchtest du eine Benachrichtigung aufs Handy, wenn dir jemand folgt, dir schreibt oder deine Fahrt kommentiert? ",
+  "Yes, notify me": "Ja, benachrichtige mich",
+  "No thanks": "Nein danke",
+  "Your profiles elsewhere": "Deine Profile anderswo",
+  "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "Bis zu 5 Links, z. B. Instagram, Mastodon, Polarsteps oder deine eigene Website. Sie werden auf deinem öffentlichen Profil angezeigt.",
+  "Link {n}": "Link {n}"
 }

@@ -1048,5 +1048,21 @@
   "10-49 km": "10–49 km",
   "50-149 km": "50–149 km",
   "150-399 km": "150–399 km",
-  "400+ km": "400+ km"
+  "400+ km": "400+ km",
+  "Which country are you in right now?": "Vilket land befinner du dig i just nu?",
+  "Which city are you in right now?": "Vilken stad befinner du dig i just nu?",
+  "Profile picture": "Profilbild",
+  "Choose a picture": "Välj en bild",
+  "No profile picture": "Ingen profilbild",
+  "Upload a picture": "Ladda upp en bild",
+  "Use my Gravatar": "Använd min Gravatar",
+  "Choose a picture to upload.": "Välj en bild att ladda upp.",
+  "This doesn't look like a web address.": "Det här ser inte ut som en webbadress.",
+  "Done. You'll get a notification when something happens on your profile.": "Klart. Du får en notis när något händer på din profil.",
+  "Want a phone notification when someone follows you, writes to you or comments on your ride? ": "Vill du ha en notis på telefonen när någon följer dig, skriver till dig eller kommenterar din resa? ",
+  "Yes, notify me": "Ja, meddela mig",
+  "No thanks": "Nej tack",
+  "Your profiles elsewhere": "Dina profiler på andra ställen",
+  "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "Upp till 5 länkar, t.ex. Instagram, Mastodon, Polarsteps eller din egen webbplats. De visas på din offentliga profil.",
+  "Link {n}": "Länk {n}"
 }

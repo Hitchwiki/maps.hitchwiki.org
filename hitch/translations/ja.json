@@ -1048,5 +1048,21 @@
   "10-49 km": "10〜49km",
   "50-149 km": "50〜149km",
   "150-399 km": "150〜399km",
-  "400+ km": "400km以上"
+  "400+ km": "400km以上",
+  "Which country are you in right now?": "今どの国にいますか？",
+  "Which city are you in right now?": "今どの都市にいますか？",
+  "Profile picture": "プロフィール画像",
+  "Choose a picture": "画像を選択",
+  "No profile picture": "プロフィール画像なし",
+  "Upload a picture": "画像をアップロード",
+  "Use my Gravatar": "Gravatarを使用",
+  "Choose a picture to upload.": "アップロードする画像を選択してください。",
+  "This doesn't look like a web address.": "これはWebアドレスではないようです。",
+  "Done. You'll get a notification when something happens on your profile.": "完了しました。プロフィールに何かが起こると通知が届きます。",
+  "Want a phone notification when someone follows you, writes to you or comments on your ride? ": "誰かがあなたをフォローしたり、メッセージを送ったり、ヒッチハイクにコメントしたりしたときにスマートフォンへ通知しますか？",
+  "Yes, notify me": "はい、通知してください",
+  "No thanks": "いいえ、結構です",
+  "Your profiles elsewhere": "他のサービスのプロフィール",
+  "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "最大5件のリンク（例：Instagram、Mastodon、Polarsteps、自分のWebサイトなど）。公開プロフィールに表示されます。",
+  "Link {n}": "リンク {n}"
 }

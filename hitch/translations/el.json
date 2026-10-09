@@ -1048,5 +1048,21 @@
   "10-49 km": "10-49 χλμ",
   "50-149 km": "50-149 χλμ",
   "150-399 km": "150-399 χλμ",
-  "400+ km": "400+ χλμ"
+  "400+ km": "400+ χλμ",
+  "Which country are you in right now?": "Σε ποια χώρα βρίσκεσαι τώρα;",
+  "Which city are you in right now?": "Σε ποια πόλη βρίσκεσαι τώρα;",
+  "Profile picture": "Εικόνα προφίλ",
+  "Choose a picture": "Επιλογή εικόνας",
+  "No profile picture": "Χωρίς εικόνα προφίλ",
+  "Upload a picture": "Μεταφόρτωση εικόνας",
+  "Use my Gravatar": "Χρήση του Gravatar μου",
+  "Choose a picture to upload.": "Επίλεξε μια εικόνα για μεταφόρτωση.",
+  "This doesn't look like a web address.": "Αυτό δεν μοιάζει με διεύθυνση ιστού.",
+  "Done. You'll get a notification when something happens on your profile.": "Τέλος. Θα λάβεις ειδοποίηση όταν συμβεί κάτι στο προφίλ σου.",
+  "Want a phone notification when someone follows you, writes to you or comments on your ride? ": "Θέλεις ειδοποίηση στο τηλέφωνο όταν κάποιος σε ακολουθεί, σου γράφει ή σχολιάζει τη διαδρομή σου; ",
+  "Yes, notify me": "Ναι, ενημέρωσέ με",
+  "No thanks": "Όχι, ευχαριστώ",
+  "Your profiles elsewhere": "Τα προφίλ σου αλλού",
+  "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "Έως 5 σύνδεσμοι, π.χ. Instagram, Mastodon, Polarsteps ή η δική σου ιστοσελίδα. Εμφανίζονται στο δημόσιο προφίλ σου.",
+  "Link {n}": "Σύνδεσμος {n}"
 }

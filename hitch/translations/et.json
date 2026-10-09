@@ -1048,5 +1048,21 @@
   "10-49 km": "10–49 km",
   "50-149 km": "50–149 km",
   "150-399 km": "150–399 km",
-  "400+ km": "400+ km"
+  "400+ km": "400+ km",
+  "Which country are you in right now?": "Millises riigis sa praegu oled?",
+  "Which city are you in right now?": "Millises linnas sa praegu oled?",
+  "Profile picture": "Profiilipilt",
+  "Choose a picture": "Vali pilt",
+  "No profile picture": "Profiilipilti pole",
+  "Upload a picture": "Laadi pilt üles",
+  "Use my Gravatar": "Kasuta minu Gravatari",
+  "Choose a picture to upload.": "Vali üleslaadimiseks pilt.",
+  "This doesn't look like a web address.": "See ei näe välja nagu veebiaadress.",
+  "Done. You'll get a notification when something happens on your profile.": "Valmis. Saad teavituse, kui sinu profiilil midagi juhtub.",
+  "Want a phone notification when someone follows you, writes to you or comments on your ride? ": "Kas soovid telefoni teavitust, kui keegi jälgib sind, kirjutab sulle või kommenteerib sinu sõitu?",
+  "Yes, notify me": "Jah, teavita mind",
+  "No thanks": "Ei, täname",
+  "Your profiles elsewhere": "Sinu muud profiilid",
+  "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "Kuni 5 linki, nt Instagram, Mastodon, Polarsteps või sinu enda veebileht. Need kuvatakse sinu avalikul profiilil.",
+  "Link {n}": "Link {n}"
 }

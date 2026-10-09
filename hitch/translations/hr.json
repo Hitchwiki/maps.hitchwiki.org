@@ -1048,5 +1048,21 @@
   "10-49 km": "10–49 km",
   "50-149 km": "50–149 km",
   "150-399 km": "150–399 km",
-  "400+ km": "400+ km"
+  "400+ km": "400+ km",
+  "Which country are you in right now?": "U kojoj si zemlji trenutno?",
+  "Which city are you in right now?": "U kojem si gradu trenutno?",
+  "Profile picture": "Profilna slika",
+  "Choose a picture": "Odaberi sliku",
+  "No profile picture": "Bez profilne slike",
+  "Upload a picture": "Učitaj sliku",
+  "Use my Gravatar": "Koristi moj Gravatar",
+  "Choose a picture to upload.": "Odaberi sliku za učitavanje.",
+  "This doesn't look like a web address.": "Ovo ne izgleda kao web adresa.",
+  "Done. You'll get a notification when something happens on your profile.": "Gotovo. Dobit ćeš obavijest kad se nešto dogodi na tvom profilu.",
+  "Want a phone notification when someone follows you, writes to you or comments on your ride? ": "Želiš li obavijest na telefon kad te netko prati, piše ti ili komentira tvoju vožnju? ",
+  "Yes, notify me": "Da, obavijesti me",
+  "No thanks": "Ne, hvala",
+  "Your profiles elsewhere": "Tvoji profili drugdje",
+  "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "Do 5 poveznica, npr. Instagram, Mastodon, Polarsteps ili tvoja vlastita web stranica. Prikazuju se na tvom javnom profilu.",
+  "Link {n}": "Poveznica {n}"
 }

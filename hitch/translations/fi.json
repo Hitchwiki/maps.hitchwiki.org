@@ -1048,5 +1048,21 @@
   "10-49 km": "10–49 km",
   "50-149 km": "50–149 km",
   "150-399 km": "150–399 km",
-  "400+ km": "400+ km"
+  "400+ km": "400+ km",
+  "Which country are you in right now?": "Missä maassa olet juuri nyt?",
+  "Which city are you in right now?": "Missä kaupungissa olet juuri nyt?",
+  "Profile picture": "Profiilikuva",
+  "Choose a picture": "Valitse kuva",
+  "No profile picture": "Ei profiilikuvaa",
+  "Upload a picture": "Lataa kuva",
+  "Use my Gravatar": "Käytä Gravatariani",
+  "Choose a picture to upload.": "Valitse ladattava kuva.",
+  "This doesn't look like a web address.": "Tämä ei näytä verkkosivuosoitteelta.",
+  "Done. You'll get a notification when something happens on your profile.": "Valmis. Saat ilmoituksen, kun profiilisi tapahtuu jotain.",
+  "Want a phone notification when someone follows you, writes to you or comments on your ride? ": "Haluatko puhelinilmoituksen, kun joku seuraa sinua, kirjoittaa sinulle tai kommenttaa kyytiäsi? ",
+  "Yes, notify me": "Kyllä, ilmoita minulle",
+  "No thanks": "Ei kiitos",
+  "Your profiles elsewhere": "Profiilisi muualla",
+  "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "Enintään 5 linkkiä, esim. Instagram, Mastodon, Polarsteps tai oma verkkosivusi. Ne näytetään julkisessa profiilissasi.",
+  "Link {n}": "Linkki {n}"
 }

@@ -1048,5 +1048,21 @@
   "10-49 km": "10-49 კმ",
   "50-149 km": "50-149 კმ",
   "150-399 km": "150-399 კმ",
-  "400+ km": "400+ კმ"
+  "400+ km": "400+ კმ",
+  "Which country are you in right now?": "რომელ ქვეყანაში იმყოფები ახლა?",
+  "Which city are you in right now?": "რომელ ქალაქში იმყოფები ახლა?",
+  "Profile picture": "პროფილის სურათი",
+  "Choose a picture": "აირჩიე სურათი",
+  "No profile picture": "პროფილის სურათი არ არის",
+  "Upload a picture": "ატვირთე სურათი",
+  "Use my Gravatar": "გამოიყენე ჩემი Gravatar",
+  "Choose a picture to upload.": "აირჩიე სურათი ასატვირთად.",
+  "This doesn't look like a web address.": "ეს ვებმისამართს არ ჰგავს.",
+  "Done. You'll get a notification when something happens on your profile.": "მზადაა. მიიღებ შეტყობინებას, როცა რაიმე მოხდება შენს პროფილზე.",
+  "Want a phone notification when someone follows you, writes to you or comments on your ride? ": "გინდა ტელეფონზე შეტყობინება, როცა ვინმე გადმოგყვება, მოგწერს ან კომენტარს დაწერს შენს მოგზაურობაზე?",
+  "Yes, notify me": "კი, აცნობე",
+  "No thanks": "არა, გმადლობთ",
+  "Your profiles elsewhere": "შენი პროფილები სხვა ადგილებში",
+  "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "5-მდე ბმული, მაგ. Instagram, Mastodon, Polarsteps ან შენი საკუთარი ვებსაიტი. ისინი ნაჩვენები იქნება შენს საჯარო პროფილზე.",
+  "Link {n}": "ბმული {n}"
 }
