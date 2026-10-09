@@ -579,6 +579,16 @@
     journeyUI.render(journeyStore.set(j));
   };
 
+  // True only for this browser's very first journey (#651): the waiting-screen
+  // "people who've done it" row is for a first-timer who has waited a while.
+  function markFirstJourney() {
+    try {
+      const n = parseInt(localStorage.getItem("hm_journeys_started") || "0", 10) || 0;
+      localStorage.setItem("hm_journeys_started", String(n + 1));
+      return n === 0;
+    } catch (e) { return false; }
+  }
+
   // Seed the waiting journey. Pickup = the chosen latlng; wait timer starts now.
   journeyFlow.start = function (latlng, coHitchhikers, source) {
     // Accepts a Leaflet LatLng or {lat, lon} — see toLatLon.
@@ -597,6 +607,7 @@
       details: null,
       legIndex: 0,
       source: startSource(source),
+      firstJourney: markFirstJourney(),
     });
     // Entry point of the in-ride funnel. This is a second, separate contribution
     // path from the /ride form — a journey that reaches Finish or Give up submits
@@ -902,6 +913,7 @@
         if (el && el.parentNode) el.parentNode.removeChild(el);
       });
       journeyUI._dockEl = null;
+      journeyUI._firstWaitEl = null;
       journeyUI._chipEl = null;
       // Remove the pickup pin placed during the in-ride state.
       if (journeyUI._pickupPin && window.map) {
@@ -1019,6 +1031,56 @@
 
       // One line of the nearest spot's own logged history, tappable to open it.
       journeyUI._renderWaitingContext(j);
+      journeyUI._scheduleFirstWaitRow(j);
+    },
+
+    // #651: first journey only, once 5 min have been waited — a row pointing at
+    // other people (Matrix chat, or the first-timer stories on the wiki). Three
+    // sticky arms; "none" is the control. Existing strings only, no new advice.
+    _scheduleFirstWaitRow(j) {
+      try {
+        clearTimeout(journeyUI._firstWaitTimer);
+        if (!j || !j.firstJourney || j.state !== "waiting") return;
+        const arm = (window.hmVariant || function (_n, v) { return v[0]; })(
+          "first_wait_people", ["none", "chat", "stories"]
+        );
+        if (arm === "none") return;
+        const elapsed = (j.waitAccumMs || 0) + (Date.now() - (j.waitSegmentStartMs || Date.now()));
+        const segment = j.waitSegmentStartMs;
+        journeyUI._firstWaitTimer = setTimeout(function () {
+          const cur = journeyStore.get();
+          if (!cur || cur.state !== "waiting" || cur.waitSegmentStartMs !== segment || !journeyUI._dockEl) return;
+          if (journeyUI._firstWaitEl) return;
+          const row = journeyUI._buildFirstWaitRow(arm);
+          journeyUI._dockEl.insertBefore(row, journeyUI._dockEl.firstChild);
+          journeyUI._firstWaitEl = row;
+          hmTrack("first_wait_people_shown", { arm: arm });
+        }, Math.max(0, 300000 - elapsed));
+      } catch (e) { /* never let the row break the waiting dock */ }
+    },
+
+    // Pure DOM builder, exercised by tests.
+    _buildFirstWaitRow(arm) {
+      const row = document.createElement("div");
+      row.className = "inr-waitctx inr-firstwait";
+      const a = document.createElement("a");
+      a.target = "_blank";
+      a.rel = "noopener";
+      if (arm === "chat") {
+        a.href = "https://matrix.to/#/#hitchhiking:hitchhiking.org";
+        a.textContent = "Matrix";
+        a.setAttribute("data-chat-place", "journey_waiting_first");
+        const parts = T("Or come straight to our {link} — that is where the community talks.", { link: "{link}" }).split("{link}");
+        row.appendChild(document.createTextNode(parts[0] || ""));
+        row.appendChild(a);
+        row.appendChild(document.createTextNode(parts[1] || ""));
+      } else {
+        a.href = "https://hitchwiki.org/en/First_time_hitchhiking?ref=maps-firstwait";
+        a.textContent = "First time hitchhiking";
+        row.appendChild(a);
+      }
+      a.addEventListener("click", function () { hmTrack("first_wait_people_clicked", { arm: arm }); });
+      return row;
     },
 
     // Round red "cancel" button (white × in a red circle) centered beneath the dock —

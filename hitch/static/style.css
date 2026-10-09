@@ -3332,6 +3332,7 @@ body.showing-insights .heatmap-legend-pane {
   cursor: pointer;
 }
 .inr-waitctx:active { transform: scale(0.97); }
+.inr-firstwait a { color: #fff; text-decoration: underline; }
 /* Cancel = white × in a red circle, centered beneath the Give Up / Got a Ride row.
    Big enough to read as a clear, deliberate "discard this journey" affordance. */
 .inr-cancel {
