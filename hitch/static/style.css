@@ -2522,6 +2522,17 @@ ul.no-style {
   margin: 0 0 18px 0 !important;
 }
 
+.success-chat-invite { margin: 0 0 18px 0 !important; text-align: center; }
+.success-chat-btn {
+  display: inline-block;
+  background: #2f6b3a;
+  color: #fff !important;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
 .success-share-content h2 {
   margin-bottom: 6px;
 }

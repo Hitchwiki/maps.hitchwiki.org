@@ -863,6 +863,9 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
            which attaches the logged-in username (or, for an anon visitor, the
            optional reply email). setupMapFeedback() in map.js wires/resets it. #}
         {{ feedback_widget("success-overlay", t("Ride saved — thank you!"), allow_email=(not is_logged_in)) }}
+        {# #591/#677: invite at the moment of need, as a button right under the thank-you.
+           As a plain sentence below eight other notes it got 0 clicks of ~636 saves/28d. #}
+        <p class="success-chat-invite"><a class="success-chat-btn" href="{{ GENERAL_CHAT_URL }}" target="_blank" rel="noopener" data-chat-place="ride_saved">{{ t("Join our Matrix chat") }}</a></p>
         <!-- Filled in by showTripCreated() when a tracked journey's rides were grouped
              into a trip. Hidden otherwise, and for a single-ride journey. -->
         <p id="success-trip-note" class="success-trip-note" style="display: none;"></p>
@@ -895,10 +898,6 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
         {% if VAPID_PUBLIC_KEY and current_user.is_authenticated %}
         <p id="success-push-optin" class="success-trip-note" style="display: none;" data-vapid-key="{{ VAPID_PUBLIC_KEY }}"></p>
         {% endif %}
-        {# #591: invite at the moment of need. Someone who just logged a ride is the
-           warmest possible chat joiner; reuses the already-translated menu sentence
-           and the tracked data-chat-place so the click is measurable by place. #}
-        <p class="success-trip-note">{{ t("Or come straight to our {link} — that is where the community talks.", link='<a href="' ~ GENERAL_CHAT_URL ~ '" target="_blank" rel="noopener" data-chat-place="ride_saved">Matrix</a>')|safe }}</p>
         <!-- #377 slice 1(b): a one-tap commitment device, right after a successful ride --
              the moment someone is most positively primed about hitchhiking. #368/#377's
              prior (EXP-529: 18-21% of driver pick-up reasons are a former or current
