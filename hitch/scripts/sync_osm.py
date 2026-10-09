@@ -1,6 +1,7 @@
 """Script to get official hitchhiking spots from OpenStreetMap using Overpass API and store them in the database."""
 
 import logging
+import re
 import time
 
 import requests
@@ -14,6 +15,9 @@ logger = logging.getLogger(__name__)
 overpass_url = "https://overpass-api.de/api/interpreter"
 # official hitchhiking spots on OSM use the tag highway=hitchhiking
 # see https://wiki.openstreetmap.org/wiki/Tag:highway=hitchhiking
+# Also accepted: an amenity=bench *named* Mitfahrbank/Mitfahrerbank/Mitfahrbänkle/Mitfahrbankerl/Mitfahrbänkli. Mappers
+# often add the physical bench with its local name and no highway=hitchhiking; 2026-10-09 that was ~128 benches in DE
+# alone, none of them on the map. amenity=car_pooling is left to sync_car_pooling.py.
 overpass_query = """
 [out:json][timeout:90];
 nwr["highway"="hitchhiking"];
@@ -53,6 +57,42 @@ if data is None:
 
 elements = data.get("elements", [])
 nodes = [el for el in elements if el["type"] == "node"]
+
+# Best-effort second pass for named benches. A name regex is a full scan of the country, ~40 s for DE on
+# overpass-api.de, so it is one small query per country and a failure must never cost the core highway=hitchhiking
+# sync: the loop logs and moves on with whatever it has.
+BENCH_COUNTRIES = ["DE", "AT", "CH"]
+BENCH_NAME = re.compile(r"^Mitfahr(er)?b(ank|änk)", re.IGNORECASE)
+seen = {n["id"] for n in nodes}
+bench_added = 0
+for cc in BENCH_COUNTRIES:
+    bench_query = (
+        f'[out:json][timeout:120];area["ISO3166-1"="{cc}"]->.a;'
+        # name-only regex: adding ["amenity"="bench"] here made the server time out (it scans every bench instead)
+        'node(area.a)["name"~"Mitfahr(er)?b(ank|änk)",i];out meta;'
+    )
+    for attempt in range(1, 3):
+        try:
+            response = requests.post(overpass_url, data={"data": bench_query}, headers=headers, timeout=150)
+            candidate = response.json() if response.ok else {}
+            if candidate.get("remark") or "elements" not in candidate:
+                raise ValueError(f"status={response.status_code} remark={str(candidate.get('remark'))[:120]}")
+            for el in candidate["elements"]:
+                tags = el.get("tags", {})
+                if (
+                    el["type"] == "node"
+                    and el["id"] not in seen
+                    and tags.get("amenity") == "bench"
+                    and BENCH_NAME.match(tags.get("name", ""))
+                ):
+                    seen.add(el["id"])
+                    nodes.append(el)
+                    bench_added += 1
+            break
+        except (requests.RequestException, ValueError) as exc:
+            logger.warning(f"Named-bench query {cc} attempt {attempt} failed: {exc}")
+            time.sleep(20)
+logger.info(f"Named Mitfahrbank benches added: {bench_added}")
 logger.info(f"Parsed {len(elements)} elements, {len(nodes)} nodes")
 
 # Refuse to wipe the table if Overpass returned nothing — protects against transient API failures leaving us with 0 spots
