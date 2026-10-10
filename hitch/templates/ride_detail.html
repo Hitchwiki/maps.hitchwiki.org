@@ -596,6 +596,12 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
             <div class="detail-value">{{ ride.driver.gender|replace('_', ' ')|capitalize }}</div>
         </div>
         {% endif %}
+        {% if ride.driver.companions %}
+        <div class="detail-row">
+            <div class="detail-label"><i class="fa fa-users"></i> Other people in the car</div>
+            <div class="detail-value">{{ ride.driver.companions }}</div>
+        </div>
+        {% endif %}
         {% if ride.driver.languages %}
         <div class="detail-row">
             <div class="detail-label"><i class="fa fa-language"></i> Languages</div>

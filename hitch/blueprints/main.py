@@ -1235,6 +1235,10 @@ def ride_detail(d_tag):
             "age": age,
             "gender": driver_obj.get("gender") or None,
             "languages": [LANGUAGE_NAME_BY_CODE.get(c, c) for c in languages_raw],
+            # Other people in the car (#350): bare non-driver occupants next to the driver.
+            "companions": sum(
+                1 for o in (content.get("occupants") or []) if isinstance(o, dict) and not o.get("was_driver")
+            ),
         }
         # Only attach the driver section if at least one field has a value.
         if not any(
@@ -1246,6 +1250,7 @@ def ride_detail(d_tag):
                 driver["age"],
                 driver["gender"],
                 driver["languages"],
+                driver["companions"],
             ]
         ):
             driver = None

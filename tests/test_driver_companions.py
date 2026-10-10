@@ -62,3 +62,11 @@ def test_retrospective_ride_form_has_companions_select():
     assert 'name="driver_companions"' in tpl
     assert "driver_companions: document.getElementById('driver_companions')" in tpl
     assert "data.driver_companions !== undefined" in tpl
+
+
+def test_ride_detail_shows_companions():
+    from pathlib import Path
+
+    root = Path(__file__).parents[1] / "hitch"
+    assert "driver[\"companions\"]" in (root / "blueprints" / "main.py").read_text()
+    assert "ride.driver.companions" in (root / "templates" / "ride_detail.html").read_text()
