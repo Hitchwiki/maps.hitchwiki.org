@@ -196,6 +196,41 @@ def load_derived_waits(conn):
     return {r["d"]: int(r["waiting_minutes"]) for r in rows if r["waiting_minutes"] is not None}
 
 
+MAX_VIA_POINTS = 8
+
+
+def _via_points(middle_stops, start, dest):
+    """Intermediate stops that carry real coordinates, in order, as (lat, lon) tuples.
+
+    Text-only stops (location missing) are skipped. A stop within ~50 m of the start, the
+    destination or the previous waypoint adds nothing but a snap-to-road detour, so it is
+    dropped; the list is capped so one odd ride cannot make a request URL huge.
+    """
+    out = []
+    last = start
+    for stop in middle_stops:
+        try:
+            loc = stop["location"]
+            lat, lon = loc["latitude"], loc["longitude"]
+        except (KeyError, TypeError):
+            continue
+        if lat is None or lon is None:
+            continue
+        try:
+            point = (float(lat), float(lon))
+        except (TypeError, ValueError):
+            continue
+        if abs(point[0]) > 90 or abs(point[1]) > 180:
+            continue
+        if haversine_m(last[0], last[1], point[0], point[1]) < 50 or haversine_m(dest[0], dest[1], point[0], point[1]) < 50:
+            continue
+        out.append(point)
+        last = point
+        if len(out) >= MAX_VIA_POINTS:
+            break
+    return out
+
+
 def load_rides(db_path):
     """Return every ride that has a valid start location.
 
@@ -235,6 +270,7 @@ def load_rides(db_path):
         # a real place people stand, exactly as show.py keeps the marker and drops the
         # distance.
         dest = None
+        via = []
         if not r["no_ride"] and len(stops) > 1:
             try:
                 d = stops[-1]["location"]
@@ -244,6 +280,8 @@ def load_rides(db_path):
                     dest = (float(dlat), float(dlon))
             except (KeyError, TypeError, IndexError):
                 pass
+            if dest is not None:
+                via = _via_points(stops[1:-1], (float(slat), float(slon)), dest)
         # Only fall back to the derived destination when the ride logged none itself, and
         # only if it is distinct from the start (a same-cell match yields no route).
         if dest is None and not r["no_ride"] and r["d"] in derived:
@@ -261,6 +299,7 @@ def load_rides(db_path):
                 "id": r["id"],
                 "start": (float(slat), float(slon)),
                 "dest": dest,
+                "via": via,
                 "wait": wait,
             }
         )
@@ -282,9 +321,12 @@ def parse_wait(iso):
 # ---------------------------------------------------------------------------
 
 
-def _route_key(start, dest):
-    # 4 decimals (~11 m) is plenty to dedupe near-identical endpoints.
-    return f"{start[0]:.4f},{start[1]:.4f};{dest[0]:.4f},{dest[1]:.4f}"
+def _route_key(start, dest, via=()):
+    # 4 decimals (~11 m) is plenty to dedupe near-identical endpoints. Rides without
+    # coordinate waypoints keep the original two-point key so the existing cache stays valid;
+    # waypoints are inserted in order between the endpoints (#351).
+    pts = [start, *via, dest]
+    return ";".join(f"{p[0]:.4f},{p[1]:.4f}" for p in pts)
 
 
 def index_route_cache(path):
@@ -388,12 +430,12 @@ def compact_route_cache(path, used_keys, max_bytes=ROUTE_CACHE_MAX_BYTES):
     return kept, written
 
 
-def fetch_route(start, dest, session, sleep, retries=3):
+def fetch_route(start, dest, session, sleep, retries=3, via=()):
     """Query OSRM for the fastest driving route. Returns dict or None on failure.
 
     OSRM expects lon,lat order. geometry is a list of [lat, lon] pairs.
     """
-    coords = f"{start[1]},{start[0]};{dest[1]},{dest[0]}"
+    coords = ";".join(f"{p[1]},{p[0]}" for p in (start, *via, dest))
     url = OSRM_URL.format(coords=coords)
     params = {"overview": "full", "geometries": "geojson", "alternatives": "false"}
     for attempt in range(retries):
@@ -885,12 +927,12 @@ def main():
     used_keys = []
     with open(cache_path, "a", encoding="utf-8") as cache_file, open(cache_path, encoding="utf-8") as read_handle:
         for i, ride in enumerate(rides):
-            key = _route_key(ride["start"], ride["dest"])
+            key = _route_key(ride["start"], ride["dest"], ride.get("via") or ())
             used_keys.append(key)
             if key in cache_index:
                 route = read_cached_route(read_handle, cache_index[key])
             else:
-                route = fetch_route(ride["start"], ride["dest"], session, args.sleep)
+                route = fetch_route(ride["start"], ride["dest"], session, args.sleep, via=ride.get("via") or ())
                 if route is not None:
                     # Record the new line's offset before appending, so later
                     # rides sharing these endpoints read it back from the cache.
