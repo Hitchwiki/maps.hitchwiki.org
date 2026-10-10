@@ -1065,5 +1065,10 @@
   "Your profiles elsewhere": "Profiljaid máshol",
   "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "Legfeljebb 5 link, pl. Instagram, Mastodon, Polarsteps vagy a saját weboldalad. Ezek a nyilvános profilodon jelennek meg.",
   "Link {n}": "{n}. link",
+  "Other people in the car (besides the driver)": "Egyéb személyek az autóban (a vezetőn kívül)",
+  "Driver alone": "Vezető egyedül",
+  "1 other": "1 másik",
+  "2 others": "2 másik",
+  "3 or more": "3 vagy több",
   "e.g. onsen, or paste a pin like 48.2082, 16.3738 — press Enter to add": "pl. onsen, vagy illessz be egy pin-t, pl. 48.2082, 16.3738 — a hozzáadáshoz nyomd meg az Entert"
 }

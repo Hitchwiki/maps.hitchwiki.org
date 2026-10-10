@@ -14,6 +14,7 @@ const J = {
     vehicle_kind: "van",
     driver_reason_to_pick_up: ["curiosity"],
     driver_gender: "female",
+    driver_companions: 2,
     driver_age: 34,
     driver_origin_country: "DE",
     driver_languages: ["deu", "eng"],
@@ -36,6 +37,7 @@ test("buildFinishBody carries every demographic field", () => {
   assert.strictEqual(body.client_d_tag, "abc-123");
   assert.strictEqual(body.driver_reason_to_pick_up, "curiosity");
   assert.strictEqual(body.driver_gender, "female");
+  assert.strictEqual(body.driver_companions, "2");
   assert.strictEqual(body.driver_age, "34");
   assert.strictEqual(body.driver_origin_country, "DE");
   assert.strictEqual(body.driver_languages, "deu,eng");

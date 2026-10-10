@@ -1913,6 +1913,7 @@ def ride_form():
                 "driver_origin_country",
                 "driver_age",
                 "driver_gender",
+                "driver_companions",
             ):
                 data[field] = ""
             data["driver_reason_to_pick_up"] = []
@@ -1977,6 +1978,11 @@ def ride_form():
         driver_gender = (data.get("driver_gender") or "").strip()
         assert driver_gender == "" or driver_gender in ALLOWED_GENDERS, f"Invalid driver gender: {driver_gender}"
         data["driver_gender"] = driver_gender
+
+        # Other people in the car besides the driver: "" (unanswered) or 0..3 (3 = "3 or more").
+        companions = str(data.get("driver_companions") if data.get("driver_companions") is not None else "").strip()
+        assert companions in ("", "0", "1", "2", "3"), f"Invalid driver_companions: {companions}"
+        data["driver_companions"] = companions
 
         # Age -> year_of_birth. We translate here so publish_ride doesn't need the current date.
         driver_age_raw = (data.get("driver_age") or "").strip()

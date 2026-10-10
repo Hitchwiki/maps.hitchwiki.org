@@ -1065,5 +1065,10 @@
   "Your profiles elsewhere": "Profiilisi muualla",
   "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "Enintään 5 linkkiä, esim. Instagram, Mastodon, Polarsteps tai oma verkkosivusi. Ne näytetään julkisessa profiilissasi.",
   "Link {n}": "Linkki {n}",
+  "Other people in the car (besides the driver)": "Muut henkilöt autossa (kuljettajan lisäksi)",
+  "Driver alone": "Kuljettaja yksin",
+  "1 other": "1 muu",
+  "2 others": "2 muuta",
+  "3 or more": "3 tai enemmän",
   "e.g. onsen, or paste a pin like 48.2082, 16.3738 — press Enter to add": "esim. onsen, tai liitä koordinaatti kuten 48.2082, 16.3738 — paina Enter lisätäksesi"
 }

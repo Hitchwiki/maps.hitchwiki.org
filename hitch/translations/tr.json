@@ -1065,5 +1065,10 @@
   "Your profiles elsewhere": "Diğer yerlerdeki profillerin",
   "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "En fazla 5 bağlantı, örn. Instagram, Mastodon, Polarsteps veya kendi web siten. Bunlar herkese açık profilinde gösterilir.",
   "Link {n}": "Bağlantı {n}",
-  "e.g. onsen, or paste a pin like 48.2082, 16.3738 — press Enter to add": "örn. onsen, veya 48.2082, 16.3738 gibi bir konum yapıştır — eklemek için Enter'a basın"
+  "Other people in the car (besides the driver)": "Şoför dışındaki diğer araçtaki kişiler",
+  "Driver alone": "Yalnız şoför",
+  "1 other": "1 kişi daha",
+  "2 others": "2 kişi daha",
+  "3 or more": "3 veya daha fazla",
+  "e.g. onsen, or paste a pin like 48.2082, 16.3738 — press Enter to add": "örn. onsen veya 48.2082, 16.3738 gibi bir konum işareti yapıştır — eklemek için Enter'a basın"
 }

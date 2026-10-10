@@ -285,6 +285,13 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
     driver_yob = custom_object.get("driver_year_of_birth")
     driver_gender = (custom_object.get("driver_gender") or "").strip() or None
     driver_languages = custom_object.get("driver_languages") or []
+    # Other people in the car besides the driver ("" = unanswered). One bare Occupant each:
+    # the standard has no household/group field, so the occupant count carries the signal.
+    try:
+        companions = int(custom_object.get("driver_companions"))
+    except (TypeError, ValueError):
+        companions = 0
+    companions = max(0, min(companions, 3))
     # Tristate: True / False / None (unanswered). `is not None` because an explicit
     # "no" is falsy but still an answer worth publishing.
     driver_would_ride_again = custom_object.get("driver_would_ride_again")
@@ -297,6 +304,7 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
         or driver_languages
         or driver_would_ride_again is not None
         or driver_negative_experiences
+        or companions
     ):
         occupants = [
             Occupant(
@@ -309,7 +317,7 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
                 would_ride_again=driver_would_ride_again,
                 negative_experiences=list(driver_negative_experiences) or None,
             )
-        ]
+        ] + [Occupant(was_driver=False) for _ in range(companions)]
     else:
         occupants = None
 

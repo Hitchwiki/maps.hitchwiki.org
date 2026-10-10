@@ -1065,5 +1065,10 @@
   "Your profiles elsewhere": "Таны бусад газрын профайлууд",
   "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "Хамгийн ихдээ 5 холбоос, жишээ нь Instagram, Mastodon, Polarsteps эсвэл өөрийн вэбсайт. Эдгээр нь таны нийтэд харагдах профайлд харагдана.",
   "Link {n}": "Холбоос {n}",
-  "e.g. onsen, or paste a pin like 48.2082, 16.3738 — press Enter to add": "жишээ нь: онсен, эсвэл 48.2082, 16.3738 гэх мэт цэг хавчуулж Enter дарж нэмээрэй"
+  "Other people in the car (besides the driver)": "Машинд өөр хүмүүс (жолоочоос бусад)",
+  "Driver alone": "Жолооч ганцаараа",
+  "1 other": "Өөр 1 хүн",
+  "2 others": "Өөр 2 хүн",
+  "3 or more": "3 ба түүнээс дээш",
+  "e.g. onsen, or paste a pin like 48.2082, 16.3738 — press Enter to add": "жишээ нь: онсэн, эсвэл 48.2082, 16.3738 гэх мэт цэг хуулж оруулж Enter дарж нэмээрэй"
 }

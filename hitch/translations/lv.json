@@ -1065,5 +1065,10 @@
   "Your profiles elsewhere": "Tavi profili citur",
   "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "Līdz 5 saitēm, piemēram, Instagram, Mastodon, Polarsteps vai tava pati vietne. Tās tiek rādītas tavā publiskajā profilā.",
   "Link {n}": "Saite {n}",
-  "e.g. onsen, or paste a pin like 48.2082, 16.3738 — press Enter to add": "piem. onsen vai ielīmējiet koordinātu, piem. 48.2082, 16.3738 — nospiediet Enter, lai pievienotu"
+  "Other people in the car (besides the driver)": "Citi cilvēki auto (izņemot vadītāju)",
+  "Driver alone": "Vadītājs viens",
+  "1 other": "1 cits",
+  "2 others": "2 citi",
+  "3 or more": "3 vai vairāk",
+  "e.g. onsen, or paste a pin like 48.2082, 16.3738 — press Enter to add": "piem. onsen vai ielīmējiet koordinātu, piemēram, 48.2082, 16.3738 — nospiediet Enter, lai pievienotu"
 }
