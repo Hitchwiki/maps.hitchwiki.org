@@ -1064,5 +1064,6 @@
   "No thanks": "Ei, täname",
   "Your profiles elsewhere": "Sinu muud profiilid",
   "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "Kuni 5 linki, nt Instagram, Mastodon, Polarsteps või sinu enda veebileht. Need kuvatakse sinu avalikul profiilil.",
-  "Link {n}": "Link {n}"
+  "Link {n}": "Link {n}",
+  "e.g. onsen, or paste a pin like 48.2082, 16.3738 — press Enter to add": "nt. onsen, või kleebi koordinaat nagu 48.2082, 16.3738 — vajuta Enter, et lisada"
 }

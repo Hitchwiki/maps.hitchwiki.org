@@ -1064,5 +1064,6 @@
   "No thanks": "არა, გმადლობთ",
   "Your profiles elsewhere": "შენი პროფილები სხვა ადგილებში",
   "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "5-მდე ბმული, მაგ. Instagram, Mastodon, Polarsteps ან შენი საკუთარი ვებსაიტი. ისინი ნაჩვენები იქნება შენს საჯარო პროფილზე.",
-  "Link {n}": "ბმული {n}"
+  "Link {n}": "ბმული {n}",
+  "e.g. onsen, or paste a pin like 48.2082, 16.3738 — press Enter to add": "მაგ. აბანო (onsen), ან ჩააგდეთ პინი ასე: 48.2082, 16.3738 — დააჭირეთ Enter-ს დასამატებლად"
 }

@@ -1064,5 +1064,6 @@
   "No thanks": "Hayır, teşekkürler",
   "Your profiles elsewhere": "Diğer yerlerdeki profillerin",
   "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "En fazla 5 bağlantı, örn. Instagram, Mastodon, Polarsteps veya kendi web siten. Bunlar herkese açık profilinde gösterilir.",
-  "Link {n}": "Bağlantı {n}"
+  "Link {n}": "Bağlantı {n}",
+  "e.g. onsen, or paste a pin like 48.2082, 16.3738 — press Enter to add": "örn. onsen, veya 48.2082, 16.3738 gibi bir konum yapıştır — eklemek için Enter'a basın"
 }

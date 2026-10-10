@@ -1064,5 +1064,6 @@
   "No thanks": "Όχι, ευχαριστώ",
   "Your profiles elsewhere": "Τα προφίλ σου αλλού",
   "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "Έως 5 σύνδεσμοι, π.χ. Instagram, Mastodon, Polarsteps ή η δική σου ιστοσελίδα. Εμφανίζονται στο δημόσιο προφίλ σου.",
-  "Link {n}": "Σύνδεσμος {n}"
+  "Link {n}": "Σύνδεσμος {n}",
+  "e.g. onsen, or paste a pin like 48.2082, 16.3738 — press Enter to add": "π.χ. onsen, ή επικόλλησε μια τοποθεσία όπως 48.2082, 16.3738 — πατήστε Enter για προσθήκη"
 }

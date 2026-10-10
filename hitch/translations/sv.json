@@ -1064,5 +1064,6 @@
   "No thanks": "Nej tack",
   "Your profiles elsewhere": "Dina profiler på andra ställen",
   "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "Upp till 5 länkar, t.ex. Instagram, Mastodon, Polarsteps eller din egen webbplats. De visas på din offentliga profil.",
-  "Link {n}": "Länk {n}"
+  "Link {n}": "Länk {n}",
+  "e.g. onsen, or paste a pin like 48.2082, 16.3738 — press Enter to add": "t.ex. onsen, eller klistra in en pin som 48.2082, 16.3738 — tryck Enter för att lägga till"
 }

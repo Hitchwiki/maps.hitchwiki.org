@@ -1064,5 +1064,6 @@
   "No thanks": "いいえ、結構です",
   "Your profiles elsewhere": "他のサービスのプロフィール",
   "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "最大5件のリンク（例：Instagram、Mastodon、Polarsteps、自分のWebサイトなど）。公開プロフィールに表示されます。",
-  "Link {n}": "リンク {n}"
+  "Link {n}": "リンク {n}",
+  "e.g. onsen, or paste a pin like 48.2082, 16.3738 — press Enter to add": "例：温泉、またはピンを貼り付け（例：48.2082, 16.3738）— Enterキーで追加"
 }
