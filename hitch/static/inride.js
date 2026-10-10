@@ -2060,6 +2060,7 @@
       const f = {
         driver_reason_to_pick_up: (seed.driver_reason_to_pick_up || []).slice(),
         driver_gender: seed.driver_gender || "",
+        driver_companions: (seed.driver_companions === 0 || seed.driver_companions) ? String(seed.driver_companions) : "",
         driver_age: (seed.driver_age === 0 || seed.driver_age) ? seed.driver_age : "",
         driver_origin_country: seed.driver_origin_country || "",
         driver_languages: (seed.driver_languages || []).slice(),
@@ -2245,6 +2246,10 @@
       // ── Driver tab ───────────────────────────────────────────────────────────
       const reasonF = fieldWrap(T("Why did they pick you up?")); chipMulti(reasonF, ch.reasons, f.driver_reason_to_pick_up); driverPanel.appendChild(reasonF);
       const genderF = fieldWrap(T("Driver gender")); chipSingle(genderF, ch.genders, function () { return f.driver_gender; }, function (v) { f.driver_gender = v; }); driverPanel.appendChild(genderF);
+      const compF = fieldWrap(T("Other people in the car (besides the driver)"));
+      chipSingle(compF, [["0", T("Driver alone")], ["1", T("1 other")], ["2", T("2 others")], ["3", T("3 or more")]],
+        function () { return f.driver_companions; }, function (v) { f.driver_companions = v; });
+      driverPanel.appendChild(compF);
       const ageF = fieldWrap(T("Approx. driver age"));
       const ageHelp = document.createElement("div"); ageHelp.className = "inr-field__help"; ageHelp.textContent = T("A rough guess is fine."); ageF.appendChild(ageHelp);
       const age = document.createElement("input"); age.type = "number"; age.min = "0"; age.max = "120"; age.className = "inr-cohitch-input"; age.inputMode = "numeric";

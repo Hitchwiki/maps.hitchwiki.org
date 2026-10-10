@@ -45,6 +45,7 @@
       // Demographic carry-through (Phase 2 UI populates these onto j.details).
       driver_reason_to_pick_up: csv(d.driver_reason_to_pick_up),
       driver_gender: d.driver_gender || "",
+      driver_companions: (d.driver_companions === 0 || d.driver_companions) ? String(d.driver_companions) : "",
       driver_age: (d.driver_age === 0 || d.driver_age) ? String(d.driver_age) : "",
       driver_origin_country: d.driver_origin_country || "",
       driver_languages: csv(d.driver_languages),
