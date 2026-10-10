@@ -3310,6 +3310,10 @@
       // app, the race page or links, not search. The shown-flag stays unset so a later
       // normal visit still gets the banner.
       if (/^https?:\/\/([a-z0-9-]+\.)*(google|bing|duckduckgo|ecosia|brave)\.[a-z.]+\//i.test(document.referrer || "")) return;
+      // Outreach links (ESN sections, student unions, bench towns, French communes) are sent to
+      // people who have never seen the map; the race modal would be the first thing they meet.
+      // Same rule as the search-engine guard above: skip, shown-flag stays unset.
+      if (/^(esn|asta|bench|fr)_/.test(new URLSearchParams(location.search).get("ref") || "")) return;
       let races;
       try {
         const res = await fetch("/races.json");
