@@ -1,0 +1,150 @@
+{
+"aiguilles-fr": {
+"rides": 2,
+"stops": 2
+},
+"amsterdam-nl": {
+"rides": 42,
+"stops": 1
+},
+"autrans-meaudre-en-vercors-fr": {
+"rides": 1,
+"stops": 1
+},
+"baratier-fr": {
+"rides": 1,
+"stops": 1
+},
+"briancon-fr": {
+"rides": 4,
+"stops": 2
+},
+"chateau-ville-vieille-fr": {
+"rides": 2,
+"stops": 2
+},
+"chorges-fr": {
+"rides": 6,
+"stops": 2
+},
+"eckernforde-de": {
+"rides": 2,
+"stops": 1
+},
+"ettaler-forst-de": {
+"rides": 1,
+"stops": 1
+},
+"eupen-be": {
+"rides": 2,
+"stops": 1
+},
+"flensburg-de": {
+"rides": 2,
+"stops": 1
+},
+"groningen-nl": {
+"rides": 15,
+"stops": 2
+},
+"guillestre-fr": {
+"rides": 8,
+"stops": 2
+},
+"iffeldorf-de": {
+"rides": 2,
+"stops": 1
+},
+"kiel-de": {
+"rides": 13,
+"stops": 1
+},
+"kopenhagen-dk": {
+"rides": 9,
+"stops": 1
+},
+"l-argentiere-la-bessee-fr": {
+"rides": 3,
+"stops": 1
+},
+"la-batie-montsaleon-fr": {
+"rides": 1,
+"stops": 1
+},
+"la-fare-en-champsaur-fr": {
+"rides": 2,
+"stops": 1
+},
+"millau-fr": {
+"rides": 4,
+"stops": 1
+},
+"nersingen-de": {
+"rides": 1,
+"stops": 1
+},
+"norddorf-auf-amrum-de": {
+"rides": 1,
+"stops": 1
+},
+"saint-andre-de-sangonis-fr": {
+"rides": 3,
+"stops": 1
+},
+"saint-crepin-fr": {
+"rides": 1,
+"stops": 1
+},
+"saint-firmin-fr": {
+"rides": 1,
+"stops": 1
+},
+"saint-nizier-du-moucherotte-fr": {
+"rides": 1,
+"stops": 1
+},
+"salles-la-source-fr": {
+"rides": 1,
+"stops": 1
+},
+"santa-cruz-us": {
+"rides": 4,
+"stops": 2
+},
+"schondorf-am-ammersee-de": {
+"rides": 2,
+"stops": 1
+},
+"sigottier-fr": {
+"rides": 1,
+"stops": 1
+},
+"tallard-fr": {
+"rides": 3,
+"stops": 3
+},
+"taunusstein-de": {
+"rides": 1,
+"stops": 1
+},
+"tours-fr": {
+"rides": 12,
+"stops": 1
+},
+"tubingen-de": {
+"rides": 2,
+"stops": 1
+},
+"uslar-de": {
+"rides": 1,
+"stops": 1
+},
+"utrecht-nl": {
+"rides": 24,
+"stops": 2
+},
+"vannes-fr": {
+"rides": 9,
+"stops": 1
+}
+}
