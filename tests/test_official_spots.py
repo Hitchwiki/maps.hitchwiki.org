@@ -82,6 +82,15 @@ def test_bench_town_lists_street_when_known(client, monkeypatch):
     assert "Mitfahrhalt 1 — Testgasse" in html
 
 
+def test_bench_town_ride_count_only_when_rides_exist(client, monkeypatch):
+    from hitch.blueprints import official_spots as os_
+
+    monkeypatch.setattr(os_, "bench_rides", lambda: {"eupen-be": {"rides": 3, "stops": 1}})
+    html = client.get("/mitfahrbank/eupen-be").get_data(as_text=True)
+    assert "3 Fahrten im Umkreis von 100 m" in html
+    assert "bench-ride-count" not in client.get("/mitfahrbank/moringen-de").get_data(as_text=True)
+
+
 def test_bench_town_index_lists_towns_and_town_pages_link_back(client):
     body = client.get("/mitfahrbank/").get_data(as_text=True)
     assert "/mitfahrbank/moringen-de" in body

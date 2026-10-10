@@ -109,6 +109,18 @@ def bench_streets():
         return {}
 
 
+BENCH_RIDES_PATH = Path(__file__).resolve().parent.parent / "data" / "bench_rides.json"
+
+
+@lru_cache(maxsize=1)
+def bench_rides():
+    """Logged rides within 100 m of a town's stops: {slug: {"rides": n, "stops": k}} (n >= 1 only)."""
+    try:
+        return json.loads(BENCH_RIDES_PATH.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {}
+
+
 @lru_cache(maxsize=1)
 def bench_towns():
     """Snapshot of official stops grouped by town (research/bench-towns-2026-10.md)."""
@@ -138,6 +150,7 @@ def bench_town(slug):
         fr=fr,
         page_lang="fr" if fr else "de",
         streets=bench_streets(),
+        ride_count=bench_rides().get(slug),
         lat=round(lat, 5),
         lon=round(lon, 5),
         pledge_btn=pledge_btn,

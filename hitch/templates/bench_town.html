@@ -10,6 +10,7 @@
   {% else %}
   <p>{{ n }} offizielle{{ 'r' if n == 1 else '' }} Mitfahrhalt{{ 'e' if n > 1 }} in {{ town.name }}{% if town.state %} ({{ town.state }}){% endif %}. Öffne einen Halt, um Erfahrungen anderer zu lesen und deine eigene Fahrt einzutragen.</p>
   {% endif %}
+  {% if ride_count %}<p id="bench-ride-count">{% if fr %}{{ ride_count.rides }} trajet{{ 's' if ride_count.rides > 1 }} enregistré{{ 's' if ride_count.rides > 1 }} à moins de 100 m de ces arrêts.{% else %}{{ ride_count.rides }} Fahrt{{ 'en' if ride_count.rides > 1 }} im Umkreis von 100 m dieser Halte eingetragen.{% endif %}</p>{% endif %}
   <p><a href="/?ref=bench-town#map=14/{{ lat }}/{{ lon }}">{{ 'Voir sur la carte' if fr else 'Auf der Karte ansehen' }}</a></p>
   {# #677: a bench missing from the list can be added in MapComplete's official hitchhiking theme (OSM). #}
   <p><a id="bench-add-link" href="https://mapcomplete.org/hitchhiking.html?z=16&amp;lat={{ lat }}&amp;lon={{ lon }}" target="_blank" rel="noopener">{{ 'Un banc manque ? Ajoutez-le sur la carte' if fr else 'Eine Bank fehlt? Auf der Karte ergänzen' }}</a></p>
