@@ -10,6 +10,7 @@
   <p><a href="/?ref=bench-town#map=14/{{ lat }}/{{ lon }}">{{ L.map }}</a></p>
   {# #677: a bench missing from the list can be added in MapComplete's official hitchhiking theme (OSM). #}
   <p><a id="bench-add-link" href="https://mapcomplete.org/hitchhiking.html?z=16&amp;lat={{ lat }}&amp;lon={{ lon }}" target="_blank" rel="noopener">{{ L.add }}</a></p>
+  {% if report_url %}<p><a id="bench-report-link" href="{{ report_url }}">{{ L.report }}</a></p>{% endif %}
   <p id="bench-proof" style="color:#555;font-size:14px">{{ L.proof }}</p>
   <p><button type="button" id="bench-pledge-btn" style="display:none;padding:10px 14px;border:0;border-radius:8px;background:#1a73e8;color:#fff;font-size:15px;cursor:pointer">{{ pledge_btn }}</button><span id="bench-pledge-note" style="display:none">{{ pledge_note }}</span></p>
   <ul>
@@ -22,6 +23,8 @@
 (function () {
   var add = document.getElementById("bench-add-link");
   if (add) add.addEventListener("click", function () { if (window.hmTrack) hmTrack("bench_add_link_clicked", { surface: "bench_town" }); });
+  var rep = document.getElementById("bench-report-link");
+  if (rep) rep.addEventListener("click", function () { if (window.hmTrack) hmTrack("bench_report_link_clicked", { surface: "bench_town" }); });
   var btn = document.getElementById("bench-pledge-btn"), note = document.getElementById("bench-pledge-note");
   if (!btn) return;
   try { if (localStorage.getItem("hmDriverPledgeMade")) return; } catch (e) {}
