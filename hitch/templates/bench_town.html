@@ -1,23 +1,19 @@
 {% extends "base.html" %}
-{% block meta_description %}{% if fr %}{{ n }} arrêt{{ 's' if n > 1 }} officiel{{ 's' if n > 1 }} à {{ town.name }} : voir la carte, lire les expériences et noter votre attente.{% else %}{{ n }} offizielle{{ 'r' if n == 1 else '' }} Mitfahrhalt{{ 'e' if n > 1 }} in {{ town.name }}: Karte ansehen, Erfahrungen lesen und die eigene Wartezeit eintragen.{% endif %}{% endblock %}
+{% block meta_description %}{% if fr %}{{ n }} arrêt{{ 's' if n > 1 }} officiel{{ 's' if n > 1 }} à {{ town.name }} : voir la carte, lire les expériences et noter votre attente.{% elif page_lang == 'de' %}{{ n }} offizielle{{ 'r' if n == 1 else '' }} Mitfahrhalt{{ 'e' if n > 1 }} in {{ town.name }}: Karte ansehen, Erfahrungen lesen und die eigene Wartezeit eintragen.{% else %}{{ (L.intro_n if plural else L.intro_1).format(n=n, name=town.name, state='') }}{% endif %}{% endblock %}
 {% block og_title %}{{ title }}{% endblock %}
 {% block main %}
 <main class="organizers">
-  <nav><a href="/">← Hitchwiki Maps</a> · <a href="/mitfahrbank/">{{ 'Tous les lieux' if fr else 'Alle Orte' }}</a></nav>
+  <nav><a href="/">← Hitchwiki Maps</a> · <a href="/mitfahrbank/">{{ L.all }}</a></nav>
   <h1>{{ title }}</h1>
-  {% if fr %}
-  <p>{{ n }} arrêt{{ 's' if n > 1 }} officiel{{ 's' if n > 1 }} dans cette commune ({{ town.state }}). Ouvrez un arrêt pour voir les expériences d'autres personnes et ajouter la vôtre.</p>
-  {% else %}
-  <p>{{ n }} offizielle{{ 'r' if n == 1 else '' }} Mitfahrhalt{{ 'e' if n > 1 }} in {{ town.name }}{% if town.state %} ({{ town.state }}){% endif %}. Öffne einen Halt, um Erfahrungen anderer zu lesen und deine eigene Fahrt einzutragen.</p>
-  {% endif %}
-  {% if ride_count %}<p id="bench-ride-count">{% if fr %}{{ ride_count.rides }} trajet{{ 's' if ride_count.rides > 1 }} enregistré{{ 's' if ride_count.rides > 1 }} à moins de 100 m de ces arrêts.{% else %}{{ ride_count.rides }} Fahrt{{ 'en' if ride_count.rides > 1 }} im Umkreis von 100 m dieser Halte eingetragen.{% endif %}</p>{% endif %}
-  <p><a href="/?ref=bench-town#map=14/{{ lat }}/{{ lon }}">{{ 'Voir sur la carte' if fr else 'Auf der Karte ansehen' }}</a></p>
+  <p>{{ (L.intro_n if plural else L.intro_1).format(n=n, name=town.name, state=(' (' ~ town.state ~ ')') if town.state else '') }}</p>
+  {% if ride_count %}<p id="bench-ride-count">{{ (L.rides_n if ride_count.rides > 1 else L.rides_1).format(r=ride_count.rides) }}</p>{% endif %}
+  <p><a href="/?ref=bench-town#map=14/{{ lat }}/{{ lon }}">{{ L.map }}</a></p>
   {# #677: a bench missing from the list can be added in MapComplete's official hitchhiking theme (OSM). #}
-  <p><a id="bench-add-link" href="https://mapcomplete.org/hitchhiking.html?z=16&amp;lat={{ lat }}&amp;lon={{ lon }}" target="_blank" rel="noopener">{{ 'Un banc manque ? Ajoutez-le sur la carte' if fr else 'Eine Bank fehlt? Auf der Karte ergänzen' }}</a></p>
+  <p><a id="bench-add-link" href="https://mapcomplete.org/hitchhiking.html?z=16&amp;lat={{ lat }}&amp;lon={{ lon }}" target="_blank" rel="noopener">{{ L.add }}</a></p>
   <p><button type="button" id="bench-pledge-btn" style="display:none;padding:10px 14px;border:0;border-radius:8px;background:#1a73e8;color:#fff;font-size:15px;cursor:pointer">{{ pledge_btn }}</button><span id="bench-pledge-note" style="display:none">{{ pledge_note }}</span></p>
   <ul>
   {% for osm_id, slat, slon in town.stops[:50] %}
-    <li><a href="/official-stop/{{ osm_id }}?ref=bench-town">{{ 'Arrêt' if fr else 'Mitfahrhalt' }} {{ loop.index }}{% set street = streets.get(osm_id|string) %}{% if street %} — {{ street }}{% else %} ({{ slat }}, {{ slon }}){% endif %}</a></li>
+    <li><a href="/official-stop/{{ osm_id }}?ref=bench-town">{{ L.stop }} {{ loop.index }}{% set street = streets.get(osm_id|string) %}{% if street %} — {{ street }}{% else %} ({{ slat }}, {{ slon }}){% endif %}</a></li>
   {% endfor %}
   </ul>
 </main>

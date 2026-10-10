@@ -95,3 +95,12 @@ def test_bench_town_index_lists_towns_and_town_pages_link_back(client):
     body = client.get("/mitfahrbank/").get_data(as_text=True)
     assert "/mitfahrbank/moringen-de" in body
     assert 'href="/mitfahrbank/"' in client.get("/mitfahrbank/moringen-de").get_data(as_text=True)
+
+
+def test_bench_town_nl_dk_us_not_german(client):
+    nl = client.get("/mitfahrbank/utrecht-nl").get_data(as_text=True)
+    assert '<html lang="nl"' in nl and "Liftplekken in" in nl and "Mitfahrh" not in nl
+    dk = client.get("/mitfahrbank/aarhus-dk").get_data(as_text=True)
+    assert '<html lang="da"' in dk and "Blafferpladser i" in dk
+    us = client.get("/mitfahrbank/berkeley-us").get_data(as_text=True)
+    assert '<html lang="en"' in us and "Hitchhiking spots in" in us and "Mitfahrh" not in us

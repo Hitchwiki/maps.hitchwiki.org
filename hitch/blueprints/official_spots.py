@@ -127,28 +127,126 @@ def bench_towns():
     return json.loads(BENCH_TOWNS_PATH.read_text(encoding="utf-8"))
 
 
+_BENCH_LANG = {"fr": "fr", "nl": "nl", "dk": "da", "us": "en"}
+
+# Page chrome per language. Keys with a trailing _1 / _n are singular / plural.
+_BENCH_STRINGS = {
+    "de": {
+        "title": "Mitfahrbänke in {name}",
+        "all": "Alle Orte",
+        "intro_1": (
+            "{n} offizieller Mitfahrhalt in {name}{state}. "
+            "Öffne einen Halt, um Erfahrungen anderer zu lesen und deine eigene Fahrt einzutragen."
+        ),
+        "intro_n": (
+            "{n} offizielle Mitfahrhalte in {name}{state}. "
+            "Öffne einen Halt, um Erfahrungen anderer zu lesen und deine eigene Fahrt einzutragen."
+        ),
+        "rides_1": "{r} Fahrt im Umkreis von 100 m dieser Halte eingetragen.",
+        "rides_n": "{r} Fahrten im Umkreis von 100 m dieser Halte eingetragen.",
+        "map": "Auf der Karte ansehen",
+        "add": "Eine Bank fehlt? Auf der Karte ergänzen",
+        "stop": "Mitfahrhalt",
+    },
+    "fr": {
+        "title": "Arrêts de covoiturage Rezo Pouce à {name}",
+        "all": "Tous les lieux",
+        "intro_1": (
+            "{n} arrêt officiel dans cette commune{state}. "
+            "Ouvrez un arrêt pour voir les expériences d'autres personnes et ajouter la vôtre."
+        ),
+        "intro_n": (
+            "{n} arrêts officiels dans cette commune{state}. "
+            "Ouvrez un arrêt pour voir les expériences d'autres personnes et ajouter la vôtre."
+        ),
+        "rides_1": "{r} trajet enregistré à moins de 100 m de ces arrêts.",
+        "rides_n": "{r} trajets enregistrés à moins de 100 m de ces arrêts.",
+        "map": "Voir sur la carte",
+        "add": "Un banc manque ? Ajoutez-le sur la carte",
+        "stop": "Arrêt",
+    },
+    "nl": {
+        "title": "Liftplekken in {name}",
+        "all": "Alle plaatsen",
+        "intro_1": (
+            "{n} officiële liftplek in {name}{state}. "
+            "Open een plek om ervaringen van anderen te lezen en je eigen rit toe te voegen."
+        ),
+        "intro_n": (
+            "{n} officiële liftplekken in {name}{state}. "
+            "Open een plek om ervaringen van anderen te lezen en je eigen rit toe te voegen."
+        ),
+        "rides_1": "{r} rit geregistreerd binnen 100 m van deze plekken.",
+        "rides_n": "{r} ritten geregistreerd binnen 100 m van deze plekken.",
+        "map": "Bekijk op de kaart",
+        "add": "Ontbreekt er een bank? Voeg hem toe op de kaart",
+        "stop": "Liftplek",
+    },
+    "da": {
+        "title": "Blafferpladser i {name}",
+        "all": "Alle steder",
+        "intro_1": (
+            "{n} officiel blafferplads i {name}{state}. "
+            "Åbn en plads for at læse andres erfaringer og tilføje din egen tur."
+        ),
+        "intro_n": (
+            "{n} officielle blafferpladser i {name}{state}. "
+            "Åbn en plads for at læse andres erfaringer og tilføje din egen tur."
+        ),
+        "rides_1": "{r} tur registreret inden for 100 m af disse pladser.",
+        "rides_n": "{r} ture registreret inden for 100 m af disse pladser.",
+        "map": "Se på kortet",
+        "add": "Mangler der en bænk? Tilføj den på kortet",
+        "stop": "Plads",
+    },
+    "en": {
+        "title": "Hitchhiking spots in {name}",
+        "all": "All places",
+        "intro_1": (
+            "{n} official hitchhiking spot in {name}{state}. "
+            "Open a spot to read others' experiences and add your own ride."
+        ),
+        "intro_n": (
+            "{n} official hitchhiking spots in {name}{state}. "
+            "Open a spot to read others' experiences and add your own ride."
+        ),
+        "rides_1": "{r} ride logged within 100 m of these spots.",
+        "rides_n": "{r} rides logged within 100 m of these spots.",
+        "map": "View on the map",
+        "add": "A bench is missing? Add it on the map",
+        "stop": "Spot",
+    },
+}
+
+
 @official_spots_bp.route("/mitfahrbank/<slug>")
 def bench_town(slug):
     town = bench_towns().get(slug)
     if town is None:
         abort(404)
     # All six Belgian towns are Ostbelgien (German-speaking); the French
-    # "Rezo Pouce" wording is for France only.
-    fr = town["cc"] == "fr"
+    # "Rezo Pouce" wording is for France only. NL/DK/US get their own language
+    # rather than German (the pledge strings already exist in nl/da/en).
+    lang = _BENCH_LANG.get(town["cc"], "de")
+    fr = lang == "fr"
     n = len(town["stops"])
-    title = f"Arrêts de covoiturage Rezo Pouce à {town['name']}" if fr else f"Mitfahrbänke in {town['name']}"
+    L = _BENCH_STRINGS[lang]
+    title = L["title"].format(name=town["name"])
     lat = sum(s[1] for s in town["stops"]) / n
     lon = sum(s[2] for s in town["stops"]) / n
-    tr = json.loads((TRANSLATIONS_DIR / ("fr.json" if fr else "de.json")).read_text(encoding="utf-8"))
-    pledge_btn = tr["I'll stop for a hitchhiker when I'm driving"]
-    pledge_note = tr["Pledge made — thank you."]
+    tr_file = {"de": "de.json", "fr": "fr.json", "nl": "nl.json", "da": "da.json"}.get(lang)
+    tr = json.loads((TRANSLATIONS_DIR / tr_file).read_text(encoding="utf-8")) if tr_file else {}
+    pledge_btn = tr.get("I'll stop for a hitchhiker when I'm driving", "I'll stop for a hitchhiker when I'm driving")
+    pledge_note = tr.get("Pledge made — thank you.", "Pledge made — thank you.")
     return render_template(
         "bench_town.html",
         title=title,
         town=town,
         n=n,
         fr=fr,
-        page_lang="fr" if fr else "de",
+        L=L,
+        plural=n > 1,
+        page_lang=lang,
         streets=bench_streets(),
         ride_count=bench_rides().get(slug),
         lat=round(lat, 5),
