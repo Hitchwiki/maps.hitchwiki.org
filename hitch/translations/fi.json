@@ -1069,5 +1069,6 @@
   "Driver alone": "Kuljettaja yksin",
   "1 other": "1 muu",
   "2 others": "2 muuta",
-  "3 or more": "3 tai enemmän"
+  "3 or more": "3 tai enemmän",
+  "e.g. onsen, or paste a pin like 48.2082, 16.3738 — press Enter to add": "esim. onsen, tai liitä koordinaatti kuten 48.2082, 16.3738 — paina Enter lisätäksesi"
 }

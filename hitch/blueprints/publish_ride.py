@@ -5,6 +5,7 @@ transform it into the defined standard and to post it to Nostr so that others ca
 """
 
 import logging
+import re
 
 import pandas as pd
 from flask_security import current_user
@@ -112,6 +113,25 @@ def construct_hitchhiker_from_current_user(reasons_to_hitchhike: list[str] | Non
 ### Again, here the function is a bit special because we are dealing with multiple datasets actually
 
 
+_COORD_STOP_RE = re.compile(r"^\s*(-?\d{1,3}(?:\.\d+)?)\s*[,;/ ]\s*(-?\d{1,3}(?:\.\d+)?)\s*(?:[-:,]?\s*(.*?))?\s*$")
+
+
+def parse_coordinate_stop(label: str) -> tuple[float, float, str | None] | None:
+    """A stop typed as "48.2082, 16.3738" or "48.2082 16.3738 Vienna rest area".
+
+    Pasting a pin from a maps app is the realistic way someone adds the exact spot of a
+    detour, and it needs no extra map round-trip in the form. Returns (lat, lon, name) or
+    None when the label is plain text or the numbers are not a valid coordinate.
+    """
+    m = _COORD_STOP_RE.match(label or "")
+    if not m:
+        return None
+    lat, lon = float(m.group(1)), float(m.group(2))
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        return None
+    return lat, lon, (m.group(3) or "").strip() or None
+
+
 def foreign_coordinate_intermediate_stops(raw_stops: list) -> list[Stop]:
     """Intermediate stops from a ride's *raw* Nostr content that carry a real coordinate.
 
@@ -170,7 +190,12 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
     # "along the way" to nowhere recorded isn't a waypoint, it's just more trip.
     if pd.notna(dest_lat) and pd.notna(dest_lon):
         for label in custom_object.get("ride_stops") or []:
-            stops.append(Stop(location=None, label=label))
+            coord = parse_coordinate_stop(label)
+            if coord:
+                stop_lat, stop_lon, name = coord
+                stops.append(Stop(location=Location(latitude=stop_lat, longitude=stop_lon, is_exact=True), label=name))
+            else:
+                stops.append(Stop(location=None, label=label))
 
     if pd.notna(dest_lat) and pd.notna(dest_lon):
         arrival_dt = custom_object.get("arrival_datetime")
