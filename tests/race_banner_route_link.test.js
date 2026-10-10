@@ -18,6 +18,7 @@ console.log("race_banner_route_link ok");
 // Legacy #dir/ links (pathname stays "/") are guarded by the same line.
 assert(body.includes('location.hash.slice(1).startsWith("dir/")'), "legacy #dir guard present");
 // Outreach campaign refs (esn_/asta_/bench_/fr_) skip the modal, before the races fetch.
+assert(body.includes("window.hmLandingRef"), "reads the ref captured before base.html strips it");
 const refGuard = body.indexOf("esn|asta|bench|fr)_");
 assert(refGuard > 0 && refGuard < body.indexOf("fetch(\"/races.json\")"), "campaign ref guard runs before the races fetch");
 assert(!body.slice(0, refGuard).includes("setItem"), "shown-flag not set before the ref guard");

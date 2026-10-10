@@ -199,6 +199,7 @@
         if (!ref) return;
         ref = ref.slice(0, 64).replace(/[^a-zA-Z0-9_-]/g, "");
         if (!ref) return;
+        window.hmLandingRef = ref;  // survives the strip below; inride.js reads it
         window.hmTrack("referred_via", { ref: ref });
         params.delete("ref");
         var qs = params.toString();
