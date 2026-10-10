@@ -182,7 +182,7 @@
                         <span style="font-weight:normal; font-size:0.8em; color:#888;">({{ t("optional") }})</span></h4>
                     <div id="ride-stops-tags" class="chip-select-tags" onclick="document.getElementById('ride-stop-input').focus()"></div>
                     <input type="text" id="ride-stop-input" class="form-control" style="margin-top:0.4rem;"
-                           placeholder="{{ t('e.g. onsen, viewpoint — press Enter to add') }}" maxlength="200">
+                           placeholder="{{ t('e.g. onsen, or paste a pin like 48.2082, 16.3738 — press Enter to add') }}" maxlength="200">
                     <input type="hidden" form="ride-form" id="ride_stops_hidden" name="ride_stops"
                            value="{{ (ride_data.ride_stops if ride_data else [])|tojson|forceescape }}">
                 </div>
