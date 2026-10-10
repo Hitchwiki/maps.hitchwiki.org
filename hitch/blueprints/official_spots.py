@@ -146,6 +146,10 @@ _BENCH_STRINGS = {
         "rides_n": "{r} Fahrten im Umkreis von 100 m dieser Halte eingetragen.",
         "map": "Auf der Karte ansehen",
         "add": "Eine Bank fehlt? Auf der Karte ergänzen",
+        "proof": (
+            "Von Mitfahrenden auf dieser Karte berichtet: mehr als 9 von 10 würden wieder in dasselbe Auto steigen "
+            "(616 Antworten, Mär–Aug 2026)."
+        ),
         "stop": "Mitfahrhalt",
     },
     "fr": {
@@ -163,6 +167,10 @@ _BENCH_STRINGS = {
         "rides_n": "{r} trajets enregistrés à moins de 100 m de ces arrêts.",
         "map": "Voir sur la carte",
         "add": "Un banc manque ? Ajoutez-le sur la carte",
+        "proof": (
+            "Déclaré par des autostoppeurs sur cette carte : plus de 9 sur 10 remonteraient dans la même voiture "
+            "(616 réponses, mars–août 2026)."
+        ),
         "stop": "Arrêt",
     },
     "nl": {
@@ -180,6 +188,10 @@ _BENCH_STRINGS = {
         "rides_n": "{r} ritten geregistreerd binnen 100 m van deze plekken.",
         "map": "Bekijk op de kaart",
         "add": "Ontbreekt er een bank? Voeg hem toe op de kaart",
+        "proof": (
+            "Gemeld door liftende mensen op deze kaart: meer dan 9 op de 10 zouden weer in dezelfde auto stappen "
+            "(616 antwoorden, mrt–aug 2026)."
+        ),
         "stop": "Liftplek",
     },
     "da": {
@@ -197,6 +209,10 @@ _BENCH_STRINGS = {
         "rides_n": "{r} ture registreret inden for 100 m af disse pladser.",
         "map": "Se på kortet",
         "add": "Mangler der en bænk? Tilføj den på kortet",
+        "proof": (
+            "Rapporteret af blaffere på dette kort: mere end 9 ud af 10 ville stige ind i den samme bil igen "
+            "(616 svar, mar–aug 2026)."
+        ),
         "stop": "Plads",
     },
     "en": {
@@ -214,6 +230,10 @@ _BENCH_STRINGS = {
         "rides_n": "{r} rides logged within 100 m of these spots.",
         "map": "View on the map",
         "add": "A bench is missing? Add it on the map",
+        "proof": (
+            "Reported by hitchhikers on this map: more than 9 in 10 would get back in the same car "
+            "(616 answers, Mar–Aug 2026)."
+        ),
         "stop": "Spot",
     },
 }

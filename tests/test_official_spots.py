@@ -104,3 +104,10 @@ def test_bench_town_nl_dk_us_not_german(client):
     assert '<html lang="da"' in dk and "Blafferpladser i" in dk
     us = client.get("/mitfahrbank/berkeley-us").get_data(as_text=True)
     assert '<html lang="en"' in us and "Hitchhiking spots in" in us and "Mitfahrh" not in us
+
+
+def test_bench_town_shows_would_ride_again_line_in_page_language(client):
+    de = client.get("/mitfahrbank/moringen-de").get_data(as_text=True)
+    assert 'id="bench-proof"' in de and "mehr als 9 von 10" in de and "616" in de
+    fr = client.get("/mitfahrbank/la-hague-fr").get_data(as_text=True)
+    assert "plus de 9 sur 10" in fr
