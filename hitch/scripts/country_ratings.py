@@ -510,7 +510,10 @@ def main():
 
     os.makedirs(DIST_DIR, exist_ok=True)
     # Ride line on the wiki's country articles (IDEAS #608 slice 3).
-    write_country_activity_csv(os.path.join(DIST_DIR, "country_activity.csv"), country_activity_rows(recent_waits, _bench_counts_by_country()))
+    write_country_activity_csv(
+        os.path.join(DIST_DIR, "country_activity.csv"),
+        country_activity_rows(recent_waits, _bench_counts_by_country()),
+    )
     with open(OUTPUT_CSV, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(
