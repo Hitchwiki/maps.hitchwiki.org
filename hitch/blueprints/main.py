@@ -1687,6 +1687,7 @@ def ride_form():
                     "driver_origin_country": "",
                     "driver_age": "",
                     "driver_gender": "",
+                    "driver_companions": "",
                     "driver_languages": [],
                 }
 
@@ -1709,6 +1710,10 @@ def ride_form():
                     if yob:
                         ride_data["driver_age"] = max(0, datetime.now().year - int(yob))
                     ride_data["driver_gender"] = driver.get("gender") or ""
+                    # Other people in the car: bare was_driver=False occupants (#350). "" when none,
+                    # since "alone" is not stored as a distinct answer.
+                    others = sum(1 for o in occupants if isinstance(o, dict) and not o.get("was_driver"))
+                    ride_data["driver_companions"] = str(min(others, 3)) if others else ""
                     langs = driver.get("languages") or []
                     ride_data["driver_languages"] = [code for code in langs if code in LANGUAGE_CODES]
 
