@@ -65,6 +65,14 @@ def test_bench_town_page_renders_and_unknown_slug_404s(client):
     assert client.get("/mitfahrbank/nowhere-xx").status_code == 404
 
 
+def test_bench_town_language_follows_country(client):
+    be = client.get("/mitfahrbank/eupen-be").get_data(as_text=True)
+    assert "Mitfahrbänke in Eupen" in be and "Rezo Pouce" not in be
+    assert '<html lang="de"' in be
+    fr = client.get("/mitfahrbank/la-hague-fr").get_data(as_text=True)
+    assert "Rezo Pouce" in fr and '<html lang="fr"' in fr
+
+
 def test_bench_town_index_lists_towns_and_town_pages_link_back(client):
     body = client.get("/mitfahrbank/").get_data(as_text=True)
     assert "/mitfahrbank/moringen-de" in body
