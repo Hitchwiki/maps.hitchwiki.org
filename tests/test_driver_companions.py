@@ -52,3 +52,13 @@ def test_unanswered_or_zero_adds_nothing():
 
 def test_capped_at_three():
     assert len(_record(driver_companions="9").occupants) == 4
+
+
+def test_retrospective_ride_form_has_companions_select():
+    """/ride form (not only the in-ride sheet) lets people answer, and keeps it across map round-trips."""
+    from pathlib import Path
+
+    tpl = (Path(__file__).parents[1] / "hitch" / "templates" / "ride_form.html").read_text()
+    assert 'name="driver_companions"' in tpl
+    assert "driver_companions: document.getElementById('driver_companions')" in tpl
+    assert "data.driver_companions !== undefined" in tpl

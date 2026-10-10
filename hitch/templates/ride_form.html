@@ -434,6 +434,16 @@
                 </div>
 
                 <div style="margin-top:8px;">
+                    <label for="driver_companions" style="font-weight:normal;">{{ t("Other people in the car (besides the driver)") }}</label>
+                    <select id="driver_companions" name="driver_companions" class="form-control">
+                        <option value="">—</option>
+                        {% for n, label in [("0", "Driver alone"), ("1", "1 other"), ("2", "2 others"), ("3", "3 or more")] %}
+                        <option value="{{ n }}" {% if ride_data and ride_data.driver_companions == n %}selected{% endif %}>{{ t(label) }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div style="margin-top:8px;">
                     <label style="font-weight:normal;">{{ t("Languages spoken by the driver") }}</label>
                     {% set selected_langs = ride_data.driver_languages if ride_data and ride_data.driver_languages else [] %}
                     <input type="hidden" id="driver_languages" name="driver_languages" value="{{ selected_langs|join(',') }}">
@@ -658,6 +668,7 @@
             driver_origin_country: document.getElementById('driver_origin_country')?.value || '',
             driver_age: document.getElementById('driver_age')?.value || '',
             driver_gender: document.getElementById('driver_gender')?.value || '',
+            driver_companions: document.getElementById('driver_companions')?.value || '',
             driver_languages: document.getElementById('driver_languages')?.value || '',
             // One logical form session can render three times (initial page, return
             // from pickup selection, return from destination selection). Carry the
@@ -811,6 +822,7 @@
             }
             if (data.driver_age !== undefined) document.getElementById('driver_age').value = data.driver_age;
             if (data.driver_gender !== undefined) document.getElementById('driver_gender').value = data.driver_gender;
+            if (data.driver_companions !== undefined) document.getElementById('driver_companions').value = data.driver_companions;
             if (data.driver_languages !== undefined) {
                 document.getElementById('driver_languages').value = data.driver_languages;
                 if (window._driverLanguagesRenderTags) window._driverLanguagesRenderTags();
