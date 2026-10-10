@@ -134,8 +134,14 @@ _BENCH_STRINGS = {
     "de": {
         "title": "Mitfahrbänke in {name}",
         "all": "Alle Orte",
-        "intro_1": "{n} offizieller Mitfahrhalt in {name}{state}. Öffne einen Halt, um Erfahrungen anderer zu lesen und deine eigene Fahrt einzutragen.",
-        "intro_n": "{n} offizielle Mitfahrhalte in {name}{state}. Öffne einen Halt, um Erfahrungen anderer zu lesen und deine eigene Fahrt einzutragen.",
+        "intro_1": (
+            "{n} offizieller Mitfahrhalt in {name}{state}. "
+            "Öffne einen Halt, um Erfahrungen anderer zu lesen und deine eigene Fahrt einzutragen."
+        ),
+        "intro_n": (
+            "{n} offizielle Mitfahrhalte in {name}{state}. "
+            "Öffne einen Halt, um Erfahrungen anderer zu lesen und deine eigene Fahrt einzutragen."
+        ),
         "rides_1": "{r} Fahrt im Umkreis von 100 m dieser Halte eingetragen.",
         "rides_n": "{r} Fahrten im Umkreis von 100 m dieser Halte eingetragen.",
         "map": "Auf der Karte ansehen",
@@ -145,8 +151,14 @@ _BENCH_STRINGS = {
     "fr": {
         "title": "Arrêts de covoiturage Rezo Pouce à {name}",
         "all": "Tous les lieux",
-        "intro_1": "{n} arrêt officiel dans cette commune{state}. Ouvrez un arrêt pour voir les expériences d'autres personnes et ajouter la vôtre.",
-        "intro_n": "{n} arrêts officiels dans cette commune{state}. Ouvrez un arrêt pour voir les expériences d'autres personnes et ajouter la vôtre.",
+        "intro_1": (
+            "{n} arrêt officiel dans cette commune{state}. "
+            "Ouvrez un arrêt pour voir les expériences d'autres personnes et ajouter la vôtre."
+        ),
+        "intro_n": (
+            "{n} arrêts officiels dans cette commune{state}. "
+            "Ouvrez un arrêt pour voir les expériences d'autres personnes et ajouter la vôtre."
+        ),
         "rides_1": "{r} trajet enregistré à moins de 100 m de ces arrêts.",
         "rides_n": "{r} trajets enregistrés à moins de 100 m de ces arrêts.",
         "map": "Voir sur la carte",
@@ -156,8 +168,14 @@ _BENCH_STRINGS = {
     "nl": {
         "title": "Liftplekken in {name}",
         "all": "Alle plaatsen",
-        "intro_1": "{n} officiële liftplek in {name}{state}. Open een plek om ervaringen van anderen te lezen en je eigen rit toe te voegen.",
-        "intro_n": "{n} officiële liftplekken in {name}{state}. Open een plek om ervaringen van anderen te lezen en je eigen rit toe te voegen.",
+        "intro_1": (
+            "{n} officiële liftplek in {name}{state}. "
+            "Open een plek om ervaringen van anderen te lezen en je eigen rit toe te voegen."
+        ),
+        "intro_n": (
+            "{n} officiële liftplekken in {name}{state}. "
+            "Open een plek om ervaringen van anderen te lezen en je eigen rit toe te voegen."
+        ),
         "rides_1": "{r} rit geregistreerd binnen 100 m van deze plekken.",
         "rides_n": "{r} ritten geregistreerd binnen 100 m van deze plekken.",
         "map": "Bekijk op de kaart",
@@ -167,8 +185,14 @@ _BENCH_STRINGS = {
     "da": {
         "title": "Blafferpladser i {name}",
         "all": "Alle steder",
-        "intro_1": "{n} officiel blafferplads i {name}{state}. Åbn en plads for at læse andres erfaringer og tilføje din egen tur.",
-        "intro_n": "{n} officielle blafferpladser i {name}{state}. Åbn en plads for at læse andres erfaringer og tilføje din egen tur.",
+        "intro_1": (
+            "{n} officiel blafferplads i {name}{state}. "
+            "Åbn en plads for at læse andres erfaringer og tilføje din egen tur."
+        ),
+        "intro_n": (
+            "{n} officielle blafferpladser i {name}{state}. "
+            "Åbn en plads for at læse andres erfaringer og tilføje din egen tur."
+        ),
         "rides_1": "{r} tur registreret inden for 100 m af disse pladser.",
         "rides_n": "{r} ture registreret inden for 100 m af disse pladser.",
         "map": "Se på kortet",
@@ -178,8 +202,14 @@ _BENCH_STRINGS = {
     "en": {
         "title": "Hitchhiking spots in {name}",
         "all": "All places",
-        "intro_1": "{n} official hitchhiking spot in {name}{state}. Open a spot to read others' experiences and add your own ride.",
-        "intro_n": "{n} official hitchhiking spots in {name}{state}. Open a spot to read others' experiences and add your own ride.",
+        "intro_1": (
+            "{n} official hitchhiking spot in {name}{state}. "
+            "Open a spot to read others' experiences and add your own ride."
+        ),
+        "intro_n": (
+            "{n} official hitchhiking spots in {name}{state}. "
+            "Open a spot to read others' experiences and add your own ride."
+        ),
         "rides_1": "{r} ride logged within 100 m of these spots.",
         "rides_n": "{r} rides logged within 100 m of these spots.",
         "map": "View on the map",
