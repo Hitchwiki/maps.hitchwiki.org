@@ -34,4 +34,11 @@ def test_country_activity_rows_threshold_and_median():
     from hitch.place_activity import country_activity_rows
 
     rows = country_activity_rows({"es": [10] * 12, "fr": [5] * 9, "de": [None] * 10})
-    assert rows == [["DE", 10, ""], ["ES", 12, 10]]
+    assert rows == [["DE", 10, "", ""], ["ES", 12, 10, ""]]
+
+
+def test_country_activity_rows_carry_bench_count():
+    from hitch.place_activity import country_activity_rows
+
+    rows = country_activity_rows({"de": [None] * 10, "es": [None] * 10}, {"de": 3})
+    assert rows == [["DE", 10, "", 3], ["ES", 10, "", ""]]
