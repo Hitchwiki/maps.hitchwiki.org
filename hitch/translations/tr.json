@@ -1064,5 +1064,10 @@
   "No thanks": "Hayır, teşekkürler",
   "Your profiles elsewhere": "Diğer yerlerdeki profillerin",
   "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "En fazla 5 bağlantı, örn. Instagram, Mastodon, Polarsteps veya kendi web siten. Bunlar herkese açık profilinde gösterilir.",
-  "Link {n}": "Bağlantı {n}"
+  "Link {n}": "Bağlantı {n}",
+  "Other people in the car (besides the driver)": "Şoför dışındaki diğer araçtaki kişiler",
+  "Driver alone": "Yalnız şoför",
+  "1 other": "1 kişi daha",
+  "2 others": "2 kişi daha",
+  "3 or more": "3 veya daha fazla"
 }

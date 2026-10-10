@@ -1064,5 +1064,10 @@
   "No thanks": "Nein danke",
   "Your profiles elsewhere": "Deine Profile anderswo",
   "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "Bis zu 5 Links, z. B. Instagram, Mastodon, Polarsteps oder deine eigene Website. Sie werden auf deinem öffentlichen Profil angezeigt.",
-  "Link {n}": "Link {n}"
+  "Link {n}": "Link {n}",
+  "Other people in the car (besides the driver)": "Andere Personen im Auto (außer dem Fahrer)",
+  "Driver alone": "Fahrer allein",
+  "1 other": "1 weitere Person",
+  "2 others": "2 weitere Personen",
+  "3 or more": "3 oder mehr"
 }

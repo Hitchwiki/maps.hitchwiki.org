@@ -1064,5 +1064,10 @@
   "No thanks": "Nu, mulțumesc",
   "Your profiles elsewhere": "Profilurile tale de pe alte platforme",
   "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "Până la 5 linkuri, de ex. Instagram, Mastodon, Polarsteps sau propriul tău site. Apar pe profilul tău public.",
-  "Link {n}": "Link {n}"
+  "Link {n}": "Link {n}",
+  "Other people in the car (besides the driver)": "Alte persoane în mașină (pe lângă șofer)",
+  "Driver alone": "Șofer singur",
+  "1 other": "Încă 1 persoană",
+  "2 others": "Încă 2 persoane",
+  "3 or more": "3 sau mai multe"
 }
