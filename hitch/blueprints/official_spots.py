@@ -97,6 +97,18 @@ TRANSLATIONS_DIR = Path(__file__).resolve().parent.parent / "translations"
 BENCH_TOWNS_PATH = Path(__file__).resolve().parent.parent / "data" / "bench_towns.json"
 
 
+BENCH_STREETS_PATH = Path(__file__).resolve().parent.parent / "data" / "bench_streets.json"
+
+
+@lru_cache(maxsize=1)
+def bench_streets():
+    """Street per official stop (Nominatim reverse, (c) OpenStreetMap contributors, ODbL)."""
+    try:
+        return json.loads(BENCH_STREETS_PATH.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {}
+
+
 @lru_cache(maxsize=1)
 def bench_towns():
     """Snapshot of official stops grouped by town (research/bench-towns-2026-10.md)."""
@@ -125,6 +137,7 @@ def bench_town(slug):
         n=n,
         fr=fr,
         page_lang="fr" if fr else "de",
+        streets=bench_streets(),
         lat=round(lat, 5),
         lon=round(lon, 5),
         pledge_btn=pledge_btn,
