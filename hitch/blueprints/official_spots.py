@@ -151,6 +151,7 @@ _BENCH_STRINGS = {
             "(616 Antworten, Mär–Aug 2026)."
         ),
         "stop": "Mitfahrhalt",
+        "report": "Für die Gemeinde: Nutzungsbericht dieser Halte (Fahrten, Wartezeiten, CSV)",
     },
     "fr": {
         "title": "Arrêts de covoiturage Rezo Pouce à {name}",
@@ -258,6 +259,18 @@ def bench_town(slug):
     tr = json.loads((TRANSLATIONS_DIR / tr_file).read_text(encoding="utf-8")) if tr_file else {}
     pledge_btn = tr.get("I'll stop for a hitchhiker when I'm driving", "I'll stop for a hitchhiker when I'm driving")
     pledge_note = tr.get("Pledge made — thank you.", "Pledge made — thank you.")
+    # #759: town emails promise data "für eine Auswertung der Bänke"; link the
+    # existing /mitfahrbaenke/bericht for exactly this town's stops. The report
+    # is German-only, so the link is shown on German pages only.
+    report_url = None
+    if lang == "de" and "report" in L:
+        pad = 0.003
+        lats = [s[1] for s in town["stops"]]
+        lons = [s[2] for s in town["stops"]]
+        west, south = round(min(lons) - pad, 5), round(min(lats) - pad, 5)
+        east, north = round(max(lons) + pad, 5), round(max(lats) + pad, 5)
+        if east - west <= 5 and north - south <= 5:
+            report_url = f"/mitfahrbaenke/bericht?bbox={west},{south},{east},{north}&ref=bench-town-report"
     return render_template(
         "bench_town.html",
         title=title,
@@ -273,6 +286,7 @@ def bench_town(slug):
         lon=round(lon, 5),
         pledge_btn=pledge_btn,
         pledge_note=pledge_note,
+        report_url=report_url,
         emit_hreflang=False,
     )
 

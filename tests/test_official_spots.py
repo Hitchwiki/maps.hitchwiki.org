@@ -111,3 +111,18 @@ def test_bench_town_shows_would_ride_again_line_in_page_language(client):
     assert 'id="bench-proof"' in de and "mehr als 9 von 10" in de and "616" in de
     fr = client.get("/mitfahrbank/la-hague-fr").get_data(as_text=True)
     assert "plus de 9 sur 10" in fr
+
+
+def test_bench_town_links_municipal_report_for_its_stops_on_german_pages(client):
+    from hitch.blueprints import official_spots as os_
+
+    html = client.get("/mitfahrbank/moringen-de").get_data(as_text=True)
+    assert 'id="bench-report-link"' in html
+    href = html.split('id="bench-report-link" href="', 1)[1].split('"', 1)[0].replace("&amp;", "&")
+    bbox = href.split("bbox=", 1)[1].split("&", 1)[0]
+    west, south, east, north = map(float, bbox.split(","))
+    for _, lat, lon in os_.bench_towns()["moringen-de"]["stops"]:
+        assert west < lon < east and south < lat < north
+    assert client.get(href).status_code in (200, 503)
+    for slug in ("la-hague-fr", "utrecht-nl", "berkeley-us"):
+        assert 'id="bench-report-link"' not in client.get(f"/mitfahrbank/{slug}").get_data(as_text=True)
