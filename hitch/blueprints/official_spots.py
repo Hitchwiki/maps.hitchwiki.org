@@ -108,7 +108,9 @@ def bench_town(slug):
     town = bench_towns().get(slug)
     if town is None:
         abort(404)
-    fr = town["cc"] in ("fr", "be")
+    # All six Belgian towns are Ostbelgien (German-speaking); the French
+    # "Rezo Pouce" wording is for France only.
+    fr = town["cc"] == "fr"
     n = len(town["stops"])
     title = f"Arrêts de covoiturage Rezo Pouce à {town['name']}" if fr else f"Mitfahrbänke in {town['name']}"
     lat = sum(s[1] for s in town["stops"]) / n
@@ -122,6 +124,7 @@ def bench_town(slug):
         town=town,
         n=n,
         fr=fr,
+        page_lang="fr" if fr else "de",
         lat=round(lat, 5),
         lon=round(lon, 5),
         pledge_btn=pledge_btn,
