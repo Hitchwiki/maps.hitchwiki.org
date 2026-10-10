@@ -1064,5 +1064,10 @@
   "No thanks": "いいえ、結構です",
   "Your profiles elsewhere": "他のサービスのプロフィール",
   "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "最大5件のリンク（例：Instagram、Mastodon、Polarsteps、自分のWebサイトなど）。公開プロフィールに表示されます。",
-  "Link {n}": "リンク {n}"
+  "Link {n}": "リンク {n}",
+  "Other people in the car (besides the driver)": "車内の他の乗員（運転手以外）",
+  "Driver alone": "運転手のみ",
+  "1 other": "他1名",
+  "2 others": "他2名",
+  "3 or more": "他3名以上"
 }

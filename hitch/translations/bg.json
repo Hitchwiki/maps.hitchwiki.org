@@ -1064,5 +1064,10 @@
   "No thanks": "Не, благодаря",
   "Your profiles elsewhere": "Твоите профили другаде",
   "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "До 5 връзки, напр. Instagram, Mastodon, Polarsteps или собствения ти уебсайт. Показват се в публичния ти профил.",
-  "Link {n}": "Връзка {n}"
+  "Link {n}": "Връзка {n}",
+  "Other people in the car (besides the driver)": "Други хора в колата (освен шофьора)",
+  "Driver alone": "Само шофьорът",
+  "1 other": "Още 1",
+  "2 others": "Още 2",
+  "3 or more": "3 или повече"
 }

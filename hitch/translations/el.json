@@ -1064,5 +1064,10 @@
   "No thanks": "Όχι, ευχαριστώ",
   "Your profiles elsewhere": "Τα προφίλ σου αλλού",
   "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "Έως 5 σύνδεσμοι, π.χ. Instagram, Mastodon, Polarsteps ή η δική σου ιστοσελίδα. Εμφανίζονται στο δημόσιο προφίλ σου.",
-  "Link {n}": "Σύνδεσμος {n}"
+  "Link {n}": "Σύνδεσμος {n}",
+  "Other people in the car (besides the driver)": "Άλλα άτομα στο αυτοκίνητο (εκτός του οδηγού)",
+  "Driver alone": "Οδηγός μόνος",
+  "1 other": "1 άλλο άτομο",
+  "2 others": "2 άλλα άτομα",
+  "3 or more": "3 ή περισσότερα"
 }

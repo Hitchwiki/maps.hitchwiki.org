@@ -1064,5 +1064,10 @@
   "No thanks": "არა, გმადლობთ",
   "Your profiles elsewhere": "შენი პროფილები სხვა ადგილებში",
   "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "5-მდე ბმული, მაგ. Instagram, Mastodon, Polarsteps ან შენი საკუთარი ვებსაიტი. ისინი ნაჩვენები იქნება შენს საჯარო პროფილზე.",
-  "Link {n}": "ბმული {n}"
+  "Link {n}": "ბმული {n}",
+  "Other people in the car (besides the driver)": "სხვა მგზავრები მანქანაში (მძღოლის გარდა)",
+  "Driver alone": "მძღოლი მარტო",
+  "1 other": "კიდევ 1",
+  "2 others": "კიდევ 2",
+  "3 or more": "3 ან მეტი"
 }

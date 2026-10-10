@@ -1064,5 +1064,10 @@
   "No thanks": "Nej tak",
   "Your profiles elsewhere": "Dine profiler andre steder",
   "Up to 5 links, e.g. Instagram, Mastodon, Polarsteps or your own website. They are shown on your public profile.": "Op til 5 links, f.eks. Instagram, Mastodon, Polarsteps eller din egen hjemmeside. De vises på din offentlige profil.",
-  "Link {n}": "Link {n}"
+  "Link {n}": "Link {n}",
+  "Other people in the car (besides the driver)": "Andre personer i bilen (ud føreren)",
+  "Driver alone": "Føreren alene",
+  "1 other": "1 anden",
+  "2 others": "2 andre",
+  "3 or more": "3 eller flere"
 }
