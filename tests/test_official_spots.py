@@ -73,6 +73,15 @@ def test_bench_town_language_follows_country(client):
     assert "Rezo Pouce" in fr and '<html lang="fr"' in fr
 
 
+def test_bench_town_lists_street_when_known(client, monkeypatch):
+    from hitch.blueprints import official_spots as os_
+
+    osm_id = os_.bench_towns()["eupen-be"]["stops"][0][0]
+    monkeypatch.setattr(os_, "bench_streets", lambda: {str(osm_id): "Testgasse"})
+    html = client.get("/mitfahrbank/eupen-be").get_data(as_text=True)
+    assert "Mitfahrhalt 1 — Testgasse" in html
+
+
 def test_bench_town_index_lists_towns_and_town_pages_link_back(client):
     body = client.get("/mitfahrbank/").get_data(as_text=True)
     assert "/mitfahrbank/moringen-de" in body
