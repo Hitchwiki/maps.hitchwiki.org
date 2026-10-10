@@ -33,20 +33,24 @@ def write_place_activity_csv(path, rows):
     os.replace(tmp, path)
 
 
-COUNTRY_COLUMNS = ["country_code", "rides_90d", "median_wait_min"]
+COUNTRY_COLUMNS = ["country_code", "rides_90d", "median_wait_min", "official_benches"]
 # A country line needs a clearly non-trivial count; the wiki also checks this.
 COUNTRY_MIN_RIDES = 10
 
 
-def country_activity_rows(recent_waits_by_cc):
-    """recent_waits_by_cc: {cc: [wait minutes or None, one per ride in the window]} -> csv rows."""
+def country_activity_rows(recent_waits_by_cc, benches_by_cc=None):
+    """recent_waits_by_cc: {cc: [wait minutes or None, one per ride in the window]} -> csv rows.
+
+    benches_by_cc: {cc: number of official hitchhiking benches} (IDEAS #744); "" when none.
+    """
+    benches_by_cc = {k.lower(): v for k, v in (benches_by_cc or {}).items()}
     rows = []
     for cc, waits in recent_waits_by_cc.items():
         if len(waits) < COUNTRY_MIN_RIDES:
             continue
         ok = [w for w in waits if w is not None and w == w and 0 <= w <= 600]
         median = round(statistics.median(ok)) if len(ok) >= MIN_WAITS_FOR_MEDIAN else ""
-        rows.append([cc.upper(), len(waits), median])
+        rows.append([cc.upper(), len(waits), median, benches_by_cc.get(cc.lower()) or ""])
     return sorted(rows)
 
 

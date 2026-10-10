@@ -379,6 +379,19 @@ def is_recent(submission_time, cutoff):
         return False
 
 
+def _bench_counts_by_country():
+    """{cc: official bench stops} from the bench-town snapshot (IDEAS #744); {} if unreadable."""
+    try:
+        with open(os.path.join(os.path.dirname(__file__), "..", "data", "bench_towns.json"), encoding="utf-8") as f:
+            towns = json.load(f)
+    except (OSError, ValueError):
+        return {}
+    counts = {}
+    for t in towns.values():
+        counts[t["cc"]] = counts.get(t["cc"], 0) + len(t["stops"])
+    return counts
+
+
 def main():
     conn = sqlite3.connect(DATABASE_URI)
     rows = conn.execute("SELECT stops, rating, submission_time FROM ride_event").fetchall()
@@ -497,7 +510,7 @@ def main():
 
     os.makedirs(DIST_DIR, exist_ok=True)
     # Ride line on the wiki's country articles (IDEAS #608 slice 3).
-    write_country_activity_csv(os.path.join(DIST_DIR, "country_activity.csv"), country_activity_rows(recent_waits))
+    write_country_activity_csv(os.path.join(DIST_DIR, "country_activity.csv"), country_activity_rows(recent_waits, _bench_counts_by_country()))
     with open(OUTPUT_CSV, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(
