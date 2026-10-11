@@ -2,6 +2,9 @@
 
 {% set title = t("Waiting times") %}
 
+{% block meta_description %}{{ t("How long did hitchhikers wait before a recorded pickup? These are medians: half of the rides waited less and half waited more.") }}{% endblock %}
+{% block og_title %}{{ t("Waiting times") }}{% endblock %}
+
 {% block head %}
 {{ super() }}
 <style>

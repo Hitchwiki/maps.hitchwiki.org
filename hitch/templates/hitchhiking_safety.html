@@ -2,6 +2,9 @@
 
 {% set title = t("Hitchhiking safety") %}
 
+{% block meta_description %}{{ t("After a ride, hitchhikers can answer one question about the driver: would you accept this ride again? Describe who was hitchhiking, and every table below re-counts the answers those people gave.") }}{% endblock %}
+{% block og_title %}{{ t("Hitchhiking safety") }}{% endblock %}
+
 {% block head %}
 {{ super() }}
 <style>

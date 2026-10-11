@@ -229,7 +229,7 @@
     {% block robots %}{% if noindex %}<meta name="robots" content="noindex" />{% endif %}{% endblock %}
     <meta name="description" content="{% block meta_description %}{{ t('Discover hitchhiking spots worldwide on an interactive map. See community ratings, waiting times, and trip data. Share your own rides.') }}{% endblock %}" />
     <meta property="og:title" content="{% block og_title %}{{ t('Hitchhiking Map – Find & Share Hitchhiking Spots on a Map') }}{% endblock %}" />
-    <meta property="og:description" content="{% block og_description %}{{ t('Discover hitchhiking spots worldwide on an interactive map. See community ratings, waiting times, and trip data. Share your own rides.') }}{% endblock %}" />
+    <meta property="og:description" content="{% block og_description %}{{ self.meta_description() }}{% endblock %}" />
     <meta property="og:type" content="website" />
     {# Site label shown by link-preview unfurlers; without it they fall back to the
        bare domain, which renders as "Hitchwiki". #}

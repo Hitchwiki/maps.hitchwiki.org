@@ -2,6 +2,9 @@
 
 {% set title = t("Ride collection") %}
 
+{% block meta_description %}{{ t("Rides added to the shared dataset each week. The first chart combines every source; the charts below show each source separately.") }}{% endblock %}
+{% block og_title %}{{ t("Ride collection") }}{% endblock %}
+
 {% block head %}
 {{ super() }}
 <style>
