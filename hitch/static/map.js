@@ -3056,6 +3056,16 @@ document.addEventListener("click", (e) => {
   frameRideDest(d.lat, d.lon);
 });
 
+// #774: count the "an official stop here would help" yes. Cell index + country only, no spot id.
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest("#spot-official-stop-wanted");
+  if (!btn) return;
+  const cell = cityExitCells && cityExitCells[Number(btn.dataset.cell)];
+  hmTrack("official_stop_wanted", { cell: btn.dataset.cell, country: cell ? cell[4] : "" });
+  btn.disabled = true;
+  btn.textContent = tr("Thanks, noted");
+});
+
 // The "Car pooling spot" link leaves for OpenStreetMap; count the departures (#559).
 document.addEventListener("click", (e) => {
   if (e.target.closest(".spot-carpool-link")) hmTrack("spot_carpool_link_clicked");
@@ -3256,6 +3266,28 @@ function renderSpotSummary(data) {
 
 // `hists` defaults to nothing so a caller that only wants the plain summary lines
 // (no canvases to paint) can leave them out.
+// #774: where hitchhikers cluster but no official stop exists (aggregate counts from
+// `scripts/city_exit_demand.py`: [lat, lon, rides since 2024-10, median wait min, country]).
+// The spot sheet asks "would an official stop help here?" and counts the yes. Fetched eagerly for the
+// same reason as driverContactByCountry: summaryText is synchronous. A click before it lands omits the line.
+let cityExitCells = null;
+fetch("/static/city_exit_cells.json")
+  .then((r) => (r.ok ? r.json() : null))
+  .then((data) => { cityExitCells = data; })
+  .catch(() => { cityExitCells = null; });
+
+// Index of the cell within ~1 km of a non-official spot, or -1. Pure, so it is unit-tested.
+function cityExitCellIndex(cells, data) {
+  if (!cells || !data || data.osm_id || data.official_unreviewed) return -1;
+  if (typeof data.lat !== "number" || typeof data.lon !== "number") return -1;
+  const kmLon = 111.32 * Math.cos(data.lat * Math.PI / 180);
+  for (let i = 0; i < cells.length; i++) {
+    const dy = (cells[i][0] - data.lat) * 110.57, dx = (cells[i][1] - data.lon) * kmLon;
+    if (dx * dx + dy * dy <= 1) return i;
+  }
+  return -1;
+}
+
 function summaryText(data, hists = { wait: null, distance: null }) {
   const osmLink = data.osm_id ? `<div>🚏 <a href="https://www.openstreetmap.org/node/${data.osm_id}" target="_blank" rel="noopener noreferrer">${tr("Official hitchhiking spot")}</a></div><div><a href="/mitfahrbaenke?lat=${encodeURIComponent(data.lat)}&lon=${encodeURIComponent(data.lon)}">Betreuen Sie diesen Mitfahrhalt? Lokalen Bericht ansehen.</a></div>` : '';
   const carPoolingLink = data.car_pooling
@@ -3295,6 +3327,10 @@ function summaryText(data, hists = { wait: null, distance: null }) {
           + encodeURIComponent(countryName) + "&fulltext=1";
         return `<div>📄 <a id="spot-wiki-gap-link" href="${searchUrl}" target="_blank" rel="noopener noreferrer">${tr("No Hitchwiki article covers this area yet — know it? Start one")}</a></div>`;
       })()
+    : '';
+  const exitIdx = cityExitCellIndex(cityExitCells, data);
+  const officialStopAsk = exitIdx >= 0
+    ? `<div class="spot-official-ask">🚏 ${tr("{n} hitchhikers started here since Oct 2024.", { n: cityExitCells[exitIdx][2] })} <button type="button" id="spot-official-stop-wanted" data-cell="${exitIdx}">${tr("An official stop here would help")}</button></div>`
     : '';
   // Filled in asynchronously by loadSpotWikiExcerpt once this markup is in the DOM
   // (see applySpotRideFilter) -- fetching Hitchwiki's API takes a round trip this
@@ -3375,7 +3411,7 @@ function summaryText(data, hists = { wait: null, distance: null }) {
     ${spotHistogramMarkup(scaleHistToDisplay(hists.distance), "spot-distance-hist", distanceUnitLabel())}
     ${data.people ? `<div class="spot-people">${tr("At least {n} people have logged a ride here", { n: data.people })}</div>` : ''}
     ${lastConfirmed ? `<div class="spot-last-confirmed">${tr("Last confirmed: {date}", { date: lastConfirmed })}</div>` : ''}
-    ${osmLink}${carPoolingLink}${fuelLink}${hitchwikiLink}${hitchwikiMapLink}${hitchwikiNearbyLink}${hitchwikiGapPrompt}${spotWikiExcerpt}${accessHint}${countryContact}`;
+    ${osmLink}${carPoolingLink}${fuelLink}${hitchwikiLink}${hitchwikiMapLink}${hitchwikiNearbyLink}${hitchwikiGapPrompt}${officialStopAsk}${spotWikiExcerpt}${accessHint}${countryContact}`;
 }
 
 async function handleMarkerClick(marker, point, e) {
@@ -3542,6 +3578,8 @@ function applySpotRideFilter(marker) {
   // element every time, so the event never fired (0 clicks / 439 impressions, 28 d).
   const wikiNearbyLink = $$("#spot-wiki-nearby-link");
   if (wikiNearbyLink) wikiNearbyLink.onclick = () => hmTrack("spot_wiki_nearby_clicked");
+
+  if ($$("#spot-official-stop-wanted")) hmTrack("official_stop_ask_shown", {});
 
   // Idea #62/#147/#171 gap-spot prompt: same reasoning as the nearby-link bind above --
   // the link is part of summaryText, rebuilt from data that arrives after handleMarkerClick.
