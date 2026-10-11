@@ -773,6 +773,22 @@ function setupGeocoder() {
     map.setView(e.geocode.center, zoom);
     geocoderInput.value = "";
   });
+
+  // #search/<query> (linked from the wiki's own search page, ?ref=wiki-search): run the
+  // place search for a visitor who has already typed the place once, so they land on the
+  // map at it instead of having to type it again. Goes through the same provider and the
+  // same logSearchRequest as a typed search; the first hit wins, as Enter would.
+  window.runPlaceSearch = function (query) {
+    const q = String(query || "").trim().slice(0, 100);
+    if (!q) return;
+    geocoderInput.value = q;
+    geocoderOpts.geocoder.geocode(q, function (results) {
+      geocoderInput.value = "";
+      if (!results || !results.length) return;
+      logSearchRequest(results[0]);
+      map.setView(results[0].center, geocoderOpts.zoom);
+    });
+  };
 }
 
 // Restart a CSS keyframes fade on an element: remove the class, force a reflow
@@ -5886,6 +5902,20 @@ async function navigate() {
     return;
   } else {
     hideInsightsView();
+  }
+
+  // Raw hash, not mainArgs: a query may itself contain "," or "/".
+  const searchHash = /^#search\/(.+)$/.exec(window.location.hash);
+  if (searchHash && !isMapHash) {
+    let q = searchHash[1];
+    try { q = decodeURIComponent(q.replace(/\+/g, " ")); } catch (e) { /* keep raw */ }
+    clear();
+    // Drop the hash (replaceState, not a navigation) so back/refresh don't re-run it.
+    const url = new URL(window.location.href);
+    url.hash = "";
+    window.history.replaceState({}, "", url);
+    if (window.runPlaceSearch) window.runPlaceSearch(q);
+    return;
   }
 
   if (mainArgs[0] == "location") {
