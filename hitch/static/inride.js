@@ -519,7 +519,7 @@
             // Stash the chosen pickup so we can resume after the redirect back.
             localStorage.setItem(
               PENDING_KEY,
-              JSON.stringify({ lat: p.lat, lon: p.lon, source: source }),
+              JSON.stringify({ lat: p.lat, lon: p.lon, source: source, at: Date.now() }),
             );
             window.location.href = "/login?next=/";
           },
@@ -3671,8 +3671,32 @@
         return;
       } catch (e) {}
     } else if (pend) {
-      // Returned still anonymous (login cancelled or failed) — discard the stash.
+      // Returned still anonymous (login cancelled, failed, or the new account is still
+      // awaiting approval). #795: this used to delete the chosen spot and record nothing,
+      // so everyone who chose "Log in" and came back logged out lost their journey
+      // silently. Keep the spot for two hours and offer the anonymous start again.
       localStorage.removeItem(PENDING_KEY);
+      try {
+        const p = JSON.parse(pend);
+        const fresh = typeof p.at === "number" && Date.now() - p.at < 2 * 3600 * 1000;
+        const ok = typeof p.lat === "number" && typeof p.lon === "number";
+        hmTrack("journey_login_return", { outcome: fresh && ok && !journeyStore.get() ? "offered" : "dropped" });
+        if (fresh && ok && !journeyStore.get()) {
+          const src = startSource(p.source);
+          journeyUI.dialog({
+            title: T("Track your rides?"),
+            centered: true,
+            actions: [{
+              label: T("Continue anonymously"),
+              cls: "inr-go",
+              onClick: () => {
+                hmTrack("journey_login_return_outcome", { outcome: "anonymous" });
+                journeyFlow.beginWithCoHitchers({ lat: p.lat, lon: p.lon }, src);
+              },
+            }],
+          });
+        }
+      } catch (e) {}
     }
 
     // Non-blocking load of score weights and driver-info choices so the in-ride sheet
