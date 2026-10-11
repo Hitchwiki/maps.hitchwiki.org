@@ -171,7 +171,7 @@
             </div>
         </div>
         {# Detours between pickup and destination -- a driver's onsen, a viewpoint, their
-           grandparents' house. Labels only, deliberately no coordinate picker: a hitchhiker
+           grandparents' house. Labels by default; a typed place name offers a Photon suggestion that stores it as a located stop (#351). A hitchhiker
            recalling a detour after the fact rarely knows the exact spot, and turning this
            into a second map round-trip per stop (like pickup/destination use) would make
            an unbounded-length section of the form as heavy as the whole rest of it. #}
@@ -1704,7 +1704,7 @@
     // Chip-style ordered list of arbitrary free text, backed by a JSON array in a hidden
     // field (not comma-joined like the co-hitchhiker/enum tag inputs above -- a stop's
     // label is free text and can itself contain a comma, e.g. "sauna, then the viewpoint").
-    function initFreeTextTags({ inputId, tagsId, hiddenId, maxTags }) {
+    function initFreeTextTags({ inputId, tagsId, hiddenId, maxTags, suggest }) {
         const input = document.getElementById(inputId);
         const tagsContainer = document.getElementById(tagsId);
         const hidden = document.getElementById(hiddenId);
@@ -1753,6 +1753,62 @@
             input.value = '';
         }
 
+        // Issue #351: a typed place name can be resolved to a real location. Picking a
+        // suggestion stores the stop as "lat, lon name" -- the same form a pasted pin takes,
+        // which the server already turns into a located stop -- so nothing server-side
+        // changes. Plain Enter still adds the label untouched; the lookup is only an offer.
+        if (suggest) {
+            const box = document.createElement('div');
+            box.className = 'list-group';
+            box.style.cssText = 'position:absolute; z-index:20; width:100%; display:none;';
+            input.parentNode.style.position = 'relative';
+            input.insertAdjacentElement('afterend', box);
+            let timer = null;
+            let seq = 0;
+            const hide = () => { box.style.display = 'none'; box.innerHTML = ''; };
+            input.addEventListener('input', () => {
+                clearTimeout(timer);
+                const q = input.value.trim();
+                // A pasted pin already carries its coordinates; don't geocode digits.
+                if (q.length < 3 || /^-?\d+([.,]\d+)?\s*[,; ]\s*-?\d/.test(q)) { hide(); return; }
+                timer = setTimeout(() => {
+                    const mine = ++seq;
+                    fetch('https://photon.komoot.io/api/?limit=5&q=' + encodeURIComponent(q))
+                        .then((r) => r.json())
+                        .then((data) => {
+                            if (mine !== seq || input.value.trim() !== q) return;
+                            box.innerHTML = '';
+                            (data.features || []).slice(0, 5).forEach((f) => {
+                                const c = f.geometry && f.geometry.coordinates;
+                                const pr = f.properties || {};
+                                if (!c || !pr.name) return;
+                                const where = [pr.city || pr.county || pr.state, pr.country].filter(Boolean).join(', ');
+                                const item = document.createElement('button');
+                                item.type = 'button';
+                                item.className = 'list-group-item list-group-item-action';
+                                item.textContent = where ? pr.name + ' — ' + where : pr.name;
+                                // mousedown, not click: the input's blur would otherwise add
+                                // the raw text before the click lands.
+                                item.addEventListener('mousedown', (e) => {
+                                    e.preventDefault();
+                                    const tags = getTags();
+                                    if (maxTags && tags.length >= maxTags) return;
+                                    tags.push(c[1].toFixed(5) + ', ' + c[0].toFixed(5) + ' ' + pr.name);
+                                    setTags(tags);
+                                    renderTags();
+                                    input.value = '';
+                                    hide();
+                                });
+                                box.appendChild(item);
+                            });
+                            box.style.display = box.children.length ? 'block' : 'none';
+                        })
+                        .catch(hide);
+                }, 350);
+            });
+            input.addEventListener('blur', () => { clearTimeout(timer); seq++; hide(); });
+        }
+
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -1768,7 +1824,7 @@
     }
 
     const rideStopsTags = initFreeTextTags({
-        inputId: 'ride-stop-input', tagsId: 'ride-stops-tags', hiddenId: 'ride_stops_hidden', maxTags: 20,
+        inputId: 'ride-stop-input', tagsId: 'ride-stops-tags', hiddenId: 'ride_stops_hidden', maxTags: 20, suggest: true,
     });
     window._rideStopsRenderTags = rideStopsTags ? rideStopsTags.renderTags : null;
 
