@@ -353,6 +353,16 @@
   // -- boot -----------------------------------------------------------------
 
   function boot() {
+    // #777: page-view denominator and "did anyone use the cohort picker" -- one event each
+    // per page load, no cohort contents (a cohort of one is close to a person).
+    const track = (name) => { try { if (window.hmTrack) window.hmTrack(name, {}); } catch (e) {} };
+    track("safety_page_viewed");
+    let cohortTouched = false;
+    const touched = () => { if (!cohortTouched) { cohortTouched = true; track("safety_cohort_changed"); } };
+    ["person-cards", "add-person", "exact-size-row"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) { el.addEventListener("click", touched); el.addEventListener("change", touched); }
+    });
     document.getElementById("add-person").addEventListener("click", () => {
       if (filters.length < MAX_PEOPLE) filters.push(emptyFilter());
       renderPersonCards();
