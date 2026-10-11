@@ -3314,6 +3314,26 @@
       // people who have never seen the map; the race modal would be the first thing they meet.
       // Same rule as the search-engine guard above: skip, shown-flag stays unset.
       if (/^(esn|asta|bench|fr)_/.test(window.hmLandingRef || "")) return;
+      // #786: visitors coming from the wiki arrive for the page they were reading (a place,
+      // the record-a-ride banner, the safety data); wiki refs are the largest human channel to
+      // the map and the only one the guards above did not cover. `wiki-record-ride` always
+      // skips; every other wiki visitor is split 50/50 (sticky) so the cost of the pledge taps
+      // and leaderboard clicks the modal carries can be read against actions. The shown-flag
+      // stays unset either way, so a later normal visit still gets the banner.
+      const wikiRef = /^wiki/.test(window.hmLandingRef || "");
+      const wikiReferrer = /^https?:\/\/([a-z0-9-]+\.)*hitchwiki\.org\//i.test(document.referrer || "")
+        && !/^https?:\/\/maps\.hitchwiki\.org\//i.test(document.referrer || "");
+      if (wikiRef || wikiReferrer) {
+        if (/^wiki-record-ride/.test(window.hmLandingRef || "")) return;
+        const wikiArm = (window.hmVariant || function (_n, v) { return v[0]; })("race-wiki-v1", ["skip", "show"]);
+        try {
+          if (!localStorage.getItem("hmRaceWikiArmSent")) {
+            localStorage.setItem("hmRaceWikiArmSent", "1");
+            hmTrack("race_wiki_arm", { arm: wikiArm });
+          }
+        } catch (e) {}
+        if (wikiArm === "skip") return;
+      }
       let races;
       try {
         const res = await fetch("/races.json");
