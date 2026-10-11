@@ -2,6 +2,9 @@
 
 {% set title = t("Statistics") %}
 
+{% block meta_description %}{{ t("Compare recorded pickup waits by group size and gender composition.") }}{% endblock %}
+{% block og_title %}{{ t("Statistics") }}{% endblock %}
+
 {% block head %}
 {{ super() }}
 <style>
