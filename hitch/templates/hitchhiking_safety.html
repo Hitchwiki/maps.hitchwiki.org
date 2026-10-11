@@ -75,6 +75,10 @@
 <div id="headline"></div>
 <div id="breakdowns"></div>
 
+<p class="stats-note">
+  <a href="{{ GENERAL_CHAT_URL }}" target="_blank" rel="noopener" data-chat-place="safety_page">{{ t("Join our Matrix chat") }}</a>
+</p>
+
 <p class="stats-foot">
   {{ t("A row marked with an asterisk rests on fewer than {n} answers; treat it as an anecdote, not a rate. Percentages are shown with a 95% Wilson confidence interval, which stays wide on small samples instead of pretending to certainty. Ages are the hitchhiker's age at the time of the ride. Time of day comes from the recorded departure time only, never from when the ride was typed in.", n=min_sample) }}
   {{ t("Rides their author deleted, and rides hidden by community reports, are excluded.") }}
