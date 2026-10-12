@@ -73,3 +73,26 @@ def write_activity_summary(path, rides_7d, rides_28d):
         w.writerow(["rides_7d", "rides_28d"])
         w.writerow([int(rides_7d), int(rides_28d)])
     os.replace(tmp, path)
+
+
+BENCH_TOWN_COLUMNS = ["town", "country_code", "slug", "stops"]
+
+
+def bench_town_rows(towns):
+    """towns: the hitch/data/bench_towns.json mapping {slug: {name, cc, stops: [...]}} -> csv rows.
+
+    The name is the one the /mitfahrbank/<slug> page prints, so the wiki can match an article
+    title against it without reversing slugs (IDEAS #805).
+    """
+    rows = [[t["name"], t["cc"].upper(), slug, len(t["stops"])] for slug, t in towns.items() if t.get("stops")]
+    return sorted(rows, key=lambda r: (r[1], r[0], r[2]))
+
+
+def write_bench_towns_csv(path, rows):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(BENCH_TOWN_COLUMNS)
+        w.writerows(rows)
+    os.replace(tmp, path)

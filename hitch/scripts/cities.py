@@ -16,7 +16,14 @@ from flask import g
 from jinja2 import Environment, FileSystemLoader
 
 from hitch.helpers import get_db, get_dirs
-from hitch.place_activity import ACTIVITY_MIN_RIDES, activity_row, write_activity_summary, write_place_activity_csv
+from hitch.place_activity import (
+    ACTIVITY_MIN_RIDES,
+    activity_row,
+    bench_town_rows,
+    write_activity_summary,
+    write_bench_towns_csv,
+    write_place_activity_csv,
+)
 from hitch.profile_summary import conversation_stats, write_profile_summary
 from hitch.profile_summary import summarize as summarize_profiles
 from hitch.safety_by_country import load_counts as load_safety_counts
@@ -676,6 +683,13 @@ except (OSError, ValueError):
 # more specific question than a city page and is the harder query to rank for.
 for loc in route_locs:
     sitemap_parts.append(_sitemap_url(loc, "0.8"))
+# Wiki town articles link to their bench page (IDEAS #805): publish town name -> slug next
+# to place_activity.csv, which the wiki's mounted export directory already carries.
+try:
+    with open(os.path.join(dirs["base"], "data", "bench_towns.json"), encoding="utf-8") as f:
+        write_bench_towns_csv(os.path.join(dist_dir, "bench_towns.csv"), bench_town_rows(json.load(f)))
+except (OSError, ValueError):
+    logger.warning("No bench_towns.json — skipping bench_towns.csv")
 # Mitfahrbank town pages (/mitfahrbank/<slug>, blueprints/official_spots.py), one per
 # town in the committed snapshot hitch/data/bench_towns.json (EXP-798).
 try:
