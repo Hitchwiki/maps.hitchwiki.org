@@ -3360,6 +3360,17 @@
         return !localStorage.getItem(raceBanner._shownKey(r.title));
       });
       if (!race) return;
+      // #654 s3: a fresh direct visitor met this modal stacked on the cookie box (screenshot
+      // 2026-10-12, 1280x800: map fully covered). Answer the cookie question first; if it is
+      // still open after 30 s the banner is skipped and the shown-flag stays unset, so a
+      // later visit gets it. Not waited for on task paths where the box never appears.
+      if (window.hmVisitorConsent && !/^\/(ride|login|report-ride)/.test(location.pathname)) {
+        for (let waited = 0; window.hmVisitorConsent.state() === "unset"; waited += 1) {
+          if (waited >= 30) return;
+          await new Promise(function (r) { setTimeout(r, 1000); });
+        }
+        if (journeyStore.get() || journeyUI._openDialog) return;
+      }
       localStorage.setItem(raceBanner._shownKey(race.title), "1");
       // #519 s1 — the banner reaches people who are on the road right now, and a driver
       // pledge is one tap. A returning pledger (map.js shares this key) is neither
