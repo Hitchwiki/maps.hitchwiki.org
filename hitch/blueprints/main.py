@@ -1996,12 +1996,17 @@ def ride_form():
 
         # Age -> year_of_birth. We translate here so publish_ride doesn't need the current date.
         driver_age_raw = (data.get("driver_age") or "").strip()
+        # Optional field: a typo like 6888 must not reject the whole ride, so an
+        # unparseable or out-of-range age is treated as unanswered.
+        driver_age = None
         if driver_age_raw:
-            driver_age = int(driver_age_raw)
-            assert 0 <= driver_age <= 120, f"Driver age out of range: {driver_age}"
-            data["driver_year_of_birth"] = datetime.now().year - driver_age
-        else:
-            data["driver_year_of_birth"] = None
+            try:
+                parsed_age = int(driver_age_raw)
+            except ValueError:
+                parsed_age = None
+            if parsed_age is not None and 0 <= parsed_age <= 120:
+                driver_age = parsed_age
+        data["driver_year_of_birth"] = datetime.now().year - driver_age if driver_age is not None else None
 
         # Origin country: arrives as ISO alpha-2 code (the country picker stores codes).
         driver_country = (data.get("driver_origin_country") or "").strip().upper()

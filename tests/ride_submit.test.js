@@ -133,3 +133,14 @@ test("buildFinishBody nudges arrival by a minute when got-ride and finish share 
   assert.strictEqual(body.datetime_ride, "2026-10-05T12:30");
   assert.strictEqual(body.arrival_datetime, "2026-10-05T12:31");
 });
+
+test("buildFinishBody sends an out-of-range driver age as unanswered", () => {
+  const dest = { lat: 48.5, lon: 16.9 };
+  const finishMs = new Date(2026, 6, 2, 14, 41).getTime();
+  for (const bad of [6888, -3, NaN, "abc", 34.5]) {
+    const j = { ...J, details: { ...J.details, driver_age: bad } };
+    assert.strictEqual(RideSubmit.buildFinishBody(j, dest, finishMs, "x").driver_age, "");
+  }
+  const zero = { ...J, details: { ...J.details, driver_age: 0 } };
+  assert.strictEqual(RideSubmit.buildFinishBody(zero, dest, finishMs, "x").driver_age, "0");
+});
