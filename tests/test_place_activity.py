@@ -42,3 +42,18 @@ def test_country_activity_rows_carry_bench_count():
 
     rows = country_activity_rows({"de": [None] * 10, "es": [None] * 10}, {"de": 3})
     assert rows == [["DE", 10, "", 3], ["ES", 10, "", ""]]
+
+
+def test_bench_towns_csv(tmp_path):
+    from hitch.place_activity import BENCH_TOWN_COLUMNS, bench_town_rows, write_bench_towns_csv
+
+    towns = {
+        "aachen-de": {"name": "Aachen", "cc": "de", "stops": [[1, 0, 0], [2, 0, 0]]},
+        "x-fr": {"name": "X", "cc": "fr", "stops": []},
+    }
+    p = tmp_path / "bench_towns.csv"
+    write_bench_towns_csv(str(p), bench_town_rows(towns))
+    with open(p, encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+    assert list(rows[0]) == BENCH_TOWN_COLUMNS
+    assert rows == [{"town": "Aachen", "country_code": "DE", "slug": "aachen-de", "stops": "2"}]
