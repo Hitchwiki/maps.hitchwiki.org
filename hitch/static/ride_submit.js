@@ -30,6 +30,11 @@
   // START of journeyFlow.finish() so GPS/manual-pin delay doesn't inflate arrival time.
   function buildFinishBody(j, dest, finishMs, id) {
     const d = j.details || {};
+    // Optional field: a typo (6888, NaN) is sent as unanswered so it cannot get the ride rejected.
+    const validAge = (v) => {
+      const n = v === "" || v == null ? NaN : Number(v);
+      return Number.isInteger(n) && n >= 0 && n <= 120 ? String(n) : "";
+    };
     const csv = (v) => (Array.isArray(v) ? v.join(",") : (v || ""));
     // isoLocal cuts to the minute; same-minute got-ride/finish would be rejected by the
     // server (arrival must be later), losing the ride. Nudge arrival by one minute.
@@ -46,7 +51,7 @@
       driver_reason_to_pick_up: csv(d.driver_reason_to_pick_up),
       driver_gender: d.driver_gender || "",
       driver_companions: (d.driver_companions === 0 || d.driver_companions) ? String(d.driver_companions) : "",
-      driver_age: (d.driver_age === 0 || d.driver_age) ? String(d.driver_age) : "",
+      driver_age: validAge(d.driver_age),
       driver_origin_country: d.driver_origin_country || "",
       driver_languages: csv(d.driver_languages),
       // Forced Yes/No captured at Finish (j.wouldRideAgain); "" only if somehow unset.
