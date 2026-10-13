@@ -5,13 +5,13 @@ const assert = require("assert");
 const src = fs.readFileSync(__dirname + "/../hitch/static/inride.js", "utf8");
 const start = src.indexOf("const raceBanner = {");
 const body = src.slice(start, src.indexOf("// ── thinCoverageBanner", start));
-assert(/"race-banner-pledge-v1", \["control", "pledge"\]/.test(body), "variant registered");
+assert(body.includes('"pledge-all"') && !body.includes("race-banner-pledge-v1"), "everyone gets the pledge button; the A/B arm is retired");
 // Same key map.js writes, so a pledge from either surface silences both.
 const mapSrc = fs.readFileSync(__dirname + "/../hitch/static/map.js", "utf8");
 assert(mapSrc.includes('const DRIVER_PLEDGE_MADE_KEY = "hmDriverPledgeMade"'));
 assert(body.includes('localStorage.getItem("hmDriverPledgeMade")'), "reads the shared key");
 assert(body.includes('localStorage.setItem("hmDriverPledgeMade", "1")'), "click writes the shared key");
-// A returning pledger is tagged, never assigned to an arm.
+// A returning pledger is tagged, never shown the button again.
 assert(body.includes('"already-pledged"'));
 // Denominator fires only in the pledge arm, with the surface tag.
 assert(/if \(withPledge\) hmTrack\("driver_pledge_shown", \{ surface: "race_banner" \}\)/.test(body));
