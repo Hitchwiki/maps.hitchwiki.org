@@ -136,7 +136,7 @@ test("journey source survives in local state through first-ride conversion", () 
   assert.match(SOURCE, /legIndex: 0,\s*source: startSource\(source\)/);
   assert.match(
     SOURCE,
-    /hmTrack\("journey_got_ride", \{[\s\S]*?source: startSource\(j\.source\)/,
+    /hmTrack\("journey_got_ride", Object\.assign\(\{[\s\S]*?cohortProps\(j\)/,
   );
 });
 
