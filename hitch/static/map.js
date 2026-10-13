@@ -1708,6 +1708,8 @@ function loadHitchhikerLayer() {
           });
           L.marker([p.lat, p.lon], { icon, title: p.u })
             .bindPopup(() => hitchhikerPopupHtml(p))
+            // #813: no username/place in the event -- same privacy rule as spot_opened.
+            .on("popupopen", () => hmTrack("hitchhiker_marker_opened", {}))
             .addTo(hitchhikerLayer);
         });
         console.log(`Loaded ${hitchhikerLayer.getLayers().length} hitchhiker(s)`);
@@ -1736,6 +1738,14 @@ function hitchhikerPopupHtml(p) {
     `</div>`
   );
 }
+
+// #813: which popup link people follow (profile vs say-hello). Popup links are not
+// a.hitchhiker-name, so base.html's profile_link_clicked listener never sees them.
+document.addEventListener("click", (e) => {
+  const link = e.target.closest && e.target.closest(".hitchhiker-popup a");
+  if (!link) return;
+  hmTrack("hitchhiker_popup_click", { kind: /[?&]ref=hitchhiker_map/.test(link.href) ? "hello" : "profile" });
+});
 
 function setEventsVisible(visible) {
   if (!eventLayer) return;
@@ -2178,6 +2188,9 @@ async function applyMapMode(mode) {
 // the URL. applyParams() reconciles the other direction (URL -> mode) by calling
 // applyMapMode directly, because writing the URL from there would re-enter navigate().
 async function setMapMode(mode) {
+  // #813: a user-initiated switch only (URL restores go through applyMapMode), so the
+  // count says how many people actually reach for each view. Mode is a fixed enum.
+  if (mode !== mapMode) hmTrack("map_mode_switched", { mode: String(mode) });
   await applyMapMode(mode);
   // Record what was actually applied, not what was asked for — applyMapMode falls
   // back to spots when the heatmap can't load, and the URL must not claim otherwise.
