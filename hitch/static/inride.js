@@ -3378,10 +3378,11 @@
       // click. English copy in both arms, so untranslated text cannot confound the read.
       let pledgeMade = false;
       try { pledgeMade = !!localStorage.getItem("hmDriverPledgeMade"); } catch (e) {}
-      const variant = pledgeMade
-        ? "already-pledged"
-        : (window.hmVariant || function (_n, v) { return v[0]; })("race-banner-pledge-v1", ["control", "pledge"]);
-      const withPledge = variant === "pledge";
+      // EXP-652 rule (>=1% tap at n>=2,000) was met 2026-10-01 and still holds (110/8,217 shown,
+      // 28 d to 10-13; leaderboard clicks per show were higher in the pledge arm, 2.3% vs 1.8%),
+      // so every non-pledger now sees the button. "pledge-all" breaks the old arm series on purpose.
+      const variant = pledgeMade ? "already-pledged" : "pledge-all";
+      const withPledge = variant === "pledge-all";
       hmTrack("race_banner_shown", { race: race.name, variant: variant });
       if (withPledge) hmTrack("driver_pledge_shown", { surface: "race_banner" });
       const actions = [
