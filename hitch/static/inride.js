@@ -579,6 +579,16 @@
     journeyUI.render(journeyStore.set(j));
   };
 
+  // #820: cohort tags for journey outcome events. "yes"/"no" strings so Umami's values API
+  // can split on them (a boolean false reads as a missing property there).
+  function cohortProps(j) {
+    return {
+      first: j && j.firstJourney ? "yes" : "no",
+      li: window.IS_LOGGED_IN ? "yes" : "no",
+      source: startSource(j && j.source),
+    };
+  }
+
   // True only for this browser's very first journey (#651): the waiting-screen
   // "people who've done it" row is for a first-timer who has waited a while.
   function markFirstJourney() {
@@ -619,6 +629,8 @@
       // Umami's values API reads one property at a time, so the source x dist
       // split (are spot-sheet starts remote taps?) needs its own joint key.
       source_dist: startSource(source) + ":" + startDistBucket(p),
+      first: j.firstJourney ? "yes" : "no",
+      li: window.IS_LOGGED_IN ? "yes" : "no",
     });
     journeyUI.render(j);
     // #16 slice 2 (EXP-505): 224/296 cancellations are an accidental Start, self-reported
@@ -698,7 +710,7 @@
     // The silent loss: a started journey that produces no ride at all. Distinct
     // from give-up, which does submit one — so this is the count that says how
     // much real hitchhiking the tracker records but never publishes.
-    hmTrack("journey_cancelled", { from_state: j.state, wait_min: waitMinutes(j), leg: j.legIndex || 0 });
+    hmTrack("journey_cancelled", Object.assign({ from_state: j.state, wait_min: waitMinutes(j), leg: j.legIndex || 0 }, cohortProps(j)));
     // Only the *current* leg's wait is thrown away. Earlier legs of the same journey are
     // already-logged rides, so this still ends the journey properly — success overlay and
     // auto-trip included — rather than silently dropping what was recorded.
@@ -715,7 +727,7 @@
     // and then backing out of it is not giving up, and counting it as such would
     // overstate the failure rate.
     journeyUI.giveUpSheet(function (details) {
-      hmTrack("journey_gave_up", { wait_min: waitMin, leg: j.legIndex || 0 });
+      hmTrack("journey_gave_up", Object.assign({ wait_min: waitMin, leg: j.legIndex || 0 }, cohortProps(j)));
       const id = uuid();
       const body = window.RideSubmit.buildGiveUpBody(j, waitMin, details, id);
       outboxStore.add({
@@ -738,11 +750,10 @@
     const j = journeyStore.get(); if (!j || (j.state !== "waiting")) return;
     // The wait paid off. wait_min here is the real thing people want to know
     // about a spot, and it is measured rather than remembered after the fact.
-    hmTrack("journey_got_ride", {
+    hmTrack("journey_got_ride", Object.assign({
       wait_min: waitMinutes(j),
       leg: j.legIndex || 0,
-      source: startSource(j.source),
-    });
+    }, cohortProps(j)));
     j.gotRideMs = Date.now();
     j.finalWaitMs = journeyStore.currentWaitMs(j, j.gotRideMs);
     j.details = details; // {rating, vehicle_kind, signal:[...], comment}
@@ -3729,6 +3740,17 @@
 
     const j = journeyStore.get();
     if (!j) return;
+
+    // #820: a journey restored on page load (a locked phone reloads the PWA between legs).
+    // Once per load, only for journeys under 24 h old; the stale path has its own events.
+    const ageMs = Date.now() - lastActiveMs(j);
+    if (ageMs <= STALE_MS) {
+      hmTrack("journey_rehydrated", {
+        state: j.state,
+        age: ageMs < 3600000 ? "lt1h" : ageMs < 6 * 3600000 ? "1to6h" : "6to24h",
+        first: j.firstJourney ? "yes" : "no",
+      });
+    }
 
     // Old-journey affordance: if the current segment's anchor is > 24 h old, offer
     // Resume (restore as-is) or Discard before drawing the timer and dock, so the
