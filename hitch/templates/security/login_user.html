@@ -21,7 +21,28 @@
   {{ t("If you used other hitchhiking applications such as Hitchmap before whose data can also be seen here, just use the same username to sign up to claim those rides for you.") }}
 </p>
 <br>
-<a href="/login/oauth" style="display: inline-block; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 4px;">
+<a id="login-oauth-link" href="/login/oauth" style="display: inline-block; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 4px;">
   {{ t("Login with Hitchwiki") }}
 </a>
 {% endblock content %}
+
+{% block scripts %}
+{{ super() }}
+{# #823: the login page had no tracking, so "how many people who reach /login proceed to
+   Hitchwiki" and "which entry point sent them" were unreadable. Both dimensions are
+   bucketed server-side so a crafted ?source= or ?next= cannot mint new property values. #}
+{% set raw_source = request.args.get("source", "") %}
+{% set raw_next = request.args.get("next", "") %}
+{% set src = raw_source if raw_source in ["anon-signup"] else ("invite" if request.args.get("invite") else "none") %}
+{% set nxt = "ride" if raw_next.startswith("/ride") else ("map" if raw_next in ["/", ""] else "other") %}
+<script>
+  (function () {
+    var props = { source: {{ src|tojson }}, next: {{ nxt|tojson }} };
+    if (window.hmTrack) window.hmTrack("login_page_viewed", props);
+    var a = document.getElementById("login-oauth-link");
+    if (a) a.addEventListener("click", function () {
+      if (window.hmTrack) window.hmTrack("login_oauth_clicked", props);
+    });
+  })();
+</script>
+{% endblock scripts %}
