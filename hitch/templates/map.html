@@ -71,6 +71,8 @@ var HIDE_ACCOUNT_BUTTON = {{ hide_account_button|tojson }};
 <!-- Expose auth state to the in-ride tracker (it decides whether to show the soft login prompt). -->
 <script>window.IS_LOGGED_IN = {{ 'true' if is_logged_in else 'false' }};</script>
 <script>window.USERNAME = {{ (username or '')|tojson }};</script>
+<!-- #821: last logged ride (ISO, UTC) for the lapsed-member pledge prompt; "" when none. -->
+<script>window.HM_LAST_RIDE_AT = {{ (current_user.last_ride_at.isoformat() + 'Z' if is_logged_in and current_user.is_authenticated and current_user.last_ride_at else '')|tojson }};</script>
 <!-- Display unit for every distance the map renders ("metric" | "imperial"). Set from the
      logged-in user's profile setting; anonymous visitors always get metric. -->
 <script>window.DISTANCE_UNIT = {{ distance_unit()|tojson }};</script>
