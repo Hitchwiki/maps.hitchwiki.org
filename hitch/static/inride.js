@@ -3485,6 +3485,48 @@
     },
   };
 
+  // #821: a member who logged rides but has been quiet 180+ days gets one pledge ask
+  // (driver side: they may be driving now). At most once per 30 days per device, never during
+  // a journey, over another dialog, or on a shared route link. Skips existing pledgers.
+  const lapsedPledge = {
+    LAPSED_MS: 180 * 86400000,
+    WAIT_MS: 30 * 86400000,
+
+    check() {
+      try {
+        const iso = window.HM_LAST_RIDE_AT;
+        if (!iso) return;
+        const last = Date.parse(iso);
+        const now = Date.now();
+        if (!(last > 0) || now - last < lapsedPledge.LAPSED_MS) return;
+        if (localStorage.getItem("hmDriverPledgeMade")) return;
+        const shownAt = Number(localStorage.getItem("hmLapsedPledgeShown")) || 0;
+        if (shownAt && now - shownAt < lapsedPledge.WAIT_MS) return;
+        if (journeyStore.get() || journeyUI._openDialog) return;
+        if (/(^|\/)dir\/-?\d/.test(location.pathname) || location.hash.slice(1).startsWith("dir/")) return;
+        localStorage.setItem("hmLapsedPledgeShown", String(now));
+        hmTrack("driver_pledge_shown", { surface: "lapsed_member" });
+        journeyUI.dialog({
+          title: T("Welcome back!"),
+          body: T("Have you stopped for a hitchhiker?"),
+          centered: true,
+          cancelButton: true,
+          actions: [
+            { label: T("I'll stop for a hitchhiker when I'm driving"), cls: "inr-go", onClick: function () {
+              try {
+                localStorage.setItem("hmDriverPledgeMade", "1");
+                localStorage.setItem("hmDriverPledgedAt", String(Date.now()));
+                localStorage.setItem("hmDriverPledgeSurface", "lapsed_member");
+              } catch (e) {}
+              hmTrack("driver_pledge_clicked", { surface: "lapsed_member" });
+            } },
+            { label: T("Not now"), cls: "inr-grey", onClick: function () {} },
+          ],
+        });
+      } catch (e) { /* storage blocked */ }
+    },
+  };
+
   // ── thinCoverageBanner: ask someone physically in a documented gap to write it ──
   // Till (hitchhiking-automation PR#27): "1 build geolocation" — trigger from the
   // visitor's real position, not a viewport pan (over-broad) and not a just-logged
@@ -3736,6 +3778,7 @@
       // Later than the thin-coverage geolocation fix could land, and re-guarded inside, so
       // it only ever appears when nothing else has claimed the screen.
       setTimeout(driverPledgeFollowup.check, 6000);
+      setTimeout(lapsedPledge.check, 7000);
     });
 
     const j = journeyStore.get();
