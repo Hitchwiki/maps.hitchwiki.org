@@ -5,6 +5,7 @@ from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urlencode
 
+import segno
 from flask import Blueprint, abort, jsonify, redirect, render_template, request
 
 from hitch.helpers import get_dirs
@@ -287,6 +288,52 @@ def bench_town(slug):
         pledge_btn=pledge_btn,
         pledge_note=pledge_note,
         report_url=report_url,
+        slug=slug,
+        print_label=tr.get("Print", "Print"),
+        emit_hreflang=False,
+    )
+
+
+@official_spots_bp.route("/mitfahrbank/<slug>/print")
+def bench_town_print(slug):
+    """One printable A5 sign per bench (#809): name + QR to that bench's page.
+
+    Town staff reached through the bench reminders can hang the sign at the
+    bench; a scan is the only way a real person at a real bench reaches us, so
+    the QR carries a ref tag (bench_qr_<slug>) that Umami can count. The driver
+    QR on each sign points at the town page, where the pledge button lives.
+    """
+    town = bench_towns().get(slug)
+    if town is None:
+        abort(404)
+    lang = _BENCH_LANG.get(town["cc"], "de")
+    L = _BENCH_STRINGS[lang]
+    tr_file = {"de": "de.json", "fr": "fr.json", "nl": "nl.json", "da": "da.json"}.get(lang)
+    tr = json.loads((TRANSLATIONS_DIR / tr_file).read_text(encoding="utf-8")) if tr_file else {}
+    pledge = tr.get("I'll stop for a hitchhiker when I'm driving", "I'll stop for a hitchhiker when I'm driving")
+    # Fixed host: the QR is printed on paper, so it must not depend on the proxy's url_root.
+    base = "https://maps.hitchwiki.org"
+    drv_url = f"{base}/mitfahrbank/{slug}?ref=bench_qr_drv_{slug}"
+    streets = bench_streets()
+    signs = []
+    for i, (osm_id, _lat, _lon) in enumerate(town["stops"][:100], 1):
+        url = f"{base}/official-stop/{osm_id}?ref=bench_qr_{slug}"
+        label = streets.get(str(osm_id)) or f"{L['stop']} {i}"
+        signs.append(
+            {
+                "label": label,
+                "url": url,
+                "svg": segno.make(url, error="m").svg_inline(scale=8, border=2),
+                "drv_svg": segno.make(drv_url, error="m").svg_inline(scale=4, border=2),
+            }
+        )
+    return render_template(
+        "bench_town_print.html",
+        title=L["title"].format(name=town["name"]),
+        signs=signs,
+        pledge=pledge,
+        drv_url=drv_url,
+        page_lang=lang,
         emit_hreflang=False,
     )
 

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="{{ page_lang }}">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<title>{{ title }}</title>
+<style>
+@page { size: A5; margin: 10mm; }
+body { margin: 0; font-family: sans-serif; }
+section { page-break-after: always; text-align: center; }
+h1 { font-size: 26pt; margin: 8mm 0 4mm; }
+h2 { font-size: 16pt; margin: 0 0 4mm; font-weight: normal; }
+section svg { width: 70%; display: block; margin: 0 auto; }
+.url { font-size: 9pt; word-break: break-all; }
+.drv { margin-top: 6mm; font-size: 11pt; }
+.drv svg { width: 22mm; display: inline-block; vertical-align: middle; margin: 0 3mm; }
+</style>
+</head>
+<body>
+{% for s in signs %}
+<section>
+  <h1>{{ title }}</h1>
+  <h2>{{ s.label }}</h2>
+  {{ s.svg|safe }}
+  <p class="url">{{ s.url }}</p>
+  <p class="drv">{{ s.drv_svg|safe }}{{ pledge }}</p>
+</section>
+{% endfor %}
+</body>
+</html>

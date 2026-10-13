@@ -20,6 +20,7 @@ pycountry==24.6.1
 pydantic==2.11.7
 pynostr==0.6.2
 python-dotenv==1.2.2
+segno==1.6.6
 requests==2.33.0
 requests-cache==1.2.1
 requests-oauthlib==2.0.0

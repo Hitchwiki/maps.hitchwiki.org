@@ -126,3 +126,22 @@ def test_bench_town_links_municipal_report_for_its_stops_on_german_pages(client)
     assert client.get(href).status_code in (200, 503)
     for slug in ("la-hague-fr", "utrecht-nl", "berkeley-us"):
         assert 'id="bench-report-link"' not in client.get(f"/mitfahrbank/{slug}").get_data(as_text=True)
+
+
+def test_bench_town_print_sheet_has_one_tagged_qr_per_stop(client):
+    from hitch.blueprints import official_spots as os_
+
+    slug = "moringen-de"
+    n = len(os_.bench_towns()[slug]["stops"])
+    r = client.get(f"/mitfahrbank/{slug}/print")
+    assert r.status_code == 200
+    body = r.get_data(as_text=True)
+    assert body.count("<section>") == n
+    assert f"ref=bench_qr_{slug}" in body
+    assert body.count("<svg") == 2 * n
+    assert client.get("/mitfahrbank/nowhere-xx/print").status_code == 404
+
+
+def test_bench_town_page_links_to_print_sheet(client):
+    body = client.get("/mitfahrbank/moringen-de").get_data(as_text=True)
+    assert 'href="/mitfahrbank/moringen-de/print"' in body
