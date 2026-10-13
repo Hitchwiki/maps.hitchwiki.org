@@ -145,3 +145,10 @@ def test_bench_town_print_sheet_has_one_tagged_qr_per_stop(client):
 def test_bench_town_page_links_to_print_sheet(client):
     body = client.get("/mitfahrbank/moringen-de").get_data(as_text=True)
     assert 'href="/mitfahrbank/moringen-de/print"' in body
+
+
+def test_bench_town_link_box_has_town_link_and_tracking(client):
+    body = client.get("/mitfahrbank/moringen-de?ref=bench_moringen").get_data(as_text=True)
+    assert 'id="bench-link-box"' in body
+    assert "mitfahrbank/moringen-de?ref=townsite" in body
+    assert "bench_link_copied" in body and "ref=bench_" in body
