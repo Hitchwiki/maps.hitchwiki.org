@@ -4702,6 +4702,18 @@ function noteDriverPledgeTime(surface) {
   } catch (e) {}
 }
 
+// IDEAS #839: the pledge used to end at "thank you". One link to the bench index gives it a place.
+function addPledgeStopsLink(note, surface) {
+  if (!note || note.querySelector(".pledge-stops-link")) return;
+  const a = document.createElement("a");
+  a.className = "pledge-stops-link";
+  a.href = "/mitfahrbank?ref=pledge_" + surface;
+  a.textContent = tr("Hitchhikers near you");
+  a.style.cssText = "display:block;margin-top:6px;";
+  a.onclick = function () { hmTrack("driver_pledge_stops_link_clicked", { surface: surface }); };
+  note.appendChild(a);
+}
+
 function renderDriverPledgeNudge() {
   const btn = $$("#success-driver-pledge-btn");
   const note = $$("#success-driver-pledge-note");
@@ -4721,6 +4733,7 @@ function renderDriverPledgeNudge() {
     noteDriverPledgeTime("success_overlay");
     btn.style.display = "none";
     note.textContent = tr("Pledge made — thank you.");
+    addPledgeStopsLink(note, "success_overlay");
     note.style.display = "block";
   };
 }
@@ -4738,6 +4751,7 @@ function wireSpotCountryPledge() {
     noteDriverPledgeTime("spot_country_contact");
     btn.style.display = "none";
     note.textContent = tr("Pledge made — thank you.");
+    addPledgeStopsLink(note, "spot_country_contact");
     note.style.display = "block";
   };
 }
@@ -6963,6 +6977,7 @@ function maybeShowNewsletterPledge() {
     noteDriverPledgeTime(surface);
     btn.style.display = "none";
     note.textContent = tr("Pledge made — thank you.");
+    addPledgeStopsLink(note, surface);
     note.style.display = "block";
     setTimeout(function () { box.remove(); }, 4000);
   };
