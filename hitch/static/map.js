@@ -3443,7 +3443,8 @@ function summaryText(data, hists = { wait: null, distance: null }) {
   const ridesLine = !noRidesYet && data.osm_id && data.review_count > 0 && wait !== "-"
     ? `<div class="spot-official-rides">${tr("{n} rides logged here, average wait {wait}", { n: data.review_count, wait })}</div>`
     : '';
-  return `${goneWarning}${policeNote}${noRidesLine}${ridesLine}<div>${tr("Rating: {rating}/5", { rating })}</div>
+  return `${goneWarning}${policeNote}<div>${tr("Rating: {rating}/5", { rating })}</div>
+    ${noRidesLine}${ridesLine}
     <div>${tr("Waiting time: {wait}", { wait })}</div>
     ${spotHistogramMarkup(hists.wait, "spot-wait-hist", "min")}
     <div>${tr("Ride distance: {distance}", { distance })}</div>
