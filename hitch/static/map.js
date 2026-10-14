@@ -4708,7 +4708,7 @@ function addPledgeStopsLink(note, surface) {
   const a = document.createElement("a");
   a.className = "pledge-stops-link";
   a.href = "/mitfahrbank?ref=pledge_" + surface;
-  a.textContent = tr("Where hitchhikers wait near you");
+  a.textContent = tr("Hitchhikers near you");
   a.style.cssText = "display:block;margin-top:6px;";
   a.onclick = function () { hmTrack("driver_pledge_stops_link_clicked", { surface: surface }); };
   note.appendChild(a);
