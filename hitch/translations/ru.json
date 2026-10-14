@@ -1073,5 +1073,7 @@
   "e.g. onsen, or paste a pin like 48.2082, 16.3738 — press Enter to add": "например, онсэн, или вставьте метку вида 48.2082, 16.3738 — нажмите Enter, чтобы добавить",
   "{n} hitchhikers started here since Oct 2024.": "{n} hitchhikers started here since Oct 2024.",
   "An official stop here would help": "An official stop here would help",
-  "Thanks, noted": "Thanks, noted"
+  "Thanks, noted": "Thanks, noted",
+  "No rides logged here yet — be the first": "No rides logged here yet — be the first",
+  "{n} rides logged here, average wait {wait}": "{n} rides logged here, average wait {wait}"
 }

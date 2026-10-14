@@ -3433,7 +3433,18 @@ function summaryText(data, hists = { wait: null, distance: null }) {
 
   // Lines are <div>s rather than <br>-separated text: each histogram is a block
   // element, and a <br> after one would open an empty line under the chart.
+  // #858: an official stop nobody has logged a ride at shows "-" for rating and wait, which
+  // reads as "no data, nothing to learn". Say what is true and invite the first ride instead.
+  // Stops with rides keep the normal figures (n and median wait are already below).
+  const noRidesYet = !!data.osm_id && !(data.review_count > 0);
+  const noRidesLine = noRidesYet
+    ? `<div class="spot-official-no-rides">${tr("No rides logged here yet — be the first")}</div>`
+    : '';
+  const ridesLine = !noRidesYet && data.osm_id && data.review_count > 0 && wait !== "-"
+    ? `<div class="spot-official-rides">${tr("{n} rides logged here, average wait {wait}", { n: data.review_count, wait })}</div>`
+    : '';
   return `${goneWarning}${policeNote}<div>${tr("Rating: {rating}/5", { rating })}</div>
+    ${noRidesLine}${ridesLine}
     <div>${tr("Waiting time: {wait}", { wait })}</div>
     ${spotHistogramMarkup(hists.wait, "spot-wait-hist", "min")}
     <div>${tr("Ride distance: {distance}", { distance })}</div>
@@ -3609,6 +3620,11 @@ function applySpotRideFilter(marker) {
   if (wikiNearbyLink) wikiNearbyLink.onclick = () => hmTrack("spot_wiki_nearby_clicked");
 
   if ($$("#spot-official-stop-wanted")) hmTrack("official_stop_ask_shown", {});
+
+  // #858: denominator for the official-stop sheet line (EXP-867). Property only says whether
+  // the stop has logged rides; no spot id.
+  const officialSheet = $$(".spot-official-no-rides, .spot-official-rides");
+  if (officialSheet) hmTrack("official_stop_sheet_shown", { has_rides: officialSheet.classList.contains("spot-official-rides") ? "yes" : "no" });
 
   // Idea #62/#147/#171 gap-spot prompt: same reasoning as the nearby-link bind above --
   // the link is part of summaryText, rebuilt from data that arrives after handleMarkerClick.
