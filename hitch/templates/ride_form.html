@@ -499,6 +499,32 @@
             {{ t("Is there anything else you want to remember about your rides? {link}.", link=standard_link)|safe }}
         </p>
 
+        {# #473 leftover / EXP-596: optional one-tap "first hitchhiking ride ever?". Analytics
+           events only (nothing stored per ride, no form field posted), so it can never block
+           or alter a submit. It is the only direct count of brand-new hitchhikers. #}
+        <div id="first-ride-ever-row" style="margin-top: 1rem;">
+            <span style="font-weight:600;">{{ t("Is this your first hitchhiking ride ever?") }}</span>
+            <span style="font-weight:normal; color:#666;">{{ t("(optional)") }}</span>
+            <div style="margin-top:4px;">
+                <button type="button" class="wra-btn" data-first-ever="yes" aria-pressed="false">{{ t("Yes") }}</button>
+                <button type="button" class="wra-btn" data-first-ever="no" aria-pressed="false">{{ t("No") }}</button>
+            </div>
+        </div>
+        <script>
+        (function () {
+            var row = document.getElementById('first-ride-ever-row');
+            if (!row || typeof window.hmTrack !== 'function') return;
+            window.hmTrack('ride_first_ever_shown', { mode: '{{ "edit" if request.args.get("edit") else "new" }}' });
+            var btns = row.querySelectorAll('button[data-first-ever]');
+            btns.forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    btns.forEach(function (b) { b.setAttribute('aria-pressed', String(b === btn)); });
+                    window.hmTrack('ride_first_ever_answered', { answer: btn.dataset.firstEver });
+                });
+            });
+        })();
+        </script>
+
         <p style="margin-top: 1rem; font-size: 0.8rem; color: #888;">
             {% set odbl_link = '<a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>' %}
             {% set ccbysa_link = '<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>' %}

@@ -97,3 +97,12 @@ def test_anon_login_link_opens_a_popup_and_keeps_the_form():
     # A failed attempt (ok:false) must not detach the listener: the popup offers a retry.
     failed = TEMPLATE.index("if (ev.data.ok === false) return;")
     assert TEMPLATE.index("window.removeEventListener('message', onMsg);", failed) > failed
+
+
+def test_first_ride_ever_row_is_events_only_and_optional():
+    # #473 leftover: a one-tap optional question that is never posted with the form.
+    assert 'id="first-ride-ever-row"' in TEMPLATE
+    assert "hmTrack('ride_first_ever_shown'" in TEMPLATE
+    assert "hmTrack('ride_first_ever_answered'" in TEMPLATE
+    row = TEMPLATE.index('id="first-ride-ever-row"')
+    assert 'name="' not in TEMPLATE[row : row + 900]
