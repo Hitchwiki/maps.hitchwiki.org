@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% set title = "Routing gang test page" %}
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  #rg-map { height: 70vh; min-height: 360px; }
+  #rg-info { padding: 0.5rem 1rem; font-size: 0.95em; }
+  #rg-info ul { margin: 0.2rem 0 0.6rem 1.2rem; padding: 0; }
+</style>
+{% endblock %}
+{% block content %}
+<div id="rg-info">
+  <strong>Routing gang test page</strong> — not the live router. Tap the map for
+  start (A), tap again for destination (B). Shows the car road route and the known
+  hitchhiking spots nearest to A, to B, and within 3 km of the route.
+  <div id="rg-out">Tap the start point.</div>
+</div>
+<div id="rg-map"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function () {
+  const map = L.map("rg-map").setView([50.5, 10], 5);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    { attribution: "© OpenStreetMap" }).addTo(map);
+  const out = document.getElementById("rg-out");
+  let spots = [], pts = [], layer = L.layerGroup().addTo(map);
+  fetch("/repeatable_routes.json").then(r => r.json()).then(j => { spots = j.spots || []; });
+  const R = Math.PI / 180;
+  function km(a, b) {
+    const s = Math.sin((b[0]-a[0])*R/2)**2 + Math.cos(a[0]*R)*Math.cos(b[0]*R)*Math.sin((b[1]-a[1])*R/2)**2;
+    return 12742 * Math.asin(Math.sqrt(s));
+  }
+  function nearest(pt, n) {
+    return spots.map(s => [km(pt, s), s]).sort((x, y) => x[0] - y[0]).slice(0, n);
+  }
+  function li(d, s) {
+    return `<li><a href="/spot/${s[0].toFixed(5)}_${s[1].toFixed(5)}" target="_blank">${s[0].toFixed(4)}, ${s[1].toFixed(4)}</a> — ${d.toFixed(1)} km</li>`;
+  }
+  map.on("click", async (e) => {
+    const p = [e.latlng.lat, e.latlng.lng];
+    if (pts.length >= 2) { pts = []; layer.clearLayers(); }
+    pts.push(p);
+    L.marker(p).addTo(layer).bindTooltip(pts.length === 1 ? "A" : "B");
+    if (pts.length === 1) { out.textContent = "Tap the destination."; return; }
+    out.textContent = "Loading road route…";
+    const [a, b] = pts;
+    try {
+      const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=simplified&geometries=geojson`);
+      const rt = (await r.json()).routes[0];
+      const line = rt.geometry.coordinates.map(c => [c[1], c[0]]);
+      L.polyline(line, { color: "#1a73e8", weight: 4 }).addTo(layer);
+      map.fitBounds(line);
+      // spots within 3 km of any simplified route vertex (coarse but cheap)
+      const near = new Map();
+      spots.forEach(s => {
+        for (let i = 0; i < line.length; i++) {
+          if (km(s, line[i]) <= 3) { near.set(s.join(), s); return; }
+        }
+      });
+      near.forEach(s => L.circleMarker([s[0], s[1]], { radius: 4, color: "#188038" }).addTo(layer));
+      const na = nearest(a, 3), nb = nearest(b, 3);
+      out.innerHTML = `Road: ${(rt.distance/1000).toFixed(0)} km, ~${Math.round(rt.duration/60)} min by car.` +
+        `<br>Spots nearest A:<ul>${na.map(x => li(x[0], x[1])).join("")}</ul>` +
+        `Spots nearest B:<ul>${nb.map(x => li(x[0], x[1])).join("")}</ul>` +
+        `Known spots within 3 km of the route: ${near.size} (green dots).`;
+    } catch (err) { out.textContent = "Road route failed: " + err; }
+  });
+})();
+</script>
+{% endblock %}
