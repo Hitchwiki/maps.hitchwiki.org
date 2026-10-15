@@ -47,22 +47,45 @@
     try {
       const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=simplified&geometries=geojson`);
       const rt = (await r.json()).routes[0];
-      const line = rt.geometry.coordinates.map(c => [c[1], c[0]]);
-      L.polyline(line, { color: "#1a73e8", weight: 4 }).addTo(layer);
-      map.fitBounds(line);
-      // spots within 3 km of any simplified route vertex (coarse but cheap)
-      const near = new Map();
-      spots.forEach(s => {
-        for (let i = 0; i < line.length; i++) {
-          if (km(s, line[i]) <= 3) { near.set(s.join(), s); return; }
+      const raw = rt.geometry.coordinates.map(c => [c[1], c[0]]);
+      L.polyline(raw, { color: "#1a73e8", weight: 4 }).addTo(layer);
+      map.fitBounds(raw);
+      // densify to <= ~2 km steps so "distance to nearest vertex" approximates distance to the road
+      const line = [raw[0]];
+      for (let i = 1; i < raw.length; i++) {
+        const n = Math.max(1, Math.ceil(km(raw[i - 1], raw[i]) / 2));
+        for (let k = 1; k <= n; k++) {
+          line.push([raw[i-1][0] + (raw[i][0] - raw[i-1][0]) * k / n, raw[i-1][1] + (raw[i][1] - raw[i-1][1]) * k / n]);
         }
+      }
+      // spots within 3 km of the route, ordered along it (nearest simplified vertex)
+      const near = new Map(), along = [];
+      spots.forEach(s => {
+        let best = 1e9, bi = -1;
+        for (let i = 0; i < line.length; i++) {
+          const d = km(s, line[i]);
+          if (d < best) { best = d; bi = i; }
+        }
+        if (best <= 3 && !near.has(s.join())) { near.set(s.join(), s); along.push([bi, s]); }
       });
+      along.sort((x, y) => x[0] - y[0]);
       near.forEach(s => L.circleMarker([s[0], s[1]], { radius: 4, color: "#188038" }).addTo(layer));
+      // Chain: A, spots along the route (>= 10 km apart), B; flag hops over 60 km.
+      const chain = [a];
+      along.forEach(x => { if (km(chain[chain.length - 1], x[1]) >= 10) chain.push(x[1]); });
+      chain.push(b);
+      const hops = [];
+      for (let i = 1; i < chain.length; i++) {
+        const d = km(chain[i - 1], chain[i]);
+        hops.push(`<li>${d.toFixed(0)} km${d > 60 ? " — <b>long gap, no known spot</b>" : ""}</li>`);
+      }
+      const gaps = hops.filter(h => h.includes("long gap")).length;
       const na = nearest(a, 3), nb = nearest(b, 3);
       out.innerHTML = `Road: ${(rt.distance/1000).toFixed(0)} km, ~${Math.round(rt.duration/60)} min by car.` +
         `<br>Spots nearest A:<ul>${na.map(x => li(x[0], x[1])).join("")}</ul>` +
         `Spots nearest B:<ul>${nb.map(x => li(x[0], x[1])).join("")}</ul>` +
-        `Known spots within 3 km of the route: ${near.size} (green dots).`;
+        `Known spots within 3 km of the route: ${near.size} (green dots).` +
+        `<br>Possible hops A → spots → B (${chain.length - 1} hops, ${gaps} long gaps):<ul>${hops.join("")}</ul>`;
     } catch (err) { out.textContent = "Road route failed: " + err; }
   });
 })();
