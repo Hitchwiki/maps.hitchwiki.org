@@ -17,77 +17,71 @@
 </div>
 <div id="rg-map"></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{{ url_for('static', filename='routing_gang_chain.js') }}"></script>
 <script>
 (function () {
+  const C = window.RGChain;
   const map = L.map("rg-map").setView([50.5, 10], 5);
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
     { attribution: "© OpenStreetMap" }).addTo(map);
   const out = document.getElementById("rg-out");
-  let spots = [], pts = [], layer = L.layerGroup().addTo(map);
-  fetch("/repeatable_routes.json").then(r => r.json()).then(j => { spots = j.spots || []; });
-  const R = Math.PI / 180;
-  function km(a, b) {
-    const s = Math.sin((b[0]-a[0])*R/2)**2 + Math.cos(a[0]*R)*Math.cos(b[0]*R)*Math.sin((b[1]-a[1])*R/2)**2;
-    return 12742 * Math.asin(Math.sqrt(s));
+  let pts = [], layer = L.layerGroup().addTo(map);
+  const spotsReady = fetch("/spots.json").then(r => r.json()).then(j => j.spots || j);
+  function spotLink(s) {
+    return `<a href="/spot/${s.lat.toFixed(5)}_${s.lon.toFixed(5)}" target="_blank">${s.lat.toFixed(4)}, ${s.lon.toFixed(4)}</a>`;
   }
-  function nearest(pt, n) {
-    return spots.map(s => [km(pt, s), s]).sort((x, y) => x[0] - y[0]).slice(0, n);
+  function detail(c, b) {
+    const t = c.t || C.toward(c.s, b);
+    const rides = c.s.review_count || 0;
+    const bits = [`${rides} ride${rides === 1 ? "" : "s"} logged`];
+    if (c.s.rating) bits.push(`rated ${c.s.rating.toFixed(1)}/5`);
+    bits.push(t.n ? `${t.ok} of ${t.n} rides from here went toward B` : "no destination logged");
+    return bits.join(", ");
   }
-  function li(d, s) {
-    return `<li><a href="/spot/${s[0].toFixed(5)}_${s[1].toFixed(5)}" target="_blank">${s[0].toFixed(4)}, ${s[1].toFixed(4)}</a> — ${d.toFixed(1)} km</li>`;
+  async function plan(a, b) {
+    out.textContent = "Loading road route…";
+    try {
+      const [spots, r] = await Promise.all([spotsReady,
+        fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=simplified&geometries=geojson`).then(x => x.json())]);
+      const rt = r.routes[0];
+      const raw = rt.geometry.coordinates.map(c => [c[1], c[0]]);
+      L.polyline(raw, { color: "#1a73e8", weight: 4 }).addTo(layer);
+      map.fitBounds(raw);
+      const [line, cum] = C.densify(raw);
+      const near = C.nearRoute(spots, line, cum, 3);
+      near.forEach(c => L.circleMarker([c.s.lat, c.s.lon], { radius: 3, color: "#188038" }).addTo(layer));
+      const chain = C.newChain(a, b, near, cum[cum.length - 1]);
+      chain.forEach((c, i) => L.circleMarker([c.s.lat, c.s.lon], { radius: 8, color: "#c5221f", weight: 3 })
+        .addTo(layer).bindTooltip(String(i + 1)));
+      let prev = a, rows = "";
+      chain.forEach((c, i) => {
+        const d = C.km(prev, [c.s.lat, c.s.lon]); prev = [c.s.lat, c.s.lon];
+        rows += `<li>${i + 1}. ${spotLink(c.s)} — ${d.toFixed(0)} km from the previous point${c.gapBefore ? " (<b>long gap, no known spot before this</b>)" : ""}<br><small>${detail(c, b)}</small></li>`;
+      });
+      const last = C.km(prev, b);
+      const first = chain[0] && C.km(a, [chain[0].s.lat, chain[0].s.lon]) <= 15;
+      out.innerHTML = `Road: ${(rt.distance/1000).toFixed(0)} km, ~${Math.round(rt.duration/60)} min by car. ` +
+        `Known spots within 3 km of the route: ${near.length} (green dots).` +
+        `<br>${first ? "Departure spot near A:" : "<b>No known spot within 15 km of A.</b> Spots along the way:"}` +
+        `<ol style="list-style:none;padding-left:0">${rows}</ol>Last stretch to B: ${last.toFixed(0)} km.` +
+        `<br><small>Share this case: <a href="?a=${a.map(x => x.toFixed(4))}&b=${b.map(x => x.toFixed(4))}">link</a></small>`;
+    } catch (err) { out.textContent = "Route failed: " + err; }
   }
-  map.on("click", async (e) => {
+  map.on("click", (e) => {
     const p = [e.latlng.lat, e.latlng.lng];
     if (pts.length >= 2) { pts = []; layer.clearLayers(); }
     pts.push(p);
     L.marker(p).addTo(layer).bindTooltip(pts.length === 1 ? "A" : "B");
     if (pts.length === 1) { out.textContent = "Tap the destination."; return; }
-    out.textContent = "Loading road route…";
-    const [a, b] = pts;
-    try {
-      const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=simplified&geometries=geojson`);
-      const rt = (await r.json()).routes[0];
-      const raw = rt.geometry.coordinates.map(c => [c[1], c[0]]);
-      L.polyline(raw, { color: "#1a73e8", weight: 4 }).addTo(layer);
-      map.fitBounds(raw);
-      // densify to <= ~2 km steps so "distance to nearest vertex" approximates distance to the road
-      const line = [raw[0]];
-      for (let i = 1; i < raw.length; i++) {
-        const n = Math.max(1, Math.ceil(km(raw[i - 1], raw[i]) / 2));
-        for (let k = 1; k <= n; k++) {
-          line.push([raw[i-1][0] + (raw[i][0] - raw[i-1][0]) * k / n, raw[i-1][1] + (raw[i][1] - raw[i-1][1]) * k / n]);
-        }
-      }
-      // spots within 3 km of the route, ordered along it (nearest simplified vertex)
-      const near = new Map(), along = [];
-      spots.forEach(s => {
-        let best = 1e9, bi = -1;
-        for (let i = 0; i < line.length; i++) {
-          const d = km(s, line[i]);
-          if (d < best) { best = d; bi = i; }
-        }
-        if (best <= 3 && !near.has(s.join())) { near.set(s.join(), s); along.push([bi, s]); }
-      });
-      along.sort((x, y) => x[0] - y[0]);
-      near.forEach(s => L.circleMarker([s[0], s[1]], { radius: 4, color: "#188038" }).addTo(layer));
-      // Chain: A, spots along the route (>= 10 km apart), B; flag hops over 60 km.
-      const chain = [a];
-      along.forEach(x => { if (km(chain[chain.length - 1], x[1]) >= 10) chain.push(x[1]); });
-      chain.push(b);
-      const hops = [];
-      for (let i = 1; i < chain.length; i++) {
-        const d = km(chain[i - 1], chain[i]);
-        hops.push(`<li>${d.toFixed(0)} km${d > 60 ? " — <b>long gap, no known spot</b>" : ""}</li>`);
-      }
-      const gaps = hops.filter(h => h.includes("long gap")).length;
-      const na = nearest(a, 3), nb = nearest(b, 3);
-      out.innerHTML = `Road: ${(rt.distance/1000).toFixed(0)} km, ~${Math.round(rt.duration/60)} min by car.` +
-        `<br>Spots nearest A:<ul>${na.map(x => li(x[0], x[1])).join("")}</ul>` +
-        `Spots nearest B:<ul>${nb.map(x => li(x[0], x[1])).join("")}</ul>` +
-        `Known spots within 3 km of the route: ${near.size} (green dots).` +
-        `<br>Possible hops A → spots → B (${chain.length - 1} hops, ${gaps} long gaps):<ul>${hops.join("")}</ul>`;
-    } catch (err) { out.textContent = "Road route failed: " + err; }
+    plan(pts[0], pts[1]);
   });
+  const q = new URLSearchParams(location.search);
+  const qa = (q.get("a") || "").split(",").map(Number), qb = (q.get("b") || "").split(",").map(Number);
+  if (qa.length === 2 && qb.length === 2 && [...qa, ...qb].every(Number.isFinite)) {
+    pts = [qa, qb];
+    L.marker(qa).addTo(layer).bindTooltip("A"); L.marker(qb).addTo(layer).bindTooltip("B");
+    plan(qa, qb);
+  }
 })();
 </script>
 {% endblock %}
