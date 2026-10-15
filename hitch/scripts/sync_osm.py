@@ -1,6 +1,7 @@
 """Script to get official hitchhiking spots from OpenStreetMap using Overpass API and store them in the database."""
 
 import logging
+import os
 import re
 import time
 
@@ -9,6 +10,7 @@ import requests
 from hitch.extensions import db
 from hitch.models import OsmHitchhikingSpot
 from hitch.osm_bench_carry import carry_forward
+from hitch.osm_sync_guard import data_age_problem, shrink_problem
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger(__name__)
@@ -31,11 +33,15 @@ logger.info(f"SYNC OSM SCRIPT STARTED — querying Overpass at {overpass_url}")
 headers = {"User-Agent": "maps.hitchwiki.org sync_osm (+https://maps.hitchwiki.org)"}
 # overpass-api.de answers 429/504 under load, and can answer 200 with a `remark` and a truncated element list when
 # a query runs out of time or memory. Retry across two mirrors, and only accept a response with no remark.
-OVERPASS_MIRRORS = [overpass_url, "https://overpass.private.coffee/api/interpreter"]
+OVERPASS_MIRRORS = [
+    overpass_url,
+    "https://overpass.private.coffee/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+]
 data = None
-for attempt in range(1, 5):
+for attempt in range(1, 7):
     if attempt > 1:
-        time.sleep(20 * (attempt - 1))
+        time.sleep(min(20 * (attempt - 1), 60))
     url = OVERPASS_MIRRORS[(attempt - 1) % len(OVERPASS_MIRRORS)]
     try:
         response = requests.post(url, data={"data": overpass_query}, headers=headers, timeout=120)
@@ -48,12 +54,17 @@ for attempt in range(1, 5):
         if candidate.get("remark"):
             logger.error(f"Overpass remark (result may be partial): {candidate['remark'][:300]}")
             continue
+        # A lagging mirror answers 200 with no remark but a months-old database; take the next one instead.
+        stale = data_age_problem(candidate)
+        if stale:
+            logger.error(f"Overpass {url} attempt {attempt} rejected: {stale}")
+            continue
         data = candidate
         break
     except (requests.RequestException, ValueError) as exc:
         logger.error(f"Overpass {url} attempt {attempt} failed: {exc}")
 if data is None:
-    logger.error("Overpass gave no complete answer after 4 attempts — aborting without touching the database")
+    logger.error("Overpass gave no complete answer after 6 attempts — aborting without touching the database")
     raise SystemExit(1)
 
 elements = data.get("elements", [])
@@ -116,6 +127,13 @@ carried = [
     for c in carried
 ]
 nodes.extend(carried)
+
+# A set far smaller than what we hold is a bad answer, not a real mass deletion (2026-10-15: 1,471 -> 933 stops, 247 bench
+# towns lost every stop). Keep last night's table; a genuine cull can be forced with SYNC_OSM_ALLOW_SHRINK=1.
+shrink = shrink_problem(len(nodes), prior_count)
+if shrink and os.environ.get("SYNC_OSM_ALLOW_SHRINK") != "1":
+    logger.error(f"Refusing to replace the table: {shrink} — aborting without touching the database")
+    raise SystemExit(1)
 logger.info(f"Replacing {prior_count} existing spots with {len(nodes)} fresh ones")
 
 db.session.query(OsmHitchhikingSpot).delete()
