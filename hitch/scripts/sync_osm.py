@@ -8,6 +8,7 @@ import requests
 
 from hitch.extensions import db
 from hitch.models import OsmHitchhikingSpot
+from hitch.osm_bench_carry import carry_forward
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger(__name__)
@@ -65,6 +66,7 @@ BENCH_COUNTRIES = ["DE", "AT", "CH"]
 BENCH_NAME = re.compile(r"^Mitfahr(er)?b(ank|änk)", re.IGNORECASE)
 seen = {n["id"] for n in nodes}
 bench_added = 0
+bench_failed = []
 for cc in BENCH_COUNTRIES:
     bench_query = (
         f'[out:json][timeout:120];area["ISO3166-1"="{cc}"]->.a;'
@@ -92,6 +94,8 @@ for cc in BENCH_COUNTRIES:
         except (requests.RequestException, ValueError) as exc:
             logger.warning(f"Named-bench query {cc} attempt {attempt} failed: {exc}")
             time.sleep(20)
+    else:
+        bench_failed.append(cc)
 logger.info(f"Named Mitfahrbank benches added: {bench_added}")
 logger.info(f"Parsed {len(elements)} elements, {len(nodes)} nodes")
 
@@ -101,6 +105,17 @@ if not nodes:
     raise SystemExit(1)
 
 prior_count = db.session.query(OsmHitchhikingSpot).count()
+carried = []
+if bench_failed:
+    # A failed named-bench query must not delete last night's named benches (they carry no highway=hitchhiking tag
+    # and would vanish from the map until a later night succeeds). Coarse on purpose: keep all of them, for one night.
+    carried = carry_forward(db.session.query(OsmHitchhikingSpot).all(), seen)
+    logger.warning(f"Named-bench query failed for {bench_failed}; carrying {len(carried)} named benches over")
+carried = [
+    {"id": c.id, "lat": c.latitude, "lon": c.longitude, "tags": c.tags, "timestamp": c.timestamp, "user": c.user, "uid": c.uid}
+    for c in carried
+]
+nodes.extend(carried)
 logger.info(f"Replacing {prior_count} existing spots with {len(nodes)} fresh ones")
 
 db.session.query(OsmHitchhikingSpot).delete()
