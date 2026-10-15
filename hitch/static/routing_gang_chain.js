@@ -82,6 +82,13 @@
     }
     return chain;
   }
-  const api = { km, bearing, toward, score, densify, nearRoute, oldChain, newChain };
+  // Driver view: spots within maxOff km of the car route, newest ride first, with the detour
+  // (there and back) a driver would add by stopping there.
+  function driverList(near, nowMs, maxOff) {
+    return near.filter(c => c.off <= maxOff)
+      .map(c => ({ s: c.s, at: c.at, detour: 2 * c.off, ageDays: c.s.latest_ms ? Math.max(0, (nowMs - c.s.latest_ms) / 864e5) : null }))
+      .sort((x, y) => (x.ageDays === null) - (y.ageDays === null) || x.ageDays - y.ageDays);
+  }
+  const api = { km, bearing, toward, score, densify, nearRoute, oldChain, newChain, driverList };
   if (typeof module !== "undefined") module.exports = api; else root.RGChain = api;
 })(typeof window !== "undefined" ? window : this);

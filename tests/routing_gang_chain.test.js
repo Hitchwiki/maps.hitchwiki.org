@@ -19,4 +19,8 @@ assert.strictEqual(chain[0].s, east, "departure spot prefers rides toward B, eve
 assert(chain.length >= 2 && chain.every((c, i) => i === 0 || c.at > chain[i - 1].at), "ordered along the route");
 // old behaviour never offered a spot within 10 km of A
 assert(C.oldChain(A, B, near).every((c) => C.km(A, [c.s.lat, c.s.lon]) >= 10));
+const now = 1e12, day = 864e5;
+const dl = C.driverList(C.nearRoute([spot(50.0, 10.5, { latest_ms: now - 40 * day }), spot(50.01, 11.0, { latest_ms: now - 2 * day }), spot(50.5, 11.0, { latest_ms: now })], line, cum, 3), now, 2);
+assert.strictEqual(dl.length, 2, "spots beyond 2 km are dropped");
+assert(dl[0].ageDays < dl[1].ageDays && dl[0].detour > 0, "newest first, detour is there-and-back");
 console.log("ok");
