@@ -13,6 +13,7 @@
   <strong>Routing gang test page</strong> — not the live router. Tap the map for
   start (A), tap again for destination (B). Shows the car road route and the known
   hitchhiking spots nearest to A, to B, and within 3 km of the route.
+  <label><input type="checkbox" id="rg-drive"> I'm driving: list spots within 2 km of my route, newest rides first</label>
   <div id="rg-out">Tap the start point.</div>
 </div>
 <div id="rg-map"></div>
@@ -58,12 +59,20 @@
         const d = C.km(prev, [c.s.lat, c.s.lon]); prev = [c.s.lat, c.s.lon];
         rows += `<li>${i + 1}. ${spotLink(c.s)} — ${d.toFixed(0)} km from the previous point${c.gapBefore ? " (<b>long gap, no known spot before this</b>)" : ""}<br><small>${detail(c, b)}</small></li>`;
       });
+      let drive = "";
+      if (document.getElementById("rg-drive").checked) {
+        const dl = C.driverList(near, Date.now(), 2).slice(0, 30);
+        drive = `<br><b>Spots near your route, newest rides first:</b><ul>` + dl.map(d => {
+          const age = d.ageDays === null ? "no date" : d.ageDays < 30 ? "ride in the last 30 days" : d.ageDays < 365 ? "ride in the last 12 months" : "last ride over a year ago";
+          return `<li>${spotLink(d.s)} — km ${d.at.toFixed(0)} of ${(rt.distance/1000).toFixed(0)}, detour about ${d.detour.toFixed(1)} km, ${age}</li>`;
+        }).join("") + "</ul>";
+      }
       const last = C.km(prev, b);
       const first = chain[0] && C.km(a, [chain[0].s.lat, chain[0].s.lon]) <= 15;
       out.innerHTML = `Road: ${(rt.distance/1000).toFixed(0)} km, ~${Math.round(rt.duration/60)} min by car. ` +
         `Known spots within 3 km of the route: ${near.length} (green dots).` +
         `<br>${first ? "Departure spot near A:" : "<b>No known spot within 15 km of A.</b> Spots along the way:"}` +
-        `<ol style="list-style:none;padding-left:0">${rows}</ol>Last stretch to B: ${last.toFixed(0)} km.` +
+        `<ol style="list-style:none;padding-left:0">${rows}</ol>Last stretch to B: ${last.toFixed(0)} km.${drive}` +
         `<br><small>Share this case: <a href="?a=${a.map(x => x.toFixed(4))}&b=${b.map(x => x.toFixed(4))}">link</a></small>`;
     } catch (err) { out.textContent = "Route failed: " + err; }
   }
@@ -74,6 +83,9 @@
     L.marker(p).addTo(layer).bindTooltip(pts.length === 1 ? "A" : "B");
     if (pts.length === 1) { out.textContent = "Tap the destination."; return; }
     plan(pts[0], pts[1]);
+  });
+  document.getElementById("rg-drive").addEventListener("change", () => {
+    if (pts.length === 2) { layer.clearLayers(); plan(pts[0], pts[1]); }
   });
   const q = new URLSearchParams(location.search);
   const qa = (q.get("a") || "").split(",").map(Number), qb = (q.get("b") || "").split(",").map(Number);
