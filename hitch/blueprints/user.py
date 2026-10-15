@@ -2121,6 +2121,12 @@ def leaderboard():
     )
 
 
+@user_bp.route("/hitchhiking-routing-gang", methods=["GET"])
+def routing_gang():
+    """Development page for the routing-gang router work; separate from the live planner."""
+    return render_template("routing_gang.html")
+
+
 @user_bp.route("/races", methods=["GET"])
 def races():
     """Podiums for the city-to-city races defined in RACES.md.
