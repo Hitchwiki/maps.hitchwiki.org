@@ -1,5 +1,5 @@
 // Routing-gang chain: the departure spot is the best-scoring spot within 15 km of A, preferring
-// spots whose logged rides went toward B; later hops come from 30-60 km windows.
+// spots whose logged rides went toward B; later hops come from 20-80 km windows.
 const assert = require("assert");
 const C = require("../hitch/static/routing_gang_chain.js");
 

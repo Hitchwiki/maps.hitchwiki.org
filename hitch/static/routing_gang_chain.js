@@ -65,7 +65,7 @@
     return chain;
   }
   // New: departure spot = best-scoring spot within 15 km of A; then the best one in each
-  // 30-60 km window along the route; the rest is a hop to B, or a flagged gap.
+  // 20-80 km window along the route; the rest is a hop to B, or a flagged gap.
   function newChain(a, b, near, routeKm) {
     const chain = [];
     const score_ = (c) => { c.t = toward(c.s, b); c.score = score(c.s, c.t); return c; };
@@ -73,10 +73,10 @@
     const first = near.filter(c => km(a, [c.s.lat, c.s.lon]) <= 15).sort((x, y) => y.score - x.score)[0];
     let pos = first ? first.at : 0;
     if (first) chain.push(first);
-    for (let guard = 0; guard < 60 && routeKm - pos > 60; guard++) {
-      const win = near.filter(c => c.at >= pos + 30 && c.at <= pos + 60).sort((x, y) => y.score - x.score)[0];
+    for (let guard = 0; guard < 60 && routeKm - pos > 80; guard++) {
+      const win = near.filter(c => c.at >= pos + 20 && c.at <= pos + 80).sort((x, y) => y.score - x.score)[0];
       if (win) { chain.push(win); pos = win.at; continue; }
-      const next = near.find(c => c.at > pos + 60);
+      const next = near.find(c => c.at > pos + 80);
       if (!next) break;
       next.gapBefore = true; chain.push(next); pos = next.at;
     }
