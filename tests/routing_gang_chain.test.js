@@ -1,5 +1,5 @@
 // Routing-gang chain: the departure spot is the best-scoring spot within 15 km of A, preferring
-// spots whose logged rides went toward B; later hops come from 30-60 km windows.
+// spots whose logged rides went toward B; later hops come from 20-80 km windows.
 const assert = require("assert");
 const C = require("../hitch/static/routing_gang_chain.js");
 
@@ -19,4 +19,16 @@ assert.strictEqual(chain[0].s, east, "departure spot prefers rides toward B, eve
 assert(chain.length >= 2 && chain.every((c, i) => i === 0 || c.at > chain[i - 1].at), "ordered along the route");
 // old behaviour never offered a spot within 10 km of A
 assert(C.oldChain(A, B, near).every((c) => C.km(A, [c.s.lat, c.s.lon]) >= 10));
+const now = 1e12, day = 864e5;
+const dl = C.driverList(C.nearRoute([spot(50.0, 10.5, { latest_ms: now - 40 * day }), spot(50.01, 11.0, { latest_ms: now - 2 * day }), spot(50.5, 11.0, { latest_ms: now })], line, cum, 3), now, 2);
+assert.strictEqual(dl.length, 2, "spots beyond 2 km are dropped");
+assert(dl[0].ageDays < dl[1].ageDays && dl[0].detour > 0, "newest first, detour is there-and-back");
 console.log("ok");
+
+// First stop prefers a spot near A over a slightly better-scored one ~14 km out (-0.2 score per km).
+{
+  const closeSpot = spot(50.0, 10.02, { dest_lats: [50.0], dest_lons: [11.0], rating: 3 });
+  const farBetter = spot(50.0, 10.2, { dest_lats: [50.0], dest_lons: [11.0], rating: 5, review_count: 8 }); // ~14 km east of A
+  const nr = C.nearRoute([closeSpot, farBetter], line, cum, 3);
+  assert.strictEqual(C.newChain(A, B, nr, cum[cum.length - 1])[0].s, closeSpot, "near-A spot wins the first stop");
+}

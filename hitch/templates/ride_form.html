@@ -525,6 +525,31 @@
         })();
         </script>
 
+        {# #933: the nearby-hitchhikers email only had an opt-in on /edit-user (3 sends in 28 days).
+           Offered here to logged-in users who have not opted in; unticked, one tap, only turns it on. #}
+        {% if current_user.is_authenticated and not current_user.nearby_hitchhikers_email %}
+        <div id="nearby-optin-row" style="margin-top: 1rem;">
+            <label style="font-weight:normal;">
+                <input type="checkbox" id="nearby-optin-box">
+                {{ t("Email me about other hitchhikers who were close by") }}
+            </label>
+        </div>
+        <script>
+        (function () {
+            var box = document.getElementById('nearby-optin-box');
+            if (!box) return;
+            if (typeof window.hmTrack === 'function') window.hmTrack('nearby_optin_shown', {});
+            box.addEventListener('change', function () {
+                if (!box.checked) return;
+                fetch('/me/nearby-email', { method: 'POST', credentials: 'same-origin' }).then(function (r) {
+                    if (typeof window.hmTrack === 'function') window.hmTrack('nearby_optin_set', { ok: r.ok ? 'yes' : 'no' });
+                    if (!r.ok) box.checked = false;
+                }).catch(function () { box.checked = false; });
+            });
+        })();
+        </script>
+        {% endif %}
+
         <p style="margin-top: 1rem; font-size: 0.8rem; color: #888;">
             {% set odbl_link = '<a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>' %}
             {% set ccbysa_link = '<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>' %}

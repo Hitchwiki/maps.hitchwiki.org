@@ -949,7 +949,6 @@
     if (path !== "/" && path !== "") return;
     const rec = readLastRoute();
     if (!rec) return;
-    try { if (localStorage.getItem("hm_welcome_anon_seen")) return; } catch (e) { return; }
     const arm = hmVariant("route-resume-v1", ["control", "chip"]);
     if (arm !== "chip") return;
     const chip = document.createElement("button");

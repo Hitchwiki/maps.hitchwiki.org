@@ -65,23 +65,32 @@
     return chain;
   }
   // New: departure spot = best-scoring spot within 15 km of A; then the best one in each
-  // 30-60 km window along the route; the rest is a hop to B, or a flagged gap.
+  // 20-80 km window along the route; the rest is a hop to B, or a flagged gap.
   function newChain(a, b, near, routeKm) {
     const chain = [];
     const score_ = (c) => { c.t = toward(c.s, b); c.score = score(c.s, c.t); return c; };
     near.forEach(score_);
-    const first = near.filter(c => km(a, [c.s.lat, c.s.lon]) <= 15).sort((x, y) => y.score - x.score)[0];
+    // First stop: prefer spots close to A (-0.2 score per km); a spot 14 km out used to win on score alone.
+    const fscore = (c) => c.score - 0.2 * km(a, [c.s.lat, c.s.lon]);
+    const first = near.filter(c => km(a, [c.s.lat, c.s.lon]) <= 15).sort((x, y) => fscore(y) - fscore(x))[0];
     let pos = first ? first.at : 0;
     if (first) chain.push(first);
-    for (let guard = 0; guard < 60 && routeKm - pos > 60; guard++) {
-      const win = near.filter(c => c.at >= pos + 30 && c.at <= pos + 60).sort((x, y) => y.score - x.score)[0];
+    for (let guard = 0; guard < 60 && routeKm - pos > 80; guard++) {
+      const win = near.filter(c => c.at >= pos + 20 && c.at <= pos + 80).sort((x, y) => y.score - x.score)[0];
       if (win) { chain.push(win); pos = win.at; continue; }
-      const next = near.find(c => c.at > pos + 60);
+      const next = near.find(c => c.at > pos + 80);
       if (!next) break;
       next.gapBefore = true; chain.push(next); pos = next.at;
     }
     return chain;
   }
-  const api = { km, bearing, toward, score, densify, nearRoute, oldChain, newChain };
+  // Driver view: spots within maxOff km of the car route, newest ride first, with the detour
+  // (there and back) a driver would add by stopping there.
+  function driverList(near, nowMs, maxOff) {
+    return near.filter(c => c.off <= maxOff)
+      .map(c => ({ s: c.s, at: c.at, detour: 2 * c.off, ageDays: c.s.latest_ms ? Math.max(0, (nowMs - c.s.latest_ms) / 864e5) : null }))
+      .sort((x, y) => (x.ageDays === null) - (y.ageDays === null) || x.ageDays - y.ageDays);
+  }
+  const api = { km, bearing, toward, score, densify, nearRoute, oldChain, newChain, driverList };
   if (typeof module !== "undefined") module.exports = api; else root.RGChain = api;
 })(typeof window !== "undefined" ? window : this);

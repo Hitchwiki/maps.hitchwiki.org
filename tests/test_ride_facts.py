@@ -7,6 +7,7 @@ from hitch.blueprints.utils.ride_facts import (
     hitchhiker_name,
     is_informative,
     ride_map_entry,
+    route_distance_km,
     spot_id_for,
     stop_facts,
 )
@@ -276,3 +277,12 @@ class TestRideMapEntry:
         stops = [{"location": {"latitude": 51.08170, "longitude": 13.73629}, "departure_time": "2026-07-02T14:00"}]
         ride = self._ride(hitchhikers=[], comment=None, stops=stops)
         assert ride_map_entry(ride) is None
+
+
+def test_route_distance_goes_through_located_stops_and_skips_label_only():
+    direct = haversine_km(51.0, 13.0, 52.0, 14.0)
+    assert route_distance_km(51.0, 13.0, 52.0, 14.0) == direct
+    assert route_distance_km(51.0, 13.0, 52.0, 14.0, [{"lat": None, "lon": None, "label": "onsen"}]) == direct
+    via = route_distance_km(51.0, 13.0, 52.0, 14.0, [{"lat": 51.0, "lon": 14.5, "label": "x"}])
+    assert via > direct
+    assert route_distance_km(None, 13.0, 52.0, 14.0) is None

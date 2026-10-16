@@ -74,7 +74,7 @@ from hitch.blueprints.utils.notifications import (
 )
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON, REPORT_REASONS, REPORTS_TO_HIDE
-from hitch.blueprints.utils.ride_facts import haversine_km, ride_map_entry, spot_id_for, stop_facts
+from hitch.blueprints.utils.ride_facts import ride_map_entry, route_distance_km, spot_id_for, stop_facts
 from hitch.blueprints.utils.ride_images import (
     MAX_IMAGES_PER_RIDE,
     RideImageError,
@@ -1195,7 +1195,7 @@ def ride_detail(d_tag):
     # A give-up's last stop is a planned destination, so it has no distance to report --
     # same rule show.py applies to every aggregate (see its no_ride cleanup).
     gave_up = bool(ride.no_ride) or content.get("no_ride") is not None
-    distance_km = None if gave_up else haversine_km(pickup_lat, pickup_lon, dest_lat, dest_lon)
+    distance_km = None if gave_up else route_distance_km(pickup_lat, pickup_lon, dest_lat, dest_lon, intermediate_stops)
 
     submission_dt = ride.submission_time or None
 

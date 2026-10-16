@@ -13,9 +13,11 @@
   <strong>Routing gang test page</strong> — not the live router. Tap the map for
   start (A), tap again for destination (B). Shows the car road route and the known
   hitchhiking spots nearest to A, to B, and within 3 km of the route.
-  <div id="rg-out">Tap the start point.</div>
+  <label><input type="checkbox" id="rg-all"> show all known spots near the route (green dots)</label>
+  <label><input type="checkbox" id="rg-drive"> I'm driving: list spots within 2 km of my route, newest rides first</label>
 </div>
 <div id="rg-map"></div>
+<div id="rg-out" style="padding: 0.5rem 1rem;">Tap the start point.</div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="{{ url_for('static', filename='routing_gang_chain.js') }}"></script>
 <script>
@@ -25,10 +27,38 @@
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
     { attribution: "© OpenStreetMap" }).addTo(map);
   const out = document.getElementById("rg-out");
+  const track = (n, d) => { if (window.hmTrack) window.hmTrack(n, d); };
+  track("routing_gang_opened", { shared_link: location.search.includes("a=") });
   let pts = [], layer = L.layerGroup().addTo(map);
   const spotsReady = fetch("/spots.json").then(r => r.json()).then(j => j.spots || j);
+  let wg = { cells: {} };
+  const wgReady = fetch("/static/routing_gang_waitgrid.json").then(r => r.json()).then(j => { wg = j; }).catch(() => {});
+  // Places where a logged ride started or continued; spots only ever used as a drop-off are hidden.
+  let pk = null;
+  const pkReady = fetch("/static/routing_gang_pickups.json").then(r => r.json()).then(j => { pk = new Set(j.map(p => Math.round(p[0] * 1e4) + "," + Math.round(p[1] * 1e4))); }).catch(() => {});
+  function isPickup(s) {
+    if (!pk) return true;
+    const la = Math.round(s.lat * 1e4), lo = Math.round(s.lon * 1e4);
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) if (pk.has((la + i) + "," + (lo + j))) return true;
+    return false;
+  }
+  function waitNote(s) {
+    const v = wg.cells[Math.round(s.lat / 0.25) + "," + Math.round(s.lon / 0.25)];
+    return v ? `area wait (logged, ${v[0]} rides): median ${v[1]} min, ${v[3]}% over 1 h` : "";
+  }
   function spotLink(s) {
-    return `<a href="/spot/${s.lat.toFixed(5)}_${s.lon.toFixed(5)}" target="_blank">${s.lat.toFixed(4)}, ${s.lon.toFixed(4)}</a>`;
+    return `<a href="/spot/${s.lat.toFixed(5)}_${s.lon.toFixed(5)}" target="_blank">${s.lat.toFixed(4)}, ${s.lon.toFixed(4)}</a> <span class="rg-place" data-lat="${s.lat}" data-lon="${s.lon}"></span>`;
+  }
+  // Place names for the suggested stops: one Nominatim lookup per second, town level, display only.
+  async function nameStops() {
+    for (const el of out.querySelectorAll("ol .rg-place")) {
+      try {
+        const j = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=12&lat=${el.dataset.lat}&lon=${el.dataset.lon}`).then(r => r.json());
+        const a = j.address || {}; const n = a.city || a.town || a.village || a.municipality || a.county;
+        if (n) el.textContent = "(near " + n + ")";
+      } catch (e) {}
+      await new Promise(r => setTimeout(r, 1100));
+    }
   }
   function detail(c, b) {
     const t = c.t || C.toward(c.s, b);
@@ -36,20 +66,21 @@
     const bits = [`${rides} ride${rides === 1 ? "" : "s"} logged`];
     if (c.s.rating) bits.push(`rated ${c.s.rating.toFixed(1)}/5`);
     bits.push(t.n ? `${t.ok} of ${t.n} rides from here went toward B` : "no destination logged");
+    const w = waitNote(c.s); if (w) bits.push(w);
     return bits.join(", ");
   }
   async function plan(a, b) {
     out.textContent = "Loading road route…";
     try {
-      const [spots, r] = await Promise.all([spotsReady,
+      const [spots, , , r] = await Promise.all([spotsReady, wgReady, pkReady,
         fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=simplified&geometries=geojson`).then(x => x.json())]);
       const rt = r.routes[0];
       const raw = rt.geometry.coordinates.map(c => [c[1], c[0]]);
       L.polyline(raw, { color: "#1a73e8", weight: 4 }).addTo(layer);
       map.fitBounds(raw);
       const [line, cum] = C.densify(raw);
-      const near = C.nearRoute(spots, line, cum, 3);
-      near.forEach(c => L.circleMarker([c.s.lat, c.s.lon], { radius: 3, color: "#188038" }).addTo(layer));
+      const near = C.nearRoute(spots, line, cum, 3).filter(c => isPickup(c.s));
+      if (document.getElementById("rg-all").checked) near.forEach(c => L.circleMarker([c.s.lat, c.s.lon], { radius: 3, color: "#188038" }).addTo(layer));
       const chain = C.newChain(a, b, near, cum[cum.length - 1]);
       chain.forEach((c, i) => L.circleMarker([c.s.lat, c.s.lon], { radius: 8, color: "#c5221f", weight: 3 })
         .addTo(layer).bindTooltip(String(i + 1)));
@@ -58,13 +89,23 @@
         const d = C.km(prev, [c.s.lat, c.s.lon]); prev = [c.s.lat, c.s.lon];
         rows += `<li>${i + 1}. ${spotLink(c.s)} — ${d.toFixed(0)} km from the previous point${c.gapBefore ? " (<b>long gap, no known spot before this</b>)" : ""}<br><small>${detail(c, b)}</small></li>`;
       });
+      let drive = "";
+      if (document.getElementById("rg-drive").checked) {
+        const dl = C.driverList(near, Date.now(), 2).slice(0, 30);
+        drive = `<br><b>Spots near your route, newest rides first:</b><ul>` + dl.map(d => {
+          const age = d.ageDays === null ? "no date" : d.ageDays < 30 ? "ride in the last 30 days" : d.ageDays < 365 ? "ride in the last 12 months" : "last ride over a year ago";
+          return `<li>${spotLink(d.s)} — km ${d.at.toFixed(0)} of ${(rt.distance/1000).toFixed(0)}, detour about ${d.detour.toFixed(1)} km, ${age}${waitNote(d.s) ? ", " + waitNote(d.s) : ""}</li>`;
+        }).join("") + "</ul>";
+      }
+      track("routing_gang_planned", { road_km: Math.round(rt.distance / 1000), stops: chain.length, shared_link: location.search.includes("a=") });
       const last = C.km(prev, b);
       const first = chain[0] && C.km(a, [chain[0].s.lat, chain[0].s.lon]) <= 15;
       out.innerHTML = `Road: ${(rt.distance/1000).toFixed(0)} km, ~${Math.round(rt.duration/60)} min by car. ` +
-        `Known spots within 3 km of the route: ${near.length} (green dots).` +
+        `Known pickup spots (a logged ride started here) within 3 km of the route: ${near.length} (red = suggested stops; tick "show all" for the rest).` +
         `<br>${first ? "Departure spot near A:" : "<b>No known spot within 15 km of A.</b> Spots along the way:"}` +
-        `<ol style="list-style:none;padding-left:0">${rows}</ol>Last stretch to B: ${last.toFixed(0)} km.` +
+        `<ol style="list-style:none;padding-left:0">${rows}</ol>Last stretch to B: ${last.toFixed(0)} km.${drive}` +
         `<br><small>Share this case: <a href="?a=${a.map(x => x.toFixed(4))}&b=${b.map(x => x.toFixed(4))}">link</a></small>`;
+      nameStops();
     } catch (err) { out.textContent = "Route failed: " + err; }
   }
   map.on("click", (e) => {
@@ -74,6 +115,10 @@
     L.marker(p).addTo(layer).bindTooltip(pts.length === 1 ? "A" : "B");
     if (pts.length === 1) { out.textContent = "Tap the destination."; return; }
     plan(pts[0], pts[1]);
+  });
+  for (const id of ["rg-drive", "rg-all"]) document.getElementById(id).addEventListener("change", () => {
+    track("routing_gang_option", { option: id, on: document.getElementById(id).checked });
+    if (pts.length === 2) { layer.clearLayers(); plan(pts[0], pts[1]); }
   });
   const q = new URLSearchParams(location.search);
   const qa = (q.get("a") || "").split(",").map(Number), qb = (q.get("b") || "").split(",").map(Number);

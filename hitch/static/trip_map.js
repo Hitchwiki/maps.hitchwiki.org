@@ -54,7 +54,23 @@
       }).addTo(map);
     });
 
-    drawRoute(map, latlngs, interactive);
+    // A point flagged `gap` was reached some other way (train, bus, ferry): route each
+    // hitchhiked stretch on its own and join the stretches with a thin dashed line.
+    const stretches = [];
+    points.forEach((p) => {
+      if (p.gap || !stretches.length) stretches.push([]);
+      stretches[stretches.length - 1].push([p.lat, p.lon]);
+    });
+    stretches.forEach((s) => drawRoute(map, s, interactive));
+    for (let i = 1; i < stretches.length; i++) {
+      L.polyline([stretches[i - 1][stretches[i - 1].length - 1], stretches[i][0]], {
+        color: "#666",
+        weight: 2,
+        opacity: 0.8,
+        dashArray: "4 6",
+        interactive: false,
+      }).addTo(map);
+    }
     return map;
   }
 
