@@ -94,7 +94,7 @@
         const dl = C.driverList(near, Date.now(), 2).slice(0, 30);
         drive = `<br><b>Spots near your route, newest rides first:</b><ul>` + dl.map(d => {
           const age = d.ageDays === null ? "no date" : d.ageDays < 30 ? "ride in the last 30 days" : d.ageDays < 365 ? "ride in the last 12 months" : "last ride over a year ago";
-          return `<li>${spotLink(d.s)} — km ${d.at.toFixed(0)} of ${(rt.distance/1000).toFixed(0)}, detour about ${d.detour.toFixed(1)} km, ${age}</li>`;
+          return `<li>${spotLink(d.s)} — km ${d.at.toFixed(0)} of ${(rt.distance/1000).toFixed(0)}, detour about ${d.detour.toFixed(1)} km, ${age}${waitNote(d.s) ? ", " + waitNote(d.s) : ""}</li>`;
         }).join("") + "</ul>";
       }
       track("routing_gang_planned", { road_km: Math.round(rt.distance / 1000), stops: chain.length, shared_link: location.search.includes("a=") });
