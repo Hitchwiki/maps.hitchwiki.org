@@ -20,6 +20,7 @@
 <div id="rg-out" style="padding: 0.5rem 1rem;">Tap the start point.</div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="{{ url_for('static', filename='routing_gang_chain.js') }}"></script>
+<script src="{{ url_for('static', filename='routing_gang_fallback.js') }}"></script>
 <script>
 (function () {
   const C = window.RGChain;
@@ -69,6 +70,18 @@
     const w = waitNote(c.s); if (w) bits.push(w);
     return bits.join(", ");
   }
+  // No logged spot near A: offer the OSM fuel/rest/service place nearest A along the road (display only).
+  async function osmFallback(a, line, cum) {
+    try {
+      const q = window.RGFallback.overpassQuery(a[0], a[1], 10000);
+      const j = await fetch("https://overpass-api.de/api/interpreter", { method: "POST", body: "data=" + encodeURIComponent(q) }).then(r => r.json());
+      const f = window.RGFallback.fallback(j.elements || [], line, cum, 1, C.km);
+      track("routing_gang_osm_fallback", { found: !!f });
+      if (!f) return;
+      L.circleMarker([f.lat, f.lon], { radius: 7, color: "#e37400", weight: 3 }).addTo(layer).bindTooltip("OSM " + f.kind);
+      out.insertAdjacentHTML("beforeend", `<br><b>Nearest place to start from, along the road:</b> ${f.label}: <a href="https://www.openstreetmap.org/?mlat=${f.lat}&mlon=${f.lon}#map=17/${f.lat}/${f.lon}" target="_blank">${f.lat.toFixed(4)}, ${f.lon.toFixed(4)}</a> (${f.at.toFixed(0)} km along the route). Not checked for hitchhiking.`);
+    } catch (e) { track("routing_gang_osm_fallback", { found: false, error: true }); }
+  }
   async function plan(a, b) {
     out.textContent = "Loading road route…";
     try {
@@ -106,6 +119,7 @@
         `<ol style="list-style:none;padding-left:0">${rows}</ol>Last stretch to B: ${last.toFixed(0)} km.${drive}` +
         `<br><small>Share this case: <a href="?a=${a.map(x => x.toFixed(4))}&b=${b.map(x => x.toFixed(4))}">link</a></small>`;
       nameStops();
+      if (!first) osmFallback(a, line, cum);
     } catch (err) { out.textContent = "Route failed: " + err; }
   }
   map.on("click", (e) => {
