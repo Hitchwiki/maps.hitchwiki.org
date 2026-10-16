@@ -74,7 +74,7 @@
   async function osmFallback(a, line, cum) {
     try {
       const q = window.RGFallback.overpassQuery(a[0], a[1], 10000);
-      const j = await fetch("https://overpass-api.de/api/interpreter", { method: "POST", body: "data=" + encodeURIComponent(q) }).then(r => r.json());
+      const j = await fetch("https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(q)).then(r => r.json());
       const f = window.RGFallback.fallback(j.elements || [], line, cum, 1, C.km);
       track("routing_gang_osm_fallback", { found: !!f });
       if (!f) return;
