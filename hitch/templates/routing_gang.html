@@ -27,6 +27,8 @@
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
     { attribution: "© OpenStreetMap" }).addTo(map);
   const out = document.getElementById("rg-out");
+  const track = (n, d) => { if (window.hmTrack) window.hmTrack(n, d); };
+  track("routing_gang_opened", { shared_link: location.search.includes("a=") });
   let pts = [], layer = L.layerGroup().addTo(map);
   const spotsReady = fetch("/spots.json").then(r => r.json()).then(j => j.spots || j);
   function spotLink(s) {
@@ -68,6 +70,7 @@
           return `<li>${spotLink(d.s)} — km ${d.at.toFixed(0)} of ${(rt.distance/1000).toFixed(0)}, detour about ${d.detour.toFixed(1)} km, ${age}</li>`;
         }).join("") + "</ul>";
       }
+      track("routing_gang_planned", { road_km: Math.round(rt.distance / 1000), stops: chain.length, shared_link: location.search.includes("a=") });
       const last = C.km(prev, b);
       const first = chain[0] && C.km(a, [chain[0].s.lat, chain[0].s.lon]) <= 15;
       out.innerHTML = `Road: ${(rt.distance/1000).toFixed(0)} km, ~${Math.round(rt.duration/60)} min by car. ` +
@@ -86,6 +89,7 @@
     plan(pts[0], pts[1]);
   });
   for (const id of ["rg-drive", "rg-all"]) document.getElementById(id).addEventListener("change", () => {
+    track("routing_gang_option", { option: id, on: document.getElementById(id).checked });
     if (pts.length === 2) { layer.clearLayers(); plan(pts[0], pts[1]); }
   });
   const q = new URLSearchParams(location.search);
