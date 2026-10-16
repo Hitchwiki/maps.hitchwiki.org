@@ -39,6 +39,7 @@ from hitch.blueprints.utils.profile_images import (
     store_uploaded_image,
 )
 from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON
+from hitch.blueprints.utils.ride_facts import haversine_km
 from hitch.blueprints.utils.ride_gpx import rides_gpx
 from hitch.blueprints.utils.ride_images import attach_ride_images
 from hitch.blueprints.utils.ride_score import score_fields
@@ -1240,23 +1241,34 @@ def _trip_date_span(rides):
     return f"{start.strftime('%-d')} – {end.strftime('%-d %b %Y')}"
 
 
+TRIP_GAP_KM = 5  # a jump this long between one ride's drop-off and the next pickup was not hitchhiked
+
+
 def _trip_route_points(rides):
     """Ordered [{lat, lon}] tracing the trip oldest→newest.
 
     Each ride contributes its pickup then destination (when present); consecutive
     duplicate coordinates are collapsed so a shared spot isn't drawn twice.
 
+    A pickup more than TRIP_GAP_KM from the previous ride's drop-off carries
+    `"gap": True`: the traveller got there some other way (train, bus, ferry), so the
+    map must not draw a road between the two.
+
     Same ordering as the ride list (_rides_for_trip), so the line and the cards below it
     tell the story in the same direction; undated legacy rides sort last either way."""
     ordered = sorted(rides, key=lambda r: (r.get("start_sort_key") is None, r.get("start_sort_key") or 0))
     pts = []
     for r in ordered:
-        for lat, lon in ((r["pickup_lat"], r["pickup_lon"]), (r["destination_lat"], r["destination_lon"])):
+        ends = ((r["pickup_lat"], r["pickup_lon"]), (r["destination_lat"], r["destination_lon"]))
+        for i, (lat, lon) in enumerate(ends):
             if lat is None or lon is None:
                 continue
             p = {"lat": lat, "lon": lon}
-            if not pts or pts[-1] != p:
-                pts.append(p)
+            if pts and (pts[-1]["lat"], pts[-1]["lon"]) == (lat, lon):
+                continue
+            if i == 0 and pts and haversine_km(pts[-1]["lat"], pts[-1]["lon"], lat, lon) > TRIP_GAP_KM:
+                p["gap"] = True
+            pts.append(p)
     return pts
 
 
@@ -1704,11 +1716,17 @@ def _render_trip_preview_png(title, description, points):
         draw = ImageDraw.Draw(img, "RGBA")
 
         # Route geometry following actual roads (OSRM), or the waypoints as a fallback.
-        geometry = _osrm_route_geometry(points) or [(p["lon"], p["lat"]) for p in points]
-        route_px = [_world_to_px(_lonlat_to_world(lon, lat, zoom), origin_x, origin_y) for lon, lat in geometry]
-        if len(route_px) > 1:
-            draw.line(route_px, fill=(255, 255, 255, 235), width=11, joint="curve")
-            draw.line(route_px, fill=(45, 125, 210, 255), width=6, joint="curve")
+        # A "gap" point starts a new hitchhiked stretch; the jump before it is drawn dashed.
+        segments = _split_trip_segments(points)
+        for seg in segments:
+            geometry = _osrm_route_geometry(seg) or [(p["lon"], p["lat"]) for p in seg]
+            route_px = [_world_to_px(_lonlat_to_world(lon, lat, zoom), origin_x, origin_y) for lon, lat in geometry]
+            if len(route_px) > 1:
+                draw.line(route_px, fill=(255, 255, 255, 235), width=11, joint="curve")
+                draw.line(route_px, fill=(45, 125, 210, 255), width=6, joint="curve")
+        for a, b in zip(segments, segments[1:]):
+            ends = [_world_to_px(_lonlat_to_world(q["lon"], q["lat"], zoom), origin_x, origin_y) for q in (a[-1], b[0])]
+            _draw_dashed(draw, ends[0], ends[1])
 
         # Spot markers: green start, red end, blue in between.
         marker_px = [_world_to_px(w, origin_x, origin_y) for w in world]
@@ -1726,6 +1744,28 @@ def _render_trip_preview_png(title, description, points):
     img.save(buf, format="PNG")
     buf.seek(0)
     return buf
+
+
+def _split_trip_segments(points):
+    """Split trip points into hitchhiked stretches at every point flagged "gap"."""
+    segments = []
+    for p in points:
+        if p.get("gap") or not segments:
+            segments.append([])
+        segments[-1].append(p)
+    return segments
+
+
+def _draw_dashed(draw, a, b, dash=14, hole=10):
+    length = ((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2) ** 0.5
+    if not length:
+        return
+    ux, uy = (b[0] - a[0]) / length, (b[1] - a[1]) / length
+    pos = 0.0
+    while pos < length:
+        end = min(pos + dash, length)
+        draw.line([(a[0] + ux * pos, a[1] + uy * pos), (a[0] + ux * end, a[1] + uy * end)], fill=(90, 90, 90, 255), width=4)
+        pos += dash + hole
 
 
 def _draw_marker(draw, x, y, color):
