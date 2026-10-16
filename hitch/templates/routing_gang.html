@@ -15,9 +15,9 @@
   hitchhiking spots nearest to A, to B, and within 3 km of the route.
   <label><input type="checkbox" id="rg-all"> show all known spots near the route (green dots)</label>
   <label><input type="checkbox" id="rg-drive"> I'm driving: list spots within 2 km of my route, newest rides first</label>
-  <div id="rg-out">Tap the start point.</div>
 </div>
 <div id="rg-map"></div>
+<div id="rg-out" style="padding: 0.5rem 1rem;">Tap the start point.</div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="{{ url_for('static', filename='routing_gang_chain.js') }}"></script>
 <script>
