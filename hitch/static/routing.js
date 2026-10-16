@@ -521,7 +521,11 @@
       <button type="button" class="rp-no-route-add" hidden>
         <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
         ${T("Know a hitchhiking spot there? Add it to the map")}
-      </button>`;
+      </button>
+      <a class="rp-no-route-add rp-no-route-exp" hidden target="_blank" rel="noopener">
+        <i class="fa-solid fa-flask" aria-hidden="true"></i>
+        ${T("Try the experimental road-based planner")}
+      </a>`;
     document.body.appendChild(panel);
 
     panel.querySelector(".rp-close").addEventListener("click", close);
@@ -677,6 +681,8 @@
     if (noRouteAdd) { noRouteAdd.hidden = true; noRouteAdd.onclick = null; }
     const noRouteSnap = panel && panel.querySelector(".rp-no-route-snap");
     if (noRouteSnap) { noRouteSnap.hidden = true; noRouteSnap.onclick = null; }
+    const noRouteExp = panel && panel.querySelector(".rp-no-route-exp");
+    if (noRouteExp) { noRouteExp.hidden = true; noRouteExp.onclick = null; }
     setStatus(null);
   }
   function setStatus(msg) {
@@ -730,6 +736,7 @@
           showNoRouteStartAction(from);
           showNoRouteAddSpotAction(reason, from, to);
           showNoRouteSnapAction(FB || RJ.router, reason, from, to);
+          showNoRouteExperimentalAction(from, to);
           return;
         }
         hmTrack('route_found', { graph: 'oneoff', options: alt.length });
@@ -818,6 +825,17 @@
       if (typeof cleanupLocationSelection === "function") cleanupLocationSelection();
       window.startAddSpotFromGesture(latlng, null);
     };
+  }
+
+  // #923: the dev road-route planner can answer pairs the logged-ride graph cannot.
+  // A plain link to the same A and B; the page is labelled experimental.
+  function showNoRouteExperimentalAction(from, to) {
+    const a = panel && panel.querySelector(".rp-no-route-exp");
+    if (!a) return;
+    a.href = "/hitchhiking-routing-gang?a=" + from.map((x) => x.toFixed(4)) + "&b=" + to.map((x) => x.toFixed(4));
+    a.hidden = false;
+    hmTrack("route_none_experimental_shown");
+    a.onclick = function () { hmTrack("route_none_experimental_clicked"); };
   }
 
   // The graph spot closest to pt within maxKm, as [index, km], or null.
