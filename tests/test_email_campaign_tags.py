@@ -50,5 +50,5 @@ def test_each_app_send_carries_its_own_campaign_id(app, monkeypatch):
 def test_inactive_reminder_links_carry_a_stage_ref(app, monkeypatch):
     user = MagicMock(email="t@example.com", username="T")
     for stage, ref in ((7, "inactive_s7"), (30, "inactive_s30"), (100, "inactive_lapsed")):
-        payload = _capture(app, monkeypatch, lambda: send_inactive_reminder_email(user, stage))
+        payload = _capture(app, monkeypatch, lambda s=stage: send_inactive_reminder_email(user, s))
         assert f"?ref={ref}" in str(payload)
