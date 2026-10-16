@@ -29,7 +29,7 @@
     { attribution: "© OpenStreetMap" }).addTo(map);
   const out = document.getElementById("rg-out");
   const track = (n, d) => { if (window.hmTrack) window.hmTrack(n, d); };
-  track("routing_gang_opened", { shared_link: location.search.includes("a=") });
+  track("routing_gang_opened", { shared_link: location.search.includes("a="), from_ride: location.search.includes("ref=ride_page") });
   let pts = [], layer = L.layerGroup().addTo(map);
   const spotsReady = fetch("/spots.json").then(r => r.json()).then(j => j.spots || j);
   let wg = { cells: {} };
@@ -100,7 +100,7 @@
       let prev = a, rows = "";
       chain.forEach((c, i) => {
         const d = C.km(prev, [c.s.lat, c.s.lon]); prev = [c.s.lat, c.s.lon];
-        rows += `<li>${i + 1}. ${spotLink(c.s)} — ${d.toFixed(0)} km from the previous point${c.gapBefore ? " (<b>long gap, no known spot before this</b>)" : ""}<br><small>${detail(c, b)}</small></li>`;
+        rows += `<li>${i + 1}. ${spotLink(c.s)} — ${d.toFixed(0)} km from the previous point${c.gapBefore ? " (<b>long gap, no known spot before this</b>)" : ""} <button type="button" class="rg-flag" data-rank="${i + 1}" data-lat="${c.s.lat.toFixed(2)}" data-lon="${c.s.lon.toFixed(2)}" style="font-size:0.75rem">bad stop</button><br><small>${detail(c, b)}</small></li>`;
       });
       let drive = "";
       if (document.getElementById("rg-drive").checked) {
@@ -118,6 +118,10 @@
         `<br>${first ? "Departure spot near A:" : "<b>No known spot within 15 km of A.</b> Spots along the way:"}` +
         `<ol style="list-style:none;padding-left:0">${rows}</ol>Last stretch to B: ${last.toFixed(0)} km.${drive}` +
         `<br><small>Share this case: <a href="?a=${a.map(x => x.toFixed(4))}&b=${b.map(x => x.toFixed(4))}">link</a></small>`;
+      out.querySelectorAll(".rg-flag").forEach(btn => btn.addEventListener("click", () => {
+        track("routing_gang_stop_flagged", { rank: Number(btn.dataset.rank), lat2: btn.dataset.lat, lon2: btn.dataset.lon });
+        btn.textContent = "thanks, noted"; btn.disabled = true;
+      }));
       nameStops();
       if (!first) osmFallback(a, line, cum);
     } catch (err) { out.textContent = "Route failed: " + err; }

@@ -410,6 +410,12 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
         {% endif %}
     </div>
 
+    {% if is_logged_in and ride.pickup_lat is not none and ride.pickup_lon is not none and ride.dest_lat is not none and ride.dest_lon is not none %}
+    <p style="margin:0.75rem 0;font-size:0.9rem;">
+        <i class="fa fa-route"></i> Experimental: <a href="/hitchhiking-routing-gang?a={{ '%.4f,%.4f'|format(ride.pickup_lat, ride.pickup_lon) }}&amp;b={{ '%.4f,%.4f'|format(ride.dest_lat, ride.dest_lon) }}&amp;ref=ride_page">see what the new route planner suggests for this trip</a>
+    </p>
+    {% endif %}
+
     {% if ride.intermediate_stops %}
     <div class="detail-section">
         <p class="section-title">Stops along the way</p>
