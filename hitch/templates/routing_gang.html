@@ -47,7 +47,18 @@
     return v ? `area wait (logged, ${v[0]} rides): median ${v[1]} min, ${v[3]}% over 1 h` : "";
   }
   function spotLink(s) {
-    return `<a href="/spot/${s.lat.toFixed(5)}_${s.lon.toFixed(5)}" target="_blank">${s.lat.toFixed(4)}, ${s.lon.toFixed(4)}</a>`;
+    return `<a href="/spot/${s.lat.toFixed(5)}_${s.lon.toFixed(5)}" target="_blank">${s.lat.toFixed(4)}, ${s.lon.toFixed(4)}</a> <span class="rg-place" data-lat="${s.lat}" data-lon="${s.lon}"></span>`;
+  }
+  // Place names for the suggested stops: one Nominatim lookup per second, town level, display only.
+  async function nameStops() {
+    for (const el of out.querySelectorAll("ol .rg-place")) {
+      try {
+        const j = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=12&lat=${el.dataset.lat}&lon=${el.dataset.lon}`).then(r => r.json());
+        const a = j.address || {}; const n = a.city || a.town || a.village || a.municipality || a.county;
+        if (n) el.textContent = "(near " + n + ")";
+      } catch (e) {}
+      await new Promise(r => setTimeout(r, 1100));
+    }
   }
   function detail(c, b) {
     const t = c.t || C.toward(c.s, b);
@@ -94,6 +105,7 @@
         `<br>${first ? "Departure spot near A:" : "<b>No known spot within 15 km of A.</b> Spots along the way:"}` +
         `<ol style="list-style:none;padding-left:0">${rows}</ol>Last stretch to B: ${last.toFixed(0)} km.${drive}` +
         `<br><small>Share this case: <a href="?a=${a.map(x => x.toFixed(4))}&b=${b.map(x => x.toFixed(4))}">link</a></small>`;
+      nameStops();
     } catch (err) { out.textContent = "Route failed: " + err; }
   }
   map.on("click", (e) => {
