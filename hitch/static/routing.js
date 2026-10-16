@@ -693,7 +693,7 @@
     if (!wiki) return;
     a.href = "/hitchhiking-routing-gang?a=" + from[0].toFixed(4) + "," + from[1].toFixed(4) +
       "&b=" + to[0].toFixed(4) + "," + to[1].toFixed(4) + "&ref=wiki_route";
-    a.textContent = T("Experimental: compare with the new route planner");
+    a.textContent = "Experimental: compare with the new route planner"; // English only, like the ride-page link
     a.hidden = false;
     hmTrack("planner_compare_exposure");
   }
