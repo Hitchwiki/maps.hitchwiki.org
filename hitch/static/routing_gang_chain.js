@@ -70,7 +70,9 @@
     const chain = [];
     const score_ = (c) => { c.t = toward(c.s, b); c.score = score(c.s, c.t); return c; };
     near.forEach(score_);
-    const first = near.filter(c => km(a, [c.s.lat, c.s.lon]) <= 15).sort((x, y) => y.score - x.score)[0];
+    // First stop: prefer spots close to A (-0.2 score per km); a spot 14 km out used to win on score alone.
+    const fscore = (c) => c.score - 0.2 * km(a, [c.s.lat, c.s.lon]);
+    const first = near.filter(c => km(a, [c.s.lat, c.s.lon]) <= 15).sort((x, y) => fscore(y) - fscore(x))[0];
     let pos = first ? first.at : 0;
     if (first) chain.push(first);
     for (let guard = 0; guard < 60 && routeKm - pos > 80; guard++) {
