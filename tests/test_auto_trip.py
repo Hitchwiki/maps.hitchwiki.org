@@ -331,3 +331,48 @@ def test_place_label_returns_none_when_photon_fails(monkeypatch):
 
     monkeypatch.setattr(user_module.requests, "get", boom)
     assert user_module._place_label(51.0, 13.0) is None
+
+
+def _ride(start_key, pickup, dest):
+    return {
+        "start_sort_key": start_key,
+        "pickup_lat": pickup[0],
+        "pickup_lon": pickup[1],
+        "destination_lat": dest[0],
+        "destination_lon": dest[1],
+    }
+
+
+def test_trip_route_marks_a_jump_between_rides_as_a_gap():
+    from hitch.blueprints import user as user_module
+
+    rides = [
+        _ride(1, (43.85, 18.40), (43.90, 18.10)),  # Sarajevo → on the way
+        _ride(2, (43.34, 17.81), (43.20, 17.50)),  # next pickup ~60 km away: came by bus
+        _ride(3, (43.20, 17.50), (43.10, 17.20)),  # starts where the last one ended
+    ]
+    points = user_module._trip_route_points(rides)
+    assert [bool(p.get("gap")) for p in points] == [False, False, True, False, False]
+
+
+def test_trip_route_has_no_gap_when_rides_chain_up():
+    from hitch.blueprints import user as user_module
+
+    rides = [_ride(1, (48.2, 16.37), (47.5, 15.9)), _ride(2, (47.5, 15.9), (47.07, 15.44))]
+    assert not any(p.get("gap") for p in user_module._trip_route_points(rides))
+
+
+def test_trip_preview_draws_each_stretch_separately(monkeypatch):
+    from hitch.blueprints import user as user_module
+
+    routed = []
+    monkeypatch.setattr(user_module, "_paste_tiles", lambda *a, **k: None)
+    monkeypatch.setattr(user_module, "_osrm_route_geometry", lambda seg: routed.append(len(seg)) or None)
+    points = [
+        {"lat": 43.85, "lon": 18.4},
+        {"lat": 43.9, "lon": 18.1},
+        {"lat": 43.34, "lon": 17.81, "gap": True},
+        {"lat": 43.2, "lon": 17.5},
+    ]
+    assert user_module._render_trip_preview_png("t", "d", points).getvalue()
+    assert routed == [2, 2]  # never one route through the bus ride
