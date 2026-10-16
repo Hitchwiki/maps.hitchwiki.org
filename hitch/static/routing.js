@@ -689,7 +689,8 @@
     const a = panel && panel.querySelector(".rp-planner-compare");
     if (!a || !from || !to) return;
     let wiki = false;
-    try { wiki = (new URLSearchParams(location.search).get("ref") || "").indexOf("wiki") === 0; } catch (e) {}
+    // base.html strips ?ref= from the address bar after reading it, so the live value is hmLandingRef.
+    wiki = (window.hmLandingRef || "").indexOf("wiki") === 0;
     if (!wiki) return;
     a.href = "/hitchhiking-routing-gang?a=" + from[0].toFixed(4) + "," + from[1].toFixed(4) +
       "&b=" + to[0].toFixed(4) + "," + to[1].toFixed(4) + "&ref=wiki_route";
