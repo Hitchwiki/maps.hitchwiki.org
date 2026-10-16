@@ -45,3 +45,10 @@ def test_each_app_send_carries_its_own_campaign_id(app, monkeypatch):
     assert _capture(app, monkeypatch, lambda: send_welcome_email(user))["campaign_id"] == "welcome-email"
     assert _capture(app, monkeypatch, lambda: send_nearby_hitchhikers_email(user, []))["campaign_id"] == "nearby-hitchhikers"
     assert _capture(app, monkeypatch, lambda: send_inactive_reminder_email(user, 7))["campaign_id"] == "inactive-user-reminder"
+
+
+def test_inactive_reminder_links_carry_a_stage_ref(app, monkeypatch):
+    user = MagicMock(email="t@example.com", username="T")
+    for stage, ref in ((7, "inactive_s7"), (30, "inactive_s30"), (100, "inactive_lapsed")):
+        payload = _capture(app, monkeypatch, lambda s=stage: send_inactive_reminder_email(user, s))
+        assert f"?ref={ref}" in str(payload)
