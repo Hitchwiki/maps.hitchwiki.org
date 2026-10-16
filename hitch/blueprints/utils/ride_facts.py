@@ -237,3 +237,17 @@ def ride_map_entry(ride, images=None):
         **({"vehicle_kind": vehicle} if vehicle else {}),
         **({"signal_methods": methods} if methods else {}),
     }
+
+
+def route_distance_km(pickup_lat, pickup_lon, dest_lat, dest_lon, intermediate_stops=()):
+    """Crow-flies km pickup -> located stops in order -> destination.
+
+    Label-only stops (no coordinates) are skipped, so a ride without located stops
+    gives exactly the plain pickup->destination distance.
+    """
+    if None in (pickup_lat, pickup_lon, dest_lat, dest_lon):
+        return None
+    points = [(pickup_lat, pickup_lon)]
+    points += [(s["lat"], s["lon"]) for s in intermediate_stops if s.get("lat") is not None and s.get("lon") is not None]
+    points.append((dest_lat, dest_lon))
+    return sum(haversine_km(a[0], a[1], b[0], b[1]) for a, b in zip(points, points[1:]))
