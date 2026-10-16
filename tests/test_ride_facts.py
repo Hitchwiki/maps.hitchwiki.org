@@ -4,10 +4,10 @@ from types import SimpleNamespace
 
 from hitch.blueprints.utils.ride_facts import (
     haversine_km,
-    route_distance_km,
     hitchhiker_name,
     is_informative,
     ride_map_entry,
+    route_distance_km,
     spot_id_for,
     stop_facts,
 )

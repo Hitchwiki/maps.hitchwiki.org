@@ -74,7 +74,7 @@ from hitch.blueprints.utils.notifications import (
 )
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
 from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON, REPORT_REASONS, REPORTS_TO_HIDE
-from hitch.blueprints.utils.ride_facts import haversine_km, ride_map_entry, route_distance_km, spot_id_for, stop_facts
+from hitch.blueprints.utils.ride_facts import ride_map_entry, route_distance_km, spot_id_for, stop_facts
 from hitch.blueprints.utils.ride_images import (
     MAX_IMAGES_PER_RIDE,
     RideImageError,
