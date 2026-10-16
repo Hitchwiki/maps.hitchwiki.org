@@ -33,6 +33,15 @@
   const spotsReady = fetch("/spots.json").then(r => r.json()).then(j => j.spots || j);
   let wg = { cells: {} };
   const wgReady = fetch("/static/routing_gang_waitgrid.json").then(r => r.json()).then(j => { wg = j; }).catch(() => {});
+  // Places where a logged ride started or continued; spots only ever used as a drop-off are hidden.
+  let pk = null;
+  const pkReady = fetch("/static/routing_gang_pickups.json").then(r => r.json()).then(j => { pk = new Set(j.map(p => Math.round(p[0] * 1e4) + "," + Math.round(p[1] * 1e4))); }).catch(() => {});
+  function isPickup(s) {
+    if (!pk) return true;
+    const la = Math.round(s.lat * 1e4), lo = Math.round(s.lon * 1e4);
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) if (pk.has((la + i) + "," + (lo + j))) return true;
+    return false;
+  }
   function waitNote(s) {
     const v = wg.cells[Math.round(s.lat / 0.25) + "," + Math.round(s.lon / 0.25)];
     return v ? `area wait (logged, ${v[0]} rides): median ${v[1]} min, ${v[3]}% over 1 h` : "";
@@ -52,14 +61,14 @@
   async function plan(a, b) {
     out.textContent = "Loading road route…";
     try {
-      const [spots, , r] = await Promise.all([spotsReady, wgReady,
+      const [spots, , , r] = await Promise.all([spotsReady, wgReady, pkReady,
         fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=simplified&geometries=geojson`).then(x => x.json())]);
       const rt = r.routes[0];
       const raw = rt.geometry.coordinates.map(c => [c[1], c[0]]);
       L.polyline(raw, { color: "#1a73e8", weight: 4 }).addTo(layer);
       map.fitBounds(raw);
       const [line, cum] = C.densify(raw);
-      const near = C.nearRoute(spots, line, cum, 3);
+      const near = C.nearRoute(spots, line, cum, 3).filter(c => isPickup(c.s));
       if (document.getElementById("rg-all").checked) near.forEach(c => L.circleMarker([c.s.lat, c.s.lon], { radius: 3, color: "#188038" }).addTo(layer));
       const chain = C.newChain(a, b, near, cum[cum.length - 1]);
       chain.forEach((c, i) => L.circleMarker([c.s.lat, c.s.lon], { radius: 8, color: "#c5221f", weight: 3 })
@@ -81,7 +90,7 @@
       const last = C.km(prev, b);
       const first = chain[0] && C.km(a, [chain[0].s.lat, chain[0].s.lon]) <= 15;
       out.innerHTML = `Road: ${(rt.distance/1000).toFixed(0)} km, ~${Math.round(rt.duration/60)} min by car. ` +
-        `Known spots within 3 km of the route: ${near.length} (red = suggested stops; tick "show all" for the rest).` +
+        `Known pickup spots (a logged ride started here) within 3 km of the route: ${near.length} (red = suggested stops; tick "show all" for the rest).` +
         `<br>${first ? "Departure spot near A:" : "<b>No known spot within 15 km of A.</b> Spots along the way:"}` +
         `<ol style="list-style:none;padding-left:0">${rows}</ol>Last stretch to B: ${last.toFixed(0)} km.${drive}` +
         `<br><small>Share this case: <a href="?a=${a.map(x => x.toFixed(4))}&b=${b.map(x => x.toFixed(4))}">link</a></small>`;
