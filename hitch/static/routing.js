@@ -513,6 +513,7 @@
       <div class="rp-suggest" hidden></div>
       <div class="rp-options" hidden></div>
       <div class="rp-status" hidden></div>
+      <a class="rp-planner-compare" hidden></a>
       <button type="button" class="rp-no-route-snap" hidden></button>
       <button type="button" class="rp-no-route-cta" hidden>
         <i class="fa-solid fa-thumbs-up" aria-hidden="true"></i>
@@ -671,6 +672,8 @@
     const sheet = resultsSheet();
     const opts = sheet && sheet.querySelector(".rp-options");
     if (opts) opts.innerHTML = "";
+    const compare = panel && panel.querySelector(".rp-planner-compare");
+    if (compare) compare.hidden = true;
     const noRouteCta = panel && panel.querySelector(".rp-no-route-cta");
     if (noRouteCta) { noRouteCta.hidden = true; noRouteCta.onclick = null; }
     const noRouteAdd = panel && panel.querySelector(".rp-no-route-add");
@@ -678,6 +681,21 @@
     const noRouteSnap = panel && panel.querySelector(".rp-no-route-snap");
     if (noRouteSnap) { noRouteSnap.hidden = true; noRouteSnap.onclick = null; }
     setStatus(null);
+  }
+  // IDEAS #964: visitors who arrive from a Hitchwiki article (ref=wiki*) are the audience
+  // that reads route advice; offer them the experimental planner for the same trip.
+  // Shown only on a found route, only for wiki referrals, so no other visitor sees it.
+  function showPlannerCompare(from, to) {
+    const a = panel && panel.querySelector(".rp-planner-compare");
+    if (!a || !from || !to) return;
+    let wiki = false;
+    try { wiki = (new URLSearchParams(location.search).get("ref") || "").indexOf("wiki") === 0; } catch (e) {}
+    if (!wiki) return;
+    a.href = "/hitchhiking-routing-gang?a=" + from[0].toFixed(4) + "," + from[1].toFixed(4) +
+      "&b=" + to[0].toFixed(4) + "," + to[1].toFixed(4) + "&ref=wiki_route";
+    a.textContent = T("Experimental: compare with the new route planner");
+    a.hidden = false;
+    hmTrack("planner_compare_exposure");
   }
   function setStatus(msg) {
     const s = panel && panel.querySelector(".rp-status");
@@ -708,6 +726,7 @@
         // one-off graph rests on a single logged ride, so a high share of these
         // means the repeatable graph is too sparse to be the primary answer.
         hmTrack('route_found', { graph: 'repeatable', options: res.length });
+        showPlannerCompare(from, to);
         showRoutes(res);
         return;
       }
@@ -733,6 +752,7 @@
           return;
         }
         hmTrack('route_found', { graph: 'oneoff', options: alt.length });
+        showPlannerCompare(from, to);
         showRoutes(alt);
       });
     }, 30);
