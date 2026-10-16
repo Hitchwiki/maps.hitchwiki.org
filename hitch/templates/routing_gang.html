@@ -13,6 +13,7 @@
   <strong>Routing gang test page</strong> — not the live router. Tap the map for
   start (A), tap again for destination (B). Shows the car road route and the known
   hitchhiking spots nearest to A, to B, and within 3 km of the route.
+  <label><input type="checkbox" id="rg-all"> show all known spots near the route (green dots)</label>
   <label><input type="checkbox" id="rg-drive"> I'm driving: list spots within 2 km of my route, newest rides first</label>
   <div id="rg-out">Tap the start point.</div>
 </div>
@@ -50,7 +51,7 @@
       map.fitBounds(raw);
       const [line, cum] = C.densify(raw);
       const near = C.nearRoute(spots, line, cum, 3);
-      near.forEach(c => L.circleMarker([c.s.lat, c.s.lon], { radius: 3, color: "#188038" }).addTo(layer));
+      if (document.getElementById("rg-all").checked) near.forEach(c => L.circleMarker([c.s.lat, c.s.lon], { radius: 3, color: "#188038" }).addTo(layer));
       const chain = C.newChain(a, b, near, cum[cum.length - 1]);
       chain.forEach((c, i) => L.circleMarker([c.s.lat, c.s.lon], { radius: 8, color: "#c5221f", weight: 3 })
         .addTo(layer).bindTooltip(String(i + 1)));
@@ -70,7 +71,7 @@
       const last = C.km(prev, b);
       const first = chain[0] && C.km(a, [chain[0].s.lat, chain[0].s.lon]) <= 15;
       out.innerHTML = `Road: ${(rt.distance/1000).toFixed(0)} km, ~${Math.round(rt.duration/60)} min by car. ` +
-        `Known spots within 3 km of the route: ${near.length} (green dots).` +
+        `Known spots within 3 km of the route: ${near.length} (red = suggested stops; tick "show all" for the rest).` +
         `<br>${first ? "Departure spot near A:" : "<b>No known spot within 15 km of A.</b> Spots along the way:"}` +
         `<ol style="list-style:none;padding-left:0">${rows}</ol>Last stretch to B: ${last.toFixed(0)} km.${drive}` +
         `<br><small>Share this case: <a href="?a=${a.map(x => x.toFixed(4))}&b=${b.map(x => x.toFixed(4))}">link</a></small>`;
@@ -84,7 +85,7 @@
     if (pts.length === 1) { out.textContent = "Tap the destination."; return; }
     plan(pts[0], pts[1]);
   });
-  document.getElementById("rg-drive").addEventListener("change", () => {
+  for (const id of ["rg-drive", "rg-all"]) document.getElementById(id).addEventListener("change", () => {
     if (pts.length === 2) { layer.clearLayers(); plan(pts[0], pts[1]); }
   });
   const q = new URLSearchParams(location.search);
