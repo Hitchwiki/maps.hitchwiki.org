@@ -178,7 +178,7 @@ def spot_waypoint(spot, detail, spot_id, last_ride=None, rides=None):
         "desc": desc,
         "type": "hitchhiking",
         "sym": SPOT_SYM,
-        "link": {"href": f"{SITE_URL}/spot/{spot_id}", "text": "This spot on Hitchwiki Maps"},
+        "link": {"href": f"{SITE_URL}/spot/{spot_id}?ref=gpx", "text": "This spot on Hitchwiki Maps"},
         "extensions": {"spot": {k: v for k, v in extensions.items() if v is not None}},
     }
 

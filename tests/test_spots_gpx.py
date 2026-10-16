@@ -114,5 +114,5 @@ def test_written_document_parses_and_keeps_the_comment():
     assert wpt.get("lat") == "53.5601"
     assert wpt.find(f"{GPX}name").text == "Sievekingsallee, Hamburg"
     assert "Much better than the Horner Kreisel itself." in wpt.find(f"{GPX}desc").text
-    assert wpt.find(f"{GPX}link").get("href") == "https://maps.hitchwiki.org/spot/53.56010_10.06199"
+    assert wpt.find(f"{GPX}link").get("href") == "https://maps.hitchwiki.org/spot/53.56010_10.06199?ref=gpx"
     assert wpt.find(f"{GPX}extensions/{HW}spot/{HW}rides").text == "3"
