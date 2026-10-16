@@ -15,6 +15,7 @@
   hitchhiking spots nearest to A, to B, and within 3 km of the route.
   <label><input type="checkbox" id="rg-all"> show all known spots near the route (green dots)</label>
   <label><input type="checkbox" id="rg-drive"> I'm driving: list spots within 2 km of my route, newest rides first</label>
+  <label><input type="checkbox" id="rg-longwait"> driver list: longest area waits first</label>
 </div>
 <div id="rg-map"></div>
 <div id="rg-out" style="padding: 0.5rem 1rem;">Tap the start point.</div>
@@ -104,8 +105,13 @@
       });
       let drive = "";
       if (document.getElementById("rg-drive").checked) {
-        const dl = C.driverList(near, Date.now(), 2).slice(0, 30);
-        drive = `<br><b>Spots near your route, newest rides first:</b><ul>` + dl.map(d => {
+        let dl = C.driverList(near, Date.now(), 2);
+        if (document.getElementById("rg-longwait").checked) {
+          const med = d => { const v = wg.cells[Math.round(d.s.lat / 0.25) + "," + Math.round(d.s.lon / 0.25)]; return v ? v[1] : -1; };
+          dl = dl.slice().sort((x, y) => med(y) - med(x));
+        }
+        dl = dl.slice(0, 30);
+        drive = `<br><b>Spots near your route, ${document.getElementById("rg-longwait").checked ? "longest area waits first" : "newest rides first"}:</b><ul>` + dl.map(d => {
           const age = d.ageDays === null ? "no date" : d.ageDays < 30 ? "ride in the last 30 days" : d.ageDays < 365 ? "ride in the last 12 months" : "last ride over a year ago";
           return `<li>${spotLink(d.s)} — km ${d.at.toFixed(0)} of ${(rt.distance/1000).toFixed(0)}, detour about ${d.detour.toFixed(1)} km, ${age}${waitNote(d.s) ? ", " + waitNote(d.s) : ""}</li>`;
         }).join("") + "</ul>";
@@ -134,7 +140,7 @@
     if (pts.length === 1) { out.textContent = "Tap the destination."; return; }
     plan(pts[0], pts[1]);
   });
-  for (const id of ["rg-drive", "rg-all"]) document.getElementById(id).addEventListener("change", () => {
+  for (const id of ["rg-drive", "rg-all", "rg-longwait"]) document.getElementById(id).addEventListener("change", () => {
     track("routing_gang_option", { option: id, on: document.getElementById(id).checked });
     if (pts.length === 2) { layer.clearLayers(); plan(pts[0], pts[1]); }
   });
