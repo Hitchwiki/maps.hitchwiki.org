@@ -817,6 +817,21 @@ def set_current_city():
     return jsonify({"ok": True, "changed": True})
 
 
+@user_bp.route("/me/nearby-email", methods=["POST"])
+def set_nearby_email():
+    """One-tap opt-in to the nearby-hitchhikers email from the ride form (IDEAS #933).
+    Same column as the /edit-user checkbox; only ever turns it on, so a stray call can
+    never silence someone who chose it."""
+    if current_user.is_anonymous:
+        return jsonify({"ok": False}), 401
+    user = current_user._get_current_object()
+    changed = not user.nearby_hitchhikers_email
+    if changed:
+        user.nearby_hitchhikers_email = True
+        db.session.commit()
+    return jsonify({"ok": True, "changed": changed})
+
+
 @user_bp.route("/push/subscribe", methods=["POST"])
 def push_subscribe():
     """Store the signed-in user's Web Push subscription (opt-in, from the post-ride prompt).

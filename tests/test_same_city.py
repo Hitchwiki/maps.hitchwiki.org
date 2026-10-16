@@ -234,3 +234,17 @@ def test_one_tap_current_city_maps_a_common_country_name_and_drops_unknown_ones(
     client.post("/me/current-city", json={"city": "Nowhere", "country": "Atlantis"})
     _db.session.refresh(user)
     assert user.current_country is None
+
+
+def test_one_tap_nearby_email_optin_only_turns_it_on(client, people):
+    (user,) = _add(_user("NearbyOptIn"))
+    _login(client, "NearbyOptIn")
+    assert user.nearby_hitchhikers_email is False
+    assert client.post("/me/nearby-email").get_json() == {"ok": True, "changed": True}
+    _db.session.refresh(user)
+    assert user.nearby_hitchhikers_email is True
+    assert client.post("/me/nearby-email").get_json() == {"ok": True, "changed": False}
+
+
+def test_one_tap_nearby_email_optin_refuses_anonymous_callers(client):
+    assert client.post("/me/nearby-email").status_code == 401
