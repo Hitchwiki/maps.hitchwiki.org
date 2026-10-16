@@ -31,6 +31,12 @@
   track("routing_gang_opened", { shared_link: location.search.includes("a=") });
   let pts = [], layer = L.layerGroup().addTo(map);
   const spotsReady = fetch("/spots.json").then(r => r.json()).then(j => j.spots || j);
+  let wg = { cells: {} };
+  const wgReady = fetch("/static/routing_gang_waitgrid.json").then(r => r.json()).then(j => { wg = j; }).catch(() => {});
+  function waitNote(s) {
+    const v = wg.cells[Math.round(s.lat / 0.25) + "," + Math.round(s.lon / 0.25)];
+    return v ? `area wait (logged, ${v[0]} rides): median ${v[1]} min, ${v[3]}% over 1 h` : "";
+  }
   function spotLink(s) {
     return `<a href="/spot/${s.lat.toFixed(5)}_${s.lon.toFixed(5)}" target="_blank">${s.lat.toFixed(4)}, ${s.lon.toFixed(4)}</a>`;
   }
@@ -40,12 +46,13 @@
     const bits = [`${rides} ride${rides === 1 ? "" : "s"} logged`];
     if (c.s.rating) bits.push(`rated ${c.s.rating.toFixed(1)}/5`);
     bits.push(t.n ? `${t.ok} of ${t.n} rides from here went toward B` : "no destination logged");
+    const w = waitNote(c.s); if (w) bits.push(w);
     return bits.join(", ");
   }
   async function plan(a, b) {
     out.textContent = "Loading road route…";
     try {
-      const [spots, r] = await Promise.all([spotsReady,
+      const [spots, , r] = await Promise.all([spotsReady, wgReady,
         fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=simplified&geometries=geojson`).then(x => x.json())]);
       const rt = r.routes[0];
       const raw = rt.geometry.coordinates.map(c => [c[1], c[0]]);
