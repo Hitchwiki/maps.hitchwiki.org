@@ -33,6 +33,7 @@
 }
 .wra-btn:hover { color: #555; border-color: #999; }
 .wra-btn--yes[aria-pressed="true"] { color: #2e7d32; border-color: #2e7d32; background: #eaf5eb; }
+.wra-btn[data-first-ever][aria-pressed="true"] { color: #2e7d32; border-color: #2e7d32; background: #eaf5eb; }
 .wra-btn--no[aria-pressed="true"] { color: #c62828; border-color: #c62828; background: #fbeaea; }
 /* Photo tiles: uploaded pictures and a trailing "+" tile, all the same square, so the
    row reads as one strip of slots rather than a file field with a preview bolted on. */
@@ -513,13 +514,14 @@
         <script>
         (function () {
             var row = document.getElementById('first-ride-ever-row');
-            if (!row || typeof window.hmTrack !== 'function') return;
-            window.hmTrack('ride_first_ever_shown', { mode: '{{ "edit" if request.args.get("edit") else "new" }}' });
+            if (!row) return;
+            var track = function (name, data) { if (typeof window.hmTrack === 'function') window.hmTrack(name, data); };
+            track('ride_first_ever_shown', { mode: '{{ "edit" if request.args.get("edit") else "new" }}' });
             var btns = row.querySelectorAll('button[data-first-ever]');
             btns.forEach(function (btn) {
                 btn.addEventListener('click', function () {
                     btns.forEach(function (b) { b.setAttribute('aria-pressed', String(b === btn)); });
-                    window.hmTrack('ride_first_ever_answered', { answer: btn.dataset.firstEver });
+                    track('ride_first_ever_answered', { answer: btn.dataset.firstEver });
                 });
             });
         })();
