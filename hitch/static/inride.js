@@ -3371,6 +3371,14 @@
         return !localStorage.getItem(raceBanner._shownKey(r.title));
       });
       if (!race) return;
+      // Maps-group report 2026-10-17: with several races running at once (Hengelo → Bochum,
+      // Prague → Vienna, Riga → Tallinn) each page load showed the *next* race's modal, so a
+      // person logging 20 rides met it on nearly every visit. One race modal per device per
+      // 14 days; the shown-flag stays unset, so the remaining races still get their turn later.
+      try {
+        const last = Number(localStorage.getItem("hmRaceBannerLastMs")) || 0;
+        if (Date.now() - last < 14 * 86400000) return;
+      } catch (e) {}
       // #654 s3: a fresh direct visitor met this modal stacked on the cookie box (screenshot
       // 2026-10-12, 1280x800: map fully covered). Answer the cookie question first; if it is
       // still open after 30 s the banner is skipped and the shown-flag stays unset, so a
@@ -3383,6 +3391,7 @@
         if (journeyStore.get() || journeyUI._openDialog) return;
       }
       localStorage.setItem(raceBanner._shownKey(race.title), "1");
+      try { localStorage.setItem("hmRaceBannerLastMs", String(Date.now())); } catch (e) {}
       // #519 s1 — the banner reaches people who are on the road right now, and a driver
       // pledge is one tap. A returning pledger (map.js shares this key) is neither
       // assigned nor counted: they'd inflate the denominator with people who cannot
