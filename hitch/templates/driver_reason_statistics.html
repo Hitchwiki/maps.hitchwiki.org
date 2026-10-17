@@ -1,0 +1,38 @@
+{% extends "security/base.html" %}
+
+{% set title = t("Why drivers stopped") %}
+
+{% block meta_description %}{{ t("The reasons drivers gave for picking up a hitchhiker, as logged by the hitchhikers they picked up.") }}{% endblock %}
+{% block og_title %}{{ t("Why drivers stopped") }}{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+  .overlay { max-width: 720px; }
+  .stats-intro, .stats-foot { color: #666; font-size: .9em; }
+  .reason-row { margin: .8rem 0; }
+  .reason-head { display: flex; justify-content: space-between; gap: 1rem; }
+  .reason-bar { background: #e9eef4; border-radius: 4px; height: 14px; margin-top: .25rem; }
+  .reason-bar span { background: #3b78b5; border-radius: 4px; display: block; height: 100%; }
+  .stats-foot { border-top: 1px solid #eee; margin-top: 1.5rem; padding-top: .8rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>{{ t("Why drivers stopped") }}</h1>
+<p class="stats-intro">{{ t("The reasons drivers gave for picking up a hitchhiker, as logged by the hitchhikers they picked up.") }}</p>
+{% for r in reasons %}
+<div class="reason-row">
+  <div class="reason-head"><span>{{ r.label }}</span><strong>{{ r.share }}%</strong></div>
+  <div class="reason-bar"><span style="width: {{ r.share }}%"></span></div>
+</div>
+{% else %}
+<p class="stats-intro">{{ t("No data yet.") }}</p>
+{% endfor %}
+<p class="stats-foot">
+  {% if coverage.rides_answered %}{{ t("Based on {answered} rides where the hitchhiker recorded why the driver stopped.", answered=coverage.rides_answered) }}{% endif %}
+  {{ t("A ride can name several reasons, so the shares add up to more than 100%.") }}
+  {% if generated_at %}{{ t("Recalculated daily; last run {when}.", when=generated_at) }}{% endif %}
+</p>
+<p><a href="/?ref=stats_driver_reasons">{{ t("Back to the map") }}</a></p>
+{% endblock %}

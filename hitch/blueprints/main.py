@@ -1109,6 +1109,33 @@ def ride_collection_statistics_page():
     )
 
 
+@main_bp.route("/statistics/driver-reasons")
+def driver_reason_statistics_page():
+    """Why drivers stopped, from the answers hitchhikers logged about their driver."""
+    path = os.path.join(get_dirs()["dist"], "driver_reason_statistics.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        data = {}
+    coverage = data.get("coverage", {})
+    answered = coverage.get("rides_answered") or 0
+    reasons = [
+        {
+            "label": REASON_DESCRIPTION_BY_CODE.get(r["reason"], r["reason"]),
+            "rides": r["rides"],
+            "share": round(100 * r["rides"] / answered) if answered else 0,
+        }
+        for r in data.get("reasons", [])
+    ]
+    return render_template(
+        "driver_reason_statistics.html",
+        reasons=reasons,
+        coverage=coverage,
+        generated_at=data.get("generated_at"),
+    )
+
+
 @main_bp.route("/dashboard.html")
 def legacy_dashboard_redirect():
     return redirect(url_for("main.statistics_page"), code=301)
