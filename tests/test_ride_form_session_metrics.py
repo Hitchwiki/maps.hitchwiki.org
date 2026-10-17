@@ -102,7 +102,7 @@ def test_anon_login_link_opens_a_popup_and_keeps_the_form():
 def test_first_ride_ever_row_is_events_only_and_optional():
     # #473 leftover: a one-tap optional question that is never posted with the form.
     assert 'id="first-ride-ever-row"' in TEMPLATE
-    assert "hmTrack('ride_first_ever_shown'" in TEMPLATE
-    assert "hmTrack('ride_first_ever_answered'" in TEMPLATE
+    assert "track('ride_first_ever_shown'" in TEMPLATE
+    assert "track('ride_first_ever_answered'" in TEMPLATE
     row = TEMPLATE.index('id="first-ride-ever-row"')
     assert 'name="' not in TEMPLATE[row : row + 900]
