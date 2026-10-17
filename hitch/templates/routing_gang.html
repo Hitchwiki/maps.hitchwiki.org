@@ -97,7 +97,17 @@
         return { rt, raw, line, cum, near, chain, weak: chain.filter(c => c.weak).length };
       };
       // Routes with fewer weakly evidenced stops first, then the faster one.
-      const plans = r.routes.slice(0, 3).map(build).sort((x, y) => x.weak - y.weak || x.rt.duration - y.rt.duration);
+      const plans = r.routes.slice(0, 2).map(build).sort((x, y) => x.weak - y.weak || x.rt.duration - y.rt.duration);
+      // Forced alternative through an evidenced spot well off the main road (the group asked for routes that
+      // avoid a hard area); kept only if it is at most 20% slower than the fastest road.
+      try {
+        const v = C.pickVia(spots, a, b, plans[0].line, plans[0].cum);
+        if (v) {
+          const r2 = await fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${v.s.lon},${v.s.lat};${b[1]},${b[0]}?overview=simplified&geometries=geojson`).then(x => x.json());
+          const rt2 = r2.routes && r2.routes[0];
+          if (rt2 && rt2.duration <= 1.2 * Math.min(...plans.map(p => p.rt.duration))) { const pl = build(rt2); pl.via = v; plans.push(pl); }
+        }
+      } catch (e) {}
       const { rt, raw, line, cum, near, chain } = plans[0];
       plans.forEach((pl, k) => L.polyline(pl.raw, { color: COLORS[k], weight: k ? 3 : 5, opacity: k ? 0.7 : 1, dashArray: k ? "8 6" : null }).addTo(layer));
       map.fitBounds(raw);
@@ -109,7 +119,7 @@
         const d = C.km(prev, [c.s.lat, c.s.lon]); prev = [c.s.lat, c.s.lon];
         rows += `<li>${i + 1}. ${spotLink(c.s)} — ${d.toFixed(0)} km from the previous point${c.gapBefore ? " (<b>long gap, no known spot before this</b>)" : ""}${c.weak ? " (<b>weak evidence: fewer than " + C.MIN_EVIDENCE + " rides went toward B</b>)" : ""} <button type="button" class="rg-flag" data-rank="${i + 1}" data-lat="${c.s.lat.toFixed(2)}" data-lon="${c.s.lon.toFixed(2)}" style="font-size:0.75rem">bad stop</button><br><small>${detail(c, b)}</small></li>`;
       });
-      const altRows = plans.slice(1).map((pl, k) => `<li style="color:${COLORS[k + 1]}">Alternative ${k + 1} (dashed on the map): ${(pl.rt.distance/1000).toFixed(0)} km, ~${Math.round(pl.rt.duration/60)} min, ${pl.chain.length} suggested stops, ${pl.weak} with weak evidence, ${pl.chain.filter(c => c.gapBefore).length} long gaps.</li>`).join("");
+      const altRows = plans.slice(1).map((pl, k) => `<li style="color:${COLORS[k + 1]}">Alternative ${k + 1} (dashed on the map${pl.via ? ", via an evidenced stop " + pl.via.off.toFixed(0) + " km off the main road: " + pl.via.ok + " logged rides from there went toward B" : ""}): ${(pl.rt.distance/1000).toFixed(0)} km, ~${Math.round(pl.rt.duration/60)} min, ${pl.chain.length} suggested stops, ${pl.weak} with weak evidence, ${pl.chain.filter(c => c.gapBefore).length} long gaps.</li>`).join("");
       let drive = "";
       if (document.getElementById("rg-drive").checked) {
         let dl = C.driverList(near, Date.now(), 2);
