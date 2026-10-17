@@ -93,6 +93,22 @@
       .map(c => ({ s: c.s, at: c.at, detour: 2 * c.off, ageDays: c.s.latest_ms ? Math.max(0, (nowMs - c.s.latest_ms) / 864e5) : null }))
       .sort((x, y) => (x.ageDays === null) - (y.ageDays === null) || x.ageDays - y.ageDays);
   }
-  const api = { MIN_EVIDENCE, km, bearing, toward, score, densify, nearRoute, oldChain, newChain, driverList };
+  // Detour waypoint for a forced alternative: an evidenced spot (>= MIN_EVIDENCE rides toward B) in the
+  // middle part of the route that lies 15-80 km off the main road, the one with most rides toward B.
+  function pickVia(spots, a, b, line, cum) {
+    const total = cum[cum.length - 1];
+    let best = null;
+    for (const s of spots) {
+      const t = toward(s, b);
+      if (t.ok < MIN_EVIDENCE) continue;
+      let off = 1e9, at = 0;
+      for (let i = 0; i < line.length; i++) { const d = km([s.lat, s.lon], line[i]); if (d < off) { off = d; at = cum[i]; } }
+      if (off < 15 || off > 80 || at < total * 0.25 || at > total * 0.75) continue;
+      const v = t.ok - off / 20;
+      if (!best || v > best.v) best = { s, off, at, v, ok: t.ok };
+    }
+    return best;
+  }
+  const api = { pickVia, MIN_EVIDENCE, km, bearing, toward, score, densify, nearRoute, oldChain, newChain, driverList };
   if (typeof module !== "undefined") module.exports = api; else root.RGChain = api;
 })(typeof window !== "undefined" ? window : this);

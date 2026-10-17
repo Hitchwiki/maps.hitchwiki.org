@@ -45,3 +45,14 @@ console.log("ok");
   assert.strictEqual(C.newChain(A, B, C.nearRoute([thin], l2, c2, 3), c2[c2.length - 1])[0].weak, true, "thin stop is flagged weak");
   console.log("ok evidence");
 }
+
+// pickVia: evidenced spot 15-80 km off the main road in the middle of the route; none if too close or thin.
+{
+  const toB = (n) => ({ dest_lats: Array(n).fill(50.3), dest_lons: Array(n).fill(11.5) });
+  const off = spot(50.3, 11.0, toB(C.MIN_EVIDENCE));          // ~36 km north of the A-B line
+  const onRoad = spot(50.0, 11.0, toB(5)), thin = spot(50.3, 10.9, toB(1));
+  const [l3, c3] = C.densify([A, B]);
+  assert.strictEqual(C.pickVia([onRoad, thin], A, B, l3, c3), null);
+  assert.strictEqual(C.pickVia([onRoad, thin, off], A, B, l3, c3).s, off);
+  console.log("ok via");
+}
