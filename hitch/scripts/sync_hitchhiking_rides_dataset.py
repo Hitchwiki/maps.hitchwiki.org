@@ -15,6 +15,7 @@ from tqdm import tqdm
 
 from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import HitchhikingRecord
 from hitch.helpers import get_dirs
+from hitch.scripts.pii_redact import redact_text
 
 logging.basicConfig(
     level=logging.INFO,
@@ -226,6 +227,10 @@ for post in tqdm(all_posts, total=len(all_posts)):
         continue
 
     entry = {field: content_json.get(field) for field in RECORD_FIELDS}
+
+    # Requirement: contact details typed into a comment must not be republished
+    # in the permanent public dataset (see pii_redact.py).
+    entry["comment"] = redact_text(entry.get("comment"))
 
     # Nested objects/arrays (mode_of_transportation, stops, hitchhikers, …) have
     # optional, evolving keys across rides. Letting pandas/pyarrow auto-infer an
