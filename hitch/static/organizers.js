@@ -1,6 +1,6 @@
 (() => {
   const report = JSON.parse(document.getElementById('organizer-data').textContent);
-  const track = (event) => window.hmTrack?.(event);
+  const track = (event, props) => window.hmTrack?.(event, props);
   document.getElementById('print-report')?.addEventListener('click', () => { track('organizer_report_print'); window.print(); });
   document.querySelector('[data-organizer-action="csv"]')?.addEventListener('click', () => track('organizer_report_csv'));
   for (const id of ['report-link', 'website-link']) {
@@ -22,7 +22,9 @@
       label.textContent = `${row.name}: ${row.stats.count} dokumentierte Fahrten`;
       L.circleMarker([row.lat, row.lon], {radius: 6, color: '#145d45'}).addTo(map).bindPopup(label);
     });
-    track('organizer_report_viewed');
+    // Coarse centre (0.1 deg, ~11 km) so Umami can split views per mailed town; the path metric
+    // strips the query string, so without a property all reports look alike.
+    track('organizer_report_viewed', {area: `${((s + n) / 2).toFixed(1)},${((w + e) / 2).toFixed(1)}`});
     return;
   }
   const bbox = document.getElementById('bbox');
