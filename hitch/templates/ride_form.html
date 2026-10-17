@@ -1889,6 +1889,23 @@
         hiddenId: 'vehicle_license_plate_country',
         datalistId: 'vehicle-plate-country-list',
     });
+    // A plate's country is the driver's likeliest origin country: prefill it when still empty.
+    (function () {
+        const plateInput = document.getElementById('vehicle_license_plate_country_input');
+        const plateHidden = document.getElementById('vehicle_license_plate_country');
+        const originInput = document.getElementById('driver_origin_country_input');
+        const originHidden = document.getElementById('driver_origin_country');
+        if (!plateInput || !plateHidden || !originInput || !originHidden) return;
+        function prefill() {
+            if (originHidden.value || originInput.value.trim() || !plateHidden.value) return;
+            const opt = document.querySelector(`#driver-country-list option[data-code="${plateHidden.value}"]`);
+            if (!opt) return;
+            originInput.value = opt.value;
+            originHidden.value = plateHidden.value;
+        }
+        plateInput.addEventListener('change', prefill);
+        plateInput.addEventListener('blur', prefill);
+    })();
 
     // Short enum lists (signal methods, reasons to hitchhike, the driver's trip reasons) are
     // toggle chips rather than a datalist: with a handful of options tapping beats typing —
