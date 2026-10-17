@@ -4586,6 +4586,9 @@ a.acct-ride__warn:hover { color: #b98900; }
   cursor: pointer;
 }
 
+/* Same chip as the empty-filter note, but at the top: it stays visible while the map shows the filtered spots. */
+.user-filter-note { bottom: auto; top: calc(70px + env(safe-area-inset-top, 0px)); }
+
 .rp-resume-chip {
   position: fixed; left: 12px; bottom: 76px; z-index: 900; padding: 9px 14px;
   border: 0; border-radius: 999px; background: #188038; color: #fff;
