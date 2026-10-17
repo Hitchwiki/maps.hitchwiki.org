@@ -28,3 +28,9 @@ def test_unknown_source_cannot_mint_new_values(client):
 
 def test_invite_param_buckets_to_invite(client):
     assert 'source: "invite"' in _page(client, "?invite=someone")
+
+
+def test_exit_links_are_tracked(client):
+    html = _page(client, "")
+    assert "login_exit_clicked" in html
+    assert "Special:CreateAccount" in html and "PRIVACY_POLICY" in html
