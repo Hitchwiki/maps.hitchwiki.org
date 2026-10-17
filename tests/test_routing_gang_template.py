@@ -17,3 +17,11 @@ def test_routing_gang_only_fills_blocks_base_defines():
 
 def test_routing_gang_fills_the_body_block():
     assert "main" in _blocks("routing_gang.html")
+
+
+def test_routing_gang_reads_landing_ref_not_stripped_query():
+    # base.html strips ?ref= from the address bar before page scripts run, so
+    # the opened event must read window.hmLandingRef, not location.search.
+    src = (TEMPLATES / "routing_gang.html").read_text()
+    assert "window.hmLandingRef" in src
+    assert 'location.search.includes("ref=' not in src

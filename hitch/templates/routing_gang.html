@@ -30,7 +30,9 @@
     { attribution: "© OpenStreetMap" }).addTo(map);
   const out = document.getElementById("rg-out");
   const track = (n, d) => { if (window.hmTrack) window.hmTrack(n, d); };
-  track("routing_gang_opened", { shared_link: location.search.includes("a="), from_ride: location.search.includes("ref=ride_page"), from_wiki: location.search.includes("ref=wiki_route") });
+  // base.html strips ?ref= from the address bar before this runs; the value survives in window.hmLandingRef.
+  const lr = window.hmLandingRef || (new URLSearchParams(location.search)).get("ref") || "";
+  track("routing_gang_opened", { shared_link: location.search.includes("a="), from_ride: lr === "ride_page", from_wiki: lr === "wiki_route" });
   let pts = [], layer = L.layerGroup().addTo(map);
   const spotsReady = fetch("/spots.json").then(r => r.json()).then(j => j.spots || j);
   let wg = { cells: {} };
