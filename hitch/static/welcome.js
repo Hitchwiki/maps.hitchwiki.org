@@ -273,12 +273,11 @@
         }
         if (localStorage.getItem(ANON_SEEN_KEY)) return;
         localStorage.setItem(ANON_SEEN_KEY, String(Date.now()));
-        var arm = window.hmVariant(ANON_EXP, ["control", "welcome"]);
+        // EXP-816 closed 2026-10-20: the carousel showed no upside, so the arm is retired
+        // and nobody gets it automatically. Still counted so the denominator keeps its name.
+        var arm = "control-final";
         tagArm(arm);
         if (window.hmTrack) window.hmTrack("welcome_anon_assigned", { variant: arm });
-        if (arm === "welcome") {
-          open({ doneLabel: "Explore the map", onDone: function () {} });
-        }
       })();
     } catch (e) {
       /* a missing intro is not worth surfacing an error over */
