@@ -32,3 +32,16 @@ console.log("ok");
   const nr = C.nearRoute([closeSpot, farBetter], line, cum, 3);
   assert.strictEqual(C.newChain(A, B, nr, cum[cum.length - 1])[0].s, closeSpot, "near-A spot wins the first stop");
 }
+
+// Evidence floor: a stop with >= MIN_EVIDENCE rides toward B beats a higher-rated one with fewer.
+{
+  const toward = (n) => ({ dest_lats: Array(n).fill(50.0), dest_lons: Array(n).fill(11.0) });
+  const solid = spot(50.0, 10.05, Object.assign({ rating: 2 }, toward(C.MIN_EVIDENCE)));
+  const thin = spot(50.0, 10.04, Object.assign({ rating: 5 }, toward(1)));
+  const [l2, c2] = C.densify([A, B]);
+  const ch = C.newChain(A, B, C.nearRoute([solid, thin], l2, c2, 3), c2[c2.length - 1]);
+  assert.strictEqual(ch[0].s, solid, "evidenced stop wins over thin one");
+  assert.strictEqual(ch[0].weak, false);
+  assert.strictEqual(C.newChain(A, B, C.nearRoute([thin], l2, c2, 3), c2[c2.length - 1])[0].weak, true, "thin stop is flagged weak");
+  console.log("ok evidence");
+}
