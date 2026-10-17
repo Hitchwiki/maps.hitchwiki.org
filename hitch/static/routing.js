@@ -685,9 +685,20 @@
   // IDEAS #964: visitors who arrive from a Hitchwiki article (ref=wiki*) are the audience
   // that reads route advice; offer them the experimental planner for the same trip.
   // Shown only on a found route, only for wiki referrals, so no other visitor sees it.
-  function showPlannerCompare(from, to) {
+  // IDEAS #1045: on a no-route result the experimental planner (any A to B road route plus nearest
+  // known spots) is strictly more than the person gets here, so every visitor is offered it
+  // (`noRoute`), not just wiki referrals. Own ref and exposure event keep the arms separable.
+  function showPlannerCompare(from, to, noRoute) {
     const a = panel && panel.querySelector(".rp-planner-compare");
     if (!a || !from || !to) return;
+    if (noRoute) {
+      a.href = "/hitchhiking-routing-gang?a=" + from[0].toFixed(4) + "," + from[1].toFixed(4) +
+        "&b=" + to[0].toFixed(4) + "," + to[1].toFixed(4) + "&ref=route_none";
+      a.textContent = "Experimental: try the new route planner for this trip"; // English only, like the other links
+      a.hidden = false;
+      hmTrack("route_none_planner_link_exposure");
+      return;
+    }
     let wiki = false;
     // base.html strips ?ref= from the address bar after reading it, so the live value is hmLandingRef.
     wiki = (window.hmLandingRef || "").indexOf("wiki") === 0;
@@ -750,6 +761,7 @@
           showNoRouteStartAction(from);
           showNoRouteAddSpotAction(reason, from, to);
           showNoRouteSnapAction(FB || RJ.router, reason, from, to);
+          showPlannerCompare(from, to, true);
           return;
         }
         hmTrack('route_found', { graph: 'oneoff', options: alt.length });
