@@ -87,22 +87,29 @@
     out.textContent = "Loading road route…";
     try {
       const [spots, , , r] = await Promise.all([spotsReady, wgReady, pkReady,
-        fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=simplified&geometries=geojson`).then(x => x.json())]);
-      const rt = r.routes[0];
-      const raw = rt.geometry.coordinates.map(c => [c[1], c[0]]);
-      L.polyline(raw, { color: "#1a73e8", weight: 4 }).addTo(layer);
+        fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=simplified&geometries=geojson&alternatives=true`).then(x => x.json())]);
+      const COLORS = ["#1a73e8", "#9334e6", "#e37400"];
+      const build = (rt) => {
+        const raw = rt.geometry.coordinates.map(c => [c[1], c[0]]);
+        const [line, cum] = C.densify(raw);
+        const near = C.nearRoute(spots, line, cum, 3).filter(c => isPickup(c.s));
+        const chain = C.newChain(a, b, near, cum[cum.length - 1]);
+        return { rt, raw, line, cum, near, chain, weak: chain.filter(c => c.weak).length };
+      };
+      // Routes with fewer weakly evidenced stops first, then the faster one.
+      const plans = r.routes.slice(0, 3).map(build).sort((x, y) => x.weak - y.weak || x.rt.duration - y.rt.duration);
+      const { rt, raw, line, cum, near, chain } = plans[0];
+      plans.forEach((pl, k) => L.polyline(pl.raw, { color: COLORS[k], weight: k ? 3 : 5, opacity: k ? 0.7 : 1, dashArray: k ? "8 6" : null }).addTo(layer));
       map.fitBounds(raw);
-      const [line, cum] = C.densify(raw);
-      const near = C.nearRoute(spots, line, cum, 3).filter(c => isPickup(c.s));
       if (document.getElementById("rg-all").checked) near.forEach(c => L.circleMarker([c.s.lat, c.s.lon], { radius: 3, color: "#188038" }).addTo(layer));
-      const chain = C.newChain(a, b, near, cum[cum.length - 1]);
-      chain.forEach((c, i) => L.circleMarker([c.s.lat, c.s.lon], { radius: 8, color: "#c5221f", weight: 3 })
+      chain.forEach((c, i) => L.circleMarker([c.s.lat, c.s.lon], { radius: 8, color: c.weak ? "#f9ab00" : "#c5221f", weight: 3 })
         .addTo(layer).bindTooltip(String(i + 1)));
       let prev = a, rows = "";
       chain.forEach((c, i) => {
         const d = C.km(prev, [c.s.lat, c.s.lon]); prev = [c.s.lat, c.s.lon];
-        rows += `<li>${i + 1}. ${spotLink(c.s)} — ${d.toFixed(0)} km from the previous point${c.gapBefore ? " (<b>long gap, no known spot before this</b>)" : ""} <button type="button" class="rg-flag" data-rank="${i + 1}" data-lat="${c.s.lat.toFixed(2)}" data-lon="${c.s.lon.toFixed(2)}" style="font-size:0.75rem">bad stop</button><br><small>${detail(c, b)}</small></li>`;
+        rows += `<li>${i + 1}. ${spotLink(c.s)} — ${d.toFixed(0)} km from the previous point${c.gapBefore ? " (<b>long gap, no known spot before this</b>)" : ""}${c.weak ? " (<b>weak evidence: fewer than " + C.MIN_EVIDENCE + " rides went toward B</b>)" : ""} <button type="button" class="rg-flag" data-rank="${i + 1}" data-lat="${c.s.lat.toFixed(2)}" data-lon="${c.s.lon.toFixed(2)}" style="font-size:0.75rem">bad stop</button><br><small>${detail(c, b)}</small></li>`;
       });
+      const altRows = plans.slice(1).map((pl, k) => `<li style="color:${COLORS[k + 1]}">Alternative ${k + 1} (dashed on the map): ${(pl.rt.distance/1000).toFixed(0)} km, ~${Math.round(pl.rt.duration/60)} min, ${pl.chain.length} suggested stops, ${pl.weak} with weak evidence, ${pl.chain.filter(c => c.gapBefore).length} long gaps.</li>`).join("");
       let drive = "";
       if (document.getElementById("rg-drive").checked) {
         let dl = C.driverList(near, Date.now(), 2);
@@ -116,10 +123,11 @@
           return `<li>${spotLink(d.s)} — km ${d.at.toFixed(0)} of ${(rt.distance/1000).toFixed(0)}, detour about ${d.detour.toFixed(1)} km, ${age}${waitNote(d.s) ? ", " + waitNote(d.s) : ""}</li>`;
         }).join("") + "</ul>";
       }
-      track("routing_gang_planned", { road_km: Math.round(rt.distance / 1000), stops: chain.length, shared_link: location.search.includes("a=") });
+      track("routing_gang_planned", { road_km: Math.round(rt.distance / 1000), stops: chain.length, weak_stops: plans[0].weak, routes: plans.length, shared_link: location.search.includes("a=") });
       const last = C.km(prev, b);
       const first = chain[0] && C.km(a, [chain[0].s.lat, chain[0].s.lon]) <= 15;
-      out.innerHTML = `Road: ${(rt.distance/1000).toFixed(0)} km, ~${Math.round(rt.duration/60)} min by car. ` +
+      out.innerHTML = `Best route (solid): ${(rt.distance/1000).toFixed(0)} km, ~${Math.round(rt.duration/60)} min by car, ${chain.length} suggested stops, ${plans[0].weak} with weak evidence. ` +
+        (altRows ? `<ul>${altRows}</ul>` : "") +
         `Known pickup spots (a logged ride started here) within 3 km of the route: ${near.length} (red = suggested stops; tick "show all" for the rest).` +
         `<br>${first ? "Departure spot near A:" : "<b>No known spot within 15 km of A.</b> Spots along the way:"}` +
         `<ol style="list-style:none;padding-left:0">${rows}</ol>Last stretch to B: ${last.toFixed(0)} km.${drive}` +

@@ -26,6 +26,8 @@
     }
     return { share: ok / n, n, ok };
   }
+  // A stop counts as evidenced when at least MIN_EVIDENCE logged rides from it went toward B.
+  const MIN_EVIDENCE = 3;
   function score(s, t) {
     return (t.share || 0) * 3 + Math.min(s.review_count || 0, 10) / 10 + (s.rating || 0) / 10;
   }
@@ -68,7 +70,7 @@
   // 20-80 km window along the route; the rest is a hop to B, or a flagged gap.
   function newChain(a, b, near, routeKm) {
     const chain = [];
-    const score_ = (c) => { c.t = toward(c.s, b); c.score = score(c.s, c.t); return c; };
+    const score_ = (c) => { c.t = toward(c.s, b); c.weak = c.t.ok < MIN_EVIDENCE; c.score = score(c.s, c.t) - (c.weak ? 10 : 0); return c; };
     near.forEach(score_);
     // First stop: prefer spots close to A (-0.2 score per km); a spot 14 km out used to win on score alone.
     const fscore = (c) => c.score - 0.2 * km(a, [c.s.lat, c.s.lon]);
@@ -91,6 +93,6 @@
       .map(c => ({ s: c.s, at: c.at, detour: 2 * c.off, ageDays: c.s.latest_ms ? Math.max(0, (nowMs - c.s.latest_ms) / 864e5) : null }))
       .sort((x, y) => (x.ageDays === null) - (y.ageDays === null) || x.ageDays - y.ageDays);
   }
-  const api = { km, bearing, toward, score, densify, nearRoute, oldChain, newChain, driverList };
+  const api = { MIN_EVIDENCE, km, bearing, toward, score, densify, nearRoute, oldChain, newChain, driverList };
   if (typeof module !== "undefined") module.exports = api; else root.RGChain = api;
 })(typeof window !== "undefined" ? window : this);
