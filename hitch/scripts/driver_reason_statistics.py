@@ -26,9 +26,9 @@ def _hidden_dtags(conn):
 
 def build():
     conn = get_db()
-    rows = conn.execute("select d, occupants, no_ride from ride_event where occupants is not null").fetchall()
+    rows = conn.execute("select d, occupants, no_ride, ride from ride_event where occupants is not null").fetchall()
     hidden = _hidden_dtags(conn)
-    result = summarise_rows([(r[1], r[2]) for r in rows if r[0] not in hidden])
+    result = summarise_rows([(r[1], r[2], r[3]) for r in rows if r[0] not in hidden])
     result["generated_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     return result
 

@@ -1128,9 +1128,18 @@ def driver_reason_statistics_page():
         }
         for r in data.get("reasons", [])
     ]
+    trip_purposes = [
+        {
+            "label": RIDE_REASON_DESCRIPTION_BY_CODE.get(r["reason"], r["reason"]),
+            "rides": r["rides"],
+            "share": round(100 * r["rides"] / answered) if answered else 0,
+        }
+        for r in data.get("trip_purposes", [])
+    ]
     return render_template(
         "driver_reason_statistics.html",
         reasons=reasons,
+        trip_purposes=trip_purposes,
         coverage=coverage,
         generated_at=data.get("generated_at"),
     )

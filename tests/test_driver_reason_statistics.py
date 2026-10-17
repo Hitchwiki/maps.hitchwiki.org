@@ -35,3 +35,14 @@ def test_driver_reasons_route(client, monkeypatch, tmp_path):
     response = client.get("/statistics/driver-reasons")
     assert response.status_code == 200
     assert b"50%" in response.data
+
+
+def test_trip_purposes_counted_over_answering_rides_only():
+    rows = [
+        (_occ("curiosity"), 0, json.dumps({"reasons": ["commute", "errands"]})),
+        (_occ("curiosity"), 0, {"reasons": ["commute"]}),
+        (_occ(), 0, {"reasons": ["holiday"]}),
+        (_occ("curiosity"), 0, "not json"),
+    ]
+    result = summarise_rows(rows)
+    assert result["trip_purposes"] == [{"reason": "commute", "rides": 2}, {"reason": "errands", "rides": 1}]

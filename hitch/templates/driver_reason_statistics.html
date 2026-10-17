@@ -29,6 +29,15 @@
 {% else %}
 <p class="stats-intro">{{ t("No data yet.") }}</p>
 {% endfor %}
+{% if trip_purposes %}
+<h2>{{ t("Where drivers were going") }}</h2>
+{% for r in trip_purposes %}
+<div class="reason-row">
+  <div class="reason-head"><span>{{ r.label }}</span><strong>{{ r.share }}%</strong></div>
+  <div class="reason-bar"><span style="width: {{ r.share }}%"></span></div>
+</div>
+{% endfor %}
+{% endif %}
 <p class="stats-foot">
   {% if coverage.rides_answered %}{{ t("Based on {answered} rides where the hitchhiker recorded why the driver stopped.", answered=coverage.rides_answered) }}{% endif %}
   {{ t("A ride can name several reasons, so the shares add up to more than 100%.") }}
