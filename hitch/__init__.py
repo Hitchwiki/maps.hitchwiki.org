@@ -444,6 +444,7 @@ def register_commands(app):
             "wait_statistics": os.path.join(dist_dir, "statistics.json"),
             "ride_collection_statistics": os.path.join(dist_dir, "ride_collection_statistics.json"),
             "hitchhiking_safety": os.path.join(dist_dir, "hitchhiking_safety.json"),
+            "route_demand": os.path.join(dist_dir, "route_demand.json"),
             "cities": os.path.join(dist_dir, "city", "index.html"),
         }
 
@@ -467,6 +468,7 @@ def register_commands(app):
             # fresh install gets a populated /hitchhiking-safety instead of an empty page
             # until the daily cron first fires.
             ("hitchhiking_safety", ""),
+            ("route_demand", ""),
             *([("cities", "")] if ENVIRONMENT == "prod" else []),
         ]
         for script, args in scripts:
