@@ -33,3 +33,17 @@ def test_bad_rows_and_same_cell_are_ignored():
 def test_no_exact_coordinates_or_names_leak():
     rows = [dict(_row(d), start_name="Home street 5") for d in (1, 2, 3, 4, 5)]
     assert "Home" not in str(summarise_route_demand(rows))
+
+
+def test_filter_demand_counts_zero_match_and_hides_free_text():
+    from hitch.blueprints.utils.route_demand import summarise_filter_demand
+
+    rows = [
+        {"recent": "1", "text": "secret", "matches": "0"},
+        {"recent": "1", "matches": "12"},
+        {"vehicle": "truck", "matches": ""},
+    ]
+    out = summarise_filter_demand(rows)
+    assert out["total_filter_requests"] == 3
+    assert {"filter": "recent", "requests": 2, "zero_match": 1} in out["filters"]
+    assert "secret" not in str(out)

@@ -59,3 +59,42 @@ def read_route_requests(path):
             return list(csv.DictReader(f))
     except FileNotFoundError:
         return []
+
+
+# Free-text filters are user input and are never reported; only the on/off style filters are.
+FILTER_FIELDS_PUBLIC = [
+    "recent",
+    "osmonly",
+    "carpoolingonly",
+    "fuelonly",
+    "hitchwikionly",
+    "mindistance",
+    "minrides",
+    "minrating",
+    "vehicle",
+    "method",
+    "mindate",
+    "maxdate",
+    "weekday",
+]
+
+
+def summarise_filter_demand(rows):
+    """How often each filter was part of a settled filter set, and how often that set matched 0 spots."""
+    used = {f: 0 for f in FILTER_FIELDS_PUBLIC}
+    zero = {f: 0 for f in FILTER_FIELDS_PUBLIC}
+    total = 0
+    for row in rows:
+        total += 1
+        try:
+            empty = int(row.get("matches", "")) == 0
+        except (TypeError, ValueError):
+            empty = False
+        for f in FILTER_FIELDS_PUBLIC:
+            if (row.get(f) or "").strip() not in ("", "0", "false", "False"):
+                used[f] += 1
+                zero[f] += empty
+    return {
+        "total_filter_requests": total,
+        "filters": [{"filter": f, "requests": used[f], "zero_match": zero[f]} for f in FILTER_FIELDS_PUBLIC if used[f]],
+    }
