@@ -1620,6 +1620,21 @@ function updateFilterEmptyNote(markers) {
   }, 2000);
 }
 
+// Filtering to one user's rides leaves no cue that the other spots are merely hidden; members
+// asked how to get back to all spots. The note names the user and reuses the Clear handler.
+function updateUserFilterNote() {
+  const note = document.getElementById("user-filter-note");
+  if (!note) return;
+  const user = (getQueryParameter("user") || "").trim();
+  note.hidden = !user;
+  if (user) {
+    document.getElementById("user-filter-note-text").textContent = tr(
+      "Showing only rides by {user}",
+      { user }
+    );
+  }
+}
+
 function setFilteredMarkers(markers) {
   if (filterLayer) {
     map.removeLayer(filterLayer);
@@ -2634,6 +2649,8 @@ function setupEventListeners() {
     clearParams();
     navigateHome();
   };
+  const userNoteClear = document.getElementById("user-filter-note-clear");
+  if (userNoteClear) userNoteClear.onclick = () => clearFilters.onclick();
   const emptyClear = document.getElementById("filter-empty-clear");
   if (emptyClear) emptyClear.onclick = () => {
     hmTrack("filters_zero_match_cleared", {});
@@ -5751,6 +5768,7 @@ async function applyParams() {
   hitchwikiToggle.checked = getQueryParameter("hitchwikionly") == "true";
   textFilter.value = getQueryParameter("text");
   userFilter.value = getQueryParameter("user");
+  updateUserFilterNote();
   distanceFilter.value = getQueryParameter("mindistance");
   minRidesFilter.value = getQueryParameter("minrides");
   minRatingFilter.value = getQueryParameter("minrating");
