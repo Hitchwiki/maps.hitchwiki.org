@@ -38,6 +38,17 @@
 </div>
 {% endfor %}
 {% endif %}
+{% if season_waits %}
+<h2>{{ t("Waits by season") }}</h2>
+{% for region in season_waits %}
+<p class="stats-intro">{{ region.region }}</p>
+<table>
+  {% for s in region.seasons %}
+  <tr><td>{{ s.season }}</td><td>{{ t("{n} min median", n=s.median|round|int) }}</td><td>{{ t("{n} rides", n=s.rides) }}</td></tr>
+  {% endfor %}
+</table>
+{% endfor %}
+{% endif %}
 <p class="stats-foot">
   {% if coverage.rides_answered %}{{ t("Based on {answered} rides where the hitchhiker recorded why the driver stopped.", answered=coverage.rides_answered) }}{% endif %}
   {{ t("A ride can name several reasons, so the shares add up to more than 100%.") }}

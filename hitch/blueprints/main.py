@@ -1140,6 +1140,7 @@ def driver_reason_statistics_page():
         "driver_reason_statistics.html",
         reasons=reasons,
         trip_purposes=trip_purposes,
+        season_waits=data.get("season_waits", []),
         coverage=coverage,
         generated_at=data.get("generated_at"),
     )
