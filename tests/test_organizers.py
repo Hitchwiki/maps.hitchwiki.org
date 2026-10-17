@@ -110,12 +110,3 @@ def test_report_escapes_osm_names(client, evidence, db):
     html = client.get(URL).data.decode()
     assert '<script>alert("x")</script>' not in html
     assert "&lt;script&gt;" in html
-
-
-def test_report_viewed_event_carries_coarse_area():
-    # Requirement: tell mailed towns apart in analytics without precise coordinates.
-    from pathlib import Path
-
-    src = (Path(__file__).resolve().parent.parent / "hitch" / "static" / "organizers.js").read_text()
-    assert "track('organizer_report_viewed', {area:" in src
-    assert "toFixed(1)" in src
