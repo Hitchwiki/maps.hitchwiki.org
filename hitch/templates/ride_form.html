@@ -1658,9 +1658,23 @@
             const code = opt.getAttribute('data-code');
             if (!code) continue;
             nameToCode[opt.value.toLowerCase()] = code;
-            codeToName[code] = opt.value;
+            if (!opt.hasAttribute('data-alias')) codeToName[code] = opt.value;
         }
         return { nameToCode, codeToName };
+    }
+
+    // Names with accents (Türkiye) are hard to type on most keyboards: offer an
+    // accent-free twin ("Turkiye") that maps to the same code.
+    function _addAccentFreeAliases(datalist) {
+        for (const opt of Array.from(datalist.options)) {
+            const plain = opt.value.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            if (plain === opt.value || !opt.getAttribute('data-code')) continue;
+            const alias = document.createElement('option');
+            alias.value = plain;
+            alias.setAttribute('data-code', opt.getAttribute('data-code'));
+            alias.setAttribute('data-alias', '1');
+            datalist.appendChild(alias);
+        }
     }
 
     // Single-value country/text picker: visible input shows the human-readable name,
@@ -1670,6 +1684,7 @@
         const hidden = document.getElementById(hiddenId);
         const datalist = document.getElementById(datalistId);
         if (!input || !hidden || !datalist) return;
+        _addAccentFreeAliases(datalist);
         const { nameToCode, codeToName } = _buildDatalistMaps(datalist);
 
         const preCode = input.dataset.selectedCode;
