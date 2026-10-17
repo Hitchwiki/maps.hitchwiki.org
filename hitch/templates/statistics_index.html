@@ -28,6 +28,10 @@
     <strong>{{ t("Hitchhiking safety") }}</strong>
     <span>{{ t("Would hitchhikers accept the same ride again? Pick who was hitchhiking and see their answers.") }}</span>
   </a>
+  <a class="statistics-link" href="{{ url_for(request.blueprint ~ '.driver_reasons_statistics') }}">
+    <strong>{{ t("Why drivers stop") }}</strong>
+    <span>{{ t("The reasons hitchhikers recorded for why the driver picked them up.") }}</span>
+  </a>
   <a class="statistics-link" href="{{ url_for(request.blueprint ~ '.ride_collection_statistics_page') }}">
     <strong>{{ t("Ride collection") }}</strong>
     <span>{{ t("See how many rides were collected each week, overall and by source.") }}</span>

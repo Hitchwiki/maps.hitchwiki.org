@@ -940,6 +940,30 @@ def why_not_hitchhike():
     )
 
 
+@main_bp.route("/statistics/why-drivers-stop")
+def driver_reasons_statistics():
+    """How often each "why did they pick you up?" answer was recorded.
+
+    Precomputed daily (dist/driver_reasons.json); a missing file renders an empty page.
+    """
+    path = os.path.join(get_dirs()["dist"], "driver_reasons.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        data = {}
+    reasons = [
+        {"label": REASON_DESCRIPTION_BY_CODE.get(r["code"], r["code"]), "rides": r["rides"]}
+        for r in data.get("reasons") or []
+    ]
+    return render_template(
+        "driver_reasons.html",
+        reasons=reasons,
+        coverage=data.get("coverage", {}),
+        generated_at=data.get("generated_at"),
+    )
+
+
 @main_bp.route("/hitchhiking-safety")
 def hitchhiking_safety():
     """"Would you accept this ride again?", sliced by the cohort the visitor describes.

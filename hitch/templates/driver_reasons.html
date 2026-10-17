@@ -1,0 +1,38 @@
+{% extends "security/base.html" %}
+
+{% set title = t("Why drivers stop") %}
+
+{% block meta_description %}{{ t("The reasons hitchhikers recorded for why the driver picked them up.") }}{% endblock %}
+{% block og_title %}{{ t("Why drivers stop") }}{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+  .overlay { max-width: 760px; }
+  .stats-note { color: #555; font-size: 0.9em; }
+  .stats-table { border-collapse: collapse; width: 100%; font-size: 0.9em; margin-top: 1rem; }
+  .stats-table th, .stats-table td { border-bottom: 1px solid #eee; padding: 0.5rem 0.35rem; text-align: left; }
+  .stats-table th:last-child, .stats-table td:last-child { text-align: right; }
+  .stats-foot { margin-top: 2rem; padding-top: 0.8rem; border-top: 1px solid #eee; color: #777; font-size: 0.8em; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>{{ t("Why drivers stop") }}</h1>
+<p class="stats-note">{{ t("The reasons hitchhikers recorded for why the driver picked them up. A ride can have several reasons, so the counts do not add up to the number of rides.") }}</p>
+{% if reasons %}
+<table class="stats-table">
+  <thead><tr><th>{{ t("Reason") }}</th><th>{{ t("Rides") }}</th></tr></thead>
+  <tbody>
+    {% for row in reasons %}<tr><td>{{ row.label }}</td><td>{{ row.rides }}</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="stats-note">{{ t("No recorded reasons yet.") }}</p>
+{% endif %}
+<p class="stats-foot">
+  {% if coverage.rides_with_answer %}{{ t("{used} of {total} rides have an answer.", used=coverage.rides_with_answer, total=coverage.rides_read) }}{% endif %}
+  {{ t("These are the hitchhiker's guesses about the driver, not driver surveys.") }}
+  {% if generated_at %}{{ t("Recalculated daily; last run {when}.", when=generated_at) }}{% endif %}
+</p>
+{% endblock %}
