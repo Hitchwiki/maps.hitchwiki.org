@@ -391,6 +391,11 @@ def render_spot(spot_id):
     if not SPOT_ID_RE.match(spot_id):
         abort(404)
     lat, lon = (float(v) for v in spot_id.split("_"))
+    # Inbound links do not always carry the 5-decimal form the per-spot files are
+    # named by: the wiki infobox pins write "45.78004_24.1688" (trailing zero
+    # dropped), about 18% of them. Look up and advertise the canonical id, or
+    # those visitors get a nameless title and an extra URL for the same spot.
+    spot_id = f"{lat:.5f}_{lon:.5f}"
     preview = _spot_preview(spot_id)
     name = preview["name"] if preview else None
     return render_template(

@@ -67,6 +67,13 @@ class TestRenderSpot:
         body = client.get(f"/spot/{SPOT_ID}").get_data(as_text=True)
         assert "Raststätte Michendorf-Nord — hitchhiking spot" in body
 
+    def test_trailing_zero_id_finds_the_canonical_spot(self, client, write_spot):
+        # Wiki infobox pins link /spot/<lat>_<lon> with trailing zeros dropped.
+        write_spot({"spot": {"name": "Robin Oil"}, "rides": [{"rating": 5}]}, spot_id="45.78000_24.16880")
+        body = client.get("/spot/45.78_24.1688").get_data(as_text=True)
+        assert "Robin Oil — hitchhiking spot" in body
+        assert "/spot/45.78000_24.16880" in body
+
     def test_unnamed_spot_keeps_the_coordinate_title(self, client, write_spot):
         write_spot({"spot": {}, "rides": [{"rating": 4}]})
         body = client.get(f"/spot/{SPOT_ID}").get_data(as_text=True)
