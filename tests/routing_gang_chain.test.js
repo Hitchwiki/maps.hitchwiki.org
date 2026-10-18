@@ -74,3 +74,12 @@ console.log("ok");
   assert.strictEqual(C.newChain(A, B, nr4(), L4, [[50.01, 11.02]]).find(c => c.s !== start).s, open, "city stop is penalised");
   console.log("ok city");
 }
+
+// Riders' path: A(50,10) -> hop north-east -> B(50,12) through a detour via (51,11); the straight road is the fastest.
+const legs = [[50.0, 10.0, 51.0, 11.0], [51.0, 11.0, 50.0, 12.0]];
+const rp = C.ridersPath(legs, A, B, 6);
+assert(rp && rp.pts.length === 6, "two logged legs connect A to B");
+assert.strictEqual(C.ridersPath([[50.0, 10.0, 51.0, 11.0]], A, B, 6), null, "no path when the chain breaks");
+assert(C.ridersUsable(rp, line, C.km(A, B)) === false, "detour of ~1.9x the road is too long");
+const rp2 = C.ridersPath([[50.0, 10.0, 50.3, 11.0], [50.3, 11.0, 50.0, 12.0]], A, B, 6);
+assert(C.ridersUsable(rp2, line, C.km(A, B)), "a mild detour that leaves the road is usable");
