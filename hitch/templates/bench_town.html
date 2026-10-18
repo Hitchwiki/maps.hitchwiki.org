@@ -35,7 +35,10 @@
   var prn = document.getElementById("bench-print-link");
   if (prn) prn.addEventListener("click", function () { if (window.hmTrack) hmTrack("bench_sign_print_opened", { surface: "bench_town" }); });
   var lbox = document.getElementById("bench-link-box");
-  if (lbox && /[?&]ref=bench_/.test(location.search)) {
+  // base.html strips ?ref= via history.replaceState before this runs, so
+  // location.search is already empty here; read the captured landing ref.
+  var landRef = window.hmLandingRef || "";
+  if (lbox && (/^bench_/.test(landRef) || /[?&]ref=bench_/.test(location.search))) {
     lbox.style.display = "block";
     if (window.hmTrack) hmTrack("bench_link_box_shown", { surface: "bench_town" });
     document.getElementById("bench-link-copy").addEventListener("click", function () {
