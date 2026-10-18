@@ -1200,7 +1200,10 @@
     a.href = spotHref(c);
     a.className = "rp-spot-link";
     a.textContent = coordLabel(c);
-    a.addEventListener("click", (e) => { if (openSpotSheet(c, e)) e.preventDefault(); });
+    a.addEventListener("click", (e) => {
+      hmTrack("route_spot_link_clicked", {});
+      if (openSpotSheet(c, e)) e.preventDefault();
+    });
     return a;
   }
 
@@ -1656,8 +1659,16 @@
           <button class="rp-sign-btn" type="button">${T("Make a sign")}</button>
           <div class="rp-steps" hidden></div>
         </div>`;
-      row.querySelector(".rp-opt-summary").addEventListener("click", () => highlight(i));
-      row.querySelector(".rp-details-btn").addEventListener("click", () => toggleDetails(row, rt, i));
+      // Real clicks only (highlight() also runs when results render). Index and
+      // count only, no coordinates: do multi-option planners look past option 1?
+      row.querySelector(".rp-opt-summary").addEventListener("click", () => {
+        hmTrack("route_option_picked", { idx: i, of: RJ.routes.length });
+        highlight(i);
+      });
+      row.querySelector(".rp-details-btn").addEventListener("click", () => {
+        hmTrack("route_details_clicked", { idx: i, of: RJ.routes.length });
+        toggleDetails(row, rt, i);
+      });
       row.querySelector(".rp-sign-btn").addEventListener("click", () => openSign("route", i));
       box.appendChild(row);
     });
