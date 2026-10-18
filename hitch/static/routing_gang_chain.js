@@ -130,6 +130,47 @@
     }
     return best;
   }
-  const api = { pickVia, MIN_EVIDENCE, km, bearing, toward, score, densify, nearRoute, oldChain, newChain, driverList };
+  // "The way other riders went": BFS over logged legs [lat, lon, dest_lat, dest_lon] on 0.1-degree cells, <= 6 hops,
+  // from A's cell (or a neighbour) to B's. Returns the polyline [A, leg origin, leg dest, ..., B] and its length, or null.
+  const cellOf = (la, lo) => [Math.round(la / 0.1), Math.round(lo / 0.1)];
+  const ck = (c) => c[0] + "," + c[1];
+  function ridersPath(legs, a, b, maxHops) {
+    const edges = new Map();
+    for (const l of legs) {
+      const x = cellOf(l[0], l[1]), y = cellOf(l[2], l[3]);
+      if (ck(x) === ck(y)) continue;
+      const k = ck(x); if (!edges.has(k)) edges.set(k, []);
+      edges.get(k).push({ y: ck(y), o: [l[0], l[1]], d: [l[2], l[3]], len: km([l[0], l[1]], [l[2], l[3]]) });
+    }
+    const nb = (c) => { const r = []; for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) r.push((c[0] + i) + "," + (c[1] + j)); return r; };
+    const goal = new Set(nb(cellOf(b[0], b[1]))), start = ck(cellOf(a[0], a[1]));
+    const seen = new Map([[start, null]]); let q = [start], found = null;
+    for (let h = 0; h < (maxHops || 6) && !found; h++) {
+      const nq = [];
+      for (const x of q) {
+        for (const sx of nb(x.split(",").map(Number))) for (const e of (edges.get(sx) || [])) {
+          if (seen.has(e.y)) continue;
+          seen.set(e.y, { from: x, e });
+          if (goal.has(e.y)) { found = e.y; break; }
+          nq.push(e.y);
+        }
+        if (found) break;
+      }
+      q = nq;
+    }
+    if (!found) return null;
+    let pts = [], total = 0, z = found;
+    while (seen.get(z)) { const { from, e } = seen.get(z); pts = [e.o, e.d].concat(pts); total += e.len; z = from; }
+    return { pts: [a].concat(pts, [b]), km: total };
+  }
+  // Usable as a second route: <= 1.3x the fastest road length and >= 20% of the path more than 3 km from the fastest road.
+  function ridersUsable(path, fastLine, fastKm) {
+    if (!path || path.km > 1.3 * fastKm) return false;
+    const [dl] = densify(path.pts);
+    let off = 0;
+    for (const p of dl) { let near = false; for (const q of fastLine) if (km(p, q) <= 3) { near = true; break; } if (!near) off++; }
+    return off / dl.length >= 0.2;
+  }
+  const api = { ridersPath, ridersUsable, pickVia, MIN_EVIDENCE, km, bearing, toward, score, densify, nearRoute, oldChain, newChain, driverList };
   if (typeof module !== "undefined") module.exports = api; else root.RGChain = api;
 })(typeof window !== "undefined" ? window : this);
