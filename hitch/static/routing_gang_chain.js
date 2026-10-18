@@ -77,6 +77,13 @@
     const first = near.filter(c => km(a, [c.s.lat, c.s.lon]) <= 15).sort((x, y) => fscore(y) - fscore(x))[0];
     let pos = first ? first.at : 0;
     if (first) chain.push(first);
+    // No spot within 15 km of A and a short route (<= 80 km): the loop below adds nothing, so the page
+    // showed zero stops. Suggest the best-scoring spot in the first half of the route instead (flagged weak if so).
+    if (!first && near.length) {
+      const firstHalf = near.filter(c => c.at <= routeKm / 2);
+      const early = (firstHalf.length ? firstHalf : near).sort((x, y) => fscore(y) - fscore(x))[0];
+      if (early) { chain.push(early); pos = early.at; }
+    }
     for (let guard = 0; guard < 60 && routeKm - pos > 80; guard++) {
       const win = near.filter(c => c.at >= pos + 20 && c.at <= pos + 80).sort((x, y) => y.score - x.score)[0];
       if (win) { chain.push(win); pos = win.at; continue; }
