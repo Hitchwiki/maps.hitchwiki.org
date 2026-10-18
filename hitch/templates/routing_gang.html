@@ -73,6 +73,14 @@
   }
   // No logged spot near A: offer the OSM fuel/rest/service place nearest A along the road (display only).
   async function osmFallback(a, line, cum) {
+    // Held-out pioneer rides (EXP-1057): the road point ~3 km from A was within 2 km of where riders really stood
+    // 43% of the time, against 24% for the first OSM fuel/rest/junction node. Show it first.
+    const i3 = cum.findIndex(c => c >= 3);
+    if (i3 > 0) {
+      const e = line[i3];
+      L.circleMarker(e, { radius: 7, color: "#1a73e8", weight: 3 }).addTo(layer).bindTooltip("edge of town");
+      out.insertAdjacentHTML("beforeend", `<br><b>Where riders without a known spot usually stood:</b> on this road at the edge of town, about 3 km from A: <a href="https://www.openstreetmap.org/?mlat=${e[0]}&mlon=${e[1]}#map=16/${e[0]}/${e[1]}" target="_blank">${e[0].toFixed(4)}, ${e[1].toFixed(4)}</a>.`);
+    }
     try {
       const q = window.RGFallback.overpassQuery(a[0], a[1], 10000);
       const j = await fetch("https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(q)).then(r => r.json());
@@ -80,7 +88,7 @@
       track("routing_gang_osm_fallback", { found: !!f });
       if (!f) return;
       L.circleMarker([f.lat, f.lon], { radius: 7, color: "#e37400", weight: 3 }).addTo(layer).bindTooltip("OSM " + f.kind);
-      out.insertAdjacentHTML("beforeend", `<br><b>Nearest place to start from, along the road:</b> ${f.label}: <a href="https://www.openstreetmap.org/?mlat=${f.lat}&mlon=${f.lon}#map=17/${f.lat}/${f.lon}" target="_blank">${f.lat.toFixed(4)}, ${f.lon.toFixed(4)}</a> (${f.at.toFixed(0)} km along the route). Not checked for hitchhiking.`);
+      out.insertAdjacentHTML("beforeend", `<br><b>Or the nearest fuel, rest or service place on the road:</b> ${f.label}: <a href="https://www.openstreetmap.org/?mlat=${f.lat}&mlon=${f.lon}#map=17/${f.lat}/${f.lon}" target="_blank">${f.lat.toFixed(4)}, ${f.lon.toFixed(4)}</a> (${f.at.toFixed(0)} km along the route). Not checked for hitchhiking.`);
     } catch (e) { track("routing_gang_osm_fallback", { found: false, error: true }); }
   }
   async function plan(a, b) {
