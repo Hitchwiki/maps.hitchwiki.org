@@ -69,7 +69,7 @@
     const rides = c.s.review_count || 0;
     const bits = [`${rides} ride${rides === 1 ? "" : "s"} logged`];
     if (c.s.rating) bits.push(`rated ${c.s.rating.toFixed(1)}/5`);
-    bits.push(t.n ? `${t.ok} of ${t.n} rides from here went toward B` : "no destination logged");
+    bits.push(t.n ? `${t.ok} of ${t.n} rides from here went toward B` + (t.medKm ? ` (median ${Math.round(t.medKm)} km)` : "") : "no destination logged");
     const w = waitNote(c.s); if (w) bits.push(w);
     return bits.join(", ");
   }

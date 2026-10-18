@@ -18,13 +18,15 @@
     const n = (s.dest_lats || []).length;
     if (!n) return { share: null, n: 0, ok: 0 };
     const p = [s.lat, s.lon], brg = bearing(p, b), dB = km(p, b);
-    let ok = 0;
+    let ok = 0; const kms = [];
     for (let i = 0; i < n; i++) {
       const d = [s.dest_lats[i], s.dest_lons[i]];
       let diff = Math.abs(bearing(p, d) - brg); if (diff > 180) diff = 360 - diff;
-      if (diff <= 45 && km(d, b) < dB) ok++;
+      if (diff <= 45 && km(d, b) < dB) { ok++; kms.push(km(p, d)); }
     }
-    return { share: ok / n, n, ok };
+    kms.sort((x, y) => x - y);
+    // medKm: median distance of the rides that went toward B (null if none)
+    return { share: ok / n, n, ok, medKm: ok ? kms[Math.floor(ok / 2)] : null };
   }
   // A stop counts as evidenced when at least MIN_EVIDENCE logged rides from it went toward B.
   const MIN_EVIDENCE = 3;
