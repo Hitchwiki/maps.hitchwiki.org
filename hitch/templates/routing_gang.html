@@ -37,6 +37,8 @@
   const wgReady = fetch("/static/routing_gang_waitgrid.json").then(r => r.json()).then(j => { wg = j; }).catch(() => {});
   // Places where a logged ride started or continued; spots only ever used as a drop-off are hidden.
   let pk = null;
+  let cities = null;
+  const ctReady = fetch("/static/routing_gang_cities.json").then(r => r.json()).then(j => { cities = j; }).catch(() => {});
   const pkReady = fetch("/static/routing_gang_pickups.json").then(r => r.json()).then(j => { pk = new Set(j.map(p => Math.round(p[0] * 1e4) + "," + Math.round(p[1] * 1e4))); }).catch(() => {});
   function isPickup(s) {
     if (!pk) return true;
@@ -94,14 +96,14 @@
   async function plan(a, b) {
     out.textContent = "Loading road route…";
     try {
-      const [spots, , , r] = await Promise.all([spotsReady, wgReady, pkReady,
+      const [spots, , , , r] = await Promise.all([spotsReady, wgReady, pkReady, ctReady,
         fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=simplified&geometries=geojson&alternatives=true`).then(x => x.json())]);
       const COLORS = ["#1a73e8", "#9334e6", "#e37400"];
       const build = (rt) => {
         const raw = rt.geometry.coordinates.map(c => [c[1], c[0]]);
         const [line, cum] = C.densify(raw);
         const near = C.nearRoute(spots, line, cum, 3).filter(c => isPickup(c.s));
-        const chain = C.newChain(a, b, near, cum[cum.length - 1]);
+        const chain = C.newChain(a, b, near, cum[cum.length - 1], cities);
         return { rt, raw, line, cum, near, chain, weak: chain.filter(c => c.weak).length };
       };
       // Routes with fewer weakly evidenced stops first, then the faster one.

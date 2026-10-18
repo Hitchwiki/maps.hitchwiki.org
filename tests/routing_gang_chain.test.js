@@ -56,3 +56,17 @@ console.log("ok");
   assert.strictEqual(C.pickVia([onRoad, thin, off], A, B, l3, c3).s, off);
   console.log("ok via");
 }
+
+// City penalty: a mid-route stop within 5 km of a city centre loses to a slightly weaker open-road stop.
+{
+  const toB = (n) => ({ dest_lats: Array(n).fill(50.0), dest_lons: Array(n).fill(12.0) });
+  const inCity = spot(50.0, 11.0, Object.assign({ review_count: 10, rating: 5 }, toB(5)));
+  const open = spot(50.0, 10.8, toB(5));
+  const [l4, c4] = C.densify([A, B]);
+  const start = spot(50.0, 10.05, toB(5));
+  const nr4 = () => C.nearRoute([start, inCity, open], l4, c4, 3);
+  const L4 = c4[c4.length - 1];
+  assert.strictEqual(C.newChain(A, B, nr4(), L4).find(c => c.s !== start).s, inCity, "without a city list the stronger spot wins");
+  assert.strictEqual(C.newChain(A, B, nr4(), L4, [[50.01, 11.02]]).find(c => c.s !== start).s, open, "city stop is penalised");
+  console.log("ok city");
+}
