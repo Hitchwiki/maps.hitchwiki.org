@@ -81,15 +81,16 @@
   // 20-80 km window along the route; the rest is a hop to B, or a flagged gap.
   function newChain(a, b, near, routeKm, cities) {
     const chain = [];
-    const score_ = (c) => { c.t = toward(c.s, b); c.weak = c.t.ok < MIN_EVIDENCE; c.score = score(c.s, c.t) - (c.weak ? 10 : 0) - (nearCity(c.s, cities) ? CITY_PENALTY : 0); return c; };
+    const score_ = (c) => { c.t = toward(c.s, b); c.weak = c.t.ok < MIN_EVIDENCE; c.score = score(c.s, c.t) - (c.weak ? 10 : 0); c.wscore = c.score - (nearCity(c.s, cities) ? CITY_PENALTY : 0); return c; };
     near.forEach(score_);
+    // The city penalty (wscore) applies to mid-route windows only: a city start must keep its nearby first stop.
     // First stop: prefer spots close to A (-0.2 score per km); a spot 14 km out used to win on score alone.
     const fscore = (c) => c.score - 0.2 * km(a, [c.s.lat, c.s.lon]);
     const first = near.filter(c => km(a, [c.s.lat, c.s.lon]) <= 15).sort((x, y) => fscore(y) - fscore(x))[0];
     let pos = first ? first.at : 0;
     if (first) chain.push(first);
     for (let guard = 0; guard < 60 && routeKm - pos > 80; guard++) {
-      const win = near.filter(c => c.at >= pos + 20 && c.at <= pos + 80).sort((x, y) => y.score - x.score)[0];
+      const win = near.filter(c => c.at >= pos + 20 && c.at <= pos + 80).sort((x, y) => y.wscore - x.wscore)[0];
       if (win) { chain.push(win); pos = win.at; continue; }
       const next = near.find(c => c.at > pos + 80);
       if (!next) break;
