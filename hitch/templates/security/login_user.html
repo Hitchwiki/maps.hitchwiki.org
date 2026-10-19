@@ -43,6 +43,16 @@
     if (a) a.addEventListener("click", function () {
       if (window.hmTrack) window.hmTrack("login_oauth_clicked", props);
     });
+    // #1047: the two other links on the page, so "left without pressing the button" can be
+    // split into "went to create a wiki account" vs "read the privacy policy" vs neither.
+    document.addEventListener("click", function (e) {
+      var l = e.target.closest && e.target.closest("a[href]");
+      if (!l) return;
+      var h = l.getAttribute("href") || "", target = "";
+      if (h.indexOf("Special:CreateAccount") !== -1) target = "create_account";
+      else if (h.indexOf("PRIVACY_POLICY") !== -1) target = "privacy_policy";
+      if (target && window.hmTrack) window.hmTrack("login_exit_clicked", { target: target, source: props.source, next: props.next });
+    });
   })();
 </script>
 {% endblock scripts %}
