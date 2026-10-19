@@ -10,11 +10,10 @@ const css = fs.readFileSync(
   path.join(__dirname, "..", "hitch", "static", "style.css"), "utf8"
 );
 
-test("driver answer row: control arm is the default (no row without hmVariant)", () => {
-  assert.match(source, /driver-answer-dock-v1", \["control", "ask"\]/);
+test("driver answer row: rolled out to 100% ask (single-variant hmVariant); no row without hmVariant", () => {
+  assert.match(source, /driver-answer-dock-v1", \["ask"\]/);
   assert.match(source, /driverAnswerArm === "ask"/);
-  // The fallback variant helper returns v[0] = "control", so a page without
-  // hmVariant never renders the row.
+  // The fallback variant helper returns v[0] = "ask".
   assert.match(source, /window\.hmVariant \|\| function \(_n, v\) \{ return v\[0\]; \}/);
 });
 

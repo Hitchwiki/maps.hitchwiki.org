@@ -1269,8 +1269,8 @@
       // pooled with the hitchhiker-attributed driver_reason_* series, and does not
       // alter the ride record — attribution vs first-party stays distinguishable.
       const driverAnswerArm = (window.hmVariant || function (_n, v) { return v[0]; })(
-        "driver-answer-dock-v1", ["control", "ask"]
-      );
+        "driver-answer-dock-v1", ["ask"]
+      ); // 100% ask since 2026-10-19: 33 taps / 47 shows (70%), top reason 39% (<60% kill/concentration rule)
       if (driverAnswerArm === "ask") {
         const driverRow = document.createElement("div");
         driverRow.className = "inr-driver-row";
