@@ -30,8 +30,11 @@
   }
   // A stop counts as evidenced when at least MIN_EVIDENCE logged rides from it went toward B.
   const MIN_EVIDENCE = 3;
+  // Rides from fuel/rest-area spots go a median 55 km vs 24 km from town spots (621 riders: 1.7x as far for the
+  // same people, 20 vs 15 min wait), so a fuel spot gets a modest bonus; evidence toward B still dominates (x3).
+  const FUEL_BONUS = 0.5;
   function score(s, t) {
-    return (t.share || 0) * 3 + Math.min(s.review_count || 0, 10) / 10 + (s.rating || 0) / 10;
+    return (t.share || 0) * 3 + Math.min(s.review_count || 0, 10) / 10 + (s.rating || 0) / 10 + (s.fuel ? FUEL_BONUS : 0);
   }
   // Densify a polyline to ~2 km steps; returns [points, cumulative km at each point].
   function densify(raw) {
