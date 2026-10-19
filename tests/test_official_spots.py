@@ -152,3 +152,6 @@ def test_bench_town_link_box_has_town_link_and_tracking(client):
     assert 'id="bench-link-box"' in body
     assert "mitfahrbank/moringen-de?ref=townsite" in body
     assert "bench_link_copied" in body and "ref=bench_" in body
+    # base.html strips ?ref= before this inline script runs; the box must key
+    # off the captured landing ref, not location.search alone.
+    assert "window.hmLandingRef" in body
