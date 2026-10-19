@@ -18,18 +18,23 @@
     const n = (s.dest_lats || []).length;
     if (!n) return { share: null, n: 0, ok: 0 };
     const p = [s.lat, s.lon], brg = bearing(p, b), dB = km(p, b);
-    let ok = 0;
+    let ok = 0; const kms = [];
     for (let i = 0; i < n; i++) {
       const d = [s.dest_lats[i], s.dest_lons[i]];
       let diff = Math.abs(bearing(p, d) - brg); if (diff > 180) diff = 360 - diff;
-      if (diff <= 45 && km(d, b) < dB) ok++;
+      if (diff <= 45 && km(d, b) < dB) { ok++; kms.push(km(p, d)); }
     }
-    return { share: ok / n, n, ok };
+    kms.sort((x, y) => x - y);
+    // medKm: median distance of the rides that went toward B (null if none)
+    return { share: ok / n, n, ok, medKm: ok ? kms[Math.floor(ok / 2)] : null };
   }
   // A stop counts as evidenced when at least MIN_EVIDENCE logged rides from it went toward B.
   const MIN_EVIDENCE = 3;
+  // Rides from fuel/rest-area spots go a median 55 km vs 24 km from town spots (621 riders: 1.7x as far for the
+  // same people, 20 vs 15 min wait), so a fuel spot gets a modest bonus; evidence toward B still dominates (x3).
+  const FUEL_BONUS = 0.5;
   function score(s, t) {
-    return (t.share || 0) * 3 + Math.min(s.review_count || 0, 10) / 10 + (s.rating || 0) / 10;
+    return (t.share || 0) * 3 + Math.min(s.review_count || 0, 10) / 10 + (s.rating || 0) / 10 + (s.fuel ? FUEL_BONUS : 0);
   }
   // Densify a polyline to ~2 km steps; returns [points, cumulative km at each point].
   function densify(raw) {
@@ -66,19 +71,38 @@
     }
     return chain;
   }
+  // Riders dropped within 5 km of a city centre needed a median 1.91 km to reach their next pickup (42% over 3 km),
+  // against 0.1 km elsewhere (n=899 transfers), so a mid-route stop in a city is penalised. cities: [[lat, lon], ...].
+  const CITY_PENALTY = 10, CITY_KM = 5;
+  function nearCity(s, cities) {
+    if (!cities) return false;
+    for (const c of cities) {
+      if (Math.abs(c[0] - s.lat) > 0.05 || Math.abs(c[1] - s.lon) > 0.08) continue;
+      if (km([s.lat, s.lon], c) < CITY_KM) return true;
+    }
+    return false;
+  }
   // New: departure spot = best-scoring spot within 15 km of A; then the best one in each
   // 20-80 km window along the route; the rest is a hop to B, or a flagged gap.
-  function newChain(a, b, near, routeKm) {
+  function newChain(a, b, near, routeKm, cities) {
     const chain = [];
-    const score_ = (c) => { c.t = toward(c.s, b); c.weak = c.t.ok < MIN_EVIDENCE; c.score = score(c.s, c.t) - (c.weak ? 10 : 0); return c; };
+    const score_ = (c) => { c.t = toward(c.s, b); c.weak = c.t.ok < MIN_EVIDENCE; c.score = score(c.s, c.t) - (c.weak ? 10 : 0); c.wscore = c.score - (nearCity(c.s, cities) ? CITY_PENALTY : 0); return c; };
     near.forEach(score_);
+    // The city penalty (wscore) applies to mid-route windows only: a city start must keep its nearby first stop.
     // First stop: prefer spots close to A (-0.2 score per km); a spot 14 km out used to win on score alone.
     const fscore = (c) => c.score - 0.2 * km(a, [c.s.lat, c.s.lon]);
     const first = near.filter(c => km(a, [c.s.lat, c.s.lon]) <= 15).sort((x, y) => fscore(y) - fscore(x))[0];
     let pos = first ? first.at : 0;
     if (first) chain.push(first);
+    // No spot within 15 km of A and a short route (<= 80 km): the loop below adds nothing, so the page
+    // showed zero stops. Suggest the best-scoring spot in the first half of the route instead (flagged weak if so).
+    if (!first && near.length) {
+      const firstHalf = near.filter(c => c.at <= routeKm / 2);
+      const early = (firstHalf.length ? firstHalf : near).sort((x, y) => fscore(y) - fscore(x))[0];
+      if (early) { chain.push(early); pos = early.at; }
+    }
     for (let guard = 0; guard < 60 && routeKm - pos > 80; guard++) {
-      const win = near.filter(c => c.at >= pos + 20 && c.at <= pos + 80).sort((x, y) => y.score - x.score)[0];
+      const win = near.filter(c => c.at >= pos + 20 && c.at <= pos + 80).sort((x, y) => y.wscore - x.wscore)[0];
       if (win) { chain.push(win); pos = win.at; continue; }
       const next = near.find(c => c.at > pos + 80);
       if (!next) break;
@@ -109,6 +133,47 @@
     }
     return best;
   }
-  const api = { pickVia, MIN_EVIDENCE, km, bearing, toward, score, densify, nearRoute, oldChain, newChain, driverList };
+  // "The way other riders went": BFS over logged legs [lat, lon, dest_lat, dest_lon] on 0.1-degree cells, <= 6 hops,
+  // from A's cell (or a neighbour) to B's. Returns the polyline [A, leg origin, leg dest, ..., B] and its length, or null.
+  const cellOf = (la, lo) => [Math.round(la / 0.1), Math.round(lo / 0.1)];
+  const ck = (c) => c[0] + "," + c[1];
+  function ridersPath(legs, a, b, maxHops) {
+    const edges = new Map();
+    for (const l of legs) {
+      const x = cellOf(l[0], l[1]), y = cellOf(l[2], l[3]);
+      if (ck(x) === ck(y)) continue;
+      const k = ck(x); if (!edges.has(k)) edges.set(k, []);
+      edges.get(k).push({ y: ck(y), o: [l[0], l[1]], d: [l[2], l[3]], len: km([l[0], l[1]], [l[2], l[3]]) });
+    }
+    const nb = (c) => { const r = []; for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) r.push((c[0] + i) + "," + (c[1] + j)); return r; };
+    const goal = new Set(nb(cellOf(b[0], b[1]))), start = ck(cellOf(a[0], a[1]));
+    const seen = new Map([[start, null]]); let q = [start], found = null;
+    for (let h = 0; h < (maxHops || 6) && !found; h++) {
+      const nq = [];
+      for (const x of q) {
+        for (const sx of nb(x.split(",").map(Number))) for (const e of (edges.get(sx) || [])) {
+          if (seen.has(e.y)) continue;
+          seen.set(e.y, { from: x, e });
+          if (goal.has(e.y)) { found = e.y; break; }
+          nq.push(e.y);
+        }
+        if (found) break;
+      }
+      q = nq;
+    }
+    if (!found) return null;
+    let pts = [], total = 0, z = found;
+    while (seen.get(z)) { const { from, e } = seen.get(z); pts = [e.o, e.d].concat(pts); total += e.len; z = from; }
+    return { pts: [a].concat(pts, [b]), km: total };
+  }
+  // Usable as a second route: <= 1.3x the fastest road length and >= 20% of the path more than 3 km from the fastest road.
+  function ridersUsable(path, fastLine, fastKm) {
+    if (!path || path.km > 1.3 * fastKm) return false;
+    const [dl] = densify(path.pts);
+    let off = 0;
+    for (const p of dl) { let near = false; for (const q of fastLine) if (km(p, q) <= 3) { near = true; break; } if (!near) off++; }
+    return off / dl.length >= 0.2;
+  }
+  const api = { ridersPath, ridersUsable, pickVia, MIN_EVIDENCE, km, bearing, toward, score, densify, nearRoute, oldChain, newChain, driverList };
   if (typeof module !== "undefined") module.exports = api; else root.RGChain = api;
 })(typeof window !== "undefined" ? window : this);

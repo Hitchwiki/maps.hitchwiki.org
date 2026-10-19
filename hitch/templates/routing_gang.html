@@ -30,14 +30,20 @@
     { attribution: "© OpenStreetMap" }).addTo(map);
   const out = document.getElementById("rg-out");
   const track = (n, d) => { if (window.hmTrack) window.hmTrack(n, d); };
-  track("routing_gang_opened", { shared_link: location.search.includes("a="), from_ride: location.search.includes("ref=ride_page"), from_wiki: location.search.includes("ref=wiki_route") });
+  // base.html strips ?ref= from the address bar before this runs; the value survives in window.hmLandingRef.
+  const lr = window.hmLandingRef || (new URLSearchParams(location.search)).get("ref") || "";
+  track("routing_gang_opened", { shared_link: location.search.includes("a="), from_ride: lr === "ride_page", from_wiki: lr === "wiki_route" });
   let pts = [], layer = L.layerGroup().addTo(map);
   const spotsReady = fetch("/spots.json").then(r => r.json()).then(j => j.spots || j);
   let wg = { cells: {} };
   const wgReady = fetch("/static/routing_gang_waitgrid.json").then(r => r.json()).then(j => { wg = j; }).catch(() => {});
   // Places where a logged ride started or continued; spots only ever used as a drop-off are hidden.
   let pk = null;
+  let cities = null;
+  const ctReady = fetch("/static/routing_gang_cities.json").then(r => r.json()).then(j => { cities = j; }).catch(() => {});
   const pkReady = fetch("/static/routing_gang_pickups.json").then(r => r.json()).then(j => { pk = new Set(j.map(p => Math.round(p[0] * 1e4) + "," + Math.round(p[1] * 1e4))); }).catch(() => {});
+  let legs = [];
+  const lgReady = fetch("/static/routing_gang_legs.json").then(r => r.json()).then(j => { legs = j; }).catch(() => {});
   function isPickup(s) {
     if (!pk) return true;
     const la = Math.round(s.lat * 1e4), lo = Math.round(s.lon * 1e4);
@@ -53,26 +59,69 @@
   }
   // Place names for the suggested stops: one Nominatim lookup per second, town level, display only.
   async function nameStops() {
-    for (const el of out.querySelectorAll("ol .rg-place")) {
+    const els = [...out.querySelectorAll("ol .rg-place")];
+    const names = [];
+    for (const el of els) {
       try {
         const j = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=12&lat=${el.dataset.lat}&lon=${el.dataset.lon}`).then(r => r.json());
         const a = j.address || {}; const n = a.city || a.town || a.village || a.municipality || a.county;
-        if (n) el.textContent = "(near " + n + ")";
+        if (n) { el.textContent = "(near " + n + ")"; names[els.indexOf(el)] = n; }
       } catch (e) {}
       await new Promise(r => setTimeout(r, 1100));
     }
+    // Sign idea per leg: the next stop's town when it is under 150 km away (logged place signs with a near
+    // target waited a median 20 min vs 31.5 for far ones; research/sign-text-class-2026-10-19.md).
+    els.forEach((el, i) => {
+      const nx = els[i + 1];
+      if (!nx || !names[i + 1] || !names[i]) return;
+      const km = 111.2 * Math.hypot(el.dataset.lat - nx.dataset.lat, (el.dataset.lon - nx.dataset.lon) * Math.cos(el.dataset.lat * Math.PI / 180));
+      if (km >= 150) return;
+      el.closest("li").insertAdjacentHTML("beforeend", `<br><small>Sign idea from here: <b class="rg-sign" role="button" tabindex="0" style="text-decoration:underline;cursor:pointer" title="Tap to show full screen">${names[i + 1].replace(/</g, "")}</b> (tap the name for a full-screen sign; a nearby town on the way; logged signs with a near town waited ~11 min less than far ones)</small>`);
+    });
   }
+  // Tap a "Sign idea" name: full-screen black-on-white sign to hold up at the roadside; tap again to close.
+  function showSign(name) {
+    const ov = document.createElement("div");
+    ov.style.cssText = "position:fixed;inset:0;z-index:99999;background:#fff;color:#000;display:flex;align-items:center;justify-content:center;text-align:center;font:bold 20vw/1.1 sans-serif;padding:4vw;cursor:pointer";
+    ov.textContent = name;
+    const fit = () => { let sz = 400; ov.style.fontSize = sz + "px"; while (sz > 16 && (ov.scrollWidth > ov.clientWidth || ov.scrollHeight > ov.clientHeight)) { sz = Math.floor(sz * 0.9); ov.style.fontSize = sz + "px"; } };
+    document.body.appendChild(ov); fit();
+    let lock = null;
+    if (navigator.wakeLock) navigator.wakeLock.request("screen").then(l => { lock = l; }).catch(() => {});
+    ov.addEventListener("click", () => { if (lock) lock.release().catch(() => {}); ov.remove(); track("routing_gang_sign_closed", {}); });
+    track("routing_gang_sign_opened", { name_len: name.length });
+  }
+  out.addEventListener("click", e => { const b = e.target.closest && e.target.closest(".rg-sign"); if (b) showSign(b.textContent); });
   function detail(c, b) {
     const t = c.t || C.toward(c.s, b);
     const rides = c.s.review_count || 0;
     const bits = [`${rides} ride${rides === 1 ? "" : "s"} logged`];
     if (c.s.rating) bits.push(`rated ${c.s.rating.toFixed(1)}/5`);
-    bits.push(t.n ? `${t.ok} of ${t.n} rides from here went toward B` : "no destination logged");
+    bits.push(t.n ? `${t.ok} of ${t.n} rides from here went toward B` + (t.medKm ? ` (median ${Math.round(t.medKm)} km)` : "") : "no destination logged");
     const w = waitNote(c.s); if (w) bits.push(w);
     return bits.join(", ");
   }
   // No logged spot near A: offer the OSM fuel/rest/service place nearest A along the road (display only).
   async function osmFallback(a, line, cum) {
+    // Held-out pioneer rides, A = nearest place centre (research/routing-edge-distance-pioneer-2026-10-19.md, n=210):
+    // the road point 1 km from A was within 2 km of where riders really stood 67% of the time, 3 km only 33%
+    // (village 61 vs 25, town 73 vs 30, city 73 vs 63). Show it first.
+    // Class-sized (research addendum #1123, exact points on the full line): village 0.5 km (73% within 2 km vs 61% for the old ~1.5 km),
+    // town 1.5, city 2. Class from Nominatim; on failure keep 1.5 km.
+    let km = 1.5, kmTxt = "about 1.5 km";
+    try {
+      const j = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=12&lat=${a[0]}&lon=${a[1]}`).then(r => r.json());
+      const ad = j.address || {};
+      if (ad.city) { km = 2; kmTxt = "about 2 km"; } else if (ad.village || ad.hamlet) { km = 0.5; kmTxt = "about 0.5 km"; }
+    } catch (e) { /* keep default */ }
+    // line is densified to ~2 km steps, so interpolate to the exact distance instead of snapping to the next vertex.
+    const i3 = cum.findIndex(c => c >= km);
+    if (i3 > 0) {
+      const f = cum[i3] > cum[i3 - 1] ? (km - cum[i3 - 1]) / (cum[i3] - cum[i3 - 1]) : 1;
+      const e = [line[i3 - 1][0] + f * (line[i3][0] - line[i3 - 1][0]), line[i3 - 1][1] + f * (line[i3][1] - line[i3 - 1][1])];
+      L.circleMarker(e, { radius: 7, color: "#1a73e8", weight: 3 }).addTo(layer).bindTooltip("edge of town");
+      out.insertAdjacentHTML("beforeend", `<br><b>Where riders without a known spot usually stood:</b> on this road at the edge of town, ${kmTxt} from A: <a href="https://www.openstreetmap.org/?mlat=${e[0]}&mlon=${e[1]}#map=16/${e[0]}/${e[1]}" target="_blank">${e[0].toFixed(4)}, ${e[1].toFixed(4)}</a>.`);
+    }
     try {
       const q = window.RGFallback.overpassQuery(a[0], a[1], 10000);
       const j = await fetch("https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(q)).then(r => r.json());
@@ -80,20 +129,51 @@
       track("routing_gang_osm_fallback", { found: !!f });
       if (!f) return;
       L.circleMarker([f.lat, f.lon], { radius: 7, color: "#e37400", weight: 3 }).addTo(layer).bindTooltip("OSM " + f.kind);
-      out.insertAdjacentHTML("beforeend", `<br><b>Nearest place to start from, along the road:</b> ${f.label}: <a href="https://www.openstreetmap.org/?mlat=${f.lat}&mlon=${f.lon}#map=17/${f.lat}/${f.lon}" target="_blank">${f.lat.toFixed(4)}, ${f.lon.toFixed(4)}</a> (${f.at.toFixed(0)} km along the route). Not checked for hitchhiking.`);
+      out.insertAdjacentHTML("beforeend", `<br><b>Or the nearest fuel, rest or service place on the road:</b> ${f.label}: <a href="https://www.openstreetmap.org/?mlat=${f.lat}&mlon=${f.lon}#map=17/${f.lat}/${f.lon}" target="_blank">${f.lat.toFixed(4)}, ${f.lon.toFixed(4)}</a> (${f.at.toFixed(0)} km along the route). Not checked for hitchhiking.`);
     } catch (e) { track("routing_gang_osm_fallback", { found: false, error: true }); }
+  }
+  // "Ask to be dropped at": rides from fuel/rest/services stops came ~1.6x as often within the same riders
+  // (research/routing-gang-exit-2026-10-19.md), and 96% of 40 km road stretches have one within 1 km
+  // (research/routing-dropoff-coverage-2026-10-19.md). One Overpass query along the route; display only.
+  async function dropoffHints(line, cum, chain) {
+    const step = Math.max(1, Math.round(line.length / 250));
+    const poly = line.filter((_, i) => i % step === 0).map(p => p[0].toFixed(4) + "," + p[1].toFixed(4)).join(",");
+    const r = `(around:800,${poly})`;
+    const q = `[out:json][timeout:40];(node${r}[amenity=fuel];nwr${r}[highway=services];nwr${r}[highway=rest_area];);out center 400;`;
+    let shown = 0;
+    try {
+      const j = await fetch("https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(q)).then(x => x.json());
+      const pl = [];
+      for (const e of j.elements || []) {
+        const lat = e.lat !== undefined ? e.lat : e.center && e.center.lat, lon = e.lon !== undefined ? e.lon : e.center && e.center.lon;
+        if (lat === undefined) continue;
+        let off = 1e9, at = 0;
+        for (let i = 0; i < line.length; i++) { const d = C.km([lat, lon], line[i]); if (d < off) { off = d; at = cum[i]; } }
+        if (off <= 1) pl.push({ lat, lon, at, name: (e.tags || {}).name || ((e.tags || {}).amenity === "fuel" ? "fuel station" : "service / rest area") });
+      }
+      const lis = out.querySelectorAll("ol > li");
+      let prevAt = 0;
+      chain.forEach((c, i) => {
+        const cand = pl.filter(x => x.at > prevAt + 3 && x.at < c.at - 1).sort((x, y) => y.at - x.at)[0];
+        prevAt = c.at;
+        if (c.s.fuel || !cand || !lis[i]) return;
+        shown++;
+        lis[i].insertAdjacentHTML("beforeend", `<br><small><b>Before this stop, ask to be dropped at:</b> ${cand.name.replace(/</g, "")} (OSM), km ${cand.at.toFixed(0)}, <a href="https://www.openstreetmap.org/?mlat=${cand.lat}&mlon=${cand.lon}#map=17/${cand.lat}/${cand.lon}" target="_blank">map</a>. Riders let out at fuel and rest stops got a next ride about 1.6x as often.</small>`);
+      });
+    } catch (e) {}
+    track("routing_gang_dropoff_shown", { n: shown, legs: chain.length });
   }
   async function plan(a, b) {
     out.textContent = "Loading road route…";
     try {
-      const [spots, , , r] = await Promise.all([spotsReady, wgReady, pkReady,
+      const [spots, , , , , r] = await Promise.all([spotsReady, wgReady, pkReady, ctReady, lgReady,
         fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=simplified&geometries=geojson&alternatives=true`).then(x => x.json())]);
       const COLORS = ["#1a73e8", "#9334e6", "#e37400"];
       const build = (rt) => {
         const raw = rt.geometry.coordinates.map(c => [c[1], c[0]]);
         const [line, cum] = C.densify(raw);
         const near = C.nearRoute(spots, line, cum, 3).filter(c => isPickup(c.s));
-        const chain = C.newChain(a, b, near, cum[cum.length - 1]);
+        const chain = C.newChain(a, b, near, cum[cum.length - 1], cities);
         return { rt, raw, line, cum, near, chain, weak: chain.filter(c => c.weak).length };
       };
       // Routes with fewer weakly evidenced stops first, then the faster one.
@@ -108,8 +188,24 @@
           if (rt2 && rt2.duration <= 1.2 * Math.min(...plans.map(p => p.rt.duration))) { const pl = build(rt2); pl.via = v; plans.push(pl); }
         }
       } catch (e) {}
+      // "The way other riders went": a chain of other riders' logged legs from A to B, shown when it is a real alternative.
+      let riders = null;
+      try {
+        const rp = C.ridersPath(legs, a, b, 6);
+        if (C.ridersUsable(rp, plans[0].line, plans[0].cum[plans[0].cum.length - 1])) riders = rp;
+      } catch (e) {}
+      // Snap that path onto roads (waypoints = the logged hops' start spots) so it gets its own suggested stops.
+      if (riders) {
+        try {
+          const wp = [a].concat(riders.pts.slice(1, -1).filter((_, i) => i % 2 === 0), [b]);
+          const rr = await fetch(`https://router.project-osrm.org/route/v1/driving/${wp.map(w => w[1] + "," + w[0]).join(";")}?overview=simplified&geometries=geojson`).then(x => x.json());
+          const rt3 = rr.routes && rr.routes[0];
+          if (rt3 && rt3.distance <= 1.5 * plans[0].rt.distance) { const pl = build(rt3); pl.riders = riders; plans.push(pl); riders.snapped = true; }
+        } catch (e) {}
+      }
       const { rt, raw, line, cum, near, chain } = plans[0];
-      plans.forEach((pl, k) => L.polyline(pl.raw, { color: COLORS[k], weight: k ? 3 : 5, opacity: k ? 0.7 : 1, dashArray: k ? "8 6" : null }).addTo(layer));
+      if (riders && !riders.snapped) L.polyline(riders.pts, { color: "#188038", weight: 3, opacity: 0.8, dashArray: "2 6" }).addTo(layer).bindTooltip("the way other riders went");
+      plans.forEach((pl, k) => L.polyline(pl.raw, { color: pl.riders ? "#188038" : COLORS[k], weight: k ? 3 : 5, opacity: k ? 0.7 : 1, dashArray: k ? "8 6" : null }).addTo(layer));
       map.fitBounds(raw);
       if (document.getElementById("rg-all").checked) near.forEach(c => L.circleMarker([c.s.lat, c.s.lon], { radius: 3, color: "#188038" }).addTo(layer));
       chain.forEach((c, i) => L.circleMarker([c.s.lat, c.s.lon], { radius: 8, color: c.weak ? "#f9ab00" : "#c5221f", weight: 3 })
@@ -117,9 +213,9 @@
       let prev = a, rows = "";
       chain.forEach((c, i) => {
         const d = C.km(prev, [c.s.lat, c.s.lon]); prev = [c.s.lat, c.s.lon];
-        rows += `<li>${i + 1}. ${spotLink(c.s)} — ${d.toFixed(0)} km from the previous point${c.gapBefore ? " (<b>long gap, no known spot before this</b>)" : ""}${c.weak ? " (<b>weak evidence: fewer than " + C.MIN_EVIDENCE + " rides went toward B</b>)" : ""} <button type="button" class="rg-flag" data-rank="${i + 1}" data-lat="${c.s.lat.toFixed(2)}" data-lon="${c.s.lon.toFixed(2)}" style="font-size:0.75rem">bad stop</button><br><small>${detail(c, b)}</small></li>`;
+        rows += `<li>${i + 1}. ${spotLink(c.s)}${c.s.fuel ? " <b>(fuel / rest stop: rides from here go further)</b>" : ""} — ${d.toFixed(0)} km from the previous point${c.gapBefore ? " (<b>long gap: no logged spot in between, so thumb along the road or from the edge of any village on the way, not a walk</b>)" : ""}${c.weak ? " (<b>weak evidence: fewer than " + C.MIN_EVIDENCE + " rides went toward B</b>)" : ""} <button type="button" class="rg-flag" data-rank="${i + 1}" data-lat="${c.s.lat.toFixed(2)}" data-lon="${c.s.lon.toFixed(2)}" style="font-size:0.75rem">bad stop</button><br><small>${detail(c, b)}</small></li>`;
       });
-      const altRows = plans.slice(1).map((pl, k) => `<li style="color:${COLORS[k + 1]}">Alternative ${k + 1} (dashed on the map${pl.via ? ", via an evidenced stop " + pl.via.off.toFixed(0) + " km off the main road: " + pl.via.ok + " logged rides from there went toward B" : ""}): ${(pl.rt.distance/1000).toFixed(0)} km, ~${Math.round(pl.rt.duration/60)} min, ${pl.chain.length} suggested stops, ${pl.weak} with weak evidence, ${pl.chain.filter(c => c.gapBefore).length} long gaps.</li>`).join("");
+      const altRows = plans.slice(1).map((pl, k) => `<li style="color:${pl.riders ? "#188038" : COLORS[k + 1]}">${pl.riders ? "The way other riders went, on roads" : "Alternative " + (k + 1)} (dashed on the map${pl.riders ? ", road route through the start spots of other riders' logged rides" : ""}${pl.via ? ", via an evidenced stop " + pl.via.off.toFixed(0) + " km off the main road: " + pl.via.ok + " logged rides from there went toward B" : ""}): ${(pl.rt.distance/1000).toFixed(0)} km, ~${Math.round(pl.rt.duration/60)} min, ${pl.chain.length} suggested stops, ${pl.weak} with weak evidence, ${pl.chain.filter(c => c.gapBefore).length} long gaps.</li>`).join("");
       let drive = "";
       if (document.getElementById("rg-drive").checked) {
         let dl = C.driverList(near, Date.now(), 2);
@@ -133,20 +229,25 @@
           return `<li>${spotLink(d.s)} — km ${d.at.toFixed(0)} of ${(rt.distance/1000).toFixed(0)}, detour about ${d.detour.toFixed(1)} km, ${age}${waitNote(d.s) ? ", " + waitNote(d.s) : ""}</li>`;
         }).join("") + "</ul>";
       }
-      track("routing_gang_planned", { road_km: Math.round(rt.distance / 1000), stops: chain.length, weak_stops: plans[0].weak, routes: plans.length, shared_link: location.search.includes("a=") });
+      const ridersRow = riders && !riders.snapped ? `<li style="color:#188038">The way other riders went (dotted green on the map, straight lines between logged stops, not a road route): ${riders.km.toFixed(0)} km of logged rides in ${(riders.pts.length - 2) / 2} hops.</li>` : "";
+      track("routing_gang_planned", { riders_route: !!riders, riders_snapped: !!(riders && riders.snapped), road_km: Math.round(rt.distance / 1000), stops: chain.length, weak_stops: plans[0].weak, routes: plans.length, shared_link: location.search.includes("a=") });
       const last = C.km(prev, b);
       const first = chain[0] && C.km(a, [chain[0].s.lat, chain[0].s.lon]) <= 15;
       out.innerHTML = `Best route (solid): ${(rt.distance/1000).toFixed(0)} km, ~${Math.round(rt.duration/60)} min by car, ${chain.length} suggested stops, ${plans[0].weak} with weak evidence. ` +
-        (altRows ? `<ul>${altRows}</ul>` : "") +
+        ((altRows || ridersRow) ? `<ul>${altRows}${ridersRow}</ul>` : "") +
         `Known pickup spots (a logged ride started here) within 3 km of the route: ${near.length} (red = suggested stops; tick "show all" for the rest).` +
         `<br>${first ? "Departure spot near A:" : "<b>No known spot within 15 km of A.</b> Spots along the way:"}` +
         `<ol style="list-style:none;padding-left:0">${rows}</ol>Last stretch to B: ${last.toFixed(0)} km.${drive}` +
-        `<br><small>Share this case: <a href="?a=${a.map(x => x.toFixed(4))}&b=${b.map(x => x.toFixed(4))}">link</a></small>`;
+        `<br><small>Share this case: <a href="?a=${a.map(x => x.toFixed(4))}&b=${b.map(x => x.toFixed(4))}">link</a> · <a class="rg-handoff" href="/dir/${a.map(x => x.toFixed(5))}/${b.map(x => x.toFixed(5))}">Open this trip on the main map</a></small>`;
+      out.querySelector(".rg-handoff").addEventListener("click", () => track("routing_gang_handoff", {}));
+      // Do group members open the suggested stops? Rank = position in the stop list (1-based).
+      out.querySelectorAll("ol a[href^='/spot/']").forEach((link, i) => link.addEventListener("click", () => track("routing_gang_stop_click", { rank: i + 1 })));
       out.querySelectorAll(".rg-flag").forEach(btn => btn.addEventListener("click", () => {
         track("routing_gang_stop_flagged", { rank: Number(btn.dataset.rank), lat2: btn.dataset.lat, lon2: btn.dataset.lon });
         btn.textContent = "thanks, noted"; btn.disabled = true;
       }));
       nameStops();
+      dropoffHints(line, cum, chain);
       if (!first) osmFallback(a, line, cum);
     } catch (err) { out.textContent = "Route failed: " + err; }
   }

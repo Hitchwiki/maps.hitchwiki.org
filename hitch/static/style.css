@@ -2582,6 +2582,20 @@ ul.no-style {
   margin-top: 0;
 }
 
+/* #893: the ride-saved card scrolls (max-height 92vh) and stacks up to eight nudges
+   above the share button, so on a phone "Share my ride" / "Not now" sat below the
+   fold; ride_share clicks/exposure fell from ~4% to ~1.4% once the Trustroots,
+   Campwild and driver-pledge nudges landed (2026-09-15/16). Pin the actions to the
+   bottom of the scrolling card so they are always on screen. */
+.success-share-content .signup-prompt-actions {
+  position: sticky;
+  bottom: -22px;
+  background: white;
+  padding: 10px 0 22px;
+  margin-top: 12px;
+  z-index: 1;
+}
+
 /* #191 — the ride card shown full-screen to hand to the driver. Above the success
    overlay (z-index 9999) so it covers it, plain black so the card is the only thing
    on the phone that is being passed across. */
@@ -3717,6 +3731,12 @@ body:has(.topbar.visible) #inr-start-bar {
   text-align: left;
   z-index: 2002;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* #1112: the sheet is ~616 px tall; on a short phone viewport (iPhone SE Safari, 375x548) the
+     required star row and the close button sat above the screen, so Ride On! could never enable. */
+  max-height: 92vh;
+  max-height: 92dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 /* Drag-handle visual cue */
@@ -4587,6 +4607,9 @@ a.acct-ride__warn:hover { color: #b98900; }
   background: #f5f5f5;
   cursor: pointer;
 }
+
+/* Same chip as the empty-filter note, but at the top: it stays visible while the map shows the filtered spots. */
+.user-filter-note { bottom: auto; top: calc(70px + env(safe-area-inset-top, 0px)); }
 
 .rp-resume-chip {
   position: fixed; left: 12px; bottom: 76px; z-index: 900; padding: 9px 14px;

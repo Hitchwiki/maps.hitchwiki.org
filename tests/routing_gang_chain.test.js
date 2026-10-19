@@ -10,6 +10,10 @@ const east = spot(50.0, 10.05, { dest_lats: [50.0], dest_lons: [11.0] });    // 
 assert.strictEqual(C.toward(west, B).ok, 0);
 assert.strictEqual(C.toward(east, B).ok, 1);
 assert.strictEqual(C.toward(spot(50, 10, {}), B).share, null);
+const far = spot(50.0, 10.0, { dest_lats: [50.0, 50.0, 50.0, 50.0], dest_lons: [10.2, 10.5, 11.0, 8.0] });
+assert.strictEqual(C.toward(far, B).ok, 3);
+assert(Math.abs(C.toward(far, B).medKm - 35.7) < 1, "median km of the toward-B rides");
+assert.strictEqual(C.toward(west, B).medKm, null);
 
 const raw = [A, B];
 const [line, cum] = C.densify(raw);
@@ -55,4 +59,36 @@ console.log("ok");
   assert.strictEqual(C.pickVia([onRoad, thin], A, B, l3, c3), null);
   assert.strictEqual(C.pickVia([onRoad, thin, off], A, B, l3, c3).s, off);
   console.log("ok via");
+}
+
+// City penalty: a mid-route stop within 5 km of a city centre loses to a slightly weaker open-road stop.
+{
+  const toB = (n) => ({ dest_lats: Array(n).fill(50.0), dest_lons: Array(n).fill(12.0) });
+  const inCity = spot(50.0, 11.0, Object.assign({ review_count: 10, rating: 5 }, toB(5)));
+  const open = spot(50.0, 10.8, toB(5));
+  const [l4, c4] = C.densify([A, B]);
+  const start = spot(50.0, 10.05, toB(5));
+  const nr4 = () => C.nearRoute([start, inCity, open], l4, c4, 3);
+  const L4 = c4[c4.length - 1];
+  assert.strictEqual(C.newChain(A, B, nr4(), L4).find(c => c.s !== start).s, inCity, "without a city list the stronger spot wins");
+  assert.strictEqual(C.newChain(A, B, nr4(), L4, [[50.01, 11.02]]).find(c => c.s !== start).s, open, "city stop is penalised");
+  console.log("ok city");
+}
+
+// Riders' path: A(50,10) -> hop north-east -> B(50,12) through a detour via (51,11); the straight road is the fastest.
+const legs = [[50.0, 10.0, 51.0, 11.0], [51.0, 11.0, 50.0, 12.0]];
+const rp = C.ridersPath(legs, A, B, 6);
+assert(rp && rp.pts.length === 6, "two logged legs connect A to B");
+assert.strictEqual(C.ridersPath([[50.0, 10.0, 51.0, 11.0]], A, B, 6), null, "no path when the chain breaks");
+assert(C.ridersUsable(rp, line, C.km(A, B)) === false, "detour of ~1.9x the road is too long");
+const rp2 = C.ridersPath([[50.0, 10.0, 50.3, 11.0], [50.3, 11.0, 50.0, 12.0]], A, B, 6);
+assert(C.ridersUsable(rp2, line, C.km(A, B)), "a mild detour that leaves the road is usable");
+
+// Fuel bonus: equal evidence, the fuel/rest-area spot scores higher but never beats clearly better evidence.
+{
+  const t = { share: 0.5 };
+  const plain = { lat: 50, lon: 11, rating: 4, review_count: 5 };
+  assert(C.score({ ...plain, fuel: true }, t) > C.score(plain, t), "fuel spot gets a bonus");
+  assert(C.score(plain, { share: 0.8 }) > C.score({ ...plain, fuel: true }, t), "evidence still outweighs the bonus");
+  console.log("ok fuel");
 }

@@ -1076,5 +1076,6 @@
   "Thanks, noted": "Merci, noté",
   "No rides logged here yet — be the first": "No rides logged here yet — be the first",
   "{n} rides logged here, average wait {wait}": "{n} rides logged here, average wait {wait}",
-  "Wrong stop?": "Mauvais arrêt ?"
+  "Wrong stop?": "Mauvais arrêt ?",
+  "Showing only rides by {user}": "Showing only rides by {user}"
 }

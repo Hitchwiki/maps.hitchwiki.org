@@ -15,6 +15,7 @@ import pandas as pd
 from flask import g
 from jinja2 import Environment, FileSystemLoader
 
+from hitch.blueprints.utils.spot_sitemap import SPOT_SITEMAP_MIN_RIDES, sitemap_spot_ids
 from hitch.helpers import get_db, get_dirs
 from hitch.place_activity import (
     ACTIVITY_MIN_RIDES,
@@ -683,6 +684,12 @@ except (OSError, ValueError):
 # more specific question than a city page and is the harder query to rank for.
 for loc in route_locs:
     sitemap_parts.append(_sitemap_url(loc, "0.8"))
+# Spot pages with enough rated rides to have a real description (#1048). Absent from the
+# sitemap until now, so crawlers only met them via the 401 route pages.
+spot_ids = sitemap_spot_ids(os.path.join(dist_dir, "rides", "by-spot"))
+for _spot_id in spot_ids:
+    sitemap_parts.append(_sitemap_url(f"{SITE_URL}/spot/{_spot_id}", "0.5"))
+logger.info(f"Sitemap: {len(spot_ids)} spot pages with >= {SPOT_SITEMAP_MIN_RIDES} rated rides")
 # Wiki town articles link to their bench page (IDEAS #805): publish town name -> slug next
 # to place_activity.csv, which the wiki's mounted export directory already carries.
 try:
@@ -704,7 +711,13 @@ sitemap_parts.append("</urlset>\n")
 with open(os.path.join(dist_dir, "sitemap.xml"), "w", encoding="utf-8") as f:
     f.write("".join(sitemap_parts))
 _sitemap_total = (
-    sum(rendered_cities) + len(STATIC_PAGES) + len(country_locs) + len(translated_locs) + len(index_locs) + len(route_locs)
+    sum(rendered_cities)
+    + len(STATIC_PAGES)
+    + len(country_locs)
+    + len(translated_locs)
+    + len(index_locs)
+    + len(route_locs)
+    + len(spot_ids)
 )
 logger.info(
     f"Wrote sitemap.xml with {_sitemap_total} URLs "

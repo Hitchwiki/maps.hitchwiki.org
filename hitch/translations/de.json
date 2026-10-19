@@ -1076,5 +1076,6 @@
   "Thanks, noted": "Danke, notiert",
   "No rides logged here yet — be the first": "No rides logged here yet — be the first",
   "{n} rides logged here, average wait {wait}": "{n} rides logged here, average wait {wait}",
-  "Wrong stop?": "Falscher Halt?"
+  "Wrong stop?": "Falscher Halt?",
+  "Showing only rides by {user}": "Showing only rides by {user}"
 }

@@ -136,7 +136,7 @@
                     </div>
                     <div style="margin-top:0.6rem;">
                         <label for="datetime_ride" id="datetime_ride_label" style="display:block; font-size:0.9em; color:#555; margin-bottom:2px;">{{ t("When did you get the ride?") }}</label>
-                        <input form="ride-form" id="datetime_ride" type="datetime-local" name="datetime_ride" class="form-control" min="2020-01-01T00:00" value="{{ ride_data.datetime_ride if ride_data and ride_data.datetime_ride else '' }}">
+                        <input form="ride-form" id="datetime_ride" type="datetime-local" name="datetime_ride" class="form-control" min="2005-01-01T00:00" value="{{ ride_data.datetime_ride if ride_data and ride_data.datetime_ride else '' }}">
                     </div>
                 </div>
             </div>
@@ -164,7 +164,7 @@
                        state — the row is hidden (and cleared) while the box is ticked. #}
                     <div style="margin-top:0.6rem;" id="arrival-row">
                         <label for="arrival_datetime" style="display:block; font-size:0.9em; color:#555; margin-bottom:2px;">{{ t("When did you arrive at the destination?") }}</label>
-                        <input form="ride-form" id="arrival_datetime" type="datetime-local" name="arrival_datetime" class="form-control" min="2020-01-01T00:00" value="{{ ride_data.arrival_datetime if ride_data and ride_data.arrival_datetime else '' }}">
+                        <input form="ride-form" id="arrival_datetime" type="datetime-local" name="arrival_datetime" class="form-control" min="2005-01-01T00:00" value="{{ ride_data.arrival_datetime if ride_data and ride_data.arrival_datetime else '' }}">
                         <span id="arrival-error-message" class="error text-danger" style="display:block; font-size:0.85em;"></span>
                     </div>
                 </div>
@@ -506,8 +506,8 @@
             <span style="font-weight:600;">{{ t("Is this your first hitchhiking ride ever?") }}</span>
             <span style="font-weight:normal; color:#666;">{{ t("(optional)") }}</span>
             <div style="margin-top:4px;">
-                <button type="button" class="wra-btn" data-first-ever="yes" aria-pressed="false">{{ t("Yes") }}</button>
-                <button type="button" class="wra-btn" data-first-ever="no" aria-pressed="false">{{ t("No") }}</button>
+                <button type="button" class="wra-btn wra-btn--yes" data-first-ever="yes" aria-pressed="false">{{ t("Yes") }}</button>
+                <button type="button" class="wra-btn wra-btn--no" data-first-ever="no" aria-pressed="false">{{ t("No") }}</button>
             </div>
         </div>
         <script>
@@ -591,7 +591,7 @@
         const dep = document.getElementById("datetime_ride");
         const arr = document.getElementById("arrival_datetime");
         function syncArrivalMin() {
-            arr.min = dep.value || "2020-01-01T00:00";
+            arr.min = dep.value || "2005-01-01T00:00";
             // A previously chosen arrival that the new departure has invalidated is
             // cleared rather than left in place silently failing the submit check.
             if (dep.value && arr.value && arr.value <= dep.value) arr.value = "";
@@ -996,6 +996,18 @@
                 if (banner) banner.remove();
             }
             window.addEventListener('message', onMsg);
+            // Providers' COOP headers can sever window.opener, so the popup also broadcasts.
+            if (window.BroadcastChannel) {
+                var bc = new BroadcastChannel('hitchwiki-auth');
+                bc.onmessage = function (ev) {
+                    if (!ev.data || ev.data.type !== 'hitchwiki-auth' || ev.data.ok === false) return;
+                    bc.close();
+                    window.removeEventListener('message', onMsg);
+                    hmTrack('ride_form_login_completed', { mode: HM_FORM_MODE });
+                    var banner = document.getElementById('ride-form-anon-banner');
+                    if (banner) banner.remove();
+                };
+            }
         });
     })();
 
@@ -1658,9 +1670,23 @@
             const code = opt.getAttribute('data-code');
             if (!code) continue;
             nameToCode[opt.value.toLowerCase()] = code;
-            codeToName[code] = opt.value;
+            if (!opt.hasAttribute('data-alias')) codeToName[code] = opt.value;
         }
         return { nameToCode, codeToName };
+    }
+
+    // Names with accents (Türkiye) are hard to type on most keyboards: offer an
+    // accent-free twin ("Turkiye") that maps to the same code.
+    function _addAccentFreeAliases(datalist) {
+        for (const opt of Array.from(datalist.options)) {
+            const plain = opt.value.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            if (plain === opt.value || !opt.getAttribute('data-code')) continue;
+            const alias = document.createElement('option');
+            alias.value = plain;
+            alias.setAttribute('data-code', opt.getAttribute('data-code'));
+            alias.setAttribute('data-alias', '1');
+            datalist.appendChild(alias);
+        }
     }
 
     // Single-value country/text picker: visible input shows the human-readable name,
@@ -1670,6 +1696,7 @@
         const hidden = document.getElementById(hiddenId);
         const datalist = document.getElementById(datalistId);
         if (!input || !hidden || !datalist) return;
+        _addAccentFreeAliases(datalist);
         const { nameToCode, codeToName } = _buildDatalistMaps(datalist);
 
         const preCode = input.dataset.selectedCode;
@@ -1746,6 +1773,44 @@
                 e.preventDefault();
                 tryAddFromInput();
             }
+        });
+
+        // Typing letters and hoping the right option pops up is hard when you cannot remember
+        // the choices: "Show all options" lists every one as a tappable button.
+        const allBtn = document.createElement('button');
+        allBtn.type = 'button';
+        allBtn.className = 'wra-btn';
+        allBtn.textContent = {{ t("Show all options")|tojson }};
+        allBtn.setAttribute('aria-expanded', 'false');
+        const allBox = document.createElement('div');
+        allBox.style.display = 'none';
+        allBox.style.marginTop = '4px';
+        input.insertAdjacentElement('afterend', allBox);
+        input.insertAdjacentElement('afterend', allBtn);
+        function renderAll() {
+            allBox.innerHTML = '';
+            const have = getCodes();
+            Array.from(datalist.options).forEach((opt) => {
+                const code = opt.getAttribute('data-code');
+                if (!code || opt.hasAttribute('data-alias') || have.includes(code)) return;
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'wra-btn';
+                b.style.margin = '2px';
+                b.textContent = opt.value;
+                b.addEventListener('click', () => {
+                    setCodes(getCodes().concat(code));
+                    renderTags();
+                    renderAll();
+                });
+                allBox.appendChild(b);
+            });
+        }
+        allBtn.addEventListener('click', () => {
+            const open = allBox.style.display === 'none';
+            allBox.style.display = open ? 'block' : 'none';
+            allBtn.setAttribute('aria-expanded', String(open));
+            if (open) renderAll();
         });
 
         renderTags();
@@ -1889,6 +1954,23 @@
         hiddenId: 'vehicle_license_plate_country',
         datalistId: 'vehicle-plate-country-list',
     });
+    // A plate's country is the driver's likeliest origin country: prefill it when still empty.
+    (function () {
+        const plateInput = document.getElementById('vehicle_license_plate_country_input');
+        const plateHidden = document.getElementById('vehicle_license_plate_country');
+        const originInput = document.getElementById('driver_origin_country_input');
+        const originHidden = document.getElementById('driver_origin_country');
+        if (!plateInput || !plateHidden || !originInput || !originHidden) return;
+        function prefill() {
+            if (originHidden.value || originInput.value.trim() || !plateHidden.value) return;
+            const opt = document.querySelector(`#driver-country-list option[data-code="${plateHidden.value}"]`);
+            if (!opt) return;
+            originInput.value = opt.value;
+            originHidden.value = plateHidden.value;
+        }
+        plateInput.addEventListener('change', prefill);
+        plateInput.addEventListener('blur', prefill);
+    })();
 
     // Short enum lists (signal methods, reasons to hitchhike, the driver's trip reasons) are
     // toggle chips rather than a datalist: with a handful of options tapping beats typing —
@@ -1961,7 +2043,7 @@
     // and "no answer" stays distinct from "no".
     function initWouldRideAgain() {
         const hidden = document.getElementById('driver_would_ride_again');
-        const buttons = document.querySelectorAll('.wra-btn');
+        const buttons = document.querySelectorAll('.wra-btn[data-value]');
         if (!hidden || !buttons.length) return;
         function render() {
             buttons.forEach(function (btn) {

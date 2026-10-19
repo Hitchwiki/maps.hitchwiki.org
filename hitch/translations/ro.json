@@ -1076,5 +1076,6 @@
   "Thanks, noted": "Mulțumim, notat",
   "No rides logged here yet — be the first": "No rides logged here yet — be the first",
   "{n} rides logged here, average wait {wait}": "{n} rides logged here, average wait {wait}",
-  "Wrong stop?": "Stație greșită?"
+  "Wrong stop?": "Stație greșită?",
+  "Showing only rides by {user}": "Showing only rides by {user}"
 }

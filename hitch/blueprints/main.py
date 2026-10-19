@@ -391,6 +391,11 @@ def render_spot(spot_id):
     if not SPOT_ID_RE.match(spot_id):
         abort(404)
     lat, lon = (float(v) for v in spot_id.split("_"))
+    # Inbound links do not always carry the 5-decimal form the per-spot files are
+    # named by: the wiki infobox pins write "45.78004_24.1688" (trailing zero
+    # dropped), about 18% of them. Look up and advertise the canonical id, or
+    # those visitors get a nameless title and an extra URL for the same spot.
+    spot_id = f"{lat:.5f}_{lon:.5f}"
     preview = _spot_preview(spot_id)
     name = preview["name"] if preview else None
     return render_template(
@@ -1105,6 +1110,43 @@ def ride_collection_statistics_page():
         "ride_collection_statistics.html",
         series=data.get("series", {}),
         coverage=data.get("coverage", {}),
+        generated_at=data.get("generated_at"),
+    )
+
+
+@main_bp.route("/statistics/driver-reasons")
+def driver_reason_statistics_page():
+    """Why drivers stopped, from the answers hitchhikers logged about their driver."""
+    path = os.path.join(get_dirs()["dist"], "driver_reason_statistics.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        data = {}
+    coverage = data.get("coverage", {})
+    answered = coverage.get("rides_answered") or 0
+    reasons = [
+        {
+            "label": REASON_DESCRIPTION_BY_CODE.get(r["reason"], r["reason"]),
+            "rides": r["rides"],
+            "share": round(100 * r["rides"] / answered) if answered else 0,
+        }
+        for r in data.get("reasons", [])
+    ]
+    trip_purposes = [
+        {
+            "label": RIDE_REASON_DESCRIPTION_BY_CODE.get(r["reason"], r["reason"]),
+            "rides": r["rides"],
+            "share": round(100 * r["rides"] / answered) if answered else 0,
+        }
+        for r in data.get("trip_purposes", [])
+    ]
+    return render_template(
+        "driver_reason_statistics.html",
+        reasons=reasons,
+        trip_purposes=trip_purposes,
+        season_waits=data.get("season_waits", []),
+        coverage=coverage,
         generated_at=data.get("generated_at"),
     )
 
