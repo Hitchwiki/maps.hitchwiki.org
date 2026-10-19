@@ -90,13 +90,14 @@
   }
   // No logged spot near A: offer the OSM fuel/rest/service place nearest A along the road (display only).
   async function osmFallback(a, line, cum) {
-    // Held-out pioneer rides (EXP-1057): the road point ~3 km from A was within 2 km of where riders really stood
-    // 43% of the time, against 24% for the first OSM fuel/rest/junction node. Show it first.
-    const i3 = cum.findIndex(c => c >= 3);
+    // Held-out pioneer rides, A = nearest place centre (research/routing-edge-distance-pioneer-2026-10-19.md, n=210):
+    // the road point 1 km from A was within 2 km of where riders really stood 67% of the time, 3 km only 33%
+    // (village 61 vs 25, town 73 vs 30, city 73 vs 63). Show it first.
+    const i3 = cum.findIndex(c => c >= 1);
     if (i3 > 0) {
       const e = line[i3];
       L.circleMarker(e, { radius: 7, color: "#1a73e8", weight: 3 }).addTo(layer).bindTooltip("edge of town");
-      out.insertAdjacentHTML("beforeend", `<br><b>Where riders without a known spot usually stood:</b> on this road at the edge of town, about 3 km from A: <a href="https://www.openstreetmap.org/?mlat=${e[0]}&mlon=${e[1]}#map=16/${e[0]}/${e[1]}" target="_blank">${e[0].toFixed(4)}, ${e[1].toFixed(4)}</a>.`);
+      out.insertAdjacentHTML("beforeend", `<br><b>Where riders without a known spot usually stood:</b> on this road at the edge of town, about 1 km from A: <a href="https://www.openstreetmap.org/?mlat=${e[0]}&mlon=${e[1]}#map=16/${e[0]}/${e[1]}" target="_blank">${e[0].toFixed(4)}, ${e[1].toFixed(4)}</a>.`);
     }
     try {
       const q = window.RGFallback.overpassQuery(a[0], a[1], 10000);
