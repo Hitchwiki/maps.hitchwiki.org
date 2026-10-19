@@ -506,8 +506,8 @@
             <span style="font-weight:600;">{{ t("Is this your first hitchhiking ride ever?") }}</span>
             <span style="font-weight:normal; color:#666;">{{ t("(optional)") }}</span>
             <div style="margin-top:4px;">
-                <button type="button" class="wra-btn" data-first-ever="yes" aria-pressed="false">{{ t("Yes") }}</button>
-                <button type="button" class="wra-btn" data-first-ever="no" aria-pressed="false">{{ t("No") }}</button>
+                <button type="button" class="wra-btn wra-btn--yes" data-first-ever="yes" aria-pressed="false">{{ t("Yes") }}</button>
+                <button type="button" class="wra-btn wra-btn--no" data-first-ever="no" aria-pressed="false">{{ t("No") }}</button>
             </div>
         </div>
         <script>
@@ -1973,7 +1973,7 @@
     // and "no answer" stays distinct from "no".
     function initWouldRideAgain() {
         const hidden = document.getElementById('driver_would_ride_again');
-        const buttons = document.querySelectorAll('.wra-btn');
+        const buttons = document.querySelectorAll('.wra-btn[data-value]');
         if (!hidden || !buttons.length) return;
         function render() {
             buttons.forEach(function (btn) {
