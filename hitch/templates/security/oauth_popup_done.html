@@ -19,6 +19,11 @@
       if (window.opener) {
         try { window.opener.postMessage(msg, window.location.origin); } catch (e) {}
       }
+      // Google and some other providers send Cross-Origin-Opener-Policy headers that sever
+      // window.opener while the popup is on their site, so the postMessage above reaches
+      // nobody (ride-form login completed 1 of 14 clicks). Same-origin pages can still talk
+      // over a BroadcastChannel, which the opener listens on as well.
+      try { var bc = new BroadcastChannel("hitchwiki-auth"); bc.postMessage(msg); bc.close(); } catch (e) {}
       window.close();
       // If the browser refuses to close a window it didn't script-open, the user still
       // needs a way out. A brand-new account goes to the map with the first-run intro

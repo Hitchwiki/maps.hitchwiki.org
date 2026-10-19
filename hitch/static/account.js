@@ -601,6 +601,15 @@
       refresh(e.data.needsProfile);
     }
     window.addEventListener("message", onMsg);
+    // Providers' COOP headers can sever window.opener, so the popup also broadcasts the result.
+    if (window.BroadcastChannel) {
+      const bc = new BroadcastChannel("hitchwiki-auth");
+      bc.onmessage = (e) => {
+        if (!e.data || e.data.type !== "hitchwiki-auth") return;
+        bc.close();
+        onMsg({ origin: window.location.origin, source: popup, data: e.data });
+      };
+    }
   }
 
   // Badge text for a count: the number itself, capped at "99+" so a big backlog never

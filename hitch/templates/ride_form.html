@@ -996,6 +996,18 @@
                 if (banner) banner.remove();
             }
             window.addEventListener('message', onMsg);
+            // Providers' COOP headers can sever window.opener, so the popup also broadcasts.
+            if (window.BroadcastChannel) {
+                var bc = new BroadcastChannel('hitchwiki-auth');
+                bc.onmessage = function (ev) {
+                    if (!ev.data || ev.data.type !== 'hitchwiki-auth' || ev.data.ok === false) return;
+                    bc.close();
+                    window.removeEventListener('message', onMsg);
+                    hmTrack('ride_form_login_completed', { mode: HM_FORM_MODE });
+                    var banner = document.getElementById('ride-form-anon-banner');
+                    if (banner) banner.remove();
+                };
+            }
         });
     })();
 
