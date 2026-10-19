@@ -83,3 +83,12 @@ assert.strictEqual(C.ridersPath([[50.0, 10.0, 51.0, 11.0]], A, B, 6), null, "no 
 assert(C.ridersUsable(rp, line, C.km(A, B)) === false, "detour of ~1.9x the road is too long");
 const rp2 = C.ridersPath([[50.0, 10.0, 50.3, 11.0], [50.3, 11.0, 50.0, 12.0]], A, B, 6);
 assert(C.ridersUsable(rp2, line, C.km(A, B)), "a mild detour that leaves the road is usable");
+
+// Fuel bonus: equal evidence, the fuel/rest-area spot scores higher but never beats clearly better evidence.
+{
+  const t = { share: 0.5 };
+  const plain = { lat: 50, lon: 11, rating: 4, review_count: 5 };
+  assert(C.score({ ...plain, fuel: true }, t) > C.score(plain, t), "fuel spot gets a bonus");
+  assert(C.score(plain, { share: 0.8 }) > C.score({ ...plain, fuel: true }, t), "evidence still outweighs the bonus");
+  console.log("ok fuel");
+}
