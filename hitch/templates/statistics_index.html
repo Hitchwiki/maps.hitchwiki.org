@@ -32,5 +32,9 @@
     <strong>{{ t("Ride collection") }}</strong>
     <span>{{ t("See how many rides were collected each week, overall and by source.") }}</span>
   </a>
+  <a class="statistics-link" href="{{ url_for(request.blueprint ~ '.driver_reason_statistics_page') }}">
+    <strong>{{ t("Why drivers stopped") }}</strong>
+    <span>{{ t("The reasons drivers gave for picking up a hitchhiker, as logged by the hitchhikers they picked up.") }}</span>
+  </a>
 </div>
 {% endblock %}
