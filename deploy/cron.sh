@@ -112,6 +112,8 @@
 30 7 * * * cd /app && /usr/bin/flock -n /tmp/hitchhiking_safety.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate hitchhiking_safety' > logs/hitchhiking_safety.log 2>&1
 # daily at 7:25 AM — rebuild the small weekly ride/source aggregate.
 25 7 * * * cd /app && /usr/bin/flock -n /tmp/ride_collection_statistics.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate ride_collection_statistics' > logs/ride_collection_statistics.log 2>&1
+# daily at 7:35 AM — publish corridors (>=5 requests on >=3 days) from the private route-request log.
+35 7 * * * cd /app && /usr/bin/flock -n /tmp/route_demand.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate route_demand' > logs/route_demand.log 2>&1
 # every Monday at 8 AM
 0 8 * * 1 cd /app && /usr/bin/flock -n /tmp/sync_hitchhiking_rides_dataset.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate sync_hitchhiking_rides_dataset' > logs/sync_hitchhiking_rides_dataset.log 2>&1
 # first of every month at 9 AM — regenerate country hitchability CSV + country_ratings.json / country_insights.json
