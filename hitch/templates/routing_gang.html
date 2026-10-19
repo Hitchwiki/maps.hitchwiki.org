@@ -135,10 +135,20 @@
   // "Ask to be dropped at": rides from fuel/rest/services stops came ~1.6x as often within the same riders
   // (research/routing-gang-exit-2026-10-19.md), and 96% of 40 km road stretches have one within 1 km
   // (research/routing-dropoff-coverage-2026-10-19.md). One Overpass query along the route; display only.
-  async function dropoffHints(line, cum, chain) {
-    const step = Math.max(1, Math.round(line.length / 250));
-    const poly = line.filter((_, i) => i % step === 0).map(p => p[0].toFixed(4) + "," + p[1].toFixed(4)).join(",");
-    const r = `(around:800,${poly})`;
+  async function dropoffHints(line, cum, chain, a, b) {
+    // The route above is OSRM "simplified" (a chord on long trips), so measure against the full road line:
+    // research/routing-dropoff-exact-2026-10-19.md (39% of hints were >0.5 km from the real road, 32% of on-road services missed).
+    let full = line, fcum = cum;
+    try {
+      const rr = await fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=full&geometries=geojson`).then(x => x.json());
+      const raw = rr.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+      full = raw; fcum = [0];
+      for (let i = 1; i < raw.length; i++) fcum.push(fcum[i - 1] + C.km(raw[i - 1], raw[i]));
+    } catch (e) { /* fall back to the simplified line */ }
+    const scale = cum[cum.length - 1] / (fcum[fcum.length - 1] || 1);
+    const step = Math.max(1, Math.round(full.length / 250));
+    const poly = full.filter((_, i) => i % step === 0 || i === full.length - 1).map(p => p[0].toFixed(4) + "," + p[1].toFixed(4)).join(",");
+    const r = `(around:600,${poly})`;
     const q = `[out:json][timeout:40];(node${r}[amenity=fuel];nwr${r}[highway=services];nwr${r}[highway=rest_area];);out center 400;`;
     let shown = 0;
     try {
@@ -148,8 +158,8 @@
         const lat = e.lat !== undefined ? e.lat : e.center && e.center.lat, lon = e.lon !== undefined ? e.lon : e.center && e.center.lon;
         if (lat === undefined) continue;
         let off = 1e9, at = 0;
-        for (let i = 0; i < line.length; i++) { const d = C.km([lat, lon], line[i]); if (d < off) { off = d; at = cum[i]; } }
-        if (off <= 1) pl.push({ lat, lon, at, name: (e.tags || {}).name || ((e.tags || {}).amenity === "fuel" ? "fuel station" : "service / rest area") });
+        for (let i = 0; i < full.length; i++) { const d = C.km([lat, lon], full[i]); if (d < off) { off = d; at = fcum[i] * scale; } }
+        if (off <= 0.5) pl.push({ lat, lon, at, name: (e.tags || {}).name || ((e.tags || {}).amenity === "fuel" ? "fuel station" : "service / rest area") });
       }
       const lis = out.querySelectorAll("ol > li");
       let prevAt = 0;
@@ -247,7 +257,7 @@
         btn.textContent = "thanks, noted"; btn.disabled = true;
       }));
       nameStops();
-      dropoffHints(line, cum, chain);
+      dropoffHints(line, cum, chain, a, b);
       if (!first) osmFallback(a, line, cum);
     } catch (err) { out.textContent = "Route failed: " + err; }
   }
