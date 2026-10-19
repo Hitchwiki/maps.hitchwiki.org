@@ -76,9 +76,22 @@
       if (!nx || !names[i + 1] || !names[i]) return;
       const km = 111.2 * Math.hypot(el.dataset.lat - nx.dataset.lat, (el.dataset.lon - nx.dataset.lon) * Math.cos(el.dataset.lat * Math.PI / 180));
       if (km >= 150) return;
-      el.closest("li").insertAdjacentHTML("beforeend", `<br><small>Sign idea from here: <b>${names[i + 1].replace(/</g, "")}</b> (a nearby town on the way; logged signs with a near town waited ~11 min less than far ones)</small>`);
+      el.closest("li").insertAdjacentHTML("beforeend", `<br><small>Sign idea from here: <b class="rg-sign" role="button" tabindex="0" style="text-decoration:underline;cursor:pointer" title="Tap to show full screen">${names[i + 1].replace(/</g, "")}</b> (tap the name for a full-screen sign; a nearby town on the way; logged signs with a near town waited ~11 min less than far ones)</small>`);
     });
   }
+  // Tap a "Sign idea" name: full-screen black-on-white sign to hold up at the roadside; tap again to close.
+  function showSign(name) {
+    const ov = document.createElement("div");
+    ov.style.cssText = "position:fixed;inset:0;z-index:99999;background:#fff;color:#000;display:flex;align-items:center;justify-content:center;text-align:center;font:bold 20vw/1.1 sans-serif;padding:4vw;cursor:pointer";
+    ov.textContent = name;
+    const fit = () => { let sz = 400; ov.style.fontSize = sz + "px"; while (sz > 16 && (ov.scrollWidth > ov.clientWidth || ov.scrollHeight > ov.clientHeight)) { sz = Math.floor(sz * 0.9); ov.style.fontSize = sz + "px"; } };
+    document.body.appendChild(ov); fit();
+    let lock = null;
+    if (navigator.wakeLock) navigator.wakeLock.request("screen").then(l => { lock = l; }).catch(() => {});
+    ov.addEventListener("click", () => { if (lock) lock.release().catch(() => {}); ov.remove(); track("routing_gang_sign_closed", {}); });
+    track("routing_gang_sign_opened", { name_len: name.length });
+  }
+  out.addEventListener("click", e => { const b = e.target.closest && e.target.closest(".rg-sign"); if (b) showSign(b.textContent); });
   function detail(c, b) {
     const t = c.t || C.toward(c.s, b);
     const rides = c.s.review_count || 0;
