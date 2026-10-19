@@ -72,6 +72,8 @@ def test_finish_login_renders_postmessage_page_for_popup(app):
         resp = _finish_login("/me", needs_profile=False)
         html = resp if isinstance(resp, str) else resp
         assert "hitchwiki-auth" in html
+        # COOP can sever window.opener; the page also broadcasts same-origin.
+        assert "BroadcastChannel" in html
         # Never postMessage to a wildcard origin.
         assert '"*"' not in html
         assert "window.location.origin" in html
