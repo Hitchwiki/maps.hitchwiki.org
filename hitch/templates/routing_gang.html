@@ -59,14 +59,25 @@
   }
   // Place names for the suggested stops: one Nominatim lookup per second, town level, display only.
   async function nameStops() {
-    for (const el of out.querySelectorAll("ol .rg-place")) {
+    const els = [...out.querySelectorAll("ol .rg-place")];
+    const names = [];
+    for (const el of els) {
       try {
         const j = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=12&lat=${el.dataset.lat}&lon=${el.dataset.lon}`).then(r => r.json());
         const a = j.address || {}; const n = a.city || a.town || a.village || a.municipality || a.county;
-        if (n) el.textContent = "(near " + n + ")";
+        if (n) { el.textContent = "(near " + n + ")"; names[els.indexOf(el)] = n; }
       } catch (e) {}
       await new Promise(r => setTimeout(r, 1100));
     }
+    // Sign idea per leg: the next stop's town when it is under 150 km away (logged place signs with a near
+    // target waited a median 20 min vs 31.5 for far ones; research/sign-text-class-2026-10-19.md).
+    els.forEach((el, i) => {
+      const nx = els[i + 1];
+      if (!nx || !names[i + 1] || !names[i]) return;
+      const km = 111.2 * Math.hypot(el.dataset.lat - nx.dataset.lat, (el.dataset.lon - nx.dataset.lon) * Math.cos(el.dataset.lat * Math.PI / 180));
+      if (km >= 150) return;
+      el.closest("li").insertAdjacentHTML("beforeend", `<br><small>Sign idea from here: <b>${names[i + 1].replace(/</g, "")}</b> (a nearby town on the way; logged signs with a near town waited ~11 min less than far ones)</small>`);
+    });
   }
   function detail(c, b) {
     const t = c.t || C.toward(c.s, b);
