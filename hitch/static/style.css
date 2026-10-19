@@ -3717,6 +3717,12 @@ body:has(.topbar.visible) #inr-start-bar {
   text-align: left;
   z-index: 2002;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* #1112: the sheet is ~616 px tall; on a short phone viewport (iPhone SE Safari, 375x548) the
+     required star row and the close button sat above the screen, so Ride On! could never enable. */
+  max-height: 92vh;
+  max-height: 92dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 /* Drag-handle visual cue */

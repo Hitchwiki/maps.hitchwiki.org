@@ -1024,6 +1024,7 @@
       gotRideBtn.className = "inr-big inr-big--green";
       gotRideBtn.innerHTML = '<i class="fa-solid fa-thumbs-up"></i> ' + T("Got a Ride!");
       gotRideBtn.addEventListener("click", function () {
+        hmTrack("journey_got_ride_tapped", cohortProps(journeyStore.get()));
         // Open the slim sheet to capture rating/details; gotRide is called on Ride On!.
         journeyUI.rideDetailsSheet(function (details) {
           journeyFlow.gotRide(details);
@@ -1163,6 +1164,7 @@
       gotRideBtn.className = "inr-big inr-big--green";
       gotRideBtn.innerHTML = '<i class="fa-solid fa-thumbs-up"></i> ' + T("Got a Ride!");
       gotRideBtn.addEventListener("click", function () {
+        hmTrack("journey_got_ride_tapped", cohortProps(journeyStore.get()));
         journeyFlow.resume();
         journeyUI.rideDetailsSheet(function (details) {
           journeyFlow.gotRide(details);
@@ -1854,7 +1856,7 @@
       closeX.className = "inr-sheet__close";
       closeX.setAttribute("aria-label", T("Close"));
       closeX.innerHTML = "&times;";
-      closeX.addEventListener("click", function () { close(); });
+      closeX.addEventListener("click", function () { closeVia = "x"; close(); });
       sheet.appendChild(closeX);
 
       // Title
@@ -2040,19 +2042,27 @@
           comment: textarea.value.trim(),
         };
         if (driverReason) hmTrack("driver_reason_answered", { reason: driverReason });
+        saved = true;
         close();
         onSave(details);
       });
       sheet.appendChild(rideOnBtn);
 
+      // #1112: a sheet closed without Ride On! leaves the journey waiting and logs no ride;
+      // record how it was dismissed (and whether a star was set) to see where rides are lost.
+      let saved = false;
+      let closeVia = "other";
       function close() {
+        if (!saved && scrim.parentNode) {
+          hmTrack("ride_sheet_dismissed", Object.assign({ via: closeVia, rated: rating > 0 ? "yes" : "no" }, cohortProps(journeyStore.get())));
+        }
         if (scrim.parentNode) scrim.parentNode.removeChild(scrim);
         if (sheet.parentNode) sheet.parentNode.removeChild(sheet);
         journeyUI._openDialog = null;
       }
 
       // Scrim tap (outside the sheet) dismisses without saving.
-      scrim.addEventListener("click", close);
+      scrim.addEventListener("click", function () { closeVia = "scrim"; close(); });
 
       document.body.appendChild(scrim);
       document.body.appendChild(sheet);
