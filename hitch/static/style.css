@@ -4204,6 +4204,8 @@ body.routing-active .leaflet-control-container .leaflet-control-geocoder { displ
 .rp-node-dest .rp-dotm { background: #d93025; border-color: #d93025; }
 .rp-node .rp-place { font-size: 13.5px; color: #202124; padding-bottom: 2px; }
 .rp-spot-link { color: #202124; text-decoration: none; border-bottom: 1px dotted #9aa0a6; }
+.rp-spot-flag { display: inline-block; width: auto !important; min-height: 0; margin-left: .5em; padding: 0 .4em; font-size: .75em; color: #5f6368; background: none; border: 1px solid #dadce0; border-radius: 4px; cursor: pointer; }
+.rp-spot-flag:disabled { cursor: default; opacity: .6; }
 .rp-spot-link:hover { color: var(--rc); border-bottom-color: var(--rc); }
 
 /* Edge rows carry the vertical line between two dots. A ride is a solid line in

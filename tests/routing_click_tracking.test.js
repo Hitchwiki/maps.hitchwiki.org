@@ -17,3 +17,8 @@ for (const ev of ["route_option_picked", "route_details_clicked", "route_spot_li
 assert.ok(/addEventListener\("click", \(\) => \{\s*hmTrack\("route_option_picked"/.test(src), "pick fires inside the click listener");
 assert.ok(!/lat|lng|latlng/i.test(src.match(/hmTrack\("route_option_picked"[^)]*\)/)[0]), "no coordinates in the pick payload");
 console.log("routing_click_tracking ok");
+
+// #1050: wrong-stop flag sends coordinates rounded to 2 decimals only.
+const fl = src.match(/hmTrack\("route_spot_flagged"[^;]*;/);
+assert.ok(fl && /toFixed\(2\)/.test(fl[0]) && !/toFixed\([34]\)/.test(fl[0]), "flag payload is 2 decimals");
+console.log("flag ok");

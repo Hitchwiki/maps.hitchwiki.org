@@ -1477,6 +1477,16 @@
       const a = spotLink(c);
       place.appendChild(a);
       fillSpotLabel(a, c);
+      // "Try to break the router" ask from the routing gang, in front of real planners:
+      // coordinates at 2 decimals only, no free text.
+      const flag = document.createElement("button");
+      flag.type = "button"; flag.className = "rp-spot-flag";
+      flag.textContent = T("Wrong stop?");
+      flag.addEventListener("click", () => {
+        hmTrack("route_spot_flagged", { lat2: c[0].toFixed(2), lon2: c[1].toFixed(2) });
+        flag.textContent = T("Thanks, noted"); flag.disabled = true;
+      });
+      place.appendChild(flag);
     }
     return li;
   }
