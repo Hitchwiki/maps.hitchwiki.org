@@ -1775,6 +1775,44 @@
             }
         });
 
+        // Typing letters and hoping the right option pops up is hard when you cannot remember
+        // the choices: "Show all options" lists every one as a tappable button.
+        const allBtn = document.createElement('button');
+        allBtn.type = 'button';
+        allBtn.className = 'wra-btn';
+        allBtn.textContent = {{ t("Show all options")|tojson }};
+        allBtn.setAttribute('aria-expanded', 'false');
+        const allBox = document.createElement('div');
+        allBox.style.display = 'none';
+        allBox.style.marginTop = '4px';
+        input.insertAdjacentElement('afterend', allBox);
+        input.insertAdjacentElement('afterend', allBtn);
+        function renderAll() {
+            allBox.innerHTML = '';
+            const have = getCodes();
+            Array.from(datalist.options).forEach((opt) => {
+                const code = opt.getAttribute('data-code');
+                if (!code || opt.hasAttribute('data-alias') || have.includes(code)) return;
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'wra-btn';
+                b.style.margin = '2px';
+                b.textContent = opt.value;
+                b.addEventListener('click', () => {
+                    setCodes(getCodes().concat(code));
+                    renderTags();
+                    renderAll();
+                });
+                allBox.appendChild(b);
+            });
+        }
+        allBtn.addEventListener('click', () => {
+            const open = allBox.style.display === 'none';
+            allBox.style.display = open ? 'block' : 'none';
+            allBtn.setAttribute('aria-expanded', String(open));
+            if (open) renderAll();
+        });
+
         renderTags();
         return { renderTags };
     }
