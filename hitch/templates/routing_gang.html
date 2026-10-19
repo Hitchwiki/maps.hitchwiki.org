@@ -173,6 +173,8 @@
         `<br>${first ? "Departure spot near A:" : "<b>No known spot within 15 km of A.</b> Spots along the way:"}` +
         `<ol style="list-style:none;padding-left:0">${rows}</ol>Last stretch to B: ${last.toFixed(0)} km.${drive}` +
         `<br><small>Share this case: <a href="?a=${a.map(x => x.toFixed(4))}&b=${b.map(x => x.toFixed(4))}">link</a></small>`;
+      // Do group members open the suggested stops? Rank = position in the stop list (1-based).
+      out.querySelectorAll("ol a[href^='/spot/']").forEach((link, i) => link.addEventListener("click", () => track("routing_gang_stop_click", { rank: i + 1 })));
       out.querySelectorAll(".rg-flag").forEach(btn => btn.addEventListener("click", () => {
         track("routing_gang_stop_flagged", { rank: Number(btn.dataset.rank), lat2: btn.dataset.lat, lon2: btn.dataset.lon });
         btn.textContent = "thanks, noted"; btn.disabled = true;
