@@ -136,7 +136,7 @@
                     </div>
                     <div style="margin-top:0.6rem;">
                         <label for="datetime_ride" id="datetime_ride_label" style="display:block; font-size:0.9em; color:#555; margin-bottom:2px;">{{ t("When did you get the ride?") }}</label>
-                        <input form="ride-form" id="datetime_ride" type="datetime-local" name="datetime_ride" class="form-control" min="2020-01-01T00:00" value="{{ ride_data.datetime_ride if ride_data and ride_data.datetime_ride else '' }}">
+                        <input form="ride-form" id="datetime_ride" type="datetime-local" name="datetime_ride" class="form-control" min="2005-01-01T00:00" value="{{ ride_data.datetime_ride if ride_data and ride_data.datetime_ride else '' }}">
                     </div>
                 </div>
             </div>
@@ -164,7 +164,7 @@
                        state — the row is hidden (and cleared) while the box is ticked. #}
                     <div style="margin-top:0.6rem;" id="arrival-row">
                         <label for="arrival_datetime" style="display:block; font-size:0.9em; color:#555; margin-bottom:2px;">{{ t("When did you arrive at the destination?") }}</label>
-                        <input form="ride-form" id="arrival_datetime" type="datetime-local" name="arrival_datetime" class="form-control" min="2020-01-01T00:00" value="{{ ride_data.arrival_datetime if ride_data and ride_data.arrival_datetime else '' }}">
+                        <input form="ride-form" id="arrival_datetime" type="datetime-local" name="arrival_datetime" class="form-control" min="2005-01-01T00:00" value="{{ ride_data.arrival_datetime if ride_data and ride_data.arrival_datetime else '' }}">
                         <span id="arrival-error-message" class="error text-danger" style="display:block; font-size:0.85em;"></span>
                     </div>
                 </div>
@@ -591,7 +591,7 @@
         const dep = document.getElementById("datetime_ride");
         const arr = document.getElementById("arrival_datetime");
         function syncArrivalMin() {
-            arr.min = dep.value || "2020-01-01T00:00";
+            arr.min = dep.value || "2005-01-01T00:00";
             // A previously chosen arrival that the new departure has invalidated is
             // cleared rather than left in place silently failing the submit check.
             if (dep.value && arr.value && arr.value <= dep.value) arr.value = "";
