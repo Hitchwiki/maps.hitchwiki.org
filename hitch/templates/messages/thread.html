@@ -122,6 +122,9 @@
         if (!res.ok) throw new Error('send failed');
         const m = await res.json();
         appendMessage(m);
+        // Aggregate-only analytics: did a "Say hello" from the hitchhiker map ever become a
+        // sent message? No username or text, just the landing ref (base.html strips ?ref=).
+        if (window.hmTrack) window.hmTrack('message_sent', { ref: window.hmLandingRef || '' });
         input.value = '';
         input.style.height = 'auto';
         scrollToBottom();
