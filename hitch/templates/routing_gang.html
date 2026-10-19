@@ -106,11 +106,21 @@
     // Held-out pioneer rides, A = nearest place centre (research/routing-edge-distance-pioneer-2026-10-19.md, n=210):
     // the road point 1 km from A was within 2 km of where riders really stood 67% of the time, 3 km only 33%
     // (village 61 vs 25, town 73 vs 30, city 73 vs 63). Show it first.
-    const i3 = cum.findIndex(c => c >= 1);
+    // Class-sized (research addendum #1123, exact points on the full line): village 0.5 km (73% within 2 km vs 61% for the old ~1.5 km),
+    // town 1.5, city 2. Class from Nominatim; on failure keep 1.5 km.
+    let km = 1.5, kmTxt = "about 1.5 km";
+    try {
+      const j = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=12&lat=${a[0]}&lon=${a[1]}`).then(r => r.json());
+      const ad = j.address || {};
+      if (ad.city) { km = 2; kmTxt = "about 2 km"; } else if (ad.village || ad.hamlet) { km = 0.5; kmTxt = "about 0.5 km"; }
+    } catch (e) { /* keep default */ }
+    // line is densified to ~2 km steps, so interpolate to the exact distance instead of snapping to the next vertex.
+    const i3 = cum.findIndex(c => c >= km);
     if (i3 > 0) {
-      const e = line[i3];
+      const f = cum[i3] > cum[i3 - 1] ? (km - cum[i3 - 1]) / (cum[i3] - cum[i3 - 1]) : 1;
+      const e = [line[i3 - 1][0] + f * (line[i3][0] - line[i3 - 1][0]), line[i3 - 1][1] + f * (line[i3][1] - line[i3 - 1][1])];
       L.circleMarker(e, { radius: 7, color: "#1a73e8", weight: 3 }).addTo(layer).bindTooltip("edge of town");
-      out.insertAdjacentHTML("beforeend", `<br><b>Where riders without a known spot usually stood:</b> on this road at the edge of town, about 1 km from A: <a href="https://www.openstreetmap.org/?mlat=${e[0]}&mlon=${e[1]}#map=16/${e[0]}/${e[1]}" target="_blank">${e[0].toFixed(4)}, ${e[1].toFixed(4)}</a>.`);
+      out.insertAdjacentHTML("beforeend", `<br><b>Where riders without a known spot usually stood:</b> on this road at the edge of town, ${kmTxt} from A: <a href="https://www.openstreetmap.org/?mlat=${e[0]}&mlon=${e[1]}#map=16/${e[0]}/${e[1]}" target="_blank">${e[0].toFixed(4)}, ${e[1].toFixed(4)}</a>.`);
     }
     try {
       const q = window.RGFallback.overpassQuery(a[0], a[1], 10000);
