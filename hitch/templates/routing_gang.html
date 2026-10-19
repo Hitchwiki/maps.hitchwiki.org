@@ -109,6 +109,37 @@
       out.insertAdjacentHTML("beforeend", `<br><b>Or the nearest fuel, rest or service place on the road:</b> ${f.label}: <a href="https://www.openstreetmap.org/?mlat=${f.lat}&mlon=${f.lon}#map=17/${f.lat}/${f.lon}" target="_blank">${f.lat.toFixed(4)}, ${f.lon.toFixed(4)}</a> (${f.at.toFixed(0)} km along the route). Not checked for hitchhiking.`);
     } catch (e) { track("routing_gang_osm_fallback", { found: false, error: true }); }
   }
+  // "Ask to be dropped at": rides from fuel/rest/services stops came ~1.6x as often within the same riders
+  // (research/routing-gang-exit-2026-10-19.md), and 96% of 40 km road stretches have one within 1 km
+  // (research/routing-dropoff-coverage-2026-10-19.md). One Overpass query along the route; display only.
+  async function dropoffHints(line, cum, chain) {
+    const step = Math.max(1, Math.round(line.length / 250));
+    const poly = line.filter((_, i) => i % step === 0).map(p => p[0].toFixed(4) + "," + p[1].toFixed(4)).join(",");
+    const r = `(around:800,${poly})`;
+    const q = `[out:json][timeout:40];(node${r}[amenity=fuel];nwr${r}[highway=services];nwr${r}[highway=rest_area];);out center 400;`;
+    let shown = 0;
+    try {
+      const j = await fetch("https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(q)).then(x => x.json());
+      const pl = [];
+      for (const e of j.elements || []) {
+        const lat = e.lat !== undefined ? e.lat : e.center && e.center.lat, lon = e.lon !== undefined ? e.lon : e.center && e.center.lon;
+        if (lat === undefined) continue;
+        let off = 1e9, at = 0;
+        for (let i = 0; i < line.length; i++) { const d = C.km([lat, lon], line[i]); if (d < off) { off = d; at = cum[i]; } }
+        if (off <= 1) pl.push({ lat, lon, at, name: (e.tags || {}).name || ((e.tags || {}).amenity === "fuel" ? "fuel station" : "service / rest area") });
+      }
+      const lis = out.querySelectorAll("ol > li");
+      let prevAt = 0;
+      chain.forEach((c, i) => {
+        const cand = pl.filter(x => x.at > prevAt + 3 && x.at < c.at - 1).sort((x, y) => y.at - x.at)[0];
+        prevAt = c.at;
+        if (c.s.fuel || !cand || !lis[i]) return;
+        shown++;
+        lis[i].insertAdjacentHTML("beforeend", `<br><small><b>Before this stop, ask to be dropped at:</b> ${cand.name.replace(/</g, "")} (OSM), km ${cand.at.toFixed(0)}, <a href="https://www.openstreetmap.org/?mlat=${cand.lat}&mlon=${cand.lon}#map=17/${cand.lat}/${cand.lon}" target="_blank">map</a>. Riders let out at fuel and rest stops got a next ride about 1.6x as often.</small>`);
+      });
+    } catch (e) {}
+    track("routing_gang_dropoff_shown", { n: shown, legs: chain.length });
+  }
   async function plan(a, b) {
     out.textContent = "Loading road route…";
     try {
@@ -192,6 +223,7 @@
         btn.textContent = "thanks, noted"; btn.disabled = true;
       }));
       nameStops();
+      dropoffHints(line, cum, chain);
       if (!first) osmFallback(a, line, cum);
     } catch (err) { out.textContent = "Route failed: " + err; }
   }
