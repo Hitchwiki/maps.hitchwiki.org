@@ -228,7 +228,8 @@
         `Known pickup spots (a logged ride started here) within 3 km of the route: ${near.length} (red = suggested stops; tick "show all" for the rest).` +
         `<br>${first ? "Departure spot near A:" : "<b>No known spot within 15 km of A.</b> Spots along the way:"}` +
         `<ol style="list-style:none;padding-left:0">${rows}</ol>Last stretch to B: ${last.toFixed(0)} km.${drive}` +
-        `<br><small>Share this case: <a href="?a=${a.map(x => x.toFixed(4))}&b=${b.map(x => x.toFixed(4))}">link</a></small>`;
+        `<br><small>Share this case: <a href="?a=${a.map(x => x.toFixed(4))}&b=${b.map(x => x.toFixed(4))}">link</a> · <a class="rg-handoff" href="/dir/${a.map(x => x.toFixed(5))}/${b.map(x => x.toFixed(5))}">Open this trip on the main map</a></small>`;
+      out.querySelector(".rg-handoff").addEventListener("click", () => track("routing_gang_handoff", {}));
       // Do group members open the suggested stops? Rank = position in the stop list (1-based).
       out.querySelectorAll("ol a[href^='/spot/']").forEach((link, i) => link.addEventListener("click", () => track("routing_gang_stop_click", { rank: i + 1 })));
       out.querySelectorAll(".rg-flag").forEach(btn => btn.addEventListener("click", () => {
