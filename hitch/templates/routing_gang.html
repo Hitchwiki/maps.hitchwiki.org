@@ -146,15 +146,24 @@
       for (let i = 1; i < raw.length; i++) fcum.push(fcum[i - 1] + C.km(raw[i - 1], raw[i]));
     } catch (e) { /* fall back to the simplified line */ }
     const scale = cum[cum.length - 1] / (fcum[fcum.length - 1] || 1);
-    const step = Math.max(1, Math.round(full.length / 250));
-    const poly = full.filter((_, i) => i % step === 0 || i === full.length - 1).map(p => p[0].toFixed(4) + "," + p[1].toFixed(4)).join(",");
-    const r = `(around:600,${poly})`;
-    const q = `[out:json][timeout:40];(node${r}[amenity=fuel];nwr${r}[highway=services];nwr${r}[highway=rest_area];);out center 400;`;
+    // One 250-point polyline query times out on Overpass for a long route (measured: 466 km, 40 s), so ask per ~60-point chunk.
+    const step = Math.max(1, Math.round(full.length / 300));
+    const pts = full.filter((_, i) => i % step === 0 || i === full.length - 1);
+    const chunks = [];
+    for (let i = 0; i < pts.length - 1; i += 60) chunks.push(pts.slice(i, i + 61));
     let shown = 0;
     try {
-      const j = await fetch("https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(q)).then(x => x.json());
+      // Sequential: Overpass allows ~2 slots per IP and answers parallel bursts with an error that has no CORS header.
+      const batches = [];
+      for (const ch of chunks) {
+        const r = `(around:600,${ch.map(p => p[0].toFixed(4) + "," + p[1].toFixed(4)).join(",")})`;
+        const q = `[out:json][timeout:25];(node${r}[amenity=fuel];nwr${r}[highway=services];nwr${r}[highway=rest_area];);out center 200;`;
+        batches.push(await fetch("https://overpass-api.de/api/interpreter", { method: "POST", body: "data=" + encodeURIComponent(q) }).then(x => x.json()).then(j => j.elements || []).catch(() => []));
+      }
+      const seen = new Set(), els = [];
+      for (const e of batches.flat()) { const k = e.type + e.id; if (!seen.has(k)) { seen.add(k); els.push(e); } }
       const pl = [];
-      for (const e of j.elements || []) {
+      for (const e of els) {
         const lat = e.lat !== undefined ? e.lat : e.center && e.center.lat, lon = e.lon !== undefined ? e.lon : e.center && e.center.lon;
         if (lat === undefined) continue;
         let off = 1e9, at = 0;
