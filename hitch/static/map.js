@@ -6990,7 +6990,8 @@ function maybeShowNewsletterPledge() {
   let surface = "newsletter";
   try {
     const q = new URLSearchParams(location.search);
-    if ((q.get("ref") || "").indexOf("wiki") === 0) surface = "wiki";
+    // base.html strips ?ref= before this runs, so the live value is hmLandingRef.
+    if ((window.hmLandingRef || q.get("ref") || "").indexOf("wiki") === 0) surface = "wiki";
     wanted = q.get("pledge") === "1" &&
       !localStorage.getItem(DRIVER_PLEDGE_MADE_KEY);
   } catch (e) {}
