@@ -51,6 +51,7 @@
         s.src = "https://1p.hitchhiking.org/script.js";
         s.setAttribute("data-website-id", "f3576395-def8-4d09-9725-7f74dde89c72");
         s.setAttribute("data-before-send", "hmVisitorBeforeSend");
+        s.setAttribute("data-exclude-hash", "true");
         // Anything hmTrack queued while the first-party path was failing is
         // still worth sending once a tracker finally exists.
         s.addEventListener("load", function () { if (window.hmTrackFlush) window.hmTrackFlush(); });
@@ -63,6 +64,12 @@
       src="/1p/script.js"
       data-website-id="f3576395-def8-4d09-9725-7f74dde89c72"
       data-before-send="hmVisitorBeforeSend"
+      {# The map rewrites #map=<zoom>/<lat>/<lon> via replaceState on every
+         pan, and Umami counts each URL change as a pageview: 2.4M of 2.6M
+         "pageviews" were pans, ~1 GB/month of analytics. Spot and route
+         identity live in the path, so nothing real is lost. Keep in step
+         with the fallback tracker above. #}
+      data-exclude-hash="true"
       onerror="window.hmLoadTrackerFallback()"
     ></script>
     <script>
