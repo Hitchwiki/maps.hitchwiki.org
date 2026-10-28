@@ -587,6 +587,8 @@
       first: j && j.firstJourney ? "yes" : "no",
       li: window.IS_LOGGED_IN ? "yes" : "no",
       source: startSource(j && j.source),
+      // IDEAS #1182: end events could not be split by company; only journey_started carried it.
+      co_hitchhikers: j && j.coHitchhikers ? j.coHitchhikers.length : 0,
     };
   }
 
