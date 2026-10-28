@@ -756,7 +756,14 @@
           // The failure mode is the actionable part: which end (or the middle)
           // has too little logged data is what says where to recruit rides.
           const reason = diagnoseNoRouteReason(FB || RJ.router, from, to, DEFAULT_MAX_WALK);
-          hmTrack('route_none', { reason: reason });
+          // Where recruiting rides would help: the uncovered end(s), rounded to a 0.1° cell
+          // (~10 km, a district not an address) so repeats are countable without
+          // recording anyone's exact start or destination.
+          const cell = (pt) => pt[0].toFixed(1) + "," + pt[1].toFixed(1);
+          const props = { reason: reason };
+          if (reason === "start-uncovered" || reason === "both-uncovered") props.start_cell = cell(from);
+          if (reason === "dest-uncovered" || reason === "both-uncovered") props.dest_cell = cell(to);
+          hmTrack('route_none', props);
           setStatus(diagnoseNoRoute(FB || RJ.router, from, to, DEFAULT_MAX_WALK, !!FB));
           showNoRouteStartAction(from);
           showNoRouteAddSpotAction(reason, from, to);
