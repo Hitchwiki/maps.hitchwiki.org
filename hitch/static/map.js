@@ -4390,6 +4390,33 @@ function trackShareDeferredReturn() {
   } catch (e) {}
 }
 
+// #1178: ask "first hitchhiking ride ever?" on a journey's success screen, the same one-tap
+// question the /ride form asks. The tap is the submit here (the ride is already uploaded), so it
+// fires the shown/answered/submitted events with surface=journey and stamps a yes on the device
+// like the form does (EXP-1177). Past-ride saves already asked on the form, so they never see it.
+function setupJourneyFirstEver(show) {
+  const row = $$("#success-first-ever");
+  if (!row) return;
+  row.style.display = show ? "" : "none";
+  if (!show) return;
+  const btns = row.querySelectorAll("button[data-first-ever]");
+  btns.forEach((b) => b.removeAttribute("disabled"));
+  hmTrack("ride_first_ever_shown", { surface: "journey" });
+  btns.forEach((btn) => {
+    btn.onclick = () => {
+      const answer = btn.dataset.firstEver;
+      btns.forEach((b) => b.setAttribute("disabled", "disabled"));
+      hmTrack("ride_first_ever_answered", { answer, surface: "journey" });
+      hmTrack("ride_first_ever_submitted", { answer, surface: "journey" });
+      try {
+        if (answer === "yes" && !localStorage.getItem("hm_first_ever_at")) {
+          localStorage.setItem("hm_first_ever_at", String(Date.now()));
+        }
+      } catch (e) { /* storage blocked: measurement is optional */ }
+    };
+  });
+}
+
 function showSuccessOverlay(opts) {
   const overlay = $$("#success-overlay");
   if (!overlay) return;
@@ -4404,6 +4431,7 @@ function showSuccessOverlay(opts) {
       ? { ride: successRide }
       : opts;
   overlay.style.display = "flex";
+  setupJourneyFirstEver(!!(opts && opts.journey));
   // A/B "ride-share-value-v1" is decided: the "help a friend" arm converted worse
   // (help_friend 3.21% vs control 5.96% shared, n=514), so control wording shipped
   // to everyone. "ride-share-driver-v1" (IDEAS #510) tests the one audience the card

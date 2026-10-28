@@ -875,6 +875,16 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
         <p class="success-chat-invite"><a class="success-chat-btn" href="{{ GENERAL_CHAT_URL }}" target="_blank" rel="noopener" data-chat-place="ride_saved">{{ t("Join our Matrix chat") }}</a></p>
         <!-- Filled in by showTripCreated() when a tracked journey's rides were grouped
              into a trip. Hidden otherwise, and for a single-ride journey. -->
+        {# #1178: journey uploads (104/28d) never saw the "first ride ever?" question the /ride form asks.
+           Shown only for a journey's success screen; same strings, same events plus surface=journey. #}
+        <div id="success-first-ever" style="display: none; margin: .5rem 0;">
+            <span style="font-weight:600;">{{ t("Is this your first hitchhiking ride ever?") }}</span>
+            <span style="font-weight:normal; color:#666;">{{ t("(optional)") }}</span>
+            <div style="margin-top:4px;">
+                <button type="button" style="padding:3px 14px; margin-right:6px; border:1px solid #bbb; border-radius:14px; background:#fff; color:#333; cursor:pointer;" data-first-ever="yes">{{ t("Yes") }}</button>
+                <button type="button" style="padding:3px 14px; margin-right:6px; border:1px solid #bbb; border-radius:14px; background:#fff; color:#333; cursor:pointer;" data-first-ever="no">{{ t("No") }}</button>
+            </div>
+        </div>
         <p id="success-trip-note" class="success-trip-note" style="display: none;"></p>
         <!-- B508: log the trip, not the ride. Shown by renderTripLegControls() only
              when the just-logged past ride has a destination, so the next leg can
