@@ -34,8 +34,9 @@ test("open({onDone}) tears down and calls back instead of navigating to the prof
   assert.match(SOURCE, /window\.location\.href = PROFILE_URL/);
 });
 
-test("anonymous first-visit A/B (#268): both arms assigned at show time, four funnel events tagged", () => {
-  assert.match(SOURCE, /hmVariant\(ANON_EXP, \["control", "welcome"\]\)/);
+test("anonymous first-visit arm is fixed to control-final (#811): no carousel, funnel events still tagged", () => {
+  assert.match(SOURCE, /var arm = "control-final";/);
+  assert.doesNotMatch(SOURCE, /hmVariant\(ANON_EXP/);
   assert.match(SOURCE, /ANON_EXP = "welcome-anon-v1"/);
   assert.match(SOURCE, /welcome_anon_assigned/);
   for (const ev of ["spot_opened", "route_searched", "journey_started", "add_ride_clicked"]) {
@@ -46,6 +47,6 @@ test("anonymous first-visit A/B (#268): both arms assigned at show time, four fu
   assert.match(SOURCE, /\^share-/);
   assert.match(SOURCE, /\.inride-scrim/);
   assert.match(SOURCE, /hmVisitorConsent\.state\(\) === "unset"/);
-  // Anonymous finishers stay on the map, not the login-gated profile form.
-  assert.match(SOURCE, /onDone: function \(\) \{\}/);
+  // #811: no anonymous arm opens the carousel any more.
+  assert.doesNotMatch(SOURCE, /onDone: function \(\) \{\}/);
 });
