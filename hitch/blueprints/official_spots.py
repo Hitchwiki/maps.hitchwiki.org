@@ -333,7 +333,7 @@ def bench_town_print(slug):
             proof=L.get("proof", ""),
             pledge=pledge,
             news_url=news_url,
-            svg=segno.make(news_url, error="m").svg_inline(scale=6, border=2),
+            svg=segno.make(news_url, error="m").svg_inline(scale=6, border=2, omitsize=True),
             page_lang=lang,
             emit_hreflang=False,
         )
