@@ -749,7 +749,7 @@
       RJ.searchToken = search;
       setStatus(T("No repeatable route — checking one-off rides…"));
       loadFallbackRouter().then((FB) => {
-        if (search !== RJ.searchToken) return;   // superseded while downloading
+        if (search !== RJ.searchToken) { hmTrack('route_search_superseded', {}); return; }   // superseded while downloading
         const alt = FB ? alternatives(FB, from, to, DEFAULT_MAX_WALK, 3, 0.6) : [];
         clearRoutes();
         if (!alt.length) {
