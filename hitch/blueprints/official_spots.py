@@ -152,6 +152,7 @@ _BENCH_STRINGS = {
             "(616 Antworten, Mär–Aug 2026)."
         ),
         "stop": "Mitfahrhalt",
+        "drivers": "Warum Fahrer anhalten",
         "report": "Für die Gemeinde: Nutzungsbericht dieser Halte (Fahrten, Wartezeiten, CSV)",
     },
     "fr": {
@@ -174,6 +175,7 @@ _BENCH_STRINGS = {
             "(616 réponses, mars–août 2026)."
         ),
         "stop": "Arrêt",
+        "drivers": "Pourquoi les conducteurs s'arrêtent",
     },
     "nl": {
         "title": "Liftplekken in {name}",
@@ -195,6 +197,7 @@ _BENCH_STRINGS = {
             "(616 antwoorden, mrt–aug 2026)."
         ),
         "stop": "Liftplek",
+        "drivers": "Waarom bestuurders stoppen",
     },
     "da": {
         "title": "Blafferpladser i {name}",
@@ -216,6 +219,7 @@ _BENCH_STRINGS = {
             "(616 svar, mar–aug 2026)."
         ),
         "stop": "Plads",
+        "drivers": "Hvorfor bilister stopper",
     },
     "en": {
         "title": "Hitchhiking spots in {name}",
@@ -237,6 +241,7 @@ _BENCH_STRINGS = {
             "(616 answers, Mar–Aug 2026)."
         ),
         "stop": "Spot",
+        "drivers": "Why drivers stopped",
     },
 }
 
