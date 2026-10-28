@@ -374,6 +374,7 @@
     // logged past ride gets; everyone else goes straight to the share card.
     window.showPostSubmitOverlay(window.IS_LOGGED_IN ? "" : "anon", {
       ride: entry.ride,
+      journey: true,
       dTag: resolveDTag(entry.id, entry.dTag),
     });
   }
