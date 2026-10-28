@@ -11,8 +11,8 @@ BASE = (Path(__file__).resolve().parent.parent / "hitch" / "templates" / "base.h
 
 
 def test_hmtrack_tags_every_event_with_surface():
-    assert 'window.umami.track(name, tagged(data))' in BASE
-    assert "queue.push([name, tagged(data)])" in BASE
+    assert 'window.umami.track(name, tagged(data, name))' in BASE
+    assert "queue.push([name, tagged(data, name)])" in BASE
     assert 'var out = { shell: SURFACE, auto: AUTO };' in BASE
 
 
