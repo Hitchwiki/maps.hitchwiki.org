@@ -126,17 +126,25 @@
         window.hmShell = SURFACE;
         var AUTO = "n";
         try { if (navigator.webdriver === true || /HeadlessChrome/.test(navigator.userAgent)) AUTO = "y"; } catch (e) {}
-        function tagged(data) {
+        // #1180: the ?ref= arrival channel (sessionStorage, same sanitised value as
+        // referred_via) rides on the few events that show whether a channel produced rides.
+        var ARRIVAL_EVENTS = { route_searched: 1, journey_started: 1, ride_form_submitted: 1,
+          ride_form_session_submitted: 1, ride_first_ever_answered: 1, ride_first_ever_submitted: 1 };
+        var ARRIVAL = "";
+        try { ARRIVAL = (sessionStorage.getItem("hm_arrival") || "").slice(0, 64).replace(/[^a-zA-Z0-9_-]/g, ""); } catch (e) {}
+        window.hmSetArrival = function (v) { ARRIVAL = v; try { sessionStorage.setItem("hm_arrival", v); } catch (e) {} };
+        function tagged(data, name) {
           // Crawler fleets (Linux/1080p, fake google referrer) were 77% of google.com
           // visitors in 2026-10; `auto` lets every experiment read exclude them per event.
           var out = { shell: SURFACE, auto: AUTO };
+          if (name && ARRIVAL && ARRIVAL_EVENTS[name]) out.arrival = ARRIVAL;
           if (data) for (var k in data) if (Object.prototype.hasOwnProperty.call(data, k)) out[k] = data[k];
           return out;
         }
         window.hmTrack = function (name, data) {
           try {
-            if (window.umami) { return window.umami.track(name, tagged(data)); }
-            if (queue.length < QUEUE_MAX) queue.push([name, tagged(data)]);
+            if (window.umami) { return window.umami.track(name, tagged(data, name)); }
+            if (queue.length < QUEUE_MAX) queue.push([name, tagged(data, name)]);
           } catch (e) {}
         };
         // Every community-chat link carries data-chat-place (GENERAL_CHAT_URL in
@@ -207,6 +215,7 @@
         ref = ref.slice(0, 64).replace(/[^a-zA-Z0-9_-]/g, "");
         if (!ref) return;
         window.hmLandingRef = ref;  // survives the strip below; inride.js reads it
+        if (window.hmSetArrival) window.hmSetArrival(ref);
         window.hmTrack("referred_via", { ref: ref });
         params.delete("ref");
         var qs = params.toString();
