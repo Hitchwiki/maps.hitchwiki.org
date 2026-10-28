@@ -558,6 +558,7 @@
     const fromName = i === 0 ? "A" : nm(i - 1), toName = i === pl.chain.length ? "B" : nm(i);
     return `<div class="rg-pop"><h4>${esc(fromName)} → ${esc(toName)}: ${Math.round(km)} km</h4>` +
       `<div>~${dur(driveMin)} by car · ${rides === 1 ? "usually one ride" : `about ${rides} rides`}</div>` +
+      (i === 0 && pl.bail && pl.bail.entry ? `<div style="color:#1a73e8">Highway access toward B: ${esc(pl.bail.entry.name)}, km ${Math.round(pl.bail.entry.at)}</div>` : "") +
       (gap ? `<div style="color:#b06000">No logged spot on this stretch: thumb along the road or from the edge of a village, don't walk it.</div>` : "") +
       `<div style="margin-top:6px"><b>If your driver turns off early:</b> ` +
       (bail.length || spots ? `get out at one of the ${bail.length ? `<span style="color:#e37400">${bail.length} fuel/rest stop${bail.length > 1 ? "s" : ""}</span>` : ""}${bail.length && spots ? " or " : ""}${spots ? `<span style="color:#c5221f">${spots} logged spot${spots > 1 ? "s" : ""}</span>` : ""} on this stretch (small dots), not in a town centre.`
@@ -594,9 +595,14 @@
       const p = pl, a = ends.a.p, b = ends.b.p;
       p.bail = await fetchBailouts(p, a, b, legOf);
       track("routing_gang_dropoff_shown", { n: p.bail.length, legs: p.chain.length + 1, failed: p.bail.failed });
+      track("routing_gang_entry_shown", { has_entry: !!p.bail.entry });
       if (plans[sel] !== p || mode !== "hitch") return;
       renderSteps(leaveDate(), daylight(ends.a.p, leaveDate()));
     }
+    const en = pl.bail.entry;
+    if (en) L.circleMarker([en.lat, en.lon], { radius: 7, color: "#1a73e8", weight: 3, fillColor: "#fff", fillOpacity: 1 }).addTo(extraLayer)
+      .bindPopup(`<div class="rg-pop"><h4>Highway access toward B</h4><div>${esc(en.name)}, km ${Math.round(en.at)} along the road</div><div class="mut">First exit or service area on the road line out of A. From OpenStreetMap, not checked for hitchhiking.</div></div>`)
+      .on("popupopen", () => track("routing_gang_entry_click", {}));
     pl.bail.forEach(x => {
       L.circleMarker([x.lat, x.lon], { radius: 5, color: "#e37400", weight: 2, fillColor: "#fbbc04", fillOpacity: 0.9 }).addTo(extraLayer)
         .bindPopup(`<div class="rg-pop"><h4>⛽ ${esc(x.name)}</h4><div>km ${Math.round(x.at)} · right on the road</div><div>If your driver turns off before the next stop, ask to be let out here: riders let out at fuel and rest stops got a next ride about 1.6x as often.</div><div class="mut">From OpenStreetMap, not checked for hitchhiking. <a href="https://www.openstreetmap.org/?mlat=${x.lat}&mlon=${x.lon}#map=17/${x.lat}/${x.lon}" target="_blank">OSM</a></div></div>`);
@@ -622,7 +628,7 @@
     for (let i = 0; i < pts.length - 1; i += 60) {
       const ch = pts.slice(i, i + 61);
       const r = `(around:600,${ch.map(p => p[0].toFixed(4) + "," + p[1].toFixed(4)).join(",")})`;
-      const q = `[out:json][timeout:25];(node${r}[amenity=fuel];nwr${r}[highway=services];nwr${r}[highway=rest_area];);out center 200;`;
+      const q = `[out:json][timeout:25];(node${r}[amenity=fuel];nwr${r}[highway=services];nwr${r}[highway=rest_area];node${r}[highway=motorway_junction];);out center 200;`;
       const els = await overpass(q);
       if (!els) { failed++; break; } // both servers down: say so now rather than after every chunk times out
       for (const e of els) {
@@ -633,7 +639,16 @@
         let off = 1e9, at = 0;
         for (let k = 0; k < full.length; k++) { const d = C.km([lat, lon], full[k]); if (d < off) { off = d; at = fcum[k] * scale; } }
         const tg = e.tags || {};
-        if (off <= 0.5) found.push({ lat, lon, at, svc: tg.highway === "services" || tg.highway === "rest_area", name: tg.name || (tg.amenity === "fuel" ? "Fuel station" : "Service / rest area") });
+        if (tg.highway === "motorway_junction") {
+          // "Highway access toward B": first junction / service area on the road line itself (#1139; research/routing-entry-toward-b-1139-2026-10-28.md)
+          if (off <= 0.4 && at <= 40) found.entry = (!found.entry || at < found.entry.at) ? { lat, lon, at, name: tg.name || (tg.ref ? "Exit " + tg.ref : "Motorway exit") } : found.entry;
+          continue;
+        }
+        if (off <= 0.5) {
+          const svc = tg.highway === "services" || tg.highway === "rest_area";
+          found.push({ lat, lon, at, svc, name: tg.name || (tg.amenity === "fuel" ? "Fuel station" : "Service / rest area") });
+          if (svc && off <= 0.4 && at <= 40 && (!found.entry || at < found.entry.at)) found.entry = { lat, lon, at, name: tg.name || "Service / rest area" };
+        }
       }
     }
     // Thin out: at most one per 15 km, service/rest areas before plain fuel stations, none right at a stop.
@@ -647,6 +662,7 @@
     }
     keep.sort((x, y) => x.at - y.at);
     keep.failed = failed > 0;
+    keep.entry = found.entry || null;
     return keep;
   }
   // The public Overpass servers often answer 429/502 under load: try the main one, then a mirror; null if both fail.
