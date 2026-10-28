@@ -691,8 +691,9 @@
       const e = C.pointAt(pl.line, pl.cum, km).p;
       pl.fallback.push({ lat: e[0], lon: e[1], html: `<h4>Edge of town, ${km} km from A</h4><div>Where riders without a known spot usually stood: on this road where the town ends.</div>` });
       try {
-        const j = await fetch("https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(window.RGFallback.overpassQuery(a[0], a[1], 10000))).then(r => r.json());
-        const f = window.RGFallback.fallback(j.elements || [], pl.line, pl.cum, 1, C.km);
+        const els = await overpass(window.RGFallback.overpassQuery(a[0], a[1], 10000));
+        if (!els) throw new Error("overpass unavailable");
+        const f = window.RGFallback.fallback(els, pl.line, pl.cum, 1, C.km);
         track("routing_gang_osm_fallback", { found: !!f });
         if (f) pl.fallback.push({ lat: f.lat, lon: f.lon, html: `<h4>⛽ ${esc(f.label)}</h4><div>The nearest fuel, rest or service place on this road, ${f.at.toFixed(0)} km along. Not checked for hitchhiking.</div>` });
       } catch (err) { track("routing_gang_osm_fallback", { found: false, error: true }); }
