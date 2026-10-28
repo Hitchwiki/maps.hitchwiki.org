@@ -1,48 +1,115 @@
 {% extends "base.html" %}
-{% set title = "Routing gang test page" %}
+{% set title = "Hitchhiking route planner (routing gang test)" %}
 {% block head %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
-  #rg-map { height: 70vh; min-height: 360px; }
-  #rg-info { padding: 0.5rem 1rem; font-size: 0.95em; }
-  #rg-info ul { margin: 0.2rem 0 0.6rem 1.2rem; padding: 0; }
+  html, body { height: 100%; margin: 0; }
+  #rg { position: fixed; inset: 0; display: flex; font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #202124; background: #fff; }
+  #rg-panel { width: 400px; flex: none; display: flex; flex-direction: column; box-shadow: 2px 0 8px rgba(0,0,0,.15); z-index: 1000; background: #fff; }
+  #rg-map { flex: 1; }
+  #rg-search { padding: 12px 12px 6px; position: relative; border-bottom: 1px solid #e8eaed; }
+  .rg-field { display: flex; align-items: center; gap: 10px; margin: 0 40px 8px 0; }
+  .rg-field input { flex: 1; min-width: 0; border: 1px solid #dadce0; border-radius: 8px; padding: 9px 10px; font: inherit; background: #f8f9fa; }
+  .rg-field input:focus { outline: 2px solid #1a73e8; background: #fff; }
+  .rg-pin { width: 22px; height: 22px; border-radius: 50%; color: #fff; font: bold 12px/22px sans-serif; text-align: center; flex: none; }
+  .rg-pin.a { background: #188038; } .rg-pin.b { background: #c5221f; }
+  #rg-swap { position: absolute; right: 10px; top: 32px; border: 0; background: none; font-size: 20px; cursor: pointer; color: #5f6368; }
+  #rg-suggest { position: absolute; left: 44px; right: 50px; z-index: 2000; background: #fff; list-style: none; margin: 0; padding: 4px 0; box-shadow: 0 2px 10px rgba(0,0,0,.25); border-radius: 8px; }
+  #rg-suggest li { padding: 8px 12px; cursor: pointer; }
+  #rg-suggest li:hover, #rg-suggest li.on { background: #f1f3f4; }
+  #rg-suggest small { color: #5f6368; }
+  #rg-modes { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  #rg-modes button { border: 1px solid #dadce0; background: #fff; border-radius: 16px; padding: 4px 12px; cursor: pointer; font: inherit; }
+  #rg-modes button.on { background: #e8f0fe; border-color: #1a73e8; color: #1a73e8; font-weight: 600; }
+  #rg-modes label { margin-left: auto; color: #5f6368; }
+  #rg-modes input { font: inherit; border: 1px solid #dadce0; border-radius: 6px; padding: 2px 4px; }
+  #rg-body { flex: 1; overflow-y: auto; }
+  #rg-hint { padding: 16px; color: #5f6368; }
+  .rg-card { padding: 10px 14px; border-bottom: 1px solid #e8eaed; cursor: pointer; display: flex; gap: 10px; }
+  .rg-card.on { background: #e8f0fe; box-shadow: inset 4px 0 #1a73e8; }
+  .rg-card .sw { width: 6px; border-radius: 3px; flex: none; }
+  .rg-card .t { font-size: 18px; font-weight: 600; }
+  .rg-card .t span { font-size: 13px; font-weight: 400; color: #5f6368; }
+  .rg-card .s { color: #5f6368; font-size: 13px; }
+  .rg-card .today { color: #137333; font-size: 13px; }
+  #rg-steps { padding: 6px 0 10px; }
+  .rg-step { display: flex; gap: 10px; padding: 6px 14px; cursor: pointer; align-items: center; }
+  .rg-step:hover { background: #f8f9fa; }
+  .rg-step .ic { width: 22px; height: 22px; border-radius: 50%; border: 3px solid #c5221f; background: #fff; flex: none; font: bold 11px/16px sans-serif; text-align: center; box-sizing: border-box; }
+  .rg-step .ic.weak { border-color: #f9ab00; } .rg-step .ic.start { border-color: #188038; }
+  .rg-step .ic.pin { border: 0; color: #fff; line-height: 22px; }
+  .rg-step .nm { flex: 1; min-width: 0; }
+  .rg-step .clk { color: #5f6368; font-size: 12px; white-space: nowrap; }
+  .rg-chip { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 8px; background: #f1f3f4; color: #3c4043; margin-left: 4px; }
+  .rg-chip.fuel { background: #fef7e0; color: #b06000; } .rg-chip.weak { background: #fce8e6; color: #a50e0e; }
+  .rg-leg { margin-left: 24px; padding: 2px 0 2px 20px; border-left: 3px dotted #9aa0a6; color: #5f6368; font-size: 12px; cursor: pointer; min-height: 18px; }
+  .rg-leg.gap { border-left-color: #f9ab00; }
+  .rg-dark { margin: 4px 14px; padding: 6px 10px; background: #202124; color: #fff; border-radius: 8px; font-size: 12px; cursor: pointer; }
+  .rg-more { margin-left: 46px; font-size: 12px; color: #1a73e8; cursor: pointer; }
+  #rg-foot { padding: 8px 14px; border-top: 1px solid #e8eaed; font-size: 12px; color: #5f6368; }
+  #rg-foot a { color: #1a73e8; }
+  .rg-pop { font: 13px/1.45 system-ui, sans-serif; min-width: 220px; }
+  .rg-pop h4 { margin: 0 0 4px; font-size: 14px; }
+  .rg-pop .mut { color: #5f6368; }
+  .rg-pop button { font: inherit; font-size: 12px; margin: 6px 6px 0 0; border: 1px solid #dadce0; background: #fff; border-radius: 12px; padding: 2px 10px; cursor: pointer; }
+  .rg-pop button.pri { background: #1a73e8; color: #fff; border-color: #1a73e8; }
+  .rg-mk { border-radius: 50%; background: #fff; border: 3px solid #c5221f; box-sizing: border-box; font: bold 11px/16px sans-serif; text-align: center; color: #202124; box-shadow: 0 1px 3px rgba(0,0,0,.4); }
+  .rg-mk.weak { border-color: #f9ab00; } .rg-mk.start { border-color: #188038; } .rg-mk.alt { border-style: dashed; border-color: #188038; opacity: .85; }
+  .rg-mk.pin { border: 0; color: #fff; line-height: 24px; font-size: 13px; }
+  .rg-moon { font-size: 18px; line-height: 24px; text-align: center; background: #202124; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,.4); }
+  @media (max-width: 760px) {
+    #rg { flex-direction: column-reverse; }
+    #rg-panel { width: auto; height: 52vh; box-shadow: 0 -2px 8px rgba(0,0,0,.15); border-radius: 12px 12px 0 0; }
+    #rg-map { flex: none; height: 48vh; }
+  }
 </style>
 {% endblock %}
 {% block main %}
-<div id="rg-info">
-  <strong>Routing gang test page</strong> — not the live router. Tap the map for
-  start (A), tap again for destination (B). Shows the car road route and the known
-  hitchhiking spots nearest to A, to B, and within 3 km of the route.
-  <label><input type="checkbox" id="rg-all"> show all known spots near the route (green dots)</label>
-  <label><input type="checkbox" id="rg-drive"> I'm driving: list spots within 2 km of my route, newest rides first</label>
-  <label><input type="checkbox" id="rg-longwait"> driver list: longest area waits first</label>
+<div id="rg">
+  <aside id="rg-panel">
+    <div id="rg-search">
+      <div class="rg-field"><span class="rg-pin a">A</span><input id="rg-from" placeholder="Start: city or tap the map" autocomplete="off"></div>
+      <div class="rg-field"><span class="rg-pin b">B</span><input id="rg-to" placeholder="Destination" autocomplete="off"></div>
+      <button id="rg-swap" type="button" title="Swap start and destination" aria-label="Swap">⇅</button>
+      <ul id="rg-suggest" hidden></ul>
+      <div id="rg-modes">
+        <button type="button" data-mode="hitch" class="on">👍 Hitchhike</button>
+        <button type="button" data-mode="drive" title="Spots near your car route where people wait">🚗 I'm driving</button>
+        <label>Leave <input type="time" id="rg-leave"></label>
+      </div>
+    </div>
+    <div id="rg-body">
+      <div id="rg-hint">Type a start and destination, or tap the map twice.<br><small>Test page of the routing gang — not the live router. Tap anything on the map for details.</small></div>
+      <div id="rg-routes"></div>
+      <div id="rg-steps"></div>
+    </div>
+    <div id="rg-foot" hidden></div>
+  </aside>
+  <div id="rg-map"></div>
 </div>
-<div id="rg-map"></div>
-<div id="rg-out" style="padding: 0.5rem 1rem;">Tap the start point.</div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="{{ url_for('static', filename='routing_gang_chain.js') }}"></script>
 <script src="{{ url_for('static', filename='routing_gang_fallback.js') }}"></script>
 <script>
 (function () {
   const C = window.RGChain;
-  const map = L.map("rg-map").setView([50.5, 10], 5);
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-    { attribution: "© OpenStreetMap" }).addTo(map);
-  const out = document.getElementById("rg-out");
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
   const track = (n, d) => { if (window.hmTrack) window.hmTrack(n, d); };
+  const map = L.map("rg-map", { zoomControl: false }).setView([50.5, 10], 5);
+  L.control.zoom({ position: "topright" }).addTo(map);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap" }).addTo(map);
   // base.html strips ?ref= from the address bar before this runs; the value survives in window.hmLandingRef.
   const lr = window.hmLandingRef || (new URLSearchParams(location.search)).get("ref") || "";
   track("routing_gang_opened", { shared_link: location.search.includes("a="), from_ride: lr === "ride_page", from_wiki: lr === "wiki_route" });
-  let pts = [], layer = L.layerGroup().addTo(map);
+
+  // ---------- data ----------
   const spotsReady = fetch("/spots.json").then(r => r.json()).then(j => j.spots || j);
-  let wg = { cells: {} };
+  let wg = { cells: {} }, pk = null, cities = null, legs = [];
   const wgReady = fetch("/static/routing_gang_waitgrid.json").then(r => r.json()).then(j => { wg = j; }).catch(() => {});
-  // Places where a logged ride started or continued; spots only ever used as a drop-off are hidden.
-  let pk = null;
-  let cities = null;
   const ctReady = fetch("/static/routing_gang_cities.json").then(r => r.json()).then(j => { cities = j; }).catch(() => {});
+  // Places where a logged ride started or continued; spots only ever used as a drop-off are hidden.
   const pkReady = fetch("/static/routing_gang_pickups.json").then(r => r.json()).then(j => { pk = new Set(j.map(p => Math.round(p[0] * 1e4) + "," + Math.round(p[1] * 1e4))); }).catch(() => {});
-  let legs = [];
   const lgReady = fetch("/static/routing_gang_legs.json").then(r => r.json()).then(j => { legs = j; }).catch(() => {});
   function isPickup(s) {
     if (!pk) return true;
@@ -50,245 +117,605 @@
     for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) if (pk.has((la + i) + "," + (lo + j))) return true;
     return false;
   }
-  function waitNote(s) {
-    const v = wg.cells[Math.round(s.lat / 0.25) + "," + Math.round(s.lon / 0.25)];
-    return v ? `area wait (logged, ${v[0]} rides): median ${v[1]} min, ${v[3]}% over 1 h` : "";
+  const cell = (lat, lon) => wg.cells[Math.round(lat / 0.25) + "," + Math.round(lon / 0.25)];
+  // Logged area wait (median minutes) where at least 3 waits are logged, else null (the model then uses 20 min).
+  const waitAt = (lat, lon) => { const v = cell(lat, lon); return v && v[0] >= 3 ? v[1] : null; };
+
+  // ---------- place names (Nominatim reverse, one per second, display only) ----------
+  const names = new Map(), nameQ = [];
+  let naming = false;
+  const nkey = (lat, lon) => (+lat).toFixed(3) + "," + (+lon).toFixed(3);
+  function nameOf(lat, lon) { return names.get(nkey(lat, lon)); }
+  function wantName(lat, lon) {
+    const k = nkey(lat, lon);
+    if (names.has(k) || nameQ.some(q => q.k === k)) return;
+    nameQ.push({ k, lat, lon });
+    if (!naming) pumpNames();
   }
-  function spotLink(s) {
-    return `<a href="/spot/${s.lat.toFixed(5)}_${s.lon.toFixed(5)}" target="_blank">${s.lat.toFixed(4)}, ${s.lon.toFixed(4)}</a> <span class="rg-place" data-lat="${s.lat}" data-lon="${s.lon}"></span>`;
-  }
-  // Place names for the suggested stops: one Nominatim lookup per second, town level, display only.
-  async function nameStops() {
-    const els = [...out.querySelectorAll("ol .rg-place")];
-    const names = [];
-    for (const el of els) {
+  async function pumpNames() {
+    naming = true;
+    while (nameQ.length) {
+      const q = nameQ.shift();
       try {
-        const j = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=12&lat=${el.dataset.lat}&lon=${el.dataset.lon}`).then(r => r.json());
-        const a = j.address || {}; const n = a.city || a.town || a.village || a.municipality || a.county;
-        if (n) { el.textContent = "(near " + n + ")"; names[els.indexOf(el)] = n; }
+        // Photon first (settlement name in `city`, falls back to a place `name`); Nominatim when Photon has none.
+        let n = null;
+        try {
+          const f = ((await fetch(`https://photon.komoot.io/reverse?lat=${q.lat}&lon=${q.lon}&limit=1`).then(r => r.json())).features || [])[0];
+          const p = f && f.properties || {};
+          n = p.city || (["city", "town", "village"].includes(p.osm_value) ? p.name : null) || p.district || p.county;
+        } catch (e) {}
+        if (!n) {
+          const j = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=12&lat=${q.lat}&lon=${q.lon}`).then(r => r.json());
+          const a = j.address || {};
+          n = a.city || a.town || a.village || a.municipality || a.county;
+        }
+        if (n) {
+          names.set(q.k, n);
+          document.querySelectorAll(`[data-nk="${q.k}"]`).forEach(el => { el.textContent = (el.dataset.pre || "") + n; });
+        }
       } catch (e) {}
       await new Promise(r => setTimeout(r, 1100));
     }
-    // Sign idea per leg: the next stop's town when it is under 150 km away (logged place signs with a near
-    // target waited a median 20 min vs 31.5 for far ones; research/sign-text-class-2026-10-19.md).
-    els.forEach((el, i) => {
-      const nx = els[i + 1];
-      if (!nx || !names[i + 1] || !names[i]) return;
-      const km = 111.2 * Math.hypot(el.dataset.lat - nx.dataset.lat, (el.dataset.lon - nx.dataset.lon) * Math.cos(el.dataset.lat * Math.PI / 180));
-      if (km >= 150) return;
-      el.closest("li").insertAdjacentHTML("beforeend", `<br><small>Sign idea from here: <b class="rg-sign" role="button" tabindex="0" style="text-decoration:underline;cursor:pointer" title="Tap to show full screen">${names[i + 1].replace(/</g, "")}</b> (tap the name for a full-screen sign; a nearby town on the way; logged signs with a near town waited ~11 min less than far ones)</small>`);
+    naming = false;
+  }
+  // A span that fills in the place name when it arrives.
+  function nameSpan(lat, lon, fallback, pre) {
+    wantName(lat, lon);
+    const n = nameOf(lat, lon);
+    return `<span data-nk="${nkey(lat, lon)}" data-pre="${esc(pre || "")}">${esc(n ? (pre || "") + n : fallback)}</span>`;
+  }
+
+  // ---------- search (Photon geocoder) ----------
+  const ends = { a: null, b: null }; // {p: [lat, lon], label}
+  const inputs = { a: $("rg-from"), b: $("rg-to") };
+  const sug = $("rg-suggest");
+  let sugFor = null, sugItems = [], sugIdx = -1, sugTimer = null;
+  function closeSug() { sug.hidden = true; sugItems = []; sugIdx = -1; }
+  async function suggest(which) {
+    const q = inputs[which].value.trim();
+    if (q.length < 2) return closeSug();
+    const c = map.getCenter();
+    try {
+      const j = await fetch(`https://photon.komoot.io/api/?limit=6&lat=${c.lat.toFixed(2)}&lon=${c.lng.toFixed(2)}&q=${encodeURIComponent(q)}`).then(r => r.json());
+      if (inputs[which].value.trim() !== q) return;
+      sugItems = (j.features || []).map(f => {
+        const p = f.properties || {};
+        const sub = [p.state, p.country].filter(Boolean).filter((x, i, arr) => arr.indexOf(x) === i && x !== p.name).join(", ");
+        return { p: [f.geometry.coordinates[1], f.geometry.coordinates[0]], label: p.name || p.city || q, sub };
+      });
+      sugFor = which; sugIdx = -1;
+      sug.style.top = (inputs[which].offsetTop + inputs[which].offsetHeight + 2) + "px";
+      sug.innerHTML = sugItems.map((s, i) => `<li data-i="${i}">${esc(s.label)} <small>${esc(s.sub)}</small></li>`).join("");
+      sug.hidden = !sugItems.length;
+    } catch (e) { closeSug(); }
+  }
+  function pickSug(i) {
+    const s = sugItems[i];
+    if (!s) return;
+    closeSug();
+    track("routing_gang_search_used", { which: sugFor });
+    setEnd(sugFor, s.p, s.label);
+  }
+  for (const w of ["a", "b"]) {
+    inputs[w].addEventListener("input", () => { clearTimeout(sugTimer); sugTimer = setTimeout(() => suggest(w), 250); });
+    inputs[w].addEventListener("keydown", (e) => {
+      if (sug.hidden || sugFor !== w) return;
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        sugIdx = (sugIdx + (e.key === "ArrowDown" ? 1 : -1) + sugItems.length) % sugItems.length;
+        [...sug.children].forEach((li, i) => li.classList.toggle("on", i === sugIdx));
+      } else if (e.key === "Enter") { e.preventDefault(); pickSug(sugIdx < 0 ? 0 : sugIdx); }
+      else if (e.key === "Escape") closeSug();
+    });
+    inputs[w].addEventListener("blur", () => setTimeout(closeSug, 200));
+  }
+  sug.addEventListener("mousedown", (e) => { const li = e.target.closest("li"); if (li) { e.preventDefault(); pickSug(+li.dataset.i); } });
+  $("rg-swap").addEventListener("click", () => {
+    [ends.a, ends.b] = [ends.b, ends.a];
+    inputs.a.value = ends.a ? ends.a.label : ""; inputs.b.value = ends.b ? ends.b.label : "";
+    drawEnds(); if (ends.a && ends.b) plan();
+  });
+
+  // ---------- leave time and daylight ----------
+  const leaveIn = $("rg-leave");
+  (function () {
+    const d = new Date(), h = d.getHours();
+    if (h >= 5 && h < 15) { const m = Math.ceil(d.getMinutes() / 5) * 5; d.setMinutes(m); leaveIn.value = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); }
+    else leaveIn.value = "08:00";
+  })();
+  // Departure as a Date: the chosen time today, or tomorrow when that time has already passed.
+  function leaveDate() {
+    const [hh, mm] = (leaveIn.value || "08:00").split(":").map(Number);
+    const d = new Date(); d.setHours(hh, mm, 0, 0);
+    if (d.getTime() < Date.now() - 30 * 6e4) d.setDate(d.getDate() + 1);
+    return d;
+  }
+  const clock = (ms) => new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const dur = (min) => min < 60 ? Math.round(min / 5) * 5 + " min" : (min < 600 ? (Math.round(min / 30) / 2) : Math.round(min / 60)) + " h";
+  const range = (lo, hi) => {
+    if (hi < 60) return Math.round(lo / 5) * 5 + "–" + Math.round(hi / 5) * 5 + " min";
+    const r = (m) => m < 600 ? Math.round(m / 30) / 2 : Math.round(m / 60);
+    return r(lo) + "–" + r(hi) + " h";
+  };
+  // Minutes of hitching daylight from departure: until 30 min after sunset at A.
+  function daylight(a, leave) {
+    const s = C.sunset(a[0], a[1], leave.getTime());
+    if (s.polar === "day") return { avail: 16 * 60, dark: null };
+    if (s.polar === "night") return { avail: 6 * 60, dark: null };
+    let dark = s.ms + 30 * 6e4;
+    if (dark < leave.getTime()) dark += 864e5;
+    return { avail: (dark - leave.getTime()) / 6e4, dark: s.ms };
+  }
+
+  // ---------- map layers ----------
+  const endLayer = L.layerGroup().addTo(map), routeLayer = L.layerGroup().addTo(map), markLayer = L.layerGroup().addTo(map), extraLayer = L.layerGroup().addTo(map);
+  const icon = (cls, txt, size) => L.divIcon({ className: "", html: `<div class="rg-mk ${cls}" style="width:${size}px;height:${size}px">${txt || ""}</div>`, iconSize: [size, size], iconAnchor: [size / 2, size / 2], popupAnchor: [0, -size / 2] });
+  function drawEnds() {
+    endLayer.clearLayers();
+    for (const w of ["a", "b"]) if (ends[w]) L.marker(ends[w].p, { icon: L.divIcon({ className: "", html: `<div class="rg-mk pin" style="width:26px;height:26px;background:${w === "a" ? "#188038" : "#c5221f"}">${w.toUpperCase()}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] }) }).addTo(endLayer).bindTooltip(esc(ends[w].label));
+  }
+  function setEnd(w, p, label) {
+    ends[w] = { p, label: label || "Dropped pin" };
+    inputs[w].value = ends[w].label;
+    if (!label) reverseLabel(w);
+    drawEnds();
+    if (ends.a && ends.b) plan();
+    else if (w === "a") { map.setView(p, Math.max(map.getZoom(), 8)); inputs.b.focus(); }
+  }
+  async function reverseLabel(w) {
+    const e = ends[w];
+    try {
+      const j = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=14&lat=${e.p[0]}&lon=${e.p[1]}`).then(r => r.json());
+      const a = j.address || {};
+      const n = a.city || a.town || a.village || a.suburb || a.municipality || a.county;
+      if (n && ends[w] === e) { e.label = n; inputs[w].value = n; drawEnds(); renderAll(); }
+    } catch (err) {}
+  }
+  map.on("click", (e) => {
+    const p = [e.latlng.lat, e.latlng.lng];
+    if (!ends.a || (ends.a && ends.b)) { ends.b = null; inputs.b.value = ""; clearRoute(); setEnd("a", p); }
+    else setEnd("b", p);
+  });
+
+  // ---------- planning ----------
+  let plans = [], sel = 0, mode = "hitch", runId = 0;
+  const COLORS = ["#1a73e8", "#9334e6", "#e37400", "#188038"];
+  function clearRoute() { plans = []; routeLayer.clearLayers(); markLayer.clearLayers(); extraLayer.clearLayers(); $("rg-routes").innerHTML = ""; $("rg-steps").innerHTML = ""; $("rg-foot").hidden = true; $("rg-hint").hidden = false; }
+  const osrm = (pts, extra) => fetch(`https://router.project-osrm.org/route/v1/driving/${pts.map(p => p[1] + "," + p[0]).join(";")}?overview=simplified&geometries=geojson${extra || ""}`).then(x => x.json());
+
+  async function plan() {
+    const a = ends.a.p, b = ends.b.p, my = ++runId;
+    history.replaceState(null, "", `?a=${a.map(x => x.toFixed(4))}&b=${b.map(x => x.toFixed(4))}`);
+    clearRoute();
+    $("rg-hint").textContent = "Finding routes and spots…";
+    let spots, r;
+    try {
+      [spots, , , , , r] = await Promise.all([spotsReady, wgReady, pkReady, ctReady, lgReady, osrm([a, b], "&alternatives=true")]);
+    } catch (err) { $("rg-hint").textContent = "Route failed: " + err; return; }
+    if (my !== runId) return;
+    if (!r.routes || !r.routes.length) { $("rg-hint").textContent = "No road route found between these points."; return; }
+    const build = (rt) => {
+      const raw = rt.geometry.coordinates.map(c => [c[1], c[0]]);
+      const [line, cum] = C.densify(raw);
+      const near = C.nearRoute(spots, line, cum, 3).filter(c => isPickup(c.s));
+      const pl = { rt, raw, line, cum, near, km: cum[cum.length - 1] };
+      pl.starts = C.startOptions(a, b, near, 3);
+      chainFor(pl, null);
+      return pl;
+    };
+    const ps = r.routes.slice(0, 2).map(build).sort((x, y) => x.weak - y.weak || x.model.total - y.model.total);
+    // Forced alternative through an evidenced spot well off the main road (kept if <= 20% slower than the fastest road).
+    try {
+      const v = C.pickVia(spots, a, b, ps[0].line, ps[0].cum);
+      if (v) {
+        const r2 = await osrm([a, [v.s.lat, v.s.lon], b]);
+        const rt2 = r2.routes && r2.routes[0];
+        if (rt2 && rt2.duration <= 1.2 * Math.min(...ps.map(p => p.rt.duration))) { const pl = build(rt2); pl.via = v; ps.push(pl); }
+      }
+    } catch (e) {}
+    // "The way other riders went": a chain of other riders' logged legs, snapped onto roads, if it is a real alternative.
+    try {
+      const rp = C.ridersPath(legs, a, b, 6);
+      if (C.ridersUsable(rp, ps[0].line, ps[0].km)) {
+        const wp = [a].concat(rp.pts.slice(1, -1).filter((_, i) => i % 2 === 0), [b]);
+        const rr = await osrm(wp);
+        const rt3 = rr.routes && rr.routes[0];
+        if (rt3 && rt3.distance <= 1.5 * ps[0].rt.distance) { const pl = build(rt3); pl.riders = rp; ps.push(pl); }
+      }
+    } catch (e) {}
+    if (my !== runId) return;
+    // An alternative that runs >= 90% on the same road as an earlier one adds nothing but a second card.
+    plans = ps.filter((pl, k) => !ps.slice(0, k).some(q => C.overlap(pl.line, q.line, 1) >= 0.9)); sel = 0;
+    $("rg-hint").hidden = true;
+    const p0 = plans[0];
+    track("routing_gang_planned", { riders_route: plans.some(p => p.riders), riders_snapped: plans.some(p => p.riders), road_km: Math.round(p0.km), stops: p0.chain.length, weak_stops: p0.weak, routes: plans.length, est_lo_h: +(p0.model.lo / 60).toFixed(1), est_hi_h: +(p0.model.hi / 60).toFixed(1), shared_link: location.search.includes("a=") });
+    renderAll(true);
+  }
+  // (Re)compute a plan's stop chain and time model; `start` = a start option the rider picked, or null.
+  function chainFor(pl, start) {
+    pl.near.forEach(c => { delete c.gapBefore; });
+    pl.chain = C.newChain(ends.a.p, ends.b.p, pl.near, pl.km, cities, start || undefined);
+    pl.start = pl.chain[0] && C.km(ends.a.p, [pl.chain[0].s.lat, pl.chain[0].s.lon]) <= 15 ? pl.chain[0] : null;
+    pl.weak = pl.chain.filter(c => c.weak).length;
+    pl.model = C.timeModel(pl.chain, pl.km, pl.rt.duration / 60, waitAt);
+    pl.bail = null; pl.fallback = undefined;
+  }
+  function planLabel(pl, k) {
+    if (pl.riders) return "The way other riders went";
+    if (pl.via) return "Via a strong spot off the main road";
+    return k === 0 ? "Best road for hitchhiking" : "Other road";
+  }
+
+  // ---------- rendering ----------
+  function renderAll(fit) {
+    if (!plans.length) return;
+    const leave = leaveDate(), day = daylight(ends.a.p, leave);
+    plans.forEach(pl => { pl.reach = C.reach(pl.model, day.avail); });
+    renderCards(day);
+    renderMap(day, fit);
+    renderSteps(leave, day);
+    renderFoot();
+  }
+  function renderCards() {
+    $("rg-routes").innerHTML = plans.map((pl, k) => {
+      const m = pl.model, done = pl.reach.likely >= pl.km - 1;
+      if (mode === "drive") {
+        const n = C.driverList(pl.near, Date.now(), 2).length;
+        return `<div class="rg-card${k === sel ? " on" : ""}" data-k="${k}"><div class="sw" style="background:${COLORS[k % 4]}"></div><div>` +
+          `<div class="t">${dur(pl.rt.duration / 60)} <span>${Math.round(pl.km)} km by car</span></div><div class="s">${n} hitchhiking spot${n === 1 ? "" : "s"} within 2 km of this road</div></div></div>`;
+      }
+      const rp = C.pointAt(pl.line, pl.cum, pl.reach.likely).p;
+      const today = done ? "Likely there before dark" : `Before dark: likely to ${nameSpan(rp[0], rp[1], Math.round(pl.reach.likely) + " km")}, ${pl.reach.possible >= pl.km - 1 ? "maybe all the way" : "maybe " + Math.round(pl.reach.possible) + " km"}`;
+      return `<div class="rg-card${k === sel ? " on" : ""}" data-k="${k}"><div class="sw" style="background:${COLORS[k % 4]}"></div><div>` +
+        `<div class="t">${range(m.lo, m.hi)} <span>${Math.round(pl.km)} km · about ${m.rides} rides</span></div>` +
+        `<div class="s">${planLabel(pl, k)}${pl.weak ? ` · ${pl.weak} unsure stop${pl.weak > 1 ? "s" : ""}` : ""}</div>` +
+        `<div class="today">${today}</div></div></div>`;
+    }).join("");
+    $("rg-routes").querySelectorAll(".rg-card").forEach(el => el.addEventListener("click", () => selectPlan(+el.dataset.k)));
+  }
+  function selectPlan(k) {
+    if (k === sel) return;
+    sel = k;
+    track("routing_gang_route_selected", { k, kind: plans[k].riders ? "riders" : plans[k].via ? "via" : "road" });
+    renderAll(false);
+  }
+
+  function stopIcon(c, i, pl) {
+    const isStart = c === pl.start;
+    return icon((c.weak ? "weak " : "") + (isStart ? "start" : ""), isStart ? "▶" : String(i + (pl.start ? 0 : 1)), 24);
+  }
+  function renderMap(day, fit) {
+    routeLayer.clearLayers(); markLayer.clearLayers(); extraLayer.clearLayers();
+    const pl = plans[sel];
+    // Other routes: grey, clickable to select, under the selected one.
+    plans.forEach((p, k) => {
+      if (k === sel) return;
+      L.polyline(p.raw, { color: "#5f6368", weight: 9, opacity: 0.25 }).addTo(routeLayer);
+      L.polyline(p.raw, { color: "#bdc1c6", weight: 5, opacity: 0.9 }).addTo(routeLayer)
+        .bindTooltip(`${range(p.model.lo, p.model.hi)} · ${planLabel(p, k)}`, { sticky: true }).on("click", (e) => { L.DomEvent.stopPropagation(e); selectPlan(k); });
+    });
+    // Selected route: solid up to where a slow day gets before dark, lighter dashes for a good day, pale after.
+    const col = COLORS[sel % 4];
+    L.polyline(pl.line, { color: "#174ea6", weight: 9, opacity: 0.35 }).addTo(routeLayer);
+    const r = mode === "drive" ? { likely: pl.km, possible: pl.km } : pl.reach;
+    if (r.likely > 0) L.polyline(C.slice(pl.line, pl.cum, 0, r.likely), { color: col, weight: 6 }).addTo(routeLayer);
+    if (r.possible > r.likely) L.polyline(C.slice(pl.line, pl.cum, r.likely, r.possible), { color: col, weight: 6, opacity: 0.55, dashArray: "10 8" }).addTo(routeLayer);
+    if (r.possible < pl.km) L.polyline(C.slice(pl.line, pl.cum, r.possible, pl.km), { color: col, weight: 5, opacity: 0.3 }).addTo(routeLayer);
+    if (mode === "drive") {
+      drawDriver(pl);
+      if (fit) map.fitBounds(L.latLngBounds(pl.raw).extend(ends.a.p).extend(ends.b.p), { padding: [30, 30] });
+      return;
+    }
+    // Clickable legs (invisible wide lines) between consecutive stops.
+    const cuts = [0].concat(pl.chain.map(c => c.at), [pl.km]);
+    for (let i = 0; i < cuts.length - 1; i++) {
+      if (cuts[i + 1] - cuts[i] < 0.5) continue;
+      L.polyline(C.slice(pl.line, pl.cum, cuts[i], cuts[i + 1]), { color: "#000", weight: 18, opacity: 0 }).addTo(routeLayer)
+        .on("click", (e) => { L.DomEvent.stopPropagation(e); L.popup().setLatLng(e.latlng).setContent(legPopup(pl, i)).openOn(map); track("routing_gang_leg_click", { leg: i }); });
+    }
+    // How far today: moon markers at the slow-day and good-day reach.
+    if (r.likely < pl.km - 1) {
+      const p = C.pointAt(pl.line, pl.cum, r.likely).p;
+      L.marker(p, { icon: L.divIcon({ className: "", html: '<div class="rg-moon">🌙</div>', iconSize: [26, 26], iconAnchor: [13, 13] }) }).addTo(markLayer)
+        .bindPopup(() => darkPopup(pl, day)).on("popupopen", () => track("routing_gang_dark_click", {}));
+    }
+    // Suggested stops and alternative starts.
+    pl.chain.forEach((c, i) => {
+      L.marker([c.s.lat, c.s.lon], { icon: stopIcon(c, i, pl), zIndexOffset: 500 }).addTo(markLayer)
+        .bindPopup(() => stopPopup(pl, i), { maxWidth: 300 }).on("popupopen", () => track("routing_gang_stop_click", { rank: i + 1 }));
+    });
+    pl.starts.forEach(c => {
+      if (c === pl.start) return;
+      L.marker([c.s.lat, c.s.lon], { icon: icon("alt", "", 18) }).addTo(markLayer).bindTooltip("other start").bindPopup(() => altPopup(pl, c), { maxWidth: 300 });
+    });
+    drawBailouts(pl);
+    if (!pl.start) drawFallback(pl);
+    if (fit) map.fitBounds(L.latLngBounds(pl.raw).extend(ends.a.p).extend(ends.b.p), { padding: [30, 30] });
+  }
+
+  function renderSteps(leave, day) {
+    const pl = plans[sel], m = pl.model, out = [];
+    const at = (km) => leave.getTime() + C.minAt(m, km) * 6e4;
+    out.push(`<div class="rg-step" data-ll="${ends.a.p}"><span class="ic pin" style="background:#188038">A</span><span class="nm">${esc(ends.a.label)}</span><span class="clk">${clock(leave.getTime())}</span></div>`);
+    if (mode === "drive") {
+      const dl = C.driverList(pl.near, Date.now(), 2).slice(0, 40);
+      out.push(`<div class="rg-more" style="margin-left:14px;cursor:default;color:#5f6368">${dl.length} spots within 2 km of your route, newest rides first. Tap one for details.</div>`);
+      dl.forEach(d => {
+        const age = d.ageDays === null ? "" : d.ageDays < 30 ? "ride this month" : d.ageDays < 365 ? "ride this year" : "old";
+        out.push(`<div class="rg-step" data-ll="${d.s.lat},${d.s.lon}"><span class="ic" style="border-color:#188038"></span><span class="nm">${nameSpan(d.s.lat, d.s.lon, "km " + Math.round(d.at))}<span class="rg-chip">${esc(age)}</span></span><span class="clk">km ${Math.round(d.at)}</span></div>`);
+      });
+    } else {
+      let prevAt = 0, darkShown = pl.reach.likely >= pl.km - 1;
+      const darkRow = () => { darkShown = true; return `<div class="rg-dark" data-dark="1">🌙 Dark ${day.dark ? "around " + clock(day.dark) : ""} · a slow day ends about here — tap for where</div>`; };
+      if (!pl.start) out.push(`<div class="rg-leg gap" data-fb="1">No logged spot within 15 km of A — tap for where people start here</div>`);
+      pl.chain.forEach((c, i) => {
+        if (!darkShown && pl.reach.likely < c.at) out.push(darkRow());
+        out.push(legRow(pl, i, c.at - prevAt));
+        const w = waitAt(c.s.lat, c.s.lon);
+        const chips = (c.s.fuel ? '<span class="rg-chip fuel">fuel/rest</span>' : "") + (c.weak ? '<span class="rg-chip weak">unsure</span>' : "") + `<span class="rg-chip">~${w == null ? C.GLOBAL_WAIT : w} min wait</span>`;
+        const label = c === pl.start ? "Start: " : "";
+        out.push(`<div class="rg-step" data-stop="${i}"><span class="ic ${c === pl.start ? "start" : c.weak ? "weak" : ""}">${c === pl.start ? "▶" : i + (pl.start ? 0 : 1)}</span><span class="nm">${esc(label)}${nameSpan(c.s.lat, c.s.lon, "spot at km " + Math.round(c.at))}${chips}</span><span class="clk">~${clock(at(c.at))}</span></div>`);
+        if (c === pl.start && pl.starts.length > 1) out.push(`<div class="rg-more" data-alts="1">${pl.starts.length - 1} other start${pl.starts.length > 2 ? "s" : ""} nearby</div>`);
+        prevAt = c.at;
+      });
+      if (!darkShown) out.push(darkRow());
+      out.push(legRow(pl, pl.chain.length, pl.km - prevAt));
+    }
+    const endAt = mode === "drive" ? leave.getTime() + pl.rt.duration * 1e3 : at(pl.km);
+    out.push(`<div class="rg-step" data-ll="${ends.b.p}"><span class="ic pin" style="background:#c5221f">B</span><span class="nm">${esc(ends.b.label)}</span><span class="clk">${mode === "drive" ? clock(endAt) : "~" + dur(m.total)}</span></div>`);
+    const box = $("rg-steps");
+    box.innerHTML = out.join("");
+    box.querySelectorAll("[data-stop]").forEach(el => el.addEventListener("click", () => openStop(+el.dataset.stop)));
+    box.querySelectorAll("[data-leg]").forEach(el => el.addEventListener("click", () => {
+      const i = +el.dataset.leg, cuts = [0].concat(pl.chain.map(c => c.at), [pl.km]);
+      const mid = C.pointAt(pl.line, pl.cum, (cuts[i] + cuts[i + 1]) / 2).p;
+      map.setView(mid, Math.max(map.getZoom(), 9));
+      L.popup().setLatLng(mid).setContent(legPopup(pl, i)).openOn(map);
+      track("routing_gang_leg_click", { leg: i, from: "list" });
+    }));
+    box.querySelectorAll("[data-ll]").forEach(el => el.addEventListener("click", () => map.setView(el.dataset.ll.split(",").map(Number), 13)));
+    box.querySelectorAll("[data-dark]").forEach(el => el.addEventListener("click", () => {
+      const p = C.pointAt(pl.line, pl.cum, pl.reach.likely).p;
+      map.setView(p, 9); L.popup().setLatLng(p).setContent(darkPopup(pl, day)).openOn(map); track("routing_gang_dark_click", { from: "list" });
+    }));
+    box.querySelectorAll("[data-alts]").forEach(el => el.addEventListener("click", () => {
+      map.fitBounds(L.latLngBounds(pl.starts.map(c => [c.s.lat, c.s.lon])).extend(ends.a.p), { padding: [60, 60], maxZoom: 14 });
+      track("routing_gang_alt_starts_shown", { n: pl.starts.length - 1 });
+    }));
+    box.querySelectorAll("[data-fb]").forEach(el => el.addEventListener("click", () => map.setView(ends.a.p, 12)));
+  }
+  function legRow(pl, i, km) {
+    const gap = pl.chain[i] && pl.chain[i].gapBefore;
+    const bail = pl.bail ? pl.bail.filter(x => x.leg === i).length : 0;
+    return `<div class="rg-leg${gap ? " gap" : ""}" data-leg="${i}">${Math.round(km)} km${gap ? " · no logged spot on the way" : ""}${bail ? ` · ${bail} place${bail > 1 ? "s" : ""} to get out early` : ""}</div>`;
+  }
+  function renderFoot() {
+    const a = ends.a.p, b = ends.b.p;
+    $("rg-foot").hidden = false;
+    $("rg-foot").innerHTML = `<a href="?a=${a.map(x => x.toFixed(4))}&b=${b.map(x => x.toFixed(4))}">Share this route</a> · <a class="rg-handoff" href="/dir/${a.map(x => x.toFixed(5))}/${b.map(x => x.toFixed(5))}">Open on the main map</a> · <span title="Logged same-day trips took 0.8-1.6x the estimate 60% of the time">times are rough ranges</span>`;
+    $("rg-foot").querySelector(".rg-handoff").addEventListener("click", () => track("routing_gang_handoff", {}));
+  }
+  function openStop(i) {
+    const c = plans[sel].chain[i];
+    map.setView([c.s.lat, c.s.lon], Math.max(map.getZoom(), 12));
+    markLayer.eachLayer(l => { if (l.getLatLng && l.getLatLng().lat === c.s.lat && l.getLatLng().lng === c.s.lon && l.openPopup) l.openPopup(); });
+  }
+
+  // ---------- popups (all the detail lives here) ----------
+  function waitLine(s) {
+    const v = cell(s.lat, s.lon);
+    if (!v || v[0] < 3) return `<div class="mut">Wait: no logged waits around here (assume ~${C.GLOBAL_WAIT} min)</div>`;
+    return `<div>Wait around here: usually ${v[1]} min, 1 in 4 waits over ${v[2]} min <span class="mut">(${v[0]} logged)</span></div>`;
+  }
+  function spotLines(c) {
+    const s = c.s, t = c.t || C.toward(s, ends.b.p), rides = s.review_count || 0;
+    const L1 = `<div>${rides} ride${rides === 1 ? "" : "s"} logged${s.rating ? ` · ★ ${s.rating.toFixed(1)}` : ""}</div>`;
+    const L2 = t.n ? `<div>${t.ok} of ${t.n} rides from here went toward ${esc(ends.b.label)}${t.medKm ? `, typically ${Math.round(t.medKm)} km per ride` : ""}</div>` : `<div class="mut">No destinations logged from here</div>`;
+    return L1 + L2 + waitLine(s) + (s.fuel ? `<div>⛽ Fuel / rest stop: rides from these go about twice as far</div>` : "");
+  }
+  const spotLinks = (s) => `<a href="/spot/${s.lat.toFixed(5)}_${s.lon.toFixed(5)}" target="_blank">spot page</a> · <a href="https://www.openstreetmap.org/?mlat=${s.lat}&mlon=${s.lon}#map=17/${s.lat}/${s.lon}" target="_blank">OSM</a>`;
+  function stopPopup(pl, i) {
+    const c = pl.chain[i], m = pl.model, leave = leaveDate().getTime();
+    const t0 = C.minAt(m, c.at);
+    const nx = pl.chain[i + 1], nxName = nx && nameOf(nx.s.lat, nx.s.lon);
+    const sign = nxName && C.km([c.s.lat, c.s.lon], [nx.s.lat, nx.s.lon]) < 150 ? nxName : (C.km([c.s.lat, c.s.lon], ends.b.p) < 150 ? ends.b.label : null);
+    const div = document.createElement("div");
+    div.className = "rg-pop";
+    div.innerHTML = `<h4>${c === pl.start ? "Start: " : "Stop " + (i + (pl.start ? 0 : 1)) + ": "}${nameSpan(c.s.lat, c.s.lon, "spot", "near ")}</h4>` +
+      spotLines(c) +
+      `<div class="mut">Here around ${clock(leave + t0 * C.FAST * 6e4)}–${clock(leave + t0 * C.SLOW * 6e4)}</div>` +
+      (c.weak ? `<div style="color:#a50e0e">Unsure: fewer than ${C.MIN_EVIDENCE} logged rides from here went toward your destination</div>` : "") +
+      (c.gapBefore ? `<div style="color:#b06000">No logged spot on the stretch before this one</div>` : "") +
+      `<div>${spotLinks(c.s)}</div>` +
+      (sign ? `<button type="button" class="pri rg-sign">Sign: ${esc(sign)}</button>` : "") +
+      `<button type="button" class="rg-flag">Bad stop</button>`;
+    const sb = div.querySelector(".rg-sign"); if (sb) sb.addEventListener("click", () => showSign(sign));
+    div.querySelector(".rg-flag").addEventListener("click", (e) => {
+      track("routing_gang_stop_flagged", { rank: i + 1, lat2: c.s.lat.toFixed(2), lon2: c.s.lon.toFixed(2) });
+      e.target.textContent = "thanks, noted"; e.target.disabled = true;
+    });
+    return div;
+  }
+  function altPopup(pl, c) {
+    const div = document.createElement("div");
+    div.className = "rg-pop";
+    div.innerHTML = `<h4>Other start: ${nameSpan(c.s.lat, c.s.lon, "spot", "near ")}</h4>${spotLines(c)}<div class="mut">${C.km(ends.a.p, [c.s.lat, c.s.lon]).toFixed(1)} km from A</div><div>${spotLinks(c.s)}</div><button type="button" class="pri">Start here instead</button>`;
+    div.querySelector("button").addEventListener("click", () => {
+      chainFor(pl, c);
+      track("routing_gang_start_picked", { rank: pl.starts.indexOf(c) + 1 });
+      map.closePopup(); renderAll(false);
+    });
+    return div;
+  }
+  function legPopup(pl, i) {
+    const cuts = [0].concat(pl.chain.map(c => c.at), [pl.km]), from = cuts[i], to = cuts[i + 1], km = to - from;
+    const driveMin = km * pl.rt.duration / 60 / (pl.km || 1);
+    const rides = Math.max(1, Math.round(km / C.HOP_KM));
+    const gap = pl.chain[i] && pl.chain[i].gapBefore;
+    const bail = (pl.bail || []).filter(x => x.leg === i);
+    const spots = pl.near.filter(c => c.at > from + 2 && c.at < to - 2 && c.off <= 1 && !pl.chain.includes(c) && (c.t || C.toward(c.s, ends.b.p)).ok >= C.MIN_EVIDENCE).length;
+    const nm = (j) => pl.chain[j] === pl.start ? "start" : "stop " + (j + (pl.start ? 0 : 1));
+    const fromName = i === 0 ? "A" : nm(i - 1), toName = i === pl.chain.length ? "B" : nm(i);
+    return `<div class="rg-pop"><h4>${esc(fromName)} → ${esc(toName)}: ${Math.round(km)} km</h4>` +
+      `<div>~${dur(driveMin)} by car · ${rides === 1 ? "usually one ride" : `about ${rides} rides`}</div>` +
+      (gap ? `<div style="color:#b06000">No logged spot on this stretch: thumb along the road or from the edge of a village, don't walk it.</div>` : "") +
+      `<div style="margin-top:6px"><b>If your driver turns off early:</b> ` +
+      (bail.length || spots ? `get out at one of the ${bail.length ? `<span style="color:#e37400">${bail.length} fuel/rest stop${bail.length > 1 ? "s" : ""}</span>` : ""}${bail.length && spots ? " or " : ""}${spots ? `<span style="color:#c5221f">${spots} logged spot${spots > 1 ? "s" : ""}</span>` : ""} on this stretch (small dots), not in a town centre.`
+        : (!pl.bail ? "looking up fuel/rest stops…" : pl.bail.failed ? "fuel/rest stops could not be loaded right now; ask to be let out at one before the driver leaves this road."
+          : "no fuel/rest stop or strong spot on this stretch — ask to be let out before the driver leaves this road.")) + `</div></div>`;
+  }
+  function darkPopup(pl, day) {
+    const pL = C.pointAt(pl.line, pl.cum, pl.reach.likely).p, pP = C.pointAt(pl.line, pl.cum, pl.reach.possible).p;
+    const done = pl.reach.possible >= pl.km - 1;
+    return `<div class="rg-pop"><h4>🌙 Dark ${day.dark ? "around " + clock(day.dark) : ""}</h4>` +
+      `<div>Leaving ${clock(leaveDate().getTime())}, a slow day gets you to about ${nameSpan(pL[0], pL[1], Math.round(pl.reach.likely) + " km", "")} (${Math.round(pl.reach.likely)} km); ${done ? "a good day gets you all the way." : `a good day to about ${nameSpan(pP[0], pP[1], Math.round(pl.reach.possible) + " km", "")} (${Math.round(pl.reach.possible)} km).`}</div>` +
+      `<div class="mut">Solid line: likely today. Dashed: maybe. Pale: probably tomorrow. Pick a place to sleep in between, or leave earlier.</div></div>`;
+  }
+
+  // ---------- extra map layers ----------
+  function drawDriver(pl) {
+    C.driverList(pl.near, Date.now(), 2).slice(0, 40).forEach(d => {
+      L.circleMarker([d.s.lat, d.s.lon], { radius: 6, color: "#188038", weight: 3, fillColor: "#fff", fillOpacity: 1 }).addTo(extraLayer)
+        .bindPopup(`<div class="rg-pop"><h4>${nameSpan(d.s.lat, d.s.lon, "Spot", "Spot near ")}</h4><div>km ${Math.round(d.at)} of your route · detour about ${d.detour.toFixed(1)} km</div><div>${d.ageDays === null ? "no date" : d.ageDays < 30 ? "a ride in the last 30 days" : d.ageDays < 365 ? "a ride in the last 12 months" : "last ride over a year ago"}</div>${waitLine(d.s)}<div>${spotLinks(d.s)}</div></div>`);
     });
   }
-  // Tap a "Sign idea" name: full-screen black-on-white sign to hold up at the roadside; tap again to close.
+  // Places to get out early: on-road fuel/rest/service stops (OSM) and strong logged spots. Rides from fuel and rest
+  // stops came ~1.6x as often for the same riders (research/routing-gang-exit-2026-10-19.md). Measured on the full
+  // road line (simplified lines put 39% of hints >0.5 km off the road, research/routing-dropoff-exact-2026-10-19.md).
+  async function drawBailouts(pl) {
+    const cuts = [0].concat(pl.chain.map(c => c.at), [pl.km]);
+    const legOf = (at) => { for (let i = 0; i < cuts.length - 1; i++) if (at < cuts[i + 1]) return i; return cuts.length - 2; };
+    pl.near.forEach(c => {
+      if (pl.chain.includes(c) || c.off > 1 || (c.t || C.toward(c.s, ends.b.p)).ok < C.MIN_EVIDENCE) return;
+      L.circleMarker([c.s.lat, c.s.lon], { radius: 4, color: "#c5221f", weight: 2, fillColor: "#fff", fillOpacity: 1 }).addTo(extraLayer)
+        .bindPopup(() => { const d = document.createElement("div"); d.className = "rg-pop"; d.innerHTML = `<h4>Get out here if your driver turns off: ${nameSpan(c.s.lat, c.s.lon, "logged spot", "")}</h4>${spotLines(c)}<div>${spotLinks(c.s)}</div>`; return d; });
+    });
+    if (!pl.bail) {
+      const p = pl, a = ends.a.p, b = ends.b.p;
+      p.bail = await fetchBailouts(p, a, b, legOf);
+      track("routing_gang_dropoff_shown", { n: p.bail.length, legs: p.chain.length + 1, failed: p.bail.failed });
+      if (plans[sel] !== p || mode !== "hitch") return;
+      renderSteps(leaveDate(), daylight(ends.a.p, leaveDate()));
+    }
+    pl.bail.forEach(x => {
+      L.circleMarker([x.lat, x.lon], { radius: 5, color: "#e37400", weight: 2, fillColor: "#fbbc04", fillOpacity: 0.9 }).addTo(extraLayer)
+        .bindPopup(`<div class="rg-pop"><h4>⛽ ${esc(x.name)}</h4><div>km ${Math.round(x.at)} · right on the road</div><div>If your driver turns off before the next stop, ask to be let out here: riders let out at fuel and rest stops got a next ride about 1.6x as often.</div><div class="mut">From OpenStreetMap, not checked for hitchhiking. <a href="https://www.openstreetmap.org/?mlat=${x.lat}&mlon=${x.lon}#map=17/${x.lat}/${x.lon}" target="_blank">OSM</a></div></div>`);
+    });
+  }
+  async function fetchBailouts(pl, a, b, legOf) {
+    let full = pl.raw, fcum;
+    try {
+      const wps = pl.via ? [a, [pl.via.s.lat, pl.via.s.lon], b] : [a, b];
+      if (!pl.riders) {
+        const rr = await fetch(`https://router.project-osrm.org/route/v1/driving/${wps.map(p => p[1] + "," + p[0]).join(";")}?overview=full&geometries=geojson`).then(x => x.json());
+        full = rr.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+      }
+    } catch (e) {}
+    fcum = [0];
+    for (let i = 1; i < full.length; i++) fcum.push(fcum[i - 1] + C.km(full[i - 1], full[i]));
+    const scale = pl.km / (fcum[fcum.length - 1] || 1);
+    // One long polyline query times out on Overpass, so ask per ~60-point chunk, sequentially (2 slots per IP).
+    const step = Math.max(1, Math.round(full.length / 300));
+    const pts = full.filter((_, i) => i % step === 0 || i === full.length - 1);
+    const found = [], seen = new Set();
+    let failed = 0;
+    for (let i = 0; i < pts.length - 1; i += 60) {
+      const ch = pts.slice(i, i + 61);
+      const r = `(around:600,${ch.map(p => p[0].toFixed(4) + "," + p[1].toFixed(4)).join(",")})`;
+      const q = `[out:json][timeout:25];(node${r}[amenity=fuel];nwr${r}[highway=services];nwr${r}[highway=rest_area];);out center 200;`;
+      const els = await overpass(q);
+      if (!els) { failed++; break; } // both servers down: say so now rather than after every chunk times out
+      for (const e of els) {
+        if (seen.has(e.type + e.id)) continue;
+        seen.add(e.type + e.id);
+        const lat = e.lat !== undefined ? e.lat : e.center && e.center.lat, lon = e.lon !== undefined ? e.lon : e.center && e.center.lon;
+        if (lat === undefined) continue;
+        let off = 1e9, at = 0;
+        for (let k = 0; k < full.length; k++) { const d = C.km([lat, lon], full[k]); if (d < off) { off = d; at = fcum[k] * scale; } }
+        const tg = e.tags || {};
+        if (off <= 0.5) found.push({ lat, lon, at, svc: tg.highway === "services" || tg.highway === "rest_area", name: tg.name || (tg.amenity === "fuel" ? "Fuel station" : "Service / rest area") });
+      }
+    }
+    // Thin out: at most one per 15 km, service/rest areas before plain fuel stations, none right at a stop.
+    found.sort((x, y) => (y.svc - x.svc) || x.at - y.at);
+    const keep = [];
+    for (const f of found) {
+      if (f.at < 3 || f.at > pl.km - 3) continue;
+      if (pl.chain.some(c => Math.abs(c.at - f.at) < 3)) continue;
+      if (keep.some(k => Math.abs(k.at - f.at) < 15)) continue;
+      f.leg = legOf(f.at); keep.push(f);
+    }
+    keep.sort((x, y) => x.at - y.at);
+    keep.failed = failed > 0;
+    return keep;
+  }
+  // The public Overpass servers often answer 429/502 under load: try the main one, then a mirror; null if both fail.
+  async function overpass(q) {
+    for (const url of ["https://overpass-api.de/api/interpreter", "https://overpass.private.coffee/api/interpreter"]) {
+      const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 20000);
+      try {
+        const r = await fetch(url, { method: "POST", body: "data=" + encodeURIComponent(q), signal: ctl.signal });
+        if (r.ok) return (await r.json()).elements || [];
+      } catch (e) {} finally { clearTimeout(tm); }
+    }
+    return null;
+  }
+  // No logged spot near A: where riders without a known spot usually stood (edge of town on this road, sized by place
+  // class: research addendum #1123) and the nearest fuel/rest/service place along the road (display only).
+  async function drawFallback(pl) {
+    if (pl.fallback === undefined) {
+      pl.fallback = [];
+      const a = ends.a.p;
+      let km = 1.5;
+      try {
+        const j = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=12&lat=${a[0]}&lon=${a[1]}`).then(r => r.json());
+        const ad = j.address || {};
+        km = ad.city ? 2 : (ad.village || ad.hamlet) ? 0.5 : 1.5;
+      } catch (e) {}
+      const e = C.pointAt(pl.line, pl.cum, km).p;
+      pl.fallback.push({ lat: e[0], lon: e[1], html: `<h4>Edge of town, ${km} km from A</h4><div>Where riders without a known spot usually stood: on this road where the town ends.</div>` });
+      try {
+        const j = await fetch("https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(window.RGFallback.overpassQuery(a[0], a[1], 10000))).then(r => r.json());
+        const f = window.RGFallback.fallback(j.elements || [], pl.line, pl.cum, 1, C.km);
+        track("routing_gang_osm_fallback", { found: !!f });
+        if (f) pl.fallback.push({ lat: f.lat, lon: f.lon, html: `<h4>⛽ ${esc(f.label)}</h4><div>The nearest fuel, rest or service place on this road, ${f.at.toFixed(0)} km along. Not checked for hitchhiking.</div>` });
+      } catch (err) { track("routing_gang_osm_fallback", { found: false, error: true }); }
+      if (plans[sel] !== pl || mode !== "hitch") return;
+    }
+    pl.fallback.forEach(f => L.marker([f.lat, f.lon], { icon: icon("alt", "", 18) }).addTo(extraLayer).bindTooltip("possible start")
+      .bindPopup(`<div class="rg-pop">${f.html}<div><a href="https://www.openstreetmap.org/?mlat=${f.lat}&mlon=${f.lon}#map=17/${f.lat}/${f.lon}" target="_blank">OSM</a></div></div>`));
+  }
+  // Full-screen black-on-white sign to hold up at the roadside; tap to close.
   function showSign(name) {
     const ov = document.createElement("div");
     ov.style.cssText = "position:fixed;inset:0;z-index:99999;background:#fff;color:#000;display:flex;align-items:center;justify-content:center;text-align:center;font:bold 20vw/1.1 sans-serif;padding:4vw;cursor:pointer";
     ov.textContent = name;
-    const fit = () => { let sz = 400; ov.style.fontSize = sz + "px"; while (sz > 16 && (ov.scrollWidth > ov.clientWidth || ov.scrollHeight > ov.clientHeight)) { sz = Math.floor(sz * 0.9); ov.style.fontSize = sz + "px"; } };
-    document.body.appendChild(ov); fit();
+    document.body.appendChild(ov);
+    let sz = 400; ov.style.fontSize = sz + "px";
+    while (sz > 16 && (ov.scrollWidth > ov.clientWidth || ov.scrollHeight > ov.clientHeight)) { sz = Math.floor(sz * 0.9); ov.style.fontSize = sz + "px"; }
     let lock = null;
     if (navigator.wakeLock) navigator.wakeLock.request("screen").then(l => { lock = l; }).catch(() => {});
     ov.addEventListener("click", () => { if (lock) lock.release().catch(() => {}); ov.remove(); track("routing_gang_sign_closed", {}); });
     track("routing_gang_sign_opened", { name_len: name.length });
   }
-  out.addEventListener("click", e => { const b = e.target.closest && e.target.closest(".rg-sign"); if (b) showSign(b.textContent); });
-  function detail(c, b) {
-    const t = c.t || C.toward(c.s, b);
-    const rides = c.s.review_count || 0;
-    const bits = [`${rides} ride${rides === 1 ? "" : "s"} logged`];
-    if (c.s.rating) bits.push(`rated ${c.s.rating.toFixed(1)}/5`);
-    bits.push(t.n ? `${t.ok} of ${t.n} rides from here went toward B` + (t.medKm ? ` (median ${Math.round(t.medKm)} km)` : "") : "no destination logged");
-    const w = waitNote(c.s); if (w) bits.push(w);
-    return bits.join(", ");
-  }
-  // No logged spot near A: offer the OSM fuel/rest/service place nearest A along the road (display only).
-  async function osmFallback(a, line, cum) {
-    // Held-out pioneer rides, A = nearest place centre (research/routing-edge-distance-pioneer-2026-10-19.md, n=210):
-    // the road point 1 km from A was within 2 km of where riders really stood 67% of the time, 3 km only 33%
-    // (village 61 vs 25, town 73 vs 30, city 73 vs 63). Show it first.
-    // Class-sized (research addendum #1123, exact points on the full line): village 0.5 km (73% within 2 km vs 61% for the old ~1.5 km),
-    // town 1.5, city 2. Class from Nominatim; on failure keep 1.5 km.
-    let km = 1.5, kmTxt = "about 1.5 km";
-    try {
-      const j = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=12&lat=${a[0]}&lon=${a[1]}`).then(r => r.json());
-      const ad = j.address || {};
-      if (ad.city) { km = 2; kmTxt = "about 2 km"; } else if (ad.village || ad.hamlet) { km = 0.5; kmTxt = "about 0.5 km"; }
-    } catch (e) { /* keep default */ }
-    // line is densified to ~2 km steps, so interpolate to the exact distance instead of snapping to the next vertex.
-    const i3 = cum.findIndex(c => c >= km);
-    if (i3 > 0) {
-      const f = cum[i3] > cum[i3 - 1] ? (km - cum[i3 - 1]) / (cum[i3] - cum[i3 - 1]) : 1;
-      const e = [line[i3 - 1][0] + f * (line[i3][0] - line[i3 - 1][0]), line[i3 - 1][1] + f * (line[i3][1] - line[i3 - 1][1])];
-      L.circleMarker(e, { radius: 7, color: "#1a73e8", weight: 3 }).addTo(layer).bindTooltip("edge of town");
-      out.insertAdjacentHTML("beforeend", `<br><b>Where riders without a known spot usually stood:</b> on this road at the edge of town, ${kmTxt} from A: <a href="https://www.openstreetmap.org/?mlat=${e[0]}&mlon=${e[1]}#map=16/${e[0]}/${e[1]}" target="_blank">${e[0].toFixed(4)}, ${e[1].toFixed(4)}</a>.`);
-    }
-    try {
-      const q = window.RGFallback.overpassQuery(a[0], a[1], 10000);
-      const j = await fetch("https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(q)).then(r => r.json());
-      const f = window.RGFallback.fallback(j.elements || [], line, cum, 1, C.km);
-      track("routing_gang_osm_fallback", { found: !!f });
-      if (!f) return;
-      L.circleMarker([f.lat, f.lon], { radius: 7, color: "#e37400", weight: 3 }).addTo(layer).bindTooltip("OSM " + f.kind);
-      out.insertAdjacentHTML("beforeend", `<br><b>Or the nearest fuel, rest or service place on the road:</b> ${f.label}: <a href="https://www.openstreetmap.org/?mlat=${f.lat}&mlon=${f.lon}#map=17/${f.lat}/${f.lon}" target="_blank">${f.lat.toFixed(4)}, ${f.lon.toFixed(4)}</a> (${f.at.toFixed(0)} km along the route). Not checked for hitchhiking.`);
-    } catch (e) { track("routing_gang_osm_fallback", { found: false, error: true }); }
-  }
-  // "Ask to be dropped at": rides from fuel/rest/services stops came ~1.6x as often within the same riders
-  // (research/routing-gang-exit-2026-10-19.md), and 96% of 40 km road stretches have one within 1 km
-  // (research/routing-dropoff-coverage-2026-10-19.md). One Overpass query along the route; display only.
-  async function dropoffHints(line, cum, chain, a, b) {
-    // The route above is OSRM "simplified" (a chord on long trips), so measure against the full road line:
-    // research/routing-dropoff-exact-2026-10-19.md (39% of hints were >0.5 km from the real road, 32% of on-road services missed).
-    let full = line, fcum = cum;
-    try {
-      const rr = await fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=full&geometries=geojson`).then(x => x.json());
-      const raw = rr.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
-      full = raw; fcum = [0];
-      for (let i = 1; i < raw.length; i++) fcum.push(fcum[i - 1] + C.km(raw[i - 1], raw[i]));
-    } catch (e) { /* fall back to the simplified line */ }
-    const scale = cum[cum.length - 1] / (fcum[fcum.length - 1] || 1);
-    // One 250-point polyline query times out on Overpass for a long route (measured: 466 km, 40 s), so ask per ~60-point chunk.
-    const step = Math.max(1, Math.round(full.length / 300));
-    const pts = full.filter((_, i) => i % step === 0 || i === full.length - 1);
-    const chunks = [];
-    for (let i = 0; i < pts.length - 1; i += 60) chunks.push(pts.slice(i, i + 61));
-    let shown = 0;
-    try {
-      // Sequential: Overpass allows ~2 slots per IP and answers parallel bursts with an error that has no CORS header.
-      const batches = [];
-      for (const ch of chunks) {
-        const r = `(around:600,${ch.map(p => p[0].toFixed(4) + "," + p[1].toFixed(4)).join(",")})`;
-        const q = `[out:json][timeout:25];(node${r}[amenity=fuel];nwr${r}[highway=services];nwr${r}[highway=rest_area];);out center 200;`;
-        batches.push(await fetch("https://overpass-api.de/api/interpreter", { method: "POST", body: "data=" + encodeURIComponent(q) }).then(x => x.json()).then(j => j.elements || []).catch(() => []));
-      }
-      const seen = new Set(), els = [];
-      for (const e of batches.flat()) { const k = e.type + e.id; if (!seen.has(k)) { seen.add(k); els.push(e); } }
-      const pl = [];
-      for (const e of els) {
-        const lat = e.lat !== undefined ? e.lat : e.center && e.center.lat, lon = e.lon !== undefined ? e.lon : e.center && e.center.lon;
-        if (lat === undefined) continue;
-        let off = 1e9, at = 0;
-        for (let i = 0; i < full.length; i++) { const d = C.km([lat, lon], full[i]); if (d < off) { off = d; at = fcum[i] * scale; } }
-        if (off <= 0.5) pl.push({ lat, lon, at, name: (e.tags || {}).name || ((e.tags || {}).amenity === "fuel" ? "fuel station" : "service / rest area") });
-      }
-      const lis = out.querySelectorAll("ol > li");
-      let prevAt = 0;
-      chain.forEach((c, i) => {
-        const cand = pl.filter(x => x.at > prevAt + 3 && x.at < c.at - 1).sort((x, y) => y.at - x.at)[0];
-        prevAt = c.at;
-        if (c.s.fuel || !cand || !lis[i]) return;
-        shown++;
-        lis[i].insertAdjacentHTML("beforeend", `<br><small><b>Before this stop, ask to be dropped at:</b> ${cand.name.replace(/</g, "")} (OSM), km ${cand.at.toFixed(0)}, <a href="https://www.openstreetmap.org/?mlat=${cand.lat}&mlon=${cand.lon}#map=17/${cand.lat}/${cand.lon}" target="_blank">map</a>. Riders let out at fuel and rest stops got a next ride about 1.6x as often.</small>`);
-      });
-    } catch (e) {}
-    track("routing_gang_dropoff_shown", { n: shown, legs: chain.length });
-  }
-  async function plan(a, b) {
-    out.textContent = "Loading road route…";
-    try {
-      const [spots, , , , , r] = await Promise.all([spotsReady, wgReady, pkReady, ctReady, lgReady,
-        fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=simplified&geometries=geojson&alternatives=true`).then(x => x.json())]);
-      const COLORS = ["#1a73e8", "#9334e6", "#e37400"];
-      const build = (rt) => {
-        const raw = rt.geometry.coordinates.map(c => [c[1], c[0]]);
-        const [line, cum] = C.densify(raw);
-        const near = C.nearRoute(spots, line, cum, 3).filter(c => isPickup(c.s));
-        const chain = C.newChain(a, b, near, cum[cum.length - 1], cities);
-        return { rt, raw, line, cum, near, chain, weak: chain.filter(c => c.weak).length };
-      };
-      // Routes with fewer weakly evidenced stops first, then the faster one.
-      const plans = r.routes.slice(0, 2).map(build).sort((x, y) => x.weak - y.weak || x.rt.duration - y.rt.duration);
-      // Forced alternative through an evidenced spot well off the main road (the group asked for routes that
-      // avoid a hard area); kept only if it is at most 20% slower than the fastest road.
-      try {
-        const v = C.pickVia(spots, a, b, plans[0].line, plans[0].cum);
-        if (v) {
-          const r2 = await fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${v.s.lon},${v.s.lat};${b[1]},${b[0]}?overview=simplified&geometries=geojson`).then(x => x.json());
-          const rt2 = r2.routes && r2.routes[0];
-          if (rt2 && rt2.duration <= 1.2 * Math.min(...plans.map(p => p.rt.duration))) { const pl = build(rt2); pl.via = v; plans.push(pl); }
-        }
-      } catch (e) {}
-      // "The way other riders went": a chain of other riders' logged legs from A to B, shown when it is a real alternative.
-      let riders = null;
-      try {
-        const rp = C.ridersPath(legs, a, b, 6);
-        if (C.ridersUsable(rp, plans[0].line, plans[0].cum[plans[0].cum.length - 1])) riders = rp;
-      } catch (e) {}
-      // Snap that path onto roads (waypoints = the logged hops' start spots) so it gets its own suggested stops.
-      if (riders) {
-        try {
-          const wp = [a].concat(riders.pts.slice(1, -1).filter((_, i) => i % 2 === 0), [b]);
-          const rr = await fetch(`https://router.project-osrm.org/route/v1/driving/${wp.map(w => w[1] + "," + w[0]).join(";")}?overview=simplified&geometries=geojson`).then(x => x.json());
-          const rt3 = rr.routes && rr.routes[0];
-          if (rt3 && rt3.distance <= 1.5 * plans[0].rt.distance) { const pl = build(rt3); pl.riders = riders; plans.push(pl); riders.snapped = true; }
-        } catch (e) {}
-      }
-      const { rt, raw, line, cum, near, chain } = plans[0];
-      if (riders && !riders.snapped) L.polyline(riders.pts, { color: "#188038", weight: 3, opacity: 0.8, dashArray: "2 6" }).addTo(layer).bindTooltip("the way other riders went");
-      plans.forEach((pl, k) => L.polyline(pl.raw, { color: pl.riders ? "#188038" : COLORS[k], weight: k ? 3 : 5, opacity: k ? 0.7 : 1, dashArray: k ? "8 6" : null }).addTo(layer));
-      map.fitBounds(raw);
-      if (document.getElementById("rg-all").checked) near.forEach(c => L.circleMarker([c.s.lat, c.s.lon], { radius: 3, color: "#188038" }).addTo(layer));
-      chain.forEach((c, i) => L.circleMarker([c.s.lat, c.s.lon], { radius: 8, color: c.weak ? "#f9ab00" : "#c5221f", weight: 3 })
-        .addTo(layer).bindTooltip(String(i + 1)));
-      let prev = a, rows = "";
-      chain.forEach((c, i) => {
-        const d = C.km(prev, [c.s.lat, c.s.lon]); prev = [c.s.lat, c.s.lon];
-        rows += `<li>${i + 1}. ${spotLink(c.s)}${c.s.fuel ? " <b>(fuel / rest stop: rides from here go further)</b>" : ""} — ${d.toFixed(0)} km from the previous point${c.gapBefore ? " (<b>long gap: no logged spot in between, so thumb along the road or from the edge of any village on the way, not a walk</b>)" : ""}${c.weak ? " (<b>weak evidence: fewer than " + C.MIN_EVIDENCE + " rides went toward B</b>)" : ""} <button type="button" class="rg-flag" data-rank="${i + 1}" data-lat="${c.s.lat.toFixed(2)}" data-lon="${c.s.lon.toFixed(2)}" style="font-size:0.75rem">bad stop</button><br><small>${detail(c, b)}</small></li>`;
-      });
-      const altRows = plans.slice(1).map((pl, k) => `<li style="color:${pl.riders ? "#188038" : COLORS[k + 1]}">${pl.riders ? "The way other riders went, on roads" : "Alternative " + (k + 1)} (dashed on the map${pl.riders ? ", road route through the start spots of other riders' logged rides" : ""}${pl.via ? ", via an evidenced stop " + pl.via.off.toFixed(0) + " km off the main road: " + pl.via.ok + " logged rides from there went toward B" : ""}): ${(pl.rt.distance/1000).toFixed(0)} km, ~${Math.round(pl.rt.duration/60)} min, ${pl.chain.length} suggested stops, ${pl.weak} with weak evidence, ${pl.chain.filter(c => c.gapBefore).length} long gaps.</li>`).join("");
-      let drive = "";
-      if (document.getElementById("rg-drive").checked) {
-        let dl = C.driverList(near, Date.now(), 2);
-        if (document.getElementById("rg-longwait").checked) {
-          const med = d => { const v = wg.cells[Math.round(d.s.lat / 0.25) + "," + Math.round(d.s.lon / 0.25)]; return v ? v[1] : -1; };
-          dl = dl.slice().sort((x, y) => med(y) - med(x));
-        }
-        dl = dl.slice(0, 30);
-        drive = `<br><b>Spots near your route, ${document.getElementById("rg-longwait").checked ? "longest area waits first" : "newest rides first"}:</b><ul>` + dl.map(d => {
-          const age = d.ageDays === null ? "no date" : d.ageDays < 30 ? "ride in the last 30 days" : d.ageDays < 365 ? "ride in the last 12 months" : "last ride over a year ago";
-          return `<li>${spotLink(d.s)} — km ${d.at.toFixed(0)} of ${(rt.distance/1000).toFixed(0)}, detour about ${d.detour.toFixed(1)} km, ${age}${waitNote(d.s) ? ", " + waitNote(d.s) : ""}</li>`;
-        }).join("") + "</ul>";
-      }
-      const ridersRow = riders && !riders.snapped ? `<li style="color:#188038">The way other riders went (dotted green on the map, straight lines between logged stops, not a road route): ${riders.km.toFixed(0)} km of logged rides in ${(riders.pts.length - 2) / 2} hops.</li>` : "";
-      track("routing_gang_planned", { riders_route: !!riders, riders_snapped: !!(riders && riders.snapped), road_km: Math.round(rt.distance / 1000), stops: chain.length, weak_stops: plans[0].weak, routes: plans.length, shared_link: location.search.includes("a=") });
-      const last = C.km(prev, b);
-      const first = chain[0] && C.km(a, [chain[0].s.lat, chain[0].s.lon]) <= 15;
-      out.innerHTML = `Best route (solid): ${(rt.distance/1000).toFixed(0)} km, ~${Math.round(rt.duration/60)} min by car, ${chain.length} suggested stops, ${plans[0].weak} with weak evidence. ` +
-        ((altRows || ridersRow) ? `<ul>${altRows}${ridersRow}</ul>` : "") +
-        `Known pickup spots (a logged ride started here) within 3 km of the route: ${near.length} (red = suggested stops; tick "show all" for the rest).` +
-        `<br>${first ? "Departure spot near A:" : "<b>No known spot within 15 km of A.</b> Spots along the way:"}` +
-        `<ol style="list-style:none;padding-left:0">${rows}</ol>Last stretch to B: ${last.toFixed(0)} km.${drive}` +
-        `<br><small>Share this case: <a href="?a=${a.map(x => x.toFixed(4))}&b=${b.map(x => x.toFixed(4))}">link</a> · <a class="rg-handoff" href="/dir/${a.map(x => x.toFixed(5))}/${b.map(x => x.toFixed(5))}">Open this trip on the main map</a></small>`;
-      out.querySelector(".rg-handoff").addEventListener("click", () => track("routing_gang_handoff", {}));
-      // Do group members open the suggested stops? Rank = position in the stop list (1-based).
-      out.querySelectorAll("ol a[href^='/spot/']").forEach((link, i) => link.addEventListener("click", () => track("routing_gang_stop_click", { rank: i + 1 })));
-      out.querySelectorAll(".rg-flag").forEach(btn => btn.addEventListener("click", () => {
-        track("routing_gang_stop_flagged", { rank: Number(btn.dataset.rank), lat2: btn.dataset.lat, lon2: btn.dataset.lon });
-        btn.textContent = "thanks, noted"; btn.disabled = true;
-      }));
-      nameStops();
-      dropoffHints(line, cum, chain, a, b);
-      if (!first) osmFallback(a, line, cum);
-    } catch (err) { out.textContent = "Route failed: " + err; }
-  }
-  map.on("click", (e) => {
-    const p = [e.latlng.lat, e.latlng.lng];
-    if (pts.length >= 2) { pts = []; layer.clearLayers(); }
-    pts.push(p);
-    L.marker(p).addTo(layer).bindTooltip(pts.length === 1 ? "A" : "B");
-    if (pts.length === 1) { out.textContent = "Tap the destination."; return; }
-    plan(pts[0], pts[1]);
-  });
-  for (const id of ["rg-drive", "rg-all", "rg-longwait"]) document.getElementById(id).addEventListener("change", () => {
-    track("routing_gang_option", { option: id, on: document.getElementById(id).checked });
-    if (pts.length === 2) { layer.clearLayers(); plan(pts[0], pts[1]); }
-  });
+
+  // ---------- controls ----------
+  document.querySelectorAll("#rg-modes button").forEach(btn => btn.addEventListener("click", () => {
+    mode = btn.dataset.mode;
+    document.querySelectorAll("#rg-modes button").forEach(x => x.classList.toggle("on", x === btn));
+    track("routing_gang_option", { option: "mode", on: mode === "drive" });
+    map.closePopup(); renderAll(false);
+  }));
+  leaveIn.addEventListener("change", () => { track("routing_gang_option", { option: "leave", on: true }); renderAll(false); });
   const q = new URLSearchParams(location.search);
   const qa = (q.get("a") || "").split(",").map(Number), qb = (q.get("b") || "").split(",").map(Number);
   if (qa.length === 2 && qb.length === 2 && [...qa, ...qb].every(Number.isFinite)) {
-    pts = [qa, qb];
-    L.marker(qa).addTo(layer).bindTooltip("A"); L.marker(qb).addTo(layer).bindTooltip("B");
-    plan(qa, qb);
+    ends.a = { p: qa, label: "Start" }; ends.b = { p: qb, label: "Destination" };
+    inputs.a.value = "Start"; inputs.b.value = "Destination";
+    reverseLabel("a"); reverseLabel("b");
+    drawEnds(); plan();
   }
+  setTimeout(() => map.invalidateSize(), 0);
 })();
 </script>
 {% endblock %}
