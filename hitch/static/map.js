@@ -2862,6 +2862,7 @@ function handleHashChange() {
 
   if (window.location.hash == "#success") {
     history.replaceState(null, null, " ");
+    if (window.hmTrack) window.hmTrack("ride_saved", { kind: "member" });
     showSuccessOverlay();
   }
 
@@ -2870,6 +2871,7 @@ function handleHashChange() {
   if (window.location.hash == "#success-anon" || window.location.hash == "#success-invite") {
     const kind = window.location.hash == "#success-anon" ? "anon" : "invite";
     history.replaceState(null, null, " ");
+    if (window.hmTrack) window.hmTrack("ride_saved", { kind: kind });
     showPostSubmitOverlay(kind);
   }
 
