@@ -520,6 +520,7 @@
                 btn.addEventListener('click', function () {
                     btns.forEach(function (b) { b.setAttribute('aria-pressed', String(b === btn)); });
                     window.hmTrack('ride_first_ever_answered', { answer: btn.dataset.firstEver });
+                    window.hmFirstEverAnswer = btn.dataset.firstEver;
                 });
             });
         })();
@@ -1209,6 +1210,20 @@
         // apart from a normal visit.
         hmTrack('ride_form_submitted', { destination: coords.destination ? 'yes' : 'no', mode: HM_FORM_MODE, auth: '{{ "anon" if current_user.is_anonymous else "user" }}' });
         hmTrack('ride_form_session_submitted', { destination: coords.destination ? 'yes' : 'no', mode: HM_FORM_MODE });
+
+        // #1177: the tap on "first ride ever?" is not the ride. Count the answer only when the
+        // ride is actually submitted (once, last answer wins), and stamp a yes on the device so a
+        // later ride from it shows whether a brand-new hitchhiker came back.
+        try {
+            var feAnswer = window.hmFirstEverAnswer;
+            var feStamp = parseInt(localStorage.getItem('hm_first_ever_at') || '0', 10);
+            if (feAnswer) hmTrack('ride_first_ever_submitted', { answer: feAnswer, mode: HM_FORM_MODE });
+            if (feAnswer === 'yes' && !feStamp) localStorage.setItem('hm_first_ever_at', String(Date.now()));
+            else if (feStamp) {
+                var feDays = (Date.now() - feStamp) / 864e5;
+                hmTrack('ride_after_first_ever', { days: feDays < 1 ? '0' : feDays < 8 ? '1-7' : feDays < 29 ? '8-28' : '29+' });
+            }
+        } catch (e) { /* storage blocked: the measurement is optional */ }
 
         // Driver-motive coverage on THIS surface. The "Why did they pick you up?"
         // chips (#driver_reason_to_pick_up, in the optional #driver-group box) are
