@@ -155,3 +155,10 @@ def test_bench_town_link_box_has_town_link_and_tracking(client):
     # base.html strips ?ref= before this inline script runs; the box must key
     # off the captured landing ref, not location.search alone.
     assert "window.hmLandingRef" in body
+
+
+def test_bench_town_links_driver_reasons_in_town_language(client):
+    de = client.get("/mitfahrbank/moringen-de").get_data(as_text=True)
+    assert 'href="/statistics/driver-reasons?ref=bench_town"' in de and "Warum Fahrer anhalten" in de
+    assert "Pourquoi les conducteurs s&#39;arrêtent" in client.get("/mitfahrbank/la-hague-fr").get_data(as_text=True)
+    assert "bench_driver_stats_clicked" in de
