@@ -101,7 +101,7 @@
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap" }).addTo(map);
   // base.html strips ?ref= from the address bar before this runs; the value survives in window.hmLandingRef.
   const lr = window.hmLandingRef || (new URLSearchParams(location.search)).get("ref") || "";
-  track("routing_gang_opened", { shared_link: location.search.includes("a="), from_ride: lr === "ride_page", from_wiki: lr === "wiki_route" });
+  track("routing_gang_opened", { shared_link: location.search.includes("a="), from_ride: lr === "ride_page", from_wiki: lr === "wiki_route", from_route_none: lr === "route_none" });
 
   // ---------- data ----------
   const spotsReady = fetch("/spots.json").then(r => r.json()).then(j => j.spots || j);
@@ -328,7 +328,7 @@
     plans = ps.filter((pl, k) => !ps.slice(0, k).some(q => C.overlap(pl.line, q.line, 1) >= 0.9)); sel = 0;
     $("rg-hint").hidden = true;
     const p0 = plans[0];
-    track("routing_gang_planned", { riders_route: plans.some(p => p.riders), riders_snapped: plans.some(p => p.riders), road_km: Math.round(p0.km), stops: p0.chain.length, weak_stops: p0.weak, routes: plans.length, est_lo_h: +(p0.model.lo / 60).toFixed(1), est_hi_h: +(p0.model.hi / 60).toFixed(1), shared_link: location.search.includes("a=") });
+    track("routing_gang_planned", { riders_route: plans.some(p => p.riders), riders_snapped: plans.some(p => p.riders), road_km: Math.round(p0.km), stops: p0.chain.length, weak_stops: p0.weak, routes: plans.length, est_lo_h: +(p0.model.lo / 60).toFixed(1), est_hi_h: +(p0.model.hi / 60).toFixed(1), shared_link: location.search.includes("a="), ref: lr });
     renderAll(true);
   }
   // (Re)compute a plan's stop chain and time model; `start` = a start option the rider picked, or null.
