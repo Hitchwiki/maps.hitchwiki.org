@@ -1077,5 +1077,6 @@
   "No rides logged here yet — be the first": "No rides logged here yet — be the first",
   "{n} rides logged here, average wait {wait}": "{n} rides logged here, average wait {wait}",
   "Wrong stop?": "Λάθος στάση;",
-  "Showing only rides by {user}": "Showing only rides by {user}"
+  "Showing only rides by {user}": "Showing only rides by {user}",
+  "Why drivers stopped": "Why drivers stopped"
 }
