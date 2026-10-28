@@ -386,6 +386,17 @@ def _ride_preview_meta(ride, spot_id):
 # (disposable) viewport. The route renders the same map template as "/" — it
 # exists so the URL survives a round trip, and so a pasted link can carry
 # per-spot OpenGraph tags instead of the generic homepage ones.
+
+
+def _keep_allowed(field, values, allowed):
+    """Keep only values in `allowed`; log what was dropped instead of failing the ride."""
+    kept = [v for v in values if v in allowed]
+    if len(kept) != len(values):
+        dropped = [str(v)[:40] for v in values if v not in allowed]
+        current_app.logger.warning("ride form: dropped invalid %s values %s", field, dropped[:5])
+    return kept
+
+
 @main_bp.route("/spot/<spot_id>")
 def render_spot(spot_id):
     if not SPOT_ID_RE.match(spot_id):
@@ -947,7 +958,7 @@ def why_not_hitchhike():
 
 @main_bp.route("/hitchhiking-safety")
 def hitchhiking_safety():
-    """"Would you accept this ride again?", sliced by the cohort the visitor describes.
+    """ "Would you accept this ride again?", sliced by the cohort the visitor describes.
 
     The answer is the one safety-adjacent question the ride form actually asks, and it is
     asked of the driver, not of hitchhiking in general — the page says so, because a 97%
@@ -1269,18 +1280,14 @@ def ride_detail(d_tag):
             # since an explicit "no" is falsy but still an answer worth showing.
             "would_ride_again": would_ride_again if isinstance(would_ride_again, bool) else None,
             "reasons": [REASON_DESCRIPTION_BY_CODE.get(r, r) for r in reasons_raw],
-            "negative_experiences": [
-                NEGATIVE_EXPERIENCE_DESCRIPTION_BY_CODE.get(r, r) for r in negative_experiences_raw
-            ],
+            "negative_experiences": [NEGATIVE_EXPERIENCE_DESCRIPTION_BY_CODE.get(r, r) for r in negative_experiences_raw],
             "origin_country_code": country_code,
             "origin_country_name": COUNTRY_NAME_BY_CODE.get(country_code) if country_code else None,
             "age": age,
             "gender": driver_obj.get("gender") or None,
             "languages": [LANGUAGE_NAME_BY_CODE.get(c, c) for c in languages_raw],
             # Other people in the car (#350): bare non-driver occupants next to the driver.
-            "companions": sum(
-                1 for o in (content.get("occupants") or []) if isinstance(o, dict) and not o.get("was_driver")
-            ),
+            "companions": sum(1 for o in (content.get("occupants") or []) if isinstance(o, dict) and not o.get("was_driver")),
         }
         # Only attach the driver section if at least one field has a value.
         if not any(
@@ -2001,16 +2008,17 @@ def ride_form():
 
         # Reasons to hitchhike (the "You" section) and the driver's reasons for the trip
         # itself — both enum allowlists, same shape as reason_to_pick_up below.
-        for r in data["reasons_to_hitchhike"]:
-            assert r in ALLOWED_REASONS_TO_HITCHHIKE, f"Invalid reason_to_hitchhike: {r}"
-        for r in data["ride_reasons"]:
-            assert r in ALLOWED_RIDE_REASONS, f"Invalid ride reason: {r}"
+        # Optional enum fields: a stale draft or an old cached form can carry a value
+        # that no longer exists. Drop it (and log) instead of rejecting the whole ride.
+        data["reasons_to_hitchhike"] = _keep_allowed(
+            "reasons_to_hitchhike", data["reasons_to_hitchhike"], ALLOWED_REASONS_TO_HITCHHIKE
+        )
+        data["ride_reasons"] = _keep_allowed("ride_reasons", data["ride_reasons"], ALLOWED_RIDE_REASONS)
 
         # Driver-info parsing.
         # reason_to_pick_up: validate against the enum allowlist.
         driver_reasons = [r for r in data["driver_reason_to_pick_up"] if r]
-        for r in driver_reasons:
-            assert r in ALLOWED_REASONS_TO_PICK_UP, f"Invalid reason_to_pick_up: {r}"
+        driver_reasons = _keep_allowed("reason_to_pick_up", driver_reasons, ALLOWED_REASONS_TO_PICK_UP)
         data["driver_reason_to_pick_up"] = driver_reasons
 
         # would_ride_again: the smiley pair is tristate — 'yes' / 'no' / '' (unanswered).
@@ -2022,18 +2030,19 @@ def ride_form():
         # negative_experiences: only meaningful alongside an explicit "no" -- the form
         # hides the chip row otherwise, and a stale value must not travel with the ride.
         negative_experiences = [r for r in data["driver_negative_experiences"] if r]
-        for r in negative_experiences:
-            assert r in ALLOWED_NEGATIVE_EXPERIENCES, f"Invalid negative_experience: {r}"
+        negative_experiences = _keep_allowed("negative_experience", negative_experiences, ALLOWED_NEGATIVE_EXPERIENCES)
         data["driver_negative_experiences"] = negative_experiences if wra_raw == "no" else []
 
         # Gender: empty or one of the enum values.
         driver_gender = (data.get("driver_gender") or "").strip()
-        assert driver_gender == "" or driver_gender in ALLOWED_GENDERS, f"Invalid driver gender: {driver_gender}"
+        driver_gender = (_keep_allowed("driver_gender", [driver_gender], ALLOWED_GENDERS) or [""])[0] if driver_gender else ""
         data["driver_gender"] = driver_gender
 
         # Other people in the car besides the driver: "" (unanswered) or 0..3 (3 = "3 or more").
         companions = str(data.get("driver_companions") if data.get("driver_companions") is not None else "").strip()
-        assert companions in ("", "0", "1", "2", "3"), f"Invalid driver_companions: {companions}"
+        if companions not in ("", "0", "1", "2", "3"):
+            current_app.logger.warning("ride form: dropped invalid driver_companions %r", companions[:20])
+            companions = ""
         data["driver_companions"] = companions
 
         # Age -> year_of_birth. We translate here so publish_ride doesn't need the current date.
@@ -2052,23 +2061,28 @@ def ride_form():
 
         # Origin country: arrives as ISO alpha-2 code (the country picker stores codes).
         driver_country = (data.get("driver_origin_country") or "").strip().upper()
-        assert driver_country == "" or driver_country in COUNTRY_CODES, f"Invalid driver origin country: {driver_country}"
+        driver_country = (
+            (_keep_allowed("driver_origin_country", [driver_country], COUNTRY_CODES) or [""])[0] if driver_country else ""
+        )
         data["driver_origin_country"] = driver_country
 
         # Languages: comma-separated ISO 639-3 codes from the chip input.
         driver_lang_raw = (data.get("driver_languages") or "").strip()
         driver_languages = [code for code in (c.strip() for c in driver_lang_raw.split(",")) if code]
-        for code in driver_languages:
-            assert code in LANGUAGE_CODES, f"Invalid language code: {code}"
+        driver_languages = _keep_allowed("driver_languages", driver_languages, LANGUAGE_CODES)
         data["driver_languages"] = driver_languages
 
         # Validate vehicle fields: kind must be one of the allowed enum values (or empty),
         # license_plate_country must be a valid ISO 3166-1 alpha-2 code (or empty). Other
         # vehicle fields are free text and length-capped to avoid abuse.
         vehicle_kind = (data.get("vehicle_kind") or "").strip()
-        assert vehicle_kind == "" or vehicle_kind in ALLOWED_VEHICLE_KINDS, f"Invalid vehicle kind: {vehicle_kind}"
+        vehicle_kind = (_keep_allowed("vehicle_kind", [vehicle_kind], ALLOWED_VEHICLE_KINDS) or [""])[0] if vehicle_kind else ""
         vehicle_country = (data.get("vehicle_license_plate_country") or "").strip().upper()
-        assert vehicle_country == "" or vehicle_country in ISO_3166_1_ALPHA_2, f"Invalid license plate country: {vehicle_country}"
+        vehicle_country = (
+            (_keep_allowed("vehicle_license_plate_country", [vehicle_country], ISO_3166_1_ALPHA_2) or [""])[0]
+            if vehicle_country
+            else ""
+        )
         data["vehicle_license_plate_country"] = vehicle_country
         for free_field in ("vehicle_make", "vehicle_model", "vehicle_license_plate_identifier"):
             val = (data.get(free_field) or "").strip()
@@ -2087,9 +2101,7 @@ def ride_form():
                 # "finish" tapped within one minute collide. Nudge, don't lose the ride.
                 arrival_str = (dep_dt + timedelta(minutes=1)).isoformat(timespec="minutes")
                 arr_dt = dep_dt + timedelta(minutes=1)
-            assert arr_dt > dep_dt, (
-                "Arrival time must be later than the pickup time."
-            )
+            assert arr_dt > dep_dt, "Arrival time must be later than the pickup time."
         data["datetime_ride"] = departure_str
         data["arrival_datetime"] = arrival_str
 
@@ -2251,6 +2263,7 @@ def ride_form():
         return redirect(redirect_url)
 
     except (AssertionError, ValueError, KeyError) as err:
+        current_app.logger.warning("ride rejected (400): %s", str(err)[:200])
         # Bad input — permanent. 400 with no `transient` flag; the offline outbox flags it
         # for manual retry/discard rather than looping on it forever.
         if wants_json:
