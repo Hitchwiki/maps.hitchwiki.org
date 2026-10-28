@@ -261,7 +261,9 @@
       var prior = localStorage.getItem("hm_ab_" + ANON_EXP);
       if (prior) tagArm(prior);
       var params = new URLSearchParams(window.location.search);
-      if (params.get("welcome") === "1" || /^share-/.test(params.get("ref") || "")) return;
+      // base.html strips ?ref= before this runs, so the live value is hmLandingRef.
+      var landRef = window.hmLandingRef || params.get("ref") || "";
+      if (params.get("welcome") === "1" || /^share-/.test(landRef)) return;
       if (localStorage.getItem(ANON_SEEN_KEY) || prior) return;
       (function attempt() {
         // A fresh visitor first meets the race banner and the cookie box (live check
