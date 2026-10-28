@@ -3473,6 +3473,14 @@
                       window.location.href = "/mitfahrbank?ref=pledge_race_banner";
                     },
                   },
+                  {
+                    label: T("Why drivers stopped"),
+                    cls: "inr-grey",
+                    onClick: function () {
+                      hmTrack("driver_pledge_reasons_link_clicked", { surface: "race_banner" });
+                      window.location.href = "/statistics/driver-reasons?ref=pledge_thanks";
+                    },
+                  },
                   { label: T("Not now"), cls: "inr-grey", onClick: function () {} },
                 ],
               });
