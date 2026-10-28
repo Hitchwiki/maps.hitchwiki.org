@@ -319,6 +319,24 @@ def bench_town_print(slug):
     # Fixed host: the QR is printed on paper, so it must not depend on the proxy's url_root.
     base = "https://maps.hitchwiki.org"
     drv_url = f"{base}/mitfahrbank/{slug}?ref=bench_qr_drv_{slug}"
+    if request.args.get("for") == "news":
+        # #1172: one block a local newsletter can print. Existing strings only;
+        # its own ref (bench_news_<slug>) lets Umami count scans of a printed page.
+        n = len(town["stops"])
+        news_url = f"{base}/mitfahrbank/{slug}?ref=bench_news_{slug}"
+        state = f" ({town['state']})" if town.get("state") else ""
+        intro = (L["intro_n"] if n > 1 else L["intro_1"]).format(n=n, name=town["name"], state=state)
+        return render_template(
+            "bench_town_news.html",
+            title=L["title"].format(name=town["name"]),
+            intro=intro,
+            proof=L.get("proof", ""),
+            pledge=pledge,
+            news_url=news_url,
+            svg=segno.make(news_url, error="m").svg_inline(scale=6, border=2),
+            page_lang=lang,
+            emit_hreflang=False,
+        )
     streets = bench_streets()
     signs = []
     for i, (osm_id, _lat, _lon) in enumerate(town["stops"][:100], 1):

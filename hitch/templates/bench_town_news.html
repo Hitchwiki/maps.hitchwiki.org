@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="{{ page_lang }}">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<title>{{ title }}</title>
+<style>
+@page { size: A5; margin: 10mm; }
+body { margin: 0; font-family: sans-serif; }
+article { max-width: 120mm; margin: 0 auto; }
+h1 { font-size: 20pt; margin: 6mm 0 3mm; }
+p { font-size: 11pt; line-height: 1.35; margin: 0 0 3mm; }
+.row { display: flex; align-items: center; gap: 5mm; margin-top: 4mm; }
+.row svg { width: 32mm; flex: none; }
+.url { font-size: 9pt; word-break: break-all; }
+</style>
+</head>
+<body>
+<article>
+  <h1>{{ title }}</h1>
+  <p>{{ intro }}</p>
+  {% if proof %}<p>{{ proof }}</p>{% endif %}
+  <div class="row">{{ svg|safe }}<div><p>{{ pledge }}</p><p class="url">{{ news_url.split('?')[0] }}</p></div></div>
+</article>
+</body>
+</html>

@@ -162,3 +162,12 @@ def test_bench_town_links_driver_reasons_in_town_language(client):
     assert 'href="/statistics/driver-reasons?ref=bench_town"' in de and "Warum Fahrer anhalten" in de
     assert "Pourquoi les conducteurs s&#39;arrêtent" in client.get("/mitfahrbank/la-hague-fr").get_data(as_text=True)
     assert "bench_driver_stats_clicked" in de
+
+
+def test_bench_town_print_news_block_has_news_ref_qr(client):
+    slug = "moringen-de"
+    r = client.get(f"/mitfahrbank/{slug}/print?for=news")
+    assert r.status_code == 200
+    body = r.get_data(as_text=True)
+    assert f"https://maps.hitchwiki.org/mitfahrbank/{slug}</p>" in body  # the ref rides in the QR only
+    assert body.count("<svg") == 1

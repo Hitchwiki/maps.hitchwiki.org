@@ -19,6 +19,7 @@
   <div id="bench-link-box" style="display:none;border:1px solid #ccc;border-radius:8px;padding:10px 14px;margin:12px 0">
     <p style="margin:0 0 6px">{% if fr %}Pour lier cette page depuis le site de la commune :{% elif page_lang == 'de' %}So verlinken Sie diese Seite von der Website der Gemeinde:{% else %}To link this page from the town website:{% endif %}</p>
     <input id="bench-link-html" readonly style="width:100%;box-sizing:border-box;font-size:13px" value="{{ ('<a href=&quot;https://maps.hitchwiki.org/mitfahrbank/' ~ slug ~ '?ref=townsite&quot;>' ~ title ~ '</a>')|e }}">
+    <p style="margin:6px 0 0"><a id="bench-news-link" href="/mitfahrbank/{{ slug }}/print?for=news">{{ print_label }}: QR</a></p>
     <p style="margin:6px 0 0"><button type="button" id="bench-link-copy" style="padding:6px 12px;cursor:pointer">{% if fr %}Copier{% elif page_lang == 'de' %}Kopieren{% else %}Copy{% endif %}</button> <span id="bench-link-done" style="display:none">&#10003;</span></p>
   </div>
   <ul>
@@ -49,6 +50,8 @@
       if (window.hmTrack) hmTrack("bench_link_copied", { surface: "bench_town" });
     });
   }
+  var nl = document.getElementById("bench-news-link");
+  if (nl) nl.addEventListener("click", function () { if (window.hmTrack) hmTrack("bench_news_kit_opened", { surface: "bench_town" }); });
   var ds = document.getElementById("bench-driver-stats");
   if (ds) ds.addEventListener("click", function () { if (window.hmTrack) hmTrack("bench_driver_stats_clicked", { surface: "bench_town" }); });
   var btn = document.getElementById("bench-pledge-btn"), note = document.getElementById("bench-pledge-note");
