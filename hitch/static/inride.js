@@ -3456,6 +3456,25 @@
               localStorage.setItem("hmDriverPledgedAt", String(Date.now()));
               localStorage.setItem("hmDriverPledgeSurface", "race_banner");
             } catch (e) {}
+            // The tap used to end in silence. Give it the same thank-you + bench link as the
+            // other pledge surfaces (IDEAS #1183); deferred so the closing dialog cannot eat it.
+            setTimeout(function () {
+              journeyUI.dialog({
+                title: T("Pledge made — thank you."),
+                centered: true,
+                actions: [
+                  {
+                    label: T("Hitchhikers near you"),
+                    cls: "inr-go",
+                    onClick: function () {
+                      hmTrack("driver_pledge_stops_link_clicked", { surface: "race_banner" });
+                      window.location.href = "/mitfahrbank?ref=pledge_race_banner";
+                    },
+                  },
+                  { label: T("Not now"), cls: "inr-grey", onClick: function () {} },
+                ],
+              });
+            }, 50);
           },
         });
       }
