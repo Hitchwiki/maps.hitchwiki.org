@@ -1306,6 +1306,25 @@
               if (c !== chip) c.classList.remove("inr-optchip--on");
             });
             if (on) hmTrack("driver_answer_tapped", { reason: opt.code });
+            // After an answer, offer the existing driver pledge once (never if already made).
+            if (on && !driverChipsEl.querySelector(".inr-pledge-after")) {
+              try { if (localStorage.getItem("hmDriverPledgeMade")) return; } catch (e) { return; }
+              const pb = document.createElement("button");
+              pb.type = "button";
+              pb.className = "inr-optchip inr-pledge-after";
+              pb.textContent = T("I'll stop for a hitchhiker when I'm driving");
+              hmTrack("driver_pledge_shown", { surface: "in_ride_driver" });
+              pb.addEventListener("click", function () {
+                try {
+                  localStorage.setItem("hmDriverPledgeMade", "1");
+                  localStorage.setItem("hmDriverPledgedAt", String(Date.now()));
+                  localStorage.setItem("hmDriverPledgeSurface", "in_ride_driver");
+                } catch (e) {}
+                hmTrack("driver_pledge_clicked", { surface: "in_ride_driver" });
+                pb.remove();
+              });
+              driverChipsEl.appendChild(pb);
+            }
           });
           driverChipsEl.appendChild(chip);
         });
