@@ -1885,11 +1885,16 @@
             if (!label) return;
             const tags = getTags();
             if (maxTags && tags.length >= maxTags) return;
-            tags.push(label);
+            // #412: Enter/blur on a name that exactly equals the top suggestion's name
+            // stores that located stop, so the km counts it. Anything looser stays a label.
+            const exact = topSuggestion && topSuggestion.q === label
+                && topSuggestion.name.toLowerCase() === label.toLowerCase();
+            tags.push(exact ? topSuggestion.value : label);
             setTags(tags);
             renderTags();
             input.value = '';
         }
+        let topSuggestion = null;
 
         // Issue #351: a typed place name can be resolved to a real location. Picking a
         // suggestion stores the stop as "lat, lon name" -- the same form a pasted pin takes,
@@ -1916,11 +1921,13 @@
                         .then((data) => {
                             if (mine !== seq || input.value.trim() !== q) return;
                             box.innerHTML = '';
+                            topSuggestion = null;
                             (data.features || []).slice(0, 5).forEach((f) => {
                                 const c = f.geometry && f.geometry.coordinates;
                                 const pr = f.properties || {};
                                 if (!c || !pr.name) return;
                                 const where = [pr.city || pr.county || pr.state, pr.country].filter(Boolean).join(', ');
+                                if (!topSuggestion) topSuggestion = { q: q, name: pr.name, value: c[1].toFixed(5) + ', ' + c[0].toFixed(5) + ' ' + pr.name };
                                 const item = document.createElement('button');
                                 item.type = 'button';
                                 item.className = 'list-group-item list-group-item-action';
