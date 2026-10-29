@@ -1079,5 +1079,7 @@
   "Wrong stop?": "Λάθος στάση;",
   "Showing only rides by {user}": "Showing only rides by {user}",
   "Why drivers stopped": "Why drivers stopped",
-  "Tip: your phone's own live location sharing (Google Maps, Apple Maps, WhatsApp) lets family follow your route.": "Συμβουλή: η κοινοποίηση τοποθεσίας σε πραγματικό χρόνο από το ίδιο το κινητό σου (Google Maps, Apple Maps, WhatsApp) επιτρέπει στους δικούς σου να παρακολουθούν τη διαδρομή σου."
+  "Tip: your phone's own live location sharing (Google Maps, Apple Maps, WhatsApp) lets family follow your route.": "Συμβουλή: η κοινοποίηση τοποθεσίας σε πραγματικό χρόνο από το ίδιο το κινητό σου (Google Maps, Apple Maps, WhatsApp) επιτρέπει στους δικούς σου να παρακολουθούν τη διαδρομή σου.",
+  "Are you at this spot now?": "Are you at this spot now?",
+  "Yes, start the timer": "Yes, start the timer"
 }

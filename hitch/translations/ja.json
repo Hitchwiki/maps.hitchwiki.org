@@ -1079,5 +1079,7 @@
   "Wrong stop?": "停留所が違う？",
   "Showing only rides by {user}": "Showing only rides by {user}",
   "Why drivers stopped": "Why drivers stopped",
-  "Tip: your phone's own live location sharing (Google Maps, Apple Maps, WhatsApp) lets family follow your route.": "ヒント：スマホ標準のリアルタイム位置情報共有（Google マップ、Apple マップ、WhatsApp）なら、家族があなたのルートを追えます。"
+  "Tip: your phone's own live location sharing (Google Maps, Apple Maps, WhatsApp) lets family follow your route.": "ヒント：スマホ標準のリアルタイム位置情報共有（Google マップ、Apple マップ、WhatsApp）なら、家族があなたのルートを追えます。",
+  "Are you at this spot now?": "Are you at this spot now?",
+  "Yes, start the timer": "Yes, start the timer"
 }

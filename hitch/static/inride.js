@@ -499,6 +499,58 @@
     const km = 12742 * Math.asin(Math.sqrt(x));
     return km < 1 ? "lt1" : km < 5 ? "1to5" : km < 50 ? "5to50" : "gt50";
   }
+  // EXP-1200: spot-sheet and route-results starts are tapped remotely (browsing) and then
+  // run a wait timer nobody is standing beside: 76-88% end silently vs 63% for the start
+  // bar. Half of those starts get an "Are you at this spot now?" check first. The arm sticks
+  // per browser so a user never flips between behaviours.
+  const AT_CHECK_SOURCES = ["spot-sheet", "route-results"];
+  let atCheckLabel = ""; // read by journey_started; "" for sources outside the experiment
+  function atCheckArm() {
+    try {
+      let a = localStorage.getItem("hmAtSpotCheck");
+      if (a !== "ask" && a !== "ctl") {
+        a = Math.random() < 0.5 ? "ask" : "ctl";
+        localStorage.setItem("hmAtSpotCheck", a);
+      }
+      return a;
+    } catch (e) { return "ctl"; }
+  }
+  // Calls go(label) when the journey may start now; shows the question otherwise.
+  // Within 1 km of the pin per an already-granted fix (never prompts): start silently.
+  function atSpotCheck(p, source, go) {
+    if (!AT_CHECK_SOURCES.includes(source)) return go("");
+    if (atCheckArm() !== "ask") return go("ctl");
+    const ask = function () {
+      journeyUI.dialog({
+        title: T("Are you at this spot now?"),
+        body: "",
+        centered: true,
+        actions: [
+          { label: T("Yes, start the timer"), cls: "inr-go", onClick: function () { go("ask"); } },
+          {
+            label: T("Not now"),
+            cls: "inr-grey",
+            onClick: function () { hmTrack("journey_at_check_not_yet", { source: source }); },
+          },
+        ],
+      });
+    };
+    if (!navigator.geolocation || !navigator.permissions || !navigator.permissions.query) return ask();
+    let settled = false;
+    const once = function (fn) { if (!settled) { settled = true; fn(); } };
+    navigator.permissions.query({ name: "geolocation" }).then(function (st) {
+      if (st.state !== "granted") return once(ask);
+      navigator.geolocation.getCurrentPosition(
+        function (pos) {
+          window.hmDeviceLatLng = window.hmDeviceLatLng || { lat: pos.coords.latitude, lon: pos.coords.longitude };
+          const near = startDistBucket(p) === "lt1";
+          once(near ? function () { go("skipped_near"); } : ask);
+        },
+        function () { once(ask); },
+        { enableHighAccuracy: false, timeout: 4000, maximumAge: 300000 }
+      );
+    }).catch(function () { once(ask); });
+  }
   // Seed window.hmDeviceLatLng from an ALREADY-GRANTED geolocation permission, so
   // startDistBucket can answer for visitors who never tapped the locate button (87% of
   // spot-sheet starts read "unknown", research/journey-start-distance-2026-10-29.md).
@@ -520,11 +572,17 @@
     }).catch(function () { /* Permissions API can throw on some WebViews */ });
   }
   journeyFlow.startFromChoose = function (latlng, source) {
-    // Callers pass either a Leaflet LatLng (map.js, entry gestures) or {lat, lon}
-    // (pinConfirm). Normalise once here so the redirect stash below can't store
-    // lon: undefined and silently lose the chosen spot across login.
     const p = toLatLon(latlng);
     source = startSource(source);
+    atSpotCheck(p, source, function (label) {
+      atCheckLabel = label;
+      journeyFlow.startFromChooseChecked(p, source);
+    });
+  };
+  journeyFlow.startFromChooseChecked = function (p, source) {
+    // Callers pass either a Leaflet LatLng (map.js, entry gestures) or {lat, lon}
+    // (pinConfirm); startFromChoose normalised it, so the redirect stash below can't
+    // store lon: undefined and silently lose the chosen spot across login.
     if (window.IS_LOGGED_IN) return journeyFlow.beginWithCoHitchers(p, source);
     hmTrack("journey_track_prompt_shown", { source: source });
     journeyUI.dialog({
@@ -652,9 +710,11 @@
       // Umami's values API reads one property at a time, so the source x dist
       // split (are spot-sheet starts remote taps?) needs its own joint key.
       source_dist: startSource(source) + ":" + startDistBucket(p),
+      at_check: atCheckLabel,
       first: j.firstJourney ? "yes" : "no",
       li: window.IS_LOGGED_IN ? "yes" : "no",
     });
+    atCheckLabel = ""; // one-shot: a later start from another path must not inherit it
     journeyUI.render(j);
     // #16 slice 2 (EXP-505): 224/296 cancellations are an accidental Start, self-reported
     // seconds later through the full "End journey?" dialog. Give the same correction a

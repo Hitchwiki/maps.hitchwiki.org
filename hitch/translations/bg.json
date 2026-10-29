@@ -1079,5 +1079,7 @@
   "Wrong stop?": "Грешна спирка?",
   "Showing only rides by {user}": "Showing only rides by {user}",
   "Why drivers stopped": "Why drivers stopped",
-  "Tip: your phone's own live location sharing (Google Maps, Apple Maps, WhatsApp) lets family follow your route.": "Съвет: споделянето на живо местоположение от телефона ти (Google Maps, Apple Maps, WhatsApp) позволява на близките да следят маршрута ти."
+  "Tip: your phone's own live location sharing (Google Maps, Apple Maps, WhatsApp) lets family follow your route.": "Съвет: споделянето на живо местоположение от телефона ти (Google Maps, Apple Maps, WhatsApp) позволява на близките да следят маршрута ти.",
+  "Are you at this spot now?": "Are you at this spot now?",
+  "Yes, start the timer": "Yes, start the timer"
 }
