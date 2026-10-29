@@ -1081,5 +1081,8 @@
   "Why drivers stopped": "Why drivers stopped",
   "Tip: your phone's own live location sharing (Google Maps, Apple Maps, WhatsApp) lets family follow your route.": "Зөвлөгөө: утасныхаа бодит цагийн байршил хуваалцах функцээр (Google Maps, Apple Maps, WhatsApp) гэр бүл чинь замыг чинь дагаж харна.",
   "Are you at this spot now?": "Are you at this spot now?",
-  "Yes, start the timer": "Yes, start the timer"
+  "Yes, start the timer": "Yes, start the timer",
+  "Add the towns you passed?": "Add the towns you passed?",
+  "Add towns": "Add towns",
+  "Your route can improve the map for other hitchhikers. Only town names are saved, not your track.": "Your route can improve the map for other hitchhikers. Only town names are saved, not your track."
 }
