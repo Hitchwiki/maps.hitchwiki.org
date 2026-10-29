@@ -1078,5 +1078,7 @@
   "{n} rides logged here, average wait {wait}": "{n} rides logged here, average wait {wait}",
   "Wrong stop?": "Fermata sbagliata?",
   "Showing only rides by {user}": "Showing only rides by {user}",
-  "Why drivers stopped": "Why drivers stopped"
+  "Why drivers stopped": "Why drivers stopped",
+  "Are you at this spot now?": "Are you at this spot now?",
+  "Yes, start the timer": "Yes, start the timer"
 }
