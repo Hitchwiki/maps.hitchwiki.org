@@ -8,3 +8,6 @@ assert(/c\[1\]\.toFixed\(5\) \+ ', ' \+ c\[0\]\.toFixed\(5\) \+ ' ' \+ pr\.name/
 assert(/addEventListener\('mousedown'/.test(src), 'mousedown to beat blur');
 assert(/ride-stop-input[^}]*suggest: true/s.test(src), 'enabled for stops');
 console.log('ok');
+// #412: Enter on a name equal to the top suggestion stores the located stop.
+assert(/topSuggestion\.name\.toLowerCase\(\) === label\.toLowerCase\(\)/.test(src), 'exact-match auto-locate');
+console.log('ok 412');
