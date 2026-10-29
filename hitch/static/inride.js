@@ -995,6 +995,7 @@
     _dockEl: null,       // the persistent docked action bar
     _chipEl: null,       // the status chip above the dock
     _finishBtn: null,    // the Finish Ride button (for setFinishBusy)
+    _trail: null,        // RouteTrail handle (in-ride, local only)
     _pickupPin: null,    // Leaflet marker at the pickup location (in-ride state)
 
     // Remove all journey chrome and stop the live timer.
@@ -1014,6 +1015,8 @@
         window.map.removeLayer(journeyUI._pickupPin);
       }
       journeyUI._pickupPin = null;
+      if (journeyUI._trail) journeyUI._trail.stop(true); // keep points across re-renders
+      journeyUI._trail = null;
       journeyUI._finishBtn = null;
       document.body.classList.remove("inride-active");
     },
@@ -1022,6 +1025,8 @@
     // Always tears down first so re-renders (state changes, reloads) start clean.
     render(j) {
       journeyUI.teardown();
+      // Trail points are wiped as soon as the journey is not in-ride (finish/cancel/give up).
+      if ((!j || j.state !== "in-ride") && window.RouteTrail) window.RouteTrail.clear(window.localStorage);
       if (!j) return;
 
       // Mark the body so CSS lifts the whole bottom-right control stack (locate, mode
@@ -1296,6 +1301,14 @@
       // Factored into _addPickupPin (also called from waiting/paused) so the pin
       // is always visible regardless of which live state the journey is in.
       journeyUI._addPickupPin(j);
+
+      // Local-only live trail (maps#471); no-op unless location is already granted.
+      if (window.RouteTrail && window.map && !journeyUI._trail) {
+        journeyUI._trail = window.RouteTrail.start({
+          L: window.L, map: window.map, geo: navigator.geolocation,
+          permissions: navigator.permissions, storage: window.localStorage,
+        });
+      }
 
       // ── Docked action bar: Finish Ride button + round red Cancel beneath ────
       // Stacked layout (like waiting/paused) so the round red Cancel × can sit
