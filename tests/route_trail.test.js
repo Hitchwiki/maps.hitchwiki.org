@@ -41,3 +41,24 @@ test("point cap holds", () => {
   for (let i = 0; i < 2000; i++) RT.addPoint(pts, [40 + i * 0.001, 8]);
   assert.ok(pts.length <= RT.MAX_POINTS);
 });
+
+test("pickStopCandidates: needs a long trip, avoids first/last 5 km, spaced out", () => {
+  const RT = require("../hitch/static/route_trail.js");
+  const line = (n, stepDeg) => Array.from({ length: n }, (_, i) => [50 + i * stepDeg, 8]);
+  assert.deepEqual(RT.pickStopCandidates(line(5, 0.1)), []);        // too few points
+  assert.deepEqual(RT.pickStopCandidates(line(30, 0.003)), []);      // ~10 km only
+  const pts = line(60, 0.01);                                        // ~65 km
+  const c = RT.pickStopCandidates(pts, 4);
+  assert.equal(c.length, 4);
+  const first = pts[0], last = pts[pts.length - 1];
+  for (const p of c) {
+    assert.ok(RT.distM(first, p) >= 5000 && RT.distM(last, p) >= 5000);
+  }
+  assert.ok(RT.distM(c[0], c[1]) > 5000);
+});
+
+test("load: tolerates junk storage", () => {
+  const RT = require("../hitch/static/route_trail.js");
+  assert.deepEqual(RT.load({ getItem: () => "{bad" }), []);
+  assert.deepEqual(RT.load(null), []);
+});

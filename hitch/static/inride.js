@@ -461,8 +461,62 @@
       ride_min: j.gotRideMs ? Math.round((finishMs - j.gotRideMs) / 60000) : 0,
       leg: j.legIndex || 0,
     });
+    offerTrailStops(function (stops) {
+      enqueueFinish(j, dest, finishMs, stops);
+    });
+  }
+
+  // maps#351 / #1207: the local route trail (never sent anywhere) can name the towns the
+  // ride passed through, which turns a straight pickup→destination line into a routable
+  // path. Offered once at Finish; nothing leaves the phone unless the rider taps Add, and
+  // then only rounded (~1 km) town-level points, never the raw trail.
+  function offerTrailStops(next) {
+    const RT = window.RouteTrail;
+    let cands = [];
+    try { cands = RT ? RT.pickStopCandidates(RT.load(window.localStorage)) : []; } catch (e) { cands = []; }
+    if (!cands.length) return next([]);
+    hmTrack("trail_stops_offered", { n: cands.length });
+    journeyUI.dialog({
+      title: T("Add the towns you passed?"),
+      body: T("Your route can improve the map for other hitchhikers. Only town names are saved, not your track."),
+      centered: true,
+      forced: true,
+      actions: [
+        { label: T("Add towns"), cls: "inr-go", onClick: function () {
+          Promise.all(cands.map(function (p) {
+            const lat = Math.round(p[0] * 100) / 100, lon = Math.round(p[1] * 100) / 100;
+            const url = "https://photon.komoot.io/reverse?lat=" + lat + "&lon=" + lon + "&limit=1";
+            return new Promise(function (resolve) {
+              const t = setTimeout(function () { resolve(null); }, 4000);
+              fetch(url).then(function (r) { return r.ok ? r.json() : null; }).then(function (g) {
+                clearTimeout(t);
+                const pr = (g && g.features && g.features[0] && g.features[0].properties) || {};
+                const town = pr.city || pr.town || pr.village || pr.county || null;
+                resolve(town ? lat + ", " + lon + " " + town : null);
+              }).catch(function () { clearTimeout(t); resolve(null); });
+            });
+          })).then(function (labels) {
+            const seen = {};
+            const stops = labels.filter(function (l) {
+              if (!l) return false;
+              const name = l.replace(/^\S+, \S+ /, "");
+              if (seen[name]) return false;
+              seen[name] = 1;
+              return true;
+            });
+            hmTrack("trail_stops_added", { n: stops.length });
+            next(stops);
+          });
+        } },
+        { label: T("Skip"), cls: "inr-grey", onClick: function () { hmTrack("trail_stops_skipped", {}); next([]); } },
+      ],
+    });
+  }
+
+  function enqueueFinish(j, dest, finishMs, stops) {
     const id = uuid();
     const body = buildFinishBody(j, dest, finishMs, id);
+    if (stops && stops.length) body.ride_stops = JSON.stringify(stops);
     outboxStore.add({
       id: id, kind: "finish", createdAt: Date.now(), attempts: 0, lastError: null, status: "pending",
       body: body,

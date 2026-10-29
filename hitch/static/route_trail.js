@@ -36,6 +36,38 @@
     return true;
   }
 
+  // Pick up to `max` points along a finished trail to offer as "towns you passed".
+  // Needs a real trip (>= 10 points, >= 20 km); the first and last 5 km are excluded
+  // so neither the pickup nor the drop-off area is echoed back. Evenly spaced by distance.
+  function pickStopCandidates(points, max) {
+    max = max || 4;
+    if (!Array.isArray(points) || points.length < 10) return [];
+    const cum = [0];
+    for (let i = 1; i < points.length; i++) cum.push(cum[i - 1] + distM(points[i - 1], points[i]));
+    const total = cum[cum.length - 1];
+    if (total < 20000) return [];
+    const lo = 5000, hi = total - 5000;
+    const out = [];
+    for (let k = 1; k <= max; k++) {
+      const target = lo + ((hi - lo) * k) / (max + 1);
+      let best = -1, bestD = Infinity;
+      for (let i = 0; i < points.length; i++) {
+        if (cum[i] < lo || cum[i] > hi) continue;
+        const d = Math.abs(cum[i] - target);
+        if (d < bestD) { bestD = d; best = i; }
+      }
+      if (best >= 0 && !out.some((p) => p === points[best])) out.push(points[best]);
+    }
+    return out;
+  }
+
+  function load(storage) {
+    try {
+      const v = JSON.parse((storage && storage.getItem(KEY)) || "[]");
+      return Array.isArray(v) ? v : [];
+    } catch (e) { return []; }
+  }
+
   function clear(storage) {
     try { storage && storage.removeItem(KEY); } catch (e) {}
   }
@@ -74,5 +106,5 @@
     return handle;
   }
 
-  return { start, clear, addPoint, distM, KEY, MIN_STEP_M, MAX_POINTS };
+  return { start, clear, load, pickStopCandidates, addPoint, distM, KEY, MIN_STEP_M, MAX_POINTS };
 });
