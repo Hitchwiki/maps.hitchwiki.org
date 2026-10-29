@@ -499,12 +499,90 @@
     const km = 12742 * Math.asin(Math.sqrt(x));
     return km < 1 ? "lt1" : km < 5 ? "1to5" : km < 50 ? "5to50" : "gt50";
   }
+  // EXP-1200: spot-sheet and route-results starts are tapped remotely (browsing) and then
+  // run a wait timer nobody is standing beside: 76-88% end silently vs 63% for the start
+  // bar. Half of those starts get an "Are you at this spot now?" check first. The arm sticks
+  // per browser so a user never flips between behaviours.
+  const AT_CHECK_SOURCES = ["spot-sheet", "route-results"];
+  let atCheckLabel = ""; // read by journey_started; "" for sources outside the experiment
+  function atCheckArm() {
+    try {
+      let a = localStorage.getItem("hmAtSpotCheck");
+      if (a !== "ask" && a !== "ctl") {
+        a = Math.random() < 0.5 ? "ask" : "ctl";
+        localStorage.setItem("hmAtSpotCheck", a);
+      }
+      return a;
+    } catch (e) { return "ctl"; }
+  }
+  // Calls go(label) when the journey may start now; shows the question otherwise.
+  // Within 1 km of the pin per an already-granted fix (never prompts): start silently.
+  function atSpotCheck(p, source, go) {
+    if (!AT_CHECK_SOURCES.includes(source)) return go("");
+    if (atCheckArm() !== "ask") return go("ctl");
+    const ask = function () {
+      journeyUI.dialog({
+        title: T("Are you at this spot now?"),
+        body: "",
+        centered: true,
+        actions: [
+          { label: T("Yes, start the timer"), cls: "inr-go", onClick: function () { go("ask"); } },
+          {
+            label: T("Not now"),
+            cls: "inr-grey",
+            onClick: function () { hmTrack("journey_at_check_not_yet", { source: source }); },
+          },
+        ],
+      });
+    };
+    if (!navigator.geolocation || !navigator.permissions || !navigator.permissions.query) return ask();
+    let settled = false;
+    const once = function (fn) { if (!settled) { settled = true; fn(); } };
+    navigator.permissions.query({ name: "geolocation" }).then(function (st) {
+      if (st.state !== "granted") return once(ask);
+      navigator.geolocation.getCurrentPosition(
+        function (pos) {
+          window.hmDeviceLatLng = window.hmDeviceLatLng || { lat: pos.coords.latitude, lon: pos.coords.longitude };
+          const near = startDistBucket(p) === "lt1";
+          once(near ? function () { go("skipped_near"); } : ask);
+        },
+        function () { once(ask); },
+        { enableHighAccuracy: false, timeout: 4000, maximumAge: 300000 }
+      );
+    }).catch(function () { once(ask); });
+  }
+  // Seed window.hmDeviceLatLng from an ALREADY-GRANTED geolocation permission, so
+  // startDistBucket can answer for visitors who never tapped the locate button (87% of
+  // spot-sheet starts read "unknown", research/journey-start-distance-2026-10-29.md).
+  // Never prompts: without a granted permission (or the Permissions API) it does nothing.
+  function seedDeviceLocation() {
+    if (window.hmDeviceLatLng || !navigator.geolocation) return;
+    if (!navigator.permissions || !navigator.permissions.query) return;
+    navigator.permissions.query({ name: "geolocation" }).then(function (status) {
+      if (status.state !== "granted") return;
+      navigator.geolocation.getCurrentPosition(
+        function (pos) {
+          if (!window.hmDeviceLatLng) {
+            window.hmDeviceLatLng = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+          }
+        },
+        function () { /* denied/timeout — stay "unknown" */ },
+        { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+      );
+    }).catch(function () { /* Permissions API can throw on some WebViews */ });
+  }
   journeyFlow.startFromChoose = function (latlng, source) {
-    // Callers pass either a Leaflet LatLng (map.js, entry gestures) or {lat, lon}
-    // (pinConfirm). Normalise once here so the redirect stash below can't store
-    // lon: undefined and silently lose the chosen spot across login.
     const p = toLatLon(latlng);
     source = startSource(source);
+    atSpotCheck(p, source, function (label) {
+      atCheckLabel = label;
+      journeyFlow.startFromChooseChecked(p, source);
+    });
+  };
+  journeyFlow.startFromChooseChecked = function (p, source) {
+    // Callers pass either a Leaflet LatLng (map.js, entry gestures) or {lat, lon}
+    // (pinConfirm); startFromChoose normalised it, so the redirect stash below can't
+    // store lon: undefined and silently lose the chosen spot across login.
     if (window.IS_LOGGED_IN) return journeyFlow.beginWithCoHitchers(p, source);
     hmTrack("journey_track_prompt_shown", { source: source });
     journeyUI.dialog({
@@ -632,9 +710,11 @@
       // Umami's values API reads one property at a time, so the source x dist
       // split (are spot-sheet starts remote taps?) needs its own joint key.
       source_dist: startSource(source) + ":" + startDistBucket(p),
+      at_check: atCheckLabel,
       first: j.firstJourney ? "yes" : "no",
       li: window.IS_LOGGED_IN ? "yes" : "no",
     });
+    atCheckLabel = ""; // one-shot: a later start from another path must not inherit it
     journeyUI.render(j);
     // #16 slice 2 (EXP-505): 224/296 cancellations are an accidental Start, self-reported
     // seconds later through the full "End journey?" dialog. Give the same correction a
@@ -1422,6 +1502,29 @@
           }
         });
         pingRow.appendChild(pingBtn);
+        // maps#471: recommend the phone's own live-location sharing, but rarely. Why: we never
+        // track or store location ourselves; the OS feature is the safer tool, and a tip shown
+        // on every ride turns into wallpaper. One line, at most once per 30 days per device.
+        let tipDue = false;
+        try {
+          const last = Number(localStorage.getItem("hmLiveShareTipAt") || 0);
+          tipDue = Date.now() - last > 30 * 24 * 3600 * 1000;
+        } catch (e) { /* storage blocked: skip the tip */ }
+        if (tipDue || j.liveShareTipShown) {
+          const tip = document.createElement("div");
+          tip.className = "inr-share-tip";
+          tip.textContent = T("Tip: your phone's own live location sharing (Google Maps, Apple Maps, WhatsApp) lets family follow your route.");
+          pingRow.appendChild(tip);
+          if (!j.liveShareTipShown) {
+            try { localStorage.setItem("hmLiveShareTipAt", String(Date.now())); } catch (e) { /* ignore */ }
+            const cur2 = journeyStore.get();
+            if (cur2) {
+              cur2.liveShareTipShown = true;
+              journeyStore.set(cur2);
+            }
+            hmTrack("live_share_tip_shown", {});
+          }
+        }
         dock.appendChild(pingRow);
         if (!j.safetyPingShown) {
           const cur = journeyStore.get();
@@ -1994,7 +2097,13 @@
       reasonField.appendChild(reasonLabel);
       const reasonChipsEl = document.createElement("div");
       reasonChipsEl.className = "inr-chips";
-      [
+      // EXP-1201b: "Hitchhiked before" led (49 of 314 answers) while being the first button,
+      // so the lead may be first-option bias. Half of browsers see the options in a random
+      // order; the answer event logs the arm and the tapped position to separate the two.
+      const reasonOrderArm = (window.hmVariant || function (_n, v) { return v[0]; })(
+        "driver-reason-order-v1", ["fixed", "shuffled"]
+      );
+      const reasonOptions = [
         { code: "was_hitchhiker", label: "🎒 " + T("Hitchhiked before") },
         { code: "hospitality_norm", label: "🫶 " + T("Likes helping strangers") },
         { code: "social_exchange", label: "💬 " + T("Wanted company") },
@@ -2002,7 +2111,14 @@
         { code: "wanted_driver", label: "🚗 " + T("Wanted help driving / navigating") },
         { code: "elevated_mood", label: "😊 " + T("In a good mood / feeling generous") },
         { code: "sympathy", label: "🤝 " + T("Felt sorry for me") },
-      ].forEach(function (opt) {
+      ];
+      if (reasonOrderArm === "shuffled") {
+        for (let i = reasonOptions.length - 1; i > 0; i--) {
+          const k = Math.floor(Math.random() * (i + 1));
+          const t = reasonOptions[i]; reasonOptions[i] = reasonOptions[k]; reasonOptions[k] = t;
+        }
+      }
+      reasonOptions.forEach(function (opt) {
         const chip = document.createElement("button");
         chip.type = "button";
         chip.className = "inr-optchip";
@@ -2063,7 +2179,13 @@
           driver_reason_to_pick_up: driverReason ? [driverReason] : [],
           comment: textarea.value.trim(),
         };
-        if (driverReason) hmTrack("driver_reason_answered", { reason: driverReason });
+        if (driverReason) {
+          hmTrack("driver_reason_answered", {
+            reason: driverReason,
+            order: reasonOrderArm,
+            pos: reasonOptions.findIndex(function (x) { return x.code === driverReason; }) + 1,
+          });
+        }
         saved = true;
         close();
         onSave(details);
@@ -3841,6 +3963,7 @@
     // function doesn't matter. Thin-coverage waits for the race banner's fetch so
     // the two dialogs never race; thinCoverageBanner.check also no-ops if a
     // dialog opened in the meantime.
+    seedDeviceLocation();
     raceBanner.check().then(function () {
       thinCoverageBanner.check();
       // Later than the thin-coverage geolocation fix could land, and re-guarded inside, so
