@@ -1305,7 +1305,10 @@
             body: formData,
             headers: { 'X-Requested-With': 'ride-form' }
         }).then(function (res) {
-            return res.json().catch(function () {
+            return res.json().then(function (j) {
+                j._status = res.status;
+                return j;
+            }).catch(function () {
                 // Not JSON -- e.g. a proxy's own error page (502/503/504) during an
                 // outage rather than Flask's own JSON response. Treat the same as an
                 // explicit transient failure so the retry message still shows.
@@ -1333,6 +1336,18 @@
                 // ownership no longer checks out). Client-side validateForm() above
                 // already covers rating/pickup/arrival-time, so this is mostly a
                 // backstop -- but the button must still come back and say something.
+                // Count the rejection (#1209): "submitted" fires before the server
+                // answers, so saved-vs-submitted gaps were unreadable. Only a bucket
+                // is sent, never the error text (it can echo what the user typed).
+                const errText = String(json.error || '').toLowerCase();
+                const buckets = ['pickup', 'destination', 'arrival', 'rating', 'wait', 'stop', 'length', 'unauthorized', 'coordinates'];
+                const reasonBucket = buckets.find(function (k) { return errText.indexOf(k) !== -1; }) || 'other';
+                hmTrack('ride_form_rejected', {
+                    mode: HM_FORM_MODE,
+                    auth: {{ ("anon" if current_user.is_anonymous else "user")|tojson }},
+                    status: json._status || 0,
+                    reason: reasonBucket
+                });
                 showRideFormRetryMessage(json.error || {{ t("Something went wrong. Please try again.")|tojson }});
             }
         }).catch(function () {
