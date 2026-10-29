@@ -19,5 +19,5 @@ test("pickup sheet offers only bounded standard driver-reason codes", () => {
 
 test("pickup sheet measures exposure and answered reason separately", () => {
   assert.match(source, /hmTrack\("driver_reason_prompt_shown"\)/);
-  assert.match(source, /hmTrack\("driver_reason_answered", \{ reason: driverReason \}\)/);
+  assert.match(source, /hmTrack\("driver_reason_answered", \{\s*reason: driverReason,/);
 });

@@ -162,3 +162,13 @@ test("picker-locate-v1 skips the cold geolocation prompt only in the English exp
   // every outcome carries the arm so rates split by variant
   assert.match(SOURCE, /const extra = locateArm \? \{ variant: locateArm \} : \{\};/);
 });
+
+test("the device fix is seeded silently from an already-granted permission only", () => {
+  const block = SOURCE.slice(
+    SOURCE.indexOf("function seedDeviceLocation()"),
+    SOURCE.indexOf("journeyFlow.startFromChoose = function"),
+  );
+  assert.match(block, /permissions\.query\(\{ name: "geolocation" \}\)/);
+  assert.match(block, /status\.state !== "granted"\) return/);
+  assert.match(SOURCE, /seedDeviceLocation\(\);\s*raceBanner\.check\(\)/);
+});
