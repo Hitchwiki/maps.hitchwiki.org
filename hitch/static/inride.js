@@ -499,6 +499,26 @@
     const km = 12742 * Math.asin(Math.sqrt(x));
     return km < 1 ? "lt1" : km < 5 ? "1to5" : km < 50 ? "5to50" : "gt50";
   }
+  // Seed window.hmDeviceLatLng from an ALREADY-GRANTED geolocation permission, so
+  // startDistBucket can answer for visitors who never tapped the locate button (87% of
+  // spot-sheet starts read "unknown", research/journey-start-distance-2026-10-29.md).
+  // Never prompts: without a granted permission (or the Permissions API) it does nothing.
+  function seedDeviceLocation() {
+    if (window.hmDeviceLatLng || !navigator.geolocation) return;
+    if (!navigator.permissions || !navigator.permissions.query) return;
+    navigator.permissions.query({ name: "geolocation" }).then(function (status) {
+      if (status.state !== "granted") return;
+      navigator.geolocation.getCurrentPosition(
+        function (pos) {
+          if (!window.hmDeviceLatLng) {
+            window.hmDeviceLatLng = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+          }
+        },
+        function () { /* denied/timeout — stay "unknown" */ },
+        { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+      );
+    }).catch(function () { /* Permissions API can throw on some WebViews */ });
+  }
   journeyFlow.startFromChoose = function (latlng, source) {
     // Callers pass either a Leaflet LatLng (map.js, entry gestures) or {lat, lon}
     // (pinConfirm). Normalise once here so the redirect stash below can't store
@@ -3841,6 +3861,7 @@
     // function doesn't matter. Thin-coverage waits for the race banner's fetch so
     // the two dialogs never race; thinCoverageBanner.check also no-ops if a
     // dialog opened in the meantime.
+    seedDeviceLocation();
     raceBanner.check().then(function () {
       thinCoverageBanner.check();
       // Later than the thin-coverage geolocation fix could land, and re-guarded inside, so
