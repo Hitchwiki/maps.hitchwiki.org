@@ -3307,6 +3307,7 @@ body.showing-insights .heatmap-legend-pane {
    full-width dark button feel as .inr-demo-add, solid instead of a fill-bar since
    there's no progress to show — just one tap target. */
 .inr-share-row { width: 100%; }
+.inr-share-tip { margin-top: 4px; font-size: 0.8em; line-height: 1.3; color: #666; text-align: center; }
 .inr-share-btn {
   width: 100%;
   border: none;

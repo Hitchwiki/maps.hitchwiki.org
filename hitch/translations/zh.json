@@ -1078,5 +1078,8 @@
   "{n} rides logged here, average wait {wait}": "{n} rides logged here, average wait {wait}",
   "Wrong stop?": "站点有误？",
   "Showing only rides by {user}": "Showing only rides by {user}",
-  "Why drivers stopped": "Why drivers stopped"
+  "Why drivers stopped": "Why drivers stopped",
+  "Tip: your phone's own live location sharing (Google Maps, Apple Maps, WhatsApp) lets family follow your route.": "小提示：使用手机自带的实时位置共享（Google 地图、Apple 地图、WhatsApp），家人就能跟踪你的路线。",
+  "Are you at this spot now?": "Are you at this spot now?",
+  "Yes, start the timer": "Yes, start the timer"
 }

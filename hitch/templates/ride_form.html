@@ -31,6 +31,14 @@
     border: 1px solid #ccc; border-radius: 50%;
     transition: color .12s ease, border-color .12s ease, background-color .12s ease;
 }
+/* Why: multi-select "Show all options" buttons used to reuse .wra-btn, a fixed 48px circle
+   meant for one emoji, so long labels overflowed the circle (maps#469). Chips size to text. */
+.wra-chip {
+    display: inline-block; margin: 2px; padding: 4px 12px; max-width: 100%;
+    background: #fff; color: #333; cursor: pointer; font-size: 0.95em; line-height: 1.3;
+    border: 1px solid #ccc; border-radius: 999px; white-space: normal; text-align: left;
+}
+.wra-chip:hover { border-color: #999; background: #f6f6f6; }
 .wra-btn:hover { color: #555; border-color: #999; }
 .wra-btn--yes[aria-pressed="true"] { color: #2e7d32; border-color: #2e7d32; background: #eaf5eb; }
 .wra-btn--no[aria-pressed="true"] { color: #c62828; border-color: #c62828; background: #fbeaea; }
@@ -1794,7 +1802,7 @@
         // the choices: "Show all options" lists every one as a tappable button.
         const allBtn = document.createElement('button');
         allBtn.type = 'button';
-        allBtn.className = 'wra-btn';
+        allBtn.className = 'wra-chip';
         allBtn.textContent = {{ t("Show all options")|tojson }};
         allBtn.setAttribute('aria-expanded', 'false');
         const allBox = document.createElement('div');
@@ -1810,8 +1818,7 @@
                 if (!code || opt.hasAttribute('data-alias') || have.includes(code)) return;
                 const b = document.createElement('button');
                 b.type = 'button';
-                b.className = 'wra-btn';
-                b.style.margin = '2px';
+                b.className = 'wra-chip';
                 b.textContent = opt.value;
                 b.addEventListener('click', () => {
                     setCodes(getCodes().concat(code));
