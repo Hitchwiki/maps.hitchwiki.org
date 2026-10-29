@@ -1078,5 +1078,8 @@
   "{n} rides logged here, average wait {wait}": "{n} rides logged here, average wait {wait}",
   "Wrong stop?": "Verkeerde halte?",
   "Showing only rides by {user}": "Showing only rides by {user}",
-  "Why drivers stopped": "Why drivers stopped"
+  "Why drivers stopped": "Why drivers stopped",
+  "Tip: your phone's own live location sharing (Google Maps, Apple Maps, WhatsApp) lets family follow your route.": "Tip: met de eigen live-locatie delen van je telefoon (Google Maps, Apple Maps, WhatsApp) kan je familie je route volgen.",
+  "Are you at this spot now?": "Are you at this spot now?",
+  "Yes, start the timer": "Yes, start the timer"
 }

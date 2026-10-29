@@ -49,6 +49,9 @@
         max-width: 350px;
         /* Prevents the overlay from being too wide */
         width: 90vw;
+        /* Why: without border-box the 80px of padding made the card 404px wide on a 360px phone,
+           giving the login pages a sideways scroll (found by scripts/layout_smoke.js, maps#469). */
+        box-sizing: border-box;
         max-height: 90%;
         /* Prevents the overlay from being too tall */
         background: #fff;
