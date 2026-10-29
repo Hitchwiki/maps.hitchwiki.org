@@ -147,14 +147,11 @@ def test_bench_town_page_links_to_print_sheet(client):
     assert 'href="/mitfahrbank/moringen-de/print"' in body
 
 
-def test_bench_town_link_box_has_town_link_and_tracking(client):
+def test_bench_town_has_no_copy_link_box(client):
+    # EXP-920: 45 shows, 0 copies in 28 d; removed per its kill rule.
     body = client.get("/mitfahrbank/moringen-de?ref=bench_moringen").get_data(as_text=True)
-    assert 'id="bench-link-box"' in body
-    assert "mitfahrbank/moringen-de?ref=townsite" in body
-    assert "bench_link_copied" in body and "ref=bench_" in body
-    # base.html strips ?ref= before this inline script runs; the box must key
-    # off the captured landing ref, not location.search alone.
-    assert "window.hmLandingRef" in body
+    assert 'id="bench-link-box"' not in body
+    assert "bench_link_copied" not in body
 
 
 def test_bench_town_links_driver_reasons_in_town_language(client):
