@@ -7,6 +7,22 @@
   <p><a href="/">← Back to Hitchwiki Maps</a></p>
   <h1>Delete your Hitchwiki Maps account and data</h1>
 
+  {% if request.args.get('done') %}
+  <p><strong>Your account and personal data have been deleted.</strong> Published rides stay (see below).</p>
+  {% elif current_user.is_authenticated %}
+  <h2>Delete it yourself, right now</h2>
+  <p>This removes your e-mail address, profile, followers, messages, notifications, trips, likes,
+    comments and push subscriptions from this server, frees your username, and logs you out.
+    It cannot be undone. <strong>The rides you published stay</strong>, because they are already on
+    Nostr relays we do not control (see "Limits" below).</p>
+  {% if request.args.get('error') == 'confirm' %}<p style="color:#b00"><strong>That did not match your username. Nothing was deleted.</strong></p>{% endif %}
+  <form method="post" action="/delete-account">
+    <label>Type your username (<code>{{ current_user.username }}</code>) to confirm:
+      <input name="confirm_username" autocomplete="off" required></label>
+    <button type="submit" style="color:#fff;background:#b00;border:0;padding:.4rem .8rem;border-radius:4px">Delete my account and data</button>
+  </form>
+  <h2>Or ask by e-mail</h2>
+  {% endif %}
   <p>To request deletion, email
     <a href="mailto:play.hitchwiki@gmail.com?subject=Hitchwiki%20Maps%20account%20deletion%20request">play.hitchwiki@gmail.com</a>
     with the subject <strong>Hitchwiki Maps account deletion request</strong>.
