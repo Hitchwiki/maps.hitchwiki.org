@@ -1442,6 +1442,29 @@
           }
         });
         pingRow.appendChild(pingBtn);
+        // maps#471: recommend the phone's own live-location sharing, but rarely. Why: we never
+        // track or store location ourselves; the OS feature is the safer tool, and a tip shown
+        // on every ride turns into wallpaper. One line, at most once per 30 days per device.
+        let tipDue = false;
+        try {
+          const last = Number(localStorage.getItem("hmLiveShareTipAt") || 0);
+          tipDue = Date.now() - last > 30 * 24 * 3600 * 1000;
+        } catch (e) { /* storage blocked: skip the tip */ }
+        if (tipDue || j.liveShareTipShown) {
+          const tip = document.createElement("div");
+          tip.className = "inr-share-tip";
+          tip.textContent = T("Tip: your phone's own live location sharing (Google Maps, Apple Maps, WhatsApp) lets family follow your route.");
+          pingRow.appendChild(tip);
+          if (!j.liveShareTipShown) {
+            try { localStorage.setItem("hmLiveShareTipAt", String(Date.now())); } catch (e) { /* ignore */ }
+            const cur2 = journeyStore.get();
+            if (cur2) {
+              cur2.liveShareTipShown = true;
+              journeyStore.set(cur2);
+            }
+            hmTrack("live_share_tip_shown", {});
+          }
+        }
         dock.appendChild(pingRow);
         if (!j.safetyPingShown) {
           const cur = journeyStore.get();
