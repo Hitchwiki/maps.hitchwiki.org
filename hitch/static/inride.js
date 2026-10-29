@@ -1994,7 +1994,13 @@
       reasonField.appendChild(reasonLabel);
       const reasonChipsEl = document.createElement("div");
       reasonChipsEl.className = "inr-chips";
-      [
+      // EXP-1201b: "Hitchhiked before" led (49 of 314 answers) while being the first button,
+      // so the lead may be first-option bias. Half of browsers see the options in a random
+      // order; the answer event logs the arm and the tapped position to separate the two.
+      const reasonOrderArm = (window.hmVariant || function (_n, v) { return v[0]; })(
+        "driver-reason-order-v1", ["fixed", "shuffled"]
+      );
+      const reasonOptions = [
         { code: "was_hitchhiker", label: "🎒 " + T("Hitchhiked before") },
         { code: "hospitality_norm", label: "🫶 " + T("Likes helping strangers") },
         { code: "social_exchange", label: "💬 " + T("Wanted company") },
@@ -2002,7 +2008,14 @@
         { code: "wanted_driver", label: "🚗 " + T("Wanted help driving / navigating") },
         { code: "elevated_mood", label: "😊 " + T("In a good mood / feeling generous") },
         { code: "sympathy", label: "🤝 " + T("Felt sorry for me") },
-      ].forEach(function (opt) {
+      ];
+      if (reasonOrderArm === "shuffled") {
+        for (let i = reasonOptions.length - 1; i > 0; i--) {
+          const k = Math.floor(Math.random() * (i + 1));
+          const t = reasonOptions[i]; reasonOptions[i] = reasonOptions[k]; reasonOptions[k] = t;
+        }
+      }
+      reasonOptions.forEach(function (opt) {
         const chip = document.createElement("button");
         chip.type = "button";
         chip.className = "inr-optchip";
@@ -2063,7 +2076,13 @@
           driver_reason_to_pick_up: driverReason ? [driverReason] : [],
           comment: textarea.value.trim(),
         };
-        if (driverReason) hmTrack("driver_reason_answered", { reason: driverReason });
+        if (driverReason) {
+          hmTrack("driver_reason_answered", {
+            reason: driverReason,
+            order: reasonOrderArm,
+            pos: reasonOptions.findIndex(function (x) { return x.code === driverReason; }) + 1,
+          });
+        }
         saved = true;
         close();
         onSave(details);
