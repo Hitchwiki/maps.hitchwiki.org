@@ -23,12 +23,13 @@ from flask import (
     session,
     url_for,
 )
-from flask_security import current_user
+from flask_security import current_user, logout_user
 from pydantic import ValidationError
 from sqlalchemy import func, text
 
 from hitch.blueprints.publish_ride import ANONYMOUS_NICKNAME, construct_hitchhiker_from_current_user
 from hitch.blueprints.utils.driver_info_choices import ALLOWED_REASONS_TO_HITCHHIKE, REASON_TO_HITCHHIKE_CHOICES
+from hitch.blueprints.utils.account_erasure import erase_account
 from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import HitchhikingRecord
 from hitch.blueprints.utils.notifications import notify_new_follower, unread_count
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster
@@ -375,6 +376,25 @@ def me_json():
 @user_bp.route("/delete-user", methods=["GET"])
 def delete_user():
     return redirect("/delete-account", code=301)
+
+
+@user_bp.route("/delete-account", methods=["POST"])
+def delete_account_confirm():
+    """Erase the logged-in account's personal data (maps#484). Published rides stay.
+
+    The person has to type their own username, so a stray tap cannot erase an account.
+    The session cookie is SameSite=Lax, which stops a cross-site page from posting here.
+    """
+    if current_user.is_anonymous:
+        return redirect("/delete-account", code=303)
+    typed = (request.form.get("confirm_username") or "").strip()
+    if not same_username(typed, current_user.username):
+        return redirect("/delete-account?error=confirm", code=303)
+    erase_account(current_user._get_current_object())
+    db.session.commit()
+    logout_user()
+    session.clear()
+    return redirect("/delete-account?done=1", code=303)
 
 
 @user_bp.route("/is_username_used/<username>", methods=["GET"])
