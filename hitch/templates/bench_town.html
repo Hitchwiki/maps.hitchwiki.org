@@ -15,13 +15,6 @@
   <p><a id="bench-driver-stats" href="/statistics/driver-reasons?ref=bench_town">{{ L.drivers }}</a></p>
   <p id="bench-proof" style="color:#555;font-size:14px">{{ L.proof }}</p>
   <p><button type="button" id="bench-pledge-btn" style="display:none;padding:10px 14px;border:0;border-radius:8px;background:#1a73e8;color:#fff;font-size:15px;cursor:pointer">{{ pledge_btn }}</button><span id="bench-pledge-note" style="display:none">{{ pledge_note }}</span></p>
-  {# #830: shown only to visitors who arrive from our town-hall note (?ref=bench_*); a link from the town site is the durable inbound. #}
-  <div id="bench-link-box" style="display:none;border:1px solid #ccc;border-radius:8px;padding:10px 14px;margin:12px 0">
-    <p style="margin:0 0 6px">{% if fr %}Pour lier cette page depuis le site de la commune :{% elif page_lang == 'de' %}So verlinken Sie diese Seite von der Website der Gemeinde:{% else %}To link this page from the town website:{% endif %}</p>
-    <input id="bench-link-html" readonly style="width:100%;box-sizing:border-box;font-size:13px" value="{{ ('<a href=&quot;https://maps.hitchwiki.org/mitfahrbank/' ~ slug ~ '?ref=townsite&quot;>' ~ title ~ '</a>')|e }}">
-    <p style="margin:6px 0 0"><a id="bench-news-link" href="/mitfahrbank/{{ slug }}/print?for=news">{{ print_label }}: QR</a></p>
-    <p style="margin:6px 0 0"><button type="button" id="bench-link-copy" style="padding:6px 12px;cursor:pointer">{% if fr %}Copier{% elif page_lang == 'de' %}Kopieren{% else %}Copy{% endif %}</button> <span id="bench-link-done" style="display:none">&#10003;</span></p>
-  </div>
   <ul>
   {% for osm_id, slat, slon in town.stops[:50] %}
     <li><a href="/official-stop/{{ osm_id }}?ref=bench-town">{{ L.stop }} {{ loop.index }}{% set street = streets.get(osm_id|string) %}{% if street %} — {{ street }}{% else %} ({{ slat }}, {{ slon }}){% endif %}</a></li>
@@ -36,20 +29,6 @@
   if (rep) rep.addEventListener("click", function () { if (window.hmTrack) hmTrack("bench_report_link_clicked", { surface: "bench_town" }); });
   var prn = document.getElementById("bench-print-link");
   if (prn) prn.addEventListener("click", function () { if (window.hmTrack) hmTrack("bench_sign_print_opened", { surface: "bench_town" }); });
-  var lbox = document.getElementById("bench-link-box");
-  // base.html strips ?ref= via history.replaceState before this runs, so
-  // location.search is already empty here; read the captured landing ref.
-  var landRef = window.hmLandingRef || "";
-  if (lbox && (/^bench_/.test(landRef) || /[?&]ref=bench_/.test(location.search))) {
-    lbox.style.display = "block";
-    if (window.hmTrack) hmTrack("bench_link_box_shown", { surface: "bench_town" });
-    document.getElementById("bench-link-copy").addEventListener("click", function () {
-      var f = document.getElementById("bench-link-html");
-      f.select();
-      try { (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(f.value) : Promise.resolve(document.execCommand("copy"))).then(function () { document.getElementById("bench-link-done").style.display = "inline"; }); } catch (e) { document.execCommand("copy"); }
-      if (window.hmTrack) hmTrack("bench_link_copied", { surface: "bench_town" });
-    });
-  }
   var nl = document.getElementById("bench-news-link");
   if (nl) nl.addEventListener("click", function () { if (window.hmTrack) hmTrack("bench_news_kit_opened", { surface: "bench_town" }); });
   var ds = document.getElementById("bench-driver-stats");
