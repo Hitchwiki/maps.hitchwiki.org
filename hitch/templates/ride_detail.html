@@ -562,7 +562,7 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
         {# Tristate — `is not none` so an explicit "no" (falsy) still renders. #}
         {% if ride.driver.would_ride_again is not none %}
         <div class="detail-row">
-            <div class="detail-label"><i class="fa-regular fa-face-smile"></i> Would ride again</div>
+            <div class="detail-label"><i class="fa-regular fa-face-smile"></i> Would accept a ride from this driver again</div>
             <div class="detail-value">
                 {% if ride.driver.would_ride_again %}
                 <i class="fa-regular fa-face-smile" style="color:#2e7d32;" aria-hidden="true"></i> Yes
@@ -574,7 +574,7 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
         {% endif %}
         {% if ride.driver.negative_experiences %}
         <div class="detail-row">
-            <div class="detail-label"><i class="fa-regular fa-face-frown"></i> Why not again</div>
+            <div class="detail-label"><i class="fa-regular fa-face-frown"></i> Why not accept this driver again</div>
             <div class="detail-value">{{ ride.driver.negative_experiences|join(', ') }}</div>
         </div>
         {% endif %}
