@@ -1,7 +1,6 @@
-from hitch.models import Follow, Notification, Trip, TripRide, User, RideLike
-
-
 import pytest
+
+from hitch.models import Follow, Notification, RideLike, Trip, TripRide, User
 
 
 @pytest.fixture(autouse=True)

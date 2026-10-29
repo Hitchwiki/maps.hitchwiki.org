@@ -28,8 +28,8 @@ from pydantic import ValidationError
 from sqlalchemy import func, text
 
 from hitch.blueprints.publish_ride import ANONYMOUS_NICKNAME, construct_hitchhiker_from_current_user
-from hitch.blueprints.utils.driver_info_choices import ALLOWED_REASONS_TO_HITCHHIKE, REASON_TO_HITCHHIKE_CHOICES
 from hitch.blueprints.utils.account_erasure import erase_account
+from hitch.blueprints.utils.driver_info_choices import ALLOWED_REASONS_TO_HITCHHIKE, REASON_TO_HITCHHIKE_CHOICES
 from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import HitchhikingRecord
 from hitch.blueprints.utils.notifications import notify_new_follower, unread_count
 from hitch.blueprints.utils.post_hitchhiking_ride_to_nostr import HitchhikingDataStandardToNostrPoster

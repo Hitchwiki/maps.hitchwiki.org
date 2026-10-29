@@ -24,7 +24,6 @@ from hitch.models import (
     RideReport,
     Trip,
     TripRide,
-    User,
     UserAvatar,
 )
 
