@@ -702,9 +702,22 @@
     let wiki = false;
     // base.html strips ?ref= from the address bar after reading it, so the live value is hmLandingRef.
     wiki = (window.hmLandingRef || "").indexOf("wiki") === 0;
-    if (!wiki) return;
+    let ref = "wiki_route";
+    if (!wiki) {
+      // IDEAS #1210: everyone else gets the link in a stable 50% arm (per-browser coin), so we can
+      // tell whether strangers ever test the planner. Both arms are counted.
+      let arm = null;
+      try { arm = localStorage.getItem("planner-link-arm-v1"); } catch (e) {}
+      if (arm !== "on" && arm !== "off") {
+        arm = Math.random() < 0.5 ? "on" : "off";
+        try { localStorage.setItem("planner-link-arm-v1", arm); } catch (e) {}
+      }
+      hmTrack("planner_compare_arm", { arm: arm });
+      if (arm !== "on") return;
+      ref = "route_found";
+    }
     a.href = "/hitchhiking-routing-gang?a=" + from[0].toFixed(4) + "," + from[1].toFixed(4) +
-      "&b=" + to[0].toFixed(4) + "," + to[1].toFixed(4) + "&ref=wiki_route";
+      "&b=" + to[0].toFixed(4) + "," + to[1].toFixed(4) + "&ref=" + ref;
     a.textContent = "Experimental: compare with the new route planner"; // English only, like the ride-page link
     a.hidden = false;
     hmTrack("planner_compare_exposure");
