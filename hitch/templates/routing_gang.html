@@ -101,7 +101,7 @@
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap" }).addTo(map);
   // base.html strips ?ref= from the address bar before this runs; the value survives in window.hmLandingRef.
   const lr = window.hmLandingRef || (new URLSearchParams(location.search)).get("ref") || "";
-  track("routing_gang_opened", { shared_link: location.search.includes("a="), from_ride: lr === "ride_page", from_wiki: lr === "wiki_route", from_route_none: lr === "route_none" });
+  track("routing_gang_opened", { shared_link: location.search.includes("a="), from_ride: lr === "ride_page", from_wiki: lr === "wiki_route", from_route_none: lr === "route_none", from_route_found: lr === "route_found" });
 
   // ---------- data ----------
   const spotsReady = fetch("/spots.json").then(r => r.json()).then(j => j.spots || j);
