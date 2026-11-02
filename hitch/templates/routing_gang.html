@@ -303,7 +303,7 @@
       chainFor(pl, null);
       return pl;
     };
-    const ps = r.routes.slice(0, 2).map(build).sort((x, y) => x.weak - y.weak || x.model.total - y.model.total);
+    const ps = r.routes.slice(0, 2).map(build).sort((x, y) => (x.weak / (x.chain.length || 1)) - (y.weak / (y.chain.length || 1)) || x.model.total - y.model.total);  // #1220: share of unsure stops, not the count (more stops on a main road is not worse)
     // Forced alternative through an evidenced spot well off the main road (kept if <= 20% slower than the fastest road).
     try {
       const v = C.pickVia(spots, a, b, ps[0].line, ps[0].cum);
