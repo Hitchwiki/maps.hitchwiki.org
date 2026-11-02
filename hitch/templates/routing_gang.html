@@ -56,6 +56,9 @@
   .rg-mk { border-radius: 50%; background: #fff; border: 3px solid #c5221f; box-sizing: border-box; font: bold 11px/16px sans-serif; text-align: center; color: #202124; box-shadow: 0 1px 3px rgba(0,0,0,.4); }
   .rg-mk.weak { border-color: #f9ab00; } .rg-mk.start { border-color: #188038; } .rg-mk.alt { border-style: dashed; border-color: #188038; opacity: .85; }
   .rg-mk.pin { border: 0; color: #fff; line-height: 24px; font-size: 13px; }
+  .rg-name { padding: 1px 5px; font-size: 12px; font-weight: 600; background: rgba(255,255,255,.9); border: 0; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
+  .rg-name:empty, .rg-name:has(span:empty) { display: none; }
+  .rg-name::before { display: none; }
   .rg-moon { font-size: 18px; line-height: 24px; text-align: center; background: #202124; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,.4); }
   @media (max-width: 760px) {
     #rg { flex-direction: column-reverse; }
@@ -98,7 +101,15 @@
   const track = (n, d) => { if (window.hmTrack) window.hmTrack(n, d); };
   const map = L.map("rg-map", { zoomControl: false }).setView([50.5, 10], 5);
   L.control.zoom({ position: "topright" }).addTo(map);
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap" }).addTo(map);
+  // Default base map labels places in Latin script (OSM tiles show only the local script, e.g. Georgian or Cyrillic).
+  const baseLatin = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", { attribution: "Tiles © Esri", maxZoom: 19 }).addTo(map);
+  const baseOsm = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap" });
+  L.control.layers({ "Map": baseLatin, "OpenStreetMap": baseOsm }, null, { position: "topright" }).addTo(map);
+  map.on("baselayerchange", (e) => track("routing_gang_baselayer", { layer: e.layer === baseOsm ? "osm" : "latin" }));
+  // Place names in the reader's language where the geocoder has one (Photon knows en/de/fr/it only).
+  const ulang = (navigator.language || "en").slice(0, 2).toLowerCase();
+  const plang = ["de", "fr", "it"].includes(ulang) ? ulang : "en";
+  const nlang = encodeURIComponent(`${ulang},en`);
   // base.html strips ?ref= from the address bar before this runs; the value survives in window.hmLandingRef.
   const lr = window.hmLandingRef || (new URLSearchParams(location.search)).get("ref") || "";
   track("routing_gang_opened", { shared_link: location.search.includes("a="), from_ride: lr === "ride_page", from_wiki: lr === "wiki_route", from_route_none: lr === "route_none", from_route_found: lr === "route_found" });
@@ -140,12 +151,12 @@
         // Photon first (settlement name in `city`, falls back to a place `name`); Nominatim when Photon has none.
         let n = null;
         try {
-          const f = ((await fetch(`https://photon.komoot.io/reverse?lat=${q.lat}&lon=${q.lon}&limit=1`).then(r => r.json())).features || [])[0];
+          const f = ((await fetch(`https://photon.komoot.io/reverse?lat=${q.lat}&lon=${q.lon}&limit=1&lang=${plang}`).then(r => r.json())).features || [])[0];
           const p = f && f.properties || {};
           n = p.city || (["city", "town", "village"].includes(p.osm_value) ? p.name : null) || p.district || p.county;
         } catch (e) {}
         if (!n) {
-          const j = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=12&lat=${q.lat}&lon=${q.lon}`).then(r => r.json());
+          const j = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=12&accept-language=${nlang}&lat=${q.lat}&lon=${q.lon}`).then(r => r.json());
           const a = j.address || {};
           n = a.city || a.town || a.village || a.municipality || a.county;
         }
@@ -176,7 +187,7 @@
     if (q.length < 2) return closeSug();
     const c = map.getCenter();
     try {
-      const j = await fetch(`https://photon.komoot.io/api/?limit=6&lat=${c.lat.toFixed(2)}&lon=${c.lng.toFixed(2)}&q=${encodeURIComponent(q)}`).then(r => r.json());
+      const j = await fetch(`https://photon.komoot.io/api/?limit=6&lang=${plang}&lat=${c.lat.toFixed(2)}&lon=${c.lng.toFixed(2)}&q=${encodeURIComponent(q)}`).then(r => r.json());
       if (inputs[which].value.trim() !== q) return;
       sugItems = (j.features || []).map(f => {
         const p = f.properties || {};
@@ -265,7 +276,7 @@
   async function reverseLabel(w) {
     const e = ends[w];
     try {
-      const j = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=14&lat=${e.p[0]}&lon=${e.p[1]}`).then(r => r.json());
+      const j = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=14&accept-language=${nlang}&lat=${e.p[0]}&lon=${e.p[1]}`).then(r => r.json());
       const a = j.address || {};
       const n = a.city || a.town || a.village || a.suburb || a.municipality || a.county;
       if (n && ends[w] === e) { e.label = n; inputs[w].value = n; drawEnds(); renderAll(); }
@@ -422,7 +433,9 @@
     // Suggested stops and alternative starts.
     pl.chain.forEach((c, i) => {
       L.marker([c.s.lat, c.s.lon], { icon: stopIcon(c, i, pl), zIndexOffset: 500 }).addTo(markLayer)
-        .bindPopup(() => stopPopup(pl, i), { maxWidth: 300 }).on("popupopen", () => track("routing_gang_stop_click", { rank: i + 1 }));
+        .bindPopup(() => stopPopup(pl, i), { maxWidth: 300 }).on("popupopen", () => track("routing_gang_stop_click", { rank: i + 1 }))
+        // Town name beside the number, so the map matches the stop list without opening a popup.
+        .bindTooltip(nameSpan(c.s.lat, c.s.lon, ""), { permanent: true, direction: "right", offset: [12, 0], className: "rg-name" });
     });
     pl.starts.forEach(c => {
       if (c === pl.start) return;
