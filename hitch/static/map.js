@@ -4425,24 +4425,28 @@ function showSuccessOverlay(opts) {
   if (inviteBtn && !inviteBtn.dataset.wired) {
     inviteBtn.dataset.wired = "1";
     inviteBtn.onclick = async function () {
-      const url =
-        window.location.origin +
-        "/login" +
-        (window.USERNAME ? "?invite=" + encodeURIComponent(window.USERNAME) : "");
-      hmTrack("invite_shared", { surface: "success" });
+      // Land the friend on the map, not /login: only 7% of login-page views get past it.
+      // ?ref= is counted by base.html as referred_via (no username carried).
+      const url = window.location.origin + "/?ref=invite_success";
+      // Fire once the outcome is known so "shared" is not just a click.
+      const logOutcome = function (outcome) {
+        hmTrack("invite_shared", { surface: "success", outcome: outcome });
+      };
       try {
         if (navigator.share) {
           await navigator.share({ title: tr("Join me on Hitchwiki Maps"), url: url });
-          return;
+          return logOutcome("shared");
         }
       } catch (err) {
-        if (err && err.name === "AbortError") return;
+        if (err && err.name === "AbortError") return logOutcome("aborted");
       }
       try {
         await navigator.clipboard.writeText(url);
         inviteBtn.textContent = tr("Link copied!");
+        logOutcome("copied");
       } catch (e) {
         window.prompt(tr("Copy this invite link:"), url);
+        logOutcome("prompt");
       }
     };
   }
