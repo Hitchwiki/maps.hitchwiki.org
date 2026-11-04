@@ -1361,6 +1361,12 @@
         '<button type="button" data-intent="this-week">' + T("This week") + '</button>' +
         '<button type="button" data-intent="exploring">' + T("Just exploring") + '</button>' +
         '</div></div>' +
+        '<div class="rp-intent rp-judge" aria-label="' + T("Would you hitchhike this way?") + '">' +
+        '<span class="rp-intent-label">' + T("Would you hitchhike this way?") + '</span>' +
+        '<div class="rp-intent-choices">' +
+        '<button type="button" data-judge="yes">' + T("Yes") + '</button>' +
+        '<button type="button" data-judge="no">' + T("No") + '</button>' +
+        '</div></div>' +
         '<div class="rp-options"></div>';
     }
     return body.querySelector(".rp-options");
@@ -1659,6 +1665,25 @@
         });
       });
       hmTrack("route_intent_prompt_shown");
+    }
+    // One-tap judgement of the first-ranked route (#1237). Endpoints are snapped to
+    // 0.5 degree cells, coarser than the search itself; one answer per result.
+    const judge = resultsSheet() && resultsSheet().querySelector(".rp-judge");
+    if (judge) {
+      judge.dataset.answered = "";
+      judge.querySelectorAll("[data-judge]").forEach(function (button) {
+        button.classList.remove("rp-intent-selected");
+        if (button.dataset.judgeBound) return;
+        button.dataset.judgeBound = "1";
+        button.addEventListener("click", function () {
+          judge.querySelectorAll("[data-judge]").forEach(function (c) { c.classList.toggle("rp-intent-selected", c === button); });
+          if (judge.dataset.answered) return;
+          judge.dataset.answered = "1";
+          const cell = (ll) => (Math.round(ll[0] * 2) / 2) + "," + (Math.round(ll[1] * 2) / 2);
+          hmTrack("route_judged", { answer: button.dataset.judge, of: RJ.routes.length, a_cell: cell(RJ.start.latlng), b_cell: cell(RJ.dest.latlng) });
+        });
+      });
+      hmTrack("route_judge_shown");
     }
     // Rank by core (hitching) time so the headline figures match the sort.
     const fastest = routeEnds(RJ.routes[0]).coreMin;
