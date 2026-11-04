@@ -7,8 +7,8 @@ from hitch.blueprints.utils.route_demand import (
     summarise_route_demand,
     summarise_search_gaps,
 )
-from hitch.blueprints.utils.search_request_log import SEARCH_REQUEST_LOG_PATH
 from hitch.blueprints.utils.route_request_log import ROUTE_REQUEST_LOG_PATH
+from hitch.blueprints.utils.search_request_log import SEARCH_REQUEST_LOG_PATH
 from hitch.helpers import get_db, write_json_file
 
 write_json_file(summarise_route_demand(read_route_requests(ROUTE_REQUEST_LOG_PATH)), "route_demand.json")
