@@ -4420,6 +4420,32 @@ function setupJourneyFirstEver(show) {
 function showSuccessOverlay(opts) {
   const overlay = $$("#success-overlay");
   if (!overlay) return;
+  // #512: signed-in savers can send the same invite link the co-hitchhiker prompt offers.
+  const inviteBtn = $$("#success-invite-btn");
+  if (inviteBtn && !inviteBtn.dataset.wired) {
+    inviteBtn.dataset.wired = "1";
+    inviteBtn.onclick = async function () {
+      const url =
+        window.location.origin +
+        "/login" +
+        (window.USERNAME ? "?invite=" + encodeURIComponent(window.USERNAME) : "");
+      hmTrack("invite_shared", { surface: "success" });
+      try {
+        if (navigator.share) {
+          await navigator.share({ title: tr("Join me on Hitchwiki Maps"), url: url });
+          return;
+        }
+      } catch (err) {
+        if (err && err.name === "AbortError") return;
+      }
+      try {
+        await navigator.clipboard.writeText(url);
+        inviteBtn.textContent = tr("Link copied!");
+      } catch (e) {
+        window.prompt(tr("Copy this invite link:"), url);
+      }
+    };
+  }
   // Consume the full-page form's hand-off here rather than inside the share-card
   // renderer: the contribution nudge and the card need the same just-logged ride.
   // A direct in-ride hand-off wins, but stale storage is still cleared.
