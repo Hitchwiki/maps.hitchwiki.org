@@ -98,3 +98,58 @@ def summarise_filter_demand(rows):
         "total_filter_requests": total,
         "filters": [{"filter": f, "requests": used[f], "zero_match": zero[f]} for f in FILTER_FIELDS_PUBLIC if used[f]],
     }
+
+
+GAP_KM = 10
+GAP_MIN_PICKS = 5
+GAP_MIN_DAYS = 3
+
+
+def _km(lat1, lon1, lat2, lon2):
+    import math
+
+    dx = (lon2 - lon1) * math.cos(math.radians((lat1 + lat2) / 2))
+    return math.hypot(lat2 - lat1, dx) * 111.19
+
+
+def summarise_search_gaps(rows, spots):
+    """Searched places that have no hitchhiking spot nearby (IDEAS #1255).
+
+    rows: search_requests.csv dicts (timestamp, name, lat, lon). spots: iterable of (lat, lon).
+    Keeps a 0.5 degree cell only when >= GAP_MIN_PICKS picks on >= GAP_MIN_DAYS days land in it
+    and no spot lies within GAP_KM of the cell's mean pick. The label is the most common name,
+    and only when it holds no digit (street addresses are dropped); no timestamps leave here.
+    """
+    from collections import Counter
+
+    spots = list(spots)
+    cells = defaultdict(lambda: {"n": 0, "days": set(), "lat": 0.0, "lon": 0.0, "names": Counter()})
+    total = 0
+    for row in rows:
+        try:
+            lat, lon = float(row["lat"]), float(row["lon"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        day = (row.get("timestamp") or "")[:10]
+        if not day:
+            continue
+        total += 1
+        c = cells[_cell(lat, lon)]
+        c["n"] += 1
+        c["days"].add(day)
+        c["lat"] += lat
+        c["lon"] += lon
+        name = (row.get("name") or "").strip()
+        if name and not any(ch.isdigit() for ch in name):
+            c["names"][name.split(",")[0].strip()] += 1
+    out = []
+    for cell, c in cells.items():
+        if c["n"] < GAP_MIN_PICKS or len(c["days"]) < GAP_MIN_DAYS:
+            continue
+        lat, lon = c["lat"] / c["n"], c["lon"] / c["n"]
+        if any(_km(lat, lon, s[0], s[1]) <= GAP_KM for s in spots):
+            continue
+        label = c["names"].most_common(1)[0][0] if c["names"] else None
+        out.append({"cell": list(cell), "picks": c["n"], "days": len(c["days"]), "label": label})
+    out.sort(key=lambda g: (-g["picks"], g["cell"]))
+    return {"cell_deg": CELL_DEG, "gap_km": GAP_KM, "total_picks": total, "gaps": out[:100]}
