@@ -1680,7 +1680,11 @@
           if (judge.dataset.answered) return;
           judge.dataset.answered = "1";
           const cell = (ll) => (Math.round(ll[0] * 2) / 2) + "," + (Math.round(ll[1] * 2) / 2);
-          hmTrack("route_judged", { answer: button.dataset.judge, of: RJ.routes.length, a_cell: cell(RJ.start.latlng), b_cell: cell(RJ.dest.latlng) });
+          // Splits a "No" into "bad route" vs "wouldn't dare": has this device ever started a journey, and what the visitor said about when.
+             let prior = "no";
+             try { prior = parseInt(localStorage.getItem("hm_journeys_started") || "0", 10) > 0 ? "yes" : "no"; } catch (e) {}
+             const picked = resultsSheet().querySelector(".rp-intent:not(.rp-judge) .rp-intent-selected");
+             hmTrack("route_judged", { answer: button.dataset.judge, of: RJ.routes.length, a_cell: cell(RJ.start.latlng), b_cell: cell(RJ.dest.latlng), prior: prior, intent: (picked && picked.dataset.intent) || "none" });
         });
       });
       hmTrack("route_judge_shown");

@@ -17,5 +17,7 @@ test("judgement logs the first answer only, with coarse 0.5 degree cells", () =>
   assert.match(source, /hmTrack\("route_judge_shown"\)/);
   assert.match(source, /hmTrack\("route_judged", \{ answer: button\.dataset\.judge/);
   assert.match(source, /if \(judge\.dataset\.answered\) return/);
+  assert.match(source, /prior: prior, intent:/);
+  assert.match(source, /hm_journeys_started/);
   assert.match(source, /Math\.round\(ll\[0\] \* 2\) \/ 2/);
 });
