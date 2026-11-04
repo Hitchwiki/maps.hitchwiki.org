@@ -680,8 +680,8 @@
   }
   // The public Overpass servers often answer 429/502 under load: try the main one, then a mirror; null if both fail.
   async function overpass(q) {
-    for (const url of ["https://overpass-api.de/api/interpreter", "https://overpass.private.coffee/api/interpreter"]) {
-      const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 20000);
+    for (const url of ["https://overpass-api.de/api/interpreter", "https://maps.mail.ru/osm/tools/overpass/api/interpreter", "https://overpass.private.coffee/api/interpreter"]) {
+      const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 35000);
       try {
         const r = await fetch(url, { method: "POST", body: "data=" + encodeURIComponent(q), signal: ctl.signal });
         if (r.ok) return (await r.json()).elements || [];
