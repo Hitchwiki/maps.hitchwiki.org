@@ -4618,3 +4618,13 @@ a.acct-ride__warn:hover { color: #b98900; }
   font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
   box-shadow: 0 2px 8px rgba(0,0,0,.3);
 }
+
+.spot-country-method {
+  background: none;
+  border: 0;
+  border-bottom: 1px dotted currentColor;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+}
