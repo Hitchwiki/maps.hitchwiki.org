@@ -25,3 +25,10 @@ def test_routing_gang_reads_landing_ref_not_stripped_query():
     src = (TEMPLATES / "routing_gang.html").read_text()
     assert "window.hmLandingRef" in src
     assert 'location.search.includes("ref=' not in src
+
+
+def test_routing_gang_has_one_tap_judgement():
+    src = (TEMPLATES / "routing_gang.html").read_text()
+    assert "Would you hitchhike this road?" in src
+    assert 'track("routing_gang_judged"' in src
+    assert "judgedPair === pairKey" in src
