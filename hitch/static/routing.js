@@ -1666,6 +1666,33 @@
       });
       hmTrack("route_intent_prompt_shown");
     }
+    // #1254: "Planned N times" on routes along a common corridor (route_demand.json, 0.5 degree cells),
+    // shown to half the devices; the other half logs "would show" so the two can be compared.
+    (function () {
+      const sheet = resultsSheet();
+      if (!sheet || !RJ.start || !RJ.dest || sheet.querySelector(".rp-demand")) return;
+      const cellOf = (ll) => [Math.floor(ll[0] / 0.5) * 0.5, Math.floor(ll[1] / 0.5) * 0.5];
+      const a = cellOf(RJ.start.latlng), b = cellOf(RJ.dest.latlng);
+      window.__hmRouteDemand = window.__hmRouteDemand || fetch("/route_demand.json").then((r) => r.json()).catch(() => null);
+      window.__hmRouteDemand.then(function (data) {
+        if (!data || !data.corridors) return;
+        const hit = data.corridors.find((c) => Math.abs(c.from[0] - a[0]) < 0.01 && Math.abs(c.from[1] - a[1]) < 0.01 && Math.abs(c.to[0] - b[0]) < 0.01 && Math.abs(c.to[1] - b[1]) < 0.01);
+        if (!hit || hit.requests < 20) return;
+        let arm = "show";
+        try {
+          arm = localStorage.getItem("hmRouteDemandArm");
+          if (arm !== "show" && arm !== "ctrl") { arm = Math.random() < 0.5 ? "show" : "ctrl"; localStorage.setItem("hmRouteDemandArm", arm); }
+        } catch (e) {}
+        const judgeEl = sheet.querySelector(".rp-judge");
+        if (arm === "show" && judgeEl && !sheet.querySelector(".rp-demand")) {
+          const line = document.createElement("div");
+          line.className = "rp-demand rp-intent-label";
+          line.textContent = T("Planned {n} times in the last 3 months", { n: hit.requests });
+          judgeEl.parentNode.insertBefore(line, judgeEl);
+        }
+        hmTrack("route_demand_label", { arm: arm, bucket: hit.requests >= 100 ? "100+" : hit.requests >= 50 ? "50-99" : "20-49" });
+      });
+    })();
     // One-tap judgement of the first-ranked route (#1237). Endpoints are snapped to
     // 0.5 degree cells, coarser than the search itself; one answer per result.
     const judge = resultsSheet() && resultsSheet().querySelector(".rp-judge");
