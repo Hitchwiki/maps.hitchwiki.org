@@ -223,14 +223,21 @@ function createMap() {
         "Imagery &copy; Esri, Maxar, Earthstar Geographics &amp; the GIS User Community",
     },
   );
+  // Extra, non-default layer: OSM draws place names in the local script, which
+  // is unreadable to a foreign traveller in e.g. Georgia, Serbia or Japan (12.8%
+  // of last year's rides are in such countries). Esri's street map labels in Latin.
+  const latinLayer = L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+    { maxZoom: 19, attribution: "Tiles &copy; Esri" },
+  );
   osmLayer.addTo(map);
   L.control.layers(
-    { [tr("Map")]: osmLayer, [tr("Satellite")]: satelliteLayer },
+    { [tr("Map")]: osmLayer, [tr("Map (Latin labels)")]: latinLayer, [tr("Satellite")]: satelliteLayer },
     {},
     { position: "bottomright" },
   ).addTo(map);
   map.on("baselayerchange", function (e) {
-    hmTrack("baselayer_switched", { layer: e.name === tr("Satellite") ? "satellite" : "osm" });
+    hmTrack("baselayer_switched", { layer: e.name === tr("Satellite") ? "satellite" : e.name === tr("Map (Latin labels)") ? "latin" : "osm" });
   });
 
   return map;
