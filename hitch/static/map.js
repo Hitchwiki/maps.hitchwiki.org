@@ -7045,6 +7045,7 @@ function startAddSpotFromGesture(latlng, containerPoint) {
 // IDEAS #603: the monthly newsletter links to `?pledge=1`, which shows the existing
 // one-tap driver pledge (same string, same shared made-key) on the map. surface=newsletter
 // (surface=wiki when ref=wiki-*, #543 slice 2) keeps these taps separable from the in-product surfaces' 68 taps / 28 d baseline.
+const WIKI_READER_REFS = ["wiki_main_page", "wiki_link", "wiki_route_link", "wiki_article"];
 function maybeShowNewsletterPledge() {
   let wanted = false;
   let surface = "newsletter";
@@ -7054,6 +7055,17 @@ function maybeShowNewsletterPledge() {
     if ((window.hmLandingRef || q.get("ref") || "").indexOf("wiki") === 0) surface = "wiki";
     wanted = q.get("pledge") === "1" &&
       !localStorage.getItem(DRIVER_PLEDGE_MADE_KEY);
+    // IDEAS #1249: wiki readers (not spot-seekers, who came for a spot) see the same card once per
+    // device. surface=wiki_arrival keeps them apart from the explicit ?pledge=1 arm.
+    const lref = window.hmLandingRef || q.get("ref") || "";
+    if (!wanted && WIKI_READER_REFS.indexOf(lref) !== -1 &&
+        !localStorage.getItem(DRIVER_PLEDGE_MADE_KEY) &&
+        !localStorage.getItem("hmWikiArrivalPledgeShown") &&
+        !/^\/(?:[a-z]{2,3}\/)?dir\//.test(location.pathname)) {
+      wanted = true;
+      surface = "wiki_arrival";
+      localStorage.setItem("hmWikiArrivalPledgeShown", "1");
+    }
   } catch (e) {}
   if (!wanted) return;
   const box = document.createElement("div");
