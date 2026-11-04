@@ -3413,9 +3413,9 @@ function summaryText(data, hists = { wait: null, distance: null }) {
         return `<div class="spot-country-contact">
             <div class="spot-country-contact-label">🤝 ${tr("How drivers are approached in {country}", { country: c.name })}</div>
             <div>${tr("Thumb {thumb} · Sign {sign} · Ask {ask}", {
-              thumb: `${Math.round(c.shares.thumb * 100)}%`,
-              sign: `${Math.round(c.shares.sign * 100)}%`,
-              ask: `${Math.round(ask * 100)}%`,
+              thumb: `<button type="button" class="spot-country-method" data-method="thumb">${Math.round(c.shares.thumb * 100)}%</button>`,
+              sign: `<button type="button" class="spot-country-method" data-method="sign">${Math.round(c.shares.sign * 100)}%</button>`,
+              ask: `<button type="button" class="spot-country-method" data-method="asking">${Math.round(ask * 100)}%</button>`,
             })}</div>
             ${spotCountryPledgeVariant() === "pledge" ? `<button type="button" id="spot-country-pledge-btn" class="spot-country-pledge-btn">${tr("I'll stop for a hitchhiker when I'm driving")}</button><div id="spot-country-pledge-note" class="spot-country-pledge-note" style="display: none;"></div>` : ""}
           </div>`;
@@ -3619,6 +3619,7 @@ function applySpotRideFilter(marker) {
   const view = rideFilter ? { ...data, ...spotAverages(shown) } : data;
   renderSpotSummary(view);
   wireSpotCountryPledge();
+  wireSpotCountryMethod();
   renderSpotPhotos(shown);
 
   // renderSpotSummary just rebuilt #spot-wiki-excerpt (if this spot has a wiki
@@ -4829,6 +4830,19 @@ function renderDriverPledgeNudge() {
     addPledgeStopsLink(note, "success_overlay");
     note.style.display = "block";
   };
+}
+
+// #1258: the percentages in the country-contact line are buttons; a tap filters the map to
+// spots where people logged that way of approaching drivers (the sheet re-renders itself).
+function wireSpotCountryMethod() {
+  document.querySelectorAll(".spot-country-method").forEach((b) => {
+    b.onclick = function () {
+      const method = b.dataset.method;
+      hmTrack("spot_country_contact_tapped", { method });
+      methodFilter.value = method;
+      setQueryParameter("method", method);
+    };
+  });
 }
 
 // Wires the pledge button rendered inside the spot sheet's country-contact line
