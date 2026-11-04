@@ -21,3 +21,10 @@ test("judgement logs the first answer only, with coarse 0.5 degree cells", () =>
   assert.match(source, /hm_journeys_started/);
   assert.match(source, /Math\.round\(ll\[0\] \* 2\) \/ 2/);
 });
+
+test("route demand label is an A/B on corridors with >=20 requests (#1254)", () => {
+  assert.match(source, /route_demand\.json/);
+  assert.match(source, /hit\.requests < 20/);
+  assert.match(source, /hmRouteDemandArm/);
+  assert.match(source, /hmTrack\("route_demand_label"/);
+});
