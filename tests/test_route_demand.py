@@ -47,3 +47,25 @@ def test_filter_demand_counts_zero_match_and_hides_free_text():
     assert out["total_filter_requests"] == 3
     assert {"filter": "recent", "requests": 2, "zero_match": 1} in out["filters"]
     assert "secret" not in str(out)
+
+
+def _srow(day, name, lat=47.3, lon=8.5):
+    return {"timestamp": f"2026-10-{day:02d}T08:00:00+00:00", "name": name, "lat": str(lat), "lon": str(lon)}
+
+
+def test_search_gaps_need_picks_days_and_no_nearby_spot():
+    from hitch.blueprints.utils.route_demand import summarise_search_gaps
+
+    rows = [_srow(d, "Kusnacht, Zurich") for d in (1, 2, 3, 3, 3)]
+    rows += [_srow(d, "Elsewhere", 10.1, 10.1) for d in (1, 2)]
+    out = summarise_search_gaps(rows, [(50.0, 5.0)])
+    assert out["gaps"] == [{"cell": [47.0, 8.5], "picks": 5, "days": 3, "label": "Kusnacht"}]
+    assert "timestamp" not in str(out)
+    assert summarise_search_gaps(rows, [(47.31, 8.5)])["gaps"] == []
+
+
+def test_search_gap_label_drops_addresses():
+    from hitch.blueprints.utils.route_demand import summarise_search_gaps
+
+    rows = [_srow(d, "Bahnhofstr 12, X") for d in (1, 2, 3, 4, 5)]
+    assert summarise_search_gaps(rows, [])["gaps"][0]["label"] is None
