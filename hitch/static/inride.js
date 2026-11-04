@@ -3649,6 +3649,17 @@
             } catch (e) {}
             // The tap used to end in silence. Give it the same thank-you + bench link as the
             // other pledge surfaces (IDEAS #1183); deferred so the closing dialog cannot eat it.
+            // IDEAS #1257: 50/50 on the second slot. "try" sends a warm sympathiser to the map
+            // (spots near them); "ctrl" keeps the stats link (1/95 vs 9/95 clicks before).
+            var tryArm = "ctrl";
+            try {
+              tryArm = localStorage.getItem("hmPledgeTryArm");
+              if (tryArm !== "try" && tryArm !== "ctrl") {
+                tryArm = Math.random() < 0.5 ? "try" : "ctrl";
+                localStorage.setItem("hmPledgeTryArm", tryArm);
+              }
+            } catch (e) {}
+            hmTrack("driver_pledge_thanks_shown", { arm: tryArm });
             setTimeout(function () {
               journeyUI.dialog({
                 title: T("Pledge made — thank you."),
@@ -3662,7 +3673,16 @@
                       window.location.href = "/mitfahrbank?ref=pledge_race_banner";
                     },
                   },
-                  {
+                  tryArm === "try"
+                    ? {
+                        label: T("Spots near you"),
+                        cls: "inr-grey",
+                        onClick: function () {
+                          hmTrack("driver_pledge_try_link_clicked", { surface: "race_banner" });
+                          window.location.href = "/?ref=pledge_try";
+                        },
+                      }
+                    : {
                     label: T("Why drivers stopped"),
                     cls: "inr-grey",
                     onClick: function () {
