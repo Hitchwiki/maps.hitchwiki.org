@@ -7067,6 +7067,8 @@ function startAddSpotFromGesture(latlng, containerPoint) {
 // one-tap driver pledge (same string, same shared made-key) on the map. surface=newsletter
 // (surface=wiki when ref=wiki-*, #543 slice 2) keeps these taps separable from the in-product surfaces' 68 taps / 28 d baseline.
 const WIKI_READER_REFS = ["wiki_main_page", "wiki_link", "wiki_route_link", "wiki_article"];
+// IDEAS #1259: spot-seekers (infobox links) get the same card in a 50/50 test; arm is sticky per device.
+const WIKI_SEEKER_REFS = ["wiki_infobox_pin", "wiki_infobox_map", "wiki_infobox_here"];
 function maybeShowNewsletterPledge() {
   let wanted = false;
   let surface = "newsletter";
@@ -7086,6 +7088,22 @@ function maybeShowNewsletterPledge() {
       wanted = true;
       surface = "wiki_arrival";
       localStorage.setItem("hmWikiArrivalPledgeShown", "1");
+    }
+    if (!wanted && WIKI_SEEKER_REFS.indexOf(lref) !== -1 &&
+        !localStorage.getItem(DRIVER_PLEDGE_MADE_KEY) &&
+        !localStorage.getItem("hmWikiSeekerPledgeShown") &&
+        !/^\/(?:[a-z]{2,3}\/)?dir\//.test(location.pathname)) {
+      let arm = localStorage.getItem("hmWikiSeekerPledgeArm");
+      if (!arm) {
+        arm = Math.random() < 0.5 ? "show" : "ctrl";
+        localStorage.setItem("hmWikiSeekerPledgeArm", arm);
+        hmTrack("wiki_seeker_pledge_arm", { arm: arm });
+      }
+      if (arm === "show") {
+        wanted = true;
+        surface = "wiki_seeker";
+        localStorage.setItem("hmWikiSeekerPledgeShown", "1");
+      }
     }
   } catch (e) {}
   if (!wanted) return;
