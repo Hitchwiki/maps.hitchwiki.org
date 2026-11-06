@@ -347,7 +347,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await res.json();
                 const following = !!data.following;
                 followBtn.setAttribute('aria-pressed', following ? 'true' : 'false');
-                label.textContent = following ? '{{ t("Following") }}' : '{{ t("Follow") }}';
+                label.textContent = following ? {{ t("Following")|tojson }} : {{ t("Follow")|tojson }};
             } catch (e) {
                 // Leave the previous state untouched on failure.
             } finally {

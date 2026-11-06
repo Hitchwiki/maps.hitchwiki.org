@@ -132,10 +132,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 const label = shareBtn.querySelector('.share-btn-label');
                 const prev = label.textContent;
                 shareBtn.classList.add('copied');
-                label.textContent = '{{ t("Link copied!") }}';
+                label.textContent = {{ t("Link copied!")|tojson }};
                 setTimeout(() => { shareBtn.classList.remove('copied'); label.textContent = prev; }, 1800);
             } catch (e) {
-                window.prompt('{{ t("Copy this link:") }}', url);
+                window.prompt({{ t("Copy this link:")|tojson }}, url);
             }
         });
     }
