@@ -723,6 +723,8 @@
       co_hitchhikers: j && j.coHitchhikers ? j.coHitchhikers.length : 0,
       // #1290: return-ask arm (none|ask|na) so the control's outcomes can be counted.
       ra: j && j.returnAskArm ? j.returnAskArm : "na",
+      // #1292: star-optional arm on the Got a Ride sheet (ctrl|opt|na).
+      ro: j && j.ratingOptArm ? j.ratingOptArm : "na",
     };
   }
 
@@ -2229,18 +2231,24 @@
       sheet.appendChild(commentField);
 
       // ── Ride On! CTA (green, disabled until rating chosen) ────────────────────
+      const jRo = journeyStore.get();
+      if (jRo && !jRo.ratingOptArm) {
+        jRo.ratingOptArm = (window.hmVariant || function (_n, v) { return v[0]; })("ride_rating_optional_v1", ["ctrl", "opt"]);
+        journeyStore.set(jRo);
+      }
+      const ratingOptional = !!(jRo && jRo.ratingOptArm === "opt");
       const rideOnBtn = document.createElement("button");
       rideOnBtn.type = "button";
-      rideOnBtn.className = "inr-big inr-big--green inr-sheet__save inr-disabled";
-      rideOnBtn.disabled = true;
+      rideOnBtn.className = "inr-big inr-big--green inr-sheet__save" + (ratingOptional ? "" : " inr-disabled");
+      rideOnBtn.disabled = !ratingOptional;
       rideOnBtn.innerHTML = '<i class="fa-solid fa-check"></i> ' + T("Ride On!");
       function updateRideOnBtn() {
-        const ready = rating > 0;
+        const ready = ratingOptional || rating > 0;
         rideOnBtn.disabled = !ready;
         rideOnBtn.classList.toggle("inr-disabled", !ready);
       }
       rideOnBtn.addEventListener("click", function () {
-        if (!rating) return; // guard: button should be disabled, but double-check
+        if (!rating && !ratingOptional) return; // guard: button should be disabled, but double-check
         const details = {
           rating: rating,
           vehicle_kind: vehicleKind,
