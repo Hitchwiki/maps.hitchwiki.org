@@ -558,6 +558,7 @@
   // bar. Half of those starts get an "Are you at this spot now?" check first. The arm sticks
   // per browser so a user never flips between behaviours.
   const AT_CHECK_SOURCES = ["spot-sheet", "route-results"];
+  let pendingPinPlacement = ""; // set on picker confirm, consumed by the next journey_started
   let atCheckLabel = ""; // read by journey_started; "" for sources outside the experiment
   function atCheckArm() {
     try {
@@ -769,9 +770,11 @@
       // split (are spot-sheet starts remote taps?) needs its own joint key.
       source_dist: startSource(source) + ":" + startDistBucket(p),
       at_check: atCheckLabel,
+      pl: pendingPinPlacement || "none",
       first: j.firstJourney ? "yes" : "no",
       li: window.IS_LOGGED_IN ? "yes" : "no",
     });
+    pendingPinPlacement = "";
     atCheckLabel = ""; // one-shot: a later start from another path must not inherit it
     journeyUI.render(j);
     // #16 slice 2 (EXP-505): 224/296 cancellations are an accidental Start, self-reported
@@ -2021,6 +2024,7 @@
         const ll = marker.getLatLng();
         outcome("confirmed", { placement: placement });
         cleanup();
+        pendingPinPlacement = placement; // IDEAS #1298: read once by journey_started
         // Normalize Leaflet's .lng → .lon so every consumer sees exactly one shape.
         opts.onConfirm(toLatLon(ll));
       });
