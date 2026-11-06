@@ -721,6 +721,8 @@
       source: startSource(j && j.source),
       // IDEAS #1182: end events could not be split by company; only journey_started carried it.
       co_hitchhikers: j && j.coHitchhikers ? j.coHitchhikers.length : 0,
+      // #1290: return-ask arm (none|ask|na) so the control's outcomes can be counted.
+      ra: j && j.returnAskArm ? j.returnAskArm : "na",
     };
   }
 
@@ -4078,8 +4080,13 @@
     // user isn't silently dropped into a stale journey after overnight or longer.
     // #1276: first-timer reopening a waiting journey 1-24 h old gets the same dialog, A/B
     // (sticky "return_outcome_ask": none = control). Existing strings only; own event.
-    const returnAsk = ageMs > 3600000 && ageMs <= STALE_MS && j.firstJourney && j.state === "waiting" &&
-      (window.hmVariant || function (_n, v) { return v[0]; })("return_outcome_ask", ["none", "ask"]) === "ask";
+    const raEligible = ageMs > 3600000 && ageMs <= STALE_MS && j.firstJourney && j.state === "waiting";
+    if (raEligible && !j.returnAskArm) {
+      j.returnAskArm = (window.hmVariant || function (_n, v) { return v[0]; })("return_outcome_ask", ["none", "ask"]);
+      journeyStore.set(j);
+      hmTrack("journey_return_ask_assigned", { arm: j.returnAskArm });
+    }
+    const returnAsk = raEligible && j.returnAskArm === "ask";
     if (ageMs > STALE_MS || returnAsk) {
       // #613: this dialog used to be a silent exit (Resume or throw the journey away, no way
       // to say "I did get a ride", nothing tracked). Log-a-past-ride seeds the /ride form
