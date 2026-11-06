@@ -539,6 +539,7 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
 <div class="filter-empty-note" id="filter-empty-note" role="status" hidden>
     <span>{{ t("No spots match these filters") }}</span>
     <button type="button" id="filter-empty-clear">{{ t("Clear") }}</button>
+    <button type="button" id="filter-empty-place" hidden>{{ t("Find this place") }}</button>
 </div>
 <!-- A single-user filter hides every other spot; say so and give a one-tap way back to all spots. -->
 <div class="filter-empty-note user-filter-note" id="user-filter-note" role="status" hidden>

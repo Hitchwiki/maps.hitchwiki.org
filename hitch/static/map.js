@@ -1620,6 +1620,9 @@ function updateFilterEmptyNote(markers) {
   if (!note) return;
   const empty = !!markers && markers.length === 0;
   note.hidden = !empty;
+  // IDEAS #1287: a typed place name matches no comment; offer to look it up as a place instead.
+  const placeBtn = document.getElementById("filter-empty-place");
+  if (placeBtn) placeBtn.hidden = !(empty && (getQueryParameter("text") || "").trim());
   clearTimeout(zeroMatchTimer);
   if (!empty) return;
   zeroMatchTimer = setTimeout(() => {
@@ -2662,6 +2665,24 @@ function setupEventListeners() {
   if (emptyClear) emptyClear.onclick = () => {
     hmTrack("filters_zero_match_cleared", {});
     clearFilters.onclick();
+  };
+
+  const emptyPlace = document.getElementById("filter-empty-place");
+  if (emptyPlace) emptyPlace.onclick = () => {
+    const q = (getQueryParameter("text") || "").trim();
+    if (!q) return;
+    L.Control.Geocoder.photon(
+      ["de", "fr", "it"].includes(window.__LANG__)
+        ? { geocodingQueryParams: { lang: window.__LANG__ } }
+        : {},
+    ).geocode(q, (results) => {
+      const hit = results && results[0];
+      hmTrack("filters_zero_match_place", { found: !!hit });
+      if (!hit) return;
+      clearParams();
+      if (hit.bbox) map.fitBounds(hit.bbox);
+      else map.setView(hit.center, 11);
+    });
   };
 
   setupFilterEventListeners();
