@@ -67,6 +67,11 @@ a.record:hover { border-color: #dcc688; }
 </style>
 
 <h1>{{ t("Insights") }}</h1>
+{# Requirement (EXP-1279): the year recap is surfaced only in December, when people look back
+   and can still backfill rides. Until then the page exists but nothing links to it. #}
+{% if recap_link_year %}
+<p><a href="{{ url_for('user.show_year_recap', username=user.username, year=recap_link_year) }}{{ '?ref=insights' if is_me }}">🎉 {{ t("Your {year} on the road", year=recap_link_year) if is_me else t("Their {year} on the road", year=recap_link_year) }} →</a></p>
+{% endif %}
 <p style="color:#666; font-size:0.9em; margin-top:-8px;">{{ user.username }}</p>
 
 {% if records.distance or records.wait %}

@@ -31,3 +31,14 @@ def test_recap_page_renders_for_user_without_rides(app, client):
         with app.app_context():
             _db.session.delete(_db.session.get(User, uid))
             _db.session.commit()
+
+
+def test_recap_link_year_only_in_december_and_early_january():
+    from datetime import date
+
+    from hitch.blueprints.user import _recap_link_year
+
+    assert _recap_link_year(date(2026, 11, 30)) is None
+    assert _recap_link_year(date(2026, 12, 1)) == 2026
+    assert _recap_link_year(date(2027, 1, 15)) == 2026
+    assert _recap_link_year(date(2027, 1, 16)) is None
