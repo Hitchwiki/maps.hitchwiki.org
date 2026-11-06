@@ -838,8 +838,8 @@ def year_recap_image(username, year):
 
 
 def _render_year_recap_png(username, year, recap):
-    from PIL import Image, ImageDraw, ImageFont
     from matplotlib import font_manager
+    from PIL import Image, ImageDraw, ImageFont
 
     img = Image.new("RGB", (PREVIEW_W, PREVIEW_H), (238, 248, 240))
     draw = ImageDraw.Draw(img)
