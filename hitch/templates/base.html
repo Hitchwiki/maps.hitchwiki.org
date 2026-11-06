@@ -165,7 +165,7 @@
               if (seen[key] || sent >= 3) return;
               seen[key] = 1; sent++;
               var d = { f: f, l: l || 0, n: String(n || "Error").slice(0, 30) };
-              if (f !== "ext" && f !== "none" && msg)
+              if (f !== "ext" && f !== "none" && f !== "rej" && msg)
                 d.m = String(msg).replace(/https?:\/\/\S+/g, "URL").replace(/\d{3,}/g, "N").slice(0, 60);
               window.hmTrack("js_error", d);
             } catch (e) {}
