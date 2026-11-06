@@ -3373,16 +3373,8 @@ function summaryText(data, hists = { wait: null, distance: null }) {
   // flow, pre-filled with the country name where we have one. Gated on review_count
   // >= 3 (the same "meaningful spot" floor the map already uses for marker weight/
   // filters) so a single unreviewed pin doesn't get invited to spawn an article.
-  const hitchwikiGapPrompt = !data.hitchwiki_article && !data.hitchwiki_map && !data.hitchwiki_nearby && (data.review_count || 0) >= 3
-    ? (() => {
-        const countryName = driverContactByCountry && data.country && driverContactByCountry[data.country]
-          ? driverContactByCountry[data.country].name
-          : (data.name || "");
-        const searchUrl = "https://hitchwiki.org/en/index.php?title=Special:Search&search="
-          + encodeURIComponent(countryName) + "&fulltext=1";
-        return `<div>📄 <a id="spot-wiki-gap-link" href="${searchUrl}" target="_blank" rel="noopener noreferrer">${tr("No Hitchwiki article covers this area yet — know it? Start one")}</a></div>`;
-      })()
-    : '';
+  // Retired 2026-11: spot_wiki_gap was shown 3,538x / clicked 3x per 28 d.
+  const hitchwikiGapPrompt = '';
   const exitIdx = cityExitCellIndex(cityExitCells, data);
   const officialStopAsk = exitIdx >= 0
     ? `<div class="spot-official-ask">🚏 ${tr("{n} hitchhikers started here since Oct 2024.", { n: cityExitCells[exitIdx][2] })} <button type="button" id="spot-official-stop-wanted" data-cell="${exitIdx}">${tr("An official stop here would help")}</button></div>`
@@ -3527,9 +3519,6 @@ async function handleMarkerClick(marker, point, e) {
         const noWikiCoverage = !(payload.spot || {}).hitchwiki_article && !(payload.spot || {}).hitchwiki_map;
         if (near && noWikiCoverage) {
           hmTrack('spot_wiki_nearby_shown', { km: Math.round(near.km) });
-        } else if (!near && noWikiCoverage && (marker.options._data.review_count || 0) >= 3) {
-          // Idea #62/#147/#171 gap-spot prompt (see summaryText's hitchwikiGapPrompt).
-          hmTrack('spot_wiki_gap_shown', {});
         }
         // #559: how often the spot sheet is a car-pooling place at all, so the link's
         // clicks below have a denominator. No spot id, same privacy rule as spot_opened.
@@ -3672,10 +3661,9 @@ function applySpotRideFilter(marker) {
   // A spot with nothing logged has no card to read and nobody to ask — point the
   // visitor at the community chat, where a local can answer. Only in that exact
   // empty state; a spot with even one ride speaks for itself.
+  // Retired 2026-11: the empty-spot chat prompt got 6 clicks / 1,270 views per 28 d.
   const emptyChat = $$("#spot-empty-chat");
-  if (emptyChat) emptyChat.hidden = !noInfo;
-  // #565: the chat prompt's clicks had no denominator — count each time it is actually shown.
-  if (emptyChat && noInfo) hmTrack("spot_empty_chat_shown");
+  if (emptyChat) emptyChat.hidden = true;
 }
 
 function spotFilterNote(shown, total) {
