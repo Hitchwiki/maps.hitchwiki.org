@@ -54,3 +54,16 @@ def test_render_year_recap_png_bytes():
 
     buf = _render_year_recap_png("tester", 2026, {"rides": 7, "km": 812.4, "waiting_min": 190, "areas": 3})
     assert buf.read(8) == b"\x89PNG\r\n\x1a\n"
+
+
+def test_map_recap_pill_only_for_logged_in_in_season(app, client, monkeypatch):
+    _user(app, "yrpill")
+    monkeypatch.setattr("hitch.blueprints.user._recap_link_year", lambda today=None: 2026)
+    assert b'id="recap-offer"' not in client.get("/").data
+    with client.session_transaction() as sess:
+        sess["_user_id"] = "yr-yrpill"
+        sess["_fresh"] = True
+    html = client.get("/").data
+    assert b'id="recap-offer"' in html and b"/insights/yrpill/2026?ref=map-banner" in html
+    monkeypatch.setattr("hitch.blueprints.user._recap_link_year", lambda today=None: None)
+    assert b'id="recap-offer"' not in client.get("/").data
