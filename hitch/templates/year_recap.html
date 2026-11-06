@@ -2,6 +2,12 @@
 
 {% set title = t("{name} – {year} on the road", name=user.username, year=year) %}
 
+{% block og_title %}{{ t("{name} – {year} on the road", name=user.username, year=year) }}{% endblock %}
+{% block og_image %}{% if recap.rides %}<meta property="og:image" content="{{ url_for('user.year_recap_image', username=user.username, year=year, _external=True) }}" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />{% endif %}{% endblock %}
+
 {% block content %}
 <style>
 .recap-grid { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; }

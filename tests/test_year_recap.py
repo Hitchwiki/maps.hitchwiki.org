@@ -42,3 +42,15 @@ def test_recap_link_year_only_in_december_and_early_january():
     assert _recap_link_year(date(2026, 12, 1)) == 2026
     assert _recap_link_year(date(2027, 1, 15)) == 2026
     assert _recap_link_year(date(2027, 1, 16)) is None
+
+
+def test_year_recap_image_is_png_and_404s_for_unknown_user(client):
+    assert client.get("/insights/nobody-here-xyz/2026.png").status_code == 404
+    assert client.get("/insights/nobody-here-xyz/1850.png").status_code == 404
+
+
+def test_render_year_recap_png_bytes():
+    from hitch.blueprints.user import _render_year_recap_png
+
+    buf = _render_year_recap_png("tester", 2026, {"rides": 7, "km": 812.4, "waiting_min": 190, "areas": 3})
+    assert buf.read(8) == b"\x89PNG\r\n\x1a\n"

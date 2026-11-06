@@ -823,6 +823,53 @@ def show_year_recap(username, year):
     )
 
 
+@user_bp.route("/insights/<username>/<int:year>.png", methods=["GET"])
+def year_recap_image(username, year):
+    """Numbers-only share card for a year recap (no map, no coordinates)."""
+    if not 2000 <= year <= 2100:
+        abort(404)
+    user = find_user_ci(username)
+    if user is None:
+        abort(404)
+    png = _render_year_recap_png(user.username, year, _year_recap(user.username, year))
+    response = send_file(png, mimetype="image/png", max_age=3600)
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
+
+
+def _render_year_recap_png(username, year, recap):
+    from PIL import Image, ImageDraw, ImageFont
+    from matplotlib import font_manager
+
+    img = Image.new("RGB", (PREVIEW_W, PREVIEW_H), (238, 248, 240))
+    draw = ImageDraw.Draw(img)
+    try:
+        bold = font_manager.findfont(font_manager.FontProperties(family="DejaVu Sans", weight="bold"))
+        regular = font_manager.findfont(font_manager.FontProperties(family="DejaVu Sans"))
+        f_big, f_title, f_label = (ImageFont.truetype(bold, 88), ImageFont.truetype(bold, 52), ImageFont.truetype(regular, 28))
+    except Exception:
+        f_big = f_title = f_label = ImageFont.load_default()
+    draw.text((72, 70), f"{year} on the road", fill=(34, 34, 34), font=f_title)
+    draw.text((72, 140), _truncate_text(username, 40), fill=(85, 85, 85), font=f_label)
+    stats = [
+        (str(recap["rides"]), "rides"),
+        (str(int(round(recap["km"]))), "km travelled"),
+        (str(int(round(recap["waiting_min"]))), "min waiting"),
+        (str(recap["areas"]), "areas"),
+    ]
+    col_w = (PREVIEW_W - 144) // 2
+    for i, (value, label) in enumerate(stats):
+        x = 72 + (i % 2) * col_w
+        y = 215 + (i // 2) * 190
+        draw.text((x, y), value, fill=(30, 110, 60), font=f_big)
+        draw.text((x, y + 110), label, fill=(85, 85, 85), font=f_label)
+    draw.text((PREVIEW_W - 72, PREVIEW_H - 50), "maps.hitchwiki.org", fill=(102, 102, 102), font=f_label, anchor="rm")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    return buf
+
+
 def _toggle_follow(username, follow):
     """Shared follow/unfollow handler. Returns JSON with the resulting follow state."""
     if current_user.is_anonymous:
