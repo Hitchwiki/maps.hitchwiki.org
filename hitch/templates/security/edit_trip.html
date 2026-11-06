@@ -122,7 +122,7 @@ textarea {
 
 {% if trip %}
 <form method="post" action="/delete-trip/{{ trip.id }}"
-      onsubmit="return confirm('{{ t('Delete this trip? This cannot be undone.') }}');" style="margin-top:12px;">
+      onsubmit="return confirm({{ t('Delete this trip? This cannot be undone.')|tojson|forceescape }});" style="margin-top:12px;">
     <button type="submit" class="delete-trip-btn">{{ t("Delete trip") }}</button>
 </form>
 {% endif %}
