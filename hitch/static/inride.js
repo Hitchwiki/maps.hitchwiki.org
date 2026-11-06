@@ -4076,17 +4076,22 @@
     // Old-journey affordance: if the current segment's anchor is > 24 h old, offer
     // Resume (restore as-is) or Discard before drawing the timer and dock, so the
     // user isn't silently dropped into a stale journey after overnight or longer.
-    if (Date.now() - lastActiveMs(j) > STALE_MS) {
+    // #1276: first-timer reopening a waiting journey 1-24 h old gets the same dialog, A/B
+    // (sticky "return_outcome_ask": none = control). Existing strings only; own event.
+    const returnAsk = ageMs > 3600000 && ageMs <= STALE_MS && j.firstJourney && j.state === "waiting" &&
+      (window.hmVariant || function (_n, v) { return v[0]; })("return_outcome_ask", ["none", "ask"]) === "ask";
+    if (ageMs > STALE_MS || returnAsk) {
       // #613: this dialog used to be a silent exit (Resume or throw the journey away, no way
       // to say "I did get a ride", nothing tracked). Log-a-past-ride seeds the /ride form
       // with the stored pickup spot, then drops the stale timer.
       const staleTrack = function (action) {
-        hmTrack("journey_stale_prompt", { action: action, state: j.state, age_h: Math.round((Date.now() - lastActiveMs(j)) / 3600000) });
+        hmTrack(returnAsk ? "journey_return_ask" : "journey_stale_prompt",
+          { action: action, state: j.state, age_h: Math.round((Date.now() - lastActiveMs(j)) / 3600000), first: j.firstJourney ? "yes" : "no" });
       };
       staleTrack("shown");
       journeyUI.dialog({
         title: T("Welcome back!"),
-        body: T("You have a hitching journey from more than 24 hours ago. Continue where you left off?"),
+        body: returnAsk ? "" : T("You have a hitching journey from more than 24 hours ago. Continue where you left off?"),
         actions: [
           {
             label: T("Log a past ride"), cls: "inr-go",
@@ -4097,7 +4102,7 @@
                   pickup_lat: j.pickup.lat, pickup_lon: j.pickup.lon, destination_lat: "", destination_lon: "",
                 }));
               }
-              hmTrack("add_ride_clicked", { source: "stale-journey" });
+              hmTrack("add_ride_clicked", { source: returnAsk ? "return-ask" : "stale-journey" });
               journeyFlow.discard();
               window.location.href = "/ride";
             },
