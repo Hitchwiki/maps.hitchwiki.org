@@ -1,0 +1,38 @@
+{% extends "security/base.html" %}
+
+{% set title = t("{name} – {year} on the road", name=user.username, year=year) %}
+
+{% block content %}
+<style>
+.recap-grid { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; }
+.recap-stat { flex: 1 1 120px; background: #eef8f0; border: 1px solid #cfe8d6; border-radius: 8px; padding: 14px; text-align: center; }
+.recap-value { display: block; font-size: 1.8em; font-weight: 700; line-height: 1.1; }
+.recap-label { display: block; font-size: 0.85em; color: #555; margin-top: 3px; }
+.recap-cta { background: #fff8e6; border: 1px solid #f0dfb0; border-radius: 8px; padding: 12px 14px; margin: 14px 0; }
+</style>
+
+<h1>{{ t("{year} on the road", year=year) }}</h1>
+<p style="color:#666; font-size:0.9em; margin-top:-8px;">{{ user.username }}</p>
+
+{% if recap.rides %}
+<div class="recap-grid">
+  <div class="recap-stat"><span class="recap-value">{{ recap.rides }}</span><span class="recap-label">{{ t("rides") }}</span></div>
+  <div class="recap-stat"><span class="recap-value">{{ convert_km(recap.km) | round | int }}</span><span class="recap-label">{{ t("{unit} travelled", unit=distance_unit_label()) }}</span></div>
+  <div class="recap-stat"><span class="recap-value">{{ recap.waiting_min | round | int }}</span><span class="recap-label">{{ t("min waiting") }}</span></div>
+  <div class="recap-stat"><span class="recap-value">{{ recap.areas }}</span><span class="recap-label">{{ t("areas") }}</span></div>
+</div>
+{% else %}
+<p>{{ t("No rides logged for {year} yet.", year=year) }}</p>
+{% endif %}
+
+{% if is_me %}
+<div class="recap-cta">
+  <strong>{{ t("Missing a ride from {year}?", year=year) }}</strong><br>
+  {{ t("Add it now and it will be counted in this recap.") }}
+  <a href="/ride?ref=year-recap">{{ t("Add a ride") }} →</a>
+  {% if recap.undated %}<br><small>{{ t("{n} of your rides have no date and cannot be counted.", n=recap.undated) }}</small>{% endif %}
+</div>
+{% endif %}
+
+<p><a href="{{ url_for('user.show_insights', username=user.username) }}">← {{ t("Back to insights") }}</a></p>
+{% endblock %}

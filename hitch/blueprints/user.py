@@ -12,6 +12,7 @@ import requests
 from flask import (
     Blueprint,
     Response,
+    abort,
     current_app,
     g,
     has_request_context,
@@ -748,6 +749,66 @@ def show_insights(username):
         partners=partners,
         records=_ride_records(user.username),
         achievements=_achievements({"rides": total_rides, "distance": total_km, "partners": partners}),
+    )
+
+
+def _year_recap(username, year):
+    """Totals over the rides a user actually hitched in calendar `year`.
+
+    Counts by the ride's own start time (first stop's departure), not by when the record
+    was typed up, so rides back-logged later still land in the year they happened. Rides
+    with no recorded start time are returned separately: they cannot be placed in a year,
+    and the page offers the user a way to fix them.
+    """
+    rides = dated = undated = given_up = 0
+    km = wait = 0.0
+    countries_hint = set()
+    for ride in _rides_by_hitchhiker(username):
+        info = _extract_ride_info(ride, "own")
+        if not info["start"]:
+            undated += 1
+            continue
+        if not info["start"].startswith(f"{year}-"):
+            continue
+        dated += 1
+        if info.get("gave_up"):
+            given_up += 1
+            continue
+        rides += 1
+        distance = _ride_distance_km(info)
+        km += distance or 0
+        wait += _ride_wait_minutes(ride) or 0
+        if info["pickup_lat"] is not None:
+            # ~1 degree cells: enough to say "places" without exposing exact spots.
+            countries_hint.add((round(info["pickup_lat"]), round(info["pickup_lon"])))
+    return {
+        "rides": rides,
+        "km": km,
+        "waiting_min": wait,
+        "given_up": given_up,
+        "areas": len(countries_hint),
+        "undated": undated,
+    }
+
+
+@user_bp.route("/insights/<username>/<int:year>", methods=["GET"])
+def show_year_recap(username, year):
+    """A user's year on the road, built only from their own logged rides.
+
+    Public in the same way /insights/<username> is (aggregate counts, no coordinates).
+    The call to action is aimed at the owner: rides they hitched but never logged.
+    """
+    if not 2000 <= year <= 2100:
+        abort(404)
+    user = find_user_ci(username)
+    if user is None:
+        return redirect(url_for("user.show_account", username=username))
+    return render_template(
+        "year_recap.html",
+        user=user,
+        year=year,
+        is_me=not current_user.is_anonymous and current_user.id == user.id,
+        recap=_year_recap(user.username, year),
     )
 
 
