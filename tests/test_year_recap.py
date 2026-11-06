@@ -67,3 +67,25 @@ def test_map_recap_pill_only_for_logged_in_in_season(app, client, monkeypatch):
     assert b'id="recap-offer"' in html and b"/insights/yrpill/2026?ref=map-banner" in html
     monkeypatch.setattr("hitch.blueprints.user._recap_link_year", lambda today=None: None)
     assert b'id="recap-offer"' not in client.get("/").data
+
+
+def test_recap_visitor_gets_map_link_not_share(app, client):
+    _user(app, "yrvis")
+    html = client.get("/insights/yrvis/2026").data
+    assert b"/?ref=recap-visitor" in html
+    assert b'data-share-context="recap"' not in html
+
+
+def test_recap_share_button_for_owner_with_rides(app, client, monkeypatch):
+    _user(app, "yrown")
+    monkeypatch.setattr(
+        "hitch.blueprints.user._year_recap",
+        lambda u, y: {"rides": 3, "km": 100.0, "waiting_min": 30.0, "given_up": 0, "areas": 2, "undated": 0},
+    )
+    with client.session_transaction() as sess:
+        sess["_user_id"] = "yr-yrown"
+        sess["_fresh"] = True
+    html = client.get("/insights/yrown/2026").data
+    assert b'data-share-context="recap"' in html
+    assert b"/?ref=recap-visitor" not in html
+    assert b'property="og:image"' in html

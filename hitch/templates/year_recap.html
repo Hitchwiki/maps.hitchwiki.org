@@ -40,5 +40,12 @@
 </div>
 {% endif %}
 
+{% from "_share.html" import share_button %}
+{% if is_me and recap.rides %}
+<p>{{ share_button(url=url_for('user.show_year_recap', username=user.username, year=year, _external=True), title=t("{name} – {year} on the road", name=user.username, year=year), label=t("Share"), context="recap") }}</p>
+{% elif not is_me %}
+<p><a href="/?ref=recap-visitor">{{ t("Back to map") }}</a></p>
+{% endif %}
+
 <p><a href="{{ url_for('user.show_insights', username=user.username) }}">← {{ t("Back to insights") }}</a></p>
 {% endblock %}
