@@ -7140,10 +7140,17 @@ function maybeShowNewsletterPledge() {
   box.appendChild(note);
   document.body.appendChild(box);
   // The first-visit cookie dialog (rendered ~5 s after load) goes first: hide the card while it is up.
-  let ticks = 0;
+  // No tick cap: a visitor who leaves the dialog open >90 s used to keep the card hidden but counted as shown.
+  // driver_pledge_visible fires once the card has been actually visible for >= 1 s (shown stays unchanged).
+  let visibleMs = 0, visibleSent = false;
   const guard = setInterval(function () {
-    if (!box.isConnected || ++ticks > 180) return clearInterval(guard);
-    box.style.visibility = document.querySelector(".hm-consent-yes") ? "hidden" : "visible";
+    if (!box.isConnected) return clearInterval(guard);
+    const hidden = !!document.querySelector(".hm-consent-yes");
+    box.style.visibility = hidden ? "hidden" : "visible";
+    if (!hidden && !visibleSent && (visibleMs += 500) >= 1000) {
+      visibleSent = true;
+      hmTrack("driver_pledge_visible", { surface: surface });
+    }
   }, 500);
   hmTrack("driver_pledge_shown", { surface: surface });
 }
