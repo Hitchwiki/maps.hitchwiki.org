@@ -2,7 +2,7 @@ import io
 import json
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from urllib.parse import quote
 
@@ -747,9 +747,20 @@ def show_insights(username):
         total_km=total_km,
         total_waiting_min=user.total_waiting_time_min or 0,
         partners=partners,
+        recap_link_year=_recap_link_year(),
         records=_ride_records(user.username),
         achievements=_achievements({"rides": total_rides, "distance": total_km, "partners": partners}),
     )
+
+
+def _recap_link_year(today=None):
+    """Year whose recap should be linked now: December (and the first weeks of January) only."""
+    today = today or datetime.now(timezone.utc).date()
+    if today.month == 12:
+        return today.year
+    if today.month == 1 and today.day <= 15:
+        return today.year - 1
+    return None
 
 
 def _year_recap(username, year):
