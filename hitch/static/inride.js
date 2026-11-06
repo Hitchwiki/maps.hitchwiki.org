@@ -1917,6 +1917,13 @@
       function requestFix() {
         if (!fixPromise) {
           fixPromise = getFixWithRetry();
+          // Share the picker's fix with startDistBucket: without this, a first-timer who
+          // allows location inside the picker is logged dist=unknown (IDEAS #1294).
+          fixPromise.then(function (fix) {
+            if (fix && typeof fix.lat === "number" && typeof fix.lon === "number") {
+              window.hmDeviceLatLng = window.hmDeviceLatLng || { lat: fix.lat, lon: fix.lon };
+            }
+          }, function () {});
           // Drop a failed fix so an explicit tap retries instead of replaying the
           // cached rejection.
           fixPromise.catch(function () { fixPromise = null; });
