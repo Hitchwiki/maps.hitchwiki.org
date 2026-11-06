@@ -480,7 +480,7 @@
           if (label) {
             var prev = label.textContent;
             btn.classList.add('copied');
-            label.textContent = '{{ t("Link copied!") }}';
+            label.textContent = {{ t("Link copied!")|tojson }};
             setTimeout(function () { btn.classList.remove('copied'); label.textContent = prev; }, 1800);
           }
         } catch (err) { window.prompt('Copy this link:', url); }

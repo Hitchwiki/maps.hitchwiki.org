@@ -132,11 +132,11 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
     var deferredPrompt = null;
 
     if (isIOS) {
-        textEl.innerHTML = '{{ t("Tap the <strong>Share</strong> button, then <strong>Add to Home Screen</strong>.")|safe }}';
+        textEl.innerHTML = {{ t("Tap the <strong>Share</strong> button, then <strong>Add to Home Screen</strong>.")|tojson }};
     } else if (isAndroid) {
-        titleEl.textContent = '{{ t("Hitchhiking Map is now an Android app") }}';
-        textEl.textContent = '{{ t("Get the public app from Google Play and keep the hitchhiking map on your phone.") }}';
-        actionBtn.textContent = '{{ t("Get it on Google Play") }}';
+        titleEl.textContent = {{ t("Hitchhiking Map is now an Android app")|tojson }};
+        textEl.textContent = {{ t("Get the public app from Google Play and keep the hitchhiking map on your phone.")|tojson }};
+        actionBtn.textContent = {{ t("Get it on Google Play")|tojson }};
         actionBtn.hidden = false;
     }
 
