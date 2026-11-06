@@ -3484,14 +3484,14 @@
       saveBtn.className = "inr-big inr-big--green inr-sheet__save";
       saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> ' + T("Save changes");
       saveBtn.addEventListener("click", function () {
-        if (!rating) { errEl.textContent = T("Please choose a rating."); errEl.style.display = ""; return; }
+        if (!rating && !(body.rate === "" || body.rate == null)) { errEl.textContent = T("Please choose a rating."); errEl.style.display = ""; return; }
         // Backend asserts arrival > departure when both present — validate here so an edit
         // can't push the item into a permanent 400.
         if (departureInput && arrivalInput && departureInput.value && arrivalInput.value &&
             arrivalInput.value <= departureInput.value) {
           errEl.textContent = T("Arrival must be after the pickup time."); errEl.style.display = ""; return;
         }
-        body.rate = String(rating);
+        body.rate = rating ? String(rating) : "";
         body.wait = String(Math.max(0, parseInt(waitInput.value, 10) || 0));
         body.comment = textarea.value.trim();
         if (departureInput) body.datetime_ride = departureInput.value;

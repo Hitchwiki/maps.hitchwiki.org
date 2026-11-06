@@ -36,3 +36,7 @@ test("unhandled rejection reports as rej", () => {
   const t = run([{ type: "unhandledrejection", reason: { name: "NetworkError", message: "fail" } }], O);
   assert.strictEqual(t[0][1].f, "rej");
 });
+test("rejection reasons never send a message", () => {
+  const t = run([{ type: "unhandledrejection", reason: { name: "E", message: "user typed secret" } }], O);
+  assert.ok(!("m" in t[0][1]));
+});

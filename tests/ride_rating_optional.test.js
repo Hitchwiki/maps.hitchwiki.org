@@ -9,3 +9,7 @@ test("rating-optional arm: assignment, tag, enabled button, guard", () => {
   assert.ok(src.includes("if (!rating && !ratingOptional) return;"));
   assert.ok(src.includes("rideOnBtn.disabled = !ratingOptional;"));
 });
+test("outbox editor lets an unrated queued ride be saved unrated", () => {
+  assert.ok(src.includes('body.rate = rating ? String(rating) : "";'));
+  assert.ok(src.includes('if (!rating && !(body.rate === "" || body.rate == null))'));
+});
