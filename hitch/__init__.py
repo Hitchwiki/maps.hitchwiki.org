@@ -188,6 +188,18 @@ def register_i18n(app):
     app.jinja_env.globals["weekday_abbrs"] = weekday_abbrs
     app.jinja_env.globals["weekday_index"] = weekday_index
 
+    def recap_banner_year():
+        """Year to offer a recap for (Dec 1 - Jan 15) to a logged-in user, else None."""
+        from flask_security import current_user
+
+        from hitch.blueprints.user import _recap_link_year
+
+        if current_user.is_anonymous:
+            return None
+        return _recap_link_year()
+
+    app.jinja_env.globals["recap_banner_year"] = recap_banner_year
+
     @app.template_global()
     def client_translations_json():
         """The current language's translation dict as a JSON literal, for map.js's

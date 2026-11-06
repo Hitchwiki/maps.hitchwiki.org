@@ -968,6 +968,7 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
        without that prefix -- lang_switch_url does the rewrite. Flag + endonym per
        language (LANGUAGE_FLAGS / LANGUAGE_ENDONYMS): the endonym is never translated --
        a French visitor still needs to recognize "English", not read "Anglais". #}
+    {% set _recap_year = recap_banner_year() %}{% if _recap_year %}<a class="lang-offer recap-offer" id="recap-offer" href="{{ url_for('user.show_year_recap', username=current_user.username, year=_recap_year) }}?ref=map-banner">{{ t("Your {year} recap", year=_recap_year) }}</a>{% endif %}
     <div class="lang-picker" id="lang-picker">
         <button type="button" class="lang-picker-btn" id="lang-picker-btn" aria-haspopup="true" aria-expanded="false">
             <span aria-hidden="true">{{ LANGUAGE_FLAGS[g.lang] }}</span>
@@ -1036,6 +1037,15 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
         try { localStorage.setItem(KEY, '99'); } catch (e) {}
         track('lang_banner_clicked');
     });
+})();
+</script>
+{# Recap pill (Dec 1 - Jan 15, logged-in only): count shows and taps for EXP-1279. #}
+<script>
+(function () {
+    var a = document.getElementById('recap-offer');
+    if (!a || !window.hmTrack) return;
+    window.hmTrack('recap_banner_shown', {});
+    a.addEventListener('click', function () { window.hmTrack('recap_banner_clicked', {}); });
 })();
 </script>
 {% endblock %}
