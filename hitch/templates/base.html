@@ -147,6 +147,41 @@
             if (queue.length < QUEUE_MAX) queue.push([name, tagged(data, name)]);
           } catch (e) {}
         };
+        // #1291: front-end error beacon. Nothing reported browser-side JS errors, so a
+        // Safari/old-Android crash in the ride form would be invisible. Own files carry a
+        // scrubbed 60-char message; foreign files only a bucket. Max 3 distinct per load.
+        (function () {
+          var seen = {}, sent = 0;
+          function bucket(src) {
+            if (!src) return "none";
+            if (src.indexOf(location.origin) !== 0) return "ext";
+            var m = /\/static\/([a-z_]+)\.js/.exec(src);
+            var n = m ? m[1] : "";
+            return n === "map" || n === "inride" || n === "account" ? n : n === "ride_form" ? n : (src.indexOf("/static/") > -1 ? "other" : "base");
+          }
+          function report(f, l, n, msg) {
+            try {
+              var key = f + ":" + l + ":" + n;
+              if (seen[key] || sent >= 3) return;
+              seen[key] = 1; sent++;
+              var d = { f: f, l: l || 0, n: String(n || "Error").slice(0, 30) };
+              if (f !== "ext" && f !== "none" && msg)
+                d.m = String(msg).replace(/https?:\/\/\S+/g, "URL").replace(/\d{3,}/g, "N").slice(0, 60);
+              window.hmTrack("js_error", d);
+            } catch (e) {}
+          }
+          window.addEventListener("error", function (ev) {
+            try {
+              report(bucket(ev.filename), ev.lineno, ev.error && ev.error.name, ev.message);
+            } catch (e) {}
+          });
+          window.addEventListener("unhandledrejection", function (ev) {
+            try {
+              var r = ev.reason;
+              report("rej", 0, r && r.name, r && r.message);
+            } catch (e) {}
+          });
+        })();
         // Every community-chat link carries data-chat-place (GENERAL_CHAT_URL in
         // hitch/__init__.py). One delegated listener so a new link only needs the
         // attribute; `cohort` (anon/new/member) is the server's coarse account-age bucket.
