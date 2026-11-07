@@ -89,3 +89,35 @@ def test_recap_share_button_for_owner_with_rides(app, client, monkeypatch):
     assert b'data-share-context="recap"' in html
     assert b"/?ref=recap-visitor" not in html
     assert b'property="og:image"' in html
+
+
+def test_recap_month_strip_only_for_owner(app, client, monkeypatch):
+    _user(app, "yrmon")
+    counts = [0, 2, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
+    monkeypatch.setattr(
+        "hitch.blueprints.user._year_recap",
+        lambda u, y: {"rides": 3, "km": 1.0, "waiting_min": 1.0, "given_up": 0, "areas": 1, "undated": 0, "by_month": counts},
+    )
+    assert b'id="recap-months"' not in client.get("/insights/yrmon/2026").data
+    with client.session_transaction() as sess:
+        sess["_user_id"] = "yr-yrmon"
+        sess["_fresh"] = True
+    html = client.get("/insights/yrmon/2026").data
+    assert b'data-counts="0,2,0,0,1,0,0,0,0,0,0,0"' in html
+    assert b"ref=year-recap-month" in html
+
+
+def test_year_recap_counts_by_month(monkeypatch):
+    from hitch.blueprints import user as u
+
+    monkeypatch.setattr(u, "_rides_by_hitchhiker", lambda name: [1, 2, 3, 4])
+    infos = iter([
+        {"start": "2026-02-03T10:00", "pickup_lat": None},
+        {"start": "2026-02-20T10:00", "pickup_lat": None},
+        {"start": "2026-11-01T10:00", "pickup_lat": None},
+        {"start": "2025-11-01T10:00", "pickup_lat": None},
+    ])
+    monkeypatch.setattr(u, "_extract_ride_info", lambda r, w: next(infos))
+    monkeypatch.setattr(u, "_ride_distance_km", lambda i: 0)
+    monkeypatch.setattr(u, "_ride_wait_minutes", lambda r: 0)
+    assert u._year_recap("x", 2026)["by_month"] == [0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0]
