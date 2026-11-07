@@ -4717,6 +4717,23 @@ async function nearestSpotIdForWiki(lat, lon) {
   return best ? best.options.spotId : null;
 }
 
+// EXP-1300: metres from a point to the nearest loaded spot, or null while spots.json has
+// not loaded. journey_started buckets it to learn whether first-timers start where the map
+// already has a spot or somewhere with no data. Read-only; sends nothing itself.
+window.hmNearestSpotM = function (lat, lon) {
+  if (!allMarkers || !allMarkers.length) return null;
+  const r = Math.PI / 180;
+  const cl = Math.cos(lat * r);
+  let best = Infinity;
+  for (const m of allMarkers) {
+    const ll = m.getLatLng();
+    const x = Math.sin((ll.lat - lat) * r / 2) ** 2 + cl * Math.cos(ll.lat * r) * Math.sin((ll.lng - lon) * r / 2) ** 2;
+    const d = 12742000 * Math.asin(Math.sqrt(x));
+    if (d < best) best = d;
+  }
+  return best;
+};
+
 async function renderWikiContributionNudge(ride) {
   const note = $$("#success-wiki-contribute");
   if (!note) return;

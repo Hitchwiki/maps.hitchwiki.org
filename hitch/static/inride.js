@@ -553,6 +553,14 @@
     const km = 12742 * Math.asin(Math.sqrt(x));
     return km < 1 ? "lt1" : km < 5 ? "1to5" : km < 50 ? "5to50" : "gt50";
   }
+  // EXP-1300: how far the start is from the nearest known spot. "none" = spots not loaded yet.
+  function startNearBucket(p) {
+    try {
+      const d = p && typeof window.hmNearestSpotM === "function" ? window.hmNearestSpotM(p.lat, p.lon) : null;
+      if (d == null) return "none";
+      return d < 150 ? "lt150" : d < 1000 ? "150to1k" : "gt1k";
+    } catch (e) { return "none"; }
+  }
   // EXP-1200: spot-sheet and route-results starts are tapped remotely (browsing) and then
   // run a wait timer nobody is standing beside: 76-88% end silently vs 63% for the start
   // bar. Half of those starts get an "Are you at this spot now?" check first. The arm sticks
@@ -771,6 +779,7 @@
       source_dist: startSource(source) + ":" + startDistBucket(p),
       at_check: atCheckLabel,
       pl: pendingPinPlacement || "none",
+      near: startNearBucket(p),
       first: j.firstJourney ? "yes" : "no",
       li: window.IS_LOGGED_IN ? "yes" : "no",
     });
