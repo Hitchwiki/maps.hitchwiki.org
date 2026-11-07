@@ -1,3 +1,4 @@
+import contextlib
 import io
 import json
 import os
@@ -787,10 +788,8 @@ def _year_recap(username, year):
             given_up += 1
             continue
         rides += 1
-        try:
+        with contextlib.suppress(ValueError, IndexError):
             by_month[int(info["start"][5:7]) - 1] += 1
-        except (ValueError, IndexError):
-            pass
         distance = _ride_distance_km(info)
         km += distance or 0
         wait += _ride_wait_minutes(ride) or 0
