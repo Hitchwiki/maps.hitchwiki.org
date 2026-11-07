@@ -624,7 +624,7 @@
     if (!pl.bail) {
       const p = pl, a = ends.a.p, b = ends.b.p;
       p.bail = await fetchBailouts(p, a, b, legOf);
-      track("routing_gang_dropoff_shown", { n: p.bail.length, legs: p.chain.length + 1, failed: p.bail.failed });
+      track("routing_gang_dropoff_shown", { n: p.bail.length, legs: p.chain.length + 1, failed: p.bail.failed, src: p.bail.src, ms: p.bail.ms });
       track("routing_gang_entry_shown", { has_entry: !!p.bail.entry });
       if (plans[sel] !== p || mode !== "hitch") return;
       renderSteps(leaveDate(), daylight(ends.a.p, leaveDate()));
@@ -655,11 +655,18 @@
     const pts = full.filter((_, i) => i % step === 0 || i === full.length - 1);
     const found = [], seen = new Set();
     let failed = 0;
-    for (let i = 0; i < pts.length - 1; i += 60) {
-      const ch = pts.slice(i, i + 61);
-      const r = `(around:600,${ch.map(p => p[0].toFixed(4) + "," + p[1].toFixed(4)).join(",")})`;
-      const q = `[out:json][timeout:25];(node${r}[amenity=fuel];nwr${r}[highway=services];nwr${r}[highway=rest_area];node${r}[highway=motorway_junction];);out center 200;`;
-      const els = await overpass(q);
+    const t0 = performance.now();
+    const tileEls = await stopTiles(pts, 0.01);
+    const src = tileEls ? "tiles" : "overpass";
+    for (let i = 0; i < (tileEls ? 1 : pts.length - 1); i += 60) {
+      let els;
+      if (tileEls) els = tileEls;
+      else {
+        const ch = pts.slice(i, i + 61);
+        const r = `(around:600,${ch.map(p => p[0].toFixed(4) + "," + p[1].toFixed(4)).join(",")})`;
+        const q = `[out:json][timeout:25];(node${r}[amenity=fuel];nwr${r}[highway=services];nwr${r}[highway=rest_area];node${r}[highway=motorway_junction];);out center 200;`;
+        els = await overpass(q);
+      }
       if (!els) { failed++; break; } // both servers down: say so now rather than after every chunk times out
       for (const e of els) {
         if (seen.has(e.type + e.id)) continue;
@@ -692,8 +699,18 @@
     }
     keep.sort((x, y) => x.at - y.at);
     keep.failed = failed > 0;
+    keep.src = src; keep.ms = Math.round(performance.now() - t0);
     keep.entry = found.entry || null;
     return keep;
+  }
+  // Static stop tiles (fuel / rest / services / junctions, 1 degree each); null when outside coverage or on any fetch error.
+  async function stopTiles(pts, padDeg) {
+    const F = window.RGFallback;
+    if (!F.inCoverage(pts)) return null;
+    try {
+      const tiles = await Promise.all(F.tileKeys(pts, padDeg).map(k => fetch(`/static/osm-stops/${k}.json`).then(r => r.status === 404 ? [] : r.ok ? r.json() : Promise.reject(new Error(r.status)))));
+      return F.tileElements(tiles, pts, padDeg);
+    } catch (e) { return null; }
   }
   // The public Overpass servers often answer 429/502 under load: try the main one, then a mirror; null if both fail.
   async function overpass(q) {
@@ -721,7 +738,7 @@
       const e = C.pointAt(pl.line, pl.cum, km).p;
       pl.fallback.push({ lat: e[0], lon: e[1], html: `<h4>Edge of town, ${km} km from A</h4><div>Where riders without a known spot usually stood: on this road where the town ends.</div>` });
       try {
-        const els = await overpass(window.RGFallback.overpassQuery(a[0], a[1], 10000));
+        const els = (await stopTiles([a], 0.1)) || await overpass(window.RGFallback.overpassQuery(a[0], a[1], 10000));
         if (!els) throw new Error("overpass unavailable");
         const f = window.RGFallback.fallback(els, pl.line, pl.cum, 1, C.km);
         track("routing_gang_osm_fallback", { found: !!f });
