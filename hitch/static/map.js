@@ -119,6 +119,8 @@ var allMarkers = [],
   normalLayer = null,
   heatmapLegend = null,
   spotsData = null,
+  fullSpotsReady = null,
+  lightSpotsFailed = false,
   markerCluster = null,
   ridesIndex = null,
   // Map-mode switcher: "spots" (default), "heatmap", "countries" or "hitchhikers".
@@ -274,9 +276,44 @@ function markerAppearance(spot) {
 
 // #622: one `map_boot` as soon as map.js runs. map_ready only counts people who stayed until
 // spots appeared, so map_ready / map_boot (split by mobile) is the share who gave up first.
+// #1299: mobile visitors are split 50/50 (sticky in localStorage) between the full
+// spots.json and the lighter spots.core.json (about half the bytes) with the destination
+// data fetched afterwards. `spotsArm` is "lite", "full" or "na" (desktop / variation maps /
+// a URL that needs destinations straight away).
+function pickSpotsArm() {
+  try {
+    if (typeof MAP_VARIATION !== "undefined") return "na";
+    if (!(window.matchMedia && window.matchMedia("(max-width: 700px)").matches)) return "na";
+    if (new URLSearchParams(window.location.search).get("mindistance")) return "na";
+    let arm = localStorage.getItem("hm_spots_arm");
+    if (arm !== "lite" && arm !== "full") {
+      arm = Math.random() < 0.5 ? "lite" : "full";
+      localStorage.setItem("hm_spots_arm", arm);
+    }
+    return arm;
+  } catch (e) {
+    return "na";
+  }
+}
+const spotsArm = pickSpotsArm();
+
+// Rebuild spots.json-shaped rows (no destinations) from the columnar spots.core.json.
+function coreToSpots(core) {
+  const out = new Array(core.n);
+  const bits = core.flag_bits;
+  for (let i = 0; i < core.n; i++) {
+    const s = { lat: core.lat[i], lon: core.lon[i], rating: core.rating[i], review_count: core.review_count[i] };
+    if (core.latest_ms[i] != null) s.latest_ms = core.latest_ms[i];
+    const f = core.flags[i];
+    for (const k in bits) if (f & bits[k]) s[k] = true;
+    out[i] = s;
+  }
+  return out;
+}
+
 try {
   const bootMobile = window.matchMedia && window.matchMedia("(max-width: 700px)").matches;
-  if (window.hmTrack) window.hmTrack("map_boot", { mobile: bootMobile ? "yes" : "no", conn: (navigator.connection && navigator.connection.effectiveType) || "unknown" });
+  if (window.hmTrack) window.hmTrack("map_boot", { mobile: bootMobile ? "yes" : "no", conn: (navigator.connection && navigator.connection.effectiveType) || "unknown", arm: spotsArm });
 } catch (e) {}
 
 // Load markers from JSON data
@@ -291,8 +328,34 @@ function reportMapReady(spotsUrl) {
     const cached = entry ? entry.transferSize === 0 : "unknown";
     const conn = (navigator.connection && navigator.connection.effectiveType) || "unknown";
     const mobile = window.matchMedia && window.matchMedia("(max-width: 700px)").matches;
-    if (window.hmTrack) window.hmTrack("map_ready", { bucket, conn, cached: String(cached), mobile: mobile ? "yes" : "no" });
+    if (window.hmTrack) window.hmTrack("map_ready", { bucket, conn, cached: String(cached), mobile: mobile ? "yes" : "no", arm: spotsArm });
   } catch (e) {}
+}
+
+// #1299: the lite arm drew markers without destinations / gone / police notes. Fetch the
+// full file now and copy those fields onto the markers (matched by spot id), so arrows,
+// the distance filter and the spot-sheet warnings behave exactly as in the full arm.
+async function fillSpotDetails(url) {
+  try {
+    const full = await fetch(url).then((r) => r.json());
+    const byId = new Map();
+    for (const m of allMarkers) byId.set(m.options.spotId, m);
+    for (const row of full) {
+      const marker = byId.get(`${row.lat.toFixed(5)}_${row.lon.toFixed(5)}`);
+      if (!marker) continue;
+      const d = marker.options._data;
+      if (row.dest_lats && row.dest_lats.length && !(d.dest_lats && d.dest_lats.length)) {
+        d.dest_lats = row.dest_lats;
+        d.dest_lons = row.dest_lons;
+        destinationMarkers.push(marker);
+      }
+      if (row.gone !== undefined && d.gone === undefined) d.gone = row.gone;
+      if (row.police !== undefined && d.police === undefined) d.police = row.police;
+    }
+    if (active && active.length) renderPoints();
+  } catch (error) {
+    console.warn("Could not load full spot details:", error);
+  }
 }
 
 async function loadMarkers(map) {
@@ -305,7 +368,17 @@ async function loadMarkers(map) {
   const officialPromise = fetch('/official-stops.json')
     .then(response => { if (!response.ok) throw new Error(`HTTP ${response.status}`); return response.json(); })
     .catch(error => { console.warn('Could not load official stops:', error); return []; });
-  return Promise.all([fetch(url).then(response => response.json()), officialPromise])
+  const fullFetch = () => fetch(url).then(response => response.json());
+  let spotsPromise;
+  if (spotsArm === "lite") {
+    spotsPromise = fetch("/spots.core.json")
+      .then((response) => { if (!response.ok) throw new Error(`HTTP ${response.status}`); return response.json(); })
+      .then(coreToSpots)
+      .catch((error) => { console.warn("spots.core.json failed, using spots.json:", error); lightSpotsFailed = true; return fullFetch(); });
+  } else {
+    spotsPromise = fullFetch();
+  }
+  return Promise.all([spotsPromise, officialPromise])
     .then(([spots, official]) => mergeOfficialSpots(spots, official))
     .then((data) => {
       // Module-scoped so findNearbySpotMarker() can ask whether a marker is
@@ -356,6 +429,7 @@ async function loadMarkers(map) {
       // markers finished loading still wins.
       syncSpotLayer();
       reportMapReady(url);
+      if (spotsArm === "lite" && !lightSpotsFailed) fullSpotsReady = fillSpotDetails(url);
     })
     .catch((error) => {
       console.error("Error loading markers:", error);
@@ -5885,6 +5959,7 @@ async function applyParams() {
     maxDateFilter.value ||
     weekdayFilter.value
   ) {
+    if (distanceFilter.value && fullSpotsReady) await fullSpotsReady;
     let filterMarkers = distanceFilter.value
         ? destinationMarkers
         : allMarkers;
