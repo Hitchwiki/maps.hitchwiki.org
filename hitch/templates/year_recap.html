@@ -14,6 +14,11 @@
 .recap-stat { flex: 1 1 120px; background: #eef8f0; border: 1px solid #cfe8d6; border-radius: 8px; padding: 14px; text-align: center; }
 .recap-value { display: block; font-size: 1.8em; font-weight: 700; line-height: 1.1; }
 .recap-label { display: block; font-size: 0.85em; color: #555; margin-top: 3px; }
+.recap-months { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-top: 10px; }
+.recap-month { border: 1px solid #f0dfb0; border-radius: 6px; padding: 6px 2px; text-align: center; background: #fff; font-size: 0.85em; color: #333; }
+.recap-month b { display: block; font-size: 1.1em; }
+button.recap-month { cursor: pointer; font-family: inherit; }
+button.recap-month:hover { background: #fff3cf; }
 .recap-cta { background: #fff8e6; border: 1px solid #f0dfb0; border-radius: 8px; padding: 12px 14px; margin: 14px 0; }
 </style>
 
@@ -36,8 +41,49 @@
   <strong>{{ t("Missing a ride from {year}?", year=year) }}</strong><br>
   {{ t("Add it now and it will be counted in this recap.") }}
   <a href="/ride?ref=year-recap">{{ t("Add a ride") }} →</a>
+  {% if recap.by_month %}
+  <div class="recap-months" id="recap-months" data-year="{{ year }}" data-counts="{{ recap.by_month | join(',') }}"></div>
+  {% endif %}
   {% if recap.undated %}<br><small>{{ t("{n} of your rides have no date and cannot be counted.", n=recap.undated) }}</small>{% endif %}
 </div>
+{% endif %}
+
+{% if is_me and recap.by_month %}
+<script>
+(function () {
+  var box = document.getElementById("recap-months");
+  if (!box) return;
+  var year = parseInt(box.getAttribute("data-year"), 10);
+  var counts = box.getAttribute("data-counts").split(",").map(Number);
+  var now = new Date();
+  var lang = document.documentElement.lang || undefined;
+  counts.forEach(function (n, i) {
+    var past = year < now.getFullYear() || (year === now.getFullYear() && i <= now.getMonth());
+    var name = new Date(year, i, 1).toLocaleString(lang, { month: "short" });
+    var el;
+    if (n === 0 && past) {
+      el = document.createElement("button");
+      el.type = "button";
+      el.addEventListener("click", function () {
+        try {
+          if (typeof window.hmTrack === "function") window.hmTrack("recap_month_clicked", { month: i + 1 });
+          sessionStorage.setItem("rideFormData", JSON.stringify({
+            datetime_ride: year + "-" + String(i + 1).padStart(2, "0") + "-15T12:00"
+          }));
+        } catch (e) {}
+        window.location.href = "/ride?ref=year-recap-month";
+      });
+    } else {
+      el = document.createElement("div");
+    }
+    el.className = "recap-month";
+    el.innerHTML = "<b></b><span></span>";
+    el.firstChild.textContent = n;
+    el.lastChild.textContent = name;
+    box.appendChild(el);
+  });
+})();
+</script>
 {% endif %}
 
 {% from "_share.html" import share_button %}

@@ -1,3 +1,4 @@
+import contextlib
 import io
 import json
 import os
@@ -774,6 +775,7 @@ def _year_recap(username, year):
     rides = dated = undated = given_up = 0
     km = wait = 0.0
     countries_hint = set()
+    by_month = [0] * 12
     for ride in _rides_by_hitchhiker(username):
         info = _extract_ride_info(ride, "own")
         if not info["start"]:
@@ -786,6 +788,8 @@ def _year_recap(username, year):
             given_up += 1
             continue
         rides += 1
+        with contextlib.suppress(ValueError, IndexError):
+            by_month[int(info["start"][5:7]) - 1] += 1
         distance = _ride_distance_km(info)
         km += distance or 0
         wait += _ride_wait_minutes(ride) or 0
@@ -799,6 +803,7 @@ def _year_recap(username, year):
         "given_up": given_up,
         "areas": len(countries_hint),
         "undated": undated,
+        "by_month": by_month,
     }
 
 
