@@ -1151,6 +1151,23 @@
       });
       chip.appendChild(pauseBtn);
 
+      // waiting-sign-v1: a "Sign" pill that opens the full-screen destination sign (the one the route planner
+      // has). Waiting is when a driver can actually read it. Control arm is counted but sees nothing.
+      if (window.hmOpenSign) {
+        const signArm = (window.hmVariant || function (_n, v) { return v[0]; })("waiting-sign-v1", ["control", "sign"]);
+        hmTrack("waiting_sign_shown", { variant: signArm });
+        if (signArm === "sign") {
+          const signBtn = document.createElement("button");
+          signBtn.className = "inr-pausepill";
+          signBtn.innerHTML = '<i class="fa-solid fa-sign-hanging"></i> ' + T("Sign");
+          signBtn.addEventListener("click", function () {
+            hmTrack("waiting_sign_tapped", {});
+            window.hmOpenSign("waiting");
+          });
+          chip.appendChild(signBtn);
+        }
+      }
+
       document.body.appendChild(chip);
       journeyUI._chipEl = chip;
 
