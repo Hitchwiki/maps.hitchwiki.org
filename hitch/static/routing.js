@@ -807,6 +807,7 @@
     showRouteFeedback();
   }
 
+  // English only for now (like the planner-compare link): translations follow if the ask earns answers.
   // Routing-gang phase B (Till 2026-11-09): anonymous on-page ask under the result. A vote is an
   // Umami event plus a server row (coordinates, vote, optional text; no user id). Once per route.
   function showRouteFeedback() {
@@ -819,12 +820,12 @@
     const box = document.createElement("div");
     box.className = "rp-feedback";
     box.style.cssText = "margin:8px 12px;font-size:14px";
-    box.innerHTML = `<span>${T("Is this a good hitchhiking route?")}</span>
+    box.innerHTML = `<span>Is this a good hitchhiking route?</span>
       <button type="button" data-v="up" aria-label="${T("Yes")}" style="font-size:18px;margin-left:8px">👍</button>
       <button type="button" data-v="down" aria-label="${T("No")}" style="font-size:18px">👎</button>
       <div class="rp-feedback-more" hidden style="margin-top:6px">
-        <textarea maxlength="300" rows="2" style="width:100%" placeholder="${T("What would you change? (optional)")}"></textarea>
-        <button type="button" class="rp-feedback-send">${T("Send")}</button>
+        <textarea maxlength="300" rows="2" style="width:100%" placeholder="What would you change? (optional)"></textarea>
+        <button type="button" class="rp-feedback-send">Send</button>
       </div>`;
     opts.insertAdjacentElement("afterend", box);
     let vote = null;
@@ -852,7 +853,7 @@
     box.querySelector(".rp-feedback-send").onclick = () => {
       const text = (box.querySelector("textarea").value || "").trim();
       if (text) { hmTrack("route_feedback_text"); post(text); }
-      box.innerHTML = `<span>${T("Thanks!")}</span>`;
+      box.innerHTML = `<span>Thanks!</span>`;
     };
   }
 
