@@ -806,6 +806,54 @@
     upgradeAllToStreets(token);
     updateShareUrl();       // make this search shareable (#dir/from/to)
     showRouteFeedback();
+    showRouteDaylight();
+  }
+
+  // IDEAS #1317 (routing-gang phase B): "Dark around HH:MM, likely about X km today" under the result,
+  // from the same model as /hitchhiking-routing-gang (RGChain.timeModel/reach/sunset). Stable 50% arm
+  // route-daylight-v1; both arms are counted. Departure = now if 05:00-15:00 local, else 08:00.
+  function showRouteDaylight() {
+    try {
+      const C = window.RGChain;
+      const sheet = resultsSheet();
+      const old = sheet && sheet.querySelector(".rp-daylight");
+      if (old) old.remove();
+      if (!C || !sheet || !RJ.routes || !RJ.routes[0] || !RJ.start) return;
+      let arm = null;
+      try { arm = localStorage.getItem("route-daylight-v1"); } catch (e) {}
+      if (arm !== "on" && arm !== "off") {
+        arm = Math.random() < 0.5 ? "on" : "off";
+        try { localStorage.setItem("route-daylight-v1", arm); } catch (e) {}
+      }
+      if (arm !== "on") return;
+      const rt = RJ.routes[0];
+      const km = rt.carKm;
+      const driveMin = rt.legs.filter((l) => l.mode === "car").reduce((s, l) => s + l.minutes, 0);
+      if (!(km > 0) || !(driveMin > 0)) return;
+      const now = new Date();
+      const h = now.getHours() + now.getMinutes() / 60;
+      const leave = new Date(now);
+      if (h < 5 || h >= 15) { if (h >= 15) leave.setDate(leave.getDate() + 1); leave.setHours(8, 0, 0, 0); }
+      const a = RJ.start.latlng;
+      const s = C.sunset(a[0], a[1], leave.getTime());
+      if (!s || s.polar) return;
+      const darkMs = s.ms + 30 * 6e4;
+      const avail = (darkMs - leave.getTime()) / 6e4;
+      if (!(avail > 0)) return;
+      const r = C.reach(C.timeModel([], km, driveMin), avail);
+      const all = r.likely >= km - 1;
+      const clock = new Date(s.ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      const box = document.createElement("div");
+      box.className = "rp-daylight";
+      box.style.cssText = "margin:8px 12px;font-size:14px";
+      box.textContent = all
+        ? "Likely there before dark (sunset " + clock + ")"
+        : "Dark around " + clock + " · likely about " + Math.round(r.likely) + " km before then";
+      const anchor = sheet.querySelector(".rp-feedback") || sheet.querySelector(".rp-options");
+      if (!anchor) return;
+      anchor.insertAdjacentElement("beforebegin", box);
+      hmTrack("route_daylight_shown", { arm: arm, reach_all: all });
+    } catch (e) { /* must never break routing */ }
   }
 
   // English only for now (like the planner-compare link): translations follow if the ask earns answers.
