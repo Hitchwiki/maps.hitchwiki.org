@@ -70,3 +70,13 @@ def test_ride_detail_shows_companions():
     root = Path(__file__).parents[1] / "hitch"
     assert "driver[\"companions\"]" in (root / "blueprints" / "main.py").read_text()
     assert "ride.driver.companions" in (root / "templates" / "ride_detail.html").read_text()
+
+
+def test_ride_page_links_live_planner_for_everyone():
+    """The route-planner link on a ride page is not login-gated and targets /dir/ (not the dev page)."""
+    import pathlib
+    src = (pathlib.Path(__file__).resolve().parent.parent / "hitch" / "templates" / "ride_detail.html").read_text()
+    i = src.index("ref=ride_page")
+    block = src[src.rfind("{% if", 0, i):i]
+    assert "is_logged_in" not in block
+    assert "/dir/" in block and "routing-gang" not in block
