@@ -91,8 +91,8 @@ from hitch.blueprints.utils.ride_images import (
 )
 from hitch.blueprints.utils.ride_ip_log import get_client_ip, log_ride_ip
 from hitch.blueprints.utils.ride_sources import THIS_NOSTR_SOURCE, ride_is_replaceable, ride_source
-from hitch.blueprints.utils.route_request_log import log_route_request
 from hitch.blueprints.utils.route_feedback_log import log_route_feedback
+from hitch.blueprints.utils.route_request_log import log_route_request
 from hitch.blueprints.utils.search_request_log import log_search_request
 from hitch.blueprints.utils.signup_prompt_log import PROMPT_ACTIONS, log_signup_prompt
 from hitch.blueprints.utils.store_published_ride import store_published_ride as _store_published_ride
