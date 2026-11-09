@@ -14,6 +14,14 @@ assert(r.likely > 0 && r.possible >= r.likely && r.possible <= 190 + 1);
 // Winter, long route: not all the way on a slow day.
 const r2 = C.reach(C.timeModel([], 1200, 720), avail);
 assert(r2.likely < 1200 - 1);
+// #1325: two 60-min boards on a 200 km route flip "all the way" to "not all the way" from 15:00.
+const legs = [{ mode: "car", km: 100, minutes: 70, waitMin: 60 }, { mode: "car", km: 100, minutes: 70, waitMin: 60 }];
+const m = C.modelFromLegs(legs);
+assert(m && Math.abs(m.total - 260) < 1e-6, "total 260 min");
+assert(C.modelFromLegs([{ mode: "car", km: 100, minutes: 70, waitMin: 0 }]) === null, "no waits -> flat fallback");
+const availShort = 400; // minutes of light
+assert(C.reach(C.timeModel([], 200, 140), availShort).likely >= 199, "flat model: all the way");
+assert(C.reach(m, availShort).likely < 199, "route waits: not all the way");
 // map.html must load the chain script before routing.js.
 const html = fs.readFileSync(__dirname + "/../hitch/templates/map.html", "utf8");
 assert(html.indexOf("routing_gang_chain.js") > 0 && html.indexOf("routing_gang_chain.js") < html.indexOf("/static/routing.js"));

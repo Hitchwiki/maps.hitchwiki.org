@@ -219,6 +219,20 @@
     t += (routeKm - last) * perKm; pts.push([routeKm, t]);
     return { pts, total: t, rides: waits.length, waits, lo: t * FAST, hi: t * SLOW };
   }
+  // IDEAS #1325: the same km -> minutes points, built from a planned route's own legs (board waits from
+  // logged spot medians, walk legs as pauses) instead of the flat 20 min per 60 km. null if no leg has a wait.
+  function modelFromLegs(legs) {
+    if (!legs || !legs.some(l => l.mode === "car" && l.waitMin > 0)) return null;
+    const pts = [[0, 0]];
+    let km = 0, t = 0;
+    for (const l of legs) {
+      if (l.mode === "car") {
+        if (l.waitMin > 0) { t += l.waitMin; pts.push([km, t]); }
+        km += l.km; t += l.minutes; pts.push([km, t]);
+      } else { t += l.minutes; pts.push([km, t]); }
+    }
+    return km > 0 ? { pts, total: t, rides: legs.filter(l => l.mode === "car" && l.waitMin > 0).length, waits: [], lo: t * FAST, hi: t * SLOW } : null;
+  }
   // Model minutes at a given km, and km reached after `min` model minutes (the inverse).
   function minAt(model, at) {
     const p = model.pts;
@@ -274,6 +288,6 @@
     for (const p of a) { for (const q of b) if (Math.abs(p[0] - q[0]) < 0.05 && km(p, q) <= (tol || 1)) { n++; break; } }
     return a.length ? n / a.length : 0;
   }
-  const api = { overlap, startOptions, timeModel, minAt, kmAt, reach, sunset, pointAt, slice, HOP_KM, GLOBAL_WAIT, FAST, SLOW, ridersPath, ridersUsable, pickVia, MIN_EVIDENCE, km, bearing, toward, score, densify, nearRoute, oldChain, newChain, driverList };
+  const api = { overlap, startOptions, timeModel, modelFromLegs, minAt, kmAt, reach, sunset, pointAt, slice, HOP_KM, GLOBAL_WAIT, FAST, SLOW, ridersPath, ridersUsable, pickVia, MIN_EVIDENCE, km, bearing, toward, score, densify, nearRoute, oldChain, newChain, driverList };
   if (typeof module !== "undefined") module.exports = api; else root.RGChain = api;
 })(typeof window !== "undefined" ? window : this);
