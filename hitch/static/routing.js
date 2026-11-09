@@ -330,7 +330,7 @@
     const h = Math.floor(min / 60), m = min % 60;
     return h ? `${h}h${String(m).padStart(2, "0")}` : `${m}m`;
   }
-  function fmtClock(d) { return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); }
+  function fmtClock(d) { return d.toLocaleTimeString(window.__LANG__ || [], { hour: "numeric", minute: "2-digit" }); }
   function fmtDay(d) { return d.toLocaleDateString([], { weekday: "short" }); }
   // Distance display follows the user's unit setting. The conversion helpers live in
   // map.js; fall back to metric so routing.js still runs standalone (node harness),
@@ -842,7 +842,7 @@
       if (!(avail > 0)) return;
       const r = C.reach(C.timeModel([], km, driveMin), avail);
       const all = r.likely >= km - 1;
-      const clock = new Date(s.ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      const clock = new Date(s.ms).toLocaleTimeString(window.__LANG__ || [], { hour: "2-digit", minute: "2-digit" });
       const box = document.createElement("div");
       box.className = "rp-daylight";
       box.style.cssText = "margin:8px 12px;font-size:14px";
