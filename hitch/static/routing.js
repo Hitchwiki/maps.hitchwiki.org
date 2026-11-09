@@ -861,13 +861,20 @@
   // IDEAS #1327 (routing-gang phase B, driver side): a "🚗 I'm driving" button under the result lists the map's
   // spots within 2 km of the highlighted road, newest ride first (RGChain.driverList), so a driver can see where
   // to pick someone up. Stable 50% arm route-drive-v1; both arms are counted via route_drive_shown.
-  function showRouteDriver() {
+  function showRouteDriver(tries, seq) {
     try {
+      if (!tries) RJ._driveSeq = (RJ._driveSeq || 0) + 1;
+      seq = seq || RJ._driveSeq;
+      if (seq !== RJ._driveSeq) return;  // a newer search superseded this retry
       const C = window.RGChain;
       const sheet = resultsSheet();
       const old = sheet && sheet.querySelector(".rp-drive");
       if (old) old.remove();
-      if (!C || !C.driverList || !sheet || !RJ.routes || !RJ.routes[0] || !window.allMarkers || !window.allMarkers.length) return;
+      if (!C || !C.driverList || !sheet || !RJ.routes || !RJ.routes[0] || !RJ.start) return;
+      if (!window.allMarkers || !window.allMarkers.length) {  // spots still loading: retry for ~10 s
+        if ((tries || 0) < 10) setTimeout(() => showRouteDriver((tries || 0) + 1, seq), 1000);
+        return;
+      }
       let arm = null;
       try { arm = localStorage.getItem("route-drive-v1"); } catch (e) {}
       if (arm !== "on" && arm !== "off") {
