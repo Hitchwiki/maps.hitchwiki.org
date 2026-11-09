@@ -7,16 +7,15 @@ const source = fs.readFileSync(
   path.join(__dirname, "..", "hitch", "static", "routing.js"), "utf8"
 );
 
-test("route sheet asks one yes/no 'would you hitchhike this way' question", () => {
-  assert.match(source, /data-judge="yes"/);
-  assert.match(source, /data-judge="no"/);
-  assert.match(source, /Would you hitchhike this way\?/);
+test("route sheet has one judgement prompt: the thumbs vote, which also fires route_judged", () => {
+  assert.doesNotMatch(source, /data-judge=/);
+  assert.doesNotMatch(source, /rp-judge"/);
+  assert.match(source, /Is this a good hitchhiking route\?/);
+  assert.match(source, /hmTrack\("route_judged", \{ answer: vote === "up" \? "yes" : "no"/);
 });
 
 test("judgement logs the first answer only, with coarse 0.5 degree cells", () => {
-  assert.match(source, /hmTrack\("route_judge_shown"\)/);
-  assert.match(source, /hmTrack\("route_judged", \{ answer: button\.dataset\.judge/);
-  assert.match(source, /if \(judge\.dataset\.answered\) return/);
+  assert.match(source, /if \(vote\) return/);
   assert.match(source, /prior: prior, intent:/);
   assert.match(source, /hm_journeys_started/);
   assert.match(source, /Math\.round\(ll\[0\] \* 2\) \/ 2/);
