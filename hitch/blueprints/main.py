@@ -92,6 +92,7 @@ from hitch.blueprints.utils.ride_images import (
 from hitch.blueprints.utils.ride_ip_log import get_client_ip, log_ride_ip
 from hitch.blueprints.utils.ride_sources import THIS_NOSTR_SOURCE, ride_is_replaceable, ride_source
 from hitch.blueprints.utils.route_request_log import log_route_request
+from hitch.blueprints.utils.route_feedback_log import log_route_feedback
 from hitch.blueprints.utils.search_request_log import log_search_request
 from hitch.blueprints.utils.signup_prompt_log import PROMPT_ACTIONS, log_signup_prompt
 from hitch.blueprints.utils.store_published_ride import store_published_ride as _store_published_ride
@@ -636,6 +637,24 @@ def log_route_request_endpoint():
         return ("", 204)
     if -90 <= slat <= 90 and -180 <= slon <= 180 and -90 <= dlat <= 90 and -180 <= dlon <= 180:
         log_route_request(slat, slon, dlat, dlon, data.get("sname", ""), data.get("dname", ""))
+    return ("", 204)
+
+
+# Anonymous 👍/👎 (+ optional short text) on a planner result. Coordinates are rounded
+# client-side; no user id is stored. Always 204 (sendBeacon).
+@main_bp.route("/log-route-feedback", methods=["POST"])
+def log_route_feedback_endpoint():
+    data = request.get_json(silent=True) or {}
+    try:
+        slat, slon = float(data["slat"]), float(data["slon"])
+        dlat, dlon = float(data["dlat"]), float(data["dlon"])
+    except (KeyError, TypeError, ValueError):
+        return ("", 204)
+    vote = data.get("vote")
+    if vote not in ("up", "down"):
+        return ("", 204)
+    if -90 <= slat <= 90 and -180 <= slon <= 180 and -90 <= dlat <= 90 and -180 <= dlon <= 180:
+        log_route_feedback(slat, slon, dlat, dlon, vote, str(data.get("text", "")))
     return ("", 204)
 
 

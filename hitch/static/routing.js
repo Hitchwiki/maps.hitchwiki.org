@@ -804,6 +804,56 @@
     highlight(0);
     upgradeAllToStreets(token);
     updateShareUrl();       // make this search shareable (#dir/from/to)
+    showRouteFeedback();
+  }
+
+  // Routing-gang phase B (Till 2026-11-09): anonymous on-page ask under the result. A vote is an
+  // Umami event plus a server row (coordinates, vote, optional text; no user id). Once per route.
+  function showRouteFeedback() {
+    const sheet = resultsSheet();
+    const opts = sheet && sheet.querySelector(".rp-options");
+    if (!opts || !RJ.start || !RJ.dest) return;
+    const old = sheet.querySelector(".rp-feedback");
+    if (old) old.remove();
+    const from = RJ.start.latlng, to = RJ.dest.latlng;
+    const box = document.createElement("div");
+    box.className = "rp-feedback";
+    box.style.cssText = "margin:8px 12px;font-size:14px";
+    box.innerHTML = `<span>${T("Is this a good hitchhiking route?")}</span>
+      <button type="button" data-v="up" aria-label="${T("Yes")}" style="font-size:18px;margin-left:8px">👍</button>
+      <button type="button" data-v="down" aria-label="${T("No")}" style="font-size:18px">👎</button>
+      <div class="rp-feedback-more" hidden style="margin-top:6px">
+        <textarea maxlength="300" rows="2" style="width:100%" placeholder="${T("What would you change? (optional)")}"></textarea>
+        <button type="button" class="rp-feedback-send">${T("Send")}</button>
+      </div>`;
+    opts.insertAdjacentElement("afterend", box);
+    let vote = null;
+    const post = (text) => {
+      try {
+        const body = JSON.stringify({
+          slat: +from[0].toFixed(3), slon: +from[1].toFixed(3),
+          dlat: +to[0].toFixed(3), dlon: +to[1].toFixed(3),
+          vote: vote, text: text || "",
+        });
+        if (navigator.sendBeacon) navigator.sendBeacon("/log-route-feedback", new Blob([body], { type: "application/json" }));
+      } catch (e) { /* feedback must never break routing */ }
+    };
+    const more = box.querySelector(".rp-feedback-more");
+    box.querySelectorAll("button[data-v]").forEach((b) => {
+      b.onclick = () => {
+        if (vote) return;
+        vote = b.dataset.v;
+        hmTrack("route_feedback", { vote: vote });
+        post("");
+        box.querySelectorAll("button[data-v]").forEach((x) => { x.disabled = true; });
+        more.hidden = false;
+      };
+    });
+    box.querySelector(".rp-feedback-send").onclick = () => {
+      const text = (box.querySelector("textarea").value || "").trim();
+      if (text) { hmTrack("route_feedback_text"); post(text); }
+      box.innerHTML = `<span>${T("Thanks!")}</span>`;
+    };
   }
 
   // The same diagnosis as diagnoseNoRoute(), reduced to one of four fixed labels
