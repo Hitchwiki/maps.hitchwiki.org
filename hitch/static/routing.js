@@ -840,7 +840,8 @@
       const darkMs = s.ms + 30 * 6e4;
       const avail = (darkMs - leave.getTime()) / 6e4;
       if (!(avail > 0)) return;
-      const r = C.reach(C.timeModel([], km, driveMin), avail);
+      const legModel = C.modelFromLegs ? C.modelFromLegs(rt.legs) : null;  // #1325: the route's own waits
+      const r = C.reach(legModel || C.timeModel([], km, driveMin), avail);
       const all = r.likely >= km - 1;
       const clock = new Date(s.ms).toLocaleTimeString(window.__LANG__ || [], { hour: "2-digit", minute: "2-digit" });
       const box = document.createElement("div");
@@ -852,7 +853,7 @@
       const anchor = sheet.querySelector(".rp-feedback") || sheet.querySelector(".rp-options");
       if (!anchor) return;
       anchor.insertAdjacentElement("beforebegin", box);
-      hmTrack("route_daylight_shown", { arm: arm, reach_all: all, lang: (typeof window !== "undefined" && window.__LANG__) || "en" });
+      hmTrack("route_daylight_shown", { arm: arm, reach_all: all, waits: legModel ? "route" : "flat", lang: (typeof window !== "undefined" && window.__LANG__) || "en" });
     } catch (e) { /* must never break routing */ }
   }
 
