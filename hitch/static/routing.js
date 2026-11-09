@@ -894,6 +894,14 @@
         if (vote) return;
         vote = b.dataset.v;
         hmTrack("route_feedback", { vote: vote });
+        // Same event/payload as the retired "Would you hitchhike this way?" tap (#1237), so EXP-1242/1243 series continue.
+        try {
+          const cell = (ll) => (Math.round(ll[0] * 2) / 2) + "," + (Math.round(ll[1] * 2) / 2);
+          let prior = "no";
+          try { prior = parseInt(localStorage.getItem("hm_journeys_started") || "0", 10) > 0 ? "yes" : "no"; } catch (e) {}
+          const picked = sheet.querySelector(".rp-intent .rp-intent-selected");
+          hmTrack("route_judged", { answer: vote === "up" ? "yes" : "no", of: RJ.routes.length, a_cell: cell(from), b_cell: cell(to), prior: prior, intent: (picked && picked.dataset.intent) || "none" });
+        } catch (e) { /* analytics must never break routing */ }
         post("");
         box.querySelectorAll("button[data-v]").forEach((x) => { x.disabled = true; });
         more.hidden = false;
@@ -1542,12 +1550,6 @@
         '<button type="button" data-intent="this-week">' + T("This week") + '</button>' +
         '<button type="button" data-intent="exploring">' + T("Just exploring") + '</button>' +
         '</div></div>' +
-        '<div class="rp-intent rp-judge" aria-label="' + T("Would you hitchhike this way?") + '">' +
-        '<span class="rp-intent-label">' + T("Would you hitchhike this way?") + '</span>' +
-        '<div class="rp-intent-choices">' +
-        '<button type="button" data-judge="yes">' + T("Yes") + '</button>' +
-        '<button type="button" data-judge="no">' + T("No") + '</button>' +
-        '</div></div>' +
         '<div class="rp-options"></div>';
     }
     return body.querySelector(".rp-options");
@@ -1872,7 +1874,7 @@
           arm = localStorage.getItem("hmRouteDemandArm");
           if (arm !== "show" && arm !== "ctrl") { arm = Math.random() < 0.5 ? "show" : "ctrl"; localStorage.setItem("hmRouteDemandArm", arm); }
         } catch (e) {}
-        const judgeEl = sheet.querySelector(".rp-judge");
+        const judgeEl = sheet.querySelector(".rp-options");
         if (arm === "show" && judgeEl && !sheet.querySelector(".rp-demand")) {
           const line = document.createElement("div");
           line.className = "rp-demand rp-intent-label";
@@ -1882,29 +1884,6 @@
         hmTrack("route_demand_label", { arm: arm, bucket: hit.requests >= 100 ? "100+" : hit.requests >= 50 ? "50-99" : "20-49" });
       });
     })();
-    // One-tap judgement of the first-ranked route (#1237). Endpoints are snapped to
-    // 0.5 degree cells, coarser than the search itself; one answer per result.
-    const judge = resultsSheet() && resultsSheet().querySelector(".rp-judge");
-    if (judge) {
-      judge.dataset.answered = "";
-      judge.querySelectorAll("[data-judge]").forEach(function (button) {
-        button.classList.remove("rp-intent-selected");
-        if (button.dataset.judgeBound) return;
-        button.dataset.judgeBound = "1";
-        button.addEventListener("click", function () {
-          judge.querySelectorAll("[data-judge]").forEach(function (c) { c.classList.toggle("rp-intent-selected", c === button); });
-          if (judge.dataset.answered) return;
-          judge.dataset.answered = "1";
-          const cell = (ll) => (Math.round(ll[0] * 2) / 2) + "," + (Math.round(ll[1] * 2) / 2);
-          // Splits a "No" into "bad route" vs "wouldn't dare": has this device ever started a journey, and what the visitor said about when.
-             let prior = "no";
-             try { prior = parseInt(localStorage.getItem("hm_journeys_started") || "0", 10) > 0 ? "yes" : "no"; } catch (e) {}
-             const picked = resultsSheet().querySelector(".rp-intent:not(.rp-judge) .rp-intent-selected");
-             hmTrack("route_judged", { answer: button.dataset.judge, of: RJ.routes.length, a_cell: cell(RJ.start.latlng), b_cell: cell(RJ.dest.latlng), prior: prior, intent: (picked && picked.dataset.intent) || "none" });
-        });
-      });
-      hmTrack("route_judge_shown");
-    }
     // Rank by core (hitching) time so the headline figures match the sort.
     const fastest = routeEnds(RJ.routes[0]).coreMin;
     RJ.routes.forEach((rt, i) => {
