@@ -1113,5 +1113,7 @@
   "{name} – {year} on the road": "{name} – {year} en la carretera",
   "{n} min median": "mediana de {n} min",
   "{n} of your rides have no date and cannot be counted.": "{n} de tus viajes no tienen fecha y no se pueden contar.",
-  "{year} on the road": "{year} en la carretera"
+  "{year} on the road": "{year} en la carretera",
+  "Likely there before dark (sunset {clock})": "Probablemente allí antes del anochecer (puesta de sol {clock})",
+  "Dark around {clock} · likely about {km} km before then": "Oscurece alrededor de las {clock} · probablemente unos {km} km antes"
 }

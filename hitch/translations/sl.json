@@ -1113,5 +1113,7 @@
   "{name} – {year} on the road": "{name} – leto {year} na cesti",
   "{n} min median": "mediana: {n} min",
   "{n} of your rides have no date and cannot be counted.": "{n} vaših prevozov nima datuma in jih ni mogoče šteti.",
-  "{year} on the road": "Leto {year} na cesti"
+  "{year} on the road": "Leto {year} na cesti",
+  "Likely there before dark (sunset {clock})": "Najverjetneje tam pred mrakom (sončni zahod {clock})",
+  "Dark around {clock} · likely about {km} km before then": "Mrak okoli {clock} · najverjetneje še približno {km} km do takrat"
 }

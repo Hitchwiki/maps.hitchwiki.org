@@ -1113,5 +1113,7 @@
   "{name} – {year} on the road": "{name} – το {year} στο δρόμο",
   "{n} min median": "διάμεσος {n} λεπτά",
   "{n} of your rides have no date and cannot be counted.": "{n} από τις διαδρομές σου δεν έχουν ημερομηνία και δεν μπορούν να μετρηθούν.",
-  "{year} on the road": "Το {year} στο δρόμο"
+  "{year} on the road": "Το {year} στο δρόμο",
+  "Likely there before dark (sunset {clock})": "Πιθανώς εκεί πριν νυχτώσει (ηλιοβασίλεμα {clock})",
+  "Dark around {clock} · likely about {km} km before then": "Νυχτώνει γύρω στις {clock} · πιθανώς περίπου {km} χλμ πριν τότε"
 }

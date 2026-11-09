@@ -1113,5 +1113,7 @@
   "{name} – {year} on the road": "{name} – {year} teedel",
   "{n} min median": "{n} min mediaan",
   "{n} of your rides have no date and cannot be counted.": "{n} sinu sõidust puudub kuupäev ja neid ei saa arvestada.",
-  "{year} on the road": "{year} teedel"
+  "{year} on the road": "{year} teedel",
+  "Likely there before dark (sunset {clock})": "Tõenäoliselt kohal enne pimedat (päikeseloojang {clock})",
+  "Dark around {clock} · likely about {km} km before then": "Pimedaks umbes {clock} · tõenäoliselt umbes {km} km enne seda"
 }
