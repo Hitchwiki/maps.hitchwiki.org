@@ -69,3 +69,17 @@ def test_search_gap_label_drops_addresses():
 
     rows = [_srow(d, "Bahnhofstr 12, X") for d in (1, 2, 3, 4, 5)]
     assert summarise_search_gaps(rows, [])["gaps"][0]["label"] is None
+
+
+def test_route_feedback_counts_only():
+    from hitch.blueprints.utils.route_demand import summarise_route_feedback
+
+    rows = [
+        {"vote": "up", "text": "", "start_lat": "47.1", "start_lon": "7.1", "dest_lat": "52.1", "dest_lon": "13.1"},
+        {"vote": "down", "text": "secret words", "start_lat": "47.2", "start_lon": "7.2", "dest_lat": "52.2", "dest_lon": "13.2"},
+        {"vote": "meh", "text": "x"},
+    ]
+    out = summarise_route_feedback(rows)
+    assert (out["votes_up"], out["votes_down"], out["with_text"], out["unparsable_rows"]) == (1, 1, 1, 1)
+    assert out["corridors"][0]["up"] == 1 and out["corridors"][0]["down"] == 1
+    assert "secret" not in str(out)
