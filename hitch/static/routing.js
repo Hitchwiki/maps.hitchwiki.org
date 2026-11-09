@@ -898,7 +898,7 @@
         const rt = RJ.routes[RJ.highlight || 0] || RJ.routes[0];
         const line = [].concat(...rt.legs.map((l, li) => (l.mode === "car" && rt._layers && rt._layers[li]
           ? rt._layers[li].getLatLngs().map((q) => [q.lat, q.lng]) : [])));
-        if (line.length < 2) { list.textContent = T("No spots found"); return; }
+        if (line.length < 2) { list.textContent = "No spots found"; return; }
         const cum = [0];
         for (let k = 1; k < line.length; k++) cum.push(cum[k - 1] + haversineKm(line[k - 1], line[k]));
         let la0 = 90, la1 = -90, lo0 = 180, lo1 = -180;
@@ -913,7 +913,7 @@
         const sl = [], sc = [];
         line.forEach((q, k) => { if (k % step === 0 || k === line.length - 1) { sl.push(q); sc.push(cum[k]); } });
         const rows = C.driverList(C.nearRoute(spots, sl, sc, 2), Date.now(), 2).slice(0, 8);
-        if (!rows.length) { list.textContent = T("No spots found"); return; }
+        if (!rows.length) { list.textContent = "No spots found"; return; }
         rows.forEach((r) => {
           const div = document.createElement("div");
           div.appendChild(spotLink([r.s.lat, r.s.lon]));
