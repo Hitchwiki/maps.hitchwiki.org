@@ -3766,7 +3766,7 @@
   // their week starts now rather than asking a person who pledged yesterday.
   const driverPledgeFollowup = {
     WAIT_MS: 7 * 86400000,
-    MAX_ASKS: 2,
+    MAX_ASKS: 3,
 
     check() {
       try {
@@ -3788,8 +3788,9 @@
         hmTrack("driver_pledge_followup_shown", { surface: surface, ask: asks + 1 });
         const answer = function (value) {
           return function () {
-            try { localStorage.setItem("hmDriverFollowupDone", "1"); } catch (e) {}
-            hmTrack("driver_pledge_followup_answered", { answer: value, surface: surface, days: days });
+            // "Not yet" is not an answer to retire the question: re-ask after another week (up to MAX_ASKS).
+            if (value === "yes") { try { localStorage.setItem("hmDriverFollowupDone", "1"); } catch (e) {} }
+            hmTrack("driver_pledge_followup_answered", { answer: value, surface: surface, days: days, ask: asks + 1 });
           };
         };
         journeyUI.dialog({
