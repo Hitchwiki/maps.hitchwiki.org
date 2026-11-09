@@ -1155,7 +1155,7 @@
       // has). Waiting is when a driver can actually read it. Control arm is counted but sees nothing.
       if (window.hmOpenSign) {
         const signArm = (window.hmVariant || function (_n, v) { return v[0]; })("waiting-sign-v1", ["control", "sign"]);
-        hmTrack("waiting_sign_shown", { variant: signArm });
+        if (!window._wsShown) { window._wsShown = true; hmTrack("waiting_sign_shown", { variant: signArm }); }
         if (signArm === "sign") {
           const signBtn = document.createElement("button");
           signBtn.className = "inr-pausepill";
