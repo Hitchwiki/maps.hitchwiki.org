@@ -662,7 +662,8 @@
   // ---- routing + drawing -------------------------------------------------
   function clearRoutes() {
     RJ._token = {}; // stop any in-flight street upgrades from touching old layers
-    [RJ.routeLayer, RJ.spotLayer, RJ.tagLayer].forEach((l) => { if (l) map.removeLayer(l); });
+    [RJ.routeLayer, RJ.spotLayer, RJ.tagLayer, RJ.stopLayer].forEach((l) => { if (l) map.removeLayer(l); });
+    RJ.stopLayer = null;
     RJ.routeLayer = RJ.spotLayer = RJ.tagLayer = RJ.tagMarker = null;
     RJ.routes = [];
     // Any fallback search still downloading its graph must not draw onto a map
@@ -1205,8 +1206,65 @@
     RJ.tagMarker.addTo(RJ.tagLayer);
     // Only the highlighted route's spots are shown.
     drawRouteSpots(i);
+    drawStopHints(i);
     const sheet = resultsSheet();
     if (sheet) sheet.querySelectorAll(".rp-option").forEach((r) => r.classList.toggle("active", Number(r.dataset.i) === i));
+  }
+
+  // Fuel / rest / service stops along the highlighted route, read from the static OSM stop tiles (no Overpass call).
+  // Shown as small orange dots: "if your driver turns off early, ask to be let out here". Display only, from OSM,
+  // not checked for hitchhiking. Max one per 15 km, none within 3 km of the route ends. EXP-1313.
+  async function drawStopHints(i) {
+    const F = window.RGFallback;
+    RJ._stopSeq = (RJ._stopSeq || 0) + 1;
+    const seq = RJ._stopSeq;
+    if (RJ.stopLayer) RJ.stopLayer.clearLayers();
+    if (!F) return;
+    const rt = RJ.routes[i];
+    const line = [].concat(...rt.legs.filter((l) => l.mode === "car").map((l) => l.path));
+    if (line.length < 2) return;
+    const cum = [0];
+    for (let k = 1; k < line.length; k++) cum.push(cum[k - 1] + haversineKm(line[k - 1], line[k]));
+    const total = cum[cum.length - 1];
+    if (total < 20 || total > 1500) return;
+    const step = Math.max(1, Math.round(line.length / 300));
+    const idxs = line.map((_, k) => k).filter((k) => k % step === 0 || k === line.length - 1);
+    const pts = idxs.map((k) => line[k]);
+    if (!F.inCoverage(pts)) return;
+    let els;
+    try {
+      const tiles = await Promise.all(F.tileKeys(pts, 0.01).map((k) => fetch(`/static/osm-stops/${k}.json`)
+        .then((r) => (r.status === 404 ? [] : r.ok ? r.json() : Promise.reject(new Error(r.status))))));
+      els = F.tileElements(tiles, pts, 0.01);
+    } catch (e) { return; }
+    if (seq !== RJ._stopSeq || RJ.highlight !== i) return; // user picked another route meanwhile
+    const found = [];
+    for (const e of els) {
+      const tg = e.tags || {};
+      if (tg.highway === "motorway_junction") continue;
+      let off = 1e9, at = 0;
+      for (let k = 0; k < pts.length; k++) {
+        const d = haversineKm([e.lat, e.lon], pts[k]);
+        if (d < off) { off = d; at = cum[idxs[k]]; }
+      }
+      if (off > 0.5 || at < 3 || at > total - 3) continue;
+      found.push({ lat: e.lat, lon: e.lon, at, svc: tg.highway === "services" || tg.highway === "rest_area",
+        name: tg.name || (tg.amenity === "fuel" ? "Fuel station" : "Service / rest area") });
+    }
+    found.sort((x, y) => (y.svc - x.svc) || x.at - y.at);
+    const keep = [];
+    for (const f of found) if (!keep.some((k) => Math.abs(k.at - f.at) < 15)) keep.push(f);
+    if (!keep.length) return;
+    if (!RJ.stopLayer) RJ.stopLayer = L.layerGroup().addTo(map);
+    keep.forEach((x) => {
+      const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+      L.circleMarker([x.lat, x.lon], { radius: 5, color: "#e37400", weight: 2, fillColor: "#fbbc04", fillOpacity: 0.9 })
+        .bindPopup(`<b>\u26FD ${esc(x.name)}</b><br>km ${Math.round(x.at)} on this route. If your driver turns off before the next stop, ask to be let out here: `
+          + `riders let out at fuel and rest stops got a next ride about 1.6x as often.<br><small>From OpenStreetMap, not checked for hitchhiking.</small>`)
+        .on("popupopen", () => hmTrack("route_dropoff_click", { svc: x.svc, at: Math.round(x.at) }))
+        .addTo(RJ.stopLayer);
+    });
+    hmTrack("route_dropoff_shown", { n: keep.length });
   }
 
   // Marker for a spot where you get in or out of a car. The first boarding spot
