@@ -1241,14 +1241,21 @@
     } catch (e) { return; }
     if (seq !== RJ._stopSeq || RJ.highlight !== i) return; // user picked another route meanwhile
     const found = [];
+    let entry = null;
     for (const e of els) {
       const tg = e.tags || {};
-      if (tg.highway === "motorway_junction") continue;
       let off = 1e9, at = 0;
       for (let k = 0; k < pts.length; k++) {
         const d = haversineKm([e.lat, e.lon], pts[k]);
         if (d < off) { off = d; at = cum[idxs[k]]; }
       }
+      // "Highway access toward B": first motorway exit or service area on the road line out of A (Till 2026-10-19; #1308,
+      // same rule as the dev page: within 0.4 km of the line and 40 km of the start).
+      const isJ = tg.highway === "motorway_junction", isSvc = tg.highway === "services" || tg.highway === "rest_area";
+      if ((isJ || isSvc) && off <= 0.4 && at <= 40 && (!entry || at < entry.at)) {
+        entry = { lat: e.lat, lon: e.lon, at, name: tg.name || (isJ ? (tg.ref ? "Exit " + tg.ref : "Motorway exit") : "Service / rest area") };
+      }
+      if (isJ) continue;
       if (off > 0.5 || at < 3 || at > total - 3) continue;
       found.push({ lat: e.lat, lon: e.lon, at, svc: tg.highway === "services" || tg.highway === "rest_area",
         name: tg.name || (tg.amenity === "fuel" ? "Fuel station" : "Service / rest area") });
@@ -1256,8 +1263,22 @@
     found.sort((x, y) => (y.svc - x.svc) || x.at - y.at);
     const keep = [];
     for (const f of found) if (!keep.some((k) => Math.abs(k.at - f.at) < 15)) keep.push(f);
-    if (!keep.length) return;
     if (!RJ.stopLayer) RJ.stopLayer = L.layerGroup().addTo(map);
+    if (entry) {
+      // 50/50 split so the effect on found routes can be read (route-entry-v1); the control arm is counted but sees nothing.
+      const arm = hmVariant("route-entry-v1", ["control", "entry"]);
+      const eKey = i + ":" + Math.round(total);
+      if (RJ._entryShown !== eKey) { RJ._entryShown = eKey; hmTrack("route_entry_shown", { variant: arm }); }
+      if (arm === "entry") {
+        const esc0 = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+        L.circleMarker([entry.lat, entry.lon], { radius: 7, color: "#1a73e8", weight: 3, fillColor: "#fff", fillOpacity: 1 })
+          .bindPopup(`<b>Highway access toward B</b><br>${esc0(entry.name)}, km ${Math.round(entry.at)} along the road<br>`
+            + `<small>First exit or service area on the road out of A. From OpenStreetMap, not checked for hitchhiking.</small>`)
+          .on("popupopen", () => hmTrack("route_entry_click", {}))
+          .addTo(RJ.stopLayer);
+      }
+    }
+    if (!keep.length) return;
     keep.forEach((x) => {
       const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
       L.circleMarker([x.lat, x.lon], { radius: 5, color: "#e37400", weight: 2, fillColor: "#fbbc04", fillOpacity: 0.9 })
