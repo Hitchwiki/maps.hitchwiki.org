@@ -1926,9 +1926,8 @@
       // arm does not fire the browser prompt cold when the state is "prompt"; it leaves the
       // "Use my location" button with a one-line reason so the ask follows a tap. English only
       // (the copy has no translations); other languages are "control-i18n".
-      const locateArm = !opts.autoLocate ? ""
-        : (window.__LANG__ && window.__LANG__ !== "en") ? "control-i18n"
-        : (window.hmVariant || function (_n, v) { return v[0]; })("picker-locate-v1", ["control", "explain"]);
+      // Retired 2026-11-09 (EXP-748 null): control for everyone, variant kept so series continue.
+      const locateArm = !opts.autoLocate ? "" : "control";
 
       // Fire the moment the picker card is on screen, before any terminal
       // outcome. The other outcomes only fire on confirm/cancel/location-result,

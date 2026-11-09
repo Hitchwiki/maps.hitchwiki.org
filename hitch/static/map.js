@@ -3789,10 +3789,8 @@ let spotStartCtaObserver = null;
 // journey", so the alt arm changes label AND icon together (a bundle test of "a clearer
 // start button", not of either part alone). English only: the alt copy has no translations,
 // so other languages are tagged "control-i18n" to keep the control series comparable.
-const spotCtaVariant =
-  window.__LANG__ && window.__LANG__ !== "en"
-    ? "control-i18n"
-    : (window.hmVariant || function (_n, v) { return v[0]; })("spot-start-cta-v1", ["control", "start-here"]);
+// Retired 2026-11-09 (EXP-638 kill met): control for everyone, variant kept so series continue.
+const spotCtaVariant = "control";
 
 function observeSpotStartCta(hitchBtn) {
   if (spotStartCtaObserver) {
@@ -4561,10 +4559,8 @@ function showSuccessOverlay(opts) {
   // English only: the new copy has no translations yet, so a non-English visitor would
   // see a half-English card and confound the arm; they are tagged "control-i18n" so
   // the control series a readout compares against stays English-only.
-  shareVariant =
-    window.__LANG__ && window.__LANG__ !== "en"
-      ? "control-i18n"
-      : chooseVariant("ride-share-driver-v1", ["control", "thank-driver"]);
+  // Retired 2026-11-09 (EXP-633 inconclusive by volume): control for everyone.
+  shareVariant = "control";
   hmTrack("ride_share_exposure", { variant: shareVariant });
   trackShareDeferredReturn();
   const shareTitle = $$("#success-share-block h2");
