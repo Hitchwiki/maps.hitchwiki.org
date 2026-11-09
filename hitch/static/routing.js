@@ -847,12 +847,12 @@
       box.className = "rp-daylight";
       box.style.cssText = "margin:8px 12px;font-size:14px";
       box.textContent = all
-        ? "Likely there before dark (sunset " + clock + ")"
-        : "Dark around " + clock + " · likely about " + Math.round(r.likely) + " km before then";
+        ? T("Likely there before dark (sunset {clock})", { clock: clock })
+        : T("Dark around {clock} · likely about {km} km before then", { clock: clock, km: Math.round(r.likely) });
       const anchor = sheet.querySelector(".rp-feedback") || sheet.querySelector(".rp-options");
       if (!anchor) return;
       anchor.insertAdjacentElement("beforebegin", box);
-      hmTrack("route_daylight_shown", { arm: arm, reach_all: all });
+      hmTrack("route_daylight_shown", { arm: arm, reach_all: all, lang: (typeof window !== "undefined" && window.__LANG__) || "en" });
     } catch (e) { /* must never break routing */ }
   }
 

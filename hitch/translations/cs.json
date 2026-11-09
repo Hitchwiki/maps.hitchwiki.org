@@ -1113,5 +1113,7 @@
   "{name} – {year} on the road": "{name} – rok {year} na cestách",
   "{n} min median": "medián {n} min",
   "{n} of your rides have no date and cannot be counted.": "{n} vašich jízd nemá datum a nemůže být započítáno.",
-  "{year} on the road": "Rok {year} na cestách"
+  "{year} on the road": "Rok {year} na cestách",
+  "Likely there before dark (sunset {clock})": "Pravděpodobně tam před setměním (západ slunce v {clock})",
+  "Dark around {clock} · likely about {km} km before then": "Bude tma kolem {clock} · pravděpodobně zhruba {km} km před tím"
 }

@@ -1113,5 +1113,7 @@
   "{name} – {year} on the road": "{name} – {year} წელი გზაზე",
   "{n} min median": "მედიანა {n} წუთი",
   "{n} of your rides have no date and cannot be counted.": "შენი {n} მოგზაურობას თარიღი არ აქვს და ვერ იქნება გათვლილი.",
-  "{year} on the road": "{year} წელი გზაზე"
+  "{year} on the road": "{year} წელი გზაზე",
+  "Likely there before dark (sunset {clock})": "სავარაუდოდ, ბნელებამდე იქ იქნებით (მზის ჩასვლა {clock})",
+  "Dark around {clock} · likely about {km} km before then": "დაბნელდება დაახლოებით {clock}-ზე · სავარაუდოდ, მანამდე დარჩენილია დაახლოებით {km} კმ"
 }

@@ -1113,5 +1113,7 @@
   "{name} – {year} on the road": "{name} – {year} på veien",
   "{n} min median": "{n} min median",
   "{n} of your rides have no date and cannot be counted.": "{n} av turene dine mangler dato og kan ikke telles med.",
-  "{year} on the road": "{year} på veien"
+  "{year} on the road": "{year} på veien",
+  "Likely there before dark (sunset {clock})": "Sannsynligvis fremme før mørket (solnedgang {clock})",
+  "Dark around {clock} · likely about {km} km before then": "Mørkt rundt {clock} · sannsynligvis omtrent {km} km før da"
 }

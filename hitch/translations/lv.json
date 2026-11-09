@@ -1113,5 +1113,7 @@
   "{name} – {year} on the road": "{name} – {year} gads ceļā",
   "{n} min median": "{n} min mediāna",
   "{n} of your rides have no date and cannot be counted.": "{n} no taviem ceļojumiem nav datuma, un tos nevar ieskaitīt.",
-  "{year} on the road": "{year} gads ceļā"
+  "{year} on the road": "{year} gads ceļā",
+  "Likely there before dark (sunset {clock})": "Visticamāk būšu tur pirms tumsas (saulriets {clock})",
+  "Dark around {clock} · likely about {km} km before then": "Tumsa ap {clock} · visticamāk ap {km} km līdz tam"
 }

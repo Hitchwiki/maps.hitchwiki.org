@@ -1113,5 +1113,7 @@
   "{name} – {year} on the road": "{name} – {year} pe drumuri",
   "{n} min median": "median {n} min",
   "{n} of your rides have no date and cannot be counted.": "{n} dintre cursele tale nu au dată și nu pot fi contorizate.",
-  "{year} on the road": "{year} pe drumuri"
+  "{year} on the road": "{year} pe drumuri",
+  "Likely there before dark (sunset {clock})": "Probabil ajungi înainte de întuneric (apus la {clock})",
+  "Dark around {clock} · likely about {km} km before then": "Se întunecă în jurul orei {clock} · probabil mai sunt aproximativ {km} km până atunci"
 }

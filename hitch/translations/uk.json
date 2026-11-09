@@ -1113,5 +1113,7 @@
   "{name} – {year} on the road": "{name} – {year} рік у дорозі",
   "{n} min median": "медіана {n} хв",
   "{n} of your rides have no date and cannot be counted.": "{n} з ваших поїздок не мають дати і не можуть бути враховані.",
-  "{year} on the road": "{year} рік у дорозі"
+  "{year} on the road": "{year} рік у дорозі",
+  "Likely there before dark (sunset {clock})": "Ймовірно, прибудете до темряви (захід о {clock})",
+  "Dark around {clock} · likely about {km} km before then": "Темніє близько {clock} · імовірно, ще близько {km} км до цього моменту"
 }
