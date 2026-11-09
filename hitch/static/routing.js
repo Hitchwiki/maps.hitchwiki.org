@@ -1221,7 +1221,9 @@
     if (RJ.stopLayer) RJ.stopLayer.clearLayers();
     if (!F) return;
     const rt = RJ.routes[i];
-    const line = [].concat(...rt.legs.filter((l) => l.mode === "car").map((l) => l.path));
+    // Use the drawn lines: once the OSRM street geometry has replaced the spot-to-spot segments they follow the real road.
+    const line = [].concat(...rt.legs.map((l, li) => (l.mode === "car" && rt._layers[li]
+      ? rt._layers[li].getLatLngs().map((q) => [q.lat, q.lng]) : [])));
     if (line.length < 2) return;
     const cum = [0];
     for (let k = 1; k < line.length; k++) cum.push(cum[k - 1] + haversineKm(line[k - 1], line[k]));
@@ -1264,7 +1266,8 @@
         .on("popupopen", () => hmTrack("route_dropoff_click", { svc: x.svc, at: Math.round(x.at) }))
         .addTo(RJ.stopLayer);
     });
-    hmTrack("route_dropoff_shown", { n: keep.length });
+    const shownKey = i + ":" + keep.length + ":" + Math.round(total);
+    if (RJ._stopShown !== shownKey) { RJ._stopShown = shownKey; hmTrack("route_dropoff_shown", { n: keep.length }); }
   }
 
   // Marker for a spot where you get in or out of a car. The first boarding spot
@@ -1361,7 +1364,7 @@
         const pl = rt._layers[li];
         const geo = await streetGeometry(leg.path, leg.km);
         if (token !== RJ._token) return;      // a newer compute superseded us
-        if (geo && map.hasLayer(pl)) pl.setLatLngs(geo);
+        if (geo && map.hasLayer(pl)) { pl.setLatLngs(geo); if (i === RJ.highlight) drawStopHints(i); }
       }
     }
   }
