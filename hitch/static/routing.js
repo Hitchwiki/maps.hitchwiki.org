@@ -1267,7 +1267,7 @@
     if (entry) {
       // 50/50 split so the effect on found routes can be read (route-entry-v1); the control arm is counted but sees nothing.
       const arm = hmVariant("route-entry-v1", ["control", "entry"]);
-      const eKey = i + ":" + Math.round(total);
+      const eKey = i + ":" + JSON.stringify([RJ.start, RJ.dest]);
       if (RJ._entryShown !== eKey) { RJ._entryShown = eKey; hmTrack("route_entry_shown", { variant: arm }); }
       if (arm === "entry") {
         const esc0 = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
