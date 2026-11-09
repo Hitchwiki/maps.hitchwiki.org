@@ -807,6 +807,7 @@
     updateShareUrl();       // make this search shareable (#dir/from/to)
     showRouteFeedback();
     showRouteDaylight();
+    showRouteDriver();
   }
 
   // IDEAS #1317 (routing-gang phase B): "Dark around HH:MM, likely about X km today" under the result,
@@ -854,6 +855,74 @@
       if (!anchor) return;
       anchor.insertAdjacentElement("beforebegin", box);
       hmTrack("route_daylight_shown", { arm: arm, reach_all: all, waits: legModel ? "route" : "flat", lang: (typeof window !== "undefined" && window.__LANG__) || "en" });
+    } catch (e) { /* must never break routing */ }
+  }
+
+  // IDEAS #1327 (routing-gang phase B, driver side): a "🚗 I'm driving" button under the result lists the map's
+  // spots within 2 km of the highlighted road, newest ride first (RGChain.driverList), so a driver can see where
+  // to pick someone up. Stable 50% arm route-drive-v1; both arms are counted via route_drive_shown.
+  function showRouteDriver() {
+    try {
+      const C = window.RGChain;
+      const sheet = resultsSheet();
+      const old = sheet && sheet.querySelector(".rp-drive");
+      if (old) old.remove();
+      if (!C || !C.driverList || !sheet || !RJ.routes || !RJ.routes[0] || !window.allMarkers || !window.allMarkers.length) return;
+      let arm = null;
+      try { arm = localStorage.getItem("route-drive-v1"); } catch (e) {}
+      if (arm !== "on" && arm !== "off") {
+        arm = Math.random() < 0.5 ? "on" : "off";
+        try { localStorage.setItem("route-drive-v1", arm); } catch (e) {}
+      }
+      const anchor = sheet.querySelector(".rp-feedback") || sheet.querySelector(".rp-options");
+      if (!anchor) return;
+      hmTrack("route_drive_shown", { arm: arm, lang: (typeof window !== "undefined" && window.__LANG__) || "en" });
+      if (arm !== "on") return;
+      const box = document.createElement("div");
+      box.className = "rp-drive";
+      box.style.cssText = "margin:8px 12px;font-size:14px";
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = "🚗 I'm driving";
+      btn.title = "Spots along this road where hitchhikers have recently been picked up";
+      const list = document.createElement("div");
+      list.style.display = "none";
+      box.appendChild(btn); box.appendChild(list);
+      let built = false;
+      btn.addEventListener("click", () => {
+        const open = list.style.display === "none";
+        list.style.display = open ? "block" : "none";
+        hmTrack("route_drive_toggled", { open: open });
+        if (!open || built) return;
+        built = true;
+        const rt = RJ.routes[RJ.highlight || 0] || RJ.routes[0];
+        const line = [].concat(...rt.legs.map((l, li) => (l.mode === "car" && rt._layers && rt._layers[li]
+          ? rt._layers[li].getLatLngs().map((q) => [q.lat, q.lng]) : [])));
+        if (line.length < 2) { list.textContent = "No spots found"; return; }
+        const cum = [0];
+        for (let k = 1; k < line.length; k++) cum.push(cum[k - 1] + haversineKm(line[k - 1], line[k]));
+        let la0 = 90, la1 = -90, lo0 = 180, lo1 = -180;
+        line.forEach((q) => { la0 = Math.min(la0, q[0]); la1 = Math.max(la1, q[0]); lo0 = Math.min(lo0, q[1]); lo1 = Math.max(lo1, q[1]); });
+        const m = 0.03;
+        const spots = [];
+        for (const mk of window.allMarkers) {
+          const d = mk.options && mk.options._data;
+          if (d && d.lat >= la0 - m && d.lat <= la1 + m && d.lon >= lo0 - m && d.lon <= lo1 + m) spots.push(d);
+        }
+        const step = Math.max(1, Math.round(line.length / 300));
+        const sl = [], sc = [];
+        line.forEach((q, k) => { if (k % step === 0 || k === line.length - 1) { sl.push(q); sc.push(cum[k]); } });
+        const rows = C.driverList(C.nearRoute(spots, sl, sc, 2), Date.now(), 2).slice(0, 8);
+        if (!rows.length) { list.textContent = "No spots found"; return; }
+        rows.forEach((r) => {
+          const div = document.createElement("div");
+          div.appendChild(spotLink([r.s.lat, r.s.lon]));
+          div.appendChild(document.createTextNode(" · km " + Math.round(r.at) + (r.ageDays === null ? "" : " · " + Math.round(r.ageDays) + " d")));
+          div.addEventListener("click", () => hmTrack("route_drive_spot_click", {}));
+          list.appendChild(div);
+        });
+      });
+      anchor.insertAdjacentElement("beforebegin", box);
     } catch (e) { /* must never break routing */ }
   }
 

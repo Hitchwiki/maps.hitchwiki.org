@@ -635,7 +635,8 @@
       .on("popupopen", () => track("routing_gang_entry_click", {}));
     pl.bail.forEach(x => {
       L.circleMarker([x.lat, x.lon], { radius: 5, color: "#e37400", weight: 2, fillColor: "#fbbc04", fillOpacity: 0.9 }).addTo(extraLayer)
-        .bindPopup(`<div class="rg-pop"><h4>⛽ ${esc(x.name)}</h4><div>km ${Math.round(x.at)} · right on the road</div><div>If your driver turns off before the next stop, ask to be let out here: riders let out at fuel and rest stops got a next ride about 1.6x as often.</div><div class="mut">From OpenStreetMap, not checked for hitchhiking. <a href="https://www.openstreetmap.org/?mlat=${x.lat}&mlon=${x.lon}#map=17/${x.lat}/${x.lon}" target="_blank">OSM</a></div></div>`);
+        .bindPopup(`<div class="rg-pop"><h4>⛽ ${esc(x.name)}</h4><div>km ${Math.round(x.at)} · right on the road</div><div>If your driver turns off before the next stop, ask to be let out here: riders let out at fuel and rest stops got a next ride about 1.6x as often.</div><div class="mut">From OpenStreetMap, not checked for hitchhiking. <a href="https://www.openstreetmap.org/?mlat=${x.lat}&mlon=${x.lon}#map=17/${x.lat}/${x.lon}" target="_blank">OSM</a></div></div>`)
+        .on("popupopen", () => track("routing_gang_dropoff_click", { svc: !!x.svc, at: Math.round(x.at) }));
     });
   }
   async function fetchBailouts(pl, a, b, legOf) {
