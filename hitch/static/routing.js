@@ -1596,7 +1596,7 @@
   if (typeof window !== "undefined") {
     window.hmOpenSign = function (source) {
       let name = signName();
-      if (!name) name = (window.prompt(T("Where to?")) || "").trim();
+      if (!name) name = (window.prompt(T("Choose destination, or click on the map")) || "").trim();
       if (name) openSign(source, 0, name);
     };
   }
