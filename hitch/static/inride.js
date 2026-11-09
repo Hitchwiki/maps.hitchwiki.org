@@ -3791,6 +3791,16 @@
             // "Not yet" is not an answer to retire the question: re-ask after another week (up to MAX_ASKS).
             if (value === "yes") { try { localStorage.setItem("hmDriverFollowupDone", "1"); } catch (e) {} }
             hmTrack("driver_pledge_followup_answered", { answer: value, surface: surface, days: days, ask: asks + 1 });
+            // IDEAS #1312: a driver who says "yes" is the best-placed person to tell another driver.
+            // Native share sheet only (no fallback UI); the link carries ref=pledge-yes for attribution.
+            if (value === "yes" && navigator.share) {
+              try {
+                navigator.share({ title: "Hitchwiki Maps", url: location.origin + "/?ref=pledge-yes" })
+                  .then(function () { hmTrack("driver_pledge_followup_share", { ok: true }); })
+                  .catch(function () { hmTrack("driver_pledge_followup_share", { ok: false }); });
+                hmTrack("driver_pledge_followup_share_opened");
+              } catch (e) { /* share is a bonus, never break the answer */ }
+            }
           };
         };
         journeyUI.dialog({
