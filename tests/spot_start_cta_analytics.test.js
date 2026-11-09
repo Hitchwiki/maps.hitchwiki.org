@@ -21,10 +21,10 @@ test("each spot open resets the observer and a click has a direct event", () => 
   assert.match(SOURCE, /hitchBtn\.onclick[\s\S]*hmTrack\("spot_start_cta_clicked", \{ variant: spotCtaVariant \}\)/);
 });
 
-test("#515: both spot-CTA events carry the A/B variant; non-English is control-i18n", () => {
+test("#515: both spot-CTA events carry the A/B variant; arm retired to control 2026-11-09", () => {
   assert.match(SOURCE, /hmTrack\("spot_start_cta_viewed", \{ variant: spotCtaVariant \}\)/);
   assert.match(SOURCE, /hmTrack\("spot_start_cta_clicked", \{ variant: spotCtaVariant \}\)/);
-  assert.match(SOURCE, /"control-i18n"[\s\S]*"spot-start-cta-v1", \["control", "start-here"\]/);
+  assert.match(SOURCE, /const spotCtaVariant = "control";/);
   // must not go through chooseVariant, a const declared far below this code (TDZ)
   assert.doesNotMatch(SOURCE, /chooseVariant\("spot-start-cta-v1"/);
 });

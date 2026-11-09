@@ -11,8 +11,7 @@ const SOURCE = fs.readFileSync(
 // EXP-465 decided the first A/B (control beat "help a friend"). IDEAS #510 opens the
 // next one: a driver-facing arm, English only so untranslated copy cannot confound it.
 test("share card tests thank-driver against control, English only", () => {
-  assert.match(SOURCE, /chooseVariant\("ride-share-driver-v1", \["control", "thank-driver"\]\)/);
-  assert.match(SOURCE, /"control-i18n"/);
+  assert.match(SOURCE, /shareVariant = "control";/);
   assert.match(SOURCE, /hmTrack\("ride_share_exposure", \{ variant: shareVariant \}\)/);
   assert.match(SOURCE, /Thank your driver/);
   assert.match(SOURCE, /Send my ride to my driver/);
