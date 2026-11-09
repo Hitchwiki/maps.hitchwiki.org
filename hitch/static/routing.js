@@ -1537,8 +1537,8 @@
     const label = (RJ.dest && RJ.dest.label) || "";
     return label.split(",")[0].trim();
   }
-  function openSign(source, leg) {
-    const name = signName();
+  function openSign(source, leg, nameOverride) {
+    const name = nameOverride || signName();
     if (!name || typeof document === "undefined") return;
     const ov = document.createElement("div");
     ov.className = "hm-sign";
@@ -1591,6 +1591,14 @@
       fit();
       hmTrack("sign_local_name", { source });
     });
+  }
+  // Used by the in-ride waiting chip (inride.js, route/waiting-sign-v1): the destination from the last planned route, else asked for.
+  if (typeof window !== "undefined") {
+    window.hmOpenSign = function (source) {
+      let name = signName();
+      if (!name) name = (window.prompt(T("Where to?")) || "").trim();
+      if (name) openSign(source, 0, name);
+    };
   }
   // The destination's name as locally written, or null when it is the same as `name`
   // or can't be found (offline, no city at the point).
