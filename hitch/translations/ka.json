@@ -1130,5 +1130,10 @@
   "Experimental: compare with the new route planner": "ექსპერიმენტული: შეადარეთ ახალ მარშრუტის დამგეგმავს",
   "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "შეეხეთ „ჩემი მდებარეობის გამოყენებას“ პინის დასადგმელად სადაც იმყოფებით — თქვენი ბრაუზერი ერთხელ იკითხავს.",
   "First time they picked someone up?": "პირველად როდის აიყვანეს ვინმე?",
-  "Don't know": "არ ვიცი"
+  "Don't know": "არ ვიცი",
+  "From people you follow": "თქვენ მიერ გამოწერილი ადამიანებისგან",
+  "Hitchhikers to follow": "გასაყოლი ავტოსტოპელები",
+  "You're not following anyone yet. Here are some of the most active hitchhikers lately — follow them to see their latest rides here.": "ჯერ არავის გამოწერილხართ. აი, რამდენიმე ბოლო პერიოდის ყველაზე აქტიური ავტოსტოპელი — გამოწერეთ ისინი, რომ აქ ნახოთ მათი უახლესი მოგზაურობები.",
+  "No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.": "ჯერ არ არის მოგზაურობები თქვენ მიერ გამოწერილი ადამიანებისგან. გამოწერეთ სხვა ავტოსტოპელები მათი პროფილის გვერდებიდან, რომ აქ ნახოთ მათი უახლესი მოგზაურობები.",
+  "Recent rides": "ბოლო მოგზაურობები"
 }

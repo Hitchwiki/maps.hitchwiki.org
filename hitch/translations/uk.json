@@ -1130,5 +1130,10 @@
   "Experimental: compare with the new route planner": "Експериментально: порівняйте з новим планувальником маршрутів",
   "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Торкніться «Використати моє місцезнаходження», щоб поставити точку там, де ви перебуваєте — браузер запитає дозвіл лише один раз.",
   "First time they picked someone up?": "Вперше підібрали когось?",
-  "Don't know": "Не знаю"
+  "Don't know": "Не знаю",
+  "From people you follow": "Від людей, на яких ви підписані",
+  "Hitchhikers to follow": "Автостопники, на яких варто підписатися",
+  "You're not following anyone yet. Here are some of the most active hitchhikers lately — follow them to see their latest rides here.": "Ви ще ні на кого не підписані. Ось деякі з найактивніших автостопників останнім часом — підпишіться на них, щоб бачити їхні останні поїздки тут.",
+  "No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.": "Поки що немає поїздок від людей, на яких ви підписані. Підпишіться на інших автостопників зі сторінок їхніх профілів, щоб бачити їхні останні поїздки тут.",
+  "Recent rides": "Останні поїздки"
 }

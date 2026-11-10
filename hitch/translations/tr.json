@@ -1130,5 +1130,10 @@
   "Experimental: compare with the new route planner": "Deneysel: Yeni rota planlayıcısıyla karşılaştırın",
   "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "İşaretçiyi bulunduğunuz yere bırakmak için “Konumumu kullan”a dokunun — tarayıcınız bir kez soracak.",
   "First time they picked someone up?": "İlk kez birini mi aldılar?",
-  "Don't know": "Bilmiyorum"
+  "Don't know": "Bilmiyorum",
+  "From people you follow": "Takip ettiğin kişilerden",
+  "Hitchhikers to follow": "Takip edilecek otostopçular",
+  "You're not following anyone yet. Here are some of the most active hitchhikers lately — follow them to see their latest rides here.": "Henüz kimseyi takip etmiyorsun. İşte son zamanlarda en aktif otostopçulardan bazıları — en son yolculuklarını burada görmek için onları takip et.",
+  "No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.": "Henüz takip ettiğin kişilerden yolculuk yok. En son yolculuklarını burada görmek için diğer otostopçuları profil sayfalarından takip et.",
+  "Recent rides": "Son yolculuklar"
 }

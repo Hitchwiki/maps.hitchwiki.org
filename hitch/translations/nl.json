@@ -1130,5 +1130,10 @@
   "Experimental: compare with the new route planner": "Experimenteel: vergelijk met de nieuwe routeplanner",
   "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Tik op ‘Mijn locatie gebruiken’ om de pin op je huidige plek te zetten — je browser vraagt dit één keer.",
   "First time they picked someone up?": "Eerste keer dat ze iemand hebben opgepikt?",
-  "Don't know": "Weet ik niet"
+  "Don't know": "Weet ik niet",
+  "From people you follow": "Van mensen die je volgt",
+  "Hitchhikers to follow": "Lifters om te volgen",
+  "You're not following anyone yet. Here are some of the most active hitchhikers lately — follow them to see their latest rides here.": "Je volgt nog niemand. Hier zijn enkele van de meest actieve lifters van de laatste tijd — volg ze om hun nieuwste ritten hier te zien.",
+  "No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.": "Nog geen ritten van mensen die je volgt. Volg andere lifters vanaf hun profielpagina's om hun nieuwste ritten hier te zien.",
+  "Recent rides": "Recente ritten"
 }

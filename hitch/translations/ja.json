@@ -1130,5 +1130,10 @@
   "Experimental: compare with the new route planner": "実験的機能：新しいルートプランナーと比較する",
   "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "「現在地を使用」をタップすると現在地にピンが置かれます。ブラウザが1回だけ確認を求めます。",
   "First time they picked someone up?": "初めて人を拾ったのはいつ？",
-  "Don't know": "わからない"
+  "Don't know": "わからない",
+  "From people you follow": "フォロー中の人から",
+  "Hitchhikers to follow": "フォローするヒッチハイカー",
+  "You're not following anyone yet. Here are some of the most active hitchhikers lately — follow them to see their latest rides here.": "まだ誰もフォローしていません。最近最も活発なヒッチハイカーをいくつかご紹介します — フォローすると、ここで最新の乗車が表示されます。",
+  "No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.": "フォロー中の人の乗車はまだありません。他のヒッチハイカーをプロフィールページからフォローすると、ここで最新の乗車が表示されます。",
+  "Recent rides": "最近の乗車"
 }

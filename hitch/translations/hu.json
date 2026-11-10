@@ -1130,5 +1130,10 @@
   "Experimental: compare with the new route planner": "Kísérleti funkció: hasonlítsd össze az új útvonaltervezővel",
   "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Koppints a „Saját helyzetem” gombra, hogy a jelölő oda kerüljön, ahol éppen vagy — a böngésző egyszer rákérdez.",
   "First time they picked someone up?": "Első alkalom, hogy felvett valakit?",
-  "Don't know": "Nem tudom"
+  "Don't know": "Nem tudom",
+  "From people you follow": "A követett személyektől",
+  "Hitchhikers to follow": "Követendő stopposok",
+  "You're not following anyone yet. Here are some of the most active hitchhikers lately — follow them to see their latest rides here.": "Még nem követsz senkit. Íme néhány a legaktívabb stopposok közül az utóbbi időben — kövesd őket, hogy itt lásd legutóbbi útjaikat.",
+  "No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.": "Még nincsenek utak a követett személyektől. Kövess más stopposokat a profiloldalukról, hogy itt lásd legutóbbi útjaikat.",
+  "Recent rides": "Legutóbbi utak"
 }

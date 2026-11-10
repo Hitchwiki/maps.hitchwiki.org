@@ -1130,5 +1130,10 @@
   "Experimental: compare with the new route planner": "Eksperimentalno: uporedi sa novim planerom rute",
   "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Dodirni „Koristi moju lokaciju“ da postaviš pin tamo gde jesi — tvoj pregledač će jednom tražiti dozvolu.",
   "First time they picked someone up?": "Prvi put su pokupili nekoga?",
-  "Don't know": "Ne znam"
+  "Don't know": "Ne znam",
+  "From people you follow": "Od ljudi koje pratite",
+  "Hitchhikers to follow": "Autostoperi koje vredi pratiti",
+  "You're not following anyone yet. Here are some of the most active hitchhikers lately — follow them to see their latest rides here.": "Još ne pratite nikoga. Evo nekih od najaktivnijih autostopera u poslednje vreme — pratite ih da biste ovde videli njihova najnovija putovanja.",
+  "No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.": "Još nema putovanja od ljudi koje pratite. Pratite druge autostopere sa njihovih profila da biste ovde videli njihova najnovija putovanja.",
+  "Recent rides": "Nedavna putovanja"
 }
