@@ -34,6 +34,7 @@
 
   // ---- engine constants --------------------------------------------------
   const WALK_KMH = 5, CAR_KMH = 100, CAR_FACTOR = 1.25, EARTH_KM = 6371;
+  const MID_WAIT_X = 1.5;
   // How far one is willing to walk — applied uniformly to first/last mile
   // (origin<->spot, spot<->dest) AND to hops between spots. A smaller transfer
   // cap disconnects sparse intercity corridors (Berlin<->Amsterdam needs ~8 km
@@ -113,6 +114,11 @@
         if (from === t.s) {
           if (!board.has(from)) board.set(from, []);
           board.get(from).push([tId, to, km, wait]);
+        } else if (from !== to) {
+          // IDEAS #1344/#1345: a known spot the corridor passes is also a place riders started rides; allow boarding
+          // there with the wait x MID_WAIT_X (less evidence than a root). Roots keep priority via the lower wait.
+          if (!board.has(from)) board.set(from, []);
+          board.get(from).push([tId, to, km, wait, MID_WAIT_X]);
         }
         edgeKm.set(from * 1e7 + to, km);
         // The same (from, to) pair can appear in several corridors; the strongest
@@ -131,7 +137,7 @@
     // edges; used only when the edge itself logged none. (IDEAS.md #70)
     const spotWait = new Map();
     board.forEach((edges, u) => {
-      const ws = edges.map((e) => e[3]).filter((w) => w != null);
+      const ws = edges.filter((e) => e.length < 5).map((e) => e[3]).filter((w) => w != null);
       if (ws.length) spotWait.set(u, ws.reduce((a, b) => a + b, 0) / ws.length);
     });
     const R = { spots, treeAdj, board, edgeKm, edgeSupport, defaultWait, spotWait, nTrees: treeAdj.length,
@@ -201,8 +207,8 @@
           relax(enc(v, corridor), d + cmin(km) * mult, [st, "car", km, 0]); });
       }
       const bd = R.board.get(spot);
-      if (bd) bd.forEach(([tId, v, km, wait]) => {
-        const w = (wait == null) ? (R.spotWait.get(spot) ?? R.defaultWait) : wait;
+      if (bd) bd.forEach(([tId, v, km, wait, wx]) => {
+        const w = ((wait == null) ? (R.spotWait.get(spot) ?? R.defaultWait) : wait) * (wx || 1);
         const mult = penalty ? (penalty.get(spot * 1e7 + v) || 1) : 1;
         relax(enc(v, tId), d + cmin(km) * mult + w, [st, "board", km, w]); });
       const wk = R.walkAdj.get(spot);
