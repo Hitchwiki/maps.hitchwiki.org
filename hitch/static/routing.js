@@ -1431,6 +1431,15 @@
     });
   }
 
+  // #1366 (routing-gang phase B): which option people commit to, not just which they click.
+  // Index/count + the same 0.5-degree cells as route_judged; no exact coordinates.
+  function trackCommit(via, i) {
+    try {
+      const cell = (ll) => (Math.round(ll[0] * 2) / 2) + "," + (Math.round(ll[1] * 2) / 2);
+      hmTrack("route_committed", { via: via, idx: i, of: RJ.routes.length, a_cell: cell(RJ.start.latlng), b_cell: cell(RJ.dest.latlng) });
+    } catch (e) { /* analytics must never break routing */ }
+  }
+
   function highlight(i) {
     RJ.highlight = i;
     RJ.routes.forEach((rt, j) => {
@@ -2144,7 +2153,7 @@
         hmTrack("route_details_clicked", { idx: i, of: RJ.routes.length });
         toggleDetails(row, rt, i);
       });
-      row.querySelector(".rp-sign-btn").addEventListener("click", () => openSign("route", i));
+      row.querySelector(".rp-sign-btn").addEventListener("click", () => { trackCommit("sign", i); openSign("route", i); });
       box.appendChild(row);
     });
     // v1 put this button after all three (often tall) route cards and counted
@@ -2178,6 +2187,7 @@
         const boarding = firstBoardingPoint(rt);
         if (!boarding || !window.inride || !window.inride.journeyFlow) return;
         hmTrack("route_start_cta_v2_clicked", { variant: variant });
+        trackCommit("start", RJ.highlight || 0);
         close();
         window.inride.journeyFlow.startFromChoose(
           { lat: boarding[0], lon: boarding[1] },
