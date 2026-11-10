@@ -3843,6 +3843,15 @@ function markerClick(marker) {
   $$("#spot-osm-link").href =
     `https://www.openstreetmap.org/?mlat=${data.lat}&mlon=${data.lon}#map=18/${data.lat}/${data.lon}`;
 
+  // #1339A: count taps on the three outbound links (kind only, no spot id; same privacy rule as spot_opened).
+  [["spot-google-link", "maps"], ["spot-streetview-link", "streetview"], ["spot-osm-link", "osm"]].forEach(function (pr) {
+    const el = $$("#" + pr[0]);
+    if (el && !el.dataset.navTracked) {
+      el.dataset.navTracked = "1";
+      el.addEventListener("click", function () { hmTrack("spot_nav_clicked", { kind: pr[1], touch: window.ontouchstart ? "y" : "n" }); });
+    }
+  });
+
   renderSpotSummary(data);
 
   // "Hitch here" — start a tracked ride from THIS spot's canonical coordinates via the
