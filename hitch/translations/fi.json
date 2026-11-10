@@ -1120,5 +1120,13 @@
   "What would you change? (optional)": "Mitä muuttaisit? (valinnainen)",
   "Send": "Lähetä",
   "Thanks!": "Kiitos!",
-  "No spots found": "Paikkoja ei löytynyt"
+  "No spots found": "Paikkoja ei löytynyt",
+  "🚗 I'm driving": "🚗 Ajan autoa",
+  "Spots along this road where hitchhikers have recently been picked up": "Paikat tämän tien varrella, joilla liftareita on poimittu kyytiin viime aikoina",
+  "See what the route planner suggests for this trip": "Katso, mitä reittisuunnittelija ehdottaa tälle matkalle",
+  "First time hitchhiking": "Ensimmäinen kerta liftauksessa",
+  "Driving somewhere? See pickup spots on your way": "Ajatko jonnekin? Katso kyytiinottopaikat reitiltäsi",
+  "Experimental: try the new route planner for this trip": "Kokeellinen: kokeile uutta reittisuunnittelijaa tälle matkalle",
+  "Experimental: compare with the new route planner": "Kokeellinen: vertaa uuteen reittisuunnittelijaan",
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Napauta ”Käytä sijaintiani” asettaaksesi karttaneulan nykyiseen sijaintiisi — selaimesi kysyy asiasta kerran."
 }

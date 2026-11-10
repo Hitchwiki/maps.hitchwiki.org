@@ -1120,5 +1120,13 @@
   "What would you change? (optional)": "Kaj bi spremenili? (neobvezno)",
   "Send": "Pošlji",
   "Thanks!": "Hvala!",
-  "No spots found": "Ni najdenih točk"
+  "No spots found": "Ni najdenih točk",
+  "🚗 I'm driving": "🚗 Vozim",
+  "Spots along this road where hitchhikers have recently been picked up": "Točke ob tej cesti, kjer so štoparje nedavno pobrali",
+  "See what the route planner suggests for this trip": "Poglejte, kaj načrtovalnik poti predlaga za to pot",
+  "First time hitchhiking": "Prvič štopam",
+  "Driving somewhere? See pickup spots on your way": "Voziš nekam? Oglej si točke za vstop na svoji poti",
+  "Experimental: try the new route planner for this trip": "Eksperimentalno: preizkusi nov načrtovalec poti za ta izlet",
+  "Experimental: compare with the new route planner": "Eksperimentalno: primerjaj z novim načrtovalcem poti",
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Tapni »Uporabi mojo lokacijo«, da postaviš pripinjalko tam, kjer si — tvoj brskalnik bo vprašal le enkrat."
 }

@@ -1120,5 +1120,13 @@
   "What would you change? (optional)": "Co bys změnil/a? (nepovinné)",
   "Send": "Odeslat",
   "Thanks!": "Díky!",
-  "No spots found": "Žádná místa nenalezena"
+  "No spots found": "Žádná místa nenalezena",
+  "🚗 I'm driving": "🚗 Řídím já",
+  "Spots along this road where hitchhikers have recently been picked up": "Místa podél této cesty, kde byli stopaři nedávno vyzvednuti",
+  "See what the route planner suggests for this trip": "Podívejte se, co navrhuje plánovač trasy pro tuto cestu",
+  "First time hitchhiking": "Poprvé stopuji",
+  "Driving somewhere? See pickup spots on your way": "Jedeš někam? Podívej se na stopovací místa na své trase",
+  "Experimental: try the new route planner for this trip": "Experimentální: vyzkoušej nový plánovač trasy pro tuto cestu",
+  "Experimental: compare with the new route planner": "Experimentální: porovnej s novým plánovačem trasy",
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Klepněte na „Použít mou polohu“ a špendlík se umístí tam, kde právě jste — váš prohlížeč se jednou zeptá."
 }

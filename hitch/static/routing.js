@@ -710,7 +710,7 @@
     if (noRoute) {
       a.href = "/hitchhiking-routing-gang?a=" + from[0].toFixed(4) + "," + from[1].toFixed(4) +
         "&b=" + to[0].toFixed(4) + "," + to[1].toFixed(4) + "&ref=route_none";
-      a.textContent = "Experimental: try the new route planner for this trip"; // English only, like the other links
+      a.textContent = T("Experimental: try the new route planner for this trip"); // English only, like the other links
       a.hidden = false;
       hmTrack("route_none_planner_link_exposure");
       return;
@@ -734,7 +734,7 @@
     }
     a.href = "/hitchhiking-routing-gang?a=" + from[0].toFixed(4) + "," + from[1].toFixed(4) +
       "&b=" + to[0].toFixed(4) + "," + to[1].toFixed(4) + "&ref=" + ref;
-    a.textContent = "Experimental: compare with the new route planner"; // English only, like the ride-page link
+    a.textContent = T("Experimental: compare with the new route planner"); // English only, like the ride-page link
     a.hidden = false;
     hmTrack("planner_compare_exposure");
   }
@@ -910,8 +910,8 @@
       box.style.cssText = "margin:8px 12px;font-size:14px";
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.textContent = "🚗 I'm driving";
-      btn.title = "Spots along this road where hitchhikers have recently been picked up";
+      btn.textContent = T("🚗 I'm driving");
+      btn.title = T("Spots along this road where hitchhikers have recently been picked up");
       const list = document.createElement("div");
       list.style.display = "none";
       box.appendChild(btn); box.appendChild(list);
