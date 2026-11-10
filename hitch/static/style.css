@@ -4619,6 +4619,12 @@ a.acct-ride__warn:hover { color: #b98900; }
   box-shadow: 0 2px 8px rgba(0,0,0,.3);
 }
 
+.rp-went-row { position: fixed; left: 12px; bottom: 124px; z-index: 900; display: flex; gap: 6px; }
+.rp-went-row button {
+  padding: 6px 12px; border: 1px solid #188038; border-radius: 999px; background: #fff; color: #188038;
+  font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.2);
+}
+
 .spot-country-method {
   background: none;
   border: 0;
