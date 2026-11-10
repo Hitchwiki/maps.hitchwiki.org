@@ -22,6 +22,7 @@ from flask import (
     render_template,
     request,
     send_file,
+    session,
     url_for,
 )
 from flask_security import current_user
@@ -64,7 +65,13 @@ from hitch.blueprints.utils.feedback_log import is_known_source as is_known_feed
 from hitch.blueprints.utils.feedback_log import log_feedback
 from hitch.blueprints.utils.filter_request_log import FILTER_FIELDS, log_filter_request
 from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import HitchhikingRecord, MethodEnum
-from hitch.blueprints.utils.invite_landing_log import count_invite_landings, invite_code, log_invite_landing
+from hitch.blueprints.utils.invite_landing_log import (
+    count_invite_joins,
+    count_invite_landings,
+    invite_code,
+    log_invite_landing,
+    valid_invite_code,
+)
 from hitch.blueprints.utils.iso_country_codes import ISO_3166_1_ALPHA_2
 from hitch.blueprints.utils.license_plate_country_codes import LICENSE_PLATE_COUNTRY_CHOICES
 from hitch.blueprints.utils.notifications import (
@@ -664,9 +671,9 @@ def log_route_feedback_endpoint():
 @main_bp.route("/api/invite-code")
 def invite_code_endpoint():
     if not current_user.is_authenticated:
-        return jsonify({"code": None, "landings": 0})
+        return jsonify({"code": None, "landings": 0, "joins": 0})
     code = invite_code(current_app.config.get("SECRET_KEY", ""), current_user.id)
-    return jsonify({"code": code, "landings": count_invite_landings(code)})
+    return jsonify({"code": code, "landings": count_invite_landings(code), "joins": count_invite_joins(code)})
 
 
 # Beacon from base.html when a page is opened with ?inv=<code>. Always 204.
@@ -678,6 +685,9 @@ def log_invite_landing_endpoint():
     if current_user.is_authenticated and code == invite_code(current_app.config.get("SECRET_KEY", ""), current_user.id):
         return ("", 204)
     log_invite_landing(code, str(data.get("ref", "")))
+    # Remember it for this browser's session so a signup that follows can be credited to the sender.
+    if valid_invite_code(code):
+        session["inv"] = code
     return ("", 204)
 
 

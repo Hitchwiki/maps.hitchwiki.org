@@ -4540,6 +4540,10 @@ function showSuccessOverlay(opts) {
       }
       note.textContent = tr("{n} people opened your link", { n: info.landings });
       hmTrack("invite_count_shown", { n: info.landings });
+      if (info.joins >= 1) {
+        note.textContent += " · " + tr("{n} joined through it", { n: info.joins });
+        hmTrack("invite_joins_shown", { n: info.joins });
+      }
     });
   }
   if (inviteBtn && !inviteBtn.dataset.wired) {

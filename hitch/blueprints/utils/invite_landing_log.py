@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 from hitch.helpers import dirs
 
 INVITE_LANDINGS_LOG_PATH = os.path.join(dirs["root"], "logs", "invite_landings.csv")
+INVITE_JOINS_LOG_PATH = os.path.join(dirs["root"], "logs", "invite_joins.csv")
 _CODE_RE = re.compile(r"^[0-9a-f]{8}$")
 
 
@@ -47,6 +48,38 @@ def count_invite_landings(code):
         return 0
     try:
         with open(INVITE_LANDINGS_LOG_PATH, encoding="utf-8", newline="") as f:
+            return sum(1 for row in csv.DictReader(f) if row.get("code") == code)
+    except Exception:
+        return 0
+
+
+def valid_invite_code(code):
+    return bool(_CODE_RE.match(code or ""))
+
+
+def log_invite_join(code):
+    """Record that a brand-new account was created after landing on `?inv=<code>`. Code only, no user id. Never raises."""
+    if not valid_invite_code(code):
+        return
+    try:
+        os.makedirs(os.path.dirname(INVITE_JOINS_LOG_PATH), exist_ok=True)
+        new = not os.path.exists(INVITE_JOINS_LOG_PATH) or os.path.getsize(INVITE_JOINS_LOG_PATH) == 0
+        with open(INVITE_JOINS_LOG_PATH, "a", newline="", encoding="utf-8") as f:
+            w = csv.writer(f)
+            if new:
+                w.writerow(["timestamp", "code"])
+            w.writerow([datetime.now(timezone.utc).isoformat(), code])
+    except Exception:
+        from flask import current_app
+
+        current_app.logger.exception("Failed to log invite join")
+
+
+def count_invite_joins(code):
+    if not valid_invite_code(code) or not os.path.exists(INVITE_JOINS_LOG_PATH):
+        return 0
+    try:
+        with open(INVITE_JOINS_LOG_PATH, encoding="utf-8", newline="") as f:
             return sum(1 for row in csv.DictReader(f) if row.get("code") == code)
     except Exception:
         return 0
