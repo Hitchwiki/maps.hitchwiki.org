@@ -1866,6 +1866,23 @@
         flag.textContent = T("Thanks, noted"); flag.disabled = true;
       });
       place.appendChild(flag);
+      // #1339B: sticky 50/50 arm route-nav-v1: one navigation link under the FIRST suggested stop.
+      if (!RJ._navDone) {
+        RJ._navDone = true;
+        const arm = hmVariant("route-nav-v1", ["off", "on"]);
+        hmTrack("route_nav_shown", { arm: arm });
+        if (arm === "on") {
+          const nav = document.createElement("a");
+          nav.className = "rp-spot-nav";
+          nav.target = "_blank"; nav.rel = "noopener";
+          const touch = typeof window !== "undefined" && window.ontouchstart;
+          nav.href = touch ? `geo:${c[0]},${c[1]}` : `https://www.google.com/maps/place/${c[0]},${c[1]}`;
+          nav.textContent = T("Go to on Google Maps");
+          nav.style.cssText = "display:block;font-size:.85em;margin-top:2px";
+          nav.addEventListener("click", () => hmTrack("route_nav_clicked", { arm: arm, touch: touch ? "y" : "n" }));
+          place.appendChild(nav);
+        }
+      }
     }
     return li;
   }
@@ -1939,6 +1956,7 @@
     const base = Date.now();
     let t = 0;
     const legs = rt.legs;
+    RJ._navDone = false;
     ol.appendChild(nodeRow(t, base, "start", RJ.start && RJ.start.label, legs[0].from));
     legs.forEach((leg, li) => {
       if (leg.waitMin > 0.5) { ol.appendChild(waitRow(leg.waitMin)); t += leg.waitMin; }
