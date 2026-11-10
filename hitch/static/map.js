@@ -4594,6 +4594,7 @@ function showSuccessOverlay(opts) {
   renderTrustrootsNudge();
   renderCampwildNudge();
   renderDriverPledgeNudge();
+  renderSuccessPlanLink(successRide);
   shareCompleted = false;
 
   // Dismissing the overlay returns to the map the user submitted from — no
@@ -4917,6 +4918,33 @@ function addPledgeStopsLink(note, surface) {
   d.style.cssText = "display:block;margin-top:6px;";
   d.onclick = function () { hmTrack("driver_pledge_drive_link_clicked", { surface: surface }); };
   note.appendChild(d);
+}
+
+// #1336: the person who just hitched A->B is the one who can say whether the planner's route
+// for it is right. English-only (same string as ride_detail.html); links to the live planner
+// with ref=ride_saved_plan, where route_judged carries the ref.
+function renderSuccessPlanLink(ride) {
+  const old = document.getElementById("success-plan-link");
+  if (old) old.remove();
+  if (!ride) return;
+  const [a, b, c, d] = [ride.pickupLat, ride.pickupLon, ride.destLat, ride.destLon].map(parseFloat);
+  if (![a, b, c, d].every(isFinite)) return;
+  const rad = Math.PI / 180;
+  const km = 6371 * 2 * Math.asin(Math.sqrt(
+    Math.sin((c - a) * rad / 2) ** 2 + Math.cos(a * rad) * Math.cos(c * rad) * Math.sin((d - b) * rad / 2) ** 2));
+  if (km < 20) return;
+  const block = document.getElementById("success-share-block");
+  if (!block) return;
+  const link = document.createElement("a");
+  link.id = "success-plan-link";
+  link.style.cssText = "display:block;margin-top:10px;font-size:13px;";
+  link.href = "/dir/" + a.toFixed(5) + "," + b.toFixed(5) + "/" + c.toFixed(5) + "," + d.toFixed(5) + "?ref=ride_saved_plan";
+  link.textContent = "See what the route planner suggests for this trip";
+  link.addEventListener("click", function () {
+    hmTrack("success_plan_link_clicked", { km: Math.round(km / 50) * 50 });
+  });
+  block.appendChild(link);
+  hmTrack("success_plan_link_shown", {});
 }
 
 function renderDriverPledgeNudge() {

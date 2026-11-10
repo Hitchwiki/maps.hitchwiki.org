@@ -981,7 +981,7 @@
           let prior = "no";
           try { prior = parseInt(localStorage.getItem("hm_journeys_started") || "0", 10) > 0 ? "yes" : "no"; } catch (e) {}
           const picked = sheet.querySelector(".rp-intent .rp-intent-selected");
-          hmTrack("route_judged", { answer: vote === "up" ? "yes" : "no", of: RJ.routes.length, a_cell: cell(from), b_cell: cell(to), prior: prior, intent: (picked && picked.dataset.intent) || "none" });
+          hmTrack("route_judged", { answer: vote === "up" ? "yes" : "no", of: RJ.routes.length, a_cell: cell(from), b_cell: cell(to), prior: prior, intent: (picked && picked.dataset.intent) || "none", ref: (window.hmLandingRef || "").slice(0, 40) });
         } catch (e) { /* analytics must never break routing */ }
         post("");
         box.querySelectorAll("button[data-v]").forEach((x) => { x.disabled = true; });
