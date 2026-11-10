@@ -725,6 +725,9 @@
   // can split on them (a boolean false reads as a missing property there).
   function cohortProps(j) {
     return {
+      // EXP-1331: did a planner route precede this journey, and how far from its stops (buckets only).
+      plan: j && j.plan ? j.plan : "none",
+      pd: j && j.pd ? j.pd : "na",
       first: j && j.firstJourney ? "yes" : "no",
       li: window.IS_LOGGED_IN ? "yes" : "no",
       source: startSource(j && j.source),
@@ -748,9 +751,33 @@
   }
 
   // Seed the waiting journey. Pickup = the chosen latlng; wait timer starts now.
+  // EXP-1331: plan-to-road link. routing.js keeps the last planned route (and its stop hints) in
+  // localStorage; tag a journey start with how recent that plan is and how far the start is from a
+  // planned stop. Buckets only, no coordinates leave the device.
+  function planToRoadTag(p) {
+    const none = { plan: "none", pd: "na" };
+    try {
+      const rec = JSON.parse(localStorage.getItem("hmLastRoute") || "null");
+      if (!rec || !isFinite(rec.ts)) return none;
+      const age = Date.now() - rec.ts;
+      if (age < 0 || age > 14 * 86400000) return none;
+      const plan = age < 6 * 3600000 ? "s" : "d";
+      const spots = Array.isArray(rec.spots) ? rec.spots : [];
+      if (!spots.length || !p) return { plan: plan, pd: "na" };
+      const R = Math.PI / 180;
+      let best = Infinity;
+      spots.forEach(function (s) {
+        const dx = (s[1] - p.lon) * Math.cos(p.lat * R), dy = s[0] - p.lat;
+        best = Math.min(best, Math.sqrt(dx * dx + dy * dy) * 111.2);
+      });
+      return { plan: plan, pd: best < 0.3 ? "lt03" : best < 2 ? "lt2" : best < 20 ? "lt20" : "far" };
+    } catch (e) { return none; }
+  }
+
   journeyFlow.start = function (latlng, coHitchhikers, source) {
     // Accepts a Leaflet LatLng or {lat, lon} — see toLatLon.
     const p = toLatLon(latlng);
+    const planTag = planToRoadTag(p);
     // A fresh journey logs nothing yet. nextRide deliberately does NOT do this: its legs
     // belong to the journey already in progress.
     journeyLogStore.clear();
@@ -766,6 +793,8 @@
       legIndex: 0,
       source: startSource(source),
       firstJourney: markFirstJourney(),
+      plan: planTag.plan,
+      pd: planTag.pd,
     });
     // Entry point of the in-ride funnel. This is a second, separate contribution
     // path from the /ride form — a journey that reaches Finish or Give up submits
@@ -782,6 +811,8 @@
       near: startNearBucket(p),
       first: j.firstJourney ? "yes" : "no",
       li: window.IS_LOGGED_IN ? "yes" : "no",
+      plan: j.plan,
+      pd: j.pd,
     });
     pendingPinPlacement = "";
     atCheckLabel = ""; // one-shot: a later start from another path must not inherit it

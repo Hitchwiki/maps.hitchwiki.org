@@ -1170,6 +1170,17 @@
       localStorage.setItem(LAST_ROUTE_KEY, JSON.stringify({ from: f, to: t, ts: Date.now() }));
     } catch (e) { /* storage unavailable: the resume chip is a nice-to-have */ }
   }
+  // Rounded stop coordinates of the planned route, kept on the same device so a later journey can be
+  // tagged "started near a planned stop" (plan-to-road link, EXP-1331). Never sent anywhere; inride.js
+  // reduces it to a distance bucket.
+  function saveRouteSpots(list) {
+    try {
+      const rec = JSON.parse(localStorage.getItem(LAST_ROUTE_KEY) || "null");
+      if (!rec) return;
+      rec.spots = list.slice(0, 20).map((x) => [Math.round(x.lat * 1000) / 1000, Math.round(x.lon * 1000) / 1000]);
+      localStorage.setItem(LAST_ROUTE_KEY, JSON.stringify(rec));
+    } catch (e) { /* optional */ }
+  }
   // Same-device memory of the last planned route, for the "continue your last
   // route" chip (EXP-820): anonymous, no server write, no cross-session id.
   const LAST_ROUTE_KEY = "hmLastRoute";
@@ -1397,6 +1408,7 @@
     const keep = [];
     for (const f of found) if (!keep.some((k) => Math.abs(k.at - f.at) < 15)) keep.push(f);
     if (!RJ.stopLayer) RJ.stopLayer = L.layerGroup().addTo(map);
+    saveRouteSpots((entry ? [entry] : []).concat(keep));
     if (entry) {
       // 50/50 split so the effect on found routes can be read (route-entry-v1); the control arm is counted but sees nothing.
       const arm = hmVariant("route-entry-v1", ["control", "entry"]);
