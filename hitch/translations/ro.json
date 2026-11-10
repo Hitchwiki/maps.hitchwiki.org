@@ -1130,5 +1130,10 @@
   "Experimental: compare with the new route planner": "Experimental: compară cu noul planificator de trasee",
   "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Apasă „Folosește locația mea” pentru a plasa pinul acolo unde te afli — browserul te va întreba o dată.",
   "First time they picked someone up?": "Prima dată când au ridicat pe cineva?",
-  "Don't know": "Nu știu"
+  "Don't know": "Nu știu",
+  "From people you follow": "De la persoanele pe care le urmărești",
+  "Hitchhikers to follow": "Autostopiști de urmărit",
+  "You're not following anyone yet. Here are some of the most active hitchhikers lately — follow them to see their latest rides here.": "Încă nu urmărești pe nimeni. Iată câțiva dintre cei mai activi autostopiști de recent — urmărește-i pentru a vedea ultimele lor călătorii aici.",
+  "No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.": "Încă nu există călătorii de la persoanele pe care le urmărești. Urmărește alți autostopiști din paginile lor de profil pentru a vedea ultimele lor călătorii aici.",
+  "Recent rides": "Călătorii recente"
 }

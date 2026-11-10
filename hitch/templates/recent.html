@@ -13,19 +13,19 @@
 {% from "_share.html" import share_button %}
 {% block content %}
 <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
-  <h1 style="margin:0;">Activities</h1>
+  <h1 style="margin:0;">{{ t("Activities") }}</h1>
   {{ share_button(context="recent", title="Recent hitchhiking activity – Hitchwiki Maps") }}
 </div>
 
 {% if is_logged_in %}
 {% if followed_rides %}
-  <h2 style="margin-top:0.5em;">From people you follow</h2>
+  <h2 style="margin-top:0.5em;">{{ t("From people you follow") }}</h2>
   {% for ride in followed_rides %}
   {{ ride_card(ride, "followed-thumb", loop.index0) }}
   {% endfor %}
 {% elif follow_suggestions %}
-  <h2 style="margin-top:0.5em;">Hitchhikers to follow</h2>
-  <p style="color:#666; font-size:0.9em;">You're not following anyone yet. Here are some of the most active hitchhikers lately &mdash; follow them to see their latest rides here.</p>
+  <h2 style="margin-top:0.5em;">{{ t("Hitchhikers to follow") }}</h2>
+  <p style="color:#666; font-size:0.9em;">{{ t("You're not following anyone yet. Here are some of the most active hitchhikers lately — follow them to see their latest rides here.") }}</p>
   {% for s in follow_suggestions %}
   <a class="ride-card" href="/account/{{ s.username }}">
       <div class="ride-meta">
@@ -35,19 +35,19 @@
   </a>
   {% endfor %}
 {% else %}
-  <h2 style="margin-top:0.5em;">From people you follow</h2>
-  <p style="color:#666; font-size:0.9em;">No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.</p>
+  <h2 style="margin-top:0.5em;">{{ t("From people you follow") }}</h2>
+  <p style="color:#666; font-size:0.9em;">{{ t("No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.") }}</p>
 {% endif %}
 {% endif %}
 
-<h2{% if is_logged_in %} style="margin-top:1.5em;"{% endif %}>Recent rides</h2>
+<h2{% if is_logged_in %} style="margin-top:1.5em;"{% endif %}>{{ t("Recent rides") }}</h2>
 <p style="color:#666; font-size:0.85em;">Last {{ rides|length }} added rides</p>
 {% if rides %}
   {% for ride in rides %}
   {{ ride_card(ride, "recent-thumb", loop.index0) }}
   {% endfor %}
 {% else %}
-  <p style="color:#666; font-size:0.9em;">No rides yet.</p>
+  <p style="color:#666; font-size:0.9em;">{{ t("No rides yet.") }}</p>
 {% endif %}
 {% endblock %}
 

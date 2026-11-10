@@ -1130,5 +1130,10 @@
   "Experimental: compare with the new route planner": "Экспериментально: сравните с новым планировщиком маршрутов",
   "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Нажмите «Использовать моё местоположение», чтобы поставить булавку там, где вы находитесь — браузер спросит об этом один раз.",
   "First time they picked someone up?": "Впервые они кого-то подвозили?",
-  "Don't know": "Не знаю"
+  "Don't know": "Не знаю",
+  "From people you follow": "От людей, на которых вы подписаны",
+  "Hitchhikers to follow": "Автостопщики для подписки",
+  "You're not following anyone yet. Here are some of the most active hitchhikers lately — follow them to see their latest rides here.": "Вы ещё ни на кого не подписаны. Вот некоторые из самых активных автостопщиков в последнее время — подпишитесь на них, чтобы видеть их последние поездки здесь.",
+  "No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.": "Пока нет поездок от людей, на которых вы подписаны. Подпишитесь на других автостопщиков на страницах их профилей, чтобы видеть их последние поездки здесь.",
+  "Recent rides": "Последние поездки"
 }

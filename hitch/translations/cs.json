@@ -1130,5 +1130,10 @@
   "Experimental: compare with the new route planner": "Experimentální: porovnej s novým plánovačem trasy",
   "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Klepněte na „Použít mou polohu“ a špendlík se umístí tam, kde právě jste — váš prohlížeč se jednou zeptá.",
   "First time they picked someone up?": "Poprvé někoho zvedli?",
-  "Don't know": "Nevím"
+  "Don't know": "Nevím",
+  "From people you follow": "Od lidí, které sledujete",
+  "Hitchhikers to follow": "Stopaři ke sledování",
+  "You're not following anyone yet. Here are some of the most active hitchhikers lately — follow them to see their latest rides here.": "Ještě nikoho nesledujete. Zde je několik nejaktivnějších stopářů z poslední doby — sledujte je, abyste zde viděli jejich nejnovější jízdy.",
+  "No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.": "Zatím žádné jízdy od lidí, které sledujete. Sledujte další stopáře z jejich profilových stránek, abyste zde viděli jejich nejnovější jízdy.",
+  "Recent rides": "Poslední jízdy"
 }

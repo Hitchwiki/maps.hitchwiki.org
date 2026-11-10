@@ -1130,5 +1130,10 @@
   "Experimental: compare with the new route planner": "Eksperimentaalne: võrdle uue marsruudi planeerijaga",
   "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Puuduta „Kasuta minu asukohta“, et panna tõmme sinna, kus sa parasjagu oled — sinu brauser küsib selleks ühe korra loa.",
   "First time they picked someone up?": "Esimene kord, kui ta kedagi peale võttis?",
-  "Don't know": "Ei tea"
+  "Don't know": "Ei tea",
+  "From people you follow": "Sinu jälgitavatelt inimestelt",
+  "Hitchhikers to follow": "Jälgitavad hõiklejad",
+  "You're not following anyone yet. Here are some of the most active hitchhikers lately — follow them to see their latest rides here.": "Sa ei jälgi veel kedagi. Siin on mõned viimase ajal kõige aktiivsemad hõiklejad — jälgi neid, et näha nende viimaseid sõite siin.",
+  "No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.": "Jälgitavatelt inimestelt pole veel sõite. Jälgi teisi hõiklejaid nende profiililehtedel, et näha nende viimaseid sõite siin.",
+  "Recent rides": "Hiljutised sõidud"
 }

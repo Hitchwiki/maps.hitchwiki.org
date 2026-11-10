@@ -1130,5 +1130,10 @@
   "Experimental: compare with the new route planner": "Sperimentale: confronta con il nuovo pianificatore di percorso",
   "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Tocca “Usa la mia posizione” per posizionare il segnaposto dove ti trovi — il browser te lo chiederà una volta.",
   "First time they picked someone up?": "La prima volta che hanno dato un passaggio a qualcuno?",
-  "Don't know": "Non lo so"
+  "Don't know": "Non lo so",
+  "From people you follow": "Dalle persone che segui",
+  "Hitchhikers to follow": "Autostoppisti da seguire",
+  "You're not following anyone yet. Here are some of the most active hitchhikers lately — follow them to see their latest rides here.": "Non stai ancora seguendo nessuno. Ecco alcuni degli autostoppisti più attivi di recente — seguili per vedere qui i loro ultimi viaggi.",
+  "No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.": "Nessun viaggio dalle persone che segui. Segui altri autostoppisti dalle loro pagine profilo per vedere qui i loro ultimi viaggi.",
+  "Recent rides": "Viaggi recenti"
 }

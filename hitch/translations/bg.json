@@ -1130,5 +1130,10 @@
   "Experimental: compare with the new route planner": "Експериментално: сравнете с новия планер за маршрути",
   "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Докоснете „Използвай моето местоположение“, за да поставите щифта там, където сте — браузърът ви ще попита веднъж.",
   "First time they picked someone up?": "Първият път, когато взеха някого?",
-  "Don't know": "Не знам"
+  "Don't know": "Не знам",
+  "From people you follow": "От хора, които следвате",
+  "Hitchhikers to follow": "Автостопчи за следване",
+  "You're not following anyone yet. Here are some of the most active hitchhikers lately — follow them to see their latest rides here.": "Все още не следвате никого. Ето някои от най-активните автостопчи напоследък — следвайте ги, за да виждате последните им пътувания тук.",
+  "No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.": "Още няма пътувания от хора, които следвате. Следвайте други автостопчи от профилните им страници, за да виждате последните им пътувания тук.",
+  "Recent rides": "Скорошни пътувания"
 }

@@ -1130,5 +1130,10 @@
   "Experimental: compare with the new route planner": "Πειραματικό: συγκρίνετε με τον νέο σχεδιαστή διαδρομών",
   "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Πατήστε «Χρησιμοποίησε την τοποθεσία μου» για να τοποθετήσετε την καρφίτσα εκεί που βρίσκεστε — το πρόγραμμα περιήγησής σας θα ρωτήσει μία φορά.",
   "First time they picked someone up?": "Πρώτη φορά που πήραν κάποιον;",
-  "Don't know": "Δεν ξέρω"
+  "Don't know": "Δεν ξέρω",
+  "From people you follow": "Από άτομα που ακολουθείς",
+  "Hitchhikers to follow": "Οτοστόπχοι για να ακολουθήσεις",
+  "You're not following anyone yet. Here are some of the most active hitchhikers lately — follow them to see their latest rides here.": "Δεν ακολουθείς ακόμη κανέναν. Εδώ είναι μερικοί από τους πιο ενεργούς οτοστόπους πρόσφατα — ακολούθησέ τους για να βλέπεις εδώ τις τελευταίες τους διαδρομές.",
+  "No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.": "Δεν υπάρχουν ακόμη διαδρομές από άτομα που ακολουθείς. Ακολούθησε άλλους οτοστόπους από τις σελίδες του προφίλ τους για να βλέπεις εδώ τις τελευταίες τους διαδρομές.",
+  "Recent rides": "Πρόσφατες διαδρομές"
 }

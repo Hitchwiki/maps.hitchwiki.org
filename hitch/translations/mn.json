@@ -1130,5 +1130,10 @@
   "Experimental: compare with the new route planner": "Туршилтын: шинэ замын төлөвлөгчтэй харьцуулж үзээрэй",
   "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "«Миний байршлыг ашиглах» товчийг дарж, та байгаа газраа тэмдэглээрэй — таны хөтөч нэг удаа асуух болно.",
   "First time they picked someone up?": "Тэд анх хэн нэгнийг зорчигч болгон авсан уу?",
-  "Don't know": "Мэдэхгүй"
+  "Don't know": "Мэдэхгүй",
+  "From people you follow": "Таны дагаж буй хүмүүсээс",
+  "Hitchhikers to follow": "Дагах автостопчид",
+  "You're not following anyone yet. Here are some of the most active hitchhikers lately — follow them to see their latest rides here.": "Та одоогоор хэн нэгнийг дагаагүй байна. Сүүлийн үед хамгийн идэвхтэй автостопчуудаас заримыг нь энд оруулав — тэднийг дагаад хамгийн сүүлийн аяллуудыг нь энд харна уу.",
+  "No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.": "Таны дагаж буй хүмүүсээс аялал одоогоор байхгүй байна. Бусад автостопчуудыг тэдний профайл хуудаснаас нь дагаад тэдний хамгийн сүүлийн аяллуудыг энд харна уу.",
+  "Recent rides": "Сүүлийн аялалууд"
 }

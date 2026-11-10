@@ -1130,5 +1130,10 @@
   "Experimental: compare with the new route planner": "Eksperimentinė: palyginkite su naujuoju maršruto planuotoju",
   "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Palieskite „Naudoti mano vietą“, kad pažymėtumėte adatą ten, kur esate — jūsų naršyklė paprašys leidimo vieną kartą.",
   "First time they picked someone up?": "Pirmą kartą pakėlė ką nors?",
-  "Don't know": "Nežinau"
+  "Don't know": "Nežinau",
+  "From people you follow": "Iš žmonių, kuriuos sekate",
+  "Hitchhikers to follow": "Autostopininkai, kurių verta sekti",
+  "You're not following anyone yet. Here are some of the most active hitchhikers lately — follow them to see their latest rides here.": "Kol kas nesekate nė vieno žmogaus. Štai keli aktyviausi pastaruoju metu autostopininkai — sekite juos, kad čia matytumėte jų naujausias keliones.",
+  "No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.": "Kol kas nėra kelionių iš žmonių, kuriuos sekate. Sekite kitus autostopininkus iš jų profilio puslapių, kad čia matytumėte jų naujausias keliones.",
+  "Recent rides": "Naujausios kelionės"
 }

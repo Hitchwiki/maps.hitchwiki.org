@@ -1130,5 +1130,10 @@
   "Experimental: compare with the new route planner": "Experimentell: jämför med den nya ruttplaneraren",
   "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Tryck på ”Använd min plats” för att sätta nålen där du är — din webbläsare frågar en gång.",
   "First time they picked someone up?": "Första gången de plockade upp någon?",
-  "Don't know": "Vet inte"
+  "Don't know": "Vet inte",
+  "From people you follow": "Från personer du följer",
+  "Hitchhikers to follow": " Liftare att följa",
+  "You're not following anyone yet. Here are some of the most active hitchhikers lately — follow them to see their latest rides here.": "Du följer ingen ännu. Här är några av de mest aktiva liftarna på senaste tiden — följ dem för att se deras senaste turer här.",
+  "No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.": "Inga turer från personer du följer ännu. Följ andra liftare från deras profilsidor för att se deras senaste turer här.",
+  "Recent rides": "Senaste turer"
 }

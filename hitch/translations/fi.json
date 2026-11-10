@@ -1130,5 +1130,10 @@
   "Experimental: compare with the new route planner": "Kokeellinen: vertaa uuteen reittisuunnittelijaan",
   "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Napauta ”Käytä sijaintiani” asettaaksesi karttaneulan nykyiseen sijaintiisi — selaimesi kysyy asiasta kerran.",
   "First time they picked someone up?": "Ensimmäinen kerta kun he poimivat jonkun kyytiin?",
-  "Don't know": "Ei tiedä"
+  "Don't know": "Ei tiedä",
+  "From people you follow": "Seuraamiesi henkilöiden kyydit",
+  "Hitchhikers to follow": "Seurattavia liftaajia",
+  "You're not following anyone yet. Here are some of the most active hitchhikers lately — follow them to see their latest rides here.": "Et vielä seuraa ketään. Tässä muutamia viime aikoina aktiivisimpia liftaajia — seuraa heidät nähdäksesi heidän viimeisimmät kyytinsä täällä.",
+  "No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.": "Ei vielä kyytejä seuraamilta henkilöiltä. Seuraa muita liftaajia heidän profiilisivuiltaan nähdäksesi heidän viimeisimmät kyytinsä täällä.",
+  "Recent rides": "Viimeaikaiset kyydit"
 }

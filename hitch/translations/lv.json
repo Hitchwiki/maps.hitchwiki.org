@@ -1130,5 +1130,10 @@
   "Experimental: compare with the new route planner": "Eksperimentāls: salīdzini ar jauno maršruta plānotāju",
   "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Pieskaries “Izmantot manu atrašanās vietu”, lai atzīmētu tapu tur, kur atrodies — pārlūks to pieprasīs vienreiz.",
   "First time they picked someone up?": "Pirmoreiz uzcēla kādu?",
-  "Don't know": "Nezinu"
+  "Don't know": "Nezinu",
+  "From people you follow": "No cilvēkiem, kuriem sekojat",
+  "Hitchhikers to follow": "Autostopistiem, kuriem sekot",
+  "You're not following anyone yet. Here are some of the most active hitchhikers lately — follow them to see their latest rides here.": "Jūs vēl neesat sekojis nevienam. Šeit ir daži no visaktīvākajiem autostopistiem pēdējā laikā — sekojiet viņiem, lai šeit redzētu to jaunākos braucienus.",
+  "No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.": "Vēl nav braucienu no cilvēkiem, kuriem sekojat. Sekojiet citiem autostopistiem no viņu profila lapām, lai šeit redzētu to jaunākos braucienus.",
+  "Recent rides": "Jaunākie braucieni"
 }
