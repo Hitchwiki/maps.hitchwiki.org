@@ -783,6 +783,7 @@
           showNoRouteAddSpotAction(reason, from, to);
           showNoRouteSnapAction(FB || RJ.router, reason, from, to);
           showPlannerCompare(from, to, true);
+          showNoRouteRoad(from, to);
           return;
         }
         hmTrack('route_found', { graph: 'oneoff', options: alt.length });
@@ -1017,6 +1018,55 @@
   // is async, and a user who closes or edits the planner while "checking one-off
   // rides…" is showing clears RJ.start — which used to silently drop this CTA for
   // ~4 of every 5 no-route results (EXP-171 exposure shortfall, 43 of 230).
+  // IDEAS #1334 (routing-gang phase B): when no logged ride connects A and B, draw the plain road route dashed
+  // with the known spots along it. Sticky 50/50 arm route-none-road-v1; both arms are counted. No sentences:
+  // the dashed line and spot dots speak for themselves. ok=0 means OSRM/geometry/spots failed.
+  async function showNoRouteRoad(from, to) {
+    try {
+      const arm = hmVariant("route-none-road-v1", ["ctrl", "road"]);
+      hmTrack("route_none_road_exposure", { arm: arm });
+      if (arm !== "road") return;
+      const tok = RJ._token;   // clearRoutes() replaces it, so a newer search / cleared map invalidates this one
+      const coords = [from, to].map((p) => `${p[1]},${p[0]}`).join(";");
+      let line = null;
+      try {
+        const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`);
+        const d = await r.json();
+        if (d.code === "Ok" && d.routes && d.routes[0]) line = d.routes[0].geometry.coordinates.map((c) => [c[1], c[0]]);
+      } catch (e) { /* ok=0 below */ }
+      if (RJ._token !== tok) return;
+      if (!line || line.length < 2) { hmTrack("route_none_road_shown", { arm: arm, ok: 0, n_spots: 0 }); return; }
+      const C = window.RGChain;
+      const cum = [0];
+      for (let k = 1; k < line.length; k++) cum.push(cum[k - 1] + haversineKm(line[k - 1], line[k]));
+      let la0 = 90, la1 = -90, lo0 = 180, lo1 = -180;
+      line.forEach((q) => { la0 = Math.min(la0, q[0]); la1 = Math.max(la1, q[0]); lo0 = Math.min(lo0, q[1]); lo1 = Math.max(lo1, q[1]); });
+      const m = 0.05, spots = [];
+      for (const mk of (window.allMarkers || [])) {
+        const dd = mk.options && mk.options._data;
+        if (dd && dd.lat >= la0 - m && dd.lat <= la1 + m && dd.lon >= lo0 - m && dd.lon <= lo1 + m) spots.push(dd);
+      }
+      const step = Math.max(1, Math.round(line.length / 300));
+      const sl = [], sc = [];
+      line.forEach((q, k) => { if (k % step === 0 || k === line.length - 1) { sl.push(q); sc.push(cum[k]); } });
+      let rows = [];
+      if (C && C.nearRoute && C.driverList) rows = C.driverList(C.nearRoute(spots, sl, sc, 3), Date.now(), 2).slice(0, 8);
+      RJ.routeLayer = RJ.routeLayer || L.layerGroup().addTo(map);
+      RJ.spotLayer = RJ.spotLayer || L.layerGroup().addTo(map);
+      L.polyline(line, { color: "#5f6368", weight: 4, opacity: 0.85, dashArray: "8 8" }).addTo(RJ.routeLayer);
+      rows.forEach((r) => {
+        L.circleMarker([r.s.lat, r.s.lon], { radius: 6, color: "#fff", weight: 1.5, fillColor: "#188038", fillOpacity: 0.95 })
+          .on("click", (e) => {
+            hmTrack("route_none_road_spot_click", { arm: arm });
+            openSpotSheet([r.s.lat, r.s.lon], e.originalEvent);
+          })
+          .addTo(RJ.spotLayer);
+      });
+      try { map.fitBounds(L.latLngBounds(line), { padding: [30, 30] }); } catch (e) { /* cosmetic */ }
+      hmTrack("route_none_road_shown", { arm: arm, ok: 1, n_spots: rows.length, km: Math.round(cum[cum.length - 1]) });
+    } catch (e) { /* must never break routing */ }
+  }
+
   function showNoRouteStartAction(origin) {
     const cta = panel && panel.querySelector(".rp-no-route-cta");
     if (!cta || !origin) return;
