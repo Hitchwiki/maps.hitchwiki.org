@@ -4080,6 +4080,9 @@ body.routing-active .leaflet-control-container .leaflet-control-geocoder { displ
 .rp-intent-label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; }
 .rp-intent-choices { display: flex; flex-wrap: wrap; gap: 6px; }
 .rp-intent-choices button {
+  /* `.sidebar button` (width:100%, 24px/30px margins) was stacking these three chips into a 275px column on a phone,
+     pushing the route options ~235px down the sheet. Chips are meant to sit in one row. */
+  width: auto; margin: 0;
   border: 1px solid #ccc; border-radius: 999px; background: #fff;
   padding: 6px 10px; color: #444; font-size: 13px;
 }
