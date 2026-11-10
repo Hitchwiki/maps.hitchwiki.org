@@ -995,6 +995,8 @@
           slat: +from[0].toFixed(3), slon: +from[1].toFixed(3),
           dlat: +to[0].toFixed(3), dlon: +to[1].toFixed(3),
           vote: vote, text: text || "",
+          // #1370: same test as base.html's auto flag, so headless checks/crawlers stay out of the eval set.
+          auto: (navigator.webdriver === true || /HeadlessChrome/.test(navigator.userAgent)) ? 1 : 0,
         });
         if (navigator.sendBeacon) navigator.sendBeacon("/log-route-feedback", new Blob([body], { type: "application/json" }));
       } catch (e) { /* feedback must never break routing */ }

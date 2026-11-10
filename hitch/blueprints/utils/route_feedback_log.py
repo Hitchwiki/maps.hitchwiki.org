@@ -12,10 +12,10 @@ from hitch.helpers import dirs
 
 ROUTE_FEEDBACK_LOG_PATH = os.path.join(dirs["root"], "logs", "route_feedback.csv")
 
-_HEADER = ["timestamp", "start_lat", "start_lon", "dest_lat", "dest_lon", "vote", "text"]
+_HEADER = ["timestamp", "start_lat", "start_lon", "dest_lat", "dest_lon", "vote", "text", "auto"]
 
 
-def log_route_feedback(start_lat, start_lon, dest_lat, dest_lon, vote, text=""):
+def log_route_feedback(start_lat, start_lon, dest_lat, dest_lon, vote, text="", auto=0):
     """Record one vote. Never raises: logging must not break the beacon request."""
     try:
         os.makedirs(os.path.dirname(ROUTE_FEEDBACK_LOG_PATH), exist_ok=True)
@@ -33,6 +33,7 @@ def log_route_feedback(start_lat, start_lon, dest_lat, dest_lon, vote, text=""):
                     f"{dest_lon:.3f}",
                     vote,
                     " ".join((text or "").split())[:300],
+                    1 if auto else 0,
                 ]
             )
     except Exception:

@@ -55,9 +55,15 @@ def summarise_route_demand(rows):
 
 def summarise_route_feedback(rows):
     """Votes on live route results (route_feedback.csv). Counts only: free text is never published."""
-    up = down = texts = bad = 0
+    up = down = texts = bad = excluded_auto = 0
     corridors = defaultdict(lambda: {"up": 0, "down": 0})
     for row in rows:
+        # #1370: `auto` is a trailing column; files written before it have a 7-column header,
+        # so DictReader parks the extra value under the None key.
+        flag = (row.get("auto") or (row.get(None) or [""])[0] or "").strip()
+        if flag == "1":
+            excluded_auto += 1
+            continue
         vote = (row.get("vote") or "").strip().lower()
         if vote not in ("up", "down"):
             bad += 1
@@ -76,7 +82,7 @@ def summarise_route_feedback(rows):
         corridors[(a, b)][vote] += 1
     rows_out = [{"from": list(a), "to": list(b), **v} for (a, b), v in corridors.items()]
     rows_out.sort(key=lambda c: (-(c["up"] + c["down"]), c["from"], c["to"]))
-    return {"votes_up": up, "votes_down": down, "with_text": texts, "unparsable_rows": bad, "corridors": rows_out[:100]}
+    return {"votes_up": up, "votes_down": down, "with_text": texts, "unparsable_rows": bad, "excluded_auto": excluded_auto, "corridors": rows_out[:100]}
 
 
 def read_route_requests(path):
