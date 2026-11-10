@@ -1135,5 +1135,6 @@
   "Hitchhikers to follow": "Jälgitavad hõiklejad",
   "You're not following anyone yet. Here are some of the most active hitchhikers lately — follow them to see their latest rides here.": "Sa ei jälgi veel kedagi. Siin on mõned viimase ajal kõige aktiivsemad hõiklejad — jälgi neid, et näha nende viimaseid sõite siin.",
   "No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.": "Jälgitavatelt inimestelt pole veel sõite. Jälgi teisi hõiklejaid nende profiililehtedel, et näha nende viimaseid sõite siin.",
-  "Recent rides": "Hiljutised sõidud"
+  "Recent rides": "Hiljutised sõidud",
+  "{n} people opened your link": "{n} people opened your link"
 }
