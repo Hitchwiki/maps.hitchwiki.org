@@ -399,6 +399,26 @@
                     </datalist>
                 </div>
 
+                {# IDEAS #1337: is this driver new to picking people up? Event-only (not sent in the ride, no data-standard change).
+                   English-only labels, like the other recent one-tap asks. #}
+                <div style="margin-bottom:10px;" id="first-pickup-ask">
+                    <div style="font-weight:600; margin-bottom:4px;">First time they picked someone up?</div>
+                    <div class="inr-chips" id="first-pickup-chips">
+                        <button type="button" class="inr-optchip" data-ans="yes">Yes</button>
+                        <button type="button" class="inr-optchip" data-ans="no">No</button>
+                        <button type="button" class="inr-optchip" data-ans="unknown">Don't know</button>
+                    </div>
+                    <script>
+                    document.querySelectorAll('#first-pickup-chips .inr-optchip').forEach(function (b) {
+                        b.addEventListener('click', function () {
+                            const wasOn = b.classList.contains('inr-optchip--on');
+                            document.querySelectorAll('#first-pickup-chips .inr-optchip').forEach(function (x) { x.classList.remove('inr-optchip--on'); });
+                            if (!wasOn) b.classList.add('inr-optchip--on');
+                        });
+                    });
+                    </script>
+                </div>
+
                 {# The standard's `ride.reasons`: the trip the driver was making anyway,
                    which is a different question from why they stopped for you. Tap chips
                    rather than the datalist above — there are only four. #}
@@ -1239,6 +1259,10 @@
         // event only fires on the live-journey path, so form-side completion has
         // never been measured. The `surface` property keeps the two populations
         // separable. No UI change: this only reads what the user already entered.
+        (function trackFirstPickup() {
+            const on = document.querySelector('#first-pickup-chips .inr-optchip--on');
+            if (on) hmTrack('driver_first_pickup', { ans: on.dataset.ans, surface: 'form' });
+        })();
         (function trackDriverReasonCoverage() {
             const raw = (document.getElementById('driver_reason_to_pick_up')?.value || '').trim();
             if (raw) {
