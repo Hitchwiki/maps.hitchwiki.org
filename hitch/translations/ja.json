@@ -1115,5 +1115,10 @@
   "{n} of your rides have no date and cannot be counted.": "日付のない乗車が{n}回あり、集計に含まれません。",
   "{year} on the road": "{year}年の道の記録",
   "Likely there before dark (sunset {clock})": "日暮れ（日没 {clock}）前には到着できる見込み",
-  "Dark around {clock} · likely about {km} km before then": "{clock} 頃に日暮れ · それまでに約 {km} km の見込み"
+  "Dark around {clock} · likely about {km} km before then": "{clock} 頃に日暮れ · それまでに約 {km} km の見込み",
+  "Is this a good hitchhiking route?": "これはヒッチハイクに良いルートですか？",
+  "What would you change? (optional)": "変更したい点はありますか？（任意）",
+  "Send": "送信",
+  "Thanks!": "ありがとうございます！",
+  "No spots found": "スポットが見つかりません"
 }

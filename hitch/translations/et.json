@@ -1115,5 +1115,10 @@
   "{n} of your rides have no date and cannot be counted.": "{n} sinu sõidust puudub kuupäev ja neid ei saa arvestada.",
   "{year} on the road": "{year} teedel",
   "Likely there before dark (sunset {clock})": "Tõenäoliselt kohal enne pimedat (päikeseloojang {clock})",
-  "Dark around {clock} · likely about {km} km before then": "Pimedaks umbes {clock} · tõenäoliselt umbes {km} km enne seda"
+  "Dark around {clock} · likely about {km} km before then": "Pimedaks umbes {clock} · tõenäoliselt umbes {km} km enne seda",
+  "Is this a good hitchhiking route?": "Kas see on hea hõiklemissuund?",
+  "What would you change? (optional)": "Mida sa muudaksid? (valikuline)",
+  "Send": "Saada",
+  "Thanks!": "Aitäh!",
+  "No spots found": "Ühtegi kohta ei leitud"
 }

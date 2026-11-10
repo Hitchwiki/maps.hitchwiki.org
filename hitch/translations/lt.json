@@ -1115,5 +1115,10 @@
   "{n} of your rides have no date and cannot be counted.": "{n} jūsų kelionių neturi datos ir negali būti įskaičiuotos.",
   "{year} on the road": "{year} metai kelyje",
   "Likely there before dark (sunset {clock})": "Greičiausiai atvyksite iki sutemų (saulėlydis {clock})",
-  "Dark around {clock} · likely about {km} km before then": "Bus tamsu apie {clock} · greičiausiai apie {km} km iki to laiko"
+  "Dark around {clock} · likely about {km} km before then": "Bus tamsu apie {clock} · greičiausiai apie {km} km iki to laiko",
+  "Is this a good hitchhiking route?": "Ar tai geras autostopo maršrutas?",
+  "What would you change? (optional)": "Ką pakeistumėte? (neprivaloma)",
+  "Send": "Siųsti",
+  "Thanks!": "Dėkojame!",
+  "No spots found": "Vietų nerasta"
 }

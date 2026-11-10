@@ -1115,5 +1115,10 @@
   "{n} of your rides have no date and cannot be counted.": "{n} yolculuğunun tarihi yok ve sayılamıyor.",
   "{year} on the road": "Yollardaki {year} yılı",
   "Likely there before dark (sunset {clock})": "Karanlık basmadan (gün batımı {clock}) oraya varma ihtimali yüksek",
-  "Dark around {clock} · likely about {km} km before then": "{clock} civarı kararır · o zamana kadar muhtemelen yaklaşık {km} km"
+  "Dark around {clock} · likely about {km} km before then": "{clock} civarı kararır · o zamana kadar muhtemelen yaklaşık {km} km",
+  "Is this a good hitchhiking route?": "Bu iyi bir otostop rotası mı?",
+  "What would you change? (optional)": "Ne değiştirirdiniz? (isteğe bağlı)",
+  "Send": "Gönder",
+  "Thanks!": "Teşekkürler!",
+  "No spots found": "Hiç nokta bulunamadı"
 }

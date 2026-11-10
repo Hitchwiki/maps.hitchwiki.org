@@ -1115,5 +1115,10 @@
   "{n} of your rides have no date and cannot be counted.": "{n} utadnak nincs dátuma, és nem számolhatók be.",
   "{year} on the road": "{year} az utakon",
   "Likely there before dark (sunset {clock})": "Valószínűleg sötétedés előtt odaér (naplemente: {clock})",
-  "Dark around {clock} · likely about {km} km before then": "Körülbelül {clock}kor sötétedik · addig valószínűleg még kb. {km} km"
+  "Dark around {clock} · likely about {km} km before then": "Körülbelül {clock}kor sötétedik · addig valószínűleg még kb. {km} km",
+  "Is this a good hitchhiking route?": "Jó stoppolós útvonal ez?",
+  "What would you change? (optional)": "Mit változtatnál? (nem kötelező)",
+  "Send": "Küldés",
+  "Thanks!": "Köszönjük!",
+  "No spots found": "Nem található pont"
 }

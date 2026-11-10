@@ -1115,5 +1115,10 @@
   "{n} of your rides have no date and cannot be counted.": "{n} tvojih vožnji nema datum i ne mogu se uračunati.",
   "{year} on the road": "{year} na cesti",
   "Likely there before dark (sunset {clock})": "Vjerojatno tamo prije mraka (zalazak sunca {clock})",
-  "Dark around {clock} · likely about {km} km before then": "Mrak oko {clock} · vjerojatno oko {km} km prije tada"
+  "Dark around {clock} · likely about {km} km before then": "Mrak oko {clock} · vjerojatno oko {km} km prije tada",
+  "Is this a good hitchhiking route?": "Je li ovo dobra autostopska ruta?",
+  "What would you change? (optional)": "Što biste promijenili? (neobavezno)",
+  "Send": "Pošalji",
+  "Thanks!": "Hvala!",
+  "No spots found": "Nema pronađenih mjesta"
 }
