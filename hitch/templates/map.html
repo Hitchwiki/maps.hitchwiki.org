@@ -168,7 +168,10 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
         });
     });
 
-    function dismiss() {
+    function dismiss(e) {
+        if (!isAndroid && e && e.type === 'click' && e.currentTarget && e.currentTarget.id === 'install-hint-close' && window.hmTrack) {
+            window.hmTrack('install_hint_dismissed', { os: isIOS ? 'ios' : 'other' });
+        }
         hint.hidden = true;
         try { localStorage.setItem(HINT_KEY, String(Date.now())); } catch (e) {}
     }
@@ -180,6 +183,8 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
     function showHint() {
         hint.hidden = false;
         if (isAndroid && window.hmTrack) window.hmTrack('play_store_shown', { source: 'install_hint' });
+        // Install-path telemetry for the non-Android hint (iOS Add-to-Home-Screen text, desktop).
+        if (!isAndroid && window.hmTrack) window.hmTrack('install_hint_shown', { os: isIOS ? 'ios' : 'other' });
     }
     var waited = 0;
     // Small delay so the hint doesn't fight with map load (and the consent box exists).

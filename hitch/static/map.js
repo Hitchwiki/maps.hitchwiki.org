@@ -328,7 +328,9 @@ function reportMapReady(spotsUrl) {
     const cached = entry ? entry.transferSize === 0 : "unknown";
     const conn = (navigator.connection && navigator.connection.effectiveType) || "unknown";
     const mobile = window.matchMedia && window.matchMedia("(max-width: 700px)").matches;
-    if (window.hmTrack) window.hmTrack("map_ready", { bucket, conn, cached: String(cached), mobile: mobile ? "yes" : "no", arm: spotsArm });
+    // Install-path telemetry: how many map loads already run from the home screen.
+    const standaloneDisplay = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone;
+    if (window.hmTrack) window.hmTrack("map_ready", { bucket, conn, cached: String(cached), mobile: mobile ? "yes" : "no", arm: spotsArm, display: standaloneDisplay ? "standalone" : "browser" });
   } catch (e) {}
 }
 
