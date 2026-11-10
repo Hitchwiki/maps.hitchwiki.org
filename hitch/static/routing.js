@@ -925,7 +925,7 @@
         const rt = RJ.routes[RJ.highlight || 0] || RJ.routes[0];
         const line = [].concat(...rt.legs.map((l, li) => (l.mode === "car" && rt._layers && rt._layers[li]
           ? rt._layers[li].getLatLngs().map((q) => [q.lat, q.lng]) : [])));
-        if (line.length < 2) { list.textContent = "No spots found"; return; }
+        if (line.length < 2) { list.textContent = T("No spots found"); return; }
         const cum = [0];
         for (let k = 1; k < line.length; k++) cum.push(cum[k - 1] + haversineKm(line[k - 1], line[k]));
         let la0 = 90, la1 = -90, lo0 = 180, lo1 = -180;
@@ -940,7 +940,7 @@
         const sl = [], sc = [];
         line.forEach((q, k) => { if (k % step === 0 || k === line.length - 1) { sl.push(q); sc.push(cum[k]); } });
         const rows = C.driverList(C.nearRoute(spots, sl, sc, 2), Date.now(), 2).slice(0, 8);
-        if (!rows.length) { list.textContent = "No spots found"; return; }
+        if (!rows.length) { list.textContent = T("No spots found"); return; }
         rows.forEach((r) => {
           const div = document.createElement("div");
           div.appendChild(spotLink([r.s.lat, r.s.lon]));
@@ -966,12 +966,12 @@
     const box = document.createElement("div");
     box.className = "rp-feedback";
     box.style.cssText = "margin:8px 12px;font-size:14px";
-    box.innerHTML = `<span>Is this a good hitchhiking route?</span>
+    box.innerHTML = `<span>${T("Is this a good hitchhiking route?")}</span>
       <button type="button" data-v="up" aria-label="${T("Yes")}" style="font-size:18px;margin-left:8px">👍</button>
       <button type="button" data-v="down" aria-label="${T("No")}" style="font-size:18px">👎</button>
       <div class="rp-feedback-more" hidden style="margin-top:6px">
-        <textarea maxlength="300" rows="2" style="width:100%" placeholder="What would you change? (optional)"></textarea>
-        <button type="button" class="rp-feedback-send">Send</button>
+        <textarea maxlength="300" rows="2" style="width:100%" placeholder="${T("What would you change? (optional)")}"></textarea>
+        <button type="button" class="rp-feedback-send">${T("Send")}</button>
       </div>`;
     // EXP-1347: the ask sat under the route list, below the fold on a phone (7 votes vs ~3000 routes found per 28 d).
     // "top" arm places it right under the Start button, above the intent chips.
@@ -983,7 +983,7 @@
     try {
       if (window.IntersectionObserver) {
         const io = new IntersectionObserver((es) => {
-          if (es.some((e) => e.isIntersecting)) { io.disconnect(); hmTrack("route_feedback_seen", { arm: fbArm }); }
+          if (es.some((e) => e.isIntersecting)) { io.disconnect(); hmTrack("route_feedback_seen", { arm: fbArm, lang: document.documentElement.lang || "" }); }
         }, { threshold: 0.6 });
         io.observe(box);
       }
@@ -1004,7 +1004,7 @@
       b.onclick = () => {
         if (vote) return;
         vote = b.dataset.v;
-        hmTrack("route_feedback", { vote: vote, arm: fbArm });
+        hmTrack("route_feedback", { vote: vote, arm: fbArm, lang: document.documentElement.lang || "" });
         // Same event/payload as the retired "Would you hitchhike this way?" tap (#1237), so EXP-1242/1243 series continue.
         try {
           const cell = (ll) => (Math.round(ll[0] * 2) / 2) + "," + (Math.round(ll[1] * 2) / 2);
@@ -1021,7 +1021,7 @@
     box.querySelector(".rp-feedback-send").onclick = () => {
       const text = (box.querySelector("textarea").value || "").trim();
       if (text) { hmTrack("route_feedback_text"); post(text); }
-      box.innerHTML = `<span>Thanks!</span>`;
+      box.innerHTML = `<span>${T("Thanks!")}</span>`;
     };
   }
 

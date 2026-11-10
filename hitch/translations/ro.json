@@ -1115,5 +1115,10 @@
   "{n} of your rides have no date and cannot be counted.": "{n} dintre cursele tale nu au dată și nu pot fi contorizate.",
   "{year} on the road": "{year} pe drumuri",
   "Likely there before dark (sunset {clock})": "Probabil ajungi înainte de întuneric (apus la {clock})",
-  "Dark around {clock} · likely about {km} km before then": "Se întunecă în jurul orei {clock} · probabil mai sunt aproximativ {km} km până atunci"
+  "Dark around {clock} · likely about {km} km before then": "Se întunecă în jurul orei {clock} · probabil mai sunt aproximativ {km} km până atunci",
+  "Is this a good hitchhiking route?": "Este aceasta o rută bună de autostop?",
+  "What would you change? (optional)": "Ce ai schimba? (opțional)",
+  "Send": "Trimite",
+  "Thanks!": "Mulțumim!",
+  "No spots found": "Nu s-au găsit locuri"
 }

@@ -1115,5 +1115,10 @@
   "{n} of your rides have no date and cannot be counted.": "{n} no taviem ceļojumiem nav datuma, un tos nevar ieskaitīt.",
   "{year} on the road": "{year} gads ceļā",
   "Likely there before dark (sunset {clock})": "Visticamāk būšu tur pirms tumsas (saulriets {clock})",
-  "Dark around {clock} · likely about {km} km before then": "Tumsa ap {clock} · visticamāk ap {km} km līdz tam"
+  "Dark around {clock} · likely about {km} km before then": "Tumsa ap {clock} · visticamāk ap {km} km līdz tam",
+  "Is this a good hitchhiking route?": "Vai šī ir laba stopēšanas maršruts?",
+  "What would you change? (optional)": "Ko jūs mainītu? (neobligāti)",
+  "Send": "Sūtīt",
+  "Thanks!": "Paldies!",
+  "No spots found": "Netika atrasta neviena vieta"
 }

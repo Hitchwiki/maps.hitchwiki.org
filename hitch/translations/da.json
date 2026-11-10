@@ -1115,5 +1115,10 @@
   "{n} of your rides have no date and cannot be counted.": "{n} af dine ture har ingen dato og kan ikke tælles med.",
   "{year} on the road": "{year} på vejen",
   "Likely there before dark (sunset {clock})": "Sandsynligvis fremme før mørkets frembrud (solnedgang {clock})",
-  "Dark around {clock} · likely about {km} km before then": "Mørkt omkring {clock} · sandsynligvis ca. {km} km inden da"
+  "Dark around {clock} · likely about {km} km before then": "Mørkt omkring {clock} · sandsynligvis ca. {km} km inden da",
+  "Is this a good hitchhiking route?": "Er dette en god liftning rute?",
+  "What would you change? (optional)": "Hvad ville du ændre? (valgfrit)",
+  "Send": "Send",
+  "Thanks!": "Tak!",
+  "No spots found": "Ingen steder fundet"
 }

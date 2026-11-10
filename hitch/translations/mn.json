@@ -1115,5 +1115,10 @@
   "{n} of your rides have no date and cannot be counted.": "Таны {n} уналга огноогүй тул тоолж болохгүй.",
   "{year} on the road": "зам дээрх {year} он",
   "Likely there before dark (sunset {clock})": "Бүүдэлтээс өмнө очих магадлалтай (нар жаргах {clock})",
-  "Dark around {clock} · likely about {km} km before then": "Оройн харанхуй {clock}-д · тухайн үе хүртэл ойролцоогоор {km} км үлдэж байна"
+  "Dark around {clock} · likely about {km} km before then": "Оройн харанхуй {clock}-д · тухайн үе хүртэл ойролцоогоор {km} км үлдэж байна",
+  "Is this a good hitchhiking route?": "Энэ нь сайн автостопын чиглэл үү?",
+  "What would you change? (optional)": "Та юуг өөрчлөх вэ? (заавал биш)",
+  "Send": "Илгээх",
+  "Thanks!": "Баярлалаа!",
+  "No spots found": "Хэсэг олдсонгүй"
 }

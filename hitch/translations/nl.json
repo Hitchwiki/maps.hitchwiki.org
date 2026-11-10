@@ -1115,5 +1115,10 @@
   "{n} of your rides have no date and cannot be counted.": "{n} van je ritten hebben geen datum en kunnen niet meegeteld worden.",
   "{year} on the road": "{year} onderweg",
   "Likely there before dark (sunset {clock})": "Waarachtig vóór het donker is (zonsondergang {clock})",
-  "Dark around {clock} · likely about {km} km before then": "Rond {clock} donker · waarschijnlijk nog ongeveer {km} km op dat moment"
+  "Dark around {clock} · likely about {km} km before then": "Rond {clock} donker · waarschijnlijk nog ongeveer {km} km op dat moment",
+  "Is this a good hitchhiking route?": "Is dit een goede liftroute?",
+  "What would you change? (optional)": "Wat zou je veranderen? (optioneel)",
+  "Send": "Versturen",
+  "Thanks!": "Bedankt!",
+  "No spots found": "Geen spots gevonden"
 }

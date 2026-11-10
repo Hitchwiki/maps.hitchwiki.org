@@ -1115,5 +1115,10 @@
   "{n} of your rides have no date and cannot be counted.": "{n} z tvojich jázd nemá dátum a nedá sa započítať.",
   "{year} on the road": "Rok {year} na cestách",
   "Likely there before dark (sunset {clock})": "Pravdepodobne tam pred stmavnutím (západ slnka {clock})",
-  "Dark around {clock} · likely about {km} km before then": "Zotmie sa okolo {clock} · pravdepodobne ešte asi {km} km pred tým"
+  "Dark around {clock} · likely about {km} km before then": "Zotmie sa okolo {clock} · pravdepodobne ešte asi {km} km pred tým",
+  "Is this a good hitchhiking route?": "Je toto dobrá stopovacia trasa?",
+  "What would you change? (optional)": "Čo by si zmenil/a? (nepovinné)",
+  "Send": "Odoslať",
+  "Thanks!": "Ďakujeme!",
+  "No spots found": "Nenašli sa žiadne miesta"
 }

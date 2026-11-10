@@ -1115,5 +1115,10 @@
   "{n} of your rides have no date and cannot be counted.": "შენი {n} მოგზაურობას თარიღი არ აქვს და ვერ იქნება გათვლილი.",
   "{year} on the road": "{year} წელი გზაზე",
   "Likely there before dark (sunset {clock})": "სავარაუდოდ, ბნელებამდე იქ იქნებით (მზის ჩასვლა {clock})",
-  "Dark around {clock} · likely about {km} km before then": "დაბნელდება დაახლოებით {clock}-ზე · სავარაუდოდ, მანამდე დარჩენილია დაახლოებით {km} კმ"
+  "Dark around {clock} · likely about {km} km before then": "დაბნელდება დაახლოებით {clock}-ზე · სავარაუდოდ, მანამდე დარჩენილია დაახლოებით {km} კმ",
+  "Is this a good hitchhiking route?": "არის თუ არა ეს კარგი ავტოსტოპის მარშრუტი?",
+  "What would you change? (optional)": "რას შეცვლიდი? (არასავალდებულო)",
+  "Send": "გაგზავნა",
+  "Thanks!": "გმადლობთ!",
+  "No spots found": "ადგილები ვერ მოიძებნა"
 }

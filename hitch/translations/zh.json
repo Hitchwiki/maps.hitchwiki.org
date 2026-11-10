@@ -1115,5 +1115,10 @@
   "{n} of your rides have no date and cannot be counted.": "你有 {n} 段行程没有日期，无法计入统计。",
   "{year} on the road": "{year} 年在路上",
   "Likely there before dark (sunset {clock})": "很可能在天黑前到达（日落时间 {clock}）",
-  "Dark around {clock} · likely about {km} km before then": "约 {clock} 天黑 · 届时大约还剩 {km} 公里"
+  "Dark around {clock} · likely about {km} km before then": "约 {clock} 天黑 · 届时大约还剩 {km} 公里",
+  "Is this a good hitchhiking route?": "这是一个不错的搭车路线吗？",
+  "What would you change? (optional)": "你有什么想修改的？（可选）",
+  "Send": "发送",
+  "Thanks!": "谢谢！",
+  "No spots found": "未找到地点"
 }

@@ -1115,5 +1115,10 @@
   "{n} of your rides have no date and cannot be counted.": "{n} deiner Fahrten haben kein Datum und können nicht mitgezählt werden.",
   "{year} on the road": "{year} auf der Straße",
   "Likely there before dark (sunset {clock})": "Wahrscheinlich vor Einbruch der Dunkelheit da (Sonnenuntergang {clock})",
-  "Dark around {clock} · likely about {km} km before then": "Dunkel gegen {clock} · wahrscheinlich etwa {km} km bis dahin"
+  "Dark around {clock} · likely about {km} km before then": "Dunkel gegen {clock} · wahrscheinlich etwa {km} km bis dahin",
+  "Is this a good hitchhiking route?": "Ist das eine gute Trampstrecke?",
+  "What would you change? (optional)": "Was würdest du ändern? (optional)",
+  "Send": "Senden",
+  "Thanks!": "Danke!",
+  "No spots found": "Keine spots gefunden"
 }

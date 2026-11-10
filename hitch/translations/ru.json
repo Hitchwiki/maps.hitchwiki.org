@@ -1115,5 +1115,10 @@
   "{n} of your rides have no date and cannot be counted.": "{n} ваших поездок без даты и не могут быть учтены.",
   "{year} on the road": "{year} на дороге",
   "Likely there before dark (sunset {clock})": "Скорее всего, приедете до темноты (закат в {clock})",
-  "Dark around {clock} · likely about {km} km before then": "Темнеет около {clock} · скорее всего, до этого останется около {km} км"
+  "Dark around {clock} · likely about {km} km before then": "Темнеет около {clock} · скорее всего, до этого останется около {km} км",
+  "Is this a good hitchhiking route?": "Хороший ли это автостопный маршрут?",
+  "What would you change? (optional)": "Что бы вы изменили? (необязательно)",
+  "Send": "Отправить",
+  "Thanks!": "Спасибо!",
+  "No spots found": "Мест не найдено"
 }
