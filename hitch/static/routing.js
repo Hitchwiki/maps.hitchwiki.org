@@ -964,7 +964,21 @@
         <textarea maxlength="300" rows="2" style="width:100%" placeholder="What would you change? (optional)"></textarea>
         <button type="button" class="rp-feedback-send">Send</button>
       </div>`;
-    opts.insertAdjacentElement("afterend", box);
+    // EXP-1347: the ask sat under the route list, below the fold on a phone (7 votes vs ~3000 routes found per 28 d).
+    // "top" arm places it right under the Start button, above the intent chips.
+    const fbArm = hmVariant("route-fb-pos-v1", ["control", "top"]);
+    const intentEl = sheet.querySelector(".rp-intent");
+    if (fbArm === "top" && intentEl) intentEl.insertAdjacentElement("beforebegin", box);
+    else opts.insertAdjacentElement("afterend", box);
+    // Denominator the vote rate never had: the box actually scrolled into view (once per box).
+    try {
+      if (window.IntersectionObserver) {
+        const io = new IntersectionObserver((es) => {
+          if (es.some((e) => e.isIntersecting)) { io.disconnect(); hmTrack("route_feedback_seen", { arm: fbArm }); }
+        }, { threshold: 0.6 });
+        io.observe(box);
+      }
+    } catch (e) { /* analytics must never break routing */ }
     let vote = null;
     const post = (text) => {
       try {
@@ -981,7 +995,7 @@
       b.onclick = () => {
         if (vote) return;
         vote = b.dataset.v;
-        hmTrack("route_feedback", { vote: vote });
+        hmTrack("route_feedback", { vote: vote, arm: fbArm });
         // Same event/payload as the retired "Would you hitchhike this way?" tap (#1237), so EXP-1242/1243 series continue.
         try {
           const cell = (ll) => (Math.round(ll[0] * 2) / 2) + "," + (Math.round(ll[1] * 2) / 2);
