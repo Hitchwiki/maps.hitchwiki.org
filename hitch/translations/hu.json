@@ -1128,5 +1128,7 @@
   "Driving somewhere? See pickup spots on your way": "Autózol? Nézd meg a stoppolási pontokat az útvonaladon",
   "Experimental: try the new route planner for this trip": "Kísérleti funkció: próbáld ki az új útvonaltervezőt ehhez az úthoz",
   "Experimental: compare with the new route planner": "Kísérleti funkció: hasonlítsd össze az új útvonaltervezővel",
-  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Koppints a „Saját helyzetem” gombra, hogy a jelölő oda kerüljön, ahol éppen vagy — a böngésző egyszer rákérdez."
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Koppints a „Saját helyzetem” gombra, hogy a jelölő oda kerüljön, ahol éppen vagy — a böngésző egyszer rákérdez.",
+  "First time they picked someone up?": "Első alkalom, hogy felvett valakit?",
+  "Don't know": "Nem tudom"
 }

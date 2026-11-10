@@ -1128,5 +1128,7 @@
   "Driving somewhere? See pickup spots on your way": "Ajatko jonnekin? Katso kyytiinottopaikat reitiltäsi",
   "Experimental: try the new route planner for this trip": "Kokeellinen: kokeile uutta reittisuunnittelijaa tälle matkalle",
   "Experimental: compare with the new route planner": "Kokeellinen: vertaa uuteen reittisuunnittelijaan",
-  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Napauta ”Käytä sijaintiani” asettaaksesi karttaneulan nykyiseen sijaintiisi — selaimesi kysyy asiasta kerran."
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Napauta ”Käytä sijaintiani” asettaaksesi karttaneulan nykyiseen sijaintiisi — selaimesi kysyy asiasta kerran.",
+  "First time they picked someone up?": "Ensimmäinen kerta kun he poimivat jonkun kyytiin?",
+  "Don't know": "Ei tiedä"
 }

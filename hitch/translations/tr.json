@@ -1128,5 +1128,7 @@
   "Driving somewhere? See pickup spots on your way": "Bir yere mi gidiyorsun? Yolunuzdaki otostop noktalarını görün",
   "Experimental: try the new route planner for this trip": "Deneysel: Bu yolculuk için yeni rota planlayıcısını deneyin",
   "Experimental: compare with the new route planner": "Deneysel: Yeni rota planlayıcısıyla karşılaştırın",
-  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "İşaretçiyi bulunduğunuz yere bırakmak için “Konumumu kullan”a dokunun — tarayıcınız bir kez soracak."
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "İşaretçiyi bulunduğunuz yere bırakmak için “Konumumu kullan”a dokunun — tarayıcınız bir kez soracak.",
+  "First time they picked someone up?": "İlk kez birini mi aldılar?",
+  "Don't know": "Bilmiyorum"
 }
