@@ -35,6 +35,9 @@
   // ---- engine constants --------------------------------------------------
   const WALK_KMH = 5, CAR_KMH = 100, CAR_FACTOR = 1.25, EARTH_KM = 6371;
   const MID_WAIT_X = 1.5;
+  // IDEAS #1348: an edge's wait is a raw mean over `support` rides (59% rest on 2). Rank on a wait shrunk toward the
+  // global median by support, so a lucky 2-ride 5 min no longer beats a 30-ride spot. 0 disables.
+  const WAIT_SHRINK_K = 10;
   // How far one is willing to walk — applied uniformly to first/last mile
   // (origin<->spot, spot<->dest) AND to hops between spots. A smaller transfer
   // cap disconnects sparse intercity corridors (Berlin<->Amsterdam needs ~8 km
@@ -98,12 +101,17 @@
     const edgeSupport = new Map(); // u*1e7+v -> rides that took this edge
     const carSpots = new Set();
     const waits = [];
+    const allW = [];
+    rep.trees.forEach((t) => t.nodes.forEach((n) => { if (n.length > 3 && n[3] != null) allW.push(n[3]); }));
+    allW.sort((a, b) => a - b);
+    const medW = allW.length ? allW[allW.length >> 1] : 0;
     rep.trees.forEach((t) => {
       const tId = treeAdj.length, adj = new Map(), nodes = t.nodes;
       nodes.forEach((n) => {
         const from = n[1] === -1 ? t.s : nodes[n[1]][0], to = n[0];
         const support = n[2];
-        const wait = n.length > 3 ? n[3] : null;
+        let wait = n.length > 3 ? n[3] : null;
+        if (wait != null && WAIT_SHRINK_K > 0) wait = (support * wait + WAIT_SHRINK_K * medW) / (support + WAIT_SHRINK_K);
         const km = haversineKm(spots[from], spots[to]) * CAR_FACTOR;
         if (!adj.has(from)) adj.set(from, []);
         adj.get(from).push([to, km, wait]);
