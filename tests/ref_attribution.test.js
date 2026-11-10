@@ -22,7 +22,8 @@ function refCaptureBlock() {
   const scriptStart = SOURCE.lastIndexOf("<script>", start);
   const scriptEnd = SOURCE.indexOf("</script>", start);
   assert.ok(scriptStart !== -1 && scriptEnd > start, "could not find the enclosing <script> tags");
-  return SOURCE.slice(scriptStart + "<script>".length, scriptEnd);
+  // Jinja comments (`{# ... #}`) are not JS; drop them before eval.
+  return SOURCE.slice(scriptStart + "<script>".length, scriptEnd).replace(/\{#[\s\S]*?#\}/g, "");
 }
 
 // Runs the block against a fake location.search, returning what it tracked and
