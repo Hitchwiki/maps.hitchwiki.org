@@ -11,6 +11,7 @@ import requests as http_requests
 from flask import Blueprint, current_app, redirect, render_template, request, session, url_for
 from flask_security import login_user, logout_user
 
+from hitch.blueprints.utils.invite_landing_log import log_invite_join
 from hitch.blueprints.utils.notifications import ensure_welcome_notification
 from hitch.blueprints.utils.send_welcome_email import maybe_send_welcome_email
 from hitch.extensions import db, security
@@ -238,6 +239,8 @@ def _handle_callback(code):
             email_notifications=True,
         )
         db.session.commit()
+        # #1363: credit the sender whose `?inv=` link this browser landed on (code only, no user id).
+        log_invite_join(session.pop("inv", None))
         current_app.logger.info(f"Created new user from Hitchwiki OAuth: {hitchwiki_username}")
 
         # Log in and redirect to profile setup

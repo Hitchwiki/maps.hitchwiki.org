@@ -1136,5 +1136,6 @@
   "You're not following anyone yet. Here are some of the most active hitchhikers lately — follow them to see their latest rides here.": "Ви ще ні на кого не підписані. Ось деякі з найактивніших автостопників останнім часом — підпишіться на них, щоб бачити їхні останні поїздки тут.",
   "No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.": "Поки що немає поїздок від людей, на яких ви підписані. Підпишіться на інших автостопників зі сторінок їхніх профілів, щоб бачити їхні останні поїздки тут.",
   "Recent rides": "Останні поїздки",
-  "{n} people opened your link": "{n} осіб відкрили ваше посилання"
+  "{n} people opened your link": "{n} осіб відкрили ваше посилання",
+  "{n} joined through it": "Через це приєдналися: {n}"
 }
