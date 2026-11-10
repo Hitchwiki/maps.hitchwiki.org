@@ -1734,6 +1734,33 @@
       return parts.length >= 2 ? parts.join(" · ") : null;
     },
 
+    // IDEAS #1338: the rider stands >200 m from any known spot, so the dock shows nothing. In the
+    // sticky 50/50 arm wait-nearest-v1, offer one tappable row with the distance to the nearest
+    // known spot (opens it, fits map to pin + spot). English-only label, our own data, no advice.
+    _renderNearestSpot(pickup, best, bestKm) {
+      try {
+        const arm = (window.hmVariant || function (_n, v) { return v[0]; })("wait-nearest-v1", ["off", "on"]);
+        const band = bestKm < 1 ? "lt1" : bestKm < 3 ? "1to3" : bestKm <= 15 ? "3to15" : "gt15";
+        if (!best || !isFinite(bestKm)) { hmTrack("waiting_nearest_shown", { arm: arm, km: "none" }); return; }
+        hmTrack("waiting_nearest_shown", { arm: arm, km: band });
+        if (arm !== "on" || bestKm > 15 || !journeyUI._dockEl) return;
+        const el = document.createElement("button");
+        el.type = "button";
+        el.className = "inr-waitctx";
+        el.textContent = "Nearest spot: " + (bestKm < 10 ? bestKm.toFixed(1) : Math.round(bestKm)) + " km";
+        el.addEventListener("click", function () {
+          hmTrack("waiting_nearest_clicked", { km: band });
+          try {
+            const ll = best._latlng;
+            if (window.map && ll) window.map.fitBounds(L.latLngBounds([[pickup.lat, pickup.lon], [ll.lat, ll.lng]]), { padding: [60, 60] });
+            best.fire("click");
+          } catch (e) { /* marker gone */ }
+        });
+        journeyUI._dockEl.insertBefore(el, journeyUI._dockEl.firstChild);
+        journeyUI._waitCtxEl = el;
+      } catch (e) { /* never break the waiting dock */ }
+    },
+
     // Find the nearest map marker to the pickup pin; if one sits within ~200 m,
     // fetch its per-spot file and drop _spotContextLine into the dock. Always
     // emits waiting_context_shown (has_spot false when nothing is close enough),
@@ -1754,6 +1781,7 @@
         const spotId = best && best.options && best.options.spotId;
         if (!best || bestKm > 0.2 || !spotId) {
           hmTrack("waiting_context_shown", { has_spot: false, rides: 0 });
+          journeyUI._renderNearestSpot(pickup, best, bestKm);
           return;
         }
         fetch("/rides/by-spot/" + encodeURIComponent(spotId) + ".json")
