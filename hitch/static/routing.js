@@ -1197,7 +1197,8 @@
     return ageDays >= 1 && ageDays <= 14 ? rec : null;
   }
   function maybeShowResumeChip() {
-    if (routeFromUrl() || location.hash || RJ.active) return;
+    // The map always writes #map=z/lat/lon (map.js updateMapHash); only other hashes (#menu, #routing...) mean the visitor is mid-task.
+    if (routeFromUrl() || (location.hash && !/^#map=/.test(location.hash)) || RJ.active) return;
     let path = routePath(location.pathname || "");
     if (path !== "/" && path !== "") return;
     const rec = readLastRoute();
