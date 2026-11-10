@@ -254,6 +254,15 @@
           var body = JSON.stringify({ code: inv, ref: (params.get("ref") || "").slice(0, 64) });
           if (navigator.sendBeacon) navigator.sendBeacon("/log-invite-landing", new Blob([body], { type: "application/json" }));
         } catch (e) { /* measurement is optional */ }
+        // #1364: also an Umami event (the CSV above is server-side only), once per browser
+        // and code so a reopened link is not counted twice. No code is sent, only the ref.
+        try {
+          var seenKey = "hm_inv_seen_" + inv;
+          if (!localStorage.getItem(seenKey)) {
+            localStorage.setItem(seenKey, "1");
+            if (window.hmTrack) window.hmTrack("invite_landed", { ref: (params.get("ref") || "").slice(0, 64).replace(/[^a-zA-Z0-9_-]/g, "") });
+          }
+        } catch (e) { /* storage blocked: skip the event */ }
         params.delete("inv");
         var qs0 = params.toString();
         history.replaceState({}, "", window.location.pathname + (qs0 ? "?" + qs0 : "") + window.location.hash);
