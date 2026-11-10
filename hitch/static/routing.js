@@ -1214,6 +1214,24 @@
     });
     document.body.appendChild(chip);
     hmTrack("route_resume_shown", { variant: arm });
+    // #1332: did the planned trip happen? One tap, once per plan, labels only.
+    let answered = false;
+    try { answered = localStorage.getItem("hmWentAns") === String(rec.ts); } catch (e) {}
+    if (!answered) {
+      const row = document.createElement("div");
+      row.className = "rp-went-row";
+      [["yes", "I went"], ["no", "Not yet"]].forEach(function (x) {
+        const b = document.createElement("button");
+        b.type = "button"; b.textContent = x[1];
+        b.addEventListener("click", function () {
+          hmTrack("route_went", { ans: x[0], age_d: Math.round((Date.now() - rec.ts) / 86400000) });
+          try { localStorage.setItem("hmWentAns", String(rec.ts)); } catch (e) {}
+          row.remove();
+        });
+        row.appendChild(b);
+      });
+      document.body.appendChild(row);
+    }
   }
   function parseDirPath(pathname) {
     const m = DIR_PATH_RE.exec(routePath(pathname || ""));
