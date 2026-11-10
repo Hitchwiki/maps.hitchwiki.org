@@ -34,6 +34,7 @@ import math
 import os
 import re
 import sqlite3
+import statistics
 import time
 from datetime import datetime, timezone
 
@@ -708,7 +709,7 @@ def build_repeatable_trees(rides, spots, min_support=MIN_SUPPORT):
 
     Each node is [spot_idx, parent_idx, support, wait_min] for each start spot
     that has at least one surviving edge. parent_idx indexes into the same nodes
-    list, or -1 for a direct child of the start spot. wait_min is the average
+    list, or -1 for a direct child of the start spot. wait_min is the median
     waiting time (minutes) of all rides whose route used that edge (null if none
     of them recorded a wait) — added so the router can model hitchhiking waits.
     """
@@ -720,8 +721,7 @@ def build_repeatable_trees(rides, spots, min_support=MIN_SUPPORT):
     # its route. A ride "uses" edge (u, v) when u, v are consecutive spots in its
     # start-prefixed sequence; its wait is averaged over all such rides.
     sequences_by_start = {}
-    edge_wait_sum = {}
-    edge_wait_count = {}
+    edge_waits = {}  # (u, v) -> [minutes, ...]; reported as the median (waits are right-skewed, IDEAS #1353)
     for ride in rides:
         if not ride.get("routed"):
             continue
@@ -735,12 +735,11 @@ def build_repeatable_trees(rides, spots, min_support=MIN_SUPPORT):
         for u, v in zip(full, full[1:]):
             if u == v:
                 continue
-            edge_wait_sum[(u, v)] = edge_wait_sum.get((u, v), 0) + wait
-            edge_wait_count[(u, v)] = edge_wait_count.get((u, v), 0) + 1
+            edge_waits.setdefault((u, v), []).append(wait)
 
     def edge_wait(u_sid, v_sid):
-        n = edge_wait_count.get((u_sid, v_sid))
-        return round(edge_wait_sum[(u_sid, v_sid)] / n, 1) if n else None
+        ws = edge_waits.get((u_sid, v_sid))
+        return round(statistics.median(ws), 1) if ws else None
 
     def walk(node, parent_idx, nodes):
         for child in node["children"].values():
