@@ -876,15 +876,19 @@
         return;
       }
       let arm = null;
-      try { arm = localStorage.getItem("route-drive-v1"); } catch (e) {}
-      if (arm !== "on" && arm !== "off") {
+      // #1333: a pledged driver arriving via the "Driving somewhere?" link always sees the button, as its own arm,
+      // and never touches the stored route-drive-v1 assignment.
+      const pledged = (window.hmLandingRef || "").indexOf("pledge_drive") === 0;
+      if (pledged) arm = "pledge";
+      else try { arm = localStorage.getItem("route-drive-v1"); } catch (e) {}
+      if (!pledged && arm !== "on" && arm !== "off") {
         arm = Math.random() < 0.5 ? "on" : "off";
         try { localStorage.setItem("route-drive-v1", arm); } catch (e) {}
       }
       const anchor = sheet.querySelector(".rp-feedback") || sheet.querySelector(".rp-options");
       if (!anchor) return;
       hmTrack("route_drive_shown", { arm: arm, lang: (typeof window !== "undefined" && window.__LANG__) || "en" });
-      if (arm !== "on") return;
+      if (arm !== "on" && arm !== "pledge") return;
       const box = document.createElement("div");
       box.className = "rp-drive";
       box.style.cssText = "margin:8px 12px;font-size:14px";
@@ -899,7 +903,7 @@
       btn.addEventListener("click", () => {
         const open = list.style.display === "none";
         list.style.display = open ? "block" : "none";
-        hmTrack("route_drive_toggled", { open: open });
+        hmTrack("route_drive_toggled", { open: open, arm: arm });
         if (!open || built) return;
         built = true;
         const rt = RJ.routes[RJ.highlight || 0] || RJ.routes[0];
@@ -925,7 +929,7 @@
           const div = document.createElement("div");
           div.appendChild(spotLink([r.s.lat, r.s.lon]));
           div.appendChild(document.createTextNode(" · km " + Math.round(r.at) + (r.ageDays === null ? "" : " · " + Math.round(r.ageDays) + " d")));
-          div.addEventListener("click", () => hmTrack("route_drive_spot_click", {}));
+          div.addEventListener("click", () => hmTrack("route_drive_spot_click", { arm: arm }));
           list.appendChild(div);
         });
       });
@@ -2104,7 +2108,11 @@
     // A shared/deep route link reopens the same route on load and on back/forward.
     // The canonical form lives in the path, so back/forward onto it is a popstate,
     // not a hashchange; only reopen when the planner isn't already showing it.
-    if (!openFromUrl()) setTimeout(maybeShowResumeChip, 2500);
+    if (!openFromUrl()) {
+      // #1333: the pledge success note links here to let a driver see pickup spots along their road.
+      if ((window.hmLandingRef || "").indexOf("pledge_drive") === 0) open();
+      else setTimeout(maybeShowResumeChip, 2500);
+    }
     const reopen = () => {
       const p = routeFromUrl();
       if (!p) return;

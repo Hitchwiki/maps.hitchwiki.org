@@ -4909,6 +4909,14 @@ function addPledgeStopsLink(note, surface) {
   a.style.cssText = "display:block;margin-top:6px;";
   a.onclick = function () { hmTrack("driver_pledge_stops_link_clicked", { surface: surface }); };
   note.appendChild(a);
+  // #1333: second link into the live route planner's driver view.
+  const d = document.createElement("a");
+  d.className = "pledge-drive-link";
+  d.href = "/?ref=pledge_drive_" + surface;
+  d.textContent = tr("Driving somewhere? See pickup spots on your way");
+  d.style.cssText = "display:block;margin-top:6px;";
+  d.onclick = function () { hmTrack("driver_pledge_drive_link_clicked", { surface: surface }); };
+  note.appendChild(d);
 }
 
 function renderDriverPledgeNudge() {
