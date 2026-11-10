@@ -869,7 +869,12 @@ function setupGeocoder() {
       geocoderInput.value = "";
       if (!results || !results.length) return;
       logSearchRequest(results[0]);
-      map.setView(results[0].center, geocoderOpts.zoom);
+      // This can resolve while the initial world-fit zoom animation is still running;
+      // Leaflet then drops the setView (or the animation's end overrides it), so a fresh
+      // #search/ load stayed on the world view. Wait for that animation to finish first.
+      const go = () => map.setView(results[0].center, geocoderOpts.zoom);
+      if (map._animatingZoom) map.once("zoomend", () => setTimeout(go, 0));
+      else go();
     });
   };
 }
