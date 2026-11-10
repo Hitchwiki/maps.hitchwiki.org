@@ -1120,5 +1120,13 @@
   "What would you change? (optional)": "Hva ville du endret? (valgfritt)",
   "Send": "Send",
   "Thanks!": "Takk!",
-  "No spots found": "Ingen steder funnet"
+  "No spots found": "Ingen steder funnet",
+  "🚗 I'm driving": "🚗 Jeg kjører",
+  "Spots along this road where hitchhikers have recently been picked up": "Plasser langs denne veien der haikere nylig har blitt plukket opp",
+  "See what the route planner suggests for this trip": "Se hva ruteplanleggeren foreslår for denne turen",
+  "First time hitchhiking": "Første gang du haiker",
+  "Driving somewhere? See pickup spots on your way": "Skal du kjøre et sted? Se utløsningspunkter på veien din",
+  "Experimental: try the new route planner for this trip": "Eksperimentelt: prøv den nye ruteplanleggeren for denne turen",
+  "Experimental: compare with the new route planner": "Eksperimentelt: sammenlign med den nye ruteplanleggeren",
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Trykk på «Bruk min posisjon» for å plassere kartnålen der du er – nettleseren din spør én gang."
 }

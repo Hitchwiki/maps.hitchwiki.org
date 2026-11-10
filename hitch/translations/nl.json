@@ -1120,5 +1120,13 @@
   "What would you change? (optional)": "Wat zou je veranderen? (optioneel)",
   "Send": "Versturen",
   "Thanks!": "Bedankt!",
-  "No spots found": "Geen spots gevonden"
+  "No spots found": "Geen spots gevonden",
+  "🚗 I'm driving": "🚗 Ik rijd",
+  "Spots along this road where hitchhikers have recently been picked up": "Plekken langs deze weg waar lifters onlangs zijn opgepikt",
+  "See what the route planner suggests for this trip": "Bekijk wat de routeplanner voor deze reis voorstelt",
+  "First time hitchhiking": "Eerste keer liften",
+  "Driving somewhere? See pickup spots on your way": "Ergens naartoe rijden? Bekijk instapplaatsen onderweg",
+  "Experimental: try the new route planner for this trip": "Experimenteel: probeer de nieuwe routeplanner voor deze reis",
+  "Experimental: compare with the new route planner": "Experimenteel: vergelijk met de nieuwe routeplanner",
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Tik op ‘Mijn locatie gebruiken’ om de pin op je huidige plek te zetten — je browser vraagt dit één keer."
 }

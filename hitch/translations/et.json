@@ -1120,5 +1120,13 @@
   "What would you change? (optional)": "Mida sa muudaksid? (valikuline)",
   "Send": "Saada",
   "Thanks!": "Aitäh!",
-  "No spots found": "Ühtegi kohta ei leitud"
+  "No spots found": "Ühtegi kohta ei leitud",
+  "🚗 I'm driving": "🚗 Sõidan ise",
+  "Spots along this road where hitchhikers have recently been picked up": "Selle tee äärseid kohti, kus hääletajaid on hiljuti peale võetud",
+  "See what the route planner suggests for this trip": "Vaata, mida marsruudi planeerija sellele reisile soovitab",
+  "First time hitchhiking": "Esimene kord hääletamas",
+  "Driving somewhere? See pickup spots on your way": "Sõidad kuhugi? Vaata teel olevaid peatumiskohti",
+  "Experimental: try the new route planner for this trip": "Eksperimentaalne: proovi selle reisi jaoks uut marsruudi planeerijat",
+  "Experimental: compare with the new route planner": "Eksperimentaalne: võrdle uue marsruudi planeerijaga",
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Puuduta „Kasuta minu asukohta“, et panna tõmme sinna, kus sa parasjagu oled — sinu brauser küsib selleks ühe korra loa."
 }

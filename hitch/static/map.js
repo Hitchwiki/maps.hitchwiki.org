@@ -4930,7 +4930,7 @@ function addPledgeStopsLink(note, surface) {
   const d = document.createElement("a");
   d.className = "pledge-drive-link";
   d.href = "/?ref=pledge_drive_" + surface;
-  d.textContent = "Driving somewhere? See pickup spots on your way"; // English only, like the planner driver button
+  d.textContent = tr("Driving somewhere? See pickup spots on your way"); // English only, like the planner driver button
   d.style.cssText = "display:block;margin-top:6px;";
   d.onclick = function () { hmTrack("driver_pledge_drive_link_clicked", { surface: surface }); };
   note.appendChild(d);
@@ -4955,7 +4955,7 @@ function renderSuccessPlanLink(ride) {
   link.id = "success-plan-link";
   link.style.cssText = "display:block;margin-top:10px;font-size:13px;";
   link.href = "/dir/" + a.toFixed(5) + "," + b.toFixed(5) + "/" + c.toFixed(5) + "," + d.toFixed(5) + "?ref=ride_saved_plan";
-  link.textContent = "See what the route planner suggests for this trip";
+  link.textContent = tr("See what the route planner suggests for this trip");
   link.addEventListener("click", function () {
     hmTrack("success_plan_link_clicked", { km: Math.round(km / 50) * 50 });
   });

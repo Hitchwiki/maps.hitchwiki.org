@@ -1120,5 +1120,13 @@
   "What would you change? (optional)": "¿Qué cambiarías? (opcional)",
   "Send": "Enviar",
   "Thanks!": "¡Gracias!",
-  "No spots found": "No se encontraron puntos"
+  "No spots found": "No se encontraron puntos",
+  "🚗 I'm driving": "🚗 Conduzco",
+  "Spots along this road where hitchhikers have recently been picked up": "Puntos a lo largo de esta carretera donde recientemente han recogido a autoestopistas",
+  "See what the route planner suggests for this trip": "Ver lo que sugiere el planificador de rutas para este viaje",
+  "First time hitchhiking": "Primera vez haciendo autoestop",
+  "Driving somewhere? See pickup spots on your way": "¿Vas conduciendo a algún sitio? Mira los puntos de recogida en tu camino",
+  "Experimental: try the new route planner for this trip": "Experimental: prueba el nuevo planificador de rutas para este viaje",
+  "Experimental: compare with the new route planner": "Experimental: compara con el nuevo planificador de rutas",
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Toca «Usar mi ubicación» para colocar el pin donde estás: tu navegador lo preguntará una vez."
 }

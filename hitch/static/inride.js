@@ -1294,7 +1294,7 @@
         row.appendChild(document.createTextNode(parts[1] || ""));
       } else {
         a.href = "https://hitchwiki.org/en/First_time_hitchhiking?ref=maps-firstwait";
-        a.textContent = "First time hitchhiking";
+        a.textContent = T("First time hitchhiking");
         row.appendChild(a);
       }
       a.addEventListener("click", function () { hmTrack("first_wait_people_clicked", { arm: arm }); });
@@ -2067,7 +2067,7 @@
             if (permState !== "prompt") { startAutoLocate(); return; }
             const why = document.createElement("p");
             why.className = "lsel-why";
-            why.textContent = "Tap \u201cUse my location\u201d to drop the pin where you are \u2014 your browser will ask once.";
+            why.textContent = T("Tap “Use my location” to drop the pin where you are — your browser will ask once.");
             locBtn.parentNode.parentNode.insertBefore(why, locBtn.parentNode);
             outcome("auto-location-skipped");
           });

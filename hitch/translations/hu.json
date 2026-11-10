@@ -1120,5 +1120,13 @@
   "What would you change? (optional)": "Mit változtatnál? (nem kötelező)",
   "Send": "Küldés",
   "Thanks!": "Köszönjük!",
-  "No spots found": "Nem található pont"
+  "No spots found": "Nem található pont",
+  "🚗 I'm driving": "🚗 Vezetek",
+  "Spots along this road where hitchhikers have recently been picked up": "Az út menti pontok, ahol mostanában felvettek autóst",
+  "See what the route planner suggests for this trip": "Nézd meg, mit javasol az útvonaltervező erre az útra",
+  "First time hitchhiking": "Először stoppolok",
+  "Driving somewhere? See pickup spots on your way": "Autózol? Nézd meg a stoppolási pontokat az útvonaladon",
+  "Experimental: try the new route planner for this trip": "Kísérleti funkció: próbáld ki az új útvonaltervezőt ehhez az úthoz",
+  "Experimental: compare with the new route planner": "Kísérleti funkció: hasonlítsd össze az új útvonaltervezővel",
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Koppints a „Saját helyzetem” gombra, hogy a jelölő oda kerüljön, ahol éppen vagy — a böngésző egyszer rákérdez."
 }
