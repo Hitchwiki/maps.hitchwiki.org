@@ -110,7 +110,8 @@
       nodes.forEach((n) => {
         const from = n[1] === -1 ? t.s : nodes[n[1]][0], to = n[0];
         const support = n[2];
-        let wait = n.length > 3 ? n[3] : null;
+        const rawWait = n.length > 3 ? n[3] : null;  // shown to the user; the shrunk `wait` below is for ranking only
+        let wait = rawWait;
         if (wait != null && WAIT_SHRINK_K > 0) wait = (support * wait + WAIT_SHRINK_K * medW) / (support + WAIT_SHRINK_K);
         const km = haversineKm(spots[from], spots[to]) * CAR_FACTOR;
         if (!adj.has(from)) adj.set(from, []);
@@ -121,19 +122,19 @@
         // reached by continuing the ride (treeAdj), not by boarding here.
         if (from === t.s) {
           if (!board.has(from)) board.set(from, []);
-          board.get(from).push([tId, to, km, wait]);
+          board.get(from).push([tId, to, km, wait, undefined, rawWait]);
         } else if (from !== to) {
           // IDEAS #1344/#1345: a known spot the corridor passes is also a place riders started rides; allow boarding
           // there with the wait x MID_WAIT_X (less evidence than a root). Roots keep priority via the lower wait.
           if (!board.has(from)) board.set(from, []);
-          board.get(from).push([tId, to, km, wait, MID_WAIT_X]);
+          board.get(from).push([tId, to, km, wait, MID_WAIT_X, rawWait]);
         }
         edgeKm.set(from * 1e7 + to, km);
         // The same (from, to) pair can appear in several corridors; the strongest
         // evidence for that road segment is what we report to the user.
         const key = from * 1e7 + to;
         edgeSupport.set(key, Math.max(edgeSupport.get(key) || 0, support));
-        if (wait != null) waits.push(wait);
+        if (rawWait != null) waits.push(rawWait);
         carSpots.add(from); carSpots.add(to);
       });
       treeAdj.push(adj);
@@ -145,7 +146,7 @@
     // edges; used only when the edge itself logged none. (IDEAS.md #70)
     const spotWait = new Map();
     board.forEach((edges, u) => {
-      const ws = edges.filter((e) => e.length < 5).map((e) => e[3]).filter((w) => w != null);
+      const ws = edges.filter((e) => e[4] == null).map((e) => e[5]).filter((w) => w != null);
       if (ws.length) spotWait.set(u, ws.reduce((a, b) => a + b, 0) / ws.length);
     });
     const R = { spots, treeAdj, board, edgeKm, edgeSupport, defaultWait, spotWait, nTrees: treeAdj.length,
@@ -215,10 +216,10 @@
           relax(enc(v, corridor), d + cmin(km) * mult, [st, "car", km, 0]); });
       }
       const bd = R.board.get(spot);
-      if (bd) bd.forEach(([tId, v, km, wait, wx]) => {
+      if (bd) bd.forEach(([tId, v, km, wait, wx, rawW]) => {
         const w = ((wait == null) ? (R.spotWait.get(spot) ?? R.defaultWait) : wait) * (wx || 1);
         const mult = penalty ? (penalty.get(spot * 1e7 + v) || 1) : 1;
-        relax(enc(v, tId), d + cmin(km) * mult + w, [st, "board", km, w]); });
+        relax(enc(v, tId), d + cmin(km) * mult + w, [st, "board", km, rawW != null ? rawW : w / (wx || 1)]); });
       const wk = R.walkAdj.get(spot);
       if (wk) wk.forEach(([v, km]) => relax(enc(v, NO_TREE), d + wmin(km), [st, "walk", km, 0]));
       if (destSpots.has(spot)) { const t = d + wmin(destSpots.get(spot));

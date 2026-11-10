@@ -10,10 +10,10 @@ const rep = { spots: [[50, 14], [50, 14.5], [50, 15]], trees: [{ s: 0, nodes: [[
 const R = buildRouter(rep); ensureWalk(R);
 const mid = R.board.get(1);
 assert.ok(mid && mid.length === 1 && mid[0][4] === 1.5, "mid node boardable with x1.5 wait factor");
-assert.strictEqual(R.board.get(0)[0].length, 4, "root entry has no factor");
+assert.strictEqual(R.board.get(0)[0][4], undefined, "root entry has no factor");
 assert.strictEqual(R.spotWait.get(1), undefined, "mid entries do not feed spotWait");
 const r = route(R, [50, 14.5], [50, 15], 20, null);
 assert.ok(r.found, "rider starting at the mid spot finds the onward ride");
 const car = r.legs.find((l) => l.mode === "car");
-assert.ok(Math.abs(car.waitMin - 30) < 1e-6, "wait is 20 x 1.5");
+assert.ok(Math.abs(car.waitMin - 20) < 1e-6, "shown wait is the raw 20 (x1.5 is ranking-only)");
 console.log("ok");
