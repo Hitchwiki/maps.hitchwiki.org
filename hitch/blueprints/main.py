@@ -64,6 +64,7 @@ from hitch.blueprints.utils.feedback_log import is_known_source as is_known_feed
 from hitch.blueprints.utils.feedback_log import log_feedback
 from hitch.blueprints.utils.filter_request_log import FILTER_FIELDS, log_filter_request
 from hitch.blueprints.utils.hitchhiking_data_standard_pydantic_model import HitchhikingRecord, MethodEnum
+from hitch.blueprints.utils.invite_landing_log import count_invite_landings, invite_code, log_invite_landing
 from hitch.blueprints.utils.iso_country_codes import ISO_3166_1_ALPHA_2
 from hitch.blueprints.utils.license_plate_country_codes import LICENSE_PLATE_COUNTRY_CHOICES
 from hitch.blueprints.utils.notifications import (
@@ -655,6 +656,28 @@ def log_route_feedback_endpoint():
         return ("", 204)
     if -90 <= slat <= 90 and -180 <= slon <= 180 and -90 <= dlat <= 90 and -180 <= dlon <= 180:
         log_route_feedback(slat, slon, dlat, dlon, vote, str(data.get("text", "")))
+    return ("", 204)
+
+
+# #1363: signed-in users get a personal code for their invite/share links and the
+# count of people who opened them. Anonymous callers get nulls.
+@main_bp.route("/api/invite-code")
+def invite_code_endpoint():
+    if not current_user.is_authenticated:
+        return jsonify({"code": None, "landings": 0})
+    code = invite_code(current_app.config.get("SECRET_KEY", ""), current_user.id)
+    return jsonify({"code": code, "landings": count_invite_landings(code)})
+
+
+# Beacon from base.html when a page is opened with ?inv=<code>. Always 204.
+@main_bp.route("/log-invite-landing", methods=["POST"])
+def log_invite_landing_endpoint():
+    data = request.get_json(silent=True) or {}
+    code = str(data.get("code", ""))
+    # The sharer opening their own link is not a landing.
+    if current_user.is_authenticated and code == invite_code(current_app.config.get("SECRET_KEY", ""), current_user.id):
+        return ("", 204)
+    log_invite_landing(code, str(data.get("ref", "")))
     return ("", 204)
 
 

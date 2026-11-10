@@ -1135,5 +1135,6 @@
   "Hitchhikers to follow": "Takip edilecek otostopçular",
   "You're not following anyone yet. Here are some of the most active hitchhikers lately — follow them to see their latest rides here.": "Henüz kimseyi takip etmiyorsun. İşte son zamanlarda en aktif otostopçulardan bazıları — en son yolculuklarını burada görmek için onları takip et.",
   "No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.": "Henüz takip ettiğin kişilerden yolculuk yok. En son yolculuklarını burada görmek için diğer otostopçuları profil sayfalarından takip et.",
-  "Recent rides": "Son yolculuklar"
+  "Recent rides": "Son yolculuklar",
+  "{n} people opened your link": "{n} people opened your link"
 }

@@ -4527,12 +4527,32 @@ function showSuccessOverlay(opts) {
   if (!overlay) return;
   // #512: signed-in savers can send the same invite link the co-hitchhiker prompt offers.
   const inviteBtn = $$("#success-invite-btn");
+  // #1363: "N people opened your link" once at least one landing exists (signed-in only).
+  if (inviteBtn && window.hmInviteInfo) {
+    window.hmInviteInfo().then(function (info) {
+      if (!info || !info.code || !(info.landings >= 1)) return;
+      let note = $$("#success-invite-count");
+      if (!note) {
+        note = document.createElement("span");
+        note.id = "success-invite-count";
+        note.style.cssText = "display:block;font-size:0.85em;margin-top:4px;";
+        inviteBtn.parentNode.appendChild(note);
+      }
+      note.textContent = tr("{n} people opened your link", { n: info.landings });
+      hmTrack("invite_count_shown", { n: info.landings });
+    });
+  }
   if (inviteBtn && !inviteBtn.dataset.wired) {
     inviteBtn.dataset.wired = "1";
     inviteBtn.onclick = async function () {
       // Land the friend on the map, not /login: only 7% of login-page views get past it.
       // ?ref= is counted by base.html as referred_via (no username carried).
-      const url = window.location.origin + "/?ref=invite_success";
+      let url = window.location.origin + "/?ref=invite_success";
+      // #1363: personal code so the sharer can later see how many people opened the link.
+      try {
+        const info = window.hmInviteInfo ? await window.hmInviteInfo() : null;
+        if (info && info.code) url = window.hmWithInvite(url, info.code);
+      } catch (e) { /* the link works without a code */ }
       // Fire once the outcome is known so "shared" is not just a click.
       const logOutcome = function (outcome) {
         hmTrack("invite_shared", { surface: "success", outcome: outcome });

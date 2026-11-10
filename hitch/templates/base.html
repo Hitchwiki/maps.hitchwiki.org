@@ -243,6 +243,21 @@
       // then stripped from the address bar (same reasoning as the `?ride=`
       // handoff in map.js's success overlay) so a shared/bookmarked URL doesn't
       // carry someone else's attribution tag forward.
+      {# #1363: a link carrying ?inv=<code> (the sharer's personal code) logs one anonymous
+         landing, so the sharer can see "N people opened your link". Fired from JS so link-preview
+         crawlers are not counted; the code is stripped from the address bar after use. #}
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        var inv = (params.get("inv") || "").toLowerCase();
+        if (!/^[0-9a-f]{8}$/.test(inv)) return;
+        try {
+          var body = JSON.stringify({ code: inv, ref: (params.get("ref") || "").slice(0, 64) });
+          if (navigator.sendBeacon) navigator.sendBeacon("/log-invite-landing", new Blob([body], { type: "application/json" }));
+        } catch (e) { /* measurement is optional */ }
+        params.delete("inv");
+        var qs0 = params.toString();
+        history.replaceState({}, "", window.location.pathname + (qs0 ? "?" + qs0 : "") + window.location.hash);
+      })();
       (function () {
         var params = new URLSearchParams(window.location.search);
         var ref = params.get("ref");
@@ -447,6 +462,24 @@
          share surface becomes a countable arrival source (until now only the
          post-ride card carried one). Same-origin only, an existing ref wins, the
          #fragment (map viewport) survives, and the tag is opaque -- no user id. #}
+      {# #1363: the signed-in user's personal invite code (null when anonymous), fetched once on demand. #}
+      window.hmInviteInfo = function () {
+        if (!window._hmInviteP) {
+          window._hmInviteP = fetch('/api/invite-code', { credentials: 'same-origin' })
+            .then(function (r) { return r.ok ? r.json() : { code: null, landings: 0 }; })
+            .catch(function () { return { code: null, landings: 0 }; });
+        }
+        return window._hmInviteP;
+      };
+      window.hmWithInvite = function (url, code) {
+        if (!code) return url;
+        try {
+          var u = new URL(url, window.location.href);
+          if (u.origin !== window.location.origin) return url;
+          u.searchParams.set('inv', code);
+          return u.toString();
+        } catch (err) { return url; }
+      };
       function tagShareUrl(url, ctx) {
         try {
           var u = new URL(url, window.location.href);
@@ -461,6 +494,7 @@
         if (!btn) return;
         e.preventDefault();
         var url = tagShareUrl(btn.dataset.shareUrl || window.location.href, shareContext(btn));
+        try { url = window.hmWithInvite(url, (await window.hmInviteInfo()).code); } catch (err) { /* link works without a code */ }
         var title = btn.dataset.shareTitle || document.title;
         {# One event per click. A second hmTrack in the same tick collides with
            the first server-side (see ride_share_ab.test.js) and reads 0 forever,
