@@ -1120,5 +1120,10 @@
   "What would you change? (optional)": "Hvad ville du ændre? (valgfrit)",
   "Send": "Send",
   "Thanks!": "Tak!",
-  "No spots found": "Ingen steder fundet"
+  "No spots found": "Ingen steder fundet",
+  "I'm driving": "Jeg kører",
+  "Spots along this road where hitchhikers have recently been picked up": "Steder langs denne vej, hvor blaffere for nylig er blevet samlet op",
+  "First time hitchhiking": "Første gang jeg blaffer",
+  "Driving somewhere? See pickup spots on your way": "Skal du et sted hen? Se opsamlingssteder på din vej",
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Tryk på “Brug min placering” for at sætte nålen, hvor du er — din browser vil spørge én gang."
 }

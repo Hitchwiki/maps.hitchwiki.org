@@ -1120,5 +1120,10 @@
   "What would you change? (optional)": "Mida sa muudaksid? (valikuline)",
   "Send": "Saada",
   "Thanks!": "Aitäh!",
-  "No spots found": "Ühtegi kohta ei leitud"
+  "No spots found": "Ühtegi kohta ei leitud",
+  "I'm driving": "Ma sõidan",
+  "Spots along this road where hitchhikers have recently been picked up": "Kohad sellel teel, kus hääletajaid on hiljuti peale võetud",
+  "First time hitchhiking": "Esimene kord hääletamas",
+  "Driving somewhere? See pickup spots on your way": "Sõidad kuhugi? Vaata peatumiskohti oma teel",
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Puuduta „Kasuta minu asukohta“, et märkida täpp sinna, kus sa parasjagu oled — sinu brauser küsib selleks ühe korra loa."
 }

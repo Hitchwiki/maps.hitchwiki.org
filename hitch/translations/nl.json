@@ -1120,5 +1120,10 @@
   "What would you change? (optional)": "Wat zou je veranderen? (optioneel)",
   "Send": "Versturen",
   "Thanks!": "Bedankt!",
-  "No spots found": "Geen spots gevonden"
+  "No spots found": "Geen spots gevonden",
+  "I'm driving": "Ik rijd mee",
+  "Spots along this road where hitchhikers have recently been picked up": "Plekken langs deze weg waar liften recentelijk zijn opgepikt",
+  "First time hitchhiking": "Eerste keer liften",
+  "Driving somewhere? See pickup spots on your way": "Ergens naartoe met de auto? Bekijk instapplekken onderweg",
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Tik op “Mijn locatie gebruiken” om de speld op je huidige locatie te zetten — je browser vraagt dit één keer."
 }

@@ -1120,5 +1120,10 @@
   "What would you change? (optional)": "Mitä muuttaisit? (valinnainen)",
   "Send": "Lähetä",
   "Thanks!": "Kiitos!",
-  "No spots found": "Paikkoja ei löytynyt"
+  "No spots found": "Paikkoja ei löytynyt",
+  "I'm driving": "Ajan autoa",
+  "Spots along this road where hitchhikers have recently been picked up": "Paikat tämän tien varrella, joilta kyytiä ottaneita on viime aikoina nostettu kyytiin",
+  "First time hitchhiking": "Ensimmäinen kerta liftatessa",
+  "Driving somewhere? See pickup spots on your way": "Ajatko jonnekin? Katso kyydinottopaikkoja matkallasi",
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Napauta ”Käytä sijaintiamme” ja nasta asettuu siihen, missä olet — selaimesi kysyy asiaa kerran."
 }

@@ -1120,5 +1120,10 @@
   "What would you change? (optional)": "Какво бихте променили? (по избор)",
   "Send": "Изпрати",
   "Thanks!": "Благодарим!",
-  "No spots found": "Няма намерени места"
+  "No spots found": "Няма намерени места",
+  "I'm driving": "Карам кола",
+  "Spots along this road where hitchhikers have recently been picked up": "Места по този път, където наскоро са взимали стопаджии",
+  "First time hitchhiking": "Първи път стопаджиствам",
+  "Driving somewhere? See pickup spots on your way": "Пътувате някъде? Вижте местата за чакане по пътя си",
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Натиснете „Използвай моята локация“, за да поставите щифта там, където сте — браузърът ви ще попита еднократно."
 }

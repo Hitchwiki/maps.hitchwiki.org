@@ -1120,5 +1120,10 @@
   "What would you change? (optional)": "Что бы вы изменили? (необязательно)",
   "Send": "Отправить",
   "Thanks!": "Спасибо!",
-  "No spots found": "Мест не найдено"
+  "No spots found": "Мест не найдено",
+  "I'm driving": "Я за рулём",
+  "Spots along this road where hitchhikers have recently been picked up": "Места на этой дороге, где автостопщиков недавно подбирали",
+  "First time hitchhiking": "Первый раз путешествую автостопом",
+  "Driving somewhere? See pickup spots on your way": "Едете куда-то? Смотрите точки посадки по пути",
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Нажмите «Использовать мою локацию», чтобы поставить булавку там, где вы находитесь, — браузер спросит разрешение один раз."
 }

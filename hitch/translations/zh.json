@@ -1120,5 +1120,10 @@
   "What would you change? (optional)": "你有什么想修改的？（可选）",
   "Send": "发送",
   "Thanks!": "谢谢！",
-  "No spots found": "未找到地点"
+  "No spots found": "未找到地点",
+  "I'm driving": "我在开车",
+  "Spots along this road where hitchhikers have recently been picked up": "这条路上最近有搭车者被搭载的地点",
+  "First time hitchhiking": "第一次搭车旅行",
+  "Driving somewhere? See pickup spots on your way": "要开车去某地吗？查看沿途的搭车点",
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "点击“使用我的位置”即可在你所在处放置图钉——浏览器会询问一次。"
 }

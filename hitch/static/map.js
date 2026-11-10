@@ -4930,7 +4930,7 @@ function addPledgeStopsLink(note, surface) {
   const d = document.createElement("a");
   d.className = "pledge-drive-link";
   d.href = "/?ref=pledge_drive_" + surface;
-  d.textContent = "Driving somewhere? See pickup spots on your way"; // English only, like the planner driver button
+  d.textContent = tr("Driving somewhere? See pickup spots on your way"); // translated with the planner driver button (#1359)
   d.style.cssText = "display:block;margin-top:6px;";
   d.onclick = function () { hmTrack("driver_pledge_drive_link_clicked", { surface: surface }); };
   note.appendChild(d);

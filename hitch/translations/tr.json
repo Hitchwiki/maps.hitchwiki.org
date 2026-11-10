@@ -1120,5 +1120,10 @@
   "What would you change? (optional)": "Ne değiştirirdiniz? (isteğe bağlı)",
   "Send": "Gönder",
   "Thanks!": "Teşekkürler!",
-  "No spots found": "Hiç nokta bulunamadı"
+  "No spots found": "Hiç nokta bulunamadı",
+  "I'm driving": "Araba sürüyorum",
+  "Spots along this road where hitchhikers have recently been picked up": "Bu yolda otostopçuların yakın zamanda bırakıldığı noktalar",
+  "First time hitchhiking": "İlk kez otostop çekiyorum",
+  "Driving somewhere? See pickup spots on your way": "Bir yere mi gidiyorsun? Yol üzerindeki otostop noktalarını gör",
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Bulunduğun yere pini bırakmak için “Konumumu kullan”a dokun — tarayıcın bir kez soracak."
 }

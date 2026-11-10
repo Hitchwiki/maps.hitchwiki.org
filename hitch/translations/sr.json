@@ -1120,5 +1120,10 @@
   "What would you change? (optional)": "Šta biste promenili? (opciono)",
   "Send": "Pošalji",
   "Thanks!": "Hvala!",
-  "No spots found": "Nema pronađenih mesta"
+  "No spots found": "Nema pronađenih mesta",
+  "I'm driving": "Vozim",
+  "Spots along this road where hitchhikers have recently been picked up": "Mesta duž ovog puta gde su autostoperi nedavno voženi",
+  "First time hitchhiking": "Prvi put stopiram",
+  "Driving somewhere? See pickup spots on your way": "Voziš negde? Pogledaj mesta za stopiranje na svom putu",
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Dodirni „Koristi moju lokaciju“ da postaviš pin tamo gde jesi — tvoj pregledač će jednom tražiti dozvolu."
 }

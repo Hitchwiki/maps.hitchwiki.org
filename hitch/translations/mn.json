@@ -1120,5 +1120,10 @@
   "What would you change? (optional)": "Та юуг өөрчлөх вэ? (заавал биш)",
   "Send": "Илгээх",
   "Thanks!": "Баярлалаа!",
-  "No spots found": "Хэсэг олдсонгүй"
+  "No spots found": "Хэсэг олдсонгүй",
+  "I'm driving": "Би жолоочин байна",
+  "Spots along this road where hitchhikers have recently been picked up": "Энэ зам дагуу саяхан зорчигчид тэвхэлдсэн газрууд",
+  "First time hitchhiking": "Анх удаа тэвхэлдэж явж байна",
+  "Driving somewhere? See pickup spots on your way": "Хаашаа явах гэж байна уу? Зам дагуух тэргэндээ суух цэгүүдийг харна уу",
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "«Миний байршилыг ашиглах» товчийг дарж, та байгаа газраа тэмдэглэ — тангас таны хөтөч нэг удаа асуух болно."
 }

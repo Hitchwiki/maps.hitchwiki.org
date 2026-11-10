@@ -1120,5 +1120,10 @@
   "What would you change? (optional)": "Mit változtatnál? (nem kötelező)",
   "Send": "Küldés",
   "Thanks!": "Köszönjük!",
-  "No spots found": "Nem található pont"
+  "No spots found": "Nem található pont",
+  "I'm driving": "Vezetek",
+  "Spots along this road where hitchhikers have recently been picked up": "Az út menti pontok, ahol mostanában felvettek autóst",
+  "First time hitchhiking": "Első alkalommal stoppolok",
+  "Driving somewhere? See pickup spots on your way": "Valahová autóval mész? Nézd meg a stoppolási pontokat az útvonaladon",
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Koppints a „Az én helyzetem használata” gombra, és a tű ott kerül elhelyezésre, ahol most vagy — a böngésződ egyszer rákérdez."
 }

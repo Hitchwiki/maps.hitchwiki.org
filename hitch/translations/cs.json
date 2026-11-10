@@ -1120,5 +1120,10 @@
   "What would you change? (optional)": "Co bys změnil/a? (nepovinné)",
   "Send": "Odeslat",
   "Thanks!": "Díky!",
-  "No spots found": "Žádná místa nenalezena"
+  "No spots found": "Žádná místa nenalezena",
+  "I'm driving": "Jedu autem",
+  "Spots along this road where hitchhikers have recently been picked up": "Místa podél této silnice, kde byli stopaři nedávno vysazeni",
+  "First time hitchhiking": "Poprvé stopuji",
+  "Driving somewhere? See pickup spots on your way": "Jedeš někam? Podívej se na stopovací místa ve své trase",
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Klepněte na „Použit mou polohu“ a pin se umístí tam, kde právě jste — váš prohlížeč se jednou zeptá."
 }

@@ -910,8 +910,8 @@
       box.style.cssText = "margin:8px 12px;font-size:14px";
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.textContent = "🚗 I'm driving";
-      btn.title = "Spots along this road where hitchhikers have recently been picked up";
+      btn.textContent = "🚗 " + T("I'm driving");
+      btn.title = T("Spots along this road where hitchhikers have recently been picked up");
       const list = document.createElement("div");
       list.style.display = "none";
       box.appendChild(btn); box.appendChild(list);
@@ -953,7 +953,7 @@
     } catch (e) { /* must never break routing */ }
   }
 
-  // English only for now (like the planner-compare link): translations follow if the ask earns answers.
+  // Translated since maps#590 (all strings go through T()).
   // Routing-gang phase B (Till 2026-11-09): anonymous on-page ask under the result. A vote is an
   // Umami event plus a server row (coordinates, vote, optional text; no user id). Once per route.
   function showRouteFeedback() {

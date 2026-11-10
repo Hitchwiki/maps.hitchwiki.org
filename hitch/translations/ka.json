@@ -1120,5 +1120,10 @@
   "What would you change? (optional)": "რას შეცვლიდი? (არასავალდებულო)",
   "Send": "გაგზავნა",
   "Thanks!": "გმადლობთ!",
-  "No spots found": "ადგილები ვერ მოიძებნა"
+  "No spots found": "ადგილები ვერ მოიძებნა",
+  "I'm driving": "მართავ მანქანას",
+  "Spots along this road where hitchhikers have recently been picked up": "ამ გზაზე ადგილები, სადაც ავტოსტოპელები ახლახანს აიყვანეს",
+  "First time hitchhiking": "პირველად მიდიხარ ავტოსტოპით",
+  "Driving somewhere? See pickup spots on your way": "სადმე მიდიხარ? იხილე ასაყვანი ადგილები შენს გზაზე",
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "შეეხე „ჩემი მდებარეობის გამოყენებას“ და ქინძისთავი დაამაგრე სადაც ხარ — შენი ბრაუზერი ერთხელ მაინც დაგისვამს კითხვას."
 }

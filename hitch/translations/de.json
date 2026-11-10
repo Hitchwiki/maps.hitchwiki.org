@@ -1120,5 +1120,10 @@
   "What would you change? (optional)": "Was würdest du ändern? (optional)",
   "Send": "Senden",
   "Thanks!": "Danke!",
-  "No spots found": "Keine spots gefunden"
+  "No spots found": "Keine spots gefunden",
+  "I'm driving": "Ich fahre",
+  "Spots along this road where hitchhikers have recently been picked up": "Stellen entlang dieser Straße, an denen Tramper kürzlich mitgenommen wurden",
+  "First time hitchhiking": "Zum ersten Mal trampen",
+  "Driving somewhere? See pickup spots on your way": "Fährst du irgendwohin? Sieh Mitfahrpunkte auf deinem Weg",
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Tippe auf „Meinen Standort verwenden“, um die Nadel dort zu setzen, wo du bist — dein Browser fragt einmalig."
 }

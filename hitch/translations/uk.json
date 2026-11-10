@@ -1120,5 +1120,10 @@
   "What would you change? (optional)": "Що б ви змінили? (необов'язково)",
   "Send": "Надіслати",
   "Thanks!": "Дякуємо!",
-  "No spots found": "Місць не знайдено"
+  "No spots found": "Місць не знайдено",
+  "I'm driving": "Я їду",
+  "Spots along this road where hitchhikers have recently been picked up": "Місця на цій дорозі, де автостопників нещодавно підбирали",
+  "First time hitchhiking": "Перший раз у автостопі",
+  "Driving somewhere? See pickup spots on your way": "Куди їдете? Дивіться точки підбору на своєму шляху",
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Торкніться «Використовуй мою локацію», щоб поставити точку там, де ви перебуваєте — браузер запитає дозвіл лише один раз."
 }

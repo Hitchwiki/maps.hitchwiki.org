@@ -1120,5 +1120,10 @@
   "What would you change? (optional)": "Τι θα άλλαζες; (προαιρετικό)",
   "Send": "Αποστολή",
   "Thanks!": "Ευχαριστούμε!",
-  "No spots found": "Δεν βρέθηκαν σημεία"
+  "No spots found": "Δεν βρέθηκαν σημεία",
+  "I'm driving": "Οδηγώ εγώ",
+  "Spots along this road where hitchhikers have recently been picked up": "Σημεία κατά μήκος αυτού του δρόμου όπου οτοστόπ έχουν πρόσφατα μαζέψει οδηγοί",
+  "First time hitchhiking": "Πρώτη φορά που κάνω οτοστόπ",
+  "Driving somewhere? See pickup spots on your way": "Οδηγείτε κάπου; Δείτε σημεία στάθμευσης στην διαδρομή σας",
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Πατήστε «Χρησιμοποίησε τη θέση μου» για να τοποθετήσεις την καρφίτσα εκεί που βρίσκεσαι — ο browser σου θα ρωτήσει μία φορά."
 }
