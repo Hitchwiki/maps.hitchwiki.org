@@ -1128,5 +1128,7 @@
   "Driving somewhere? See pickup spots on your way": "Куди їдете? Перегляньте місця для підбору на своєму шляху",
   "Experimental: try the new route planner for this trip": "Експериментально: спробуйте новий планувальник маршрутів для цієї поїздки",
   "Experimental: compare with the new route planner": "Експериментально: порівняйте з новим планувальником маршрутів",
-  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Торкніться «Використати моє місцезнаходження», щоб поставити точку там, де ви перебуваєте — браузер запитає дозвіл лише один раз."
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "Торкніться «Використати моє місцезнаходження», щоб поставити точку там, де ви перебуваєте — браузер запитає дозвіл лише один раз.",
+  "First time they picked someone up?": "Вперше підібрали когось?",
+  "Don't know": "Не знаю"
 }

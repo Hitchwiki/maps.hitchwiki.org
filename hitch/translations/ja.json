@@ -1128,5 +1128,7 @@
   "Driving somewhere? See pickup spots on your way": "どこかへドライブしますか？途中のヒッチハイクスポットを確認できます",
   "Experimental: try the new route planner for this trip": "実験的機能：この旅で新しいルートプランナーを試す",
   "Experimental: compare with the new route planner": "実験的機能：新しいルートプランナーと比較する",
-  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "「現在地を使用」をタップすると現在地にピンが置かれます。ブラウザが1回だけ確認を求めます。"
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "「現在地を使用」をタップすると現在地にピンが置かれます。ブラウザが1回だけ確認を求めます。",
+  "First time they picked someone up?": "初めて人を拾ったのはいつ？",
+  "Don't know": "わからない"
 }

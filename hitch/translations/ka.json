@@ -1128,5 +1128,7 @@
   "Driving somewhere? See pickup spots on your way": "მართავ სადმე? იხილეთ ასაყვანი ადგილები თქვენს გზაზე",
   "Experimental: try the new route planner for this trip": "ექსპერიმენტული: სცადეთ ახალი მარშრუტის დამგეგმავი ამ მოგზაურობისთვის",
   "Experimental: compare with the new route planner": "ექსპერიმენტული: შეადარეთ ახალ მარშრუტის დამგეგმავს",
-  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "შეეხეთ „ჩემი მდებარეობის გამოყენებას“ პინის დასადგმელად სადაც იმყოფებით — თქვენი ბრაუზერი ერთხელ იკითხავს."
+  "Tap “Use my location” to drop the pin where you are — your browser will ask once.": "შეეხეთ „ჩემი მდებარეობის გამოყენებას“ პინის დასადგმელად სადაც იმყოფებით — თქვენი ბრაუზერი ერთხელ იკითხავს.",
+  "First time they picked someone up?": "პირველად როდის აიყვანეს ვინმე?",
+  "Don't know": "არ ვიცი"
 }

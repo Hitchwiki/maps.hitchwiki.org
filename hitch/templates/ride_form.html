@@ -400,13 +400,13 @@
                 </div>
 
                 {# IDEAS #1337: is this driver new to picking people up? Event-only (not sent in the ride, no data-standard change).
-                   English-only labels, like the other recent one-tap asks. #}
+                   Labels go through t() since #1359. #}
                 <div style="margin-bottom:10px;" id="first-pickup-ask">
-                    <div style="font-weight:600; margin-bottom:4px;">First time they picked someone up?</div>
+                    <div style="font-weight:600; margin-bottom:4px;">{{ t("First time they picked someone up?") }}</div>
                     <div class="inr-chips" id="first-pickup-chips">
-                        <button type="button" class="inr-optchip" data-ans="yes">Yes</button>
-                        <button type="button" class="inr-optchip" data-ans="no">No</button>
-                        <button type="button" class="inr-optchip" data-ans="unknown">Don't know</button>
+                        <button type="button" class="inr-optchip" data-ans="yes">{{ t("Yes") }}</button>
+                        <button type="button" class="inr-optchip" data-ans="no">{{ t("No") }}</button>
+                        <button type="button" class="inr-optchip" data-ans="unknown">{{ t("Don't know") }}</button>
                     </div>
                     <script>
                     document.querySelectorAll('#first-pickup-chips .inr-optchip').forEach(function (b) {
