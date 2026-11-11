@@ -187,7 +187,8 @@ def summarise_search_gaps(rows, spots):
             continue
         # Judge each pick on its own: the cell mean of picks spread over a ~55 km box can land far from any
         # real place and call a covered town a gap. Only spots near the cell can be within GAP_KM of a pick.
-        near = [s for s in spots if cell[0] - 0.3 <= s[0] <= cell[0] + CELL_DEG + 0.3 and cell[1] - 0.6 <= s[1] <= cell[1] + CELL_DEG + 0.6]
+        la0, lo0 = cell[0] - 0.3, cell[1] - 0.6
+        near = [s for s in spots if la0 <= s[0] <= la0 + CELL_DEG + 0.6 and lo0 <= s[1] <= lo0 + CELL_DEG + 1.2]
         uncovered = sum(1 for p in c["pts"] if not any(_km(p[0], p[1], s[0], s[1]) <= GAP_KM for s in near))
         if uncovered < GAP_MIN_PICKS or uncovered < GAP_UNCOVERED_SHARE * c["n"]:
             continue
