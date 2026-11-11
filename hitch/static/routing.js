@@ -961,16 +961,18 @@
     try {
       const sheet = resultsSheet();
       if (!sheet || !RJ.start || !RJ.dest || !window.WikiExit) return;
-      if (!/^en/i.test(document.documentElement.lang || "en")) return;
+      // #1390: eligibility is counted for every UI language (tagged), the row is shown in English only.
+      const lang = (document.documentElement.lang || "en").slice(0, 2).toLowerCase();
+      const isEn = lang === "en";
       const old = sheet.querySelector(".rp-wikiexit");
       if (old) old.remove();
       const from = RJ.start.latlng, to = RJ.dest.latlng;
-      const arm = hmVariant("route-wiki-exit-v1", ["off", "on"]);
+      const arm = "on";  // #1390: arm dropped (too little traffic to split); events keep arm:"on" for comparability
       fetch("/static/wiki_exits.json").then((r) => r.json()).then((cities) => {
         const hit = window.WikiExit.pick(cities, from, to, 12);
         if (!hit) return;
-        hmTrack("route_wiki_exit_eligible", { arm: arm });
-        if (arm !== "on") return;
+        hmTrack("route_wiki_exit_eligible", { arm: arm, lang: lang });
+        if (!isEn) return;
         const fb = sheet.querySelector(".rp-feedback") || sheet.querySelector(".rp-options");
         if (!fb || sheet.querySelector(".rp-wikiexit")) return;
         const row = document.createElement("div");
