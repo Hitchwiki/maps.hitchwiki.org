@@ -822,6 +822,7 @@
     upgradeAllToStreets(token);
     updateShareUrl();       // make this search shareable (#dir/from/to)
     showRouteFeedback();
+    showWikiExit();
     showRouteDaylight();
     showRouteDriver();
   }
@@ -950,6 +951,41 @@
         });
       });
       anchor.insertAdjacentElement("beforebegin", box);
+    } catch (e) { /* must never break routing */ }
+  }
+
+  // IDEAS #1388 (routing-gang phase B): link the start city's Hitchwiki "<direction> towards ..." section that
+  // faces the destination. Human-written leaving-town advice, no new prose by us. English only (wiki page is English).
+  // 50/50 arm route-wiki-exit-v1; row only when the start is within 12 km of an indexed city with a matching heading.
+  function showWikiExit() {
+    try {
+      const sheet = resultsSheet();
+      if (!sheet || !RJ.start || !RJ.dest || !window.WikiExit) return;
+      if (!/^en/i.test(document.documentElement.lang || "en")) return;
+      const old = sheet.querySelector(".rp-wikiexit");
+      if (old) old.remove();
+      const from = RJ.start.latlng, to = RJ.dest.latlng;
+      const arm = hmVariant("route-wiki-exit-v1", ["off", "on"]);
+      fetch("/static/wiki_exits.json").then((r) => r.json()).then((cities) => {
+        const hit = window.WikiExit.pick(cities, from, to, 12);
+        if (!hit) return;
+        hmTrack("route_wiki_exit_eligible", { arm: arm });
+        if (arm !== "on") return;
+        const fb = sheet.querySelector(".rp-feedback") || sheet.querySelector(".rp-options");
+        if (!fb || sheet.querySelector(".rp-wikiexit")) return;
+        const row = document.createElement("div");
+        row.className = "rp-wikiexit";
+        row.style.cssText = "margin:8px 12px;font-size:14px";
+        const a = document.createElement("a");
+        a.href = hit.url; a.target = "_blank"; a.rel = "noopener";
+        a.textContent = hit.heading;
+        row.appendChild(document.createTextNode(hit.title + ": "));
+        row.appendChild(a);
+        row.appendChild(document.createTextNode(" (Hitchwiki)"));
+        a.addEventListener("click", () => hmTrack("route_wiki_exit_clicked", { arm: arm }));
+        fb.insertAdjacentElement("beforebegin", row);
+        hmTrack("route_wiki_exit_shown", { arm: arm });
+      }).catch(() => {});
     } catch (e) { /* must never break routing */ }
   }
 
