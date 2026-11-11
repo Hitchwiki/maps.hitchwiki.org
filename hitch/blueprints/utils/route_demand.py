@@ -82,7 +82,14 @@ def summarise_route_feedback(rows):
         corridors[(a, b)][vote] += 1
     rows_out = [{"from": list(a), "to": list(b), **v} for (a, b), v in corridors.items()]
     rows_out.sort(key=lambda c: (-(c["up"] + c["down"]), c["from"], c["to"]))
-    return {"votes_up": up, "votes_down": down, "with_text": texts, "unparsable_rows": bad, "excluded_auto": excluded_auto, "corridors": rows_out[:100]}
+    return {
+        "votes_up": up,
+        "votes_down": down,
+        "with_text": texts,
+        "unparsable_rows": bad,
+        "excluded_auto": excluded_auto,
+        "corridors": rows_out[:100],
+    }
 
 
 def read_route_requests(path):
