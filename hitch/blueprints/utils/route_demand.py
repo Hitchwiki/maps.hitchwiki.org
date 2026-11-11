@@ -142,6 +142,7 @@ def summarise_filter_demand(rows):
 GAP_KM = 10
 GAP_MIN_PICKS = 5
 GAP_MIN_DAYS = 3
+GAP_UNCOVERED_SHARE = 0.5
 
 
 def _km(lat1, lon1, lat2, lon2):
@@ -156,13 +157,13 @@ def summarise_search_gaps(rows, spots):
 
     rows: search_requests.csv dicts (timestamp, name, lat, lon). spots: iterable of (lat, lon).
     Keeps a 0.5 degree cell only when >= GAP_MIN_PICKS picks on >= GAP_MIN_DAYS days land in it
-    and no spot lies within GAP_KM of the cell's mean pick. The label is the most common name,
+    and at least half of its picks (and >= GAP_MIN_PICKS) have no spot within GAP_KM. The label is the most common name,
     and only when it holds no digit (street addresses are dropped); no timestamps leave here.
     """
     from collections import Counter
 
     spots = list(spots)
-    cells = defaultdict(lambda: {"n": 0, "days": set(), "lat": 0.0, "lon": 0.0, "names": Counter()})
+    cells = defaultdict(lambda: {"n": 0, "days": set(), "names": Counter(), "pts": []})
     total = 0
     for row in rows:
         try:
@@ -174,10 +175,9 @@ def summarise_search_gaps(rows, spots):
             continue
         total += 1
         c = cells[_cell(lat, lon)]
+        c["pts"].append((lat, lon))
         c["n"] += 1
         c["days"].add(day)
-        c["lat"] += lat
-        c["lon"] += lon
         name = (row.get("name") or "").strip()
         if name and not any(ch.isdigit() for ch in name):
             c["names"][name.split(",")[0].strip()] += 1
@@ -185,8 +185,12 @@ def summarise_search_gaps(rows, spots):
     for cell, c in cells.items():
         if c["n"] < GAP_MIN_PICKS or len(c["days"]) < GAP_MIN_DAYS:
             continue
-        lat, lon = c["lat"] / c["n"], c["lon"] / c["n"]
-        if any(_km(lat, lon, s[0], s[1]) <= GAP_KM for s in spots):
+        # Judge each pick on its own: the cell mean of picks spread over a ~55 km box can land far from any
+        # real place and call a covered town a gap. Only spots near the cell can be within GAP_KM of a pick.
+        la0, lo0 = cell[0] - 0.3, cell[1] - 0.6
+        near = [s for s in spots if la0 <= s[0] <= la0 + CELL_DEG + 0.6 and lo0 <= s[1] <= lo0 + CELL_DEG + 1.2]
+        uncovered = sum(1 for p in c["pts"] if not any(_km(p[0], p[1], s[0], s[1]) <= GAP_KM for s in near))
+        if uncovered < GAP_MIN_PICKS or uncovered < GAP_UNCOVERED_SHARE * c["n"]:
             continue
         label = c["names"].most_common(1)[0][0] if c["names"] else None
         out.append({"cell": list(cell), "picks": c["n"], "days": len(c["days"]), "label": label})
