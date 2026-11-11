@@ -3840,8 +3840,8 @@ function markerClick(marker) {
   // previous spot's must not still be on screen while this one's are in flight.
   renderSpotPhotos(data.rides);
   $$("#share-spot-btn").dataset.shareTitle = tr("Hitchhiking spot on Hitchwiki Maps");
-  $$("#spot-google-link").href = window.ontouchstart
-    ? `geo:${data.lat},${data.lon}`
+  $$("#spot-google-link").href = /Android/i.test(navigator.userAgent)
+    ? `geo:${data.lat},${data.lon}?q=${data.lat},${data.lon}`
     : `https://www.google.com/maps/place/${data.lat},${data.lon}`;
   // Street View helps judge a spot before going there (shoulder, sight lines, place to pull over).
   // map_action=pano snaps to the nearest panorama, so it still works when the spot itself is off-road.

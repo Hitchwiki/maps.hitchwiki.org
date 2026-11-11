@@ -1915,8 +1915,8 @@
           const nav = document.createElement("a");
           nav.className = "rp-spot-nav";
           nav.target = "_blank"; nav.rel = "noopener";
-          const touch = typeof window !== "undefined" && window.ontouchstart;
-          nav.href = touch ? `geo:${c[0]},${c[1]}` : `https://www.google.com/maps/place/${c[0]},${c[1]}`;
+          const touch = typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent);
+          nav.href = touch ? `geo:${c[0]},${c[1]}?q=${c[0]},${c[1]}` : `https://www.google.com/maps/place/${c[0]},${c[1]}`;
           nav.textContent = T("Go to on Google Maps");
           nav.style.cssText = "display:block;font-size:.85em;margin-top:2px";
           nav.addEventListener("click", () => hmTrack("route_nav_clicked", { arm: arm, touch: (typeof window !== "undefined" && "ontouchstart" in window) ? "y" : "n" }));
