@@ -979,7 +979,7 @@
         const a = document.createElement("a");
         a.href = hit.url; a.target = "_blank"; a.rel = "noopener";
         a.textContent = hit.heading;
-        row.appendChild(document.createTextNode(T("Leaving") + " " + hit.title + ": "));
+        row.appendChild(document.createTextNode(hit.title + ": "));
         row.appendChild(a);
         row.appendChild(document.createTextNode(" (Hitchwiki)"));
         a.addEventListener("click", () => hmTrack("route_wiki_exit_clicked", { arm: arm }));
