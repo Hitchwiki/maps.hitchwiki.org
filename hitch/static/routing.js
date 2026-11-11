@@ -1919,7 +1919,7 @@
           nav.href = touch ? `geo:${c[0]},${c[1]}` : `https://www.google.com/maps/place/${c[0]},${c[1]}`;
           nav.textContent = T("Go to on Google Maps");
           nav.style.cssText = "display:block;font-size:.85em;margin-top:2px";
-          nav.addEventListener("click", () => hmTrack("route_nav_clicked", { arm: arm, touch: touch ? "y" : "n" }));
+          nav.addEventListener("click", () => hmTrack("route_nav_clicked", { arm: arm, touch: (typeof window !== "undefined" && "ontouchstart" in window) ? "y" : "n" }));
           place.appendChild(nav);
         }
       }

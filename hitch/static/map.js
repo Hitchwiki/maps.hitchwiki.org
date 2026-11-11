@@ -3855,7 +3855,7 @@ function markerClick(marker) {
     const el = $$("#" + pr[0]);
     if (el && !el.dataset.navTracked) {
       el.dataset.navTracked = "1";
-      el.addEventListener("click", function () { hmTrack("spot_nav_clicked", { kind: pr[1], touch: window.ontouchstart ? "y" : "n" }); });
+      el.addEventListener("click", function () { hmTrack("spot_nav_clicked", { kind: pr[1], touch: ("ontouchstart" in window) ? "y" : "n" }); });
     }
   });
 
