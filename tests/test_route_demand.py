@@ -64,6 +64,15 @@ def test_search_gaps_need_picks_days_and_no_nearby_spot():
     assert summarise_search_gaps(rows, [(47.31, 8.5)])["gaps"] == []
 
 
+def test_search_gaps_judge_each_pick_not_the_cell_mean():
+    from hitch.blueprints.utils.route_demand import summarise_search_gaps
+
+    # Picks at both ends of one cell, each with a spot beside it: the mean lies between them, far from both.
+    rows = [_srow(d, "Town A", 47.05, 8.55) for d in (1, 2, 3)] + [_srow(d, "Town B", 47.45, 8.95) for d in (1, 2, 3)]
+    assert summarise_search_gaps(rows, [(47.05, 8.55), (47.45, 8.95)])["gaps"] == []
+    assert len(summarise_search_gaps(rows, [])["gaps"]) == 1
+
+
 def test_search_gap_label_drops_addresses():
     from hitch.blueprints.utils.route_demand import summarise_search_gaps
 
