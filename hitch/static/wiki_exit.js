@@ -34,9 +34,12 @@
       for (const a of headingAngles(h)) { const d = angDiff(a, b); if (d < hd) { hd = d; hit = h; } }
     }
     if (!hit) return null;
-    const anchor = hit.replace(/\s+/g, "_");
-    return { title: best.title, heading: hit, anchor: anchor,
-      url: "https://hitchwiki.org/en/" + encodeURIComponent(best.title.replace(/ /g, "_")) + "#" + encodeURIComponent(anchor) };
+    // Headings with wiki templates ({{Autobahn|4}}) render to ids we cannot predict: show clean text, link the page only.
+    const hasTpl = hit.indexOf("{{") !== -1;
+    const label = hit.replace(/\{\{[^}]*\}\}/g, "").replace(/\s+/g, " ").replace(/\s+([,;])/g, "$1").trim();
+    const anchor = hasTpl ? "" : hit.replace(/\s+/g, "_");
+    return { title: best.title, heading: label, anchor: anchor,
+      url: "https://hitchwiki.org/en/" + encodeURIComponent(best.title.replace(/ /g, "_")) + (anchor ? "#" + encodeURIComponent(anchor) : "") };
   }
   const api = { pick: pick, headingAngles: headingAngles, bearing: bearing };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.WikiExit = api;
