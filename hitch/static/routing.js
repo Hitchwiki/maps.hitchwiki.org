@@ -2148,7 +2148,9 @@
       // Real clicks only (highlight() also runs when results render). Index and
       // count only, no coordinates: do multi-option planners look past option 1?
       row.querySelector(".rp-opt-summary").addEventListener("click", () => {
-        hmTrack("route_option_picked", { idx: i, of: RJ.routes.length });
+        // walk bucket (#1377): do people pick the cards that need a long walk? No coordinates.
+        const wk = rt.walkKm, walk = wk < 5 ? "lt5" : wk < 20 ? "5to20" : wk < 50 ? "20to50" : "gt50";
+        hmTrack("route_option_picked", { idx: i, of: RJ.routes.length, walk: walk });
         highlight(i);
       });
       row.querySelector(".rp-details-btn").addEventListener("click", () => {
