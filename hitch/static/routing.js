@@ -961,9 +961,8 @@
     try {
       const sheet = resultsSheet();
       if (!sheet || !RJ.start || !RJ.dest || !window.WikiExit) return;
-      // #1390: eligibility is counted for every UI language (tagged), the row is shown in English only.
+      // #1392: shown in every UI language (heading text is the English wiki's); events tagged with lang.
       const lang = (document.documentElement.lang || "en").slice(0, 2).toLowerCase();
-      const isEn = lang === "en";
       const old = sheet.querySelector(".rp-wikiexit");
       if (old) old.remove();
       const from = RJ.start.latlng, to = RJ.dest.latlng;
@@ -972,7 +971,6 @@
         const hit = window.WikiExit.pick(cities, from, to, 12);
         if (!hit) return;
         hmTrack("route_wiki_exit_eligible", { arm: arm, lang: lang });
-        if (!isEn) return;
         const fb = sheet.querySelector(".rp-feedback") || sheet.querySelector(".rp-options");
         if (!fb || sheet.querySelector(".rp-wikiexit")) return;
         const row = document.createElement("div");
@@ -984,9 +982,9 @@
         row.appendChild(document.createTextNode(hit.title + ": "));
         row.appendChild(a);
         row.appendChild(document.createTextNode(" (Hitchwiki)"));
-        a.addEventListener("click", () => hmTrack("route_wiki_exit_clicked", { arm: arm }));
+        a.addEventListener("click", () => hmTrack("route_wiki_exit_clicked", { arm: arm, lang: lang }));
         fb.insertAdjacentElement("beforebegin", row);
-        hmTrack("route_wiki_exit_shown", { arm: arm });
+        hmTrack("route_wiki_exit_shown", { arm: arm, lang: lang });
       }).catch(() => {});
     } catch (e) { /* must never break routing */ }
   }
