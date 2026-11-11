@@ -7,3 +7,5 @@ assert.ok(js.includes('hmTrack("route_feedback_seen", { arm: fbArm, lang: docume
 assert.ok(js.includes('hmTrack("route_feedback", { vote: vote, arm: fbArm, lang: document.documentElement.lang || "" })'));
 assert.ok(/fbArm === "top" && intentEl\) intentEl\.insertAdjacentElement\("beforebegin", box\)/.test(js));
 console.log("ok");
+
+assert.ok(js.includes("auto: (navigator.webdriver === true"), "beacon carries the auto flag");

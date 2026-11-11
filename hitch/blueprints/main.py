@@ -662,7 +662,8 @@ def log_route_feedback_endpoint():
     if vote not in ("up", "down"):
         return ("", 204)
     if -90 <= slat <= 90 and -180 <= slon <= 180 and -90 <= dlat <= 90 and -180 <= dlon <= 180:
-        log_route_feedback(slat, slon, dlat, dlon, vote, str(data.get("text", "")))
+        auto = 1 if data.get("auto") in (1, True, "1") else 0
+        log_route_feedback(slat, slon, dlat, dlon, vote, str(data.get("text", "")), auto=auto)
     return ("", 204)
 
 

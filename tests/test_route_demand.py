@@ -83,3 +83,16 @@ def test_route_feedback_counts_only():
     assert (out["votes_up"], out["votes_down"], out["with_text"], out["unparsable_rows"]) == (1, 1, 1, 1)
     assert out["corridors"][0]["up"] == 1 and out["corridors"][0]["down"] == 1
     assert "secret" not in str(out)
+
+
+def test_route_feedback_excludes_auto_rows():
+    from hitch.blueprints.utils.route_demand import summarise_route_feedback
+
+    base = {"start_lat": "47.1", "start_lon": "7.1", "dest_lat": "52.1", "dest_lon": "13.1"}
+    rows = [
+        {**base, "vote": "up", "text": "", "auto": "1"},
+        {**base, "vote": "down", "text": "x", None: ["1"]},  # legacy 7-col header, 8th value
+        {**base, "vote": "up", "text": "", "auto": "0"},
+    ]
+    out = summarise_route_feedback(rows)
+    assert (out["votes_up"], out["votes_down"], out["excluded_auto"]) == (1, 0, 2)
