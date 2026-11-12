@@ -855,7 +855,36 @@ function setupGeocoder() {
     logSearchRequest(e.geocode);   // record which place was searched (server has no other signal)
     map.setView(e.geocode.center, zoom);
     geocoderInput.value = "";
+    showSearchRouteChip(e.geocode);
   });
+
+  // IDEAS #1405 (EXP-1405): after a place search, 50% of visitors (sticky) get a one-tap chip that
+  // opens the live planner with that place as the destination. Control sees nothing. Events carry
+  // the arm only, never the place.
+  let routeChipEl = null;
+  function hideSearchRouteChip() {
+    if (routeChipEl) { routeChipEl.remove(); routeChipEl = null; }
+  }
+  function showSearchRouteChip(geocode) {
+    hideSearchRouteChip();
+    if (!window.RoutingUI || !window.RoutingUI.openTo || window.RoutingUI.active) return;
+    const arm = window.hmVariant ? window.hmVariant("search-route-chip-v1", ["off", "on"]) : "off";
+    window.hmTrack && window.hmTrack("search_route_chip_shown", { arm: arm });
+    if (arm !== "on") return;
+    const c = geocode.center;
+    const label = String(geocode.name || "").split(",").slice(0, 2).join(",");
+    routeChipEl = document.createElement("button");
+    routeChipEl.type = "button";
+    routeChipEl.className = "search-route-chip";
+    routeChipEl.innerHTML = '<i class="fa-solid fa-route"></i> ' + tr("Route planning");
+    routeChipEl.addEventListener("click", function () {
+      window.hmTrack && window.hmTrack("search_route_chip_clicked", { arm: arm });
+      hideSearchRouteChip();
+      window.RoutingUI.openTo([c.lat, c.lng], label);
+    });
+    map.getContainer().appendChild(routeChipEl);
+    setTimeout(hideSearchRouteChip, 15000);
+  }
 
   // #search/<query> (linked from the wiki's own search page, ?ref=wiki-search): run the
   // place search for a visitor who has already typed the place once, so they land on the

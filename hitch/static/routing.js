@@ -300,6 +300,7 @@
   RJ.close = close;
   RJ.showAgain = showAgain;
   RJ.openBetween = openBetween;
+  RJ.openTo = openTo;
   // Test-only hook: the routing graph builder and Dijkstra core have no DOM
   // dependency, so headless tests exercise them directly (see
   // tests/routing_wait_fallback.test.js and the CLAUDE.md note on running
@@ -1385,6 +1386,13 @@
     setPoint("start", from, coordLabel(from));
     setPoint("dest", to, coordLabel(to));
     reverseLabel("start", from); reverseLabel("dest", to);
+  }
+  // IDEAS #1405: planner opened from a place search; the place is the destination, the start
+  // stays empty (focus moves to it) so we never prompt for location.
+  function openTo(to, label) {
+    open();
+    if (!RJ.dest) setPoint("dest", to, label || coordLabel(to));
+    if (!RJ.start) setTimeout(() => fieldInput("start") && fieldInput("start").focus(), 60);
   }
   function coordLabel(ll) { return ll[0].toFixed(4) + ", " + ll[1].toFixed(4); }
   function reverseLabel(field, ll) {
