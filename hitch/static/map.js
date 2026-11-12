@@ -7269,6 +7269,12 @@ function startAddSpotFromGesture(latlng, containerPoint) {
 // one-tap driver pledge (same string, same shared made-key) on the map. surface=newsletter
 // (surface=wiki when ref=wiki-*, #543 slice 2) keeps these taps separable from the in-product surfaces' 68 taps / 28 d baseline.
 const WIKI_READER_REFS = ["wiki_main_page", "wiki_link", "wiki_route_link", "wiki_article"];
+// EXP-1411: every other wiki_* arrival tag (menu, record-a-ride, activity pages...) also counts as a reader,
+// except the spot-seeker infobox tags, which stay in the #1259 test.
+function isWikiReaderRef(r) {
+  return WIKI_READER_REFS.indexOf(r) !== -1 ||
+    (r.indexOf("wiki_") === 0 && WIKI_SEEKER_REFS.indexOf(r) === -1 && r.indexOf("wiki_infobox") !== 0);
+}
 // IDEAS #1259: spot-seekers (infobox links) get the same card in a 50/50 test; arm is sticky per device.
 const WIKI_SEEKER_REFS = ["wiki_infobox_pin", "wiki_infobox_map", "wiki_infobox_here"];
 function maybeShowNewsletterPledge() {
@@ -7283,7 +7289,7 @@ function maybeShowNewsletterPledge() {
     // IDEAS #1249: wiki readers (not spot-seekers, who came for a spot) see the same card once per
     // device. surface=wiki_arrival keeps them apart from the explicit ?pledge=1 arm.
     const lref = window.hmLandingRef || q.get("ref") || "";
-    if (!wanted && WIKI_READER_REFS.indexOf(lref) !== -1 &&
+    if (!wanted && isWikiReaderRef(lref) &&
         !localStorage.getItem(DRIVER_PLEDGE_MADE_KEY) &&
         !localStorage.getItem("hmWikiArrivalPledgeShown") &&
         !/^\/(?:[a-z]{2,3}\/)?dir\//.test(location.pathname)) {
@@ -7321,6 +7327,7 @@ function maybeShowNewsletterPledge() {
   note.style.display = "none";
   btn.onclick = function () {
     hmTrack("driver_pledge_clicked", { surface: surface });
+  if (surface === "wiki_arrival") hmTrack("wiki_arrival_pledge_ref", { step: "clicked", ref: (window.hmLandingRef || "").slice(0, 40) });
     try { localStorage.setItem(DRIVER_PLEDGE_MADE_KEY, "1"); } catch (e) {}
     noteDriverPledgeTime(surface);
     btn.style.display = "none";
@@ -7358,6 +7365,7 @@ function maybeShowNewsletterPledge() {
     }
   }, 500);
   hmTrack("driver_pledge_shown", { surface: surface });
+  if (surface === "wiki_arrival") hmTrack("wiki_arrival_pledge_ref", { step: "shown", ref: (window.hmLandingRef || "").slice(0, 40) });
 }
 // Delay: the consent dialog renders a moment after load.
 setTimeout(maybeShowNewsletterPledge, 3000);
