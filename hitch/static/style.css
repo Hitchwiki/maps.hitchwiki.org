@@ -4637,3 +4637,20 @@ a.acct-ride__warn:hover { color: #b98900; }
   padding: 0;
   cursor: pointer;
 }
+
+/* IDEAS #1405: route chip shown under the search bar after a place search (arm "on" only). */
+.search-route-chip {
+  position: absolute;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 20px;
+  background: #1a73e8;
+  color: #fff;
+  font-size: 15px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
