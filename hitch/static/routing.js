@@ -837,6 +837,7 @@
           showNoRouteSnapAction(FB || RJ.router, reason, from, to);
           showPlannerCompare(from, to, true);
           showNoRouteRoad(from, to);
+          showNoRouteCountry(reason, from, to);
           return;
         }
         hmTrack('route_found', { graph: 'oneoff', options: alt.length });
@@ -1169,6 +1170,57 @@
       });
       try { map.fitBounds(L.latLngBounds(line), { padding: [30, 30] }); } catch (e) { /* cosmetic */ }
       hmTrack("route_none_road_shown", { arm: arm, ok: 1, n_spots: rows.length, km: Math.round(cum[cum.length - 1]) });
+    } catch (e) { /* must never break routing */ }
+  }
+
+  // IDEAS #1400: no route and an end is outside our coverage -> link that country's Hitchwiki page (human-written
+  // advice, no new prose by us; label is the country name + "(Hitchwiki)" like the wiki-exit row). Sticky arm
+  // no-route-country-v1 keeps a control; events carry the arm. Country = point-in-polygon on /static/countries.geojson.
+  const NR_COUNTRY_ALIASES = { "United States of America": "United States", "People's Republic of China": "China",
+    "Republic of Serbia": "Serbia", "United Republic of Tanzania": "Tanzania", Czechia: "Czech Republic" };
+  function ptInRing(lat, lon, ring) {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+      if ((yi > lat) !== (yj > lat) && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  }
+  function countryNameAt(geo, pt) {
+    for (const f of geo.features || []) {
+      const g = f.geometry; if (!g) continue;
+      const polys = g.type === "Polygon" ? [g.coordinates] : g.coordinates;
+      for (const poly of polys) {
+        if (ptInRing(pt[0], pt[1], poly[0]) && !poly.slice(1).some((h) => ptInRing(pt[0], pt[1], h))) return f.properties && f.properties.name;
+      }
+    }
+    return null;
+  }
+  function showNoRouteCountry(reason, from, to) {
+    try {
+      const pt = reason === "dest-uncovered" ? to : reason === "start-uncovered" ? from : reason === "both-uncovered" ? to : null;
+      if (!pt || !panel) return;
+      const arm = hmVariant("no-route-country-v1", ["off", "on"]);
+      hmTrack("route_none_country_exposure", { arm: arm });
+      if (arm !== "on") return;
+      fetch("/static/countries.geojson").then((r) => r.json()).then((geo) => {
+        const name = countryNameAt(geo, pt);
+        if (!name) return;
+        const sheet = resultsSheet() || panel;
+        if (sheet.querySelector(".rp-nr-country")) return;
+        const row = document.createElement("div");
+        row.className = "rp-nr-country";
+        row.style.cssText = "margin:8px 12px;font-size:14px";
+        const a = document.createElement("a");
+        a.href = "https://hitchwiki.org/en/" + encodeURI((NR_COUNTRY_ALIASES[name] || name).replace(/ /g, "_"));
+        a.target = "_blank"; a.rel = "noopener"; a.textContent = NR_COUNTRY_ALIASES[name] || name;
+        row.appendChild(a);
+        row.appendChild(document.createTextNode(" (Hitchwiki)"));
+        a.addEventListener("click", () => hmTrack("route_none_country_clicked", { arm: "on" }));
+        const cta = panel.querySelector(".rp-no-route-cta");
+        (cta || sheet).insertAdjacentElement(cta ? "afterend" : "beforeend", row);
+        hmTrack("route_none_country_shown", { arm: "on" });
+      }).catch(() => {});
     } catch (e) { /* must never break routing */ }
   }
 
