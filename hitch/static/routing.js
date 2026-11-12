@@ -264,6 +264,11 @@
       const res = route(R, start, dest, maxWalk, pen);
       if (!res.found) break;
       res.carEdges.forEach((e) => pen.set(e, (pen.get(e) || 1) * 2.5));
+      // IDEAS #1420: never offer a chain that drives more than 4x the straight line + 150 km
+      // (Helsinki -> Tallinn came back as 5430 km / 76 h in 42 legs). Such a chain is a graph
+      // artefact (a sea crossing nobody logged), not a ride; the caller falls through to the
+      // one-off graph and then the honest no-route message.
+      if (res.carKm > 4 * haversineKm(start, dest) + 150) continue;
       let similar = false;
       for (const [edges, km] of keptEdges) {
         let shared = 0;
