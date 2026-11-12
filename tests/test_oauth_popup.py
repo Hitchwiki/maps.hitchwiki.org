@@ -133,3 +133,27 @@ def test_redirect_uri_base_tolerates_a_trailing_slash(app):
             assert _redirect_uri() == "https://example.trycloudflare.com/login"
     finally:
         app.config["HITCHWIKI_OAUTH_REDIRECT_BASE"] = None
+
+
+def test_existing_user_target_honours_a_safe_next_path():
+    from hitch.blueprints.oauth import _existing_user_target
+
+    assert _existing_user_target(None, "/") == "/"
+    assert _existing_user_target(None, "/dir/1,2/3,4") == "/dir/1,2/3,4"
+    assert _existing_user_target("anon-signup", "/") == "/?signup_prompt=logged-in"
+
+
+def test_existing_user_target_rejects_offsite_next():
+    from hitch.blueprints.oauth import _existing_user_target
+
+    for bad in ("//evil.example", "https://evil.example", "/\\evil.example", "evil", ""):
+        assert _existing_user_target(None, bad) == "/me"
+
+
+def test_login_stores_only_safe_next(client):
+    client.get("/login?next=/")
+    with client.session_transaction() as sess:
+        assert sess["login_next"] == "/"
+    client.get("/login?next=//evil.example")
+    with client.session_transaction() as sess:
+        assert sess["login_next"] == "/"  # unsafe value never overwrites
