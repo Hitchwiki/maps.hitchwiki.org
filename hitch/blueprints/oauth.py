@@ -58,6 +58,12 @@ def login():
     if request.args.get("source") == SIGNUP_PROMPT_SOURCE:
         session[SIGNUP_PROMPT_SESSION_KEY] = SIGNUP_PROMPT_SOURCE
 
+    # EXP-1404: the map's journey prompt sends /login?next=/ so an existing user lands back on the
+    # map (where the saved pickup spot resumes) instead of /me. Same-site paths only.
+    nxt = request.args.get("next", "")
+    if _safe_next(nxt):
+        session[LOGIN_NEXT_SESSION_KEY] = nxt
+
     return render_template("security/login_user.html")
 
 
@@ -81,7 +87,15 @@ def _new_user_target(signup_prompt_source):
     return f"/?{urlencode(params)}"
 
 
-def _existing_user_target(signup_prompt_source):
+LOGIN_NEXT_SESSION_KEY = "login_next"
+
+
+def _safe_next(nxt):
+    """True for a same-site absolute path ("/x"), false for "//host", "/\\host" or full URLs."""
+    return isinstance(nxt, str) and nxt.startswith("/") and not nxt.startswith(("//", "/\\")) and len(nxt) <= 200
+
+
+def _existing_user_target(signup_prompt_source, next_path=None):
     """Return the existing-user post-login URL.
 
     A visitor who already has a Maps account (created on an earlier visit,
@@ -102,6 +116,8 @@ def _existing_user_target(signup_prompt_source):
     """
     if signup_prompt_source == SIGNUP_PROMPT_SOURCE:
         return f"/?{urlencode({'signup_prompt': 'logged-in'})}"
+    if _safe_next(next_path):
+        return next_path
     return "/me"
 
 
@@ -263,4 +279,6 @@ def _handle_callback(code):
     # Back-fills the welcome notification for users who registered before notifications
     # existed; idempotent, so existing users get it exactly once.
     ensure_welcome_notification(user)
-    return _finish_login(_existing_user_target(signup_prompt_source), needs_profile=False)
+    return _finish_login(
+        _existing_user_target(signup_prompt_source, session.pop(LOGIN_NEXT_SESSION_KEY, None)), needs_profile=False
+    )
