@@ -4127,7 +4127,7 @@
         const p = JSON.parse(pend);
         // EXP-1404: the login now returns to the map; record whether the saved spot was still fresh.
         const fresh = typeof p.at === "number" && Date.now() - p.at < 2 * 3600 * 1000;
-        hmTrack("journey_login_return", { outcome: fresh ? "resumed" : "stale" });
+        hmTrack("journey_login_resume", { outcome: fresh ? "resumed" : "stale" });
         journeyFlow.beginWithCoHitchers({ lat: p.lat, lon: p.lon }, startSource(p.source));
         return;
       } catch (e) {}
@@ -4141,7 +4141,7 @@
         const p = JSON.parse(pend);
         const fresh = typeof p.at === "number" && Date.now() - p.at < 2 * 3600 * 1000;
         const ok = typeof p.lat === "number" && typeof p.lon === "number";
-        hmTrack("journey_login_return", { outcome: fresh && ok && !journeyStore.get() ? "offered" : "dropped" });
+        hmTrack("journey_login_resume", { outcome: fresh && ok && !journeyStore.get() ? "offered" : "dropped" });
         if (fresh && ok && !journeyStore.get()) {
           const src = startSource(p.source);
           journeyUI.dialog({
