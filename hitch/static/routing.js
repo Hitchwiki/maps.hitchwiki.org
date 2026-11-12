@@ -1833,7 +1833,10 @@
     const label = (RJ.dest && RJ.dest.label) || "";
     return label.split(",")[0].trim();
   }
-  function openSign(source, leg, nameOverride) {
+  // opts.final: the final destination, shown small under a first-drop-off-town sign;
+  // opts.ll: where `name` is, for the local-script lookup (defaults to the destination).
+  function openSign(source, leg, nameOverride, opts) {
+    opts = opts || {};
     const name = nameOverride || signName();
     if (!name || typeof document === "undefined") return;
     const ov = document.createElement("div");
@@ -1843,6 +1846,13 @@
       <button type="button" class="hm-sign-close">${T("Close")}</button></div>`;
     const txt = ov.querySelector(".hm-sign-text");
     txt.textContent = name;
+    if (opts.final) {
+      const fin = document.createElement("div");
+      fin.className = "hm-sign-final";
+      fin.style.cssText = "font-size:20px;text-align:center;opacity:.6;margin-top:8px";
+      fin.textContent = "→ " + opts.final;
+      txt.after(fin);
+    }
     document.body.appendChild(ov);
     const fit = () => {
       let size = 400;
@@ -1873,8 +1883,8 @@
       ov.classList.toggle("hm-sign-inverted");
       hmTrack("sign_inverted", { source });
     });
-    hmTrack("sign_opened", { source, leg });
-    localSignName(name).then(local => {
+    hmTrack("sign_opened", { source, leg, name: opts.final ? "next" : "final" });
+    localSignName(name, opts.ll).then(local => {
       // Drivers read road signs in the local script ("София", "Praha"), not in the
       // hitchhiker's UI language: lead with that, keep the user's own name small below.
       if (!local || !ov.isConnected) return;
@@ -1898,8 +1908,8 @@
   }
   // The destination's name as locally written, or null when it is the same as `name`
   // or can't be found (offline, no city at the point).
-  function localSignName(name) {
-    const d = RJ.dest && RJ.dest.latlng;
+  function localSignName(name, ll) {
+    const d = ll || (RJ.dest && RJ.dest.latlng);
     if (!d || typeof fetch === "undefined") return Promise.resolve(null);
     return fetch("https://photon.komoot.io/reverse?limit=1&lang=default&layer=city&radius=30&lat=" + d[0] + "&lon=" + d[1])
       .then(r => r.json())
@@ -2208,7 +2218,21 @@
         hmTrack("route_details_clicked", Object.assign({ idx: i, of: RJ.routes.length }, pairCells()));
         toggleDetails(row, rt, i);
       });
-      row.querySelector(".rp-sign-btn").addEventListener("click", () => { trackCommit("sign", i); openSign("route", i); });
+      row.querySelector(".rp-sign-btn").addEventListener("click", () => {
+        trackCommit("sign", i);
+        // #1407: with several rides, a driver at the roadside is not going to the final
+        // destination, only to the first drop-off town: show that, final destination small beneath.
+        const carLegs = rt.legs.filter((l) => l.mode === "car");
+        const fin = signName();
+        if (carLegs.length < 2 || !carLegs[0].to || !photon || !photon.reverse) { openSign("route", i); return; }
+        const c = carLegs[0].to;
+        photon.reverse(L.latLng(c[0], c[1]), 4096, (results) => {
+          const r = results && results[0], p = (r && r.properties) || {};
+          const town = p.city || p.name || "";
+          if (town && town !== fin) openSign("route", i, town, { final: fin, ll: c });
+          else openSign("route", i);
+        });
+      });
       box.appendChild(row);
     });
     // v1 put this button after all three (often tall) route cards and counted
