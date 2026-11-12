@@ -4125,6 +4125,9 @@
       // to the store-resume path below instead of short-circuiting the whole init.
       try {
         const p = JSON.parse(pend);
+        // EXP-1404: the login now returns to the map; record whether the saved spot was still fresh.
+        const fresh = typeof p.at === "number" && Date.now() - p.at < 2 * 3600 * 1000;
+        hmTrack("journey_login_return", { outcome: fresh ? "resumed" : "stale" });
         journeyFlow.beginWithCoHitchers({ lat: p.lat, lon: p.lon }, startSource(p.source));
         return;
       } catch (e) {}
