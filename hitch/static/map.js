@@ -7298,7 +7298,19 @@ function maybeShowNewsletterPledge() {
     note.textContent = tr("Pledge made — thank you.");
     addPledgeStopsLink(note, surface);
     note.style.display = "block";
-    setTimeout(function () { box.remove(); }, 4000);
+    // EXP-1401: the note carries the next-step links (hitchhikers near you, pickup spots on your way);
+    // a 4 s auto-remove left a fresh pledger no time to use them. Stay until the visitor closes it.
+    const clickedAt = Date.now();
+    const close = document.createElement("button");
+    close.type = "button";
+    close.setAttribute("aria-label", tr("Close"));
+    close.textContent = "\u00d7";
+    close.style.cssText = "position:absolute;top:2px;right:6px;border:0;background:none;font-size:20px;line-height:1;cursor:pointer;color:#666;";
+    close.onclick = function () {
+      hmTrack("driver_pledge_note_closed", { surface: surface, ms: Date.now() - clickedAt });
+      box.remove();
+    };
+    box.appendChild(close);
   };
   box.appendChild(btn);
   box.appendChild(note);
