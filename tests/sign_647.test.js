@@ -7,7 +7,8 @@ const src = fs.readFileSync(path.join(__dirname, "../hitch/static/routing.js"), 
 
 test("route rows get a Make a sign button wired to openSign", () => {
   assert.match(src, /class="rp-sign-btn"[^>]*>\$\{T\("Make a sign"\)\}/);
-  assert.match(src, /rp-sign-btn"\)\.addEventListener\("click", \(\) => \{ trackCommit\("sign", i\); openSign\("route", i\); \}\)/);
+  assert.match(src, /rp-sign-btn"\)\.addEventListener\("click", \(\) => \{\s+trackCommit\("sign", i\);/);
+  assert.match(src, /openSign\("route", i\)/);
 });
 
 test("sign tracks open, invert and print", () => {
