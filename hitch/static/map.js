@@ -4632,6 +4632,11 @@ function showSuccessOverlay(opts) {
   shareVariant = "control";
   hmTrack("ride_share_exposure", { variant: shareVariant });
   trackShareDeferredReturn();
+  // EXP-1412: sticky 50/50 "success-share-hide-v1". Treatment hides the share card and button (the block's
+  // driver/city/planner links stay) so the CTAs that convert get the screen. Arm rides on its own event.
+  const shareHideArm = window.hmVariant ? window.hmVariant("success-share-hide-v1", ["off", "on"]) : "off";
+  overlay.classList.toggle("hm-share-hidden", shareHideArm === "on");
+  hmTrack("success_share_hide_exposure", { arm: shareHideArm });
   const shareTitle = $$("#success-share-block h2");
   const shareSub = $$("#success-share-block .success-share-sub");
   const shareButton = $$("#success-share-btn");
@@ -5031,6 +5036,7 @@ function renderDriverPledgeNudge() {
   hmTrack("driver_pledge_shown", { surface: "success_overlay" });
   btn.onclick = function () {
     hmTrack("driver_pledge_clicked", { surface: "success_overlay" });
+    hmTrack("success_share_hide_cta", { arm: (document.getElementById("success-overlay") || document.body).classList.contains("hm-share-hidden") ? "on" : "off", cta: "pledge" });
     localStorage.setItem(DRIVER_PLEDGE_MADE_KEY, "1");
     noteDriverPledgeTime("success_overlay");
     btn.style.display = "none";
