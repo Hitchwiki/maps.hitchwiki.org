@@ -4654,3 +4654,6 @@ a.acct-ride__warn:hover { color: #b98900; }
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
   cursor: pointer;
 }
+
+.rp-myloc { display:block; margin:4px 12px; padding:8px 10px; border:0; background:none; color:#1a73e8; font-size:.95em; text-align:left; cursor:pointer }
+.rp-myloc:disabled { opacity:.5 }

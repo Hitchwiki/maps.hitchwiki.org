@@ -522,6 +522,10 @@
           <button class="rp-clear" tabindex="-1" aria-label="${T("Clear")}">&times;</button>
         </div>
       </div>
+      <button type="button" class="rp-myloc" hidden>
+        <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i>
+        ${T("Use my location")}
+      </button>
       <button type="button" class="rp-swap" hidden>
         <i class="fa-solid fa-right-left" aria-hidden="true"></i>
         ${T("Plan the way back")}
@@ -592,6 +596,36 @@
   function syncSwap() {
     const btn = panel && panel.querySelector(".rp-swap");
     if (btn) btn.hidden = !(RJ.start && RJ.dest);
+    syncMyloc();
+  }
+  // #1409: sticky 50/50 arm myloc-start-v1. While the start is empty, one tap-to-locate row.
+  // Location is requested only on tap, never on load (EXP-822 asked on load and did nothing).
+  function syncMyloc() {
+    const b = panel && panel.querySelector(".rp-myloc");
+    if (!b) return;
+    const want = !RJ.start && RJ.active && typeof navigator !== "undefined" && !!navigator.geolocation;
+    if (!want) { b.hidden = true; return; }
+    const arm = hmVariant("myloc-start-v1", ["off", "on"]);
+    b.hidden = arm !== "on";
+    if (!RJ._mylocShown) { RJ._mylocShown = true; hmTrack("planner_myloc_shown", { arm: arm }); }
+    if (!b._wired) {
+      b._wired = true;
+      b.addEventListener("click", () => {
+        hmTrack("planner_myloc_clicked", { arm: "on" });
+        b.disabled = true;
+        navigator.geolocation.getCurrentPosition((pos) => {
+          b.disabled = false;
+          if (RJ.start) return;
+          const ll = [pos.coords.latitude, pos.coords.longitude];
+          RJ._nextSrc = "myloc";
+          setPoint("start", ll, T("Use my location"));
+          reverseLabel("start", ll);
+        }, () => {
+          b.disabled = false;
+          hmTrack("planner_myloc_denied", { arm: "on" });
+        }, { timeout: 6000, maximumAge: 60000 });
+      });
+    }
   }
   function reverseRoute() {
     if (!RJ.start || !RJ.dest) return;
@@ -613,6 +647,7 @@
   function fieldInput(field) { return panel.querySelector(`.rp-field[data-field="${field}"] input`); }
 
   function setPoint(field, latlng, label) {
+    if (field === "start") { RJ._startSrc = RJ._nextSrc || "other"; RJ._nextSrc = null; }
     RJ[field] = { latlng, label: label || `${latlng[0].toFixed(4)}, ${latlng[1].toFixed(4)}` };
     fieldInput(field).value = RJ[field].label;
     const marker = field === "start" ? "startMarker" : "destMarker";
@@ -642,6 +677,8 @@
     document.body.classList.add("routing-active");
     if (!panel) buildPanel();
     panel.hidden = false;
+    RJ._mylocShown = false;
+    syncMyloc();
     if (typeof setSpotsVisible === "function") setSpotsVisible(false);
     map.getContainer().style.cursor = "crosshair";
     setTimeout(() => fieldInput("start").focus(), 50);
@@ -760,7 +797,7 @@
       logRouteRequest(from, to);   // record which route was asked for (server has no other signal)
       // Coordinates stay out of Umami (the server CSV has them); the straight-line
       // distance is what tells us whether people plan city hops or continents.
-      hmTrack('route_searched', { km: Math.round(haversineKm(from, to)) });
+      hmTrack('route_searched', { km: Math.round(haversineKm(from, to)), start_src: RJ._startSrc || 'other' });
       const res = alternatives(RJ.router, from, to, DEFAULT_MAX_WALK, 3, 0.6);
       clearRoutes(); // drop anything a previous run left before drawing fresh
       if (res.length) {
