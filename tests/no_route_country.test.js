@@ -1,0 +1,10 @@
+const fs=require("fs"),assert=require("assert");
+const s=fs.readFileSync(__dirname+"/../hitch/static/routing.js","utf8");
+const a=s.indexOf("function ptInRing"),b=s.indexOf("function showNoRouteCountry");
+const f=new Function(s.slice(a,b)+"return countryNameAt;")();
+const geo=JSON.parse(fs.readFileSync(__dirname+"/../hitch/static/countries.geojson","utf8"));
+assert.strictEqual(f(geo,[52.52,13.4]),"Germany");
+assert.strictEqual(f(geo,[48.85,2.35]),"France");
+assert.strictEqual(f(geo,[0,-30]),null);
+assert(/hmVariant\("no-route-country-v1"/.test(s));
+console.log("ok no_route_country");
