@@ -14,4 +14,6 @@ assert(body.includes('hmTrack("driver_pledge_shown", { surface: surface })'));
 assert(body.includes('hmTrack("driver_pledge_clicked", { surface: surface })'));
 assert(body.includes("I'll stop for a hitchhiker when I'm driving"), "reuses the existing string");
 assert(src.includes("maybeShowNewsletterPledge, 3000);"), "invoked at load");
+assert(!body.includes("setTimeout(function () { box.remove(); }, 4000)"), "thank-you note must not auto-remove (EXP-1401)");
+assert(body.includes('hmTrack("driver_pledge_note_closed"'), "close button tracked");
 console.log("newsletter_pledge ok");
