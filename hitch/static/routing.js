@@ -2184,13 +2184,20 @@
       // Real clicks only (highlight() also runs when results render). Index and
       // count only, no coordinates: do multi-option planners look past option 1?
       // walk bucket (#1377): do people pick the cards that need a long walk? No coordinates.
+      // #1394: coarse 0.5-degree A/B cells (same as route_judged) so implicit picks can join to corridors.
+      const pairCells = () => {
+        try {
+          const c = (ll) => (Math.round(ll[0] * 2) / 2) + "," + (Math.round(ll[1] * 2) / 2);
+          return { a_cell: c(RJ.start.latlng), b_cell: c(RJ.dest.latlng) };
+        } catch (e) { return {}; }
+      };
       const wk = rt.walkKm, walk = wk < 5 ? "lt5" : wk < 20 ? "5to20" : wk < 50 ? "20to50" : "gt50";
       row.querySelector(".rp-opt-summary").addEventListener("click", () => {
-        hmTrack("route_option_picked", { idx: i, of: RJ.routes.length, walk: walk });
+        hmTrack("route_option_picked", Object.assign({ idx: i, of: RJ.routes.length, walk: walk }, pairCells()));
         highlight(i);
       });
       row.querySelector(".rp-details-btn").addEventListener("click", () => {
-        hmTrack("route_details_clicked", { idx: i, of: RJ.routes.length });
+        hmTrack("route_details_clicked", Object.assign({ idx: i, of: RJ.routes.length }, pairCells()));
         toggleDetails(row, rt, i);
       });
       row.querySelector(".rp-sign-btn").addEventListener("click", () => { trackCommit("sign", i); openSign("route", i); });
