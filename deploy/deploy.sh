@@ -15,6 +15,10 @@ echo "==> Disk free: $(( free_kb / 1024 )) MB"
 sudo du -xsh /var/lib/docker/containers /var/lib/docker/overlay2 /var/lib/docker/volumes /var/log 2>/dev/null || true
 sudo du -xsh /var/lib/docker/containers/*/*-json.log 2>/dev/null | sort -h | tail -3 || true
 sudo journalctl --disk-usage 2>/dev/null || true
+# sudo may not allow du (2026-11-13 log showed none of the lines above), but docker is allowed:
+sudo docker system df 2>&1 || true
+sudo docker images --format '{{.Size}}\t{{.Repository}}:{{.Tag}}\t{{.CreatedSince}}' 2>&1 | sort -hr | head -8 || true
+sudo docker ps -a --size --format '{{.Size}}\t{{.Names}}' 2>&1 | head -8 || true
 if [ "$free_kb" -lt 3145728 ]; then
   echo "==> Low disk, pruning unused docker images and build cache first"
   sudo docker image prune -af --filter "until=24h" || true
