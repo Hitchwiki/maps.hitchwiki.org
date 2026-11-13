@@ -47,7 +47,12 @@ sudo docker image prune -f
 # used at the very start of the build are never caught) removes exactly the untouched
 # cache. '-a' also clears internal/frontend cache. This adapts automatically instead
 # of a fixed age window, regardless of how often we deploy.
-sudo docker builder prune -af --filter "until=$(( build_elapsed + 60 ))s"
+# Only drop cache unused for a week. The earlier "everything this build did not touch" rule
+# deleted the *other* project's layers (maps and wiki share one builder), so each deploy
+# forced the sibling's next build to rebuild from scratch (2026-11-13: wiki deploy freed
+# 226 MB, maps then rebuilt 269 MB of apt layers and hit ENOSPC). Low-disk pruning
+# (24h) still happens up front in the disk guard.
+sudo docker builder prune -af --filter "until=168h"
 
 mkdir -p logs
 date -u +"%Y-%m-%dT%H:%M:%SZ commit=$(git rev-parse --short HEAD)" > logs/last_deploy.txt
