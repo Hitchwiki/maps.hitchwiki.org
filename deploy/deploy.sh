@@ -19,6 +19,12 @@ if [ "$free_kb" -lt 3145728 ]; then
   echo "==> Disk free after prune: $(( free_kb / 1024 )) MB"
   if [ "$free_kb" -lt 1048576 ]; then
     echo "!! Under 1 GB free after pruning; aborting before the build. Free disk space on the server." >&2
+    # Read-only diagnostics: name what is using the disk (the abort is the last thing this run does).
+    echo "==> Disk diagnostics (read-only)" >&2
+    du -xsh db logs dist hitch/static 2>/dev/null >&2 || true
+    sudo docker system df >&2 || true
+    sudo du -xsh /var/lib/docker/containers /var/lib/docker/overlay2 /var/lib/docker/volumes 2>/dev/null >&2 || true
+    sudo du -xh --max-depth=1 / 2>/dev/null | sort -h | tail -8 >&2 || true
     exit 1
   fi
 fi
