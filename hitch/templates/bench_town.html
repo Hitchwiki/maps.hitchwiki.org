@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block meta_description %}{% if fr %}{{ n }} arrêt{{ 's' if n > 1 }} officiel{{ 's' if n > 1 }} à {{ town.name }} : voir la carte, lire les expériences et noter votre attente.{% elif page_lang == 'de' %}{{ n }} offizielle{{ 'r' if n == 1 else '' }} Mitfahrhalt{{ 'e' if n > 1 }} in {{ town.name }}: Karte ansehen, Erfahrungen lesen und die eigene Wartezeit eintragen.{% else %}{{ (L.intro_n if plural else L.intro_1).format(n=n, name=town.name, state='') }}{% endif %}{% endblock %}
 {% block og_title %}{{ title }}{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="/static/organizers.css">
+{% endblock %}
 {% block main %}
 <main class="organizers">
   <nav><a href="/">← Hitchwiki Maps</a> · <a href="/mitfahrbank/">{{ L.all }}</a></nav>

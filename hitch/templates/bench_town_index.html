@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block meta_description %}Offizielle Mitfahrbänke und Mitfahrhalte in {{ total }} Orten: Ort suchen, Karte ansehen, Erfahrungen lesen.{% endblock %}
 {% block og_title %}{{ title }}{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="/static/organizers.css">
+{% endblock %}
 {% block main %}
 <main class="organizers">
   <nav><a href="/">← Hitchwiki Maps</a></nav>
