@@ -11,6 +11,10 @@ git reset --hard origin/main
 # work undeployed. Log free space, and if under 3 GB reclaim unused docker layers first.
 free_kb=$(df -Pk . | awk 'NR==2{print $4}')
 echo "==> Disk free: $(( free_kb / 1024 )) MB"
+# Read-only, non-fatal: itemize the slow leak (25 MB/h, 2026-11-13) on every deploy, not only on abort.
+sudo du -xsh /var/lib/docker/containers /var/lib/docker/overlay2 /var/lib/docker/volumes /var/log 2>/dev/null || true
+sudo du -xsh /var/lib/docker/containers/*/*-json.log 2>/dev/null | sort -h | tail -3 || true
+sudo journalctl --disk-usage 2>/dev/null || true
 if [ "$free_kb" -lt 3145728 ]; then
   echo "==> Low disk, pruning unused docker images and build cache first"
   sudo docker image prune -af --filter "until=24h" || true
