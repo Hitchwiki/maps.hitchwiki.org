@@ -10,7 +10,7 @@ const iHandler = src.indexOf("const searchHash");
 const iLocation = src.indexOf('if (mainArgs[0] == "location")');
 assert(iHandler > 0 && iHandler < iLocation, "handler runs before navigation branches");
 const block = src.slice(iHandler, iLocation);
-assert(block.indexOf('url.hash = ""') < block.indexOf("runPlaceSearch(q)"), "hash dropped before search");
+assert(block.indexOf('url.hash = ""') < block.indexOf("runPlaceSearch(q,"), "hash dropped before search");
 // the regex itself
 const re = /^#search\/(.+)$/;
 assert.strictEqual(re.exec("#search/Teltow%2C%20DE")[1], "Teltow%2C%20DE");
