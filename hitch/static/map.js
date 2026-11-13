@@ -908,7 +908,8 @@ function setupGeocoder() {
         map.setView(results[0].center, geocoderOpts.zoom);
         if (planTo) {
           const c = results[0].center;
-          window.RoutingUI.openTo([c.lat, c.lng], String(results[0].name || "").split(",").slice(0, 2).join(","));
+          if (opts.from && window.RoutingUI.openBetween) window.RoutingUI.openBetween(opts.from, [c.lat, c.lng]);
+          else window.RoutingUI.openTo([c.lat, c.lng], String(results[0].name || "").split(",").slice(0, 2).join(","));
         }
       };
       if (map._animatingZoom) map.once("zoomend", () => setTimeout(go, 0));
@@ -6273,8 +6274,15 @@ async function navigate() {
     const url = new URL(window.location.href);
     url.hash = "";
     window.history.replaceState({}, "", url);
-    const planIntent = (window.hmLandingRef || new URLSearchParams(window.location.search).get("ref")) === "wiki_main_trip";
-    if (window.runPlaceSearch) window.runPlaceSearch(q, { plan: planIntent });
+    const planRef = window.hmLandingRef || new URLSearchParams(window.location.search).get("ref");
+    const planIntent = planRef === "wiki_main_trip" || planRef === "wiki_city_trip";
+    // IDEAS #1436: the wiki city-article box also passes the article's coordinates as ?from=lat,lon.
+    let planFrom = null;
+    if (planRef === "wiki_city_trip") {
+      const f = (new URLSearchParams(window.location.search).get("from") || "").split(",").map(Number);
+      if (f.length === 2 && f.every(isFinite) && Math.abs(f[0]) <= 90 && Math.abs(f[1]) <= 180) planFrom = f;
+    }
+    if (window.runPlaceSearch) window.runPlaceSearch(q, { plan: planIntent, from: planFrom });
     return;
   }
 
