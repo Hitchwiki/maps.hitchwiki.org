@@ -6273,7 +6273,7 @@ async function navigate() {
     const url = new URL(window.location.href);
     url.hash = "";
     window.history.replaceState({}, "", url);
-    const planIntent = new URLSearchParams(window.location.search).get("ref") === "wiki_main_trip";
+    const planIntent = (window.hmLandingRef || new URLSearchParams(window.location.search).get("ref")) === "wiki_main_trip";
     if (window.runPlaceSearch) window.runPlaceSearch(q, { plan: planIntent });
     return;
   }
