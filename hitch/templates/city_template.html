@@ -27,6 +27,13 @@
                 {{ share_button(context="city", url=canonical_url, title=t("Hitchhiking in {place} – Hitchwiki Map", place=place_label)) }}
             </div>
 
+            {# IDEAS #1439: "city -> destination" entry into the route planner, start = this city. Labels are existing keys. #}
+            <form id="city-trip-box" role="search" style="display:flex;gap:.5em;margin:.8em 0;align-items:center;flex-wrap:wrap;" data-lat="{{ city.lat }}" data-lng="{{ city.lng }}" data-lang="{{ g.lang }}">
+                <strong>{{ city.city }} &rarr;</strong>
+                <input type="text" maxlength="100" required placeholder="{{ t('Destination') }}" aria-label="{{ t('Destination') }}" style="flex:1 1 8em;min-width:0;padding:.5em .8em;border:1px solid #a2a9b1;border-radius:4px;">
+                <button type="submit" style="padding:.5em 1.1em;border:0;border-radius:4px;background:#dd9700;color:#fff;font-weight:bold;cursor:pointer;">{{ t('Route planning') }}</button>
+            </form>
+
             <a class="map-link" href="/#location,{{city.lat}},{{city.lng}},12"><div id="static-map"></div><span class="map-overlay">{{ t("{city} on Hitchhiking Map", city=city.city) }}</span> </a>
 
             {# The easiest first hitchhike out of this city. Built in cities.py from
@@ -174,6 +181,14 @@
 </style>
 <script src="/static/city_wiki_excerpt.js"></script>
 <script>
+ document.getElementById('city-trip-box').addEventListener('submit', function (e) {
+   e.preventDefault();
+   var f = e.currentTarget, q = f.querySelector('input').value.trim();
+   if (!q) return;
+   if (window.hmTrack) window.hmTrack('city_trip_box_submitted', {country: {{ city.country | tojson }}, len: q.length});
+   var go = '/' + (f.dataset.lang && f.dataset.lang !== 'en' ? f.dataset.lang + '/' : '') + '?ref=city_page_trip&from=' + f.dataset.lat + ',' + f.dataset.lng + '#search/' + encodeURIComponent(q);
+   setTimeout(function () { location.href = go; }, 150);
+ });
  document.querySelector('.bg').href = '/#location,{{city.lat}},{{city.lng}},10'
 
  async function createStaticMap(mapContainer, lat, lon, zoom, width, height) {const TILE_SIZE = 256; const centerX = ((lon + 180) / 360) * Math.pow(2, zoom) * TILE_SIZE; const centerY = ((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2) * Math.pow(2, zoom) * TILE_SIZE; const topLeftX = centerX - width / 2, topLeftY = centerY - height / 2; const startTileX = Math.floor(topLeftX / TILE_SIZE), startTileY = Math.floor(topLeftY / TILE_SIZE); const xOffset = -(topLeftX % TILE_SIZE), yOffset = -(topLeftY % TILE_SIZE); const xTiles = Math.ceil(width / TILE_SIZE) + 1, yTiles = Math.ceil(height / TILE_SIZE) + 1; mapContainer.style.cssText = `width:${width}px;height:${height}px;position:relative;overflow:hidden`; for (let x = 0; x < xTiles; x++) {for (let y = 0; y < yTiles; y++) {const img = document.createElement("img"); img.src = `https://tile.openstreetmap.org/${zoom}/${startTileX + x}/${startTileY + y}.png`; img.style.cssText = `position:absolute;width:${TILE_SIZE}px;height:${TILE_SIZE}px;left:${(x * TILE_SIZE) + xOffset}px;top:${(y * TILE_SIZE) + yOffset}px`; mapContainer.appendChild(img);}}}
