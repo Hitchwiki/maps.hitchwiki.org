@@ -7,6 +7,22 @@ echo "==> Fetching latest main"
 git fetch --prune origin main
 git reset --hard origin/main
 
+# Disk guard: a full disk fails the build mid-way (Errno 28, 2026-11-13) and leaves merged
+# work undeployed. Log free space, and if under 3 GB reclaim unused docker layers first.
+free_kb=$(df -Pk . | awk 'NR==2{print $4}')
+echo "==> Disk free: $(( free_kb / 1024 )) MB"
+if [ "$free_kb" -lt 3145728 ]; then
+  echo "==> Low disk, pruning unused docker images and build cache first"
+  sudo docker image prune -af --filter "until=24h" || true
+  sudo docker builder prune -af --filter "until=24h" || true
+  free_kb=$(df -Pk . | awk 'NR==2{print $4}')
+  echo "==> Disk free after prune: $(( free_kb / 1024 )) MB"
+  if [ "$free_kb" -lt 1048576 ]; then
+    echo "!! Under 1 GB free after pruning; aborting before the build. Free disk space on the server." >&2
+    exit 1
+  fi
+fi
+
 echo "==> Rebuilding and restarting container"
 # Time the build so we can prune every cache layer it did NOT touch (see below).
 build_start=$(date +%s)
