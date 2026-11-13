@@ -5001,6 +5001,46 @@ function addPledgeStopsLink(note, surface) {
   d.style.cssText = "display:block;margin-top:6px;";
   d.onclick = function () { hmTrack("driver_pledge_drive_link_clicked", { surface: surface }); };
   note.appendChild(d);
+  addPledgeReminder(note, surface);
+}
+
+// IDEAS #1433: the pledge had no second touch; the follow-up only fires if the person comes back
+// unprompted (0 of 170 pledgers did on a second day). One tap saves a calendar event a week out
+// (a client-side .ics: title and link only, no account, nothing stored). Its link carries
+// ref=pledge_reminder, which makes inride.js's driverPledgeFollowup skip its own 7-day wait.
+function pledgeReminderIcs(when, url) {
+  const z = function (d) { return d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, ""); };
+  const end = new Date(when.getTime() + 15 * 60000);
+  return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Hitchwiki Maps//pledge reminder//EN", "BEGIN:VEVENT",
+    "UID:pledge-" + when.getTime() + "@maps.hitchwiki.org", "DTSTAMP:" + z(new Date()), "DTSTART:" + z(when), "DTEND:" + z(end),
+    "SUMMARY:Hitchwiki Maps", "DESCRIPTION:" + url, "URL:" + url, "END:VEVENT", "END:VCALENDAR"].join("\r\n") + "\r\n";
+}
+function addPledgeReminder(note, surface) {
+  if (!note || note.querySelector(".pledge-reminder-btn")) return;
+  const r = document.createElement("a");
+  r.className = "pledge-reminder-btn";
+  r.href = "#";
+  r.textContent = tr("Remind me in a week");
+  r.style.cssText = "display:block;margin-top:6px;";
+  r.onclick = function (e) {
+    e.preventDefault();
+    try {
+      const when = new Date(Date.now() + 7 * 86400000);
+      when.setMinutes(0, 0, 0);
+      const ics = pledgeReminderIcs(when, location.origin + "/?ref=pledge_reminder");
+      const href = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
+      const dl = document.createElement("a");
+      dl.href = href;
+      dl.download = "hitchwiki-maps-reminder.ics";
+      document.body.appendChild(dl);
+      dl.click();
+      dl.remove();
+      setTimeout(function () { URL.revokeObjectURL(href); }, 4000);
+      hmTrack("driver_pledge_reminder_saved", { surface: surface });
+      r.textContent = "\u2713 " + tr("Remind me in a week");
+    } catch (err) {}
+  };
+  note.appendChild(r);
 }
 
 // #1336: the person who just hitched A->B is the one who can say whether the planner's route

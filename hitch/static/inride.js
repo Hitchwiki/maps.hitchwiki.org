@@ -3835,7 +3835,9 @@
         if (!(at > 0)) { localStorage.setItem("hmDriverPledgedAt", String(now)); return; }
         const asks = Number(localStorage.getItem("hmDriverFollowupAsks")) || 0;
         const last = Number(localStorage.getItem("hmDriverFollowupLast")) || at;
-        if (asks >= driverPledgeFollowup.MAX_ASKS || now - last < driverPledgeFollowup.WAIT_MS) return;
+        // IDEAS #1433: arriving from the pledge's own calendar reminder is the invited return visit.
+        const viaReminder = typeof window !== "undefined" && window.hmLandingRef === "pledge_reminder" && now - at >= 3 * 86400000;
+        if (asks >= driverPledgeFollowup.MAX_ASKS || (!viaReminder && now - last < driverPledgeFollowup.WAIT_MS)) return;
         if (journeyStore.get() || journeyUI._openDialog) return;
         // A shared route link is a visit with a purpose; don't put a modal on top of it.
         if (/(^|\/)dir\/-?\d/.test(location.pathname) || location.hash.slice(1).startsWith("dir/")) return;

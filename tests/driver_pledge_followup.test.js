@@ -37,6 +37,7 @@ function run(store, loc, extra) {
     journeyStore: { get: () => (extra && extra.journey) || null },
     journeyUI: { _openDialog: (extra && extra.dialog) || null, dialog: d => dialogs.push(d) },
     hmTrack: (n, p) => events.push(n), T: x => x,
+    window: extra && extra.ref ? { hmLandingRef: extra.ref } : undefined,
   };
   vm.createContext(ctx);
   vm.runInContext(body.slice(0, body.lastIndexOf("};") + 2).replace("const driverPledgeFollowup", "var driverPledgeFollowup") + "\ndriverPledgeFollowup.check();", ctx);
@@ -64,4 +65,12 @@ assert(/value === "yes"\)\s*\{ try \{ localStorage\.setItem\("hmDriverFollowupDo
 const second = run(Object.assign(pledged(old8), { hmDriverFollowupAsks: "1", hmDriverFollowupLast: old8 }), root);
 assert.strictEqual(second.dialogs.length, 1, "after a not-yet, a second ask is due a week later");
 assert.strictEqual(second.ls.hmDriverFollowupAsks, "2");
+// IDEAS #1433: the calendar reminder's link skips the 7-day wait (but not for a pledge under 3 days old).
+const day4 = String(Date.now() - 4 * DAY);
+assert.strictEqual(run(pledged(day4), root).dialogs.length, 0, "4 d, no ref: still waiting");
+assert.strictEqual(run(pledged(day4), root, { ref: "pledge_reminder" }).dialogs.length, 1, "4 d via reminder: asked");
+assert.strictEqual(run(pledged(String(Date.now() - DAY)), root, { ref: "pledge_reminder" }).dialogs.length, 0, "1 d via reminder: too soon");
+assert.strictEqual(run(Object.assign(pledged(day4), { hmDriverFollowupDone: "1" }), root, { ref: "pledge_reminder" }).dialogs.length, 0, "answered: reminder does not re-ask");
+assert.strictEqual(run(Object.assign(pledged(old8), { hmDriverFollowupAsks: "3", hmDriverFollowupLast: old8 }), root, { ref: "pledge_reminder" }).dialogs.length, 0, "cap still holds");
+assert(map.includes("driver_pledge_reminder_saved") && map.includes("ref=pledge_reminder") && map.includes("BEGIN:VCALENDAR"));
 console.log("driver_pledge_followup behaviour ok");
