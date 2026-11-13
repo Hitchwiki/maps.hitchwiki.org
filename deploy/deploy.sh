@@ -25,6 +25,8 @@ if [ "$free_kb" -lt 3145728 ]; then
     sudo docker system df >&2 || true
     sudo du -xsh /var/lib/docker/containers /var/lib/docker/overlay2 /var/lib/docker/volumes 2>/dev/null >&2 || true
     sudo du -xh --max-depth=1 / 2>/dev/null | sort -h | tail -8 >&2 || true
+    sudo du -xh --max-depth=2 /var /opt 2>/dev/null | sort -h | tail -14 >&2 || true
+    sudo docker system df -v 2>/dev/null | sed -n '/Local Volumes/,/Build cache/p' | sort -k3 -h | tail -8 >&2 || true
     exit 1
   fi
 fi
