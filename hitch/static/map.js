@@ -890,7 +890,7 @@ function setupGeocoder() {
   // place search for a visitor who has already typed the place once, so they land on the
   // map at it instead of having to type it again. Goes through the same provider and the
   // same logSearchRequest as a typed search; the first hit wins, as Enter would.
-  window.runPlaceSearch = function (query) {
+  window.runPlaceSearch = function (query, opts) {
     const q = String(query || "").trim().slice(0, 100);
     if (!q) return;
     geocoderInput.value = q;
@@ -901,7 +901,16 @@ function setupGeocoder() {
       // This can resolve while the initial world-fit zoom animation is still running;
       // Leaflet then drops the setView (or the animation's end overrides it), so a fresh
       // #search/ load stayed on the world view. Wait for that animation to finish first.
-      const go = () => map.setView(results[0].center, geocoderOpts.zoom);
+      // IDEAS #1435: the wiki main-page trip box (ref=wiki_main_trip) means "I am going there":
+      // open the planner with the place as destination, start left empty (no location prompt).
+      const planTo = opts && opts.plan && window.RoutingUI && window.RoutingUI.openTo && !window.RoutingUI.active;
+      const go = () => {
+        map.setView(results[0].center, geocoderOpts.zoom);
+        if (planTo) {
+          const c = results[0].center;
+          window.RoutingUI.openTo([c.lat, c.lng], String(results[0].name || "").split(",").slice(0, 2).join(","));
+        }
+      };
       if (map._animatingZoom) map.once("zoomend", () => setTimeout(go, 0));
       else go();
     });
@@ -6264,7 +6273,8 @@ async function navigate() {
     const url = new URL(window.location.href);
     url.hash = "";
     window.history.replaceState({}, "", url);
-    if (window.runPlaceSearch) window.runPlaceSearch(q);
+    const planIntent = (window.hmLandingRef || new URLSearchParams(window.location.search).get("ref")) === "wiki_main_trip";
+    if (window.runPlaceSearch) window.runPlaceSearch(q, { plan: planIntent });
     return;
   }
 
