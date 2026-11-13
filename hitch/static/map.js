@@ -6275,10 +6275,10 @@ async function navigate() {
     url.hash = "";
     window.history.replaceState({}, "", url);
     const planRef = window.hmLandingRef || new URLSearchParams(window.location.search).get("ref");
-    const planIntent = planRef === "wiki_main_trip" || planRef === "wiki_city_trip";
+    const planIntent = planRef === "wiki_main_trip" || planRef === "wiki_city_trip" || planRef === "city_page_trip";
     // IDEAS #1436: the wiki city-article box also passes the article's coordinates as ?from=lat,lon.
     let planFrom = null;
-    if (planRef === "wiki_city_trip") {
+    if (planRef === "wiki_city_trip" || planRef === "city_page_trip") {
       const f = (new URLSearchParams(window.location.search).get("from") || "").split(",").map(Number);
       if (f.length === 2 && f.every(isFinite) && Math.abs(f[0]) <= 90 && Math.abs(f[1]) <= 180) planFrom = f;
     }
