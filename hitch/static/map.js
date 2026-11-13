@@ -7317,13 +7317,9 @@ function maybeShowNewsletterPledge() {
         !localStorage.getItem(DRIVER_PLEDGE_MADE_KEY) &&
         !localStorage.getItem("hmWikiSeekerPledgeShown") &&
         !/^\/(?:[a-z]{2,3}\/)?dir\//.test(location.pathname)) {
-      let arm = localStorage.getItem("hmWikiSeekerPledgeArm");
-      if (!arm) {
-        arm = Math.random() < 0.5 ? "show" : "ctrl";
-        localStorage.setItem("hmWikiSeekerPledgeArm", arm);
-        hmTrack("wiki_seeker_pledge_arm", { arm: arm });
-      }
-      if (arm === "show") {
+      // IDEAS #1437: EXP-1259 shipped to 100% of eligible wiki-seeker arrivals (no ctrl arm;
+      // old ctrl-flagged browsers see it too, they just never had a showing before).
+      {
         wanted = true;
         surface = "wiki_seeker";
         localStorage.setItem("hmWikiSeekerPledgeShown", "1");
