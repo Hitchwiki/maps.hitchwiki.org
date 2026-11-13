@@ -17,6 +17,13 @@ x-app-volumes: &app-volumes
   # Mounted rather than baked into the image so the refresh token never lands in a layer.
   - ./deploy/rclone.conf:/root/.config/rclone/rclone.conf
 
+# Cap container logs: /var/lib/docker/containers held 1.4 GB on 2026-11-13 on a host with ~300 MB free.
+x-log-rotation: &log-rotation
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "3"
+
 services:
   hitchhiking-map:
     build: .
@@ -27,6 +34,7 @@ services:
     env_file:
       - .env
     restart: unless-stopped
+    logging: *log-rotation
     # Well above the ~230 MB this normally holds and the 826 MB it had grown to when the
     # kernel OOM-killed it on 2026-08-07, but low enough that a runaway web process gets a
     # container restart instead of taking the whole host down with it.
@@ -53,6 +61,7 @@ services:
     env_file:
       - .env
     restart: unless-stopped
+    logging: *log-rotation
     # Above the heaviest job's observed peak (sync_fuel ~1.9 GB, show ~1.6 GB) with room to
     # grow, so this bounds what the batch side can take from the host without killing a job
     # that is merely doing its normal work.
