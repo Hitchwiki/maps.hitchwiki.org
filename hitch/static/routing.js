@@ -257,6 +257,7 @@
     return { found: true, totalMin, waitMin, walkMin, walkKm, carKm, legs, carEdges, minSupport };
   }
 
+  const FIRST_LEG_AWAY_MIN = 4;
   // Up to k sufficiently-different routes (penalty method).
   function alternatives(R, start, dest, maxWalk, k, maxOverlap) {
     const pen = new Map(), kept = [], keptEdges = [];
@@ -273,7 +274,11 @@
       if (similar) continue;
       kept.push(res); keptEdges.push([res.carEdges, res.carKm]);
     }
-    return kept;
+    // #1426: a first car leg that ends farther from B than it started (a loop via a hub behind A)
+    // costs FIRST_LEG_AWAY_MIN minutes per km of retreat when ranking. Reorders only; adds/removes nothing.
+    const away = (r) => { const c = r.legs.find((l) => l.mode === "car"); return c ? Math.max(0, haversineKm(c.to, dest) - haversineKm(c.from, dest)) : 0; };
+    const cost = (r) => r.totalMin + FIRST_LEG_AWAY_MIN * away(r);
+    return kept.map((r, i) => [r, i]).sort((x, y) => cost(x[0]) - cost(y[0]) || x[1] - y[1]).map((x) => x[0]);
   }
 
   // ======================================================================
