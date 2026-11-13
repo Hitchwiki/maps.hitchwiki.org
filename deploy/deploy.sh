@@ -18,6 +18,14 @@ if [ "$free_kb" -lt 3145728 ]; then
   free_kb=$(df -Pk . | awk 'NR==2{print $4}')
   echo "==> Disk free after prune: $(( free_kb / 1024 )) MB"
   if [ "$free_kb" -lt 1048576 ]; then
+    # 2026-11-13: the 24h filter reclaimed 0 B three deploys in a row while 760 MB of cache sat
+    # unused (last touched ~3 h earlier). Rebuilding from scratch beats failing to deploy at all.
+    echo "==> Still under 1 GB: dropping ALL build cache"
+    sudo docker builder prune -af || true
+    free_kb=$(df -Pk . | awk 'NR==2{print $4}')
+    echo "==> Disk free after full cache prune: $(( free_kb / 1024 )) MB"
+  fi
+  if [ "$free_kb" -lt 1048576 ]; then
     echo "!! Under 1 GB free after pruning; aborting before the build. Free disk space on the server." >&2
     # Read-only diagnostics: name what is using the disk (the abort is the last thing this run does).
     echo "==> Disk diagnostics (read-only)" >&2
