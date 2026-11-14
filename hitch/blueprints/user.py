@@ -518,7 +518,7 @@ def show_account(username, is_me: bool = False):
     # The Chat button only shows on another registered user's page, while logged in, and
     # only if that user opted into receiving messages (allow_messages). Same gate the send
     # endpoint enforces server-side, so the button never appears where a POST would 403.
-    can_message = user_known and not is_me and not current_user.is_anonymous and bool(user.allow_messages)
+    can_message = user_known and not is_me and bool(user.allow_messages)  # IDEAS #1488: signed-out may tap; login returns to thread
     profile_image = _profile_image_for(user) if user_known else None
     profile_picture_saved = session.pop("track_profile_picture_saved", None) if is_me else None
 
