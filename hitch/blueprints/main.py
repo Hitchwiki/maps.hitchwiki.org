@@ -667,6 +667,37 @@ def log_route_feedback_endpoint():
     return ("", 204)
 
 
+# IDEAS #1477: public 7-day count of rides logged on maps, for the wiki (cross-origin, that
+# origin only). Same definition as the metrics collector: maps-source rides in rides_index.json
+# by submission time `t` (ms). Parsed once per rides_index.json rewrite, aggregate only.
+_RIDES_7D_CACHE = {"mtime": None, "t": 0, "n": 0}
+
+
+def count_rides_last_7d(path, now_ms, prefix="maps.hitchwiki.org-"):
+    with open(path, encoding="utf-8") as f:
+        rides = json.load(f)
+    lo = now_ms - 7 * 86_400_000
+    return sum(1 for r in rides if str(r.get("id", "")).startswith(prefix) and r.get("t") and lo < r["t"] <= now_ms)
+
+
+@main_bp.route("/api/rides-7d.json")
+def rides_7d_json():
+    path = os.path.join(get_dirs()["dist"], "rides_index.json")
+    try:
+        mtime = os.path.getmtime(path)
+        now_ms = time.time() * 1000
+        c = _RIDES_7D_CACHE
+        if c["mtime"] != mtime or time.time() - c["t"] > 3600:
+            c.update(mtime=mtime, t=time.time(), n=count_rides_last_7d(path, now_ms))
+        n = c["n"]
+    except (OSError, ValueError):
+        n = None
+    resp = jsonify({"rides_7d": n})
+    resp.headers["Access-Control-Allow-Origin"] = "https://hitchwiki.org"
+    resp.headers["Cache-Control"] = "public, max-age=3600"
+    return resp
+
+
 # #1363: signed-in users get a personal code for their invite/share links and the
 # count of people who opened them. Anonymous callers get nulls.
 @main_bp.route("/api/invite-code")
