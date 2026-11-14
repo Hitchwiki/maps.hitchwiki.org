@@ -6,6 +6,8 @@ is no conversation table. Opt-in gates who may write: to send a message to X, X 
 other person). The Chat button on a profile only appears when the target opted in.
 """
 
+from urllib.parse import urlencode
+
 from flask import Blueprint, jsonify, redirect, render_template, request
 from flask_security import current_user
 from sqlalchemy import and_, or_
@@ -47,7 +49,8 @@ def _serialize(msg, me_id):
 def inbox():
     """List the current user's conversations, most-recent message first."""
     if current_user.is_anonymous:
-        return redirect("/login")
+        # IDEAS #1487: keep the way back, so a signed-out "Say hello" lands on the thread after login.
+        return redirect("/login?" + urlencode({"next": request.full_path.rstrip("?")}))
 
     # Every message the user is part of, newest first; collapse to one row per other user.
     rows = (
@@ -84,7 +87,8 @@ def inbox():
 def thread(username):
     """Render the chat thread with `username` and mark their messages to me as read."""
     if current_user.is_anonymous:
-        return redirect("/login")
+        # IDEAS #1487: keep the way back, so a signed-out "Say hello" lands on the thread after login.
+        return redirect("/login?" + urlencode({"next": request.full_path.rstrip("?")}))
 
     other = find_user_ci(username)
     if other is None:
