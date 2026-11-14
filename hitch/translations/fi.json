@@ -1137,5 +1137,6 @@
   "No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.": "Ei vielä kyytejä seuraamilta henkilöiltä. Seuraa muita liftaajia heidän profiilisivuiltaan nähdäksesi heidän viimeisimmät kyytinsä täällä.",
   "Recent rides": "Viimeaikaiset kyydit",
   "{n} people opened your link": "{n} henkilöä avasi linkkisi",
-  "{n} joined through it": "{n} liittyi sen kautta"
+  "{n} joined through it": "{n} liittyi sen kautta",
+  "Remind me the day I leave": "Muistuta minua lähtöpäivänä"
 }

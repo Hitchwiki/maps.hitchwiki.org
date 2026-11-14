@@ -866,6 +866,7 @@
     upgradeAllToStreets(token);
     updateShareUrl();       // make this search shareable (#dir/from/to)
     showRouteFeedback();
+    showRouteReminder();
     showWikiExit();
     showRouteDaylight();
     showRouteDriver();
@@ -1030,6 +1031,46 @@
         fb.insertAdjacentElement("beforebegin", row);
         hmTrack("route_wiki_exit_shown", { arm: arm, lang: lang });
       }).catch(() => {});
+    } catch (e) { /* must never break routing */ }
+  }
+
+  // IDEAS #1480: "remind me the day I leave". A calendar file (no server, no personal data) whose event
+  // links back to this route with ref=trip_reminder. Merge held to 2026-11-24 (route-result freeze).
+  function showRouteReminder() {
+    try {
+      const sheet = resultsSheet();
+      const anchor = sheet && (sheet.querySelector(".rp-feedback") || sheet.querySelector(".rp-options"));
+      if (!anchor || !RJ.start || !RJ.dest) return;
+      const old = sheet.querySelector(".rp-reminder");
+      if (old) old.remove();
+      const f = RJ.start.latlng, t = RJ.dest.latlng;
+      const row = document.createElement("div");
+      row.className = "rp-reminder";
+      row.style.cssText = "margin:8px 12px;font-size:14px";
+      row.innerHTML = `<span>${T("Remind me the day I leave")}</span>
+        <input type="date" class="rp-reminder-date" style="margin-left:8px">
+        <button type="button" class="rp-reminder-go">${T("Save")}</button>`;
+      row.querySelector(".rp-reminder-go").onclick = () => {
+        const d = row.querySelector(".rp-reminder-date").value;
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return;
+        const url = `${location.origin}/dir/${f[0].toFixed(5)},${f[1].toFixed(5)}/${t[0].toFixed(5)},${t[1].toFixed(5)}?ref=trip_reminder`;
+        const ymd = d.replace(/-/g, "");
+        const next = new Date(Date.parse(d + "T00:00:00Z") + 86400000).toISOString().slice(0, 10).replace(/-/g, "");
+        const esc = (x) => String(x).replace(/[\\;,]/g, (m) => "\\" + m).replace(/\r?\n/g, " ");
+        const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Hitchwiki Maps//reminder//EN", "BEGIN:VEVENT",
+          `UID:${ymd}-${f[0].toFixed(3)}${f[1].toFixed(3)}-${t[0].toFixed(3)}${t[1].toFixed(3)}@maps.hitchwiki.org`,
+          `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").slice(0, 15)}Z`,
+          `DTSTART;VALUE=DATE:${ymd}`, `DTEND;VALUE=DATE:${next}`,
+          `SUMMARY:${esc("Hitchhike " + ((RJ.start.label || "A").split(",")[0]) + " → " + ((RJ.dest.label || "B").split(",")[0]))}`,
+          `DESCRIPTION:${esc(url)}`, `URL:${url}`, "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
+        a.download = "hitchhike-reminder.ics";
+        document.body.appendChild(a); a.click(); a.remove();
+        hmTrack("route_reminder_saved", { lang: document.documentElement.lang || "" });
+      };
+      anchor.insertAdjacentElement("afterend", row);
+      hmTrack("route_reminder_shown");
     } catch (e) { /* must never break routing */ }
   }
 

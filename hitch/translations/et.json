@@ -1137,5 +1137,6 @@
   "No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.": "Jälgitavatelt inimestelt pole veel sõite. Jälgi teisi hõiklejaid nende profiililehtedel, et näha nende viimaseid sõite siin.",
   "Recent rides": "Hiljutised sõidud",
   "{n} people opened your link": "{n} inimest avas teie lingi",
-  "{n} joined through it": "{n} liitus selle kaudu"
+  "{n} joined through it": "{n} liitus selle kaudu",
+  "Remind me the day I leave": "Tuleta mulle meelde päeval, mil ma lahkun"
 }
