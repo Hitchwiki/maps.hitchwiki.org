@@ -1137,5 +1137,6 @@
   "No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.": "Пока нет поездок от людей, на которых вы подписаны. Подпишитесь на других автостопщиков на страницах их профилей, чтобы видеть их последние поездки здесь.",
   "Recent rides": "Последние поездки",
   "{n} people opened your link": "{n} человек открыли вашу ссылку",
-  "{n} joined through it": "Через это присоединились: {n}"
+  "{n} joined through it": "Через это присоединились: {n}",
+  "Remind me the day I leave": "Напомнить мне в день отъезда"
 }

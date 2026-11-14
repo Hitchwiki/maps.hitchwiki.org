@@ -1137,5 +1137,6 @@
   "No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.": "フォロー中の人の乗車はまだありません。他のヒッチハイカーをプロフィールページからフォローすると、ここで最新の乗車が表示されます。",
   "Recent rides": "最近の乗車",
   "{n} people opened your link": "{n}人があなたのリンクを開きました",
-  "{n} joined through it": "{n}人がこれを通じて参加しました"
+  "{n} joined through it": "{n}人がこれを通じて参加しました",
+  "Remind me the day I leave": "出発当日にリマインドする"
 }

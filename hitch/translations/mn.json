@@ -1137,5 +1137,6 @@
   "No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.": "Таны дагаж буй хүмүүсээс аялал одоогоор байхгүй байна. Бусад автостопчуудыг тэдний профайл хуудаснаас нь дагаад тэдний хамгийн сүүлийн аяллуудыг энд харна уу.",
   "Recent rides": "Сүүлийн аялалууд",
   "{n} people opened your link": "Таны холбоосыг {n} хүн нээсэн",
-  "{n} joined through it": "Үүнийг дамжуулан {n} хүн элсэв"
+  "{n} joined through it": "Үүнийг дамжуулан {n} хүн элсэв",
+  "Remind me the day I leave": "Би явах өдрөө надад сануулаарай"
 }

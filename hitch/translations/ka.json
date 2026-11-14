@@ -1137,5 +1137,6 @@
   "No rides from people you follow yet. Follow other hitchhikers from their profile pages to see their latest rides here.": "ჯერ არ არის მოგზაურობები თქვენ მიერ გამოწერილი ადამიანებისგან. გამოწერეთ სხვა ავტოსტოპელები მათი პროფილის გვერდებიდან, რომ აქ ნახოთ მათი უახლესი მოგზაურობები.",
   "Recent rides": "ბოლო მოგზაურობები",
   "{n} people opened your link": "{n} ადამიანმა გახსნა თქვენი ლინკი",
-  "{n} joined through it": "ამით შემოუერთდა {n}"
+  "{n} joined through it": "ამით შემოუერთდა {n}",
+  "Remind me the day I leave": "მახსენებე იმ დღეს, როცა გავემგზავრები"
 }
