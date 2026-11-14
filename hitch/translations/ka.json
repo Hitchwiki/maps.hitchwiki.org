@@ -1138,5 +1138,6 @@
   "Recent rides": "ბოლო მოგზაურობები",
   "{n} people opened your link": "{n} ადამიანმა გახსნა თქვენი ლინკი",
   "{n} joined through it": "ამით შემოუერთდა {n}",
-  "Remind me the day I leave": "მახსენებე იმ დღეს, როცა გავემგზავრები"
+  "Remind me the day I leave": "მახსენებე იმ დღეს, როცა გავემგზავრები",
+  "Remind me in a week": "მახსერებს ერთი კვირის შემდეგ"
 }

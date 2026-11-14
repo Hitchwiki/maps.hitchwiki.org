@@ -1138,5 +1138,6 @@
   "Recent rides": "Viimeaikaiset kyydit",
   "{n} people opened your link": "{n} henkilöä avasi linkkisi",
   "{n} joined through it": "{n} liittyi sen kautta",
-  "Remind me the day I leave": "Muistuta minua lähtöpäivänä"
+  "Remind me the day I leave": "Muistuta minua lähtöpäivänä",
+  "Remind me in a week": "Muistuta minua viikon kuluttua"
 }

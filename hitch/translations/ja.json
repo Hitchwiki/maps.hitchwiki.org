@@ -1138,5 +1138,6 @@
   "Recent rides": "最近の乗車",
   "{n} people opened your link": "{n}人があなたのリンクを開きました",
   "{n} joined through it": "{n}人がこれを通じて参加しました",
-  "Remind me the day I leave": "出発当日にリマインドする"
+  "Remind me the day I leave": "出発当日にリマインドする",
+  "Remind me in a week": "1週間後にリマインドする"
 }
