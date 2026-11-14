@@ -85,10 +85,10 @@
 
 {% block main %}
 {% if current_user.is_anonymous %}
-<div id="ride-form-anon-banner" style="background-color: #dc3545; color: #fff; text-align: center; padding: 0.75rem 1rem; font-size: 0.95em;">
+<div id="ride-form-anon-banner" style="background-color: #e7f1ff; color: #084298; border-bottom: 1px solid #b6d4fe; text-align: center; padding: 0.75rem 1rem; font-size: 0.95em;">
     {# The login link sits inside the sentence, so it travels as a placeholder: a
        translator must be free to move it, which splitting the sentence would forbid. #}
-    {% set login_link = '<a id="ride-form-login-link" href="/login" style="color: #fff; text-decoration: underline;">' ~ t("Log in") ~ '</a>' %}
+    {% set login_link = '<a id="ride-form-login-link" href="/login" style="color: #084298; text-decoration: underline;">' ~ t("Log in") ~ '</a>' %}
     {% if request.args.get('edit') %}
     {{ t("You are not logged in. {login} to track your rides — currently you are reviewing anonymously.", login=login_link)|safe }}
     {% else %}
