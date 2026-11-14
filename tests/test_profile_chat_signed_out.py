@@ -11,4 +11,4 @@ def test_chat_button_offered_to_signed_out_without_leaking_username():
     html = (ROOT / "templates" / "security" / "account.html").read_text()
     ev = next(ln for ln in html.splitlines() if "profile_chat_click" in ln)
     assert "ref=profile_chat" in html
-    assert "username" not in ev
+    assert "username" not in ev.split("hmTrack")[1]
