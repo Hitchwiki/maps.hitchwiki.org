@@ -70,6 +70,16 @@ sudo docker image prune -f
 # (24h) still happens up front in the disk guard.
 sudo docker builder prune -af --filter "until=168h"
 
+# Idle-disk guard (IDEAS #1482): the next deploy's disk guard drops all cache when <1 GB is
+# free, so cache kept while the host is nearly full only wastes the space the next build needs.
+FREE_MB=$(df -Pm / | awk 'NR==2{print $4}')
+echo "Disk free idle: ${FREE_MB} MB"
+if [ "${FREE_MB:-9999}" -lt 1500 ]; then
+  echo "==> Idle free space under 1500 MB: dropping all build cache"
+  sudo docker builder prune -af
+  echo "Disk free after idle prune: $(df -Pm / | awk 'NR==2{print $4}') MB"
+fi
+
 mkdir -p logs
 date -u +"%Y-%m-%dT%H:%M:%SZ commit=$(git rev-parse --short HEAD)" > logs/last_deploy.txt
 
