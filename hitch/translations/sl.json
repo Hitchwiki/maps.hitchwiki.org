@@ -1138,5 +1138,6 @@
   "Recent rides": "Nedavni prevozi",
   "{n} people opened your link": "{n} oseb je odprlo vašo povezavo",
   "{n} joined through it": "Prek tega se je pridružilo {n} uporabnikov",
-  "Remind me the day I leave": "Opomni me na dan odhoda"
+  "Remind me the day I leave": "Opomni me na dan odhoda",
+  "Remind me in a week": "Opomni me čez teden"
 }

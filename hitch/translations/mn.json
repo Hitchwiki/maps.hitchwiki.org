@@ -1138,5 +1138,6 @@
   "Recent rides": "Сүүлийн аялалууд",
   "{n} people opened your link": "Таны холбоосыг {n} хүн нээсэн",
   "{n} joined through it": "Үүнийг дамжуулан {n} хүн элсэв",
-  "Remind me the day I leave": "Би явах өдрөө надад сануулаарай"
+  "Remind me the day I leave": "Би явах өдрөө надад сануулаарай",
+  "Remind me in a week": "Нэг долоо хоногийн дараа сануулаарай"
 }

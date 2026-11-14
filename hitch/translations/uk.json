@@ -1138,5 +1138,6 @@
   "Recent rides": "Останні поїздки",
   "{n} people opened your link": "{n} осіб відкрили ваше посилання",
   "{n} joined through it": "Через це приєдналися: {n}",
-  "Remind me the day I leave": "Нагадати мені в день від'їзду"
+  "Remind me the day I leave": "Нагадати мені в день від'їзду",
+  "Remind me in a week": "Нагадати мені за тиждень"
 }
