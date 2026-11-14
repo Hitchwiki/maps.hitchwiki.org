@@ -34,7 +34,7 @@
 {% set raw_source = request.args.get("source", "") %}
 {% set raw_next = request.args.get("next", "") %}
 {% set src = raw_source if raw_source in ["anon-signup"] else ("invite" if request.args.get("invite") else "none") %}
-{% set nxt = "ride" if raw_next.startswith("/ride") else ("map" if raw_next in ["/", ""] else "other") %}
+{% set nxt = "ride" if raw_next.startswith("/ride") else ("map" if raw_next in ["/", ""] else ("messages" if raw_next.startswith("/messages") else ("account" if raw_next.startswith("/account") else ("routing" if raw_next.startswith("/hitchhiking-routing") else "other")))) %}
 <script>
   (function () {
     var props = { source: {{ src|tojson }}, next: {{ nxt|tojson }} };
