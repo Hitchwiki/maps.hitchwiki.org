@@ -37,6 +37,9 @@ if [ "$free_kb" -lt 3145728 ]; then
     echo "!! Under 1 GB free after pruning; aborting before the build. Free disk space on the server." >&2
     # Read-only diagnostics: name what is using the disk (the abort is the last thing this run does).
     echo "==> Disk diagnostics (read-only)" >&2
+    # Which containers exist and are they running? (2026-11-15: an old 4 GB discourse image may be held by a dead container)
+    sudo docker ps -a --format '{{.Names}}\t{{.Status}}\t{{.Image}}' >&2 || true
+    sudo journalctl --disk-usage >&2 || true
     du -xsh db logs dist hitch/static 2>/dev/null >&2 || true
     sudo docker system df >&2 || true
     sudo du -xsh /var/lib/docker/containers /var/lib/docker/overlay2 /var/lib/docker/volumes 2>/dev/null >&2 || true
