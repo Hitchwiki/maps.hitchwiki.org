@@ -110,6 +110,16 @@ if [ "${FREE_MB:-9999}" -lt 1500 ]; then
   echo "Disk free after idle prune: $(df -Pm / | awk 'NR==2{print $4}') MB"
 fi
 
+# Disk-growth trace (IDEAS #1529): read-only, one line per source, so two deploys hours apart show
+# what is eating the disk. Never fails the deploy.
+{
+  echo "==> Disk breakdown (MB)"
+  for d in db logs dist hitch/static; do du -xsm "$d" 2>/dev/null | awk -v d="$d" '{print "  " d ": " $1}'; done
+  sudo du -xsm /var/lib/docker/containers /var/lib/docker/overlay2 /var/lib/docker/volumes /var/log /var/lib/docker/image 2>/dev/null | awk '{print "  " $2 ": " $1}'
+  sudo journalctl --disk-usage 2>/dev/null | sed 's/^/  /'
+  sudo docker system df 2>/dev/null | sed 's/^/  /'
+} || true
+
 mkdir -p logs
 date -u +"%Y-%m-%dT%H:%M:%SZ commit=$(git rev-parse --short HEAD)" > logs/last_deploy.txt
 
