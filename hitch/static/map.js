@@ -5015,6 +5015,27 @@ function pledgeReminderIcs(when, url) {
     "UID:pledge-" + when.getTime() + "@maps.hitchwiki.org", "DTSTAMP:" + z(new Date()), "DTSTART:" + z(when), "DTEND:" + z(end),
     "SUMMARY:Hitchwiki Maps", "DESCRIPTION:" + url, "URL:" + url, "END:VEVENT", "END:VCALENDAR"].join("\r\n") + "\r\n";
 }
+// Shared by the pledge note link above and inride.js's race-banner thank-you dialog (#1531).
+function savePledgeReminder(surface) {
+  try {
+    const when = new Date(Date.now() + 7 * 86400000);
+    when.setMinutes(0, 0, 0);
+    const ics = pledgeReminderIcs(when, location.origin + "/?ref=pledge_reminder");
+    const href = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
+    const dl = document.createElement("a");
+    dl.href = href;
+    dl.download = "hitchwiki-maps-reminder.ics";
+    document.body.appendChild(dl);
+    dl.click();
+    dl.remove();
+    setTimeout(function () { URL.revokeObjectURL(href); }, 4000);
+    hmTrack("driver_pledge_reminder_saved", { surface: surface });
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+window.savePledgeReminder = savePledgeReminder;
 function addPledgeReminder(note, surface) {
   if (!note || note.querySelector(".pledge-reminder-btn")) return;
   const r = document.createElement("a");
@@ -5024,21 +5045,7 @@ function addPledgeReminder(note, surface) {
   r.style.cssText = "display:block;margin-top:6px;";
   r.onclick = function (e) {
     e.preventDefault();
-    try {
-      const when = new Date(Date.now() + 7 * 86400000);
-      when.setMinutes(0, 0, 0);
-      const ics = pledgeReminderIcs(when, location.origin + "/?ref=pledge_reminder");
-      const href = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
-      const dl = document.createElement("a");
-      dl.href = href;
-      dl.download = "hitchwiki-maps-reminder.ics";
-      document.body.appendChild(dl);
-      dl.click();
-      dl.remove();
-      setTimeout(function () { URL.revokeObjectURL(href); }, 4000);
-      hmTrack("driver_pledge_reminder_saved", { surface: surface });
-      r.textContent = "\u2713 " + tr("Remind me in a week");
-    } catch (err) {}
+    if (savePledgeReminder(surface)) r.textContent = "\u2713 " + tr("Remind me in a week");
   };
   note.appendChild(r);
 }

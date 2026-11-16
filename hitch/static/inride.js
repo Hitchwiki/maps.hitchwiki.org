@@ -3795,8 +3795,15 @@
                       window.location.href = "/statistics/driver-reasons?ref=pledge_thanks";
                     },
                   },
+                  typeof window.savePledgeReminder === "function"
+                    ? {
+                        label: T("Remind me in a week"),
+                        cls: "inr-grey",
+                        onClick: function () { window.savePledgeReminder("race_banner"); },
+                      }
+                    : null,
                   { label: T("Not now"), cls: "inr-grey", onClick: function () {} },
-                ],
+                ].filter(Boolean),
               });
             }, 50);
           },
