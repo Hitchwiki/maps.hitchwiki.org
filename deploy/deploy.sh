@@ -27,6 +27,8 @@ if [ "$free_kb" -lt 3145728 ]; then
   echo "==> Low disk, pruning unused docker images and build cache first"
   sudo docker image prune -af --filter "until=24h" || true
   sudo docker builder prune -af --filter "until=24h" || true
+  # 2026-11-16: the journal held 434 MB on a host with ~650 MB free. Keep 200 MB (non-fatal if sudo refuses).
+  sudo journalctl --vacuum-size=200M 2>&1 | tail -1 || true
   free_kb=$(df -Pk . | awk 'NR==2{print $4}')
   echo "==> Disk free after prune: $(( free_kb / 1024 )) MB"
   if [ "$free_kb" -lt 1048576 ]; then

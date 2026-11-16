@@ -4,12 +4,12 @@ FROM python:3.12-slim
 # Install system dependencies
 # rclone is used by the weekly backup_to_drive.py job to upload to Google Drive
 RUN apt-get update && \
-    apt-get install -y curl build-essential cron rclone && \
+    apt-get install -y --no-install-recommends curl ca-certificates build-essential cron rclone && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Node.js (LTS) and upgrade npm
 RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
-    apt-get install -y nodejs && \
+    apt-get install -y --no-install-recommends nodejs && \
     rm -rf /var/lib/apt/lists/* && \
     npm install -g npm@12.0.0
 
