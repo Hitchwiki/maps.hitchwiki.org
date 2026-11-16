@@ -1,0 +1,7 @@
+# Thin "patch layer" for low-disk deploys (IDEAS #1453): copies the current checkout on top of
+# the image that is already running instead of rebuilding apt/pip/npm layers. Only valid when
+# the commits since the last deploy touch none of the build inputs (see deploy.sh).
+ARG BASE
+FROM ${BASE}
+COPY . /app
+RUN crontab /app/deploy/cron.sh

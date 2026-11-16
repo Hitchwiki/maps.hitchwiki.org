@@ -5,7 +5,11 @@ cd "$(dirname "$0")/.."
 
 echo "==> Fetching latest main"
 git fetch --prune origin main
+# Commit of the last successful deploy (logs/ is untracked, survives the reset): used by the
+# patch-layer path below.
+LAST_DEPLOYED=$(sed -n 's/.*commit=\([0-9a-f]*\).*/\1/p' logs/last_deploy.txt 2>/dev/null | head -1 || true)
 git reset --hard origin/main
+PATCH_ONLY=0
 
 # Disk guard: a full disk fails the build mid-way (Errno 28, 2026-11-13) and leaves merged
 # work undeployed. Log free space, and if under 3 GB reclaim unused docker layers first.
@@ -33,7 +37,24 @@ if [ "$free_kb" -lt 3145728 ]; then
     free_kb=$(df -Pk . | awk 'NR==2{print $4}')
     echo "==> Disk free after full cache prune: $(( free_kb / 1024 )) MB"
   fi
-  if [ "$free_kb" -lt 1048576 ]; then
+  if [ "$free_kb" -lt 1048576 ] && [ "$free_kb" -ge 409600 ] && [ -n "$LAST_DEPLOYED" ] \
+     && git cat-file -e "$LAST_DEPLOYED^{commit}" 2>/dev/null; then
+    # Patch-layer path (IDEAS #1453): a full rebuild needs ~1 GB, but when nothing the image
+    # build depends on changed, a ~16 MB COPY layer on the running image is equivalent.
+    changed=$(git diff --name-only "$LAST_DEPLOYED" HEAD)
+    removed=$(git diff --name-only --diff-filter=DR "$LAST_DEPLOYED" HEAD)
+    if [ -z "$removed" ] && ! echo "$changed" | grep -Eq '^(Dockerfile|requirements\.txt|docker-compose\.yml|hitch/scripts/fetch_hitchhiking_events/(package.*\.json|src/|tsconfig))'; then
+      echo "==> Low disk but only code changed since $LAST_DEPLOYED: building thin patch layer"
+      base_id=$(sudo docker inspect --format '{{.Image}}' hitchhiking-map)
+      tags=$(sudo docker compose config --images | sed 's/^/-t /' | tr '\n' ' ')
+      # shellcheck disable=SC2086
+      if sudo docker build -f deploy/Dockerfile.patch --build-arg BASE="$base_id" $tags .; then
+        PATCH_ONLY=1
+        echo "==> Patch layer built"
+      fi
+    fi
+  fi
+  if [ "$PATCH_ONLY" -eq 0 ] && [ "$free_kb" -lt 1048576 ]; then
     echo "!! Under 1 GB free after pruning; aborting before the build. Free disk space on the server." >&2
     # Read-only diagnostics: name what is using the disk (the abort is the last thing this run does).
     echo "==> Disk diagnostics (read-only)" >&2
@@ -50,7 +71,11 @@ fi
 echo "==> Rebuilding and restarting container"
 # Time the build so we can prune every cache layer it did NOT touch (see below).
 build_start=$(date +%s)
-sudo docker compose up -d --build
+if [ "$PATCH_ONLY" -eq 1 ]; then
+  sudo docker compose up -d --no-build
+else
+  sudo docker compose up -d --build
+fi
 build_elapsed=$(( $(date +%s) - build_start ))
 
 echo "==> Pruning images and build cache not used by this build"
