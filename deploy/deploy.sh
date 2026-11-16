@@ -118,6 +118,13 @@ fi
   sudo du -xsm /var/lib/docker/containers /var/lib/docker/overlay2 /var/lib/docker/volumes /var/log /var/lib/docker/image 2>/dev/null | awk '{print "  " $2 ": " $1}'
   sudo journalctl --disk-usage 2>/dev/null | sed 's/^/  /'
   sudo docker system df 2>/dev/null | sed 's/^/  /'
+  echo "  -- container json logs (MB, name)"
+  for c in $(sudo docker ps -aq 2>/dev/null); do
+    lp=$(sudo docker inspect -f '{{.LogPath}}' "$c" 2>/dev/null)
+    [ -n "$lp" ] && sudo du -sm "$lp" 2>/dev/null | awk -v n="$(sudo docker inspect -f '{{.Name}}' "$c" 2>/dev/null)" '{print "  " $1 " " n}'
+  done | sort -rn | head -8
+  echo "  -- volumes (top 8 by size)"
+  sudo du -sm /var/lib/docker/volumes/* 2>/dev/null | sort -rn | head -8 | sed 's#/var/lib/docker/volumes/##; s/^/  /'
 } || true
 
 mkdir -p logs
