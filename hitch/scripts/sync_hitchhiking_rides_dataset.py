@@ -290,3 +290,10 @@ HfApi().create_commit(
     ],
     commit_message=f"new version {today}",
 )
+
+# Stamp the last successful push so the daily catch-up cron (deploy/cron.sh) can tell whether the Monday run
+# missed (IDEAS #1535: the Monday job ran against an empty allPosts.json and the dataset stayed 14 days stale).
+_stamp = os.path.join(os.path.dirname(os.path.abspath(dirs["dist"])), "logs", "hf_sync.ok")
+os.makedirs(os.path.dirname(_stamp), exist_ok=True)
+with open(_stamp, "w") as _f:
+    _f.write(today + "\n")
