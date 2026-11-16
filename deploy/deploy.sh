@@ -124,7 +124,7 @@ fi
     [ -n "$lp" ] && sudo du -sm "$lp" 2>/dev/null | awk -v n="$(sudo docker inspect -f '{{.Name}}' "$c" 2>/dev/null)" '{print "  " $1 " " n}'
   done | sort -rn | head -8
   echo "  -- volumes (top 8 by size)"
-  sudo du -sm /var/lib/docker/volumes/* 2>/dev/null | sort -rn | head -8 | sed 's#/var/lib/docker/volumes/##; s/^/  /'
+  sudo sh -c 'du -sm /var/lib/docker/volumes/*' 2>/dev/null | sort -rn | head -8 | sed 's#/var/lib/docker/volumes/##; s/^/  /'
 } || true
 
 mkdir -p logs
