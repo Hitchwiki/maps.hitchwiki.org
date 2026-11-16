@@ -46,9 +46,11 @@ if [ "$free_kb" -lt 3145728 ]; then
     if [ -z "$removed" ] && ! echo "$changed" | grep -Eq '^(Dockerfile|requirements\.txt|docker-compose\.yml|hitch/scripts/fetch_hitchhiking_events/(package.*\.json|src/|tsconfig))'; then
       echo "==> Low disk but only code changed since $LAST_DEPLOYED: building thin patch layer"
       base_id=$(sudo docker inspect --format '{{.Image}}' hitchhiking-map)
+      # BuildKit treats a bare sha256:... FROM as a registry reference (failed 2026-11-16), so tag it.
+      sudo docker tag "$base_id" hitchhiking-map-patch-base
       tags=$(sudo docker compose config --images | sed 's/^/-t /' | tr '\n' ' ')
       # shellcheck disable=SC2086
-      if sudo docker build -f deploy/Dockerfile.patch --build-arg BASE="$base_id" $tags .; then
+      if sudo docker build -f deploy/Dockerfile.patch --build-arg BASE=hitchhiking-map-patch-base $tags .; then
         PATCH_ONLY=1
         echo "==> Patch layer built"
       fi
@@ -73,6 +75,7 @@ echo "==> Rebuilding and restarting container"
 build_start=$(date +%s)
 if [ "$PATCH_ONLY" -eq 1 ]; then
   sudo docker compose up -d --no-build
+  sudo docker rmi hitchhiking-map-patch-base || true
 else
   sudo docker compose up -d --build
 fi
