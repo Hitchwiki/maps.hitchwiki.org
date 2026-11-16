@@ -810,6 +810,7 @@
         // one-off graph rests on a single logged ride, so a high share of these
         // means the repeatable graph is too sparse to be the primary answer.
         hmTrack('route_found', { graph: 'repeatable', options: res.length });
+        logRouteOutcome('found', 'repeatable', res.length);
         showPlannerCompare(from, to);
         showRoutes(res);
         return;
@@ -836,6 +837,7 @@
           if (reason === "start-uncovered" || reason === "both-uncovered") props.start_cell = cell(from);
           if (reason === "dest-uncovered" || reason === "both-uncovered") props.dest_cell = cell(to);
           hmTrack('route_none', props);
+          logRouteOutcome('none', '', 0, reason);
           setStatus(diagnoseNoRoute(FB || RJ.router, from, to, DEFAULT_MAX_WALK, !!FB));
           showNoRouteStartAction(from);
           showNoRouteAddSpotAction(reason, from, to);
@@ -846,6 +848,7 @@
           return;
         }
         hmTrack('route_found', { graph: 'oneoff', options: alt.length });
+        logRouteOutcome('found', 'oneoff', alt.length);
         showPlannerCompare(from, to);
         showRoutes(alt);
       });
@@ -1409,6 +1412,18 @@
       });
       const blob = new Blob([body], { type: "application/json" });
       if (navigator.sendBeacon) navigator.sendBeacon("/log-route-request", blob);
+    } catch (e) { /* logging must never break routing */ }
+  }
+
+  // Server-side copy of the found/none outcome (no coordinates), so the planner's headline
+  // rate is still measurable when the analytics service is down.
+  function logRouteOutcome(outcome, graph, options, reason) {
+    try {
+      const body = JSON.stringify({
+        outcome: outcome, graph: graph || "", options: options || 0, reason: reason || "",
+        auto: (navigator.webdriver === true || /HeadlessChrome/.test(navigator.userAgent)) ? 1 : 0,
+      });
+      if (navigator.sendBeacon) navigator.sendBeacon("/log-route-outcome", new Blob([body], { type: "application/json" }));
     } catch (e) { /* logging must never break routing */ }
   }
 
