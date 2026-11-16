@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import re
+import time
 import urllib.parse
 
 import pandas as pd
@@ -144,11 +145,20 @@ logger.info("Starting Hitchwiki synchronization script...")
 
 articles_file = os.path.join(get_dirs()["dist"], "hitchwiki_articles.json")
 logger.info(f"Articles file path: {articles_file}")
-if os.path.exists(articles_file):
+# IDEAS #1533: the cache used to be reused forever (hitchwiki_articles.json was 4 months old), so no wiki edit
+# reached the map. Refetch when it is older than HITCHWIKI_CACHE_MAX_DAYS (default 6). The fresh fetch goes to a
+# .new file and only replaces the cache when it holds >=90% of the old article count; otherwise the old cache stays.
+_max_age_days = float(os.environ.get("HITCHWIKI_CACHE_MAX_DAYS", "6"))
+_cache_exists = os.path.exists(articles_file)
+_cache_stale = _cache_exists and (time.time() - os.path.getmtime(articles_file)) > _max_age_days * 86400
+old_articles = {}
+if _cache_exists:
     logger.info(f"Loading existing articles from {articles_file}...")
     with open(articles_file, encoding="utf-8") as f:
-        articles = json.load(f)
-else:
+        old_articles = json.load(f)
+articles = old_articles
+if not _cache_exists or _cache_stale:
+    new_file = articles_file + ".new"
     logger.info("Fetching articles from Hitchwiki via API...")
     articles = {}
     # Use MediaWiki API directly to avoid pywikibot's interwiki parsing
@@ -212,7 +222,7 @@ else:
 
         if total_pages % 500 == 0:
             logger.info(f"Scanned {total_pages} pages, found {len(articles)} with coords so far...")
-            with open(articles_file, "w", encoding="utf-8") as f:
+            with open(new_file, "w", encoding="utf-8") as f:
                 json.dump(articles, f, ensure_ascii=False, indent=4)
 
         cont = data.get("continue")
@@ -223,13 +233,15 @@ else:
 
     logger.info(f"Scanned {total_pages} pages total, found {len(articles)} with {{{{Coords}}}}")
 
-    # Only save if we actually found articles (don't overwrite good cache with empty results)
-    if articles:
+    # Only swap the cache in if the fetch looks complete (don't overwrite a good cache with an empty or truncated one)
+    if articles and len(articles) >= 0.9 * len(old_articles):
         logger.info(f"Saving final results to {articles_file}...")
-        with open(articles_file, "w", encoding="utf-8") as f:
+        with open(new_file, "w", encoding="utf-8") as f:
             json.dump(articles, f, ensure_ascii=False, indent=4)
+        os.replace(new_file, articles_file)
     else:
-        logger.warning("No articles fetched — skipping save to preserve any existing cache")
+        logger.warning(f"Fetched {len(articles)} articles vs {len(old_articles)} cached — keeping the existing cache")
+        articles = old_articles
 
 logger.info(f"Processing {len(articles)} articles to extract coordinates and headings...")
 coords = []
