@@ -5035,7 +5035,7 @@ function savePledgeReminder(surface) {
     return false;
   }
 }
-window.savePledgeReminder = savePledgeReminder;
+if (typeof window !== "undefined") window.savePledgeReminder = savePledgeReminder;
 function addPledgeReminder(note, surface) {
   if (!note || note.querySelector(".pledge-reminder-btn")) return;
   const r = document.createElement("a");
