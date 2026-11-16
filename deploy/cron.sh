@@ -21,6 +21,10 @@
 # 3598 back-dated rides accumulated unfetched and allPosts.json went 11 days stale. :51 leaves
 # the ~2 s incremental finished and the lock free.
 51 0 * * 1 cd /app && /usr/bin/flock -n /tmp/fetch_nostr.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate fetch_nostr' > logs/fetch_nostr_full.log 2>&1
+
+# daily catch-up (IDEAS #1532): if the weekly full fetch left the public export empty/tiny (relay returned nothing,
+# 2026-11-16), retry at 03:51 — only while dist/allPosts.json is under 1 MB, so a healthy day does nothing.
+51 3 * * * cd /app && [ "$(stat -c\%s dist/allPosts.json 2>/dev/null || echo 0)" -lt 1000000 ] && /usr/bin/flock -n /tmp/fetch_nostr.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate fetch_nostr' > logs/fetch_nostr_catchup.log 2>&1
 # Every 30 minutes, not every 10. A run that actually regenerates takes 215-385 s and
 # peaks ~1.5 GB, so a */10 schedule spent much of every hour holding the largest allocation
 # on this host and repeatedly lost `flock -n` to its own previous run (show_ram.log had a
