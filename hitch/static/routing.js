@@ -2047,6 +2047,21 @@
       fit();
       hmTrack("sign_local_name", { source });
     });
+    const dll = opts.ll || (RJ.dest && RJ.dest.latlng);
+    const sll = RJ.start && RJ.start.latlng;
+    if (dll && sll) {
+      Promise.all([photonCountry(dll), photonCountry(sll)]).then(([dc, sc]) => {
+        const code = crossBorderCode(dc, sc);
+        hmTrack("sign_country", { source, cc: code ? "y" : "n" });
+        if (!code || !ov.isConnected) return;
+        const el = document.createElement("div");
+        el.className = "hm-sign-cc";
+        el.style.cssText = "font-size:28px;text-align:center;font-weight:700;margin-top:8px";
+        el.textContent = "→ " + code;
+        (ov.querySelector(".hm-sign-sub") || txt).after(el);
+        fit();
+      });
+    }
   }
   // Used by the in-ride waiting chip (inride.js, route/waiting-sign-v1): the destination from the last planned route, else asked for.
   if (typeof window !== "undefined") {
@@ -2055,6 +2070,20 @@
       if (!name) name = (window.prompt(T("Choose destination, or click on the map")) || "").trim();
       if (name) openSign(source, 0, name);
     };
+  }
+  // International vehicle distinguishing signs (the oval on a plate) by ISO 3166 alpha-2.
+  const VEHICLE_CODES = { AL:"AL", AD:"AND", AT:"A", BY:"BY", BE:"B", BA:"BIH", BG:"BG", HR:"HR", CY:"CY", CZ:"CZ", DK:"DK", EE:"EST", FI:"FIN", FR:"F", DE:"D", GR:"GR", HU:"H", IS:"IS", IE:"IRL", IT:"I", XK:"RKS", LV:"LV", LI:"FL", LT:"LT", LU:"L", MT:"M", MD:"MD", MC:"MC", ME:"MNE", NL:"NL", MK:"NMK", NO:"N", PL:"PL", PT:"P", RO:"RO", RS:"SRB", SK:"SK", SI:"SLO", ES:"E", SE:"S", CH:"CH", TR:"TR", UA:"UA", GB:"GB" };
+  // "→ CZ" when the destination is in another country than the start, else null.
+  function crossBorderCode(destCc, startCc) {
+    const d = (destCc || "").toUpperCase(), s = (startCc || "").toUpperCase();
+    return d && s && d !== s && VEHICLE_CODES[d] ? VEHICLE_CODES[d] : null;
+  }
+  function photonCountry(ll) {
+    if (!ll || typeof fetch === "undefined") return Promise.resolve(null);
+    return fetch("https://photon.komoot.io/reverse?limit=1&lang=en&lat=" + ll[0] + "&lon=" + ll[1])
+      .then(r => r.json())
+      .then(j => { const p = j && j.features && j.features[0] && j.features[0].properties; return (p && p.countrycode) || null; })
+      .catch(() => null);
   }
   // The destination's name as locally written, or null when it is the same as `name`
   // or can't be found (offline, no city at the point).
