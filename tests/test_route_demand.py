@@ -105,3 +105,17 @@ def test_route_feedback_excludes_auto_rows():
     ]
     out = summarise_route_feedback(rows)
     assert (out["votes_up"], out["votes_down"], out["excluded_auto"]) == (1, 0, 2)
+
+
+def test_summarise_route_outcomes():
+    from hitch.blueprints.utils.route_demand import summarise_route_outcomes
+
+    rows = [
+        {"timestamp": "2026-11-16T10:00:00+00:00", "outcome": "found", "auto": "0"},
+        {"timestamp": "2026-11-16T11:00:00+00:00", "outcome": "none", "reason": "dest-uncovered", "auto": "0"},
+        {"timestamp": "2026-11-16T12:00:00+00:00", "outcome": "none", "reason": "x", "auto": "1"},
+        {"timestamp": "2026-11-16T12:00:00+00:00", "outcome": "bogus"},
+    ]
+    out = summarise_route_outcomes(rows)
+    assert out["days"] == [{"date": "2026-11-16", "found": 1, "none": 1, "auto_found": 0, "auto_none": 1}]
+    assert out["none_reasons"] == {"dest-uncovered": 1}

@@ -9,9 +9,11 @@ from hitch.blueprints.utils.route_demand import (
     summarise_filter_demand,
     summarise_route_demand,
     summarise_route_feedback,
+    summarise_route_outcomes,
     summarise_search_gaps,
 )
 from hitch.blueprints.utils.route_feedback_log import ROUTE_FEEDBACK_LOG_PATH
+from hitch.blueprints.utils.route_outcome_log import ROUTE_OUTCOME_LOG_PATH
 from hitch.blueprints.utils.route_request_log import ROUTE_REQUEST_LOG_PATH
 from hitch.blueprints.utils.search_request_log import SEARCH_REQUEST_LOG_PATH
 from hitch.helpers import dirs, logger, write_json_file
@@ -19,6 +21,7 @@ from hitch.helpers import dirs, logger, write_json_file
 write_json_file(summarise_route_demand(read_route_requests(ROUTE_REQUEST_LOG_PATH)), "route_demand.json")
 write_json_file(summarise_filter_demand(read_route_requests(FILTER_REQUEST_LOG_PATH)), "filter_demand.json")
 write_json_file(summarise_route_feedback(read_route_requests(ROUTE_FEEDBACK_LOG_PATH)), "route_feedback.json")
+write_json_file(summarise_route_outcomes(read_route_requests(ROUTE_OUTCOME_LOG_PATH)), "route_outcomes.json")
 
 try:
     # The legacy `points` table is gone (rides live in ride_event); spots.json, written by `generate show`,
