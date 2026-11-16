@@ -100,6 +100,7 @@ from hitch.blueprints.utils.ride_images import (
 from hitch.blueprints.utils.ride_ip_log import get_client_ip, log_ride_ip
 from hitch.blueprints.utils.ride_sources import THIS_NOSTR_SOURCE, ride_is_replaceable, ride_source
 from hitch.blueprints.utils.route_feedback_log import log_route_feedback
+from hitch.blueprints.utils.route_outcome_log import OUTCOMES, log_route_outcome
 from hitch.blueprints.utils.route_request_log import log_route_request
 from hitch.blueprints.utils.search_request_log import log_search_request
 from hitch.blueprints.utils.signup_prompt_log import PROMPT_ACTIONS, log_signup_prompt
@@ -645,6 +646,22 @@ def log_route_request_endpoint():
         return ("", 204)
     if -90 <= slat <= 90 and -180 <= slon <= 180 and -90 <= dlat <= 90 and -180 <= dlon <= 180:
         log_route_request(slat, slon, dlat, dlon, data.get("sname", ""), data.get("dname", ""))
+    return ("", 204)
+
+
+# Planner outcome (found / none) so the headline "did the planner answer" rate survives an
+# analytics outage. No coordinates stored. Always 204 (sendBeacon).
+@main_bp.route("/log-route-outcome", methods=["POST"])
+def log_route_outcome_endpoint():
+    data = request.get_json(silent=True) or {}
+    outcome = data.get("outcome")
+    if outcome in OUTCOMES:
+        try:
+            options = int(data.get("options", 0))
+        except (TypeError, ValueError):
+            options = 0
+        auto = 1 if data.get("auto") in (1, True, "1") else 0
+        log_route_outcome(outcome, str(data.get("graph", "")), options, str(data.get("reason", "")), auto)
     return ("", 204)
 
 
