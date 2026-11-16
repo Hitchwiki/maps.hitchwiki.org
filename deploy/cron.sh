@@ -123,6 +123,11 @@
 35 7 * * * cd /app && /usr/bin/flock -n /tmp/route_demand.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate route_demand' > logs/route_demand.log 2>&1
 # every Monday at 8 AM
 0 8 * * 1 cd /app && /usr/bin/flock -n /tmp/sync_hitchhiking_rides_dataset.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate sync_hitchhiking_rides_dataset' > logs/sync_hitchhiking_rides_dataset.log 2>&1
+# daily at 8:10 AM — catch-up for the Monday dataset push (IDEAS #1535). The Monday job ran against an empty
+# allPosts.json on 2026-11-16 and the public dataset stayed on its 11-09 version. Runs only when the export is
+# healthy (>=1 MB) and logs/hf_sync.ok (written after each successful push) is missing or older than 7 days, so a
+# healthy week does nothing. The script itself still refuses to push fewer than HF_SYNC_MIN_POSTS rows.
+10 8 * * * cd /app && [ "$(stat -c\%s dist/allPosts.json 2>/dev/null || echo 0)" -ge 1000000 ] && { [ ! -f logs/hf_sync.ok ] || [ -n "$(find logs/hf_sync.ok -mtime +7)" ]; } && /usr/bin/flock -n /tmp/sync_hitchhiking_rides_dataset.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate sync_hitchhiking_rides_dataset' > logs/sync_hitchhiking_rides_dataset_catchup.log 2>&1
 # first of every month at 9 AM — regenerate country hitchability CSV + country_ratings.json / country_insights.json
 0 9 1 * * cd /app && /usr/bin/flock -n /tmp/country_ratings.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate country_ratings' > logs/country_ratings.log 2>&1
 # daily at 7:40 AM — same script, so dist/country_activity.csv (rides in the last 90 days, read by the wiki's country
