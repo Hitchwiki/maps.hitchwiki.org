@@ -454,10 +454,18 @@ async function loadMarkers(map) {
 // Full ride details (comments, popup HTML) come from per-spot files served at
 // /rides/by-spot/<sid>.json, fetched lazily in handleMarkerClick().
 async function loadRidesIndex() {
-  if (ridesIndex) {
-    return ridesIndex;
+  if (!ridesIndex) {
+    await fetchRidesIndex();
   }
+  // Comments are not in the index (halves the first-paint download); the text filter
+  // is the only reader, so fetch them the first time a search needs them.
+  if (ridesIndex && textFilter.value) {
+    await loadRideComments();
+  }
+  return ridesIndex || [];
+}
 
+async function fetchRidesIndex() {
   // Show the filter-pane spinner while the index downloads — the index is
   // several MB and noticeable on slow connections.
   const spinner = document.getElementById("filter-loading-spinner");
@@ -470,13 +478,43 @@ async function loadRidesIndex() {
     }
     ridesIndex = await response.json();
     console.log(`Loaded ${ridesIndex.length} rides (index)`);
-    return ridesIndex;
   } catch (error) {
     console.error("Error loading rides index:", error);
-    return [];
   } finally {
     if (spinner) spinner.style.display = "none";
   }
+}
+
+// rides_comments.json is a plain array aligned with rides_index.json (same order, same
+// length, null where a ride has no comment), written by the same `show` run. A length
+// mismatch means the two files come from different runs, so attaching would pin comments
+// to the wrong rides; skip then, and the text filter simply matches nothing.
+let ridesCommentsPromise = null;
+function loadRideComments() {
+  if (!ridesCommentsPromise) {
+    ridesCommentsPromise = (async () => {
+      const spinner = document.getElementById("filter-loading-spinner");
+      if (spinner) spinner.style.display = "inline-block";
+      try {
+        const response = await fetch('/rides_comments.json');
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const comments = await response.json();
+        if (!Array.isArray(comments) || comments.length !== ridesIndex.length) {
+          console.warn("rides_comments.json does not match rides_index.json; text search disabled");
+          return;
+        }
+        for (let i = 0; i < comments.length; i++) {
+          ridesIndex[i].c = comments[i];
+        }
+      } catch (error) {
+        console.error("Error loading ride comments:", error);
+        ridesCommentsPromise = null; // allow a retry on the next search
+      } finally {
+        if (spinner) spinner.style.display = "none";
+      }
+    })();
+  }
+  return ridesCommentsPromise;
 }
 
 // Load heatmap data (legend + image URL)
