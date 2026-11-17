@@ -61,6 +61,7 @@ def should_regenerate_json():
         "spots.json",
         "spots.core.json",
         "rides_index.json",
+        "rides_comments.json",
         "spots_recent.json",
         "longest_rides.json",
         "longest_24h.json",
@@ -1315,6 +1316,7 @@ ride_dt_ms = pd.to_datetime(rides_df["ride_datetime"], errors="coerce", utc=True
 ride_dt_by_d = {d: (int(ms) if ms > 0 else None) for d, ms in zip(rides_df["d"], ride_dt_ms) if pd.notna(d)}
 
 rides_index = []
+rides_comments = []
 for r in rides_data:
     sid = r["spot_id"]
     has_osm, has_wiki, has_cp, has_fuel = spot_flags.get(sid, (False, False, False, False))
@@ -1342,11 +1344,15 @@ for r in rides_data:
             # Empty/missing → None so the JSON stays small.
             "m": r.get("signal_methods"),
             "rd": ride_dt_by_d.get(r["id"]),
-            "c": comment[:COMMENT_EXCERPT_LEN] if comment else None,
         }
     )
+    # Comments live in their own file, aligned by position with rides_index.json: the
+    # index is every visitor's first download and ~half of its gzip size was comment text
+    # only the search box reads (fetched lazily by map.js).
+    rides_comments.append(comment[:COMMENT_EXCERPT_LEN] if comment else None)
 
 write_json_file(rides_index, "rides_index.json")
+write_json_file(rides_comments, "rides_comments.json")
 
 # Per-spot detail files for lazy popup loading: {"spot": {...}, "rides": [...]}.
 # "spot" holds the click-time spot info that was slimmed out of spots.json
