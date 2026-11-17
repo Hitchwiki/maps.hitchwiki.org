@@ -1853,7 +1853,7 @@ function loadHitchhikerLayer() {
           L.marker([p.lat, p.lon], { icon, title: p.u })
             .bindPopup(() => hitchhikerPopupHtml(p))
             // #813: no username/place in the event -- same privacy rule as spot_opened.
-            .on("popupopen", () => hmTrack("hitchhiker_marker_opened", {}))
+            .on("popupopen", () => hmTrack("hitchhiker_marker_opened", { ref: window.hmLandingRef || "" }))
             .addTo(hitchhikerLayer);
         });
         console.log(`Loaded ${hitchhikerLayer.getLayers().length} hitchhiker(s)`);
