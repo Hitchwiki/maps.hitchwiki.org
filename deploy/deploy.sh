@@ -28,7 +28,9 @@ if [ "$free_kb" -lt 3145728 ]; then
   sudo docker image prune -af --filter "until=24h" || true
   sudo docker builder prune -af --filter "until=24h" || true
   # 2026-11-16: the journal held 434 MB on a host with ~650 MB free. Keep 200 MB (non-fatal if sudo refuses).
-  sudo journalctl --vacuum-size=200M 2>&1 | tail -1 || true
+  # 2026-11-17: vacuum-size=200M freed 0 B at a 195 MB journal (active files are not removable). Rotate first, keep 60 MB.
+  sudo journalctl --rotate 2>&1 | tail -1 || true
+  sudo journalctl --vacuum-size=60M 2>&1 | tail -1 || true
   free_kb=$(df -Pk . | awk 'NR==2{print $4}')
   echo "==> Disk free after prune: $(( free_kb / 1024 )) MB"
   if [ "$free_kb" -lt 1048576 ]; then
