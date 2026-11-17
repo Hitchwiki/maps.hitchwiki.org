@@ -213,6 +213,12 @@ dirs = get_dirs()
 with open(os.path.join(dirs["dist"], "allPosts.json")) as f:
     all_posts = json.load(f)
 
+# Never replace the public dataset with a truncated export (IDEAS #1532): an empty or partial relay fetch
+# would otherwise overwrite ~84k rows. Override with HF_SYNC_MIN_POSTS for a deliberate shrink.
+_min_posts = int(os.environ.get("HF_SYNC_MIN_POSTS", "20000"))
+if len(all_posts) < _min_posts:
+    raise SystemExit(f"Refusing to sync: allPosts.json has {len(all_posts)} posts (< {_min_posts}); keeping the existing dataset")
+
 entries = []
 skipped = 0
 for post in tqdm(all_posts, total=len(all_posts)):
@@ -284,3 +290,10 @@ HfApi().create_commit(
     ],
     commit_message=f"new version {today}",
 )
+
+# Stamp the last successful push so the daily catch-up cron (deploy/cron.sh) can tell whether the Monday run
+# missed (IDEAS #1535: the Monday job ran against an empty allPosts.json and the dataset stayed 14 days stale).
+_stamp = os.path.join(os.path.dirname(os.path.abspath(dirs["dist"])), "logs", "hf_sync.ok")
+os.makedirs(os.path.dirname(_stamp), exist_ok=True)
+with open(_stamp, "w") as _f:
+    _f.write(today + "\n")

@@ -5,7 +5,11 @@ cd "$(dirname "$0")/.."
 
 echo "==> Fetching latest main"
 git fetch --prune origin main
+# Commit of the last successful deploy (logs/ is untracked, survives the reset): used by the
+# patch-layer path below.
+LAST_DEPLOYED=$(sed -n 's/.*commit=\([0-9a-f]*\).*/\1/p' logs/last_deploy.txt 2>/dev/null | head -1 || true)
 git reset --hard origin/main
+PATCH_ONLY=0
 
 # Disk guard: a full disk fails the build mid-way (Errno 28, 2026-11-13) and leaves merged
 # work undeployed. Log free space, and if under 3 GB reclaim unused docker layers first.
@@ -23,6 +27,8 @@ if [ "$free_kb" -lt 3145728 ]; then
   echo "==> Low disk, pruning unused docker images and build cache first"
   sudo docker image prune -af --filter "until=24h" || true
   sudo docker builder prune -af --filter "until=24h" || true
+  # 2026-11-16: the journal held 434 MB on a host with ~650 MB free. Keep 200 MB (non-fatal if sudo refuses).
+  sudo journalctl --vacuum-size=200M 2>&1 | tail -1 || true
   free_kb=$(df -Pk . | awk 'NR==2{print $4}')
   echo "==> Disk free after prune: $(( free_kb / 1024 )) MB"
   if [ "$free_kb" -lt 1048576 ]; then
@@ -33,10 +39,32 @@ if [ "$free_kb" -lt 3145728 ]; then
     free_kb=$(df -Pk . | awk 'NR==2{print $4}')
     echo "==> Disk free after full cache prune: $(( free_kb / 1024 )) MB"
   fi
-  if [ "$free_kb" -lt 1048576 ]; then
+  if [ "$free_kb" -lt 1048576 ] && [ "$free_kb" -ge 409600 ] && [ -n "$LAST_DEPLOYED" ] \
+     && git cat-file -e "$LAST_DEPLOYED^{commit}" 2>/dev/null; then
+    # Patch-layer path (IDEAS #1453): a full rebuild needs ~1 GB, but when nothing the image
+    # build depends on changed, a ~16 MB COPY layer on the running image is equivalent.
+    changed=$(git diff --name-only "$LAST_DEPLOYED" HEAD)
+    removed=$(git diff --name-only --diff-filter=DR "$LAST_DEPLOYED" HEAD)
+    if [ -z "$removed" ] && ! echo "$changed" | grep -Eq '^(Dockerfile|requirements\.txt|docker-compose\.yml|hitch/scripts/fetch_hitchhiking_events/(package.*\.json|src/|tsconfig))'; then
+      echo "==> Low disk but only code changed since $LAST_DEPLOYED: building thin patch layer"
+      base_id=$(sudo docker inspect --format '{{.Image}}' hitchhiking-map)
+      # BuildKit treats a bare sha256:... FROM as a registry reference (failed 2026-11-16), so tag it.
+      sudo docker tag "$base_id" hitchhiking-map-patch-base
+      tags=$(sudo docker compose config --images | sed 's/^/-t /' | tr '\n' ' ')
+      # shellcheck disable=SC2086
+      if sudo docker build -f deploy/Dockerfile.patch --build-arg BASE=hitchhiking-map-patch-base $tags .; then
+        PATCH_ONLY=1
+        echo "==> Patch layer built"
+      fi
+    fi
+  fi
+  if [ "$PATCH_ONLY" -eq 0 ] && [ "$free_kb" -lt 1048576 ]; then
     echo "!! Under 1 GB free after pruning; aborting before the build. Free disk space on the server." >&2
     # Read-only diagnostics: name what is using the disk (the abort is the last thing this run does).
     echo "==> Disk diagnostics (read-only)" >&2
+    # Which containers exist and are they running? (2026-11-15: an old 4 GB discourse image may be held by a dead container)
+    sudo docker ps -a --format '{{.Names}}\t{{.Status}}\t{{.Image}}' >&2 || true
+    sudo journalctl --disk-usage >&2 || true
     du -xsh db logs dist hitch/static 2>/dev/null >&2 || true
     sudo docker system df >&2 || true
     sudo du -xsh /var/lib/docker/containers /var/lib/docker/overlay2 /var/lib/docker/volumes 2>/dev/null >&2 || true
@@ -50,7 +78,12 @@ fi
 echo "==> Rebuilding and restarting container"
 # Time the build so we can prune every cache layer it did NOT touch (see below).
 build_start=$(date +%s)
-sudo docker compose up -d --build
+if [ "$PATCH_ONLY" -eq 1 ]; then
+  sudo docker compose up -d --no-build
+  sudo docker rmi hitchhiking-map-patch-base || true
+else
+  sudo docker compose up -d --build
+fi
 build_elapsed=$(( $(date +%s) - build_start ))
 
 echo "==> Pruning images and build cache not used by this build"
@@ -79,6 +112,23 @@ if [ "${FREE_MB:-9999}" -lt 1500 ]; then
   sudo docker builder prune -af
   echo "Disk free after idle prune: $(df -Pm / | awk 'NR==2{print $4}') MB"
 fi
+
+# Disk-growth trace (IDEAS #1529): read-only, one line per source, so two deploys hours apart show
+# what is eating the disk. Never fails the deploy.
+{
+  echo "==> Disk breakdown (MB)"
+  for d in db logs dist hitch/static; do du -xsm "$d" 2>/dev/null | awk -v d="$d" '{print "  " d ": " $1}'; done
+  sudo du -xsm /var/lib/docker/containers /var/lib/docker/overlay2 /var/lib/docker/volumes /var/log /var/lib/docker/image 2>/dev/null | awk '{print "  " $2 ": " $1}'
+  sudo journalctl --disk-usage 2>/dev/null | sed 's/^/  /'
+  sudo docker system df 2>/dev/null | sed 's/^/  /'
+  echo "  -- container json logs (MB, name)"
+  for c in $(sudo docker ps -aq 2>/dev/null); do
+    lp=$(sudo docker inspect -f '{{.LogPath}}' "$c" 2>/dev/null)
+    [ -n "$lp" ] && sudo du -sm "$lp" 2>/dev/null | awk -v n="$(sudo docker inspect -f '{{.Name}}' "$c" 2>/dev/null)" '{print "  " $1 " " n}'
+  done | sort -rn | head -8
+  echo "  -- volumes (top 8 by size)"
+  sudo sh -c 'du -sm /var/lib/docker/volumes/*' 2>/dev/null | sort -rn | head -8 | sed 's#/var/lib/docker/volumes/##; s/^/  /'
+} || true
 
 mkdir -p logs
 date -u +"%Y-%m-%dT%H:%M:%SZ commit=$(git rev-parse --short HEAD)" > logs/last_deploy.txt

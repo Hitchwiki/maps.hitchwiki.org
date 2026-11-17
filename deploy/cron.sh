@@ -21,6 +21,10 @@
 # 3598 back-dated rides accumulated unfetched and allPosts.json went 11 days stale. :51 leaves
 # the ~2 s incremental finished and the lock free.
 51 0 * * 1 cd /app && /usr/bin/flock -n /tmp/fetch_nostr.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate fetch_nostr' > logs/fetch_nostr_full.log 2>&1
+
+# daily catch-up (IDEAS #1532): if the weekly full fetch left the public export empty/tiny (relay returned nothing,
+# 2026-11-16), retry at 03:51 — only while dist/allPosts.json is under 1 MB, so a healthy day does nothing.
+51 3 * * * cd /app && [ "$(stat -c\%s dist/allPosts.json 2>/dev/null || echo 0)" -lt 1000000 ] && /usr/bin/flock -n /tmp/fetch_nostr.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate fetch_nostr' > logs/fetch_nostr_catchup.log 2>&1
 # Every 30 minutes, not every 10. A run that actually regenerates takes 215-385 s and
 # peaks ~1.5 GB, so a */10 schedule spent much of every hour holding the largest allocation
 # on this host and repeatedly lost `flock -n` to its own previous run (show_ram.log had a
@@ -112,10 +116,18 @@
 30 7 * * * cd /app && /usr/bin/flock -n /tmp/hitchhiking_safety.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate hitchhiking_safety' > logs/hitchhiking_safety.log 2>&1
 # daily at 7:25 AM — rebuild the small weekly ride/source aggregate.
 25 7 * * * cd /app && /usr/bin/flock -n /tmp/ride_collection_statistics.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate ride_collection_statistics' > logs/ride_collection_statistics.log 2>&1
+# daily at 7:40 AM — rebuild /statistics/driver-reasons (dist/driver_reason_statistics.json). It had no cron
+# line, only the first-install run, so it sat frozen from 2026-10-19 (IDEAS #1534).
+40 7 * * * cd /app && /usr/bin/flock -n /tmp/driver_reason_statistics.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate driver_reason_statistics' > logs/driver_reason_statistics.log 2>&1
 # daily at 7:35 AM — publish corridors (>=5 requests on >=3 days) from the private route-request log.
 35 7 * * * cd /app && /usr/bin/flock -n /tmp/route_demand.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate route_demand' > logs/route_demand.log 2>&1
 # every Monday at 8 AM
 0 8 * * 1 cd /app && /usr/bin/flock -n /tmp/sync_hitchhiking_rides_dataset.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate sync_hitchhiking_rides_dataset' > logs/sync_hitchhiking_rides_dataset.log 2>&1
+# daily at 8:10 AM — catch-up for the Monday dataset push (IDEAS #1535). The Monday job ran against an empty
+# allPosts.json on 2026-11-16 and the public dataset stayed on its 11-09 version. Runs only when the export is
+# healthy (>=1 MB) and logs/hf_sync.ok (written after each successful push) is missing or older than 7 days, so a
+# healthy week does nothing. The script itself still refuses to push fewer than HF_SYNC_MIN_POSTS rows.
+10 8 * * * cd /app && [ "$(stat -c\%s dist/allPosts.json 2>/dev/null || echo 0)" -ge 1000000 ] && { [ ! -f logs/hf_sync.ok ] || [ -n "$(find logs/hf_sync.ok -mtime +7)" ]; } && /usr/bin/flock -n /tmp/sync_hitchhiking_rides_dataset.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate sync_hitchhiking_rides_dataset' > logs/sync_hitchhiking_rides_dataset_catchup.log 2>&1
 # first of every month at 9 AM — regenerate country hitchability CSV + country_ratings.json / country_insights.json
 0 9 1 * * cd /app && /usr/bin/flock -n /tmp/country_ratings.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate country_ratings' > logs/country_ratings.log 2>&1
 # daily at 7:40 AM — same script, so dist/country_activity.csv (rides in the last 90 days, read by the wiki's country

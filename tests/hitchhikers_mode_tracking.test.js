@@ -10,7 +10,8 @@ test("map-mode switches are counted once, user-initiated only (#813)", () => {
 });
 
 test("hitchhiker marker opens carry no name or place (#813)", () => {
-  assert.match(SOURCE, /\.on\("popupopen", \(\) => hmTrack\("hitchhiker_marker_opened", \{\}\)\)/);
+  // #1547: the landing ref (e.g. pledge_*) is allowed; a username or place is not.
+  assert.match(SOURCE, /\.on\("popupopen", \(\) => hmTrack\("hitchhiker_marker_opened", \{ ref: window\.hmLandingRef \|\| "" \}\)\)/);
 });
 
 test("popup link clicks are told apart as profile vs hello (#813)", () => {

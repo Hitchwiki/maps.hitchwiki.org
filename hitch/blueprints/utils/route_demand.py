@@ -92,6 +92,28 @@ def summarise_route_feedback(rows):
     }
 
 
+def summarise_route_outcomes(rows, days=30):
+    """Planner outcomes (route_outcomes.csv) as per-day counts: found / none, by no-route reason. Counts only."""
+    per_day = defaultdict(lambda: {"found": 0, "none": 0, "auto_found": 0, "auto_none": 0})
+    reasons = defaultdict(int)
+    for row in rows:
+        outcome = (row.get("outcome") or "").strip()
+        if outcome not in ("found", "none"):
+            continue
+        day = (row.get("timestamp") or "")[:10]
+        if len(day) != 10:
+            continue
+        auto = (row.get("auto") or "").strip() == "1"
+        per_day[day][("auto_" if auto else "") + outcome] += 1
+        if outcome == "none" and not auto:
+            reasons[(row.get("reason") or "").strip() or "unknown"] += 1
+    keep = sorted(per_day)[-days:]
+    return {
+        "days": [{"date": d, **per_day[d]} for d in keep],
+        "none_reasons": dict(sorted(reasons.items(), key=lambda kv: -kv[1])[:20]),
+    }
+
+
 def read_route_requests(path):
     try:
         with open(path, newline="", encoding="utf-8") as f:

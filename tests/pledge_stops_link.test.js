@@ -6,3 +6,4 @@ assert(map.includes('"driver_pledge_stops_link_clicked"'));
 for (const s of ['"success_overlay"', '"spot_country_contact"', "surface"])
   assert(map.includes("addPledgeStopsLink(note, " + s + ");"), s);
 console.log("pledge_stops_link ok");
+assert(map.includes('"pledge-stops-dest-v1"') && map.includes("/?mapmode=hitchhikers&ref=pledge_"));
