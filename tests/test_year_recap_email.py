@@ -73,3 +73,19 @@ def test_recap_email_links_to_the_recap_with_ref_and_own_campaign(app, monkeypat
     assert payload["campaign_id"] == "year-recap-2026"
     assert "Your 2026 recap is ready" in str(payload)
     assert "/insights/Tramper/2026?ref=recap-email" in str(payload)
+
+
+def test_ensure_user_columns_adds_column_once():
+    from sqlalchemy import create_engine, inspect, text
+
+    from hitch import ensure_user_columns
+
+    engine = create_engine("sqlite://")
+    with engine.begin() as conn:
+        conn.execute(text("CREATE TABLE user (id INTEGER PRIMARY KEY, email TEXT)"))
+        conn.execute(text("INSERT INTO user (email) VALUES ('a@example.org')"))
+    ensure_user_columns(engine)
+    ensure_user_columns(engine)  # second call is a no-op
+    assert "recap_email_sent_year" in {c["name"] for c in inspect(engine).get_columns("user")}
+    with engine.begin() as conn:
+        assert conn.execute(text("SELECT recap_email_sent_year FROM user")).scalar() is None
