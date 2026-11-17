@@ -952,7 +952,10 @@
       }
       const anchor = sheet.querySelector(".rp-feedback") || sheet.querySelector(".rp-options");
       if (!anchor) return;
-      hmTrack("route_drive_shown", { arm: arm, lang: (typeof window !== "undefined" && window.__LANG__) || "en" });
+      // #1545: of the "on" arm, half see the box directly above the Start CTA (top) instead of under the options.
+      const pos = arm === "on" ? hmVariant("route-drive-pos-v1", ["bottom", "top"]) : "bottom";
+      window.__routeDrivePos = pos;
+      hmTrack("route_drive_shown", { arm: arm, pos: pos, lang: (typeof window !== "undefined" && window.__LANG__) || "en" });
       if (arm !== "on" && arm !== "pledge") return;
       const box = document.createElement("div");
       box.className = "rp-drive";
@@ -968,7 +971,7 @@
       btn.addEventListener("click", () => {
         const open = list.style.display === "none";
         list.style.display = open ? "block" : "none";
-        hmTrack("route_drive_toggled", { open: open, arm: arm });
+        hmTrack("route_drive_toggled", { open: open, arm: arm, pos: pos });
         if (!open || built) return;
         built = true;
         const rt = RJ.routes[RJ.highlight || 0] || RJ.routes[0];
@@ -998,7 +1001,8 @@
           list.appendChild(div);
         });
       });
-      anchor.insertAdjacentElement("beforebegin", box);
+      const topAnchor = pos === "top" ? sheet.querySelector(".rp-start-cta") : null;
+      (topAnchor || anchor).insertAdjacentElement("beforebegin", box);
     } catch (e) { /* must never break routing */ }
   }
 
@@ -2444,7 +2448,7 @@
         const rt = RJ.routes[RJ.highlight || 0];
         const boarding = firstBoardingPoint(rt);
         if (!boarding || !window.inride || !window.inride.journeyFlow) return;
-        hmTrack("route_start_cta_v2_clicked", { variant: variant });
+        hmTrack("route_start_cta_v2_clicked", { variant: variant, pos: window.__routeDrivePos || "none" });
         trackCommit("start", RJ.highlight || 0);
         close();
         window.inride.journeyFlow.startFromChoose(
