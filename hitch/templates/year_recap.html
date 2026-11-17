@@ -89,7 +89,10 @@ button.recap-month:hover { background: #fff3cf; }
 {% from "_share.html" import share_button %}
 {% if is_me and recap.rides %}
 <p>{{ share_button(url=url_for('user.show_year_recap', username=user.username, year=year, _external=True), title=t("{name} – {year} on the road", name=user.username, year=year), label=t("Share"), context="recap") }}</p>
-{% elif not is_me %}
+{% endif %}
+{# IDEAS #1544: existing pledge card, reached from the recap (owner and visitor views). #}
+<p><a href="/?pledge=1&amp;ref={{ 'recap-owner' if is_me else 'recap-visitor' }}">{{ t("I'll stop for a hitchhiker when I'm driving") }}</a></p>
+{% if not is_me %}
 <p><a href="/?ref=recap-visitor">{{ t("Back to map") }}</a></p>
 {% endif %}
 
