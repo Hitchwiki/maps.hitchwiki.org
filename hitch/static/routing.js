@@ -282,7 +282,8 @@
     // #1426: a first car leg that ends farther from B than it started (a loop via a hub behind A)
     // costs FIRST_LEG_AWAY_MIN minutes per km of retreat when ranking. Reorders only; adds/removes nothing.
     const away = (r) => { const c = r.legs.find((l) => l.mode === "car"); return c ? Math.max(0, haversineKm(c.to, dest) - haversineKm(c.from, dest)) : 0; };
-    const cost = (r) => r.totalMin + FIRST_LEG_AWAY_MIN * away(r);
+    const weak1 = (r) => { const c = r.legs.find((l) => l.mode === "car"); return c && c.support <= 2 ? 60 : 0; };
+    const cost = (r) => r.totalMin + FIRST_LEG_AWAY_MIN * away(r) + weak1(r);
     return kept.map((r, i) => [r, i]).sort((x, y) => cost(x[0]) - cost(y[0]) || x[1] - y[1]).map((x) => x[0]);
   }
 
