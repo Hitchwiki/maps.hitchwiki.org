@@ -3774,8 +3774,11 @@
                     label: T("Hitchhikers near you"),
                     cls: "inr-go",
                     onClick: function () {
-                      hmTrack("driver_pledge_stops_link_clicked", { surface: "race_banner" });
-                      window.location.href = "/mitfahrbank?ref=pledge_race_banner";
+                      // IDEAS #1540: same sticky 50/50 as map.js addPledgeStopsLink, for non-German UIs only.
+                      const nonDe = !!window.__LANG__ && window.__LANG__ !== "de";
+                      const destArm = nonDe ? (window.hmVariant || function (_n, v) { return v[0]; })("pledge-stops-dest-v1", ["bench", "map"]) : "de";
+                      hmTrack("driver_pledge_stops_link_clicked", { surface: "race_banner", arm: destArm });
+                      window.location.href = destArm === "map" ? "/?mapmode=hitchhikers&ref=pledge_race_banner" : "/mitfahrbank?ref=pledge_race_banner";
                     },
                   },
                   tryArm === "try"

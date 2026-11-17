@@ -4988,10 +4988,14 @@ function addPledgeStopsLink(note, surface) {
   if (!note || note.querySelector(".pledge-stops-link")) return;
   const a = document.createElement("a");
   a.className = "pledge-stops-link";
-  a.href = "/mitfahrbank?ref=pledge_" + surface;
+  // IDEAS #1540: 36 of 37 clicks in 28 d came from non-German pages, yet the target is the German bench
+  // index. Sticky 50/50 for non-German UI languages: the bench index vs the map's own Hitchhikers view.
+  const nonDe = !!window.__LANG__ && window.__LANG__ !== "de";
+  const arm = nonDe ? (window.hmVariant || function (_n, v) { return v[0]; })("pledge-stops-dest-v1", ["bench", "map"]) : "de";
+  a.href = arm === "map" ? "/?mapmode=hitchhikers&ref=pledge_" + surface : "/mitfahrbank?ref=pledge_" + surface;
   a.textContent = tr("Hitchhikers near you");
   a.style.cssText = "display:block;margin-top:6px;";
-  a.onclick = function () { hmTrack("driver_pledge_stops_link_clicked", { surface: surface }); };
+  a.onclick = function () { hmTrack("driver_pledge_stops_link_clicked", { surface: surface, arm: arm }); };
   note.appendChild(a);
   // #1333: second link into the live route planner's driver view.
   const d = document.createElement("a");
