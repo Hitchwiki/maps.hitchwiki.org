@@ -7351,6 +7351,8 @@ function maybeShowNewsletterPledge() {
     const q = new URLSearchParams(location.search);
     // base.html strips ?ref= before this runs, so the live value is hmLandingRef.
     if ((window.hmLandingRef || q.get("ref") || "").indexOf("wiki") === 0) surface = "wiki";
+    // IDEAS #1544: pledge reached from the year recap page gets its own label (was counted as "newsletter").
+    if ((window.hmLandingRef || q.get("ref") || "").indexOf("recap") === 0) surface = "recap";
     wanted = q.get("pledge") === "1" &&
       !localStorage.getItem(DRIVER_PLEDGE_MADE_KEY);
     // IDEAS #1249: wiki readers (not spot-seekers, who came for a spot) see the same card once per
