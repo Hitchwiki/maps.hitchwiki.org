@@ -3251,16 +3251,6 @@ document.addEventListener("click", (e) => {
   frameRideDest(d.lat, d.lon);
 });
 
-// #774: count the "an official stop here would help" yes. Cell index + country only, no spot id.
-document.addEventListener("click", (e) => {
-  const btn = e.target.closest("#spot-official-stop-wanted");
-  if (!btn) return;
-  const cell = cityExitCells && cityExitCells[Number(btn.dataset.cell)];
-  hmTrack("official_stop_wanted", { cell: btn.dataset.cell, country: cell ? cell[4] : "" });
-  btn.disabled = true;
-  btn.textContent = tr("Thanks, noted");
-});
-
 // The "Car pooling spot" link leaves for OpenStreetMap; count the departures (#559).
 document.addEventListener("click", (e) => {
   if (e.target.closest(".spot-carpool-link")) hmTrack("spot_carpool_link_clicked");
@@ -3515,10 +3505,6 @@ function summaryText(data, hists = { wait: null, distance: null }) {
   // filters) so a single unreviewed pin doesn't get invited to spawn an article.
   // Retired 2026-11: spot_wiki_gap was shown 3,538x / clicked 3x per 28 d.
   const hitchwikiGapPrompt = '';
-  const exitIdx = cityExitCellIndex(cityExitCells, data);
-  const officialStopAsk = exitIdx >= 0
-    ? `<div class="spot-official-ask">🚏 ${tr("{n} hitchhikers started here since Oct 2024.", { n: cityExitCells[exitIdx][2] })} <button type="button" id="spot-official-stop-wanted" data-cell="${exitIdx}">${tr("An official stop here would help")}</button></div>`
-    : '';
   // Filled in asynchronously by loadSpotWikiExcerpt once this markup is in the DOM
   // (see applySpotRideFilter) -- fetching Hitchwiki's API takes a round trip this
   // synchronous function can't wait on. Empty when neither link above exists.
@@ -3609,7 +3595,7 @@ function summaryText(data, hists = { wait: null, distance: null }) {
     ${spotHistogramMarkup(scaleHistToDisplay(hists.distance), "spot-distance-hist", distanceUnitLabel())}
     ${data.people ? `<div class="spot-people">${tr("At least {n} people have logged a ride here", { n: data.people })}</div>` : ''}
     ${lastConfirmed ? `<div class="spot-last-confirmed">${tr("Last confirmed: {date}", { date: lastConfirmed })}</div>` : ''}
-    ${osmLink}${carPoolingLink}${fuelLink}${hitchwikiLink}${hitchwikiMapLink}${hitchwikiNearbyLink}${hitchwikiGapPrompt}${officialStopAsk}${spotWikiExcerpt}${accessHint}${countryContact}`;
+    ${osmLink}${carPoolingLink}${fuelLink}${hitchwikiLink}${hitchwikiMapLink}${hitchwikiNearbyLink}${hitchwikiGapPrompt}${spotWikiExcerpt}${accessHint}${countryContact}`;
 }
 
 async function handleMarkerClick(marker, point, e) {
@@ -3774,8 +3760,6 @@ function applySpotRideFilter(marker) {
   // element every time, so the event never fired (0 clicks / 439 impressions, 28 d).
   const wikiNearbyLink = $$("#spot-wiki-nearby-link");
   if (wikiNearbyLink) wikiNearbyLink.onclick = () => hmTrack("spot_wiki_nearby_clicked");
-
-  if ($$("#spot-official-stop-wanted")) hmTrack("official_stop_ask_shown", {});
 
   // #858: denominator for the official-stop sheet line (EXP-867). Property only says whether
   // the stop has logged rides; no spot id.
@@ -5137,25 +5121,6 @@ function wireSpotCountryPledge() {
   };
 }
 
-// #191 / EXP-428 — the driver-facing surface. The success overlay is otherwise
-// entirely hitchhiker-facing; "Show the driver" reopens the ride card the visitor
-// just made as a full-screen image they can turn towards the driver who dropped
-// them off (a recognised map, a real ride logged — no authored copy, just the card
-// that already exists). The bet (a driver who stops again, driver word-of-mouth) is
-// unmeasurable; the tap rate is the instrument. Denominator: shown_to_driver_available,
-// fired once whenever the button is offered. >10% taps reopens a driver branch, <2%
-// kills it, measured against live in-car finishes (~53-73 / 28 d).
-function wireShowDriverButton(dataUrl) {
-  const btn = $$("#success-show-driver-btn");
-  if (!btn || !dataUrl) return;
-  btn.style.display = "block";
-  hmTrack("shown_to_driver_available", {});
-  btn.onclick = function () {
-    hmTrack("shown_to_driver", {});
-    showDriverFullscreen(dataUrl);
-  };
-}
-
 // IDEAS #630 / EXP-802 — "Currently in <city>": after a signed-in rider logs a ride, offer
 // one tap to say they are now where it ended. The server turns that into the same
 // same-city introductions as typing it on /edit-user. The city is the largest one
@@ -5228,27 +5193,6 @@ function wireCurrentCityButton(ride) {
     .catch(function () {});
 }
 
-// A plain black backdrop with the card image scaled to fit. Tap anywhere or Esc to
-// dismiss — no controls, because the phone is being handed to someone else.
-function showDriverFullscreen(dataUrl) {
-  const back = document.createElement("div");
-  back.className = "driver-card-backdrop";
-  const image = document.createElement("img");
-  image.src = dataUrl;
-  image.alt = tr("Your hitchhiking ride as a shareable image");
-  back.appendChild(image);
-  const close = function () {
-    back.remove();
-    document.removeEventListener("keydown", onKey);
-  };
-  const onKey = function (e) {
-    if (e.key === "Escape") close();
-  };
-  back.addEventListener("click", close);
-  document.addEventListener("keydown", onKey);
-  document.body.appendChild(back);
-}
-
 // Builds the shareable image and wires the share button. Anything that goes wrong
 // (no stashed ride, no network for the tiles, a browser without canvas export)
 // degrades to sharing just the text + link — never to a broken overlay.
@@ -5262,13 +5206,6 @@ function setupShareCard(opts) {
   // cached copy of the old overlay markup. Bail out to the plain success message
   // rather than throwing on the missing elements.
   if (!shareBtn || !status || !img || !caption) return;
-  // Hidden until this run's card actually renders — the overlay markup is reused, so a
-  // previous ride's "Show the driver" button must not linger over a failed card.
-  const driverBtn = $$("#success-show-driver-btn");
-  if (driverBtn) {
-    driverBtn.style.display = "none";
-    driverBtn.onclick = null;
-  }
   // showSuccessOverlay already resolved the direct/stashed hand-off once so every
   // post-submit feature sees the same ride.
   const ride = opts && opts.ride;
@@ -5323,7 +5260,6 @@ function setupShareCard(opts) {
       img.style.display = "block";
       status.style.display = "none";
       caption.textContent = result.text;
-      wireShowDriverButton(result.dataUrl);
       shareBtn.disabled = false;
       shareBtn.onclick = function () {
         return doShare({ text: result.text, url: result.url, files: [result.blob] });

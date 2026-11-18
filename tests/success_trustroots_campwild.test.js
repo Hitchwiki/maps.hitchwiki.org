@@ -6,7 +6,7 @@ const vm = require("node:vm");
 
 const mapSource = fs.readFileSync(path.join(__dirname, "..", "hitch", "static", "map.js"), "utf8");
 const start = mapSource.indexOf("function renderTrustrootsNudge()");
-const end = mapSource.indexOf("// #191 / EXP-428", start);
+const end = mapSource.indexOf("// IDEAS #630 / EXP-802", start);
 const helperSource = mapSource.slice(start, end);
 
 function loadHelper({ hasTrustrootsNode = true, hasCampwildNode = true } = {}) {
