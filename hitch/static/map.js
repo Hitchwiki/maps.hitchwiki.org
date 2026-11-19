@@ -5479,6 +5479,27 @@ function showSignupPromptOverlay(opts) {
   // Replaced with the inline widget -- and here the email field matters, since
   // this overlay only ever shows to an anonymous visitor.
   setupMapFeedback($$('.map-feedback[data-source="signup-prompt"]'), "signup-prompt");
+  // Report-a-bug button in the top bar: toggles a popover holding the feedback widget, already open.
+  const bugBtn = document.getElementById("bug-picker-btn");
+  const bugPanel = document.getElementById("bug-picker-panel");
+  if (bugBtn && bugPanel) {
+    const bugWidget = bugPanel.querySelector(".map-feedback");
+    bugBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      const open = !bugPanel.hidden;
+      bugPanel.hidden = open;
+      bugBtn.setAttribute("aria-expanded", String(!open));
+      if (!open && bugWidget) {
+        setupMapFeedback(bugWidget, "bug-button");
+        const tg = bugWidget.querySelector(".map-feedback-toggle");
+        if (tg) tg.click();
+        hmTrack("bug_button_opened", {});
+      }
+    });
+    document.addEventListener("click", function (e) {
+      if (!bugPanel.hidden && !bugPanel.contains(e.target)) { bugPanel.hidden = true; bugBtn.setAttribute("aria-expanded", "false"); }
+    });
+  }
 }
 
 // The OAuth callback adds this one-time marker when the anonymous post-ride

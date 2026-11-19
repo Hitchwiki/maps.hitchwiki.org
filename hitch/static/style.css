@@ -2701,6 +2701,22 @@ ul.no-style {
   overflow-y: auto;
   overscroll-behavior: contain;
 }
+/* Report-a-bug button + popover, left of the language picker. */
+.bug-picker { position: relative; flex-shrink: 0; margin-right: 6px; }
+.bug-picker-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 1002;
+  width: min(300px, 90vw);
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  color: #333;
+  font-size: 14px;
+}
+.bug-picker-panel .map-feedback-text, .bug-picker-panel .map-feedback-email { width: 100%; box-sizing: border-box; }
 .lang-picker-item {
   display: flex;
   align-items: center;

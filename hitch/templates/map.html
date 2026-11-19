@@ -978,6 +978,17 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
        language (LANGUAGE_FLAGS / LANGUAGE_ENDONYMS): the endonym is never translated --
        a French visitor still needs to recognize "English", not read "Anglais". #}
     {% set _recap_year = recap_banner_year() %}{% if _recap_year %}<a class="lang-offer recap-offer" id="recap-offer" href="{{ url_for('user.show_year_recap', username=current_user.username, year=_recap_year) }}?ref=map-banner">{{ t("Your {year} recap", year=_recap_year) }}</a>{% endif %}
+    {# Till 2026-11-19: report-a-bug button next to the language picker; also collects improvement ideas.
+       Reuses the feedback widget (-> /log-feedback, source "bug-button"). #}
+    <div class="bug-picker" id="bug-picker">
+        <button type="button" class="lang-picker-btn" id="bug-picker-btn" aria-haspopup="true" aria-expanded="false" title="{{ t('Report a bug') }}">
+            <i class="fa-solid fa-bug" aria-hidden="true"></i>
+            <span class="lang-picker-name">{{ t("Report a bug") }}</span>
+        </button>
+        <div class="bug-picker-panel" id="bug-picker-panel" hidden>
+            {{ feedback_widget("bug-button", t("Found a bug, or an idea to improve the map?"), allow_email=(not is_logged_in)) }}
+        </div>
+    </div>
     <div class="lang-picker" id="lang-picker">
         <button type="button" class="lang-picker-btn" id="lang-picker-btn" aria-haspopup="true" aria-expanded="false">
             <span aria-hidden="true">{{ LANGUAGE_FLAGS[g.lang] }}</span>

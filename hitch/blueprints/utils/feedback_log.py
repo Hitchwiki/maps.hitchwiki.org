@@ -26,7 +26,7 @@ _HEADER = ["timestamp", "source", "username", "email", "text"]
 
 # The client is untrusted; only notes tagged with a placement we render are kept.
 # The ambient popup passes "ambient-<trigger>", so that family is matched by prefix.
-KNOWN_SOURCES = {"success-overlay", "signup-prompt"}
+KNOWN_SOURCES = {"success-overlay", "signup-prompt", "bug-button"}
 
 
 def is_known_source(source):
