@@ -366,6 +366,16 @@ def register_blueprints(app):
         app.register_blueprint(user_bp, url_prefix=f"/{lang}", name=f"user_{lang}")
 
 
+def ensure_user_columns(engine):
+    """Idempotently add nullable columns introduced after the table was created (no migration framework)."""
+    from sqlalchemy import inspect, text
+
+    existing = {c["name"] for c in inspect(engine).get_columns("user")}
+    with engine.begin() as conn:
+        if "recap_email_sent_year" not in existing:
+            conn.execute(text("ALTER TABLE user ADD COLUMN recap_email_sent_year INTEGER"))
+
+
 def register_commands(app):
     @app.cli.command()
     @click.pass_context
@@ -373,6 +383,8 @@ def register_commands(app):
         """Initialize the database."""
         # create necessary sql tables
         security.datastore.db.create_all()
+        # create_all never adds a column to an existing table: add it here, before any User is loaded
+        ensure_user_columns(security.datastore.db.engine)
 
         # define roles - not really needed
         security.datastore.find_or_create_role(

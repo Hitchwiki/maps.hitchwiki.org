@@ -1,0 +1,18 @@
+{% set ref = "recap-email" %}Hi {{ name }},
+
+Your {{ year }} on the road is ready: your rides, kilometres travelled, minutes
+waiting and the areas you hitched through, month by month.
+
+See your {{ year }} recap: https://maps.hitchwiki.org/insights/{{ username }}/{{ year }}?ref={{ ref }}
+
+Hitched a ride this year that is not on the map yet? Add it and it will be
+counted in the recap.
+
+Safe travels and happy hitchhiking!
+The Hitchwiki team
+
+--
+You receive this because you signed up at maps.hitchwiki.org. You can turn off
+emails any time on your profile settings page: https://maps.hitchwiki.org/edit-user
+
+Hitchwiki — the hitchhiker's guide to hitchhiking — https://hitchwiki.org

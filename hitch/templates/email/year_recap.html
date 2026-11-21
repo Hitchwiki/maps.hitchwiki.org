@@ -1,0 +1,70 @@
+{% set ref = "recap-email" -%}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <style type="text/css">
+        body { margin: 0; padding: 0; background-color: #EDE3C8; font-family: Georgia, 'Times New Roman', serif; }
+        .email-container { max-width: 100%; width: 100%; margin: 0 auto; background-color: #FFFDF7; border-top: 4px solid #C99416; }
+        .content { padding: 30px; max-width: 800px; margin: 0 auto; }
+        .post-content { color: #3B2A1A; font-size: 18px; line-height: 1.8; }
+        .post-content p { margin: 15px 0; }
+        .post-content a { color: #8A5212; text-decoration: underline; }
+        .post-content ul { margin: 15px 0; padding-left: 24px; }
+        .post-content li { margin: 8px 0; }
+        .button { display: inline-block; background-color: #C99416; color: #FFFDF7 !important; text-decoration: none !important; padding: 12px 28px; border-radius: 4px; font-size: 18px; }
+        .footer { text-align: center; padding: 20px 30px; font-size: 16px; color: #5E2802; background-color: #F1D666; margin: 0; border-top: 1px solid #C99416; }
+        .footer a { color: #5E2802; text-decoration: underline; }
+        .header { text-align: center; padding: 24px 20px; background-color: #F1D666; border-bottom: 1px solid #C99416; }
+        .header img { border: 0; display: block; margin: 0 auto; }
+        .header a { text-decoration: none; }
+        .tagline { color: #5E2802; font-size: 14px; font-style: italic; margin: 10px 0 0 0; }
+        @media only screen and (max-width: 800px) {
+            .content { padding: 20px !important; max-width: 100% !important; }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #EDE3C8; font-family: Georgia, 'Times New Roman', serif;">
+    <div class="email-container" style="max-width: 100%; width: 100%; margin: 0 auto; background-color: #FFFDF7; border-top: 4px solid #C99416;">
+        <div class="header" style="text-align: center; padding: 24px 20px; background-color: #F1D666; border-bottom: 1px solid #C99416;">
+            <a href="https://maps.hitchwiki.org" style="text-decoration: none;">
+                {# The site's own mark, not hitchwiki.org's wordmark -- the mail comes from
+                   Hitchwiki Maps and has to show what the site shows. Absolute URL because a
+                   mail client resolves a relative src against nothing. #}
+                <img src="https://maps.hitchwiki.org/static/logo.png" width="144" height="144" alt="Hitchwiki Maps" style="border: 0; display: block; margin: 0 auto;"/>
+            </a>
+            <p class="tagline" style="color: #5E2802; font-size: 14px; font-style: italic; margin: 10px 0 0 0;">the map to hitchhiking the world</p>
+        </div>
+
+        <div class="content" style="padding: 30px; max-width: 800px; margin: 0 auto;">
+            <div class="post-content" style="color: #3B2A1A; font-size: 18px; line-height: 1.8;">
+                <p>Hi {{ name }},</p>
+
+                <p>Your {{ year }} on the road is ready: your rides, kilometres travelled, minutes waiting and the areas you hitched through, month by month.</p>
+
+                <p style="text-align: center; margin: 30px 0;">
+                    <a href="https://maps.hitchwiki.org/insights/{{ username }}/{{ year }}?ref={{ ref }}" class="button" style="display: inline-block; background-color: #C99416; color: #FFFDF7; text-decoration: none; padding: 12px 28px; border-radius: 4px; font-size: 18px;">See your {{ year }} recap</a>
+                </p>
+
+                <p>Hitched a ride this year that is not on the map yet? Add it and it will be counted in the recap.</p>
+
+                <p>Safe travels and happy hitchhiking!<br/>The Hitchwiki team</p>
+            </div>
+        </div>
+
+        <div class="footer" style="text-align: center; padding: 20px 30px; font-size: 16px; color: #5E2802; background-color: #F1D666; margin: 0; border-top: 1px solid #C99416;">
+            <p style="margin: 0 0 15px 0;">
+                You receive this because you signed up at
+                <a href="https://maps.hitchwiki.org" style="color: #5E2802; text-decoration: underline;">maps.hitchwiki.org</a>.
+                You can turn off emails any time on your
+                <a href="https://maps.hitchwiki.org/edit-user" style="color: #5E2802; text-decoration: underline;">profile settings</a> page.
+            </p>
+            <p style="margin: 0;">
+                <a href="https://hitchwiki.org" style="color: #5E2802; text-decoration: underline;">Hitchwiki</a><br/>
+                The hitchhiker's guide to hitchhiking
+            </p>
+        </div>
+    </div>
+</body>
+</html>
