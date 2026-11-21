@@ -99,6 +99,10 @@ class User(db.Model, fsqla.FsUserMixin):
     # moves and they become eligible again the next time they go quiet.
     lapsed_reminder_sent_for = db.Column(db.DateTime, default=None)
 
+    # Year of the last year-recap notice emailed to this user (one per year, see
+    # hitch/scripts/send_year_recap_email.py), or NULL if never sent one.
+    recap_email_sent_year = db.Column(db.Integer, default=None)
+
 
 class UserAvatar(db.Model):
     """A registered user's explicit public profile-image choice.
