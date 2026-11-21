@@ -48,6 +48,14 @@ def run():
     users = eligible_users(year)
     # Aggregate only: never log addresses or names in a dry run.
     logger.info(f"{len(users)} accounts eligible for the {year} recap email")
+    # Aggregate reach check: of everyone who logged a ride in the year, how many the email can't reach.
+    from hitch.models import User
+
+    start, end = datetime(year, 1, 1), datetime(year + 1, 1, 1)
+    loggers = User.query.filter(User.last_ride_at >= start, User.last_ride_at < end).all()
+    no_optin = sum(1 for u in loggers if not u.email_notifications)
+    no_email = sum(1 for u in loggers if not u.email or u.email.endswith("@hitchwiki.oauth"))
+    logger.info(f"{len(loggers)} accounts with last ride in {year}: {no_optin} opted out, {no_email} no real email")
 
     if os.environ.get("RECAP_EMAIL_SEND") != "1":
         logger.info("Dry run: nothing sent. Set RECAP_EMAIL_SEND=1 to send.")
