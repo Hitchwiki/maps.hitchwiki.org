@@ -476,8 +476,9 @@ The `show.py` script runs every 10 minutes and generates map data files from the
 
 2. **`rides_index.json`** - Lightweight index of all rides (replaces deprecated `rides.json`)
    - One compact entry per ride, used by the map UI to power filters, search, and the recent-rides list without loading full popup details
-   - Fields are short-keyed to keep the file small: `{id, sid (spot_id), lat, lon, u (hitchhiker_name), t (submission_time ms), r (rating), km (distance), osm (bool), wiki (bool), c (truncated comment excerpt)}`
+   - Fields are short-keyed to keep the file small: `{id, sid (spot_id), lat, lon, u (hitchhiker_name), t (submission_time ms), r (rating), km (distance), osm (bool), wiki (bool)}` — no comment text (see `rides_comments.json`)
    - Loaded once on map startup (`map.js` fetches `/rides_index.json`)
+   - **`rides_comments.json`** is a parallel array (same order and length, `null` = no comment, 200-char excerpts) written by the same `show` run; `map.js` fetches it lazily the first time the text filter is non-empty and attaches each entry as `.c`. A length mismatch (files from different runs) disables text search rather than mis-attaching.
 
 3. **`rides/by-spot/<spot_id>.json`** - Per-spot detail files
    - One JSON file per spot, written under `dist/rides/by-spot/`

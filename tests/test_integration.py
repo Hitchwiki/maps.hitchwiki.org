@@ -143,3 +143,12 @@ def test_at_least_one_spot_on_map(tmp_path):
     assert spot["lat"] == pytest.approx(52.52, abs=0.01)
     assert spot["lon"] == pytest.approx(13.405, abs=0.01)
     assert spot["review_count"] >= 1
+
+    # Comment excerpts live in a parallel lazily-fetched file, not in the index
+    # that every visitor downloads on first paint.
+    with open(os.path.join(dist_path, "rides_index.json")) as f:
+        index = json.load(f)
+    with open(os.path.join(dist_path, "rides_comments.json")) as f:
+        comments = json.load(f)
+    assert len(comments) == len(index), "rides_comments.json must align 1:1 with rides_index.json"
+    assert all("c" not in entry for entry in index)
