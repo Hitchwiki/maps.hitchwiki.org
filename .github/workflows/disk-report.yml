@@ -1,9 +1,11 @@
 name: disk-report
 
-# Read-only. Manual only. Prints what uses the shared server's disk so growth can
+# Read-only. Manual or every 6 h (so the run logs hold a disk-growth trend). Prints what uses the shared server's disk so growth can
 # be compared between two runs. Changes nothing on the server.
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '17 */6 * * *'
 
 jobs:
   report:
