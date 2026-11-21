@@ -1,0 +1,28 @@
+name: disk-report
+
+# Read-only. Manual only. Prints what uses the shared server's disk so growth can
+# be compared between two runs. Changes nothing on the server.
+on:
+  workflow_dispatch:
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Disk report over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            date -u +"==> at %FT%TZ"
+            df -BM / | tail -1
+            echo "==> docker"; docker system df 2>&1 || true
+            echo "==> journal"; journalctl --disk-usage 2>&1 || true
+            echo "==> top dirs (MB, same filesystem)"
+            for d in /var/lib/docker /var/lib /var/log /var/www /var/backups /home /root /opt /srv /tmp; do
+              [ -e "$d" ] && du -xsm "$d" 2>/dev/null
+            done | sort -rn
+            echo "==> biggest under /var/www and /home (depth 2)"
+            du -xm --max-depth=2 /var/www /home 2>/dev/null | sort -rn | head -15
