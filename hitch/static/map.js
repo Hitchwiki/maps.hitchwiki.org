@@ -2799,7 +2799,7 @@ function setupEventListeners() {
       hmTrack("filters_zero_match_place", { found: !!hit });
       if (!hit) return;
       clearParams();
-      if (hit.bbox) map.fitBounds(hit.bbox);
+      if (hit.bbox) map.fitBounds(hit.bbox, { maxZoom: 13 });
       else map.setView(hit.center, 11);
     });
   };
