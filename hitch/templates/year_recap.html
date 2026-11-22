@@ -97,4 +97,10 @@ button.recap-month:hover { background: #fff3cf; }
 {% endif %}
 
 <p><a href="{{ url_for('user.show_insights', username=user.username) }}">← {{ t("Back to insights") }}</a></p>
+{# IDEAS #1625: page-open event so EXP-1279's "recap opened" leg is countable (owner vs visitor). #}
+<script>
+(function () {
+  try { if (window.hmTrack) window.hmTrack("recap_viewed", { owner: "{{ 'y' if is_me else 'n' }}", rides: "{{ 'y' if recap.rides else 'n' }}" }); } catch (e) {}
+})();
+</script>
 {% endblock %}
