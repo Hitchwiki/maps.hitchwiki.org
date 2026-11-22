@@ -4701,7 +4701,7 @@ function showSuccessOverlay(opts) {
   renderCampwildNudge();
   renderDriverPledgeNudge();
   renderSuccessPlanLink(successRide);
-  renderSuccessPlannerQuestion(successRide);
+  try { renderSuccessPlannerQuestion(successRide); } catch (e) {}
   shareCompleted = false;
 
   // Dismissing the overlay returns to the map the user submitted from — no
