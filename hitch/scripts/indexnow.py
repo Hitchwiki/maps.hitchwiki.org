@@ -50,7 +50,7 @@ def main():
     seen = set()
     if os.path.exists(seen_path):
         with open(seen_path) as f:
-            seen = {l.strip() for l in f if l.strip()}
+            seen = {ln.strip() for ln in f if ln.strip()}
     with open(sm, encoding="utf-8") as f:
         todo = new_urls(f.read(), seen)[:MAX_NEW_PER_RUN]
     print(f"{len(todo)} new urls")
