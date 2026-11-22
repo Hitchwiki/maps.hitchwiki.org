@@ -90,6 +90,8 @@
 30 5 * * * cd /app && /usr/bin/flock -n /tmp/route_pages.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate route_pages' > logs/route_pages.log 2>&1
 # every day at 6 AM
 0 6 * * * cd /app && /usr/bin/flock -n /tmp/cities.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate cities' > logs/cities.log 2>&1
+# IndexNow: ping Bing-family engines with sitemap URLs not yet submitted. Runs after cities (sitemap.xml written at its end; cities takes <~30 min).
+40 8 * * * cd /app && /usr/bin/flock -n /tmp/indexnow.lockfile bash -c 'echo "=== $(date -u +\%Y-\%m-\%dT\%H:\%M:\%SZ) ===" && /usr/local/bin/flask --app hitch generate indexnow' > logs/indexnow.log 2>&1
 # every Sunday at 1 AM — off-site backup of the SQLite DB to Google Drive, PII scrubbed.
 # Standalone script, not a `flask generate` one. Runs before the 2 AM routing rebuild so the
 # two heaviest jobs on this OOM-prone host don't overlap: the backup holds a full ~400 MB
