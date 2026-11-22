@@ -1026,6 +1026,56 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
 })();
 </script>
+{# IDEAS #1660 (EXP-1660): A/B lang-auto-v1. First visit only, on an unprefixed English page,
+   when the browser's first language has a translation: the "auto" arm is sent to the same page
+   under that language prefix; "ctrl" keeps today's page and pill. The server still renders the
+   same HTML for everyone (crawlers keep seeing English); the switch happens in the browser.
+   Both arms emit lang_auto_assigned, and the first spot_opened / route_searched / journey_started
+   on the landing page is re-emitted as lang_auto_engaged {variant, action}. Picking English in the
+   picker afterwards is lang_auto_back_en. #}
+<script>
+(function () {
+    var KV = 'hmLangAutoVar', KP = 'hmLangAutoPending', KS = 'hmLangAutoSeen', KC = 'hmLangChoice';
+    function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+    function set(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+    function track(n, d) { if (window.hmTrack) window.hmTrack(n, d || {}); }
+    function wrap(variant) {
+        if (!window.hmTrack) return;
+        var orig = window.hmTrack, done = false;
+        var engaging = { spot_opened: 1, route_searched: 1, journey_started: 1 };
+        window.hmTrack = function (name, data) {
+            var r = orig.apply(this, arguments);
+            if (!done && engaging[name]) { done = true; orig.call(this, 'lang_auto_engaged', { variant: variant, action: name }); }
+            return r;
+        };
+    }
+    Array.prototype.forEach.call(document.querySelectorAll('#lang-picker .lang-picker-item'), function (a) {
+        a.addEventListener('click', function () {
+            var code = a.getAttribute('hreflang');
+            set(KC, code);
+            if (get(KV) === 'auto' && code === 'en') track('lang_auto_back_en', {});
+        });
+    });
+    if (get(KP) === '1') { set(KP, '0'); wrap('auto'); return; }
+    var active = document.querySelector('#lang-picker .lang-picker-item.active');
+    if (!active || active.getAttribute('hreflang') !== 'en') return;
+    if (get(KS) || get(KC) || !set(KS, '1')) return;
+    try { if (document.referrer && new URL(document.referrer).origin === location.origin) return; } catch (e) { return; }
+    var prefs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || 'en'];
+    var first = String(prefs[0] || 'en').toLowerCase().split('-')[0];
+    if (first === 'en') return;
+    var link = document.querySelector('#lang-picker .lang-picker-item[hreflang="' + first + '"]');
+    if (!link) return;
+    var variant = (window.hmVariant || function (_n, v) { return v[0]; })('lang-auto-v1', ['ctrl', 'auto']);
+    set(KV, variant);
+    track('lang_auto_assigned', { variant: variant, lang: first });
+    if (variant !== 'auto') { wrap('ctrl'); return; }
+    var u = new URL(link.getAttribute('href'), location.origin);
+    u.searchParams.delete('ref');
+    set(KP, '1');
+    location.replace(u.pathname + u.search + location.hash);
+})();
+</script>
 {# Language offer. Language comes only from the URL prefix (see set_locale in hitch/__init__.py),
    so 72% of pageviews were English pages shown to browsers set to another language. This is one
    pill in the brand bar, on an *unprefixed* page only, decided in the browser from
