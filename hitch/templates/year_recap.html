@@ -94,6 +94,14 @@ button.recap-month:hover { background: #fff3cf; }
 <p><a href="/?pledge=1&amp;ref={{ 'recap-owner' if is_me else 'recap-visitor' }}">{{ t("I'll stop for a hitchhiker when I'm driving") }}</a></p>
 {% if not is_me %}
 <p><a href="/?ref=recap-visitor">{{ t("Back to map") }}</a></p>
+{# IDEAS #1626: friends of a hitchhiker see the existing first-timer guide link (existing string, no new prose). #}
+<p><a id="recap-first-time" href="https://hitchwiki.org/en/First_time_hitchhiking?ref=maps-recap-visitor">{{ t("First time hitchhiking") }}</a></p>
+<script>
+(function () {
+  var a = document.getElementById("recap-first-time");
+  if (a) a.addEventListener("click", function () { if (window.hmTrack) window.hmTrack("recap_visitor_firsttime_clicked", {}); });
+})();
+</script>
 {% endif %}
 
 <p><a href="{{ url_for('user.show_insights', username=user.username) }}">← {{ t("Back to insights") }}</a></p>

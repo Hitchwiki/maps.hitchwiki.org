@@ -135,3 +135,16 @@ def test_recap_page_fires_recap_viewed_for_visitor(app, client):
         with app.app_context():
             _db.session.delete(_db.session.get(User, uid))
             _db.session.commit()
+
+
+def test_recap_visitor_sees_first_time_link(app, client):
+    """IDEAS #1626: visitors (not the owner) get the first-timer guide link."""
+    uid = _user(app, "yrfirst")
+    try:
+        html = client.get("/insights/yrfirst/2026").data.decode()
+        assert "First_time_hitchhiking?ref=maps-recap-visitor" in html
+        assert "recap_visitor_firsttime_clicked" in html
+    finally:
+        with app.app_context():
+            _db.session.delete(_db.session.get(User, uid))
+            _db.session.commit()
