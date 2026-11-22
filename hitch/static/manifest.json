@@ -54,5 +54,12 @@
       "description": "Hitchhiking Map"
     }
   ],
-  "lang": "en"
+  "lang": "en",
+  "related_applications": [
+    {
+      "platform": "play",
+      "id": "org.hitchwiki.maps.twa",
+      "url": "https://play.google.com/store/apps/details?id=org.hitchwiki.maps.twa"
+    }
+  ]
 }
