@@ -57,7 +57,7 @@ assert.doesNotMatch(source, /hmVariant\("route-start-cta-v2"/, "route-start-cta-
 assert.match(source, /hmTrack\("route_start_cta_v2_assignment", \{ variant: variant \}\)/);
 assert.match(source, /IntersectionObserver/);
 assert.match(source, /hmTrack\("route_start_cta_v2_viewed", \{ variant: variant \}\)/);
-assert.match(source, /hmTrack\("route_start_cta_v2_clicked", \{ variant: variant \}\)/);
+assert.match(source, /hmTrack\("route_start_cta_v2_clicked", \{ variant: variant(, pos: window\.__routeDrivePos \|\| "none")? \}\)/);
 const optionsMarkup = source.slice(
   source.indexOf("body.innerHTML ="),
   source.indexOf('return body.querySelector(".rp-options")'),
