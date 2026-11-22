@@ -121,3 +121,17 @@ def test_year_recap_counts_by_month(monkeypatch):
     monkeypatch.setattr(u, "_ride_distance_km", lambda i: 0)
     monkeypatch.setattr(u, "_ride_wait_minutes", lambda r: 0)
     assert u._year_recap("x", 2026)["by_month"] == [0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0]
+
+
+def test_recap_page_fires_recap_viewed_for_visitor(app, client):
+    """IDEAS #1625: the page-open event is rendered, tagged as a visitor view when logged out."""
+    uid = _user(app, "yrviewer")
+    try:
+        html = client.get("/insights/yrviewer/2026").data.decode()
+        assert 'hmTrack("recap_viewed"' in html
+        assert 'owner: "n"' in html
+        assert 'rides: "n"' in html
+    finally:
+        with app.app_context():
+            _db.session.delete(_db.session.get(User, uid))
+            _db.session.commit()
