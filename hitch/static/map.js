@@ -4701,6 +4701,7 @@ function showSuccessOverlay(opts) {
   renderCampwildNudge();
   renderDriverPledgeNudge();
   renderSuccessPlanLink(successRide);
+  try { renderSuccessPlannerQuestion(successRide); } catch (e) {}
   shareCompleted = false;
 
   // Dismissing the overlay returns to the map the user submitted from — no
@@ -5102,6 +5103,50 @@ function renderSuccessPlanLink(ride) {
   });
   block.appendChild(link);
   hmTrack("success_plan_link_shown", {});
+}
+
+// #1654 / EXP-1654: loggers are the only people we can reach who have actually been on the
+// road, so ask them one tap: did you plan this trip with our route planner? Once per device
+// per 7 days, below the share block (not in the ride form, so it cannot cost submissions).
+function renderSuccessPlannerQuestion(ride) {
+  const old = document.getElementById("success-planner-q");
+  if (old) old.remove();
+  const block = document.getElementById("success-share-block");
+  if (!block || !block.parentNode) return;
+  const KEY = "hm_ride_planner_q_at";
+  try {
+    const last = parseInt(localStorage.getItem(KEY) || "0", 10);
+    if (last && Date.now() - last < 7 * 86400000) return;
+  } catch (e) { return; }
+  const box = document.createElement("div");
+  box.id = "success-planner-q";
+  box.style.cssText = "margin-top:12px;font-size:13px;text-align:center;";
+  const q = document.createElement("div");
+  q.textContent = tr("Did you plan this trip with our route planner?");
+  q.style.cssText = "margin-bottom:6px;";
+  box.appendChild(q);
+  [["yes", "Yes"], ["no", "No"], ["unaware", "Didn't know there is one"]].forEach(function (a) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = tr(a[1]);
+    b.style.cssText = "margin:0 3px;padding:4px 10px;font-size:13px;";
+    b.onclick = function () {
+      try { localStorage.setItem(KEY, String(Date.now())); } catch (e) {}
+      hmTrack("ride_planner_used", { ans: a[0] });
+      box.textContent = "\u2713 " + tr("Thank you");
+      const [pa, pb, pc, pd] = ride ? [ride.pickupLat, ride.pickupLon, ride.destLat, ride.destLon].map(parseFloat) : [];
+      if (a[0] === "unaware" && [pa, pb, pc, pd].every(isFinite)) {
+        const l = document.createElement("a");
+        l.href = "/dir/" + pa.toFixed(5) + "," + pb.toFixed(5) + "/" + pc.toFixed(5) + "," + pd.toFixed(5) + "?ref=ride_saved_planner_q";
+        l.textContent = " " + tr("Try the route planner");
+        l.addEventListener("click", function () { hmTrack("ride_planner_q_link_clicked", {}); });
+        box.appendChild(l);
+      }
+    };
+    box.appendChild(b);
+  });
+  block.parentNode.insertBefore(box, block.nextSibling);
+  hmTrack("ride_planner_q_shown", {});
 }
 
 function renderDriverPledgeNudge() {

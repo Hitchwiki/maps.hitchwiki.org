@@ -1139,5 +1139,9 @@
   "{n} people opened your link": "{n} ember nyitotta meg a linkedet",
   "{n} joined through it": "{n} csatlakozott ezáltal",
   "Remind me the day I leave": "Emlékeztess a távozásom napján",
-  "Remind me in a week": "Emlékeztessen egy hét múlva"
+  "Remind me in a week": "Emlékeztessen egy hét múlva",
+  "Did you plan this trip with our route planner?": "Did you plan this trip with our route planner?",
+  "Thank you": "Thank you",
+  "Try the route planner": "Try the route planner",
+  "Didn't know there is one": "Didn't know there is one"
 }
