@@ -1056,7 +1056,15 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
             if (get(KV) === 'auto' && code === 'en') track('lang_auto_back_en', {});
         });
     });
-    if (get(KP) === '1') { set(KP, '0'); wrap('auto'); return; }
+    var pend = get(KP);
+    if (pend && pend !== '0') {
+        // The redirect throws away anything queued before it (Umami has not loaded yet), so the
+        // auto arm reports its assignment here, on the landing page.
+        set(KP, '0');
+        track('lang_auto_assigned', { variant: 'auto', lang: pend === '1' ? '' : pend });
+        wrap('auto');
+        return;
+    }
     var active = document.querySelector('#lang-picker .lang-picker-item.active');
     if (!active || active.getAttribute('hreflang') !== 'en') return;
     if (get(KS) || get(KC) || !set(KS, '1')) return;
@@ -1068,11 +1076,10 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
     if (!link) return;
     var variant = (window.hmVariant || function (_n, v) { return v[0]; })('lang-auto-v1', ['ctrl', 'auto']);
     set(KV, variant);
-    track('lang_auto_assigned', { variant: variant, lang: first });
-    if (variant !== 'auto') { wrap('ctrl'); return; }
+    if (variant !== 'auto') { track('lang_auto_assigned', { variant: variant, lang: first }); wrap('ctrl'); return; }
     var u = new URL(link.getAttribute('href'), location.origin);
     u.searchParams.delete('ref');
-    set(KP, '1');
+    set(KP, first);
     location.replace(u.pathname + u.search + location.hash);
 })();
 </script>
