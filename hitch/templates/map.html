@@ -122,6 +122,15 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
     // Now that there's a real Play Store app, Android users get a different pitch —
     // and their own dismissal key, so a dismissal of the old "add to home screen"
     // hint doesn't suppress the announcement of the app.
+    // #1645 (EXP-1645): telemetry only. Do Android browser visitors already have the Play app?
+    if (isAndroid && navigator.getInstalledRelatedApps && window.hmTrack) {
+        navigator.getInstalledRelatedApps().then(function (apps) {
+            window.hmTrack('app_installed_check', { result: apps && apps.length ? 'yes' : 'no' });
+        }).catch(function () { window.hmTrack('app_installed_check', { result: 'unsupported' }); });
+    } else if (isAndroid && window.hmTrack) {
+        window.hmTrack('app_installed_check', { result: 'unsupported' });
+    }
+
     var HINT_KEY = isAndroid ? 'androidAppHintDismissedAt' : 'installHintDismissedAt';
 
     try {
