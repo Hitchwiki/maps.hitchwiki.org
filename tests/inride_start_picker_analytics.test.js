@@ -171,3 +171,8 @@ test("the device fix is seeded silently from an already-granted permission only"
   assert.match(block, /status\.state !== "granted"\) return/);
   assert.match(SOURCE, /seedDeviceLocation\(\);\s*raceBanner\.check\(\)/);
 });
+
+test("a denied-permission start picker confirm/cancel also fires journey_start_picker_denied (IDEAS #1629)", () => {
+  assert.match(SOURCE, /details\.perm === "denied" && \(outcome === "confirmed" \|\| outcome === "cancelled"\)/);
+  assert.match(SOURCE, /hmTrack\("journey_start_picker_denied", \{ outcome: outcome \}\)/);
+});

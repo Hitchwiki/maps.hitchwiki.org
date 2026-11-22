@@ -3240,6 +3240,11 @@
         myLocation: true,
         onOutcome: function (outcome, details) {
           hmTrack("journey_start_picker", Object.assign({ outcome: outcome }, details));
+          // IDEAS #1629: Umami cannot cross-tab outcome x perm, so a denied-permission
+          // visitor's terminal outcome gets its own event (confirm rate of the ~190 denied).
+          if (details && details.perm === "denied" && (outcome === "confirmed" || outcome === "cancelled")) {
+            hmTrack("journey_start_picker_denied", { outcome: outcome });
+          }
         },
         onConfirm: (latlng) => journeyFlow.startFromChoose(latlng, "start-bar"),
       });
