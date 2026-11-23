@@ -1143,5 +1143,7 @@
   "Map (Latin labels)": "რუკა (ლათინური წარწერებით)",
   "Did you plan this trip with our route planner?": "ეს მოგზაურობა ჩვენი მარშრუტის დამგეგმავით დაგეგმე?",
   "Try the route planner": "სცადე მარშრუტის დამგეგმავი",
-  "Didn't know there is one": "არ ვიცოდი, რომ არსებობს"
+  "Didn't know there is one": "არ ვიცოდი, რომ არსებობს",
+  "Is this route easy to understand?": "ამ მარშრუტის გაგება მარტივია?",
+  "What was confusing or missing? (optional)": "რა იყო გაუგებარი ან აკლია? (არასავალდებულო)"
 }

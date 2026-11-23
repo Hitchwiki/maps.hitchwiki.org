@@ -1143,5 +1143,7 @@
   "Map (Latin labels)": "Kort (latinske navne)",
   "Did you plan this trip with our route planner?": "Planlagde du denne tur med vores ruteplanlægger?",
   "Try the route planner": "Prøv ruteplanlæggeren",
-  "Didn't know there is one": "Vidste ikke, der var en"
+  "Didn't know there is one": "Vidste ikke, der var en",
+  "Is this route easy to understand?": "Er denne rute nem at forstå?",
+  "What was confusing or missing? (optional)": "Hvad var forvirrende eller manglende? (valgfrit)"
 }

@@ -11,16 +11,21 @@ from datetime import datetime, timezone
 from hitch.helpers import dirs
 
 ROUTE_FEEDBACK_LOG_PATH = os.path.join(dirs["root"], "logs", "route_feedback.csv")
+# Till 2026-11-23: the second ask ("is this route easy to understand?") is about how the result is shown, not the
+# route itself, so it gets its own file: mixing them would make a 👎 on the layout look like a bad route.
+ROUTE_PRESENTATION_FEEDBACK_LOG_PATH = os.path.join(dirs["root"], "logs", "route_presentation_feedback.csv")
 
 _HEADER = ["timestamp", "start_lat", "start_lon", "dest_lat", "dest_lon", "vote", "text", "auto"]
 
 
-def log_route_feedback(start_lat, start_lon, dest_lat, dest_lon, vote, text="", auto=0):
+def log_route_feedback(start_lat, start_lon, dest_lat, dest_lon, vote, text="", auto=0, aspect="route"):
     """Record one vote. Never raises: logging must not break the beacon request."""
+    # Module attributes are read at call time so tests can monkeypatch either path.
+    path = ROUTE_PRESENTATION_FEEDBACK_LOG_PATH if aspect == "presentation" else ROUTE_FEEDBACK_LOG_PATH
     try:
-        os.makedirs(os.path.dirname(ROUTE_FEEDBACK_LOG_PATH), exist_ok=True)
-        write_header = not os.path.exists(ROUTE_FEEDBACK_LOG_PATH) or os.path.getsize(ROUTE_FEEDBACK_LOG_PATH) == 0
-        with open(ROUTE_FEEDBACK_LOG_PATH, "a", newline="", encoding="utf-8") as f:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        write_header = not os.path.exists(path) or os.path.getsize(path) == 0
+        with open(path, "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             if write_header:
                 writer.writerow(_HEADER)

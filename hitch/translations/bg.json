@@ -1143,5 +1143,7 @@
   "Map (Latin labels)": "Карта (латински надписи)",
   "Did you plan this trip with our route planner?": "Планира ли това пътуване с нашия планер за маршрути?",
   "Try the route planner": "Опитай планера за маршрути",
-  "Didn't know there is one": "Не знаех, че има такъв"
+  "Didn't know there is one": "Не знаех, че има такъв",
+  "Is this route easy to understand?": "Лесно ли се разбира този маршрут?",
+  "What was confusing or missing? (optional)": "Какво беше объркващо или липсваше? (по избор)"
 }

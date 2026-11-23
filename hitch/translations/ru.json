@@ -1143,5 +1143,7 @@
   "Map (Latin labels)": "Карта (латинские названия)",
   "Did you plan this trip with our route planner?": "Вы планировали эту поездку с нашим планировщиком маршрутов?",
   "Try the route planner": "Попробовать планировщик маршрутов",
-  "Didn't know there is one": "Не знал(а), что он есть"
+  "Didn't know there is one": "Не знал(а), что он есть",
+  "Is this route easy to understand?": "Легко ли понять этот маршрут?",
+  "What was confusing or missing? (optional)": "Что было непонятно или чего не хватало? (необязательно)"
 }
