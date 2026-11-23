@@ -75,6 +75,29 @@ def test_recap_email_links_to_the_recap_with_ref_and_own_campaign(app, monkeypat
     assert "/insights/Tramper/2026?ref=recap-email" in str(payload)
 
 
+def test_recap_email_link_encodes_unusual_usernames(app, monkeypatch):
+    captured = {}
+
+    class _Resp:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"results": {"id": "t"}}
+
+    def fake_post(url, headers, json, timeout):
+        captured["json"] = json
+        return _Resp()
+
+    monkeypatch.setattr(swe.requests, "post", fake_post)
+    user = MagicMock(email="t@example.com", username="Tom #1 Müller?")
+    with app.test_request_context():
+        send_year_recap_email(user, 2026)
+    body = str(captured["json"])
+    assert "/insights/Tom%20%231%20M%C3%BCller%3F/2026?ref=recap-email" in body
+    assert "/insights/Tom #1" not in body
+
+
 def test_ensure_user_columns_adds_column_once():
     from sqlalchemy import create_engine, inspect, text
 
