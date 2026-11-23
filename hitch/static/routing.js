@@ -924,7 +924,7 @@
       box.textContent = all
         ? T("Likely there before dark (sunset {clock})", { clock: clock })
         : T("Dark around {clock} · likely about {km} km before then", { clock: clock, km: Math.round(r.likely) });
-      const anchor = sheet.querySelector(".rp-feedback") || sheet.querySelector(".rp-options");
+      const anchor = sheet.querySelector(".rp-addon-anchor") || sheet.querySelector(".rp-options");
       if (!anchor) return;
       anchor.insertAdjacentElement("beforebegin", box);
       hmTrack("route_daylight_shown", { arm: arm, reach_all: all, waits: legModel ? "route" : "flat", lang: (typeof window !== "undefined" && window.__LANG__) || "en" });
@@ -958,7 +958,7 @@
         arm = Math.random() < 0.5 ? "on" : "off";
         try { localStorage.setItem("route-drive-v1", arm); } catch (e) {}
       }
-      const anchor = sheet.querySelector(".rp-feedback") || sheet.querySelector(".rp-options");
+      const anchor = sheet.querySelector(".rp-addon-anchor") || sheet.querySelector(".rp-options");
       if (!anchor) return;
       // #1545: of the "on" arm, half see the box directly above the Start CTA (top) instead of under the options.
       const pos = arm === "on" ? hmVariant("route-drive-pos-v1", ["bottom", "top"]) : "bottom";
@@ -1031,7 +1031,7 @@
         const hit = window.WikiExit.pick(cities, from, to, 12);
         if (!hit) return;
         hmTrack("route_wiki_exit_eligible", { arm: arm, lang: lang });
-        const fb = sheet.querySelector(".rp-feedback") || sheet.querySelector(".rp-options");
+        const fb = sheet.querySelector(".rp-addon-anchor") || sheet.querySelector(".rp-options");
         if (!fb || sheet.querySelector(".rp-wikiexit")) return;
         const row = document.createElement("div");
         row.className = "rp-wikiexit";
@@ -1054,7 +1054,7 @@
   function showRouteReminder() {
     try {
       const sheet = resultsSheet();
-      const anchor = sheet && (sheet.querySelector(".rp-feedback") || sheet.querySelector(".rp-options"));
+      const anchor = sheet && (sheet.querySelector(".rp-addon-anchor") || sheet.querySelector(".rp-options"));
       if (!anchor || !RJ.start || !RJ.dest) return;
       const old = sheet.querySelector(".rp-reminder");
       if (old) old.remove();
@@ -1099,13 +1099,39 @@
     const old = sheet.querySelector(".rp-feedback");
     if (old) old.remove();
     const from = RJ.start.latlng, to = RJ.dest.latlng;
-    const box = buildFeedbackCard("rp-feedback", T("Is this a good hitchhiking route?"), T("What would you change? (optional)"));
-    // EXP-1347: the ask sat under the route list, below the fold on a phone (7 votes vs ~3000 routes found per 28 d).
-    // "top" arm places it right under the Start button, above the intent chips.
-    const fbArm = hmVariant("route-fb-pos-v1", ["control", "top"]);
-    const intentEl = sheet.querySelector(".rp-intent");
-    if (fbArm === "top" && intentEl) intentEl.insertAdjacentElement("beforebegin", box);
-    else opts.insertAdjacentElement("afterend", box);
+    // Till 2026-11-23 ("feedback needs to be more prominent"): measured on a 390x800 phone, the sheet opens showing
+    // only the "Routes" head and the Start button; EXP-1347's "top" arm sat at y≈755 (behind the bottom nav) and
+    // "control" at y≈1960. Only ~15% of people who got a route ever saw the ask. It is now a slim pill right under the
+    // "Routes" head (≈40 px, the Start button stays in view), seen the moment a route appears. Inside the head row it
+    // wrapped the long "Going with someone?" share label onto a second line (+75 px). The comment box opens under the
+    // pill only after a vote. The placement test ends: arm is "head" for everyone.
+    const box = document.createElement("div");
+    box.className = "rp-feedback rp-fb-inline";
+    box.innerHTML = `<span class="rp-fb-q">${T("Good route?")}</span>
+      <button type="button" data-v="up" aria-label="${T("Yes")}" title="${T("Is this a good hitchhiking route?")}">👍</button>
+      <button type="button" data-v="down" aria-label="${T("No")}" title="${T("Is this a good hitchhiking route?")}">👎</button>`;
+    const moreCard = document.createElement("div");
+    moreCard.className = "rp-feedback-card rp-fb-more-card";
+    moreCard.hidden = true;
+    moreCard.innerHTML = `<div class="rp-feedback-more">
+        <textarea maxlength="300" rows="2" placeholder="${T("What would you change? (optional)")}"></textarea>
+        <button type="button" class="rp-feedback-send">${T("Send")}</button>
+      </div>`;
+    const oldMore = sheet.querySelector(".rp-fb-more-card");
+    if (oldMore) oldMore.remove();
+    const fbArm = "head";
+    // The reminder / daylight / wiki / driver add-ons used to position themselves around the ask, which sat after
+    // the route list. They now anchor on this empty marker in that same spot, so moving the ask up does not drag
+    // them above the Start button.
+    const oldAnchor = sheet.querySelector(".rp-addon-anchor");
+    if (oldAnchor) oldAnchor.remove();
+    const addonAnchor = document.createElement("div");
+    addonAnchor.className = "rp-addon-anchor";
+    opts.insertAdjacentElement("afterend", addonAnchor);
+    const head = sheet.querySelector(".rp-sheet-head");
+    if (head) head.insertAdjacentElement("afterend", box);
+    else opts.insertAdjacentElement("beforebegin", box);
+    box.insertAdjacentElement("afterend", moreCard);
     // Denominator the vote rate never had: the box actually scrolled into view (once per box).
     try {
       if (window.IntersectionObserver) {
@@ -1128,7 +1154,6 @@
         if (navigator.sendBeacon) navigator.sendBeacon("/log-route-feedback", new Blob([body], { type: "application/json" }));
       } catch (e) { /* feedback must never break routing */ }
     };
-    const more = box.querySelector(".rp-feedback-more");
     box.querySelectorAll("button[data-v]").forEach((b) => {
       b.onclick = () => {
         if (vote) return;
@@ -1144,13 +1169,13 @@
         } catch (e) { /* analytics must never break routing */ }
         post("");
         markFeedbackPicked(box, b);
-        more.hidden = false;
+        moreCard.hidden = false;
       };
     });
-    box.querySelector(".rp-feedback-send").onclick = () => {
-      const text = (box.querySelector("textarea").value || "").trim();
+    moreCard.querySelector(".rp-feedback-send").onclick = () => {
+      const text = (moreCard.querySelector("textarea").value || "").trim();
       if (text) { hmTrack("route_feedback_text"); post(text); }
-      feedbackThanks(box);
+      feedbackThanks(moreCard);
     };
   }
 
