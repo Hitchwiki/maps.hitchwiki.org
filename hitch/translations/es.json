@@ -1143,5 +1143,7 @@
   "Map (Latin labels)": "Mapa (etiquetas en alfabeto latino)",
   "Did you plan this trip with our route planner?": "¿Planificaste este viaje con nuestro planificador de rutas?",
   "Try the route planner": "Probar el planificador de rutas",
-  "Didn't know there is one": "No sabía que existía"
+  "Didn't know there is one": "No sabía que existía",
+  "Is this route easy to understand?": "¿Es fácil de entender esta ruta?",
+  "What was confusing or missing? (optional)": "¿Qué resultó confuso o faltaba? (opcional)"
 }

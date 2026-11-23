@@ -1143,5 +1143,7 @@
   "Map (Latin labels)": "Kaart (ladina tähestikus sildid)",
   "Did you plan this trip with our route planner?": "Kas planeerisid selle reisi meie marsruudi planeerijaga?",
   "Try the route planner": "Proovi marsruudi planeerijat",
-  "Didn't know there is one": "Ei teadnud, et selline olemas on"
+  "Didn't know there is one": "Ei teadnud, et selline olemas on",
+  "Is this route easy to understand?": "Kas see marsruut on kergesti arusaadav?",
+  "What was confusing or missing? (optional)": "Mis oli segane või puudus? (valikuline)"
 }

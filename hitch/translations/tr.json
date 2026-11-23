@@ -1143,5 +1143,7 @@
   "Map (Latin labels)": "Harita (Latin etiketler)",
   "Did you plan this trip with our route planner?": "Bu yolculuğu rota planlayıcımızla planladınız mı?",
   "Try the route planner": "Rota planlayıcısını dene",
-  "Didn't know there is one": "Olduğunu bilmiyordum"
+  "Didn't know there is one": "Olduğunu bilmiyordum",
+  "Is this route easy to understand?": "Bu güzergah kolay anlaşılır mı?",
+  "What was confusing or missing? (optional)": "Kafa karıştırıcı veya eksik olan neydi? (isteğe bağlı)"
 }

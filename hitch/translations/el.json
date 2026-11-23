@@ -1143,5 +1143,7 @@
   "Map (Latin labels)": "Χάρτης (λατινικές επιγραφές)",
   "Did you plan this trip with our route planner?": "Σχεδίασες αυτό το ταξίδι με τον σχεδιαστή διαδρομών μας;",
   "Try the route planner": "Δοκίμασε τον σχεδιαστή διαδρομών",
-  "Didn't know there is one": "Δεν ήξερα ότι υπάρχει"
+  "Didn't know there is one": "Δεν ήξερα ότι υπάρχει",
+  "Is this route easy to understand?": "Είναι εύκολο να κατανοηθεί αυτή η διαδρομή;",
+  "What was confusing or missing? (optional)": "Τι ήταν μπερδεμένο ή έλειπε; (προαιρετικό)"
 }

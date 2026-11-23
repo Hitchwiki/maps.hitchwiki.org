@@ -1143,5 +1143,7 @@
   "Map (Latin labels)": "Karta (latinska etiketter)",
   "Did you plan this trip with our route planner?": "Planerade du den här resan med vår ruttplanerare?",
   "Try the route planner": "Prova ruttplaneraren",
-  "Didn't know there is one": "Visste inte att den fanns"
+  "Didn't know there is one": "Visste inte att den fanns",
+  "Is this route easy to understand?": "Är den här rutten lätt att förstå?",
+  "What was confusing or missing? (optional)": "Vad var förvirrande eller saknades? (valfritt)"
 }

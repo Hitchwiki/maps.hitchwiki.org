@@ -1143,5 +1143,7 @@
   "Map (Latin labels)": "Zemljevid (latinski napisi)",
   "Did you plan this trip with our route planner?": "Si to pot načrtoval z našim načrtovalcem rut?",
   "Try the route planner": "Poskusi načrtovala rut",
-  "Didn't know there is one": "Nisem vedel, da obstaja"
+  "Didn't know there is one": "Nisem vedel, da obstaja",
+  "Is this route easy to understand?": "Ali je ta pot enostavna za razumevanje?",
+  "What was confusing or missing? (optional)": "Kaj je bilo zmedeno ali manjkajoče? (neobvezno)"
 }
