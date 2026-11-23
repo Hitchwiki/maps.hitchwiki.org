@@ -312,6 +312,7 @@
   RJ.showAgain = showAgain;
   RJ.openBetween = openBetween;
   RJ.openTo = openTo;
+  RJ.openFrom = openFrom;
   // Test-only hook: the routing graph builder and Dijkstra core have no DOM
   // dependency, so headless tests exercise them directly (see
   // tests/routing_wait_fallback.test.js and the CLAUDE.md note on running
@@ -1621,6 +1622,15 @@
     open();
     if (!RJ.dest) setPoint("dest", to, label || coordLabel(to));
     if (!RJ.start) setTimeout(() => fieldInput("start") && fieldInput("start").focus(), 60);
+  }
+  // Till 2026-11-23: planner opened from a spot (map.js spot-cluster nudge). The spot is the start and focus moves
+  // to the destination; start_src "spot_nudge" on route_searched tells these searches apart.
+  function openFrom(from, label) {
+    open();
+    RJ._nextSrc = "spot_nudge";
+    setPoint("start", from, label || coordLabel(from));
+    if (!label) reverseLabel("start", from);
+    setTimeout(() => fieldInput("dest") && fieldInput("dest").focus(), 60);
   }
   function coordLabel(ll) { return ll[0].toFixed(4) + ", " + ll[1].toFixed(4); }
   function reverseLabel(field, ll) {

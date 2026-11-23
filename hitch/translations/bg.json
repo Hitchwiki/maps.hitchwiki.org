@@ -1145,5 +1145,8 @@
   "Try the route planner": "Опитай планера за маршрути",
   "Didn't know there is one": "Не знаех, че има такъв",
   "Is this route easy to understand?": "Лесно ли се разбира този маршрут?",
-  "What was confusing or missing? (optional)": "Какво беше объркващо или липсваше? (по избор)"
+  "What was confusing or missing? (optional)": "Какво беше объркващо или липсваше? (по избор)",
+  "Hitchhiking out of this area?": "Стопиране извън тази зона?",
+  "See the best spots along your way to the destination.": "Вижте най-добрите места по пътя ви към дестинацията.",
+  "Plan a route from here": "Планирайте маршрут оттук"
 }

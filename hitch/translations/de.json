@@ -1145,5 +1145,8 @@
   "Your route can improve the map for other hitchhikers. Only town names are saved, not your track.": "Deine Route kann die Karte für andere Tramper verbessern. Es werden nur Ortsnamen gespeichert, nicht dein Weg.",
   "Map (Latin labels)": "Karte (lateinische Beschriftung)",
   "Is this route easy to understand?": "Ist diese Route leicht verständlich?",
-  "What was confusing or missing? (optional)": "Was war verwirrend oder hat gefehlt? (optional)"
+  "What was confusing or missing? (optional)": "Was war verwirrend oder hat gefehlt? (optional)",
+  "Hitchhiking out of this area?": "Willst du von hier aus trampen?",
+  "See the best spots along your way to the destination.": "Sieh dir die besten Spots auf deinem Weg zum Ziel an.",
+  "Plan a route from here": "Route von hier planen"
 }

@@ -1145,5 +1145,8 @@
   "Try the route planner": "Vyzkoušet plánovač tras",
   "Didn't know there is one": "Nevěděl(a) jsem, že existuje",
   "Is this route easy to understand?": "Je tato trasa snadno srozumitelná?",
-  "What was confusing or missing? (optional)": "Co bylo matoucí nebo chybělo? (nepovinné)"
+  "What was confusing or missing? (optional)": "Co bylo matoucí nebo chybělo? (nepovinné)",
+  "Hitchhiking out of this area?": "Stopuješ mimo tuto oblast?",
+  "See the best spots along your way to the destination.": "Podívej se na nejlepší místa po cestě k cíli.",
+  "Plan a route from here": "Naplánovat odsud trasu"
 }

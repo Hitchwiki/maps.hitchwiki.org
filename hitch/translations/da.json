@@ -1145,5 +1145,8 @@
   "Try the route planner": "Prøv ruteplanlæggeren",
   "Didn't know there is one": "Vidste ikke, der var en",
   "Is this route easy to understand?": "Er denne rute nem at forstå?",
-  "What was confusing or missing? (optional)": "Hvad var forvirrende eller manglende? (valgfrit)"
+  "What was confusing or missing? (optional)": "Hvad var forvirrende eller manglende? (valgfrit)",
+  "Hitchhiking out of this area?": "Lift ud af dette område?",
+  "See the best spots along your way to the destination.": "Se de bedste steder langs din vej mod destinationen.",
+  "Plan a route from here": "Planlæg en rute herfra"
 }

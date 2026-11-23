@@ -3317,6 +3317,79 @@ document.addEventListener("click", (e) => {
   if (e.target.closest("#country-sheet-cta")) hmTrack("country_wiki_lead_clicked");
 });
 
+// Till 2026-11-23: someone who opens several spots in one area is probably about to hitchhike out of it, which is
+// the moment the route planner is most useful. After SPOT_NUDGE_MIN_SPOTS distinct spots within SPOT_NUDGE_RADIUS_KM
+// in one browser session, the spot sheet offers "Plan a route from here" (start = this spot). The spot trail lives in
+// sessionStorage only and never leaves the browser; events carry no coordinates. Stable 50/50 arm (spot-plan-nudge-v1)
+// so planner use can be compared against eligible visitors who did not see it. A close hides it for 7 days.
+const SPOT_NUDGE_MIN_SPOTS = 3;
+const SPOT_NUDGE_RADIUS_KM = 25;
+const SPOT_NUDGE_SNOOZE_MS = 7 * 864e5;
+function spotNudgeKm(a, b) {
+  const r = Math.PI / 180, dLat = (b.lat - a.lat) * r, dLon = (b.lon - a.lon) * r;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dLon / 2) ** 2;
+  return 12742 * Math.asin(Math.sqrt(h));
+}
+function maybeShowSpotPlanNudge(marker, data) {
+  try {
+    const old = document.getElementById("spot-plan-nudge");
+    if (old) old.remove();
+    if (!data || !isFinite(data.lat) || !isFinite(data.lon)) return;
+    const id = data.lat.toFixed(5) + "_" + data.lon.toFixed(5);
+    let trail = [];
+    try { trail = JSON.parse(sessionStorage.getItem("hm_spot_trail") || "[]"); } catch (e) { trail = []; }
+    if (!Array.isArray(trail)) trail = [];
+    trail = trail.filter((s) => s && s.id !== id);
+    trail.push({ id: id, lat: data.lat, lon: data.lon });
+    trail = trail.slice(-12);
+    try { sessionStorage.setItem("hm_spot_trail", JSON.stringify(trail)); } catch (e) { /* private mode: no trail */ }
+    const nearby = trail.filter((s) => spotNudgeKm(s, data) <= SPOT_NUDGE_RADIUS_KM).length;
+    if (nearby < SPOT_NUDGE_MIN_SPOTS) return;
+    if (!window.RoutingUI || !window.RoutingUI.openFrom || window.RoutingUI.active) return;
+    try {
+      if (Date.now() - Number(localStorage.getItem("hm_spot_plan_nudge_snooze") || 0) < SPOT_NUDGE_SNOOZE_MS) return;
+    } catch (e) { /* storage blocked: still eligible */ }
+    const arm = window.hmVariant ? window.hmVariant("spot-plan-nudge-v1", ["control", "show"]) : "control";
+    // One eligibility event per session and arm: the denominator for both arms.
+    try {
+      if (!sessionStorage.getItem("hm_spot_plan_nudge_elig")) {
+        sessionStorage.setItem("hm_spot_plan_nudge_elig", "1");
+        hmTrack("spot_plan_nudge_eligible", { arm: arm });
+      }
+    } catch (e) { /* analytics only */ }
+    if (arm !== "show") return;
+    const anchor = document.getElementById("spot-contribute");
+    if (!anchor) return;
+    const box = document.createElement("div");
+    box.id = "spot-plan-nudge";
+    box.className = "spot-plan-nudge";
+    box.innerHTML =
+      '<button type="button" class="spot-plan-nudge-x" aria-label="' + tr("Close") + '">×</button>' +
+      '<div class="spot-plan-nudge-q">' + tr("Hitchhiking out of this area?") + "</div>" +
+      '<div class="spot-plan-nudge-sub">' + tr("See the best spots along your way to the destination.") + "</div>" +
+      '<button type="button" class="spot-plan-nudge-go"><i class="fa-solid fa-route" aria-hidden="true"></i> ' +
+      tr("Plan a route from here") + "</button>";
+    anchor.insertAdjacentElement("afterend", box);
+    hmTrack("spot_plan_nudge_shown", { n: Math.min(nearby, 9) });
+    box.querySelector(".spot-plan-nudge-x").onclick = () => {
+      try { localStorage.setItem("hm_spot_plan_nudge_snooze", String(Date.now())); } catch (e) {}
+      hmTrack("spot_plan_nudge_dismissed");
+      box.remove();
+    };
+    box.querySelector(".spot-plan-nudge-go").onclick = () => {
+      hmTrack("spot_plan_nudge_clicked");
+      const from = marker.getLatLng();
+      const label = (data.name || "").trim();
+      // Same hand-off as the ride-destination "Route" button below: drop the spot pane first.
+      clearSpotUrl();
+      bar();
+      active = [];
+      renderPoints();
+      window.RoutingUI.openFrom([from.lat, from.lng], label || null);
+    };
+  } catch (e) { /* the nudge must never break the spot pane */ }
+}
+
 // "Route" on a pinned ride destination: open the planner from this spot to that place.
 // The spot pane and its arrows are dropped first so they do not sit over the route.
 document.addEventListener("click", (e) => {
@@ -3921,6 +3994,7 @@ function markerClick(marker) {
   });
 
   renderSpotSummary(data);
+  maybeShowSpotPlanNudge(marker, data);
 
   // "Hitch here" — start a tracked ride from THIS spot's canonical coordinates via the
   // in-ride flow (same entry as the long-press "Start Hitching", incl. the soft login

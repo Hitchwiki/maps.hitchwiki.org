@@ -1145,5 +1145,8 @@
   "Try the route planner": "ルートプランナーを試す",
   "Didn't know there is one": "存在を知りませんでした",
   "Is this route easy to understand?": "このルートは分かりやすいですか？",
-  "What was confusing or missing? (optional)": "何が分かりにくかったですか、または何が不足していましたか？（任意）"
+  "What was confusing or missing? (optional)": "何が分かりにくかったですか、または何が不足していましたか？（任意）",
+  "Hitchhiking out of this area?": "このエリアからヒッチハイクしますか？",
+  "See the best spots along your way to the destination.": "目的地までの道沿いの最適なスポットをご覧ください。",
+  "Plan a route from here": "ここからルートを計画する"
 }
