@@ -1143,5 +1143,8 @@
   "Yes, start the timer": "Ja, Timer starten",
   "Add the towns you passed?": "Die durchfahrenen Orte hinzufügen?",
   "Your route can improve the map for other hitchhikers. Only town names are saved, not your track.": "Deine Route kann die Karte für andere Tramper verbessern. Es werden nur Ortsnamen gespeichert, nicht dein Weg.",
-  "Map (Latin labels)": "Karte (lateinische Beschriftung)"
+  "Map (Latin labels)": "Karte (lateinische Beschriftung)",
+  "Hitchhiking out of this area?": "Willst du von hier aus trampen?",
+  "See the best spots along your way to the destination.": "Sieh dir die besten Spots auf deinem Weg zum Ziel an.",
+  "Plan a route from here": "Route von hier planen"
 }

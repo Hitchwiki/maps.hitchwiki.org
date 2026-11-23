@@ -4681,3 +4681,21 @@ a.acct-ride__warn:hover { color: #b98900; }
 .hm-share-hidden #success-share-block .share-card-frame,
 .hm-share-hidden #success-share-block .share-card-caption,
 .hm-share-hidden #success-share-btn { display: none !important }
+
+/* Till 2026-11-23: "Plan a route from here" card in the spot sheet after several spots in one area. */
+.spot-plan-nudge {
+  position: relative; margin: 10px 0; padding: 12px 36px 12px 14px;
+  border: 1px solid #cfe0f3; border-radius: 12px; background: #f2f7fd; color: #234;
+  font-size: 14px;
+}
+.spot-plan-nudge-q { font-weight: 600; }
+.spot-plan-nudge-sub { margin: 2px 0 10px; color: #4a5a6a; font-size: 13px; }
+.spot-plan-nudge button.spot-plan-nudge-go {
+  width: auto; margin: 0; padding: 8px 14px; border: 0; border-radius: 999px;
+  background: #2f80ed; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.spot-plan-nudge button.spot-plan-nudge-go:hover { background: #1f6fd8; }
+.spot-plan-nudge button.spot-plan-nudge-x {
+  position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; margin: 0; padding: 0;
+  border: 0; background: transparent; color: #6a7a8a; font-size: 20px; line-height: 1; cursor: pointer;
+}
