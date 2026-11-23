@@ -225,7 +225,15 @@
       if (destSpots.has(spot)) { const t = d + wmin(destSpots.get(spot));
         if (t < best) { best = t; prev.set(DEST, [st, "walk", destSpots.get(spot), 0]); } }
     }
-    if (best === Infinity) return { found: false };
+    if (best === Infinity) {
+      // #1669: remember the reached spot nearest the destination (where the logged network stops),
+      // so a "gap in the middle" can be logged as a coarse cell + km. Records data only.
+      let g = null;
+      dist.forEach((_t, st) => { const sp = R.spots[Math.floor(st / M)]; if (!sp) return;
+        const km = haversineKm(sp, dest); if (!g || km < g.km) g = { lat: sp[0], lon: sp[1], km: km }; });
+      R.lastGap = g;
+      return { found: false };
+    }
     const markOf = (n) => (n === ORIGIN || n === DEST) ? n : Math.floor(n / M);
     const coord = (m) => m === ORIGIN ? start : m === DEST ? dest : R.spots[m];
     const raw = []; const carEdges = new Set(); let node = DEST;
@@ -261,6 +269,7 @@
   // Up to k sufficiently-different routes (penalty method).
   function alternatives(R, start, dest, maxWalk, k, maxOverlap) {
     const pen = new Map(), kept = [], keptEdges = [];
+    R.lastGap = null;  // #1669: only a failed route() in this call may set it
     for (let attempt = 0; attempt < k * 8 && kept.length < k; attempt++) {
       const res = route(R, start, dest, maxWalk, pen);
       if (!res.found) break;
@@ -843,6 +852,8 @@
           const props = { reason: reason };
           if (reason === "start-uncovered" || reason === "both-uncovered") props.start_cell = cell(from);
           if (reason === "dest-uncovered" || reason === "both-uncovered") props.dest_cell = cell(to);
+          const gp = FB && FB.lastGap;
+          if (reason === "gap-in-middle" && gp) { props.gap_cell = gp.lat.toFixed(1) + "," + gp.lon.toFixed(1); props.gap_km = Math.round(gp.km / 10) * 10; }
           hmTrack('route_none', props);
           logRouteOutcome('none', '', 0, reason);
           setStatus(diagnoseNoRoute(FB || RJ.router, from, to, DEFAULT_MAX_WALK, !!FB));
