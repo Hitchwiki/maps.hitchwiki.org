@@ -12,7 +12,7 @@ from hitch.blueprints.utils.route_demand import (
     summarise_route_outcomes,
     summarise_search_gaps,
 )
-from hitch.blueprints.utils.route_feedback_log import ROUTE_FEEDBACK_LOG_PATH
+from hitch.blueprints.utils.route_feedback_log import ROUTE_FEEDBACK_LOG_PATH, ROUTE_PRESENTATION_FEEDBACK_LOG_PATH
 from hitch.blueprints.utils.route_outcome_log import ROUTE_OUTCOME_LOG_PATH
 from hitch.blueprints.utils.route_request_log import ROUTE_REQUEST_LOG_PATH
 from hitch.blueprints.utils.search_request_log import SEARCH_REQUEST_LOG_PATH
@@ -20,7 +20,11 @@ from hitch.helpers import dirs, logger, write_json_file
 
 write_json_file(summarise_route_demand(read_route_requests(ROUTE_REQUEST_LOG_PATH)), "route_demand.json")
 write_json_file(summarise_filter_demand(read_route_requests(FILTER_REQUEST_LOG_PATH)), "filter_demand.json")
-write_json_file(summarise_route_feedback(read_route_requests(ROUTE_FEEDBACK_LOG_PATH)), "route_feedback.json")
+_feedback = summarise_route_feedback(read_route_requests(ROUTE_FEEDBACK_LOG_PATH))
+# Counts only for the presentation ask too (free text stays server-side), nested so existing readers are unaffected.
+_ui = summarise_route_feedback(read_route_requests(ROUTE_PRESENTATION_FEEDBACK_LOG_PATH))
+_feedback["presentation"] = {k: _ui[k] for k in ("votes_up", "votes_down", "with_text", "excluded_auto")}
+write_json_file(_feedback, "route_feedback.json")
 write_json_file(summarise_route_outcomes(read_route_requests(ROUTE_OUTCOME_LOG_PATH)), "route_outcomes.json")
 
 try:

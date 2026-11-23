@@ -880,6 +880,7 @@
     showWikiExit();
     showRouteDaylight();
     showRouteDriver();
+    showPresentationFeedback();
   }
 
   // IDEAS #1317 (routing-gang phase B): "Dark around HH:MM, likely about X km today" under the result,
@@ -1098,16 +1099,7 @@
     const old = sheet.querySelector(".rp-feedback");
     if (old) old.remove();
     const from = RJ.start.latlng, to = RJ.dest.latlng;
-    const box = document.createElement("div");
-    box.className = "rp-feedback";
-    box.style.cssText = "margin:8px 12px;font-size:14px";
-    box.innerHTML = `<span>${T("Is this a good hitchhiking route?")}</span>
-      <button type="button" data-v="up" aria-label="${T("Yes")}" style="font-size:18px;margin-left:8px">👍</button>
-      <button type="button" data-v="down" aria-label="${T("No")}" style="font-size:18px">👎</button>
-      <div class="rp-feedback-more" hidden style="margin-top:6px">
-        <textarea maxlength="300" rows="2" style="width:100%" placeholder="${T("What would you change? (optional)")}"></textarea>
-        <button type="button" class="rp-feedback-send">${T("Send")}</button>
-      </div>`;
+    const box = buildFeedbackCard("rp-feedback", T("Is this a good hitchhiking route?"), T("What would you change? (optional)"));
     // EXP-1347: the ask sat under the route list, below the fold on a phone (7 votes vs ~3000 routes found per 28 d).
     // "top" arm places it right under the Start button, above the intent chips.
     const fbArm = hmVariant("route-fb-pos-v1", ["control", "top"]);
@@ -1151,15 +1143,91 @@
           hmTrack("route_judged", { answer: vote === "up" ? "yes" : "no", of: RJ.routes.length, a_cell: cell(from), b_cell: cell(to), prior: prior, intent: (picked && picked.dataset.intent) || "none", ref: (window.hmLandingRef || "").slice(0, 40) });
         } catch (e) { /* analytics must never break routing */ }
         post("");
-        box.querySelectorAll("button[data-v]").forEach((x) => { x.disabled = true; });
+        markFeedbackPicked(box, b);
         more.hidden = false;
       };
     });
     box.querySelector(".rp-feedback-send").onclick = () => {
       const text = (box.querySelector("textarea").value || "").trim();
       if (text) { hmTrack("route_feedback_text"); post(text); }
-      box.innerHTML = `<span>${T("Thanks!")}</span>`;
+      feedbackThanks(box);
     };
+  }
+
+  // Till 2026-11-23: the route ask was a line of plain text with two bare emoji (2 votes from 47 people who saw it
+  // in 12 days). Both asks now share one card: a bordered box, a bold question, and labelled Yes/No buttons.
+  function buildFeedbackCard(cls, question, placeholder) {
+    const box = document.createElement("div");
+    box.className = "rp-feedback-card " + cls;
+    box.innerHTML = `<div class="rp-fb-q">${question}</div>
+      <div class="rp-fb-btns">
+        <button type="button" data-v="up"><span aria-hidden="true">👍</span> ${T("Yes")}</button>
+        <button type="button" data-v="down"><span aria-hidden="true">👎</span> ${T("No")}</button>
+      </div>
+      <div class="rp-feedback-more" hidden>
+        <textarea maxlength="300" rows="2" placeholder="${placeholder}"></textarea>
+        <button type="button" class="rp-feedback-send">${T("Send")}</button>
+      </div>`;
+    return box;
+  }
+  function markFeedbackPicked(box, picked) {
+    box.querySelectorAll("button[data-v]").forEach((x) => { x.disabled = true; x.classList.toggle("rp-fb-picked", x === picked); });
+  }
+  function feedbackThanks(box) {
+    box.classList.add("rp-fb-done");
+    box.innerHTML = `<div class="rp-fb-thanks"><span aria-hidden="true">✓</span> ${T("Thanks!")}</div>`;
+  }
+
+  // Till 2026-11-23: a second, separate ask about how the result is *shown* (labels, map lines, the list), so a
+  // 👎 on presentation is not read as a 👎 on the route itself. It sits at the bottom of the results, i.e. it is
+  // asked after someone has looked through the options. Same anonymous beacon, tagged aspect=presentation, which
+  // the server logs to its own file (logs/route_presentation_feedback.csv).
+  function showPresentationFeedback() {
+    try {
+      const sheet = resultsSheet();
+      const body = sheet && sheet.querySelector(".sheet-body");
+      if (!body || !body.querySelector(".rp-options") || !RJ.start || !RJ.dest) return;
+      const old = body.querySelector(".rp-feedback-ui");
+      if (old) old.remove();
+      const from = RJ.start.latlng, to = RJ.dest.latlng;
+      const box = buildFeedbackCard("rp-feedback-ui", T("Is this route easy to understand?"), T("What was confusing or missing? (optional)"));
+      body.appendChild(box);
+      const lang = document.documentElement.lang || "";
+      if (window.IntersectionObserver) {
+        const io = new IntersectionObserver((es) => {
+          if (es.some((e) => e.isIntersecting)) { io.disconnect(); hmTrack("route_ui_feedback_seen", { lang: lang }); }
+        }, { threshold: 0.6 });
+        io.observe(box);
+      }
+      let vote = null;
+      const post = (text) => {
+        try {
+          const payload = JSON.stringify({
+            slat: +from[0].toFixed(3), slon: +from[1].toFixed(3),
+            dlat: +to[0].toFixed(3), dlon: +to[1].toFixed(3),
+            vote: vote, text: text || "", aspect: "presentation",
+            auto: (navigator.webdriver === true || /HeadlessChrome/.test(navigator.userAgent)) ? 1 : 0,
+          });
+          if (navigator.sendBeacon) navigator.sendBeacon("/log-route-feedback", new Blob([payload], { type: "application/json" }));
+        } catch (e) { /* feedback must never break routing */ }
+      };
+      const more = box.querySelector(".rp-feedback-more");
+      box.querySelectorAll("button[data-v]").forEach((b) => {
+        b.onclick = () => {
+          if (vote) return;
+          vote = b.dataset.v;
+          hmTrack("route_ui_feedback", { vote: vote, lang: lang });
+          post("");
+          markFeedbackPicked(box, b);
+          more.hidden = false;
+        };
+      });
+      box.querySelector(".rp-feedback-send").onclick = () => {
+        const text = (box.querySelector("textarea").value || "").trim();
+        if (text) { hmTrack("route_ui_feedback_text"); post(text); }
+        feedbackThanks(box);
+      };
+    } catch (e) { /* must never break routing */ }
   }
 
   // The same diagnosis as diagnoseNoRoute(), reduced to one of four fixed labels

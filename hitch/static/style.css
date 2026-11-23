@@ -4105,6 +4105,33 @@ body.routing-active .leaflet-control-container .leaflet-control-geocoder { displ
 .rp-intent-choices button.rp-intent-selected {
   border-color: #297a38; background: #e8f5eb; color: #1c612a;
 }
+/* Till 2026-11-23: route feedback asks as a card (was bare inline text + emoji). `.sidebar button` would
+   stretch these to full width with large margins, same trap as the intent chips above. */
+.rp-feedback-card {
+  margin: 12px 0; padding: 12px 14px;
+  border: 1px solid #dfe6dc; border-radius: 12px; background: #f6faf5;
+  font-size: 14px; color: #333;
+}
+.rp-feedback-card .rp-fb-q { font-weight: 600; margin-bottom: 8px; }
+.rp-feedback-card .rp-fb-btns { display: flex; gap: 8px; }
+.rp-feedback-card button {
+  width: auto; margin: 0; padding: 7px 14px;
+  border: 1px solid #c9d3c6; border-radius: 999px; background: #fff;
+  color: #333; font-size: 14px; cursor: pointer;
+}
+.rp-feedback-card button:hover:not(:disabled) { border-color: #297a38; background: #eef7f0; }
+.rp-feedback-card button:disabled { opacity: .45; cursor: default; }
+.rp-feedback-card button.rp-fb-picked { opacity: 1; border-color: #297a38; background: #e8f5eb; color: #1c612a; font-weight: 600; }
+.rp-feedback-card .rp-feedback-more { margin-top: 10px; }
+.rp-feedback-card textarea {
+  display: block; width: 100%; box-sizing: border-box; min-height: 56px;
+  padding: 8px 10px; border: 1px solid #c9d3c6; border-radius: 8px;
+  font: inherit; font-size: 14px; resize: vertical; background: #fff;
+}
+.rp-feedback-card .rp-feedback-send { margin-top: 8px; background: #297a38; border-color: #297a38; color: #fff; font-weight: 600; }
+.rp-feedback-card .rp-feedback-send:hover { background: #1f6a2e; }
+.rp-feedback-card .rp-fb-thanks { color: #1c612a; font-weight: 600; }
+.rp-feedback-card.rp-fb-done { padding: 10px 14px; }
 .rp-option {
   display: flex; align-items: stretch; gap: 10px;
   text-align: left; border: 1px solid #e4e4e4; background: #fff;
