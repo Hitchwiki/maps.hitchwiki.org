@@ -44,7 +44,7 @@
                 <p>Your {{ year }} on the road is ready: your rides, kilometres travelled, minutes waiting and the areas you hitched through, month by month.</p>
 
                 <p style="text-align: center; margin: 30px 0;">
-                    <a href="https://maps.hitchwiki.org/insights/{{ username }}/{{ year }}?ref={{ ref }}" class="button" style="display: inline-block; background-color: #C99416; color: #FFFDF7; text-decoration: none; padding: 12px 28px; border-radius: 4px; font-size: 18px;">See your {{ year }} recap</a>
+                    <a href="https://maps.hitchwiki.org/insights/{{ username|urlencode }}/{{ year }}?ref={{ ref }}" class="button" style="display: inline-block; background-color: #C99416; color: #FFFDF7; text-decoration: none; padding: 12px 28px; border-radius: 4px; font-size: 18px;">See your {{ year }} recap</a>
                 </p>
 
                 <p>Hitched a ride this year that is not on the map yet? Add it and it will be counted in the recap.</p>

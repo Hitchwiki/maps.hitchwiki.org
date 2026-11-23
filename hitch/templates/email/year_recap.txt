@@ -3,7 +3,7 @@
 Your {{ year }} on the road is ready: your rides, kilometres travelled, minutes
 waiting and the areas you hitched through, month by month.
 
-See your {{ year }} recap: https://maps.hitchwiki.org/insights/{{ username }}/{{ year }}?ref={{ ref }}
+See your {{ year }} recap: https://maps.hitchwiki.org/insights/{{ username|urlencode }}/{{ year }}?ref={{ ref }}
 
 Hitched a ride this year that is not on the map yet? Add it and it will be
 counted in the recap.
