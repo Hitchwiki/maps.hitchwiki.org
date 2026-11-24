@@ -70,4 +70,4 @@ Hitchhiking and more broadly mobility research might be conducted using the data
 
 ### Questions?
 
-[Drop us a line!](https://docs.google.com/forms/d/e/1FAIpQLSdGLlPKhjRXIjG2VB-BlkxbsagNeXce5eI3sKFHe-_scJMFnw/viewform?usp=header)
+[Drop us a line!](mailto:play.hitchwiki@gmail.com?subject=Hitchwiki%20Maps%20question)
