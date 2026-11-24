@@ -143,6 +143,8 @@
         }
         window.hmTrack = function (name, data) {
           try {
+            // EXP-1346 slice B: the iOS install hint can wait for the first sign the map was useful.
+            if (name === 'route_found' || name === 'journey_started') document.dispatchEvent(new Event('hm:useful'));
             if (window.umami) { return window.umami.track(name, tagged(data, name)); }
             if (queue.length < QUEUE_MAX) queue.push([name, tagged(data, name)]);
           } catch (e) {}
