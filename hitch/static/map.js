@@ -3617,6 +3617,11 @@ function summaryText(data, hists = { wait: null, distance: null }) {
   // filters) so a single unreviewed pin doesn't get invited to spawn an article.
   // Retired 2026-11: spot_wiki_gap was shown 3,538x / clicked 3x per 28 d.
   const hitchwikiGapPrompt = '';
+  // #1695: the killed official-stop ask (maps#669) also took its plain count with it; keep the count only.
+  const exitIdx = cityExitCellIndex(cityExitCells, data);
+  const exitCount = exitIdx >= 0
+    ? `<div class="spot-official-ask">🚏 ${tr("{n} hitchhikers started here since Oct 2024.", { n: cityExitCells[exitIdx][2] })}</div>`
+    : '';
   // Filled in asynchronously by loadSpotWikiExcerpt once this markup is in the DOM
   // (see applySpotRideFilter) -- fetching Hitchwiki's API takes a round trip this
   // synchronous function can't wait on. Empty when neither link above exists.
@@ -3707,7 +3712,7 @@ function summaryText(data, hists = { wait: null, distance: null }) {
     ${spotHistogramMarkup(scaleHistToDisplay(hists.distance), "spot-distance-hist", distanceUnitLabel())}
     ${data.people ? `<div class="spot-people">${tr("At least {n} people have logged a ride here", { n: data.people })}</div>` : ''}
     ${lastConfirmed ? `<div class="spot-last-confirmed">${tr("Last confirmed: {date}", { date: lastConfirmed })}</div>` : ''}
-    ${osmLink}${carPoolingLink}${fuelLink}${hitchwikiLink}${hitchwikiMapLink}${hitchwikiNearbyLink}${hitchwikiGapPrompt}${spotWikiExcerpt}${accessHint}${countryContact}`;
+    ${osmLink}${carPoolingLink}${fuelLink}${hitchwikiLink}${hitchwikiMapLink}${hitchwikiNearbyLink}${hitchwikiGapPrompt}${exitCount}${spotWikiExcerpt}${accessHint}${countryContact}`;
 }
 
 async function handleMarkerClick(marker, point, e) {
