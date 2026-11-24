@@ -474,6 +474,8 @@
       wait_min: Math.round((j.finalWaitMs || 0) / 60000),
       ride_min: j.gotRideMs ? Math.round((finishMs - j.gotRideMs) / 60000) : 0,
       leg: j.legIndex || 0,
+      // IDEAS #1689: denominator for the route-trip ask (EXP-1694); "none" = not planned.
+      plan: j.plan || "none",
     });
     offerTrailStops(function (stops) {
       enqueueFinish(j, dest, finishMs, stops);
