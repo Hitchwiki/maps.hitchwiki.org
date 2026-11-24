@@ -4742,3 +4742,18 @@ a.acct-ride__warn:hover { color: #b98900; }
   position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; margin: 0; padding: 0;
   border: 0; background: transparent; color: #6a7a8a; font-size: 20px; line-height: 1; cursor: pointer;
 }
+
+/* Till 2026-11-24: one-tap reasons after a 👎, and the after-trip "how did the route work?" card. */
+.rp-fb-reasons { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
+.rp-feedback-card .rp-fb-reasons button { flex: 0 1 auto; padding: 6px 10px; border-radius: 999px; font-size: 13px; }
+.rp-trip-ask {
+  /* Sits above the "Start Hitchhiking" bar (#inr-start-bar: same bottom base, z-index 2002, ~48 px tall). */
+  position: fixed; left: 12px; right: 12px; z-index: 2003; max-width: 420px; margin: 0 auto;
+  bottom: calc(var(--bottom-pane-h, env(safe-area-inset-bottom, 0px)) + 88px);
+  box-shadow: 0 4px 16px rgba(0,0,0,.25); background: #fff;
+}
+.rp-trip-ask .rp-fb-q { padding-right: 24px; }
+.rp-trip-ask .rp-trip-close {
+  position: absolute; top: 4px; right: 6px; border: 0; background: transparent; font-size: 20px; line-height: 1;
+  padding: 4px 8px; cursor: pointer; color: #555;
+}

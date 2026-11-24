@@ -433,11 +433,25 @@
   // journey as a whole, not the leg they happened to stop on.
   function finalizeJourney(opts) {
     const log = journeyLogStore.get();
+    const endedJourney = journeyStore.get();
     journeyStore.clear();
     journeyLogStore.clear();
     journeyUI.teardown();
     if (!log.length) return; // nothing was ever logged — a journey started by mistake
     flushOutbox(); // the last leg was very likely queued moments ago
+    // Till 2026-11-24: a journey that started from a planned route (EXP-1331 tag) gets one "how did the route work?"
+    // ask, shown by routing.js once the success overlays are closed. Once per planned route; nothing leaves the
+    // device unless the hitchhiker answers.
+    if ((!opts || opts.share !== false) && endedJourney && endedJourney.plan && endedJourney.plan !== "none") {
+      try {
+        const r = JSON.parse(localStorage.getItem("hmLastRoute") || "null");
+        if (r && Array.isArray(r.from) && Array.isArray(r.to) && localStorage.getItem("hmTripAsked") !== String(r.ts)) {
+          localStorage.setItem("hmTripAsk", JSON.stringify({ from: r.from, to: r.to, ts: Date.now(), legs: log.length }));
+          localStorage.setItem("hmTripAsked", String(r.ts));
+          window.dispatchEvent(new Event("hm:trip-ask"));
+        }
+      } catch (e) { /* the ask is optional */ }
+    }
     // More than one ride means these legs were one hitch, which is information the rides
     // on their own don't carry. Queue the grouping; the POST goes out once they upload.
     if (log.length > 1) {

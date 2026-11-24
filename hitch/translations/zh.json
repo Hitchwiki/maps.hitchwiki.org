@@ -1149,5 +1149,17 @@
   "Hitchhiking out of this area?": "要在这个区域搭便车吗？",
   "See the best spots along your way to the destination.": "查看沿途前往目的地的最佳搭车点。",
   "Plan a route from here": "从这里规划路线",
-  "Good route?": "路线不错吗？"
+  "Good route?": "路线不错吗？",
+  "Bad first spot": "起点位置不佳",
+  "Too much walking": "步行太多",
+  "Detour or wrong way": "绕路或走错路",
+  "A suggested spot doesn't work": "建议的点位不好用",
+  "Got rides from other spots": "从其他点位搭到了车",
+  "Something else": "其他原因",
+  "What's wrong with it?": "哪里出了问题？",
+  "You planned this trip on the map. How did the route work?": "你在地图上规划了这次行程。路线实际效果如何？",
+  "Worked": "很顺利",
+  "Partly": "部分顺利",
+  "Didn't work": "不顺利",
+  "Where did you actually get rides? (optional)": "你实际上是在哪里搭到车的？（可选）"
 }

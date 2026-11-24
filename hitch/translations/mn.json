@@ -1149,5 +1149,17 @@
   "Hitchhiking out of this area?": "Энэ бүсээс зорчигч хайж явах уу?",
   "See the best spots along your way to the destination.": "Очих хүрэлцэх замдаа хамгийн сайн цэгүүдийг харна уу.",
   "Plan a route from here": "Эндээс аяллын зам төлөвлөх",
-  "Good route?": "Сайн чиглэл үү?"
+  "Good route?": "Сайн чиглэл үү?",
+  "Bad first spot": "Муу эхний цэг",
+  "Too much walking": "Хэт их алхалт",
+  "Detour or wrong way": "Хажуу тийш эсвэл буруу зам",
+  "A suggested spot doesn't work": "Санал болгосон цэг ажилласангүй",
+  "Got rides from other spots": "Бусад цэгээс тэргэнд суусан",
+  "Something else": "Өөр зүйл",
+  "What's wrong with it?": "Юу нь буруу байсан бэ?",
+  "You planned this trip on the map. How did the route work?": "Та энэ аяллыг зураг дээр төлөвлөсөн. Зам хэрхэн өнгөрөв?",
+  "Worked": "Ажилласан",
+  "Partly": "Хэсэгчлэн",
+  "Didn't work": "Ажилласангүй",
+  "Where did you actually get rides? (optional)": "Та бодитоор хаанаас тэргэнд суусан бэ? (заавал биш)"
 }

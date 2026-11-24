@@ -1149,5 +1149,17 @@
   "Hitchhiking out of this area?": "Автостопом з цієї локації?",
   "See the best spots along your way to the destination.": "Перегляньте найкращі місця по дорозі до пункту призначення.",
   "Plan a route from here": "Прокласти маршрут звідси",
-  "Good route?": "Гарний маршрут?"
+  "Good route?": "Гарний маршрут?",
+  "Bad first spot": "Погане перше місце",
+  "Too much walking": "Занадто багато ходьби",
+  "Detour or wrong way": "Обхідний шлях або неправильний напрямок",
+  "A suggested spot doesn't work": "Запропоноване місце не працює",
+  "Got rides from other spots": "Підвозили з інших місць",
+  "Something else": "Щось інше",
+  "What's wrong with it?": "Що з ним не так?",
+  "You planned this trip on the map. How did the route work?": "Ви планували цю подорож на мапі. Як пройшов маршрут?",
+  "Worked": "Працював",
+  "Partly": "Частково",
+  "Didn't work": "Не працював",
+  "Where did you actually get rides? (optional)": "Де вас насправді підвозили? (необов'язково)"
 }

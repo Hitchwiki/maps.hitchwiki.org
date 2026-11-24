@@ -1149,5 +1149,17 @@
   "Hitchhiking out of this area?": "このエリアからヒッチハイクしますか？",
   "See the best spots along your way to the destination.": "目的地までの道沿いの最適なスポットをご覧ください。",
   "Plan a route from here": "ここからルートを計画する",
-  "Good route?": "良いルート？"
+  "Good route?": "良いルート？",
+  "Bad first spot": "最初の場所が悪かった",
+  "Too much walking": "歩きすぎた",
+  "Detour or wrong way": "遠回りや間違った道になった",
+  "A suggested spot doesn't work": "提案された場所が使えなかった",
+  "Got rides from other spots": "別の場所でヒッチハイクできた",
+  "Something else": "その他",
+  "What's wrong with it?": "何が問題でしたか？",
+  "You planned this trip on the map. How did the route work?": "この旅を地図上で計画しました。ルートはどうでしたか？",
+  "Worked": "うまくいった",
+  "Partly": "部分的にうまくいった",
+  "Didn't work": "うまくいかなかった",
+  "Where did you actually get rides? (optional)": "実際にどこでヒッチハイクできましたか？（任意）"
 }

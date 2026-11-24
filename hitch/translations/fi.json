@@ -1149,5 +1149,17 @@
   "Hitchhiking out of this area?": "Lifttaako tästä alueesta pois?",
   "See the best spots along your way to the destination.": "Katso parhaat liftauspaikat matkalla kohteeseen.",
   "Plan a route from here": "Suunnittele reitti täältä",
-  "Good route?": "Hyvä reitti?"
+  "Good route?": "Hyvä reitti?",
+  "Bad first spot": "Huono lähtöpaikka",
+  "Too much walking": "Liikaa kävelyä",
+  "Detour or wrong way": "Kierto tai väärä reitti",
+  "A suggested spot doesn't work": "Ehdotettu paikka ei toiminut",
+  "Got rides from other spots": "Sain kyytejä muista paikoista",
+  "Something else": "Jotain muuta",
+  "What's wrong with it?": "Mikä siinä oli vikana?",
+  "You planned this trip on the map. How did the route work?": "Suunnittelit tämän matkan kartalla. Miten reitti toimi?",
+  "Worked": "Toimi",
+  "Partly": "Osittain",
+  "Didn't work": "Ei toiminut",
+  "Where did you actually get rides? (optional)": "Mistä sait oikeasti kyytejä? (valinnainen)"
 }

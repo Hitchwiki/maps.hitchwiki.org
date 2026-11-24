@@ -1149,5 +1149,17 @@
   "Hitchhiking out of this area?": "Autóstopp ebből a területről?",
   "See the best spots along your way to the destination.": "Nézd meg a legjobb helyeket az útvonalon a célig.",
   "Plan a route from here": "Útvonal tervezése innen",
-  "Good route?": "Jó útvonal?"
+  "Good route?": "Jó útvonal?",
+  "Bad first spot": "Rossz első hely",
+  "Too much walking": "Túl sok gyaloglás",
+  "Detour or wrong way": "Kitérő vagy rossz irány",
+  "A suggested spot doesn't work": "Egy javasolt hely nem működik",
+  "Got rides from other spots": "Másoktól kaptam autót más helyeken",
+  "Something else": "Valami más",
+  "What's wrong with it?": "Mi a probléma vele?",
+  "You planned this trip on the map. How did the route work?": "Ezt az utat a térképen tervezted. Hogyan sikerült az útvonal?",
+  "Worked": "Működött",
+  "Partly": "Részben",
+  "Didn't work": "Nem működött",
+  "Where did you actually get rides? (optional)": "Hol kaptál valójában autót? (opcionális)"
 }

@@ -1149,5 +1149,17 @@
   "Hitchhiking out of this area?": "Ωτοστόπ από αυτή την περιοχή;",
   "See the best spots along your way to the destination.": "Δείτε τις καλύτερες στάσεις στην διαδρομή σας προς τον προορισμό.",
   "Plan a route from here": "Σχεδίασε διαδρομή από εδώ",
-  "Good route?": "Καλή διαδρομή;"
+  "Good route?": "Καλή διαδρομή;",
+  "Bad first spot": "Κακό πρώτο σημείο",
+  "Too much walking": "Πολύ περπάτημα",
+  "Detour or wrong way": "Παρέκκλιση ή λάθος δρόμος",
+  "A suggested spot doesn't work": "Ένα προτεινόμενο σημείο δεν λειτούργησε",
+  "Got rides from other spots": "Πήρα βόλτες από άλλα σημεία",
+  "Something else": "Κάτι άλλο",
+  "What's wrong with it?": "Τι πήγε στραβά;",
+  "You planned this trip on the map. How did the route work?": "Σχεδίασες αυτό το ταξίδι στον χάρτη. Πώς λειτούργησε η διαδρομή;",
+  "Worked": "Λειτούργησε",
+  "Partly": "Μερικώς",
+  "Didn't work": "Δεν λειτούργησε",
+  "Where did you actually get rides? (optional)": "Πού πήρες στην πραγματικότητα βόλτες; (προαιρετικό)"
 }

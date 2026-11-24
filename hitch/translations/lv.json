@@ -1149,5 +1149,17 @@
   "Hitchhiking out of this area?": "Stopēt ārā no šīs zonas?",
   "See the best spots along your way to the destination.": "Skatiet labākās vietas ceļā uz galamērķi.",
   "Plan a route from here": "Plānot maršrutu no šejienes",
-  "Good route?": "Laba maršrute?"
+  "Good route?": "Laba maršrute?",
+  "Bad first spot": "Slikta vieta",
+  "Too much walking": "Pārāk daudz jāiet kājām",
+  "Detour or wrong way": "Izgriezums vai nepareizs ceļš",
+  "A suggested spot doesn't work": "Ieteiktā vieta nedarbojas",
+  "Got rides from other spots": "Piekāvos no citām vietām",
+  "Something else": "Kaut kas cits",
+  "What's wrong with it?": "Kas ar to nav kārtībā?",
+  "You planned this trip on the map. How did the route work?": "Šo ceļojumu tu plānoji kartē. Kā ceļš sanāca?",
+  "Worked": "Sanāca",
+  "Partly": "Daļēji",
+  "Didn't work": "Nesanāca",
+  "Where did you actually get rides? (optional)": "No kurienes tu tiešām piekāvies? (neobligāti)"
 }

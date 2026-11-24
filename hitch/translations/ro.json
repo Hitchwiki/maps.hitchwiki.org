@@ -1149,5 +1149,17 @@
   "Hitchhiking out of this area?": "Facți autostopul din această zonă?",
   "See the best spots along your way to the destination.": "Vezi cele mai bune puncte pe traseul tău spre destinație.",
   "Plan a route from here": "Planifică o rută de aici",
-  "Good route?": "Traseu bun?"
+  "Good route?": "Traseu bun?",
+  "Bad first spot": "Primul punct slab",
+  "Too much walking": "Prea mult mers pe jos",
+  "Detour or wrong way": "Ocolire sau drum greșit",
+  "A suggested spot doesn't work": "Un punct sugerat nu funcționează",
+  "Got rides from other spots": "Am primit ocazii din alte puncte",
+  "Something else": "Altceva",
+  "What's wrong with it?": "Ce nu a mers?",
+  "You planned this trip on the map. How did the route work?": "Ai planificat această călătorie pe hartă. Cum a funcționat traseul?",
+  "Worked": "A funcționat",
+  "Partly": "Parțial",
+  "Didn't work": "Nu a funcționat",
+  "Where did you actually get rides? (optional)": "De unde ai primit de fapt ocazii? (opțional)"
 }

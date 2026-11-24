@@ -99,7 +99,7 @@ from hitch.blueprints.utils.ride_images import (
 )
 from hitch.blueprints.utils.ride_ip_log import get_client_ip, log_ride_ip
 from hitch.blueprints.utils.ride_sources import THIS_NOSTR_SOURCE, ride_is_replaceable, ride_source
-from hitch.blueprints.utils.route_feedback_log import log_route_feedback
+from hitch.blueprints.utils.route_feedback_log import log_route_feedback, log_route_label
 from hitch.blueprints.utils.route_outcome_log import OUTCOMES, log_route_outcome
 from hitch.blueprints.utils.route_request_log import log_route_request
 from hitch.blueprints.utils.search_request_log import log_search_request
@@ -674,6 +674,23 @@ def log_route_feedback_endpoint():
         slat, slon = float(data["slat"]), float(data["slon"])
         dlat, dlon = float(data["dlat"]), float(data["dlon"])
     except (KeyError, TypeError, ValueError):
+        return ("", 204)
+    in_range = -90 <= slat <= 90 and -180 <= slon <= 180 and -90 <= dlat <= 90 and -180 <= dlon <= 180
+    if data.get("aspect") == "label":
+        # Till 2026-11-24: one-tap reason / after-trip answer; values are checked against fixed sets.
+        if in_range:
+            auto = 1 if data.get("auto") in (1, True, "1") else 0
+            log_route_label(
+                slat,
+                slon,
+                dlat,
+                dlon,
+                str(data.get("source", "")),
+                str(data.get("answer", "")),
+                str(data.get("reason", "")),
+                str(data.get("text", "")),
+                auto=auto,
+            )
         return ("", 204)
     vote = data.get("vote")
     if vote not in ("up", "down"):

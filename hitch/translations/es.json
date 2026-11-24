@@ -1149,5 +1149,17 @@
   "Hitchhiking out of this area?": "¿Vas a hacer autostop desde aquí?",
   "See the best spots along your way to the destination.": "Mira los mejores puntos a lo largo de tu camino hacia el destino.",
   "Plan a route from here": "Planificar una ruta desde aquí",
-  "Good route?": "¿Buena ruta?"
+  "Good route?": "¿Buena ruta?",
+  "Bad first spot": "Mal primer punto",
+  "Too much walking": "Demasiada caminata",
+  "Detour or wrong way": "Desvío o camino equivocado",
+  "A suggested spot doesn't work": "Un punto sugerido no funciona",
+  "Got rides from other spots": "Conseguí viajes desde otros puntos",
+  "Something else": "Otra cosa",
+  "What's wrong with it?": "¿Qué es lo que falla?",
+  "You planned this trip on the map. How did the route work?": "Planificaste este viaje en el mapa. ¿Cómo funcionó la ruta?",
+  "Worked": "Funcionó",
+  "Partly": "A medias",
+  "Didn't work": "No funcionó",
+  "Where did you actually get rides? (optional)": "¿Dónde conseguiste realmente los viajes? (opcional)"
 }

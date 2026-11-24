@@ -1149,5 +1149,17 @@
   "Hitchhiking out of this area?": "Liftvragen buiten dit gebied?",
   "See the best spots along your way to the destination.": "Bekijk de beste plekken langs je route naar je bestemming.",
   "Plan a route from here": "Plan een route vanaf hier",
-  "Good route?": "Goede route?"
+  "Good route?": "Goede route?",
+  "Bad first spot": "Slechte eerste plek",
+  "Too much walking": "Te veel lopen",
+  "Detour or wrong way": "Omweg of verkeerde richting",
+  "A suggested spot doesn't work": "Een voorgestelde plek werkt niet",
+  "Got rides from other spots": "Lift gekregen vanaf andere plekken",
+  "Something else": "Iets anders",
+  "What's wrong with it?": "Wat is er mis mee?",
+  "You planned this trip on the map. How did the route work?": "Je hebt deze reis op de kaart gepland. Hoe werkte de route?",
+  "Worked": "Werkte",
+  "Partly": "Deels",
+  "Didn't work": "Werkte niet",
+  "Where did you actually get rides? (optional)": "Waar kreeg je daadwerkelijk liften? (optioneel)"
 }

@@ -1149,5 +1149,17 @@
   "Hitchhiking out of this area?": " lifta härifrån?",
   "See the best spots along your way to the destination.": "Se de bästa platserna längs vägen till din destination.",
   "Plan a route from here": "Planera en rutt härifrån",
-  "Good route?": "Bra rutt?"
+  "Good route?": "Bra rutt?",
+  "Bad first spot": "Dålig plats",
+  "Too much walking": "För mycket gång",
+  "Detour or wrong way": "Omkoppling eller fel väg",
+  "A suggested spot doesn't work": "En föreslagen plats fungerar inte",
+  "Got rides from other spots": "Fick skjuts från andra platser",
+  "Something else": "Något annat",
+  "What's wrong with it?": "Vad är fel?",
+  "You planned this trip on the map. How did the route work?": "Du planerade den här resan på kartan. Hur fungerade rutten?",
+  "Worked": "Fungerade",
+  "Partly": "Delvis",
+  "Didn't work": "Fungerade inte",
+  "Where did you actually get rides? (optional)": "Var fick du faktiskt skjuts? (valfritt)"
 }

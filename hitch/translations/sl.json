@@ -1149,5 +1149,17 @@
   "Hitchhiking out of this area?": "Štopati iz tega območja?",
   "See the best spots along your way to the destination.": "Oglejte si najboljše točke na poti do cilja.",
   "Plan a route from here": "Načrtujte pot od tu",
-  "Good route?": "Dobra pot?"
+  "Good route?": "Dobra pot?",
+  "Bad first spot": "Slaba točka za ustavljanje",
+  "Too much walking": "Preveč hoje",
+  "Detour or wrong way": "Zavoj ali napačna pot",
+  "A suggested spot doesn't work": "Predlagana točka ne deluje",
+  "Got rides from other spots": "Dobil/a sem prevoze z drugih točk",
+  "Something else": "Nekaj drugega",
+  "What's wrong with it?": "Kaj je narobe?",
+  "You planned this trip on the map. How did the route work?": "Ta pot ste načrtovali na zemljevidu. Kako je potekala?",
+  "Worked": "Delovala je",
+  "Partly": "Delno",
+  "Didn't work": "Ni delovala",
+  "Where did you actually get rides? (optional)": "Kje ste dejansko dobili prevoze? (neobvezno)"
 }

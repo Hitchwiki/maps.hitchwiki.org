@@ -114,6 +114,27 @@ def summarise_route_outcomes(rows, days=30):
     }
 
 
+def summarise_route_labels(rows):
+    """Counts of route_labels.csv by source/answer and by source/reason. Free text is never published."""
+    out = {"answers": {}, "reasons": {}, "with_text": 0, "excluded_auto": 0}
+    for row in rows:
+        if (row.get("auto") or "").strip() == "1":
+            out["excluded_auto"] += 1
+            continue
+        src = (row.get("source") or "").strip()
+        ans = (row.get("answer") or "").strip()
+        reason = (row.get("reason") or "").strip()
+        if reason == "text":
+            out["with_text"] += 1
+        elif reason:
+            out["reasons"].setdefault(src, {})
+            out["reasons"][src][reason] = out["reasons"][src].get(reason, 0) + 1
+        else:
+            out["answers"].setdefault(src, {})
+            out["answers"][src][ans] = out["answers"][src].get(ans, 0) + 1
+    return out
+
+
 def read_route_requests(path):
     try:
         with open(path, newline="", encoding="utf-8") as f:

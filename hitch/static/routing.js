@@ -1180,6 +1180,17 @@
         } catch (e) { /* analytics must never break routing */ }
         post("");
         markFeedbackPicked(box, b);
+        // Till 2026-11-24: a 👎 asks what is wrong with one tap (see LABEL_REASONS).
+        if (vote === "down" && !moreCard.querySelector(".rp-fb-reasons")) {
+          const q = document.createElement("div");
+          q.className = "rp-fb-q"; q.textContent = T("What's wrong with it?");
+          const chips = reasonChips("result", (reason) => {
+            hmTrack("route_label", { source: "result", answer: "down", reason: reason });
+            postLabel(from, to, "result", "down", reason, "");
+          });
+          moreCard.insertBefore(chips, moreCard.firstChild);
+          moreCard.insertBefore(q, chips);
+        }
         moreCard.hidden = false;
       };
     });
@@ -1188,6 +1199,124 @@
       if (text) { hmTrack("route_feedback_text"); post(text); }
       feedbackThanks(moreCard);
     };
+  }
+
+  // Till 2026-11-24 ("collect better feedback from the app for our routing algo"): a bare 👍/👎 plus an empty text
+  // box gave 2 votes and 0 texts in 28 d, so it labels nothing. Two changes: (1) a 👎 opens one-tap reasons, so a vote
+  // says *what* is wrong; (2) after a journey that followed a planned route, one ask "how did it go?" to people who
+  // actually travelled it. Rows go to logs/route_labels.csv (rounded coordinates, fixed codes, optional text, no id).
+  const LABEL_REASONS = [
+    ["first_spot", "Bad first spot"],
+    ["walking", "Too much walking"],
+    ["detour", "Detour or wrong way"],
+    ["spot_bad", "A suggested spot doesn't work"],
+    ["elsewhere", "Got rides from other spots", "trip"],
+    ["other", "Something else"],
+  ];
+  function postLabel(from, to, source, answer, reason, text) {
+    try {
+      const r3 = (n) => +(+n).toFixed(3);
+      const body = JSON.stringify({
+        slat: r3(from[0]), slon: r3(from[1]), dlat: r3(to[0]), dlon: r3(to[1]),
+        aspect: "label", source: source, answer: answer, reason: reason || "", text: text || "",
+        auto: (navigator.webdriver === true || /HeadlessChrome/.test(navigator.userAgent)) ? 1 : 0,
+      });
+      if (navigator.sendBeacon) navigator.sendBeacon("/log-route-feedback", new Blob([body], { type: "application/json" }));
+    } catch (e) { /* feedback must never break routing */ }
+  }
+  function reasonChips(source, onPick) {
+    const wrap = document.createElement("div");
+    wrap.className = "rp-fb-reasons";
+    LABEL_REASONS.filter((r) => !r[2] || r[2] === source).forEach((r) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.dataset.reason = r[0]; b.textContent = T(r[1]);
+      b.onclick = () => {
+        if (wrap.dataset.done) return;
+        wrap.dataset.done = "1";
+        wrap.querySelectorAll("button").forEach((x) => { x.disabled = true; x.classList.toggle("rp-fb-picked", x === b); });
+        onPick(r[0]);
+      };
+      wrap.appendChild(b);
+    });
+    return wrap;
+  }
+
+  // After-trip ask. inride.js writes hmTripAsk when a journey with a planner tag ends and fires "hm:trip-ask"; the ask
+  // waits until the success / sign-up overlays are closed, so it never stacks on them. Once per planned route.
+  const TRIP_ASK_KEY = "hmTripAsk";
+  function overlayOpen() {
+    return Array.prototype.some.call(document.querySelectorAll('[id$="-overlay"], #hm-consent'), (el) => {
+      if (!el.getClientRects().length) return false;
+      const cs = getComputedStyle(el);
+      return cs.display !== "none" && cs.visibility !== "hidden";
+    });
+  }
+  function readTripAsk() {
+    let rec = null;
+    try { rec = JSON.parse(localStorage.getItem(TRIP_ASK_KEY) || "null"); } catch (e) { return null; }
+    if (!rec || !Array.isArray(rec.from) || !Array.isArray(rec.to) || !isFinite(rec.ts)) return null;
+    if (rec.from.concat(rec.to).some((n) => !isFinite(n))) return null;
+    if (Date.now() - rec.ts > 3 * 86400000) { try { localStorage.removeItem(TRIP_ASK_KEY); } catch (e) {} return null; }
+    return rec;
+  }
+  let tripAskWaiting = false;
+  function maybeShowTripAsk() {
+    if (tripAskWaiting || document.querySelector(".rp-trip-ask") || !readTripAsk()) return;
+    tripAskWaiting = true;
+    let tries = 0;
+    const tick = () => {
+      if (overlayOpen() && tries++ < 450) { setTimeout(tick, 2000); return; }
+      tripAskWaiting = false;
+      const rec = readTripAsk();
+      if (rec && !document.querySelector(".rp-trip-ask")) showTripAsk(rec);
+    };
+    setTimeout(tick, 1500);
+  }
+  function showTripAsk(rec) {
+    const done = () => { try { localStorage.removeItem(TRIP_ASK_KEY); } catch (e) {} };
+    const card = document.createElement("div");
+    card.className = "rp-feedback-card rp-trip-ask";
+    card.setAttribute("role", "dialog");
+    card.innerHTML = `<button type="button" class="rp-trip-close" aria-label="${T("Close")}">×</button>
+      <div class="rp-fb-q">${T("You planned this trip on the map. How did the route work?")}</div>
+      <div class="rp-fb-btns">
+        <button type="button" data-v="up">${T("Worked")}</button>
+        <button type="button" data-v="partly">${T("Partly")}</button>
+        <button type="button" data-v="down">${T("Didn't work")}</button>
+      </div>`;
+    document.body.appendChild(card);
+    hmTrack("route_trip_ask_shown", { legs: rec.legs || 0 });
+    card.querySelector(".rp-trip-close").onclick = () => {
+      done(); card.remove();
+      hmTrack("route_trip_ask_dismissed", {});
+    };
+    let answer = null;
+    card.querySelectorAll("button[data-v]").forEach((b) => {
+      b.onclick = () => {
+        if (answer) return;
+        answer = b.dataset.v;
+        done();
+        markFeedbackPicked(card, b);
+        hmTrack("route_label", { source: "trip", answer: answer, reason: "none" });
+        postLabel(rec.from, rec.to, "trip", answer, "", "");
+        if (answer === "up") { setTimeout(() => { feedbackThanks(card); setTimeout(() => card.remove(), 1800); }, 400); return; }
+        card.appendChild(reasonChips("trip", (reason) => {
+          hmTrack("route_label", { source: "trip", answer: answer, reason: reason });
+          postLabel(rec.from, rec.to, "trip", answer, reason, "");
+        }));
+        const more = document.createElement("div");
+        more.className = "rp-feedback-more";
+        more.innerHTML = `<textarea maxlength="300" rows="2" placeholder="${T("Where did you actually get rides? (optional)")}"></textarea>
+          <button type="button" class="rp-feedback-send">${T("Send")}</button>`;
+        card.appendChild(more);
+        more.querySelector(".rp-feedback-send").onclick = () => {
+          const text = (more.querySelector("textarea").value || "").trim();
+          if (text) { hmTrack("route_label_text", { source: "trip" }); postLabel(rec.from, rec.to, "trip", answer, "text", text); }
+          feedbackThanks(card);
+          setTimeout(() => card.remove(), 1800);
+        };
+      };
+    });
   }
 
   // Till 2026-11-23: the route ask was a line of plain text with two bare emoji (2 votes from 47 people who saw it
@@ -2621,6 +2750,8 @@
       if ((window.hmLandingRef || "").indexOf("pledge_drive") === 0) open();
       else setTimeout(maybeShowResumeChip, 2500);
     }
+    window.addEventListener("hm:trip-ask", maybeShowTripAsk);
+    maybeShowTripAsk();
     const reopen = () => {
       const p = routeFromUrl();
       if (!p) return;

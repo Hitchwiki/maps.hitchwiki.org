@@ -1149,5 +1149,17 @@
   "Hitchhiking out of this area?": "Stopi autošoseja iš šios vietovės?",
   "See the best spots along your way to the destination.": "Peržiūrėkite geriausias vietas savo kelyje į kelionės tikslą.",
   "Plan a route from here": "Planuoti maršrutą nuo čia",
-  "Good route?": "Geras maršrutas?"
+  "Good route?": "Geras maršrutas?",
+  "Bad first spot": "Bloga pirmoji vieta",
+  "Too much walking": "Per daug ėjimo pėsčiomis",
+  "Detour or wrong way": "Aplinkkelis arba kelias ne ten",
+  "A suggested spot doesn't work": "Siūloma vieta netinka",
+  "Got rides from other spots": "Gavau pavėžėjimus iš kitų vietų",
+  "Something else": "Kažkas kito",
+  "What's wrong with it?": "Kas čia negerai?",
+  "You planned this trip on the map. How did the route work?": "Šią kelionę suplanavai žemėlapyje. Kaip sekėsi maršrutui?",
+  "Worked": "Pavyko",
+  "Partly": "Iš dalies",
+  "Didn't work": "Nepavyko",
+  "Where did you actually get rides? (optional)": "Kur iš tikrųjų gavai pavėžėjimus? (neprivaloma)"
 }
