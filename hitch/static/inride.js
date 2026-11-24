@@ -1112,7 +1112,10 @@
     });
     // Continuing a multi-leg trip rather than stopping. journey_started does not
     // fire for these, so the leg counter is the only way to see them.
-    hmTrack("journey_next_leg", { leg: j.legIndex });
+    // #1689: how far this leg's waiting spot is from the planned stops (buckets only), planned journeys only.
+    const legProps = { leg: j.legIndex };
+    if (j.plan && j.plan !== "none") legProps.lpd = planToRoadTag(p).pd;
+    hmTrack("journey_next_leg", legProps);
     journeyUI.render(j);
   };
 
