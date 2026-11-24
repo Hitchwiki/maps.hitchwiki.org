@@ -852,7 +852,7 @@
     journeyUI.undoToast(T("Started tracking"), function () {
       const cur = journeyStore.get();
       if (!cur || cur.state !== "waiting" || cur.legIndex !== 0 || cur.waitSegmentStartMs !== j.waitSegmentStartMs) return;
-      hmTrack("journey_start_undo", { source: startSource(source) });
+      hmTrack("journey_start_undo", Object.assign({ source: startSource(source) }, cohortProps(cur)));
       journeyStore.clear();
       journeyUI.render(null);
     });
