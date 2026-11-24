@@ -2,7 +2,7 @@
 const cacheName = 'hitchhiking-map-v1';
 // List the files to precache
 const TWM = 'https://tinyworldmap.com/dist/tiny-world-all-10000.json';
-const precacheResources = ['/', '/light.html', '/static/icon.png', '/favicon.ico', 'https://a.tile.openstreetmap.org/0/0/0.png',TWM];
+const precacheResources = ['/', '/light.html', '/static/icon.png', '/favicon.ico', 'https://a.tile.openstreetmap.org/0/0/0.png'];
 const REGEXP = /tile\.openstreetmap\.org\/(?<z>\d+)\/(?<x>\d+)\/(?<y>\d+)/
 // Downloads that must bypass the cache entirely — see the fetch handler.
 const NEVER_CACHE = /\/(spots\.gpx|me\/rides\.(gpx|json))(\?|$)/
@@ -25,7 +25,13 @@ function fetchWithTimeout(request, ms) {
 // When the service worker is installing, open the cache and add the precache resources to it
 self.addEventListener('install', (event) => {
     console.log('Service worker install event!');
-    event.waitUntil(caches.open(cacheName).then((cache) => cache.addAll(precacheResources)));
+    // addAll is all-or-nothing: tinyworldmap.com (TWM) no longer resolves, and one failed URL
+    // made the whole install fail, so this worker never became active. Precache the
+    // essentials atomically and TWM best-effort (offline tile fallback only).
+    event.waitUntil(caches.open(cacheName).then(async (cache) => {
+        await cache.addAll(precacheResources);
+        await cache.add(TWM).catch(() => {});
+    }));
 });
 
 function drawPlaces(tile, coords, places, opts) {
