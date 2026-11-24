@@ -51,14 +51,20 @@ def test_route_label_logged_and_validated(app, tmp_path, monkeypatch):
     monkeypatch.setattr(rfl, "ROUTE_LABEL_LOG_PATH", str(path))
     c = app.test_client()
     base = {"slat": 51.05, "slon": 13.74, "dlat": 52.52, "dlon": 13.4, "aspect": "label"}
-    assert c.post("/log-route-feedback", json={**base, "source": "trip", "answer": "partly", "reason": "elsewhere"}).status_code == 204
+    assert (
+        c.post("/log-route-feedback", json={**base, "source": "trip", "answer": "partly", "reason": "elsewhere"}).status_code
+        == 204
+    )
     c.post("/log-route-feedback", json={**base, "source": "result", "answer": "down", "reason": "walking"})
     # Outside the fixed sets: dropped.
     c.post("/log-route-feedback", json={**base, "source": "trip", "answer": "meh", "reason": ""})
     c.post("/log-route-feedback", json={**base, "source": "result", "answer": "down", "reason": "<script>"})
     with open(path, encoding="utf-8") as fh:
         rows = list(csv.DictReader(fh))
-    assert [(r["source"], r["answer"], r["reason"]) for r in rows] == [("trip", "partly", "elsewhere"), ("result", "down", "walking")]
+    assert [(r["source"], r["answer"], r["reason"]) for r in rows] == [
+        ("trip", "partly", "elsewhere"),
+        ("result", "down", "walking"),
+    ]
 
 
 def test_route_label_does_not_touch_vote_file(app, tmp_path, monkeypatch):
@@ -67,7 +73,10 @@ def test_route_label_does_not_touch_vote_file(app, tmp_path, monkeypatch):
     monkeypatch.setattr(rfl, "ROUTE_FEEDBACK_LOG_PATH", str(vote_path))
     monkeypatch.setattr(rfl, "ROUTE_LABEL_LOG_PATH", str(label_path))
     c = app.test_client()
-    c.post("/log-route-feedback", json={"slat": 1, "slon": 2, "dlat": 3, "dlon": 4, "aspect": "label", "source": "trip", "answer": "up"})
+    c.post(
+        "/log-route-feedback",
+        json={"slat": 1, "slon": 2, "dlat": 3, "dlon": 4, "aspect": "label", "source": "trip", "answer": "up"},
+    )
     assert label_path.exists() and not vote_path.exists()
 
 
