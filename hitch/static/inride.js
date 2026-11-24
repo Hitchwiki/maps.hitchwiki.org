@@ -611,7 +611,15 @@
             cls: "inr-grey",
             onClick: function () { hmTrack("journey_at_check_not_yet", { source: source }); },
           },
-        ],
+        ].concat(window.RoutingUI && window.RoutingUI.openFrom ? [{
+          // Not at the spot yet: offer the planner with this spot as the start (same hand-off as the spot-pane nudge).
+          label: T("Plan a route from here"),
+          cls: "inr-grey",
+          onClick: function () {
+            hmTrack("journey_at_check_plan_clicked", { source: source });
+            window.RoutingUI.openFrom([p.lat, p.lon], null);
+          },
+        }] : []),
       });
     };
     if (!navigator.geolocation || !navigator.permissions || !navigator.permissions.query) return ask();
