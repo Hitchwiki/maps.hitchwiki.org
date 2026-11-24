@@ -1149,5 +1149,17 @@
   "Hitchhiking out of this area?": "ავტოსადგურიდან გასვლა ამ არედან?",
   "See the best spots along your way to the destination.": "იხილეთ საუკეთესო ადგილები თქვენს მარშრუტზე დანიშნულების ადგილამდე.",
   "Plan a route from here": "მარშრუტის დაგეგმვა აქედან",
-  "Good route?": "კარგი მარშრუტია?"
+  "Good route?": "კარგი მარშრუტია?",
+  "Bad first spot": "ცუდი პირველი ადგილი",
+  "Too much walking": "ძალიან ბევრი სიარული",
+  "Detour or wrong way": "მოსავლელა ან არასწორი გზა",
+  "A suggested spot doesn't work": "შემოთავაზებული ადგილი არ მუშაობს",
+  "Got rides from other spots": "მართვები სხვა ადგილებიდან მქონდა",
+  "Something else": "სხვა რამე",
+  "What's wrong with it?": "რა არის მასში პრობლემა?",
+  "You planned this trip on the map. How did the route work?": "ამ მოგზაურობას რუკაზე გეგმავდი. როგორ იმუშავა მარშრუტმა?",
+  "Worked": "იმუშავა",
+  "Partly": "ნაწილობრივ",
+  "Didn't work": "არ იმუშავა",
+  "Where did you actually get rides? (optional)": "სად მიიღე რეალურად მართვები? (არასავალდებულო)"
 }

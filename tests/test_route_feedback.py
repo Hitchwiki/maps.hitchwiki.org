@@ -44,3 +44,51 @@ def test_unknown_aspect_counts_as_route(app, tmp_path, monkeypatch):
     c = app.test_client()
     c.post("/log-route-feedback", json={"slat": 1, "slon": 2, "dlat": 3, "dlon": 4, "vote": "down", "aspect": "x"})
     assert route_path.exists() and not ui_path.exists()
+
+
+def test_route_label_logged_and_validated(app, tmp_path, monkeypatch):
+    path = tmp_path / "route_labels.csv"
+    monkeypatch.setattr(rfl, "ROUTE_LABEL_LOG_PATH", str(path))
+    c = app.test_client()
+    base = {"slat": 51.05, "slon": 13.74, "dlat": 52.52, "dlon": 13.4, "aspect": "label"}
+    assert (
+        c.post("/log-route-feedback", json={**base, "source": "trip", "answer": "partly", "reason": "elsewhere"}).status_code
+        == 204
+    )
+    c.post("/log-route-feedback", json={**base, "source": "result", "answer": "down", "reason": "walking"})
+    # Outside the fixed sets: dropped.
+    c.post("/log-route-feedback", json={**base, "source": "trip", "answer": "meh", "reason": ""})
+    c.post("/log-route-feedback", json={**base, "source": "result", "answer": "down", "reason": "<script>"})
+    with open(path, encoding="utf-8") as fh:
+        rows = list(csv.DictReader(fh))
+    assert [(r["source"], r["answer"], r["reason"]) for r in rows] == [
+        ("trip", "partly", "elsewhere"),
+        ("result", "down", "walking"),
+    ]
+
+
+def test_route_label_does_not_touch_vote_file(app, tmp_path, monkeypatch):
+    vote_path = tmp_path / "route_feedback.csv"
+    label_path = tmp_path / "route_labels.csv"
+    monkeypatch.setattr(rfl, "ROUTE_FEEDBACK_LOG_PATH", str(vote_path))
+    monkeypatch.setattr(rfl, "ROUTE_LABEL_LOG_PATH", str(label_path))
+    c = app.test_client()
+    c.post(
+        "/log-route-feedback",
+        json={"slat": 1, "slon": 2, "dlat": 3, "dlon": 4, "aspect": "label", "source": "trip", "answer": "up"},
+    )
+    assert label_path.exists() and not vote_path.exists()
+
+
+def test_summarise_route_labels_counts_only():
+    from hitch.blueprints.utils.route_demand import summarise_route_labels
+
+    rows = [
+        {"source": "trip", "answer": "down", "reason": "", "auto": "0"},
+        {"source": "trip", "answer": "down", "reason": "first_spot", "auto": "0"},
+        {"source": "trip", "answer": "down", "reason": "text", "text": "secret", "auto": "0"},
+        {"source": "result", "answer": "down", "reason": "walking", "auto": "1"},
+    ]
+    out = summarise_route_labels(rows)
+    assert out == {"answers": {"trip": {"down": 1}}, "reasons": {"trip": {"first_spot": 1}}, "with_text": 1, "excluded_auto": 1}
+    assert "secret" not in str(out)

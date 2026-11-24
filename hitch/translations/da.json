@@ -1149,5 +1149,17 @@
   "Hitchhiking out of this area?": "Lift ud af dette område?",
   "See the best spots along your way to the destination.": "Se de bedste steder langs din vej mod destinationen.",
   "Plan a route from here": "Planlæg en rute herfra",
-  "Good route?": "God rute?"
+  "Good route?": "God rute?",
+  "Bad first spot": "Dårligt startsted",
+  "Too much walking": "For meget gåning",
+  "Detour or wrong way": "Omkvej eller forkert vej",
+  "A suggested spot doesn't work": "Et foreslået sted virker ikke",
+  "Got rides from other spots": "Fik lift fra andre steder",
+  "Something else": "Noget andet",
+  "What's wrong with it?": "Hvad er der galt med det?",
+  "You planned this trip on the map. How did the route work?": "Du planlagte denne tur på kortet. Hvordan fungerede ruten?",
+  "Worked": "Funkerede",
+  "Partly": "Delvist",
+  "Didn't work": "Funkerede ikke",
+  "Where did you actually get rides? (optional)": "Hvor fik du faktisk lift? (valgfrit)"
 }

@@ -1149,5 +1149,17 @@
   "Hitchhiking out of this area?": "Autostopom iz ove oblasti?",
   "See the best spots along your way to the destination.": "Pogledajte najbolje lokacije na putu do vašeg odredišta.",
   "Plan a route from here": "Planirajte rutu odavde",
-  "Good route?": "Dobra ruta?"
+  "Good route?": "Dobra ruta?",
+  "Bad first spot": "Loša prva tačka",
+  "Too much walking": "Previše pešačenja",
+  "Detour or wrong way": "Obilazak ili pogrešan put",
+  "A suggested spot doesn't work": "Predložena tačka ne funkcioniše",
+  "Got rides from other spots": "Dobio sam vožnje sa drugih tačaka",
+  "Something else": "Nešto drugo",
+  "What's wrong with it?": "Šta nije u redu?",
+  "You planned this trip on the map. How did the route work?": "Planirali ste ovo putovanje na mapi. Kako je ruta funkcionisala?",
+  "Worked": "Funkcionisala je",
+  "Partly": "Delimično",
+  "Didn't work": "Nije funkcionisala",
+  "Where did you actually get rides? (optional)": "Gde ste zapravo dobijali vožnje? (opciono)"
 }

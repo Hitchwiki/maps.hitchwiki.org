@@ -1149,5 +1149,17 @@
   "Hitchhiking out of this area?": "Bu bölgeden otostop çekmek mi istiyorsun?",
   "See the best spots along your way to the destination.": "Varış noktanıza giden yol üzerindeki en iyi noktaları görün.",
   "Plan a route from here": "Buradan bir rota planla",
-  "Good route?": "İyi rota mı?"
+  "Good route?": "İyi rota mı?",
+  "Bad first spot": "Kötü ilk nokta",
+  "Too much walking": "Çok fazla yürüme",
+  "Detour or wrong way": "Gereksiz dolanma veya yanlış yol",
+  "A suggested spot doesn't work": "Önerilen noktalardan biri işe yaramadı",
+  "Got rides from other spots": "Başka noktalardan araç buldum",
+  "Something else": "Başka bir şey",
+  "What's wrong with it?": "Sorun neydi?",
+  "You planned this trip on the map. How did the route work?": "Bu geziyi haritada planlamıştınız. Rota nasıl gitti?",
+  "Worked": "İşe yaradı",
+  "Partly": "Kısmen",
+  "Didn't work": "İşe yaramadı",
+  "Where did you actually get rides? (optional)": "Aslında nerelerden araç buldunuz? (isteğe bağlı)"
 }

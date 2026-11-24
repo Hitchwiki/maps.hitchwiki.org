@@ -1149,5 +1149,17 @@
   "Hitchhiking out of this area?": "Autosõitjaga sõitmine sellest piirkonnast?",
   "See the best spots along your way to the destination.": "Vaata parimaid kohti oma teel sihtkohta.",
   "Plan a route from here": "Planeeri siit marsruut",
-  "Good route?": "Hea marsruut?"
+  "Good route?": "Hea marsruut?",
+  "Bad first spot": "Halb alguspunkt",
+  "Too much walking": "Liiga palju jalutamist",
+  "Detour or wrong way": "Ümbertee või vale tee",
+  "A suggested spot doesn't work": "Soovitatud punkt ei tööta",
+  "Got rides from other spots": "Sain sõidupakkumisi teistest punktidest",
+  "Something else": "Midagi muud",
+  "What's wrong with it?": "Mis on selles viga?",
+  "You planned this trip on the map. How did the route work?": "Planeerisid selle reisi kaardil. Kuidas marsruut toimis?",
+  "Worked": "Toimis",
+  "Partly": "Osaliselt",
+  "Didn't work": "Ei toiminud",
+  "Where did you actually get rides? (optional)": "Kust said tegelikult sõidupakkumisi? (valikuline)"
 }
