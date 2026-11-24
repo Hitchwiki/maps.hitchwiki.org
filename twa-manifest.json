@@ -24,9 +24,9 @@
   "appVersionCode": 3,
   "shortcuts": [
     {
-      "name": "Hitchhiking Map",
-      "shortName": "Hitchhiking ",
-      "url": "https://hitchhikingmap.com/",
+      "name": "Plan a route",
+      "shortName": "Plan a route",
+      "url": "https://maps.hitchwiki.org/?ref=shortcut_plan#routing",
       "chosenIconUrl": "https://maps.hitchwiki.org/static/logo_512.png"
     }
   ],

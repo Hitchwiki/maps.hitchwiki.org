@@ -42,16 +42,30 @@
   ],
   "shortcuts": [
     {
-      "name": "Hitchhiking Map",
-      "url": "https://hitchhikingmap.com",
+      "name": "Plan a route",
+      "short_name": "Plan a route",
+      "url": "/?ref=shortcut_plan#routing",
       "icons": [
         {
-          "src": "https://maps.hitchwiki.org/static/logo_512.png",
-          "sizes": "512x512",
+          "src": "https://maps.hitchwiki.org/static/logo_192.png",
+          "sizes": "192x192",
           "type": "image/png"
         }
       ],
-      "description": "Hitchhiking Map"
+      "description": "Plan a hitchhiking route"
+    },
+    {
+      "name": "Menu",
+      "short_name": "Menu",
+      "url": "/?ref=shortcut_menu#menu",
+      "icons": [
+        {
+          "src": "https://maps.hitchwiki.org/static/logo_192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ],
+      "description": "Open the menu"
     }
   ],
   "lang": "en",
