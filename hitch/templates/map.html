@@ -118,6 +118,9 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
     var ua = navigator.userAgent || '';
     var isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
     var isAndroid = /Android/.test(ua);
+    // EXP-1346 slice B: half of iOS visitors (sticky arm) see the same hint only after the first
+    // route_found / journey_started, once the map has proven useful. Other platforms unchanged.
+    var iosArm = isIOS && window.hmVariant ? window.hmVariant('ios-hint-moment-v1', ['ctrl', 'after_use']) : '';
 
     // Now that there's a real Play Store app, Android users get a different pitch —
     // and their own dismissal key, so a dismissal of the old "add to home screen"
@@ -180,7 +183,7 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
 
     function dismiss(e) {
         if (!isAndroid && e && e.type === 'click' && e.currentTarget && e.currentTarget.id === 'install-hint-close' && window.hmTrack) {
-            window.hmTrack('install_hint_dismissed', { os: isIOS ? 'ios' : 'other' });
+            window.hmTrack('install_hint_dismissed', { os: isIOS ? 'ios' : 'other', arm: iosArm });
         }
         hint.hidden = true;
         try { localStorage.setItem(HINT_KEY, String(Date.now())); } catch (e) {}
@@ -194,11 +197,11 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
         hint.hidden = false;
         if (isAndroid && window.hmTrack) window.hmTrack('play_store_shown', { source: 'install_hint' });
         // Install-path telemetry for the non-Android hint (iOS Add-to-Home-Screen text, desktop).
-        if (!isAndroid && window.hmTrack) window.hmTrack('install_hint_shown', { os: isIOS ? 'ios' : 'other' });
+        if (!isAndroid && window.hmTrack) window.hmTrack('install_hint_shown', { os: isIOS ? 'ios' : 'other', arm: iosArm });
     }
     var waited = 0;
     // Small delay so the hint doesn't fight with map load (and the consent box exists).
-    setTimeout(function waitForConsent() {
+    function start() { setTimeout(function waitForConsent() {
         var consentOpen = window.hmVisitorConsent && window.hmVisitorConsent.state() === 'unset';
         // .inride-scrim = any modal dialog (race banner, welcome back, ...): don't sit on top of it.
         if ((consentOpen || document.querySelector('.inride-scrim')) && waited < 60000) {
@@ -206,7 +209,9 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
             return setTimeout(waitForConsent, 500);
         }
         showHint();
-    }, 1500);
+    }, 1500); }
+    if (iosArm === 'after_use') document.addEventListener('hm:useful', start, { once: true });
+    else start();
 })();
 
 // Play Store button: Android only, and not inside the installed app itself. Kept
