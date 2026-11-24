@@ -444,7 +444,7 @@
     // device unless the hitchhiker answers.
     if ((!opts || opts.share !== false) && endedJourney && endedJourney.plan && endedJourney.plan !== "none") {
       try {
-        const r = JSON.parse(localStorage.getItem("hmLastRoute") || "null");
+        const r = endedJourney.planRoute;
         if (r && Array.isArray(r.from) && Array.isArray(r.to) && localStorage.getItem("hmTripAsked") !== String(r.ts)) {
           localStorage.setItem("hmTripAsk", JSON.stringify({ from: r.from, to: r.to, ts: Date.now(), legs: log.length }));
           localStorage.setItem("hmTripAsked", String(r.ts));
@@ -788,6 +788,14 @@
     } catch (e) { return none; }
   }
 
+  function planRouteOf() {
+    try {
+      const r = JSON.parse(localStorage.getItem("hmLastRoute") || "null");
+      if (r && Array.isArray(r.from) && Array.isArray(r.to) && isFinite(r.ts)) return { from: r.from, to: r.to, ts: r.ts };
+    } catch (e) { /* optional */ }
+    return null;
+  }
+
   journeyFlow.start = function (latlng, coHitchhikers, source) {
     // Accepts a Leaflet LatLng or {lat, lon} — see toLatLon.
     const p = toLatLon(latlng);
@@ -809,6 +817,9 @@
       firstJourney: markFirstJourney(),
       plan: planTag.plan,
       pd: planTag.pd,
+      // Till 2026-11-24: the planned route this journey followed, kept so the after-trip ask is about this route even
+      // if another one is looked up on the way.
+      planRoute: planTag.plan !== "none" ? planRouteOf() : null,
     });
     // Entry point of the in-ride funnel. This is a second, separate contribution
     // path from the /ride form — a journey that reaches Finish or Give up submits
@@ -1092,6 +1103,10 @@
       gotRideMs: null, finalWaitMs: null, details: null,
       legIndex: (prev && prev.legIndex || 0) + 1,
       coHitchhikers: (prev && prev.coHitchhikers) || [],
+      // Same trip, same plan: later legs keep the planner tag (and the after-trip ask still fires at the end).
+      plan: (prev && prev.plan) || "none",
+      pd: (prev && prev.pd) || "na",
+      planRoute: (prev && prev.planRoute) || null,
     });
     // Continuing a multi-leg trip rather than stopping. journey_started does not
     // fire for these, so the leg counter is the only way to see them.

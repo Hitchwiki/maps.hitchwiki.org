@@ -1185,6 +1185,19 @@ SOURCE_STRINGS = [
     "{used} of {total} recorded rides carry an answer, {no} of them a “no”. Most cohorts you can build "
     "below will rest on a handful of rides — the confidence interval next to each percentage is the part "
     "worth reading.",
+    # Route feedback reasons and after-trip ask (Till 2026-11-24).
+    "Bad first spot",
+    "Too much walking",
+    "Detour or wrong way",
+    "A suggested spot doesn't work",
+    "Got rides from other spots",
+    "Something else",
+    "What's wrong with it?",
+    "You planned this trip on the map. How did the route work?",
+    "Worked",
+    "Partly",
+    "Didn't work",
+    "Where did you actually get rides? (optional)",
 ]
 
 
