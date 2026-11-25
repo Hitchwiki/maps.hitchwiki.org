@@ -858,7 +858,7 @@ def _render_year_recap_png(username, year, recap):
     draw.text((72, 70), f"{year} on the road", fill=(34, 34, 34), font=f_title)
     draw.text((72, 140), _truncate_text(username, 40), fill=(85, 85, 85), font=f_label)
     stats = [
-        (str(recap["rides"]), "rides"),
+        (str(recap["rides"]), "ride" if recap["rides"] == 1 else "rides"),
         (str(int(round(recap["km"]))), "km travelled"),
         (str(int(round(recap["waiting_min"]))), "min waiting"),
         (str(recap["areas"]), "areas"),
