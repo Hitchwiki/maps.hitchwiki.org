@@ -112,3 +112,18 @@ def test_ensure_user_columns_adds_column_once():
     assert "recap_email_sent_year" in {c["name"] for c in inspect(engine).get_columns("user")}
     with engine.begin() as conn:
         assert conn.execute(text("SELECT recap_email_sent_year FROM user")).scalar() is None
+
+
+def test_preflight_logs_aggregates_only(app, cohort, caplog, monkeypatch):
+    """RECAP_EMAIL_PREFLIGHT=1 on a dry run renders each page and logs counts, never usernames."""
+    import logging
+    import runpy
+
+    monkeypatch.setenv("RECAP_EMAIL_YEAR", "2026")
+    monkeypatch.setenv("RECAP_EMAIL_PREFLIGHT", "1")
+    monkeypatch.delenv("RECAP_EMAIL_SEND", raising=False)
+    with app.app_context(), caplog.at_level(logging.INFO):
+        runpy.run_path("hitch/scripts/send_year_recap_email.py")
+    line = next(r.getMessage() for r in caplog.records if "PREFLIGHT" in r.getMessage())
+    assert "PREFLIGHT 1 recipients" in line
+    assert "yr_ok" not in caplog.text
