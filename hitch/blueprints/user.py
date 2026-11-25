@@ -1804,7 +1804,7 @@ def show_trip(trip_id):
         date_span=date_span,
         points=_trip_route_points(rides),
         preview_description=_trip_preview_description(owner, date_span, rides),
-        preview_image_url=url_for("user.trip_preview_image", trip_id=trip.id, _external=True),
+        preview_image_url=url_for("user.trip_preview_image", trip_id=trip.id, _external=True, _scheme="https"),
     )
 
 
