@@ -148,3 +148,19 @@ def test_recap_visitor_sees_first_time_link(app, client):
         with app.app_context():
             _db.session.delete(_db.session.get(User, uid))
             _db.session.commit()
+
+
+def test_recap_preview_image_and_share_link_are_https(app, client, monkeypatch):
+    # Unfurlers discard an http:// og:image (see main._external_https); the recap link is the one
+    # thing 127 people are mailed to share, so its preview must name an https image.
+    _user(app, "yrhttps")
+    monkeypatch.setattr(
+        "hitch.blueprints.user._year_recap",
+        lambda u, y: {"rides": 3, "km": 100.0, "waiting_min": 30.0, "given_up": 0, "areas": 2, "undated": 0},
+    )
+    with client.session_transaction() as sess:
+        sess["_user_id"] = "yr-yrhttps"
+        sess["_fresh"] = True
+    html = client.get("/insights/yrhttps/2026").data.decode()
+    assert 'property="og:image" content="https://' in html
+    assert 'http://localhost' not in html.split('property="og:image"')[1][:200]
