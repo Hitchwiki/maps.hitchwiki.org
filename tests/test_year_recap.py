@@ -177,3 +177,14 @@ def test_recap_og_description_carries_the_numbers(app, client, monkeypatch):
     desc = html.split('property="og:description" content="')[1].split('"')[0]
     assert desc.startswith("7 rides")
     assert "Discover hitchhiking spots" not in desc
+
+
+def test_recap_says_ride_for_a_single_ride(app, client, monkeypatch):
+    _user(app, "yrone")
+    monkeypatch.setattr(
+        "hitch.blueprints.user._year_recap",
+        lambda u, y: {"rides": 1, "km": 5.0, "waiting_min": 5.0, "given_up": 0, "areas": 1, "undated": 0},
+    )
+    html = client.get("/insights/yrone/2026").data.decode()
+    assert 'og:description" content="1 ride ·' in html
+    assert '<span class="recap-label">ride</span>' in html
