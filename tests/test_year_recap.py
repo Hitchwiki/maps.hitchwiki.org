@@ -164,3 +164,16 @@ def test_recap_preview_image_and_share_link_are_https(app, client, monkeypatch):
     html = client.get("/insights/yrhttps/2026").data.decode()
     assert 'property="og:image" content="https://' in html
     assert 'http://localhost' not in html.split('property="og:image"')[1][:200]
+
+
+def test_recap_og_description_carries_the_numbers(app, client, monkeypatch):
+    # IDEAS #1705: the chat preview of a shared recap shows the year's numbers, not the generic map blurb.
+    _user(app, "yrdesc")
+    monkeypatch.setattr(
+        "hitch.blueprints.user._year_recap",
+        lambda u, y: {"rides": 7, "km": 100.0, "waiting_min": 30.0, "given_up": 0, "areas": 2, "undated": 0},
+    )
+    html = client.get("/insights/yrdesc/2026").data.decode()
+    desc = html.split('property="og:description" content="')[1].split('"')[0]
+    assert desc.startswith("7 rides")
+    assert "Discover hitchhiking spots" not in desc
