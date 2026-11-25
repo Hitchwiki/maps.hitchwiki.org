@@ -861,7 +861,7 @@ def _render_year_recap_png(username, year, recap):
         (str(recap["rides"]), "ride" if recap["rides"] == 1 else "rides"),
         (str(int(round(recap["km"]))), "km travelled"),
         (str(int(round(recap["waiting_min"]))), "min waiting"),
-        (str(recap["areas"]), "areas"),
+        (str(recap["areas"]), "area" if recap["areas"] == 1 else "areas"),
     ]
     col_w = (PREVIEW_W - 144) // 2
     for i, (value, label) in enumerate(stats):
