@@ -125,5 +125,6 @@ def test_preflight_logs_aggregates_only(app, cohort, caplog, monkeypatch):
     with app.app_context(), caplog.at_level(logging.INFO):
         runpy.run_path("hitch/scripts/send_year_recap_email.py")
     line = next(r.getMessage() for r in caplog.records if "PREFLIGHT" in r.getMessage())
-    assert "PREFLIGHT 1 recipients" in line
+    assert "PREFLIGHT 0 recipients" in line  # yr_ok has no dated rides: skipped, not mailed
+    assert "1 of them have 0 rides" in caplog.text
     assert "yr_ok" not in caplog.text

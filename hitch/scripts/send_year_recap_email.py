@@ -93,6 +93,13 @@ def run():
     users = eligible_users(year)
     # Aggregate only: never log addresses or names in a dry run.
     logger.info(f"{len(users)} accounts eligible for the {year} recap email")
+    # last_ride_at is a submission-time proxy; the recap page counts by ride start. Preflight
+    # 2026-11-25 found 18 of 145 whose page shows 0 rides: do not mail those an empty page.
+    from hitch.blueprints.user import _year_recap
+
+    with_rides = [u for u in users if _year_recap(u.username, year)["rides"] > 0]
+    logger.info(f"{len(users) - len(with_rides)} of them have 0 rides in {year} on the recap page: skipped")
+    users = with_rides
     # Aggregate reach check: of everyone who logged a ride in the year, how many the email can't reach.
     from hitch.models import User
 
