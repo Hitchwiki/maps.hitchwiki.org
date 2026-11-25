@@ -188,3 +188,15 @@ def test_recap_says_ride_for_a_single_ride(app, client, monkeypatch):
     html = client.get("/insights/yrone/2026").data.decode()
     assert 'og:description" content="1 ride ·' in html
     assert '<span class="recap-label">ride</span>' in html
+
+
+def test_recap_says_area_for_a_single_area(app, client, monkeypatch):
+    _user(app, "yrarea")
+    monkeypatch.setattr(
+        "hitch.blueprints.user._year_recap",
+        lambda u, y: {"rides": 1, "km": 5.0, "waiting_min": 5.0, "given_up": 0, "areas": 1, "undated": 0},
+    )
+    html = client.get("/insights/yrarea/2026").data.decode()
+    assert "· 1 area\"" in html
+    assert '<span class="recap-label">area</span>' in html
+    assert "1 areas" not in html

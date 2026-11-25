@@ -106,6 +106,8 @@ SOURCE_STRINGS = [
     "Hitchhiking Map – Find & Share Hitchhiking Spots Globally",
     "ride",
     "rides",
+    "area",
+    "areas",
     "Rated {rating:.1f}/5 from {count} {plural}.",
     "Typical wait {wait} min.",
     "Rides average {distance} km.",

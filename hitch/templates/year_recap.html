@@ -8,7 +8,7 @@
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />{% endif %}{% endblock %}
 {# A pasted recap link should preview this year's numbers, not the generic map blurb (IDEAS #1705). #}
-{% block og_description %}{% if recap.rides %}{{ recap.rides }} {{ t("ride") if recap.rides == 1 else t("rides") }} · {{ convert_km(recap.km) | round | int }} {{ t("{unit} travelled", unit=distance_unit_label()) }} · {{ recap.waiting_min | round | int }} {{ t("min waiting") }} · {{ recap.areas }} {{ t("areas") }}{% else %}{{ super() }}{% endif %}{% endblock %}
+{% block og_description %}{% if recap.rides %}{{ recap.rides }} {{ t("ride") if recap.rides == 1 else t("rides") }} · {{ convert_km(recap.km) | round | int }} {{ t("{unit} travelled", unit=distance_unit_label()) }} · {{ recap.waiting_min | round | int }} {{ t("min waiting") }} · {{ recap.areas }} {{ t("area") if recap.areas == 1 else t("areas") }}{% else %}{{ super() }}{% endif %}{% endblock %}
 
 {% block content %}
 <style>
@@ -32,7 +32,7 @@ button.recap-month:hover { background: #fff3cf; }
   <div class="recap-stat"><span class="recap-value">{{ recap.rides }}</span><span class="recap-label">{{ t("ride") if recap.rides == 1 else t("rides") }}</span></div>
   <div class="recap-stat"><span class="recap-value">{{ convert_km(recap.km) | round | int }}</span><span class="recap-label">{{ t("{unit} travelled", unit=distance_unit_label()) }}</span></div>
   <div class="recap-stat"><span class="recap-value">{{ recap.waiting_min | round | int }}</span><span class="recap-label">{{ t("min waiting") }}</span></div>
-  <div class="recap-stat"><span class="recap-value">{{ recap.areas }}</span><span class="recap-label">{{ t("areas") }}</span></div>
+  <div class="recap-stat"><span class="recap-value">{{ recap.areas }}</span><span class="recap-label">{{ t("area") if recap.areas == 1 else t("areas") }}</span></div>
 </div>
 {% else %}
 <p>{{ t("No rides logged for {year} yet.", year=year) }}</p>
