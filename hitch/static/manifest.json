@@ -1,6 +1,6 @@
 {
   "background_color": "#ffffff",
-  "description": "Find hitchhiking spots and add new spots you discovered to the map. Over 20,000 spots were added already!",
+  "description": "Find hitchhiking spots and add new spots you discovered to the map. Over 40,000 spots were added already!",
   "dir": "ltr",
   "display": "standalone",
   "name": "Hitchhiking Map",
@@ -13,7 +13,15 @@
     "navigation",
     "travel"
   ],
-  "screenshots": [],
+  "screenshots": [
+    {
+      "src": "https://maps.hitchwiki.org/static/screenshot_map_narrow.png",
+      "sizes": "390x800",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Hitchhiking spots on the map"
+    }
+  ],
   "icons": [
     {
       "src": "https://maps.hitchwiki.org/static/logo_192.png",
