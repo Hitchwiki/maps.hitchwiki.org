@@ -42,6 +42,51 @@ def _ensure_column():
         pass
 
 
+_LEAK_MARKERS = ("{{", "{%", "%(", "Traceback", "NaN", "None rides")
+
+
+def _preflight(users, year):
+    """Dry-run only: render every recipient's recap page + share image, log aggregates (no names)."""
+    from urllib.parse import quote
+
+    from hitch.blueprints.user import _year_recap
+
+    statuses, png_statuses, times = {}, {}, []
+    zero = leaks = 0
+    client = current_app.test_client()
+    for u in users:
+        path = f"/insights/{quote(u.username, safe='')}/{year}"
+        t0 = time.perf_counter()
+        try:
+            r = client.get(path)
+            code = r.status_code
+            body = r.get_data(as_text=True) if code == 200 else ""
+        except Exception:
+            code, body = "exception", ""
+        times.append((time.perf_counter() - t0) * 1000)
+        statuses[code] = statuses.get(code, 0) + 1
+        if any(m in body for m in _LEAK_MARKERS):
+            leaks += 1
+        try:
+            if _year_recap(u.username, year)["rides"] == 0:
+                zero += 1
+        except Exception:
+            zero += 1
+        try:
+            pc = client.get(path + ".png").status_code
+        except Exception:
+            pc = "exception"
+        png_statuses[pc] = png_statuses.get(pc, 0) + 1
+    times.sort()
+    n = len(times)
+    p50 = times[n // 2] if n else 0
+    p95 = times[min(n - 1, int(n * 0.95))] if n else 0
+    logger.info(
+        f"PREFLIGHT {n} recipients: page status {statuses}, png status {png_statuses}, "
+        f"{zero} with 0 rides in {year}, {leaks} with template-leak strings, p50 {p50:.0f} ms, p95 {p95:.0f} ms"
+    )
+
+
 def run():
     _ensure_column()
     year = int(os.environ.get("RECAP_EMAIL_YEAR") or datetime.now(timezone.utc).year)
@@ -56,6 +101,9 @@ def run():
     no_optin = sum(1 for u in loggers if not u.email_notifications)
     no_email = sum(1 for u in loggers if not u.email or u.email.endswith("@hitchwiki.oauth"))
     logger.info(f"{len(loggers)} accounts with last ride in {year}: {no_optin} opted out, {no_email} no real email")
+
+    if os.environ.get("RECAP_EMAIL_PREFLIGHT") == "1" and os.environ.get("RECAP_EMAIL_SEND") != "1":
+        _preflight(users, year)
 
     if os.environ.get("RECAP_EMAIL_SEND") != "1":
         logger.info("Dry run: nothing sent. Set RECAP_EMAIL_SEND=1 to send.")
