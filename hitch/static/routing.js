@@ -326,7 +326,7 @@
   // dependency, so headless tests exercise them directly (see
   // tests/routing_wait_fallback.test.js and the CLAUDE.md note on running
   // routing.js under node).
-  window.RoutingInternals = { nearestSpot, buildRouter, ensureWalk, route, buildItinerary, fillLegEvidence };
+  window.RoutingInternals = { nearestSpot, snapCandidates, buildRouter, ensureWalk, route, buildItinerary, fillLegEvidence };
 
   fetch("/repeatable_routes.json").then((r) => r.json()).then((rep) => {
     RJ.spots = rep.spots;
@@ -1591,23 +1591,43 @@
   // covered spot and, only if that connects, offer the result behind one tap. The
   // label carries a number and nothing else; the route it shows is the logged one.
   const SNAP_MAX_KM = 150;
+  // #1708: where to retry a snapped search, best first, as [[lat, lon], km] pairs.
+  // For an uncovered destination, the failed search has already explored everything
+  // reachable from the start, and R.lastGap (#1669) is the reached spot nearest the
+  // destination. It connects by construction, so try it before the plain nearest spot,
+  // which is often an island the start cannot reach. Replaying 45 real dest-uncovered
+  // searches on the live graphs: 16 snap with lastGap vs 8 with the nearest spot alone,
+  // at no extra search. (The graph is directed, so a start end has no free equivalent.)
+  function snapCandidates(R, end, from, to, maxKm) {
+    const out = [];
+    const g = R.lastGap;
+    if (end === "dest" && g && g.km <= maxKm) out.push([[g.lat, g.lon], g.km]);
+    const near = nearestSpot(R, end === "start" ? from : to, maxKm);
+    if (near && !(out.length && out[0][0][0] === R.spots[near[0]][0] && out[0][0][1] === R.spots[near[0]][1])) {
+      out.push([R.spots[near[0]], near[1]]);
+    }
+    return out;
+  }
   function showNoRouteSnapAction(R, reason, from, to) {
     const btn = panel && panel.querySelector(".rp-no-route-snap");
     if (!btn || (reason !== "start-uncovered" && reason !== "dest-uncovered")) return;
     const end = reason === "start-uncovered" ? "start" : "dest";
-    const near = nearestSpot(R, end === "start" ? from : to, SNAP_MAX_KM);
-    if (!near) return;
-    const spot = R.spots[near[0]];
-    const alt = end === "start"
-      ? alternatives(R, spot, to, DEFAULT_MAX_WALK, 3, 0.6)
-      : alternatives(R, from, spot, DEFAULT_MAX_WALK, 3, 0.6);
+    // alternatives() resets R.lastGap, so read the candidates first.
+    const cands = snapCandidates(R, end, from, to, SNAP_MAX_KM), hasGap = end === "dest" && !!R.lastGap && R.lastGap.km <= SNAP_MAX_KM;
+    let alt = [], km = 0, src = "";
+    for (let i = 0; i < cands.length && !alt.length; i++) {
+      const spot = cands[i][0];
+      alt = end === "start"
+        ? alternatives(R, spot, to, DEFAULT_MAX_WALK, 3, 0.6)
+        : alternatives(R, from, spot, DEFAULT_MAX_WALK, 3, 0.6);
+      if (alt.length) { km = Math.round(cands[i][1]); src = (hasGap && i === 0) ? "gap" : "nearest"; }
+    }
     if (!alt.length) return;
-    const km = Math.round(near[1]);
-    hmTrack("route_none_snap_shown", { end: end, km: km });
+    hmTrack("route_none_snap_shown", { end: end, km: km, src: src });
     btn.textContent = T("Nearest logged route starts {km} km away — show it", { km: km });
     btn.hidden = false;
     btn.onclick = function () {
-      hmTrack("route_none_snap_clicked", { end: end, km: km });
+      hmTrack("route_none_snap_clicked", { end: end, km: km, src: src });
       clearRoutes();
       hmTrack("route_found", { graph: "snapped", options: alt.length });
       showRoutes(alt);
