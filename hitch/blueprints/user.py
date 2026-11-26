@@ -2291,7 +2291,10 @@ def _read_leaderboard_json(filename):
 @user_bp.route("/leaderboard", methods=["GET"])
 def leaderboard():
     """Show all users sorted by number of rides, highest first."""
-    all_users = User.query.order_by(User.username).all()
+    # An erased account keeps its row with username = NULL (account_erasure.py), so it has
+    # no name to rank or link to; skipping it here is what stops one deletion from 500ing
+    # the whole page (it did, from 2026-10 until this guard).
+    all_users = User.query.filter(User.username.isnot(None), User.username != "").order_by(User.username).all()
 
     # Count rides per nickname directly in SQL via json_each — avoids loading every
     # RideEvent into Python and JSON-parsing each one. Group case-insensitively, which
