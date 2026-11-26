@@ -38,6 +38,11 @@ def city_dir(tmp_path):
         ("city/Greece/Kalamata.html", (302, "/country/Greece")),
         ("city/England, UK/Thurrock Services.html", (302, "/country/United%20Kingdom")),
         ("city/United States of America/Oregon.html", (302, "/country/United%20States")),
+        # No country page either: the map's place search at that place.
+        ("city/Myanmar/Mandalay.html", (302, "/?ref=wiki-city-search#search/Mandalay%2C%20Myanmar")),
+        ("city//Thessaloniki.html", (302, "/?ref=wiki-city-search#search/Thessaloniki")),
+        ("city//Swietokrzyskie (Voivodeship).html", (302, "/?ref=wiki-city-search#search/Swietokrzyskie%2C%20Voivodeship")),
+        ("city/Germany/Nienburg/Weser.html", (302, "/?ref=wiki-city-search#search/Germany%20Nienburg%20Weser")),
     ],
 )
 def test_resolves(city_dir, path, expected):
@@ -47,10 +52,8 @@ def test_resolves(city_dir, path, expected):
 @pytest.mark.parametrize(
     "path",
     [
-        "city/Atlantis/Poseidonia.html",  # unknown country: honest 404
-        "city//Thessaloniki.html",  # wiki article with no country set
         "city/Thessaloniki.html",
-        "city/Greece/a/b.html",
+        "city/Greece/.html",
         "spots.json",
     ],
 )
@@ -65,3 +68,11 @@ def test_route_redirects_missing_city_page(client, monkeypatch):
     r = client.get("/city/Greece/Kalamata-does-not-exist.html")
     assert r.status_code == 302
     assert r.headers["Location"].endswith("/country/Greece")
+
+
+def test_route_keeps_empty_country_segment(client):
+    # The wiki emits /city//<Title>.html for an empty infobox country; the catch-all
+    # must still see the empty segment and land on the place search, not a 404.
+    r = client.get("/city//Thessaloniki.html")
+    assert r.status_code == 302
+    assert r.headers["Location"].endswith("/?ref=wiki-city-search#search/Thessaloniki")
