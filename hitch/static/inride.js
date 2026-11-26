@@ -583,6 +583,10 @@
   // per browser so a user never flips between behaviours.
   const AT_CHECK_SOURCES = ["spot-sheet", "route-results"];
   let pendingPinPlacement = ""; // set on picker confirm, consumed by the next journey_started
+  // Read a stored A/B arm without assigning one (the experiment owns assignment); "na" if absent or blocked.
+  function storedArm(key) {
+    try { return localStorage.getItem(key) || "na"; } catch (e) { return "na"; }
+  }
   let atCheckLabel = ""; // read by journey_started; "" for sources outside the experiment
   function atCheckArm() {
     try {
@@ -853,6 +857,10 @@
       li: window.IS_LOGGED_IN ? "yes" : "no",
       plan: j.plan,
       pd: j.pd,
+      // EXP-1334/route-demand: the sticky planner arms (route-none-road-v1, hmRouteDemandArm), read without
+      // assigning one ("na" if never exposed), so journey starts can be compared between arms.
+      rnr: storedArm("hm_ab_route-none-road-v1"),
+      rd: storedArm("hmRouteDemandArm"),
     });
     pendingPinPlacement = "";
     atCheckLabel = ""; // one-shot: a later start from another path must not inherit it
