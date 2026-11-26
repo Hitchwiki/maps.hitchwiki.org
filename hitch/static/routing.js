@@ -356,7 +356,15 @@
         RJ.fallback.router = R;
         return R;
       })
-      .catch((e) => { console.error("one-off routing data failed", e); return null; });
+      .catch((e) => {
+        console.error("one-off routing data failed", e);
+        // #1710: say why, once per tab. A spot_count mismatch means the two files were rebuilt
+        // between this tab loading the repeatable graph and its first failed search.
+        const m = String(e && e.message || "");
+        RJ.fallback.err = m === "spot index mismatch" ? "mismatch" : (m.indexOf("HTTP") === 0 ? "http" : "parse");
+        hmTrack("route_fallback_failed", { why: RJ.fallback.err });
+        return null;
+      });
     return RJ.fallback.promise;
   }
 
@@ -870,6 +878,7 @@
           // #1708 Check 1: about a third of gap-in-middle events had no gap_km. Say why: the one-off
           // graph failed to load, or every route found was dropped by the detour cap.
           if (reason === "gap-in-middle" && !gp) props.gap_why = !FB ? "no-fallback" : (FB.lastCapped ? "detour-capped" : "unknown");
+          if (!FB) props.fb_err = RJ.fallback.err || "none";
           hmTrack('route_none', props);
           logRouteOutcome('none', '', 0, reason);
           setStatus(diagnoseNoRoute(FB || RJ.router, from, to, DEFAULT_MAX_WALK, !!FB));
