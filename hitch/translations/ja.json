@@ -1162,5 +1162,6 @@
   "Partly": "部分的にうまくいった",
   "Didn't work": "うまくいかなかった",
   "Where did you actually get rides? (optional)": "実際にどこでヒッチハイクできましたか？（任意）",
-  "🫳 Hand wave {thumb} · Sign {sign} · Ask {ask}": "🫳 手招き {thumb} · 標識 {sign} · 質問 {ask}"
+  "🫳 Hand wave {thumb} · Sign {sign} · Ask {ask}": "🫳 手招き {thumb} · 標識 {sign} · 質問 {ask}",
+  "Hand wave": "手招き"
 }

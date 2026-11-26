@@ -604,6 +604,30 @@
 
 {% block scripts %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="{{ asset_url('/static/signal_country.js') }}"></script>
+<script>
+    // maps#732: in Kazakhstan and Kyrgyzstan drivers are stopped with a downward hand wave, not a thumb.
+    // Relabel the "thumb" chip when the pickup lies there; the stored code stays "thumb". The pickup
+    // fields are set by property assignment (no change event), so poll them.
+    (function () {
+        const THUMB = {{ ("👍 " ~ t("Thumb"))|tojson }};
+        const WAVE = {{ ("🫳 " ~ t("Hand wave"))|tojson }};
+        let last = null;
+        function sync() {
+            const chip = document.querySelector('#signal-chips .inr-optchip[data-code="thumb"]');
+            const la = document.getElementById("pickup_lat"), lo = document.getElementById("pickup_lon");
+            if (!chip || !la || !lo || !window.SignalCountry) return;
+            const key = la.value + "," + lo.value;
+            if (key === last) return;
+            last = key;
+            if (!la.value || !lo.value) { chip.textContent = THUMB; return; }
+            window.SignalCountry.isHandWaveAt(la.value, lo.value).then(function (yes) {
+                if (key === last) chip.textContent = yes ? WAVE : THUMB;
+            });
+        }
+        document.addEventListener("DOMContentLoaded", function () { sync(); setInterval(sync, 1000); });
+    })();
+</script>
 <script>
     // Set maximum date to today
     document.getElementById("datetime_ride").max = (new Date().toISOString().slice(0, 11)) + "23:59";

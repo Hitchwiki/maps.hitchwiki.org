@@ -1162,5 +1162,6 @@
   "Partly": "En partie",
   "Didn't work": "Ça n'a pas fonctionné",
   "Where did you actually get rides? (optional)": "Où avez-vous réellement obtenu des trajets ? (facultatif)",
-  "🫳 Hand wave {thumb} · Sign {sign} · Ask {ask}": "🫳 Signe de la main {thumb} · Signe {sign} · Demande {ask}"
+  "🫳 Hand wave {thumb} · Sign {sign} · Ask {ask}": "🫳 Signe de la main {thumb} · Signe {sign} · Demande {ask}",
+  "Hand wave": "Signe de la main"
 }
