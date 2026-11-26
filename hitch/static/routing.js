@@ -326,7 +326,7 @@
   // dependency, so headless tests exercise them directly (see
   // tests/routing_wait_fallback.test.js and the CLAUDE.md note on running
   // routing.js under node).
-  window.RoutingInternals = { nearestSpot, snapCandidates, buildRouter, ensureWalk, route, buildItinerary, fillLegEvidence };
+  window.RoutingInternals = { nearestSpot, snapCandidates, reverseReach, buildRouter, ensureWalk, route, buildItinerary, fillLegEvidence };
 
   fetch("/repeatable_routes.json").then((r) => r.json()).then((rep) => {
     RJ.spots = rep.spots;
@@ -1591,20 +1591,43 @@
   // covered spot and, only if that connects, offer the result behind one tap. The
   // label carries a number and nothing else; the route it shows is the logged one.
   const SNAP_MAX_KM = 150;
-  // #1708: where to retry a snapped search, best first, as [[lat, lon], km] pairs.
-  // For an uncovered destination, the failed search has already explored everything
-  // reachable from the start, and R.lastGap (#1669) is the reached spot nearest the
-  // destination. It connects by construction, so try it before the plain nearest spot,
-  // which is often an island the start cannot reach. Replaying 45 real dest-uncovered
-  // searches on the live graphs: 16 snap with lastGap vs 8 with the nearest spot alone,
-  // at no extra search. (The graph is directed, so a start end has no free equivalent.)
+  // #1708: where to retry a snapped search, best first, as [[lat, lon], km, src] triples.
+  // dest end: the failed search already explored everything reachable from the start, and
+  // R.lastGap (#1669) is the reached spot nearest the destination, so it connects by
+  // construction ("gap"). Replay of 45 real dest-uncovered searches: 16 snap vs 8 with the
+  // nearest spot alone. start end: every logged ride edge is boardable (buildRouter), so one
+  // backward search from the destination's spots gives every spot that can reach it, and the
+  // nearest of those to the start connects ("rev"). The plain nearest spot ("nearest") is the
+  // fallback for both, since it is often an island.
+  function reverseReach(R, dest, maxWalk) {
+    if (!R.revAdj) {
+      const rv = new Map();
+      R.edgeKm.forEach((_km, key) => { const u = Math.floor(key / 1e7), v = key - u * 1e7;
+        if (!rv.has(v)) rv.set(v, []); rv.get(v).push(u); });
+      R.revAdj = rv;
+    }
+    const seen = new Set(), q = [];
+    spotsNear(R, dest, maxWalk).forEach(([i]) => { if (!seen.has(i)) { seen.add(i); q.push(i); } });
+    for (let h = 0; h < q.length; h++) {
+      const v = q[h];
+      (R.revAdj.get(v) || []).forEach((u) => { if (!seen.has(u)) { seen.add(u); q.push(u); } });
+      (R.walkAdj.get(v) || []).forEach(([u]) => { if (!seen.has(u)) { seen.add(u); q.push(u); } });
+    }
+    return seen;
+  }
   function snapCandidates(R, end, from, to, maxKm) {
     const out = [];
     const g = R.lastGap;
-    if (end === "dest" && g && g.km <= maxKm) out.push([[g.lat, g.lon], g.km]);
+    if (end === "dest" && g && g.km <= maxKm) out.push([[g.lat, g.lon], g.km, "gap"]);
+    if (end === "start") {
+      let best = null;
+      reverseReach(R, to, DEFAULT_MAX_WALK).forEach((i) => { const km = haversineKm(from, R.spots[i]);
+        if (km <= maxKm && (!best || km < best[1])) best = [i, km]; });
+      if (best) out.push([R.spots[best[0]], best[1], "rev"]);
+    }
     const near = nearestSpot(R, end === "start" ? from : to, maxKm);
     if (near && !(out.length && out[0][0][0] === R.spots[near[0]][0] && out[0][0][1] === R.spots[near[0]][1])) {
-      out.push([R.spots[near[0]], near[1]]);
+      out.push([R.spots[near[0]], near[1], "nearest"]);
     }
     return out;
   }
@@ -1613,14 +1636,14 @@
     if (!btn || (reason !== "start-uncovered" && reason !== "dest-uncovered")) return;
     const end = reason === "start-uncovered" ? "start" : "dest";
     // alternatives() resets R.lastGap, so read the candidates first.
-    const cands = snapCandidates(R, end, from, to, SNAP_MAX_KM), hasGap = end === "dest" && !!R.lastGap && R.lastGap.km <= SNAP_MAX_KM;
+    const cands = snapCandidates(R, end, from, to, SNAP_MAX_KM);
     let alt = [], km = 0, src = "";
     for (let i = 0; i < cands.length && !alt.length; i++) {
       const spot = cands[i][0];
       alt = end === "start"
         ? alternatives(R, spot, to, DEFAULT_MAX_WALK, 3, 0.6)
         : alternatives(R, from, spot, DEFAULT_MAX_WALK, 3, 0.6);
-      if (alt.length) { km = Math.round(cands[i][1]); src = (hasGap && i === 0) ? "gap" : "nearest"; }
+      if (alt.length) { km = Math.round(cands[i][1]); src = cands[i][2]; }
     }
     if (!alt.length) return;
     hmTrack("route_none_snap_shown", { end: end, km: km, src: src });

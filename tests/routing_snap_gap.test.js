@@ -32,9 +32,9 @@ assert.ok(route(R, from, c[0][0], 20, null).found, "the reached spot connects");
 assert.deepStrictEqual(Array.from(c[1][0]), [50.0, 12.2], "the nearest (island) spot is the fallback");
 assert.ok(!route(R, from, c[1][0], 20, null).found, "the island does not connect");
 
-// Start end: no gap shortcut, only the nearest spot.
+// Start end: the reachable spot is also the nearest here, so it is offered once.
 const s = snapCandidates(R, "start", [50.0, 9.5], [50.0, 11.0], 150);
-assert.strictEqual(s.length, 1, "start end only gets the nearest spot");
+assert.strictEqual(s.length, 1, "start end offers the one spot once");
 
 // Gap beyond the cap is ignored.
 R.lastGap = { lat: 50.0, lon: 11.0, km: 400 };
