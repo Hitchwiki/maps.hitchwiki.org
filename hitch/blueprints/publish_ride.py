@@ -289,8 +289,10 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
     # the standard has no household/group field, so the occupant count carries the signal.
     try:
         companions = int(custom_object.get("driver_companions"))
+        companions_answered = True
     except (TypeError, ValueError):
         companions = 0
+        companions_answered = False
     companions = max(0, min(companions, 3))
     # Tristate: True / False / None (unanswered). `is not None` because an explicit
     # "no" is falsy but still an answer worth publishing.
@@ -304,7 +306,9 @@ def create_record_from_custom_object(custom_object: dict, source: str, license: 
         or driver_languages
         or driver_would_ride_again is not None
         or driver_negative_experiences
-        or companions
+        # #410: "Driver alone" (0) is an answer too. It publishes a lone driver occupant,
+        # otherwise it was silently dropped and the edit form came back blank.
+        or companions_answered
     ):
         occupants = [
             Occupant(

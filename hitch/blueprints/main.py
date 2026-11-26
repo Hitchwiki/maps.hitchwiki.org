@@ -1886,7 +1886,10 @@ def ride_form():
                     # Other people in the car: bare was_driver=False occupants (#350). "" when none,
                     # since "alone" is not stored as a distinct answer.
                     others = sum(1 for o in occupants if isinstance(o, dict) and not o.get("was_driver"))
-                    ride_data["driver_companions"] = str(min(others, 3)) if others else ""
+                    # #410: a driver occupant with nobody else means "Driver alone". The standard has no
+                    # separate "unanswered" marker, so a driver described without this answer also reads
+                    # back as alone. Re-saving publishes the same occupant list, so nothing changes.
+                    ride_data["driver_companions"] = str(min(others, 3))
                     langs = driver.get("languages") or []
                     ride_data["driver_languages"] = [code for code in langs if code in LANGUAGE_CODES]
 
