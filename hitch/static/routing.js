@@ -270,6 +270,7 @@
   function alternatives(R, start, dest, maxWalk, k, maxOverlap) {
     const pen = new Map(), kept = [], keptEdges = [];
     R.lastGap = null;  // #1669: only a failed route() in this call may set it
+    R.lastCapped = 0;  // routes found but dropped by the #1420 detour cap
     for (let attempt = 0; attempt < k * 8 && kept.length < k; attempt++) {
       const res = route(R, start, dest, maxWalk, pen);
       if (!res.found) break;
@@ -278,7 +279,7 @@
       // (Helsinki -> Tallinn came back as 5430 km / 76 h in 42 legs). Such a chain is a graph
       // artefact (a sea crossing nobody logged), not a ride; the caller falls through to the
       // one-off graph and then the honest no-route message.
-      if (res.carKm > 4 * haversineKm(start, dest) + 150) continue;
+      if (res.carKm > 4 * haversineKm(start, dest) + 150) { R.lastCapped++; continue; }
       let similar = false;
       for (const [edges, km] of keptEdges) {
         let shared = 0;
@@ -866,6 +867,9 @@
           if (reason === "dest-uncovered" || reason === "both-uncovered") props.dest_cell = cell(to);
           const gp = FB && FB.lastGap;
           if (reason === "gap-in-middle" && gp) { props.gap_cell = gp.lat.toFixed(1) + "," + gp.lon.toFixed(1); props.gap_km = Math.round(gp.km / 10) * 10; }
+          // #1708 Check 1: about a third of gap-in-middle events had no gap_km. Say why: the one-off
+          // graph failed to load, or every route found was dropped by the detour cap.
+          if (reason === "gap-in-middle" && !gp) props.gap_why = !FB ? "no-fallback" : (FB.lastCapped ? "detour-capped" : "unknown");
           hmTrack('route_none', props);
           logRouteOutcome('none', '', 0, reason);
           setStatus(diagnoseNoRoute(FB || RJ.router, from, to, DEFAULT_MAX_WALK, !!FB));
