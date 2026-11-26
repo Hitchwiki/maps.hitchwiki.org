@@ -65,3 +65,22 @@ def test_every_server_side_t_string_in_blueprints_has_a_key_in_every_language():
             keys = json.load(f)
         missing = sorted(text for text in literals if text not in keys)
         assert not missing, f"{os.path.basename(path)} lacks keys for: {missing[:5]}"
+
+
+def test_every_template_t_string_has_a_key_in_every_language():
+    """Literal t("...") calls in Jinja templates must have a key in every language, or the
+    string ships English-only everywhere (the map's 'Report a bug' button did, until 2026-11-26)."""
+    call = re.compile(r"""\bt\(\s*(?:"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)')""")
+    literals = set()
+    for path in glob.glob(os.path.join(ROOT, "hitch", "templates", "**", "*.html"), recursive=True):
+        with open(path, encoding="utf8") as f:
+            src = f.read()
+        for m in call.finditer(src):
+            raw = m.group(1) if m.group(1) is not None else m.group(2)
+            literals.add((os.path.basename(path), raw.replace("\\'", "'").replace('\\"', '"')))
+    assert literals
+    for path in sorted(glob.glob(os.path.join(TRANSLATIONS, "*.json"))):
+        with open(path, encoding="utf8") as f:
+            keys = json.load(f)
+        missing = sorted(f"{name}: {text}" for name, text in literals if text not in keys)
+        assert not missing, f"{os.path.basename(path)} lacks keys for: {missing[:5]}"
