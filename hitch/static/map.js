@@ -1219,6 +1219,8 @@ const COUNTRY_WIKI_TITLE_ALIASES = {
   "Republic of Serbia": "Serbia",
   "United Republic of Tanzania": "Tanzania",
   Czechia: "Czech Republic",
+  // No Hitchwiki article of its own; the Cyprus article covers the north and the Green Line crossings.
+  "Turkish Republic of Northern Cyprus": "Cyprus",
 };
 
 // Turn a Hitchwiki page target into an absolute article URL.
