@@ -24,6 +24,7 @@ from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON, REPORTS_TO_H
 from hitch.blueprints.utils.ride_images import image_url
 from hitch.helpers import e, find_nearest_wide_in_grid, get_bearing, get_db, get_dirs, haversine_np, write_json_file
 from hitch.scripts.races import build_races, estimate_arrival
+from hitch.scripts.signal_symbols import hand_wave_flags, signal_symbols
 from hitch.scripts.spot_access_hint import access_hint
 from hitch.scripts.spot_naming import resolve_spot_name
 from hitch.scripts.spot_people import people_holdout, spot_people
@@ -149,7 +150,7 @@ rides_df["hitchhikers"] = rides_df["hitchhikers"].apply(lambda x: json.loads(x) 
 rides_df["mode_of_transportation"] = rides_df["mode_of_transportation"].apply(
     lambda x: json.loads(x) if isinstance(x, str) else x
 )
-# SQLite returns the JSON column as a string; parse it so get_signals /
+# SQLite returns the JSON column as a string; parse it so signal_symbols /
 # get_signal_methods (which require a list of approach dicts) actually see
 # the data instead of silently returning None.
 rides_df["signals"] = rides_df["signals"].apply(lambda x: json.loads(x) if isinstance(x, str) else x)
@@ -412,21 +413,6 @@ rides_df["wait"] = rides_df.apply(get_wait, axis=1)
 logger.info("Determining signals")
 
 
-def get_signals(approaches):
-    if approaches is None or not isinstance(approaches, list):
-        return None  # No signals available
-
-    signals = []
-
-    for approach in approaches:
-        signals.extend(approach.get("methods", []))
-
-    symbol_map = {"asking": "💬", "sign": "🪧", "thumb": "👍"}
-    symbols = ",".join(symbol_map.get(sig, sig) for sig in set(signals))
-
-    return symbols
-
-
 def get_signal_methods(approaches):
     """Return the unique list of signal methods used on a ride (or None)."""
     if approaches is None or not isinstance(approaches, list):
@@ -439,7 +425,9 @@ def get_signal_methods(approaches):
     return seen or None
 
 
-rides_df["signal"] = rides_df["signals"].apply(get_signals)
+# maps#732: 🫳 instead of 👍 for thumb rides started in Kazakhstan/Kyrgyzstan.
+_hand_wave = hand_wave_flags(rides_df["lat"].tolist(), rides_df["lon"].tolist(), rg.search)
+rides_df["signal"] = [signal_symbols(a, hand_wave=h) for a, h in zip(rides_df["signals"], _hand_wave)]
 rides_df["signal_methods"] = rides_df["signals"].apply(get_signal_methods)
 
 logger.info("Generating info texts")
