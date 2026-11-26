@@ -1204,8 +1204,8 @@ async function loadCountryLayer() {
       const entry = countryRatings[cc];
       const score = countryScore(entry);
       const label = entry
-        ? `${name}: ${score != null ? score.toFixed(1) : "?"}/5 hitchability (${entry.count} rides)`
-        : `${name}: no rides yet`;
+        ? `${name}: ` + tr("{score}/5 hitchability ({n} rides)", { score: score != null ? score.toFixed(1) : "?", n: entry.count })
+        : `${name}: ` + tr("no rides yet");
       layer.bindTooltip(label, { sticky: true });
       // Tapping a country opens its info sheet, reflected in the address bar as
       // #country/<name> so it's deep-linkable and the back button closes it.
@@ -1395,7 +1395,7 @@ async function loadCountrySheetRating(cc) {
     badge.style.background = score != null ? hitchColor(score) : "#9e9e9e";
     badge.innerHTML =
       `<i class="fa-solid fa-thumbs-up"></i>${score != null ? score.toFixed(1) : "?"}` +
-      `<span class="country-rating-count">· ${entry.count} rides</span>`;
+      `<span class="country-rating-count">· ${tr("{n} rides", { n: entry.count })}</span>`;
     badge.style.display = "inline-flex";
   } catch (e) { /* rating is optional */ }
 }
@@ -1979,14 +1979,14 @@ function addProposedSpotMarker(sp) {
     fillColor: "#1a73e8",
     _proposed: true,
   });
-  const who = sp.user ? escapeHtml(sp.user) : "someone";
+  const who = sp.user ? escapeHtml(sp.user) : tr("someone");
   const when = sp.created_at ? relativeAge(sp.created_at) : "";
   const comment = sp.comment ? `<p class="proposed-spot-comment">${escapeHtml(sp.comment)}</p>` : "";
   marker.bindPopup(
     `<div class="proposed-spot-popup">` +
-      `<strong>Proposed spot</strong>` +
+      `<strong>${tr("Proposed spot")}</strong>` +
       comment +
-      `<p class="proposed-spot-meta">Proposed by ${who}${when ? " · " + when : ""}. No rides logged here yet.</p>` +
+      `<p class="proposed-spot-meta">${tr("Proposed by {who}", { who: who })}${when ? " · " + when : ""}. ${tr("No rides logged here yet.")}</p>` +
       `</div>`
   );
   marker.addTo(markerCluster);
@@ -6911,7 +6911,7 @@ function renderChartNote(containerId, hidden, total, unit) {
     el.textContent = "";
     return;
   }
-  el.textContent = `Hiding ${hidden.toLocaleString()} of ${total.toLocaleString()} ${unit} values beyond ±${INSIGHTS_OUTLIER_STDEVS} std dev from the mean.`;
+  el.textContent = tr("Hiding {hidden} of {total} {unit} values beyond ±{sd} std dev from the mean.", { hidden: hidden.toLocaleString(), total: total.toLocaleString(), unit: tr(unit), sd: INSIGHTS_OUTLIER_STDEVS });
 }
 
 function setInsightsSubtitle(text) {
@@ -7001,8 +7001,8 @@ async function showInsightsView() {
   renderChartNote("insights-distance-note", distClip.hidden, distValues.length, "distance");
   setInsightsSubtitle(
     anyFilterActive()
-      ? `Showing ${stats.totalCount.toLocaleString()} rides matching your active filters.`
-      : `Showing all ${stats.totalCount.toLocaleString()} rides. Use the filters above to narrow the selection.`
+      ? tr("Showing {n} rides matching your active filters.", { n: stats.totalCount.toLocaleString() })
+      : tr("Showing all {n} rides. Use the filters above to narrow the selection.", { n: stats.totalCount.toLocaleString() })
   );
 
   const waitEmpty = document.getElementById("insights-wait-empty");
@@ -7159,7 +7159,7 @@ var HeatmapInfoButton = L.Control.extend({
 
 
 function confirmClaimReview(url) {
-    if (confirm("Are you sure you want to claim this review as yours? Did you create this review previously?")) {
+    if (confirm(tr("Are you sure you want to claim this review as yours? Did you create this review previously?"))) {
         window.location.href = url;
     }
 };

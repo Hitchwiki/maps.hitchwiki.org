@@ -2060,8 +2060,8 @@
       if (arm === "entry") {
         const esc0 = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
         L.circleMarker([entry.lat, entry.lon], { radius: 7, color: "#1a73e8", weight: 3, fillColor: "#fff", fillOpacity: 1 })
-          .bindPopup(`<b>Highway access toward B</b><br>${esc0(entry.name)}, km ${Math.round(entry.at)} along the road<br>`
-            + `<small>First exit or service area on the road out of A. From OpenStreetMap, not checked for hitchhiking.</small>`)
+          .bindPopup(`<b>${T("Highway access toward B")}</b><br>` + T("{name}, km {km} along the road", { name: esc0(entry.name), km: Math.round(entry.at) }) + `<br>`
+            + `<small>${T("First exit or service area on the road out of A.")} ${T("From OpenStreetMap, not checked for hitchhiking.")}</small>`)
           .on("popupopen", () => hmTrack("route_entry_click", {}))
           .addTo(RJ.stopLayer);
       }
@@ -2070,8 +2070,8 @@
     keep.forEach((x) => {
       const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
       L.circleMarker([x.lat, x.lon], { radius: 5, color: "#e37400", weight: 2, fillColor: "#fbbc04", fillOpacity: 0.9 })
-        .bindPopup(`<b>\u26FD ${esc(x.name)}</b><br>km ${Math.round(x.at)} on this route. If your driver turns off before the next stop, ask to be let out here: `
-          + `riders let out at fuel and rest stops got a next ride about 1.6x as often.<br><small>From OpenStreetMap, not checked for hitchhiking.</small>`)
+        .bindPopup(`<b>\u26FD ${esc(x.name)}</b><br>` + T("km {km} on this route. If your driver turns off before the next stop, ask to be let out here: riders let out at fuel and rest stops got a next ride about 1.6x as often.", { km: Math.round(x.at) })
+          + `<br><small>${T("From OpenStreetMap, not checked for hitchhiking.")}</small>`)
         .on("popupopen", () => hmTrack("route_dropoff_click", { svc: x.svc, at: Math.round(x.at) }))
         .addTo(RJ.stopLayer);
     });
@@ -2270,7 +2270,7 @@
         '<h3 class="rp-sheet-title">' + T("Routes") + '</h3>' +
         '<button type="button" class="share-btn" data-share-context="' + (shareCompanion ? "route-companion" : "route") + '" data-share-title="' + T("Hitchhiking route – Hitchwiki Maps") + '">' +
         '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>' +
-        '<span class="share-btn-label">' + (shareCompanion ? "Going with someone? Send them this route" : T("Share")) + '</span></button>' +
+        '<span class="share-btn-label">' + (shareCompanion ? T("Going with someone? Send them this route") : T("Share")) + '</span></button>' +
         '</div>' +
         '<button type="button" class="rp-start-cta" hidden>' +
         '<i class="fa-solid fa-thumbs-up" aria-hidden="true"></i> ' +
