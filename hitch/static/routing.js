@@ -818,7 +818,11 @@
       logRouteRequest(from, to);   // record which route was asked for (server has no other signal)
       // Coordinates stay out of Umami (the server CSV has them); the straight-line
       // distance is what tells us whether people plan city hops or continents.
-      hmTrack('route_searched', { km: Math.round(haversineKm(from, to)), start_src: RJ._startSrc || 'other' });
+      // EXP-1672: spn = the spot-plan-nudge arm of a session that became eligible (control|show), else na,
+      // so route searches per eligible session can be compared between arms, not only clicks in one arm.
+      let spn = 'na';
+      try { spn = sessionStorage.getItem('hm_spot_plan_nudge_elig') || 'na'; } catch (e) { /* storage blocked */ }
+      hmTrack('route_searched', { km: Math.round(haversineKm(from, to)), start_src: RJ._startSrc || 'other', spn: spn });
       const res = alternatives(RJ.router, from, to, DEFAULT_MAX_WALK, 3, 0.6);
       clearRoutes(); // drop anything a previous run left before drawing fresh
       if (res.length) {
