@@ -11,7 +11,7 @@ import time as time_module
 from urllib.parse import quote
 
 import click
-from flask import Flask, g, has_request_context, render_template, request, send_from_directory
+from flask import Flask, g, has_request_context, redirect, render_template, request, send_from_directory
 from flask.sessions import SecureCookieSessionInterface
 from flask_security import SQLAlchemyUserDatastore
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -23,6 +23,7 @@ from hitch.blueprints.oauth import oauth_bp
 from hitch.blueprints.official_spots import official_spots_bp
 from hitch.blueprints.organizers import organizers_bp
 from hitch.blueprints.user import user_bp
+from hitch.blueprints.utils.city_page_fallback import resolve_missing_city_page
 from hitch.extensions import db, mail, security
 from hitch.helpers import convert_km, current_distance_unit, distance_unit_label, format_distance
 from hitch.models import Role, User
@@ -547,6 +548,17 @@ def register_routes(app):
                 # requested name instead.
                 response.headers["Content-Disposition"] = f"inline; filename={os.path.basename(path)}"
                 return response
+
+        # A city page that was never generated (most often a Hitchwiki infobox link
+        # under the wiki's own spelling) goes to the matching page or the country map
+        # instead of a bare 404 -- see city_page_fallback.
+        if path.startswith("city/") and path.endswith(".html"):
+            plain = safe_join(dist_dir, path)
+            if not plain or not os.path.isfile(plain):
+                target = resolve_missing_city_page(os.path.join(dist_dir, "city"), path)
+                if target:
+                    status, location = target
+                    return redirect(location, code=status)
 
         return send_from_directory(os.path.join(baseDir, "dist"), path)
 
