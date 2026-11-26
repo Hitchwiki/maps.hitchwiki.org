@@ -3353,7 +3353,8 @@ function maybeShowSpotPlanNudge(marker, data) {
     // One eligibility event per session and arm: the denominator for both arms.
     try {
       if (!sessionStorage.getItem("hm_spot_plan_nudge_elig")) {
-        sessionStorage.setItem("hm_spot_plan_nudge_elig", "1");
+        // The arm (not just "1") so routing.js can tag later route searches with it (EXP-1672 per-arm read).
+        sessionStorage.setItem("hm_spot_plan_nudge_elig", arm);
         hmTrack("spot_plan_nudge_eligible", { arm: arm });
       }
     } catch (e) { /* analytics only */ }
