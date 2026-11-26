@@ -27,6 +27,18 @@ run(newWeak, newWeak, (R) => {
   run(newWeak, { spot_count: 5, trees: [] }, (R2) => {
     assert.strictEqual(R2, null, "still-mismatched fresh pair is refused");
     assert.ok(events.some(([n, p]) => n === "route_fallback_failed" && p.why === "mismatch"));
-    console.log("route_fallback_mismatch.test.js OK");
+    // Same count, different spots_key: indices shifted, so this must refetch too.
+    oldRep.spots_key = "aaa"; newRep.spots_key = "bbb"; newRep.spots = [[50, 10], [50, 11]];
+    const shifted = { spot_count: 2, spots_key: "bbb", trees: [] };
+    run(shifted, shifted, (R3) => {
+      assert.ok(R3, "key mismatch recovers via refetch");
+      assert.ok(events.some(([n]) => n === "route_fallback_mismatch"), "same-count key mismatch detected");
+      // Matching key on first fetch: no refetch.
+      oldRep.spots_key = "bbb";
+      run(shifted, shifted, () => {
+        assert.ok(!events.some(([n]) => n === "route_fallback_mismatch"), "matching key: no refetch");
+        console.log("route_fallback_mismatch.test.js OK");
+      });
+    });
   });
 });

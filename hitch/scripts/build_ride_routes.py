@@ -1063,6 +1063,15 @@ def write_test_file(dist_dir, rides, spots):
     )
 
 
+def spots_key(spots):
+    """Short content hash of the spot array both route files index into. The two
+    files are matched on it, not only on the count: a rebuild can keep the count
+    and still shift indices (a spot gone, another added)."""
+    import hashlib
+    spots_out = [[round(spots[sid]["lat"], 5), round(spots[sid]["lon"], 5)] for sid in spots]
+    return hashlib.sha1(json.dumps(spots_out, separators=(",", ":")).encode()).hexdigest()[:12]
+
+
 def write_repeatable_file(dist_dir, rides, spots):
     """Emit dist/repeatable_routes.json: per start spot, the downstream spot
     sequences shared by at least MIN_SUPPORT rides (see build_repeatable_trees).
@@ -1078,7 +1087,10 @@ def write_repeatable_file(dist_dir, rides, spots):
     trees = build_repeatable_trees(rides, spots)
     edge_count = sum(len(t["nodes"]) for t in trees)
 
-    data = {"proximity_m": PROXIMITY_M, "min_support": MIN_SUPPORT, "spots": spots_out, "trees": trees}
+    data = {
+        "proximity_m": PROXIMITY_M, "min_support": MIN_SUPPORT,
+        "spots": spots_out, "spots_key": spots_key(spots), "trees": trees,
+    }
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(data, f, separators=(",", ":"))
     logger.info(
@@ -1113,6 +1125,7 @@ def write_oneoff_file(dist_dir, rides, spots):
         "proximity_m": PROXIMITY_M,
         "min_support": FALLBACK_MIN_SUPPORT,
         "spot_count": len(spots),
+        "spots_key": spots_key(spots),
         "trees": trees,
     }
     with open(out_path, "w", encoding="utf-8") as f:

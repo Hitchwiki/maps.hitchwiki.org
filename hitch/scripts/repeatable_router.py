@@ -137,6 +137,7 @@ def haversine_km(lat1, lon1, lat2, lon2):
 class RepeatableRouter:
     def __init__(self, data, max_walk_km=DEFAULT_MAX_WALK_KM):
         self.spots = data["spots"]  # [[lat, lon], ...]
+        self.spots_key = data.get("spots_key")
         self.max_walk_km = max_walk_km
         self._build_graph(data["trees"])
         self._build_walk_edges()
@@ -493,6 +494,9 @@ def load_oneoff_router(base, path=None):
     with open(path, encoding="utf-8") as f:
         weak = json.load(f)
     if weak.get("spot_count") != len(base.spots):
+        return None
+    # Same count can still mean shifted indices; trust the key when both carry one.
+    if weak.get("spots_key") and base.spots_key and weak["spots_key"] != base.spots_key:
         return None
     return RepeatableRouter({"spots": base.spots, "trees": weak["trees"]}, max_walk_km=base.max_walk_km)
 
