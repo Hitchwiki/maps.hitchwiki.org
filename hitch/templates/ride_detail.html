@@ -396,14 +396,14 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     <div class="location-grid">
         {% if ride.pickup_lat is not none and ride.pickup_lon is not none %}
         <div class="location-card">
-            <h4><i class="fa fa-map-marker" style="color:#28a745;"></i> Pickup</h4>
+            <h4><i class="fa fa-map-marker" style="color:#28a745;"></i> {{ t("Pickup") }}</h4>
             <div class="map-thumbnail" id="pickup-map"></div>
             <div class="coords">{{ "%.4f, %.4f"|format(ride.pickup_lat, ride.pickup_lon) }}</div>
         </div>
         {% endif %}
         {% if ride.dest_lat is not none and ride.dest_lon is not none %}
         <div class="location-card">
-            <h4><i class="fa fa-flag" style="color:#dc3545;"></i> Destination</h4>
+            <h4><i class="fa fa-flag" style="color:#dc3545;"></i> {{ t("Destination") }}</h4>
             <div class="map-thumbnail" id="dest-map"></div>
             <div class="coords">{{ "%.4f, %.4f"|format(ride.dest_lat, ride.dest_lon) }}</div>
         </div>
@@ -418,7 +418,7 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
 
     {% if ride.intermediate_stops %}
     <div class="detail-section">
-        <p class="section-title">Stops along the way</p>
+        <p class="section-title">{{ t("Stops along the way") }}</p>
         {% for stop in ride.intermediate_stops %}
         <div class="detail-row">
             <div class="detail-label"><i class="fa fa-map-pin"></i> {{ stop.label or "Stop " ~ loop.index }}</div>
@@ -433,65 +433,66 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     {% endif %}
 
     <div class="detail-section">
-        <p class="section-title">Ride information</p>
+        <p class="section-title">{{ t("Ride information") }}</p>
 
         {% if ride.wait is not none %}
         <div class="detail-row">
-            <div class="detail-label"><i class="fa fa-clock"></i> Waiting time</div>
+            <div class="detail-label"><i class="fa fa-clock"></i> {{ t("Waiting time") }}</div>
             <div class="detail-value">{{ ride.wait }} min</div>
         </div>
         {% endif %}
 
         {% if ride.distance_km is not none %}
         <div class="detail-row">
-            <div class="detail-label"><i class="fa fa-route"></i> Distance</div>
+            <div class="detail-label"><i class="fa fa-route"></i> {{ t("Distance") }}</div>
             <div class="detail-value">{{ format_distance(ride.distance_km) }}</div>
         </div>
         {% endif %}
 
         {% if ride.signal_methods %}
         <div class="detail-row">
-            <div class="detail-label"><i class="fa fa-hand-paper"></i> Signal</div>
-            <div class="detail-value">{{ ride.signal_methods|join(', ') }}</div>
+            <div class="detail-label"><i class="fa fa-hand-paper"></i> {{ t("Signal") }}</div>
+            {% set sig_labels = {"thumb": "👍 " ~ t("Thumb"), "sign": "📝 " ~ t("Sign"), "ask": "🗣 " ~ t("Asking"), "asking": "🗣 " ~ t("Asking"), "unsolicited": "🚗 " ~ t("Driver stopped on their own")} %}
+            <div class="detail-value">{% for m in ride.signal_methods %}<span class="sig-method" data-code="{{ m }}">{{ sig_labels.get(m, m) }}</span>{% if not loop.last %}, {% endif %}{% endfor %}</div>
         </div>
         {% endif %}
 
         {% if ride.sign_content %}
         <div class="detail-row">
-            <div class="detail-label"><i class="fa fa-pen"></i> Sign said</div>
+            <div class="detail-label"><i class="fa fa-pen"></i> {{ t("Sign said") }}</div>
             <div class="detail-value">{{ ride.sign_content }}</div>
         </div>
         {% endif %}
 
         {% if ride.departure_time %}
         <div class="detail-row">
-            <div class="detail-label"><i class="fa fa-play"></i> Ride start time</div>
+            <div class="detail-label"><i class="fa fa-play"></i> {{ t("Ride start time") }}</div>
             <div class="detail-value">{{ with_weekday(ride.departure_time.replace('T', ' ')[:16]) }}</div>
         </div>
         {% endif %}
 
         {% if ride.arrival_time %}
         <div class="detail-row">
-            <div class="detail-label"><i class="fa fa-flag-checkered"></i> Arrival time</div>
+            <div class="detail-label"><i class="fa fa-flag-checkered"></i> {{ t("Arrival time") }}</div>
             <div class="detail-value">{{ with_weekday(ride.arrival_time.replace('T', ' ')[:16]) }}</div>
         </div>
         {% endif %}
 
         <div class="detail-row">
-            <div class="detail-label"><i class="fa fa-upload"></i> Submitted</div>
+            <div class="detail-label"><i class="fa fa-upload"></i> {{ t("Submitted") }}</div>
             <div class="detail-value">{% if ride.submission_time %}{{ with_weekday(ride.submission_time.replace('T', ' ')[:16]) }}{% else %}--:--:--{% endif %}</div>
         </div>
 
         {% if ride.source %}
         <div class="detail-row">
-            <div class="detail-label"><i class="fa fa-globe"></i> Source</div>
+            <div class="detail-label"><i class="fa fa-globe"></i> {{ t("Source") }}</div>
             <div class="detail-value">{{ ride.source }}</div>
         </div>
         {% endif %}
 
         {% if ride.hitchhikers %}
         <div class="detail-row">
-            <div class="detail-label"><i class="fa fa-users"></i> Hitchhikers</div>
+            <div class="detail-label"><i class="fa fa-users"></i> {{ t("Hitchhikers") }}</div>
             <div class="detail-value">
                 {% for h in ride.hitchhikers %}
                     {% set sign = '♂' if h.gender == 'male' else ('♀' if h.gender == 'female' else '') %}
@@ -507,7 +508,7 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
 
         {% if ride.hitchhike_reasons %}
         <div class="detail-row">
-            <div class="detail-label"><i class="fa fa-compass"></i> Why hitchhiking</div>
+            <div class="detail-label"><i class="fa fa-compass"></i> {{ t("Why hitchhiking") }}</div>
             <div class="detail-value">{{ ride.hitchhike_reasons|join(', ') }}</div>
         </div>
         {% endif %}
@@ -515,26 +516,26 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
 
     {% if ride.vehicle %}
     <div class="detail-section">
-        <p class="section-title">Vehicle</p>
+        <p class="section-title">{{ t("Vehicle") }}</p>
         <div class="detail-row">
-            <div class="detail-label"><i class="fa fa-car"></i> Kind</div>
+            <div class="detail-label"><i class="fa fa-car"></i> {{ t("Kind") }}</div>
             <div class="detail-value">{{ ride.vehicle.emoji }} {{ ride.vehicle.kind }}</div>
         </div>
         {% if ride.vehicle.make %}
         <div class="detail-row">
-            <div class="detail-label">Make</div>
+            <div class="detail-label">{{ t("Make") }}</div>
             <div class="detail-value">{{ ride.vehicle.make }}</div>
         </div>
         {% endif %}
         {% if ride.vehicle.model %}
         <div class="detail-row">
-            <div class="detail-label">Model</div>
+            <div class="detail-label">{{ t("Model") }}</div>
             <div class="detail-value">{{ ride.vehicle.model }}</div>
         </div>
         {% endif %}
         {% if ride.vehicle.license_plate_country or ride.vehicle.license_plate_identifier %}
         <div class="detail-row">
-            <div class="detail-label">License plate</div>
+            <div class="detail-label">{{ t("License plate") }}</div>
             <div class="detail-value">
                 {% if ride.vehicle.license_plate_country %}{{ ride.vehicle.license_plate_country }}{% endif %}
                 {% if ride.vehicle.license_plate_identifier %} · {{ ride.vehicle.license_plate_identifier }}{% endif %}
@@ -548,10 +549,10 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
        driver was recorded, so the section opens on either. #}
     {% if ride.driver or ride.trip_reasons %}
     <div class="detail-section">
-        <p class="section-title">Driver</p>
+        <p class="section-title">{{ t("Driver") }}</p>
         {% if ride.trip_reasons %}
         <div class="detail-row">
-            <div class="detail-label"><i class="fa fa-road"></i> Why they were on the road</div>
+            <div class="detail-label"><i class="fa fa-road"></i> {{ t("Why they were on the road") }}</div>
             <div class="detail-value">{{ ride.trip_reasons|join(', ') }}</div>
         </div>
         {% endif %}
@@ -562,7 +563,7 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
         {# Tristate — `is not none` so an explicit "no" (falsy) still renders. #}
         {% if ride.driver.would_ride_again is not none %}
         <div class="detail-row">
-            <div class="detail-label"><i class="fa-regular fa-face-smile"></i> Would accept a ride from this driver again</div>
+            <div class="detail-label"><i class="fa-regular fa-face-smile"></i> {{ t("Would accept a ride from this driver again") }}</div>
             <div class="detail-value">
                 {% if ride.driver.would_ride_again %}
                 <i class="fa-regular fa-face-smile" style="color:#2e7d32;" aria-hidden="true"></i> Yes
@@ -574,43 +575,43 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
         {% endif %}
         {% if ride.driver.negative_experiences %}
         <div class="detail-row">
-            <div class="detail-label"><i class="fa-regular fa-face-frown"></i> Why not accept this driver again</div>
+            <div class="detail-label"><i class="fa-regular fa-face-frown"></i> {{ t("Why not accept this driver again") }}</div>
             <div class="detail-value">{{ ride.driver.negative_experiences|join(', ') }}</div>
         </div>
         {% endif %}
         {% if ride.driver.reasons %}
         <div class="detail-row">
-            <div class="detail-label"><i class="fa fa-hand-holding-heart"></i> Reason to pick up</div>
+            <div class="detail-label"><i class="fa fa-hand-holding-heart"></i> {{ t("Reason to pick up") }}</div>
             <div class="detail-value">{{ ride.driver.reasons|join(', ') }}</div>
         </div>
         {% endif %}
         {% if ride.driver.origin_country_name %}
         <div class="detail-row">
-            <div class="detail-label"><i class="fa fa-globe"></i> Origin country</div>
+            <div class="detail-label"><i class="fa fa-globe"></i> {{ t("Origin country") }}</div>
             <div class="detail-value">{{ ride.driver.origin_country_name }}</div>
         </div>
         {% endif %}
         {% if ride.driver.age is not none %}
         <div class="detail-row">
-            <div class="detail-label"><i class="fa fa-birthday-cake"></i> Age</div>
+            <div class="detail-label"><i class="fa fa-birthday-cake"></i> {{ t("Age") }}</div>
             <div class="detail-value">{{ ride.driver.age }}</div>
         </div>
         {% endif %}
         {% if ride.driver.gender %}
         <div class="detail-row">
-            <div class="detail-label"><i class="fa fa-venus-mars"></i> Gender</div>
+            <div class="detail-label"><i class="fa fa-venus-mars"></i> {{ t("Gender") }}</div>
             <div class="detail-value">{{ ride.driver.gender|replace('_', ' ')|capitalize }}</div>
         </div>
         {% endif %}
         {% if ride.driver.companions %}
         <div class="detail-row">
-            <div class="detail-label"><i class="fa fa-users"></i> Other people in the car</div>
+            <div class="detail-label"><i class="fa fa-users"></i> {{ t("Other people in the car") }}</div>
             <div class="detail-value">{{ ride.driver.companions }}</div>
         </div>
         {% endif %}
         {% if ride.driver.languages %}
         <div class="detail-row">
-            <div class="detail-label"><i class="fa fa-language"></i> Languages</div>
+            <div class="detail-label"><i class="fa fa-language"></i> {{ t("Languages") }}</div>
             <div class="detail-value">{{ ride.driver.languages|join(', ') }}</div>
         </div>
         {% endif %}
@@ -620,7 +621,7 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
 
     {% if ride.comment %}
     <div class="detail-section">
-        <p class="section-title">Comment</p>
+        <p class="section-title">{{ t("Comment") }}</p>
         <div class="ride-comment-box">{{ ride.comment }}</div>
     </div>
     {% endif %}
@@ -629,7 +630,7 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
        looked up by d tag rather than read out of the ride event (see ride_images.py). #}
     {% if ride_images %}
     <div class="detail-section">
-        <p class="section-title">Photos</p>
+        <p class="section-title">{{ t("Photos") }}</p>
         <div class="ride-photos">
             {% for img in ride_images %}
             {# Links to the full-size file: the grid crops to a uniform tile, and a
@@ -666,7 +667,7 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     </div>
 
     <div class="detail-section" id="comments">
-        <p class="section-title">Comments ({{ comments|length }})</p>
+        <p class="section-title">{{ t("Comments") }} ({{ comments|length }})</p>
 
         {% for c in comments %}
         <div class="comment">
@@ -813,4 +814,19 @@ a.hitchhiker-chip:hover { background: #d6dadd; }
     }
 })();
 </script>
+{% if ride.signal_methods and "thumb" in ride.signal_methods and ride.pickup_lat is not none and ride.pickup_lon is not none %}
+<script src="{{ asset_url('/static/signal_country.js') }}"></script>
+<script>
+// The stored code stays "thumb"; where drivers read a raised thumb wrongly (Kazakhstan, Kyrgyzstan, #732)
+// show what hitchhikers there actually do. Outside that region SignalCountry never fetches anything.
+(function () {
+    if (!window.SignalCountry) return;
+    window.SignalCountry.isHandWaveAt({{ ride.pickup_lat }}, {{ ride.pickup_lon }}).then(function (yes) {
+        if (!yes) return;
+        var el = document.querySelector('.sig-method[data-code="thumb"]');
+        if (el) el.textContent = {{ ("🫳 " ~ t("Hand wave"))|tojson }};
+    });
+})();
+</script>
+{% endif %}
 {% endblock %}
