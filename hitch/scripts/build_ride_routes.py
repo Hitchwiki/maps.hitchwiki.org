@@ -1087,7 +1087,10 @@ def write_repeatable_file(dist_dir, rides, spots):
     trees = build_repeatable_trees(rides, spots)
     edge_count = sum(len(t["nodes"]) for t in trees)
 
-    data = {"proximity_m": PROXIMITY_M, "min_support": MIN_SUPPORT, "spots": spots_out, "spots_key": spots_key(spots), "trees": trees}
+    data = {
+        "proximity_m": PROXIMITY_M, "min_support": MIN_SUPPORT,
+        "spots": spots_out, "spots_key": spots_key(spots), "trees": trees,
+    }
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(data, f, separators=(",", ":"))
     logger.info(
