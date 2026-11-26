@@ -2302,6 +2302,15 @@
           }
         });
         signalChipsEl.appendChild(chip);
+        // maps#732: in KZ/KG the "thumb" gesture is a hand wave — relabel only, code stays "thumb".
+        if (opt.code === "thumb" && window.SignalCountry) {
+          const pu = (journeyStore.get() || {}).pickup;
+          if (pu && isFinite(pu.lat) && isFinite(pu.lon)) {
+            window.SignalCountry.isHandWaveAt(+pu.lat, +pu.lon).then(function (yes) {
+              if (yes) chip.textContent = "🫳 " + T("Hand wave");
+            });
+          }
+        }
       });
       signalField.appendChild(signalChipsEl);
       sheet.appendChild(signalField);
