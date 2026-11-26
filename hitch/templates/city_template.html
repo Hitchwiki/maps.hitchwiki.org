@@ -20,7 +20,7 @@
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <div class="bg-white rounded-lg shadow-lg p-6">
-        <nav><br><a href="{{ '/city/index.html' if g.lang == 'en' else '/' ~ g.lang ~ '/city/index.html' }}" id="back">&lt; {{ t("All cities") }}</a> | <a href="https://hitchwiki.org/{{ g.lang }}/index.php?{{ 'title=' ~ (city.city | urlencode) if g.lang == 'en' else 'title=Special:Search&amp;go=Go&amp;search=' ~ (city.city | urlencode) }}" target="_blank" rel="noopener" id="hitchwiki-link">{{ t("{city} on Hitchwiki", city=city.city) }}</a> | <a href="/route/index.html" id="routes-link">{{ t("Hitchhiking routes between cities") }}</a><br></nav>
+        <nav><br><a href="{{ '/city/index.html' if g.lang == 'en' else '/' ~ g.lang ~ '/city/index.html' }}" id="back">&lt; {{ t("All cities") }}</a> | <a href="https://hitchwiki.org/{{ g.lang }}/index.php?{{ 'title=' ~ (city.city | urlencode) if g.lang == 'en' else 'title=Special:Search&amp;go=Go&amp;search=' ~ (city.city | urlencode) }}" target="_blank" rel="noopener" id="hitchwiki-link" data-country="{{ city.country }}" data-country-label="{{ t("{city} on Hitchwiki", city=city.country) }}">{{ t("{city} on Hitchwiki", city=city.city) }}</a> | <a href="/route/index.html" id="routes-link">{{ t("Hitchhiking routes between cities") }}</a><br></nav>
         <article class="mt-6">
             <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
                 <h2 style="margin:0;">{{ t("Hitchhiking from {city}", city=city.city) }}</h2>
@@ -61,7 +61,9 @@
                sits behind Cloudflare's bot challenge, which blocks this host's
                own server-side requests but lets a real visitor's browser through
                (same reason map.js's country sheet fetches client-side). Stays
-               empty and invisible for the ~596 cities with no matching article. #}
+               empty and invisible for cities with no matching article (most of them:
+               130 of 150 sampled 2026-11-26); the nav link then points at the
+               country article instead. #}
             <div id="city-wiki-excerpt" class="city-wiki-excerpt" data-title="{{ city.city }}"></div>
 
             <h2>{{ t("Hitchhiking to {city}", city=city.city) }}</h2>
