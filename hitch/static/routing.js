@@ -331,6 +331,7 @@
 
   fetch("/repeatable_routes.json").then((r) => r.json()).then((rep) => {
     RJ.spots = rep.spots;
+    RJ.spotsKey = rep.spots_key || null;
     RJ.router = buildRouter(rep); ensureWalk(RJ.router);
     // A shared #dir link may have opened the planner before the data arrived
     // (compute() showed "Loading route data…"); run it now that we can.
@@ -350,7 +351,9 @@
         // Its node indices address repeatable_routes.json's spot array. If only
         // one of the pair was regenerated they no longer agree, and every route
         // we drew from it would run through the wrong spots — refuse instead.
-        if (weak.spot_count === RJ.spots.length) return [RJ.spots, weak];
+        // Older files carry no spots_key; fall back to the count alone.
+        const same = (w, sp, key) => w.spot_count === sp.length && (!w.spots_key || !key || w.spots_key === key);
+        if (same(weak, RJ.spots, RJ.spotsKey)) return [RJ.spots, weak];
         // #1711: both files are rebuilt daily (~03:04Z) and the spot set grows, so a tab
         // loaded before the rebuild always mismatches here. Fetch a fresh matching pair,
         // bypassing caches, and give the fallback graph its own spot array. RJ.spots is
@@ -358,7 +361,7 @@
         hmTrack("route_fallback_mismatch", {});
         const get = (u) => fetch(u, { cache: "reload" }).then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); });
         return Promise.all([get("/repeatable_routes.json"), get("/oneoff_routes.json")]).then(([rep, w2]) => {
-          if (w2.spot_count !== rep.spots.length) throw new Error("spot index mismatch");
+          if (!same(w2, rep.spots, rep.spots_key || null)) throw new Error("spot index mismatch");
           return [rep.spots, w2];
         });
       })
