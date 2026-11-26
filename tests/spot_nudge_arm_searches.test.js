@@ -12,5 +12,5 @@ test("eligibility stores the arm, not a bare flag", () => {
 test("route_searched carries spn", () => {
   const src = read("routing.js");
   assert.ok(src.includes("sessionStorage.getItem('hm_spot_plan_nudge_elig') || 'na'"));
-  assert.ok(/hmTrack\('route_searched', \{[^}]*spn: spn \}\)/.test(src));
+  assert.ok(/hmTrack\('route_searched', \{[^}]*spn: spn[,} ]/.test(src));
 });

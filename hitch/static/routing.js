@@ -688,12 +688,20 @@
     clearRoutes();
   }
 
+  // EXP-1405/1409: the planner A/B arms (sticky per visitor in localStorage, set by hmVariant on exposure),
+  // attached to routing_opened and route_searched so open->search rates can be compared between arms.
+  // A visitor never exposed has no key and reads 'na'; the arm is never assigned here.
+  function plannerArms() {
+    const read = (k) => { try { return localStorage.getItem('hm_ab_' + k) || 'na'; } catch (e) { return 'na'; } };
+    return { ml: read('myloc-start-v1'), rc: read('search-route-chip-v1') };
+  }
+
   // ---- open / close ------------------------------------------------------
   function open() {
     if (RJ.active) return;
     // Entry step of the routing funnel: opened -> searched -> found. The drop
     // between opened and searched is people who couldn't express their trip.
-    hmTrack('routing_opened');
+    hmTrack('routing_opened', plannerArms());
     RJ.active = true;
     document.body.classList.add("routing-active");
     if (!panel) buildPanel();
@@ -822,7 +830,7 @@
       // so route searches per eligible session can be compared between arms, not only clicks in one arm.
       let spn = 'na';
       try { spn = sessionStorage.getItem('hm_spot_plan_nudge_elig') || 'na'; } catch (e) { /* storage blocked */ }
-      hmTrack('route_searched', { km: Math.round(haversineKm(from, to)), start_src: RJ._startSrc || 'other', spn: spn });
+      hmTrack('route_searched', { km: Math.round(haversineKm(from, to)), start_src: RJ._startSrc || 'other', spn: spn, ...plannerArms() });
       const res = alternatives(RJ.router, from, to, DEFAULT_MAX_WALK, 3, 0.6);
       clearRoutes(); // drop anything a previous run left before drawing fresh
       if (res.length) {
