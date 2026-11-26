@@ -327,7 +327,7 @@
   // dependency, so headless tests exercise them directly (see
   // tests/routing_wait_fallback.test.js and the CLAUDE.md note on running
   // routing.js under node).
-  window.RoutingInternals = { nearestSpot, snapCandidates, reverseReach, buildRouter, ensureWalk, route, buildItinerary, fillLegEvidence };
+  window.RoutingInternals = { nearestSpot, snapCandidates, reverseReach, buildRouter, ensureWalk, route, buildItinerary, fillLegEvidence, loadFallbackRouter };
 
   fetch("/repeatable_routes.json").then((r) => r.json()).then((rep) => {
     RJ.spots = rep.spots;
@@ -350,8 +350,20 @@
         // Its node indices address repeatable_routes.json's spot array. If only
         // one of the pair was regenerated they no longer agree, and every route
         // we drew from it would run through the wrong spots — refuse instead.
-        if (weak.spot_count !== RJ.spots.length) throw new Error("spot index mismatch");
-        const R = buildRouter({ spots: RJ.spots, trees: weak.trees });
+        if (weak.spot_count === RJ.spots.length) return [RJ.spots, weak];
+        // #1711: both files are rebuilt daily (~03:04Z) and the spot set grows, so a tab
+        // loaded before the rebuild always mismatches here. Fetch a fresh matching pair,
+        // bypassing caches, and give the fallback graph its own spot array. RJ.spots is
+        // only used to build this graph, so the repeatable graph is left untouched.
+        hmTrack("route_fallback_mismatch", {});
+        const get = (u) => fetch(u, { cache: "reload" }).then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); });
+        return Promise.all([get("/repeatable_routes.json"), get("/oneoff_routes.json")]).then(([rep, w2]) => {
+          if (w2.spot_count !== rep.spots.length) throw new Error("spot index mismatch");
+          return [rep.spots, w2];
+        });
+      })
+      .then(([spots, weak]) => {
+        const R = buildRouter({ spots: spots, trees: weak.trees });
         ensureWalk(R);
         RJ.fallback.router = R;
         return R;
