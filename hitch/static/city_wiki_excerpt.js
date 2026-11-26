@@ -187,6 +187,11 @@
     a.href = wikiLink(COUNTRY_TITLE_ALIASES[country] || country);
     a.textContent = label;
     if (window.hmTrack) window.hmTrack("city_wiki_link_to_country", {});
+    // Shown-vs-clicked: without the click, the redirect's view count says nothing about whether
+    // readers actually follow the country article link (EXP-1722's open caveat).
+    a.addEventListener("click", function () {
+      if (window.hmTrack) window.hmTrack("city_wiki_country_link_click", {});
+    });
   }
 
   function init() {
