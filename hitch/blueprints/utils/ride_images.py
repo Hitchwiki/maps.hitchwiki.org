@@ -153,7 +153,9 @@ def _reencode(raw):
     Raises RideImageError for anything Pillow can't read or that isn't a format we accept.
     """
     try:
-        with Image.open(BytesIO(raw)) as img:
+        # formats= limits which decoders Pillow will even try on untrusted bytes, so a
+        # crafted FPX/JPEG 2000/etc. file never reaches its parser (Pillow CVEs 2026-10/11).
+        with Image.open(BytesIO(raw), formats=sorted(ALLOWED_FORMATS)) as img:
             image_format = img.format
             if image_format not in ALLOWED_FORMATS:
                 raise RideImageError(f"Unsupported image format: {image_format or 'unknown'}.")

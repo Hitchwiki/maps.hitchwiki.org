@@ -27,6 +27,10 @@ class BaseConfig:
     # User Config
     SECURITY_PASSWORD_HASH = os.getenv("SECURITY_PASSWORD_HASH", "argon2")
     SECURITY_PASSWORD_SALT = os.getenv("SECURITY_PASSWORD_SALT", INSECURE_DEFAULT_PASSWORD_SALT)
+    # Flask-Security 5.8 defaults CACHE_CONTROL to {"private": True, "no-store": True} on EVERY response, which
+    # appends no-store to the year-long immutable headers set_public_cache_headers gives ride/profile images and
+    # static assets. Off = the pre-5.8 behaviour; private pages already set their own no-store explicitly.
+    SECURITY_CACHE_CONTROL = {}
     SECURITY_REGISTERABLE = False
     SECURITY_SEND_REGISTER_EMAIL = False
 
