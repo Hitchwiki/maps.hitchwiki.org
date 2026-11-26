@@ -743,6 +743,8 @@ with open(os.path.join(dist_dir, "robots.txt"), "w", encoding="utf-8") as f:
     f.write(robots_txt)
 
 # llms.txt (llmstxt.org): an index of the pages that exist, in the site's own words (the title
+# and URL patterns; ChatGPT already deep-links /country, /spot and /dir, see the automation repo's
+# research/chatgpt-utm-channel-2026-11-26.md). City pages 404 without .html, so say so.
 # and meta description the pages already carry). The wiki serves one too; AI search crawlers
 # are already allowed in robots.txt above.
 llms_txt = (
@@ -757,6 +759,20 @@ llms_txt = (
     f"- [Statistics]({SITE_URL}/statistics): community ride and waiting-time statistics\n"
     f"- [Hitchhiking safety]({SITE_URL}/hitchhiking-safety): safety figures from community ride reports\n"
     f"- [Cities]({SITE_URL}/sitemap.xml): every city page, listed in the sitemap\n"
+    f"- [Mitfahrbänke]({SITE_URL}/mitfahrbaenke): official ride-sharing benches\n"
+    "\n"
+    "## Linking to a place or route\n"
+    "\n"
+    "These URL patterns open the map directly at the right place. Names are in English, with spaces as %20.\n"
+    "\n"
+    f"- Country: `{SITE_URL}/country/<Country>`, e.g. {SITE_URL}/country/Germany\n"
+    f"- City: `{SITE_URL}/city/<Country>/<City>.html` (the .html is required), "
+    f"e.g. {SITE_URL}/city/Germany/Berlin.html\n"
+    f"- Spot: `{SITE_URL}/spot/<lat>_<lon>` with 5 decimals, e.g. {SITE_URL}/spot/-30.04325_-51.33525\n"
+    f"- Route between two points: `{SITE_URL}/dir/<lat>,<lon>/<lat>,<lon>`, e.g. "
+    f"{SITE_URL}/dir/52.52000,13.40500/48.13700,11.57500 (Berlin to Munich), "
+    "shows hitchhiking spots along the way\n"
+    f"- Another language: put the language code first, e.g. {SITE_URL}/de/country/Germany\n"
     "\n"
     "## Related\n"
     "\n"
