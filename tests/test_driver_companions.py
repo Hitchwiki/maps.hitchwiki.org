@@ -44,9 +44,10 @@ def test_companions_alone_still_emit_occupants():
     assert len(_record(driver_companions="1").occupants) == 2
 
 
-def test_unanswered_or_zero_adds_nothing():
+def test_unanswered_or_zero_adds_no_companions():
     assert _record().occupants is None
     assert len(_record(driver_gender="male", driver_companions="0").occupants) == 1
+    assert len(_record(driver_companions="0").occupants) == 1  # #410: "Driver alone" alone is an answer
     assert len(_record(driver_gender="male", driver_companions="").occupants) == 1
 
 
