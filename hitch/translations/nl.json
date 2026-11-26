@@ -1188,5 +1188,19 @@
   "Driver stopped on their own": "Bestuurder stopte uit eigen beweging",
   "Comments": "Opmerkingen",
   "Report a bug": "Rapporteer een bug",
-  "Found a bug, or an idea to improve the map?": "Een bug gevonden, of een idee om de kaart te verbeteren?"
+  "Found a bug, or an idea to improve the map?": "Een bug gevonden, of een idee om de kaart te verbeteren?",
+  "Cookies and similar technologies": "Cookies en vergelijkbare technologieën",
+  "We use a small amount of browser storage to run the map and to understand how it is used.": "We gebruiken een kleine hoeveelheid browseropslag om de kaart te laten werken en te begrijpen hoe deze wordt gebruikt.",
+  "Everything below stays on our own servers — no advertising, no third parties, nothing sold.": "Alles hieronder blijft op onze eigen servers — geen advertenties, geen derden, niets wordt verkocht.",
+  "Essential": "Essentieel",
+  "Always active": "Altijd actief",
+  "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.": "Houdt je ingelogd en slaat een rit op die je bent gestart maar nog niet hebt ingediend, zodat deze bewaard blijft als je de verbinding verliest. De site kan niet zonder werken.",
+  "Analytics": "Statistieken",
+  "Optional": "Optioneel",
+  "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.": "Slaat een willekeurige ID op in je browser zodat we een terugkerende bezoeker van een nieuwe kunnen onderscheiden, en kunnen zien of mensen die plekken opzoeken ooit eigen ritten toevoegen.",
+  "It is not linked to your name, your account or your rides.": "Het is niet gekoppeld aan je naam, je account of je ritten.",
+  "If you decline, we still count page views anonymously — but nothing is stored on your device.": "Als je weigert, tellen we paginaweergaven nog steeds anoniem — maar er wordt niets op je apparaat opgeslagen.",
+  "Accept all": "Alles accepteren",
+  "Reject non-essential": "Niet-essentieel weigeren",
+  "Privacy policy": "Privacybeleid"
 }

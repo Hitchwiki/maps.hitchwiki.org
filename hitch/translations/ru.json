@@ -1188,5 +1188,19 @@
   "Driver stopped on their own": "Водитель остановился сам",
   "Comments": "Комментарии",
   "Report a bug": "Сообщить об ошибке",
-  "Found a bug, or an idea to improve the map?": "Нашли ошибку или есть идея по улучшению карты?"
+  "Found a bug, or an idea to improve the map?": "Нашли ошибку или есть идея по улучшению карты?",
+  "Cookies and similar technologies": "Файлы cookie и аналогичные технологии",
+  "We use a small amount of browser storage to run the map and to understand how it is used.": "Мы используем небольшой объём хранилища браузера для работы карты и понимания того, как её используют.",
+  "Everything below stays on our own servers — no advertising, no third parties, nothing sold.": "Всё перечисленное ниже хранится на наших собственных серверах — никакой рекламы, никаких третьих лиц, ничего не продаётся.",
+  "Essential": "Необходимые",
+  "Always active": "Всегда активны",
+  "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.": "Сохраняет ваш вход в систему и поездку, которую вы начали, но ещё не отправили, чтобы она не потерялась при обрыве связи. Сайт не может работать без этого.",
+  "Analytics": "Аналитика",
+  "Optional": "Необязательные",
+  "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.": "Хранит один случайный идентификатор в вашем браузере, чтобы мы могли отличить вернувшегося посетителя от нового, и видеть, добавляют ли те, кто ищет места, свои поездки.",
+  "It is not linked to your name, your account or your rides.": "Он не связан с вашим именем, аккаунтом или вашими поездками.",
+  "If you decline, we still count page views anonymously — but nothing is stored on your device.": "Если вы отклоните, мы по-прежнему будем анонимно считать просмотры страниц — но на вашем устройстве ничего не сохранится.",
+  "Accept all": "Принять все",
+  "Reject non-essential": "Отклонить необязательные",
+  "Privacy policy": "Политика конфиденциальности"
 }

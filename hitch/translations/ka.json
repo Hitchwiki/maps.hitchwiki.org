@@ -1188,5 +1188,19 @@
   "Driver stopped on their own": "მძღოლმა საკუთარი ინიციატივით გააჩერა",
   "Comments": "კომენტარები",
   "Report a bug": "შეცდომის შეტყობინება",
-  "Found a bug, or an idea to improve the map?": "ნახეთ შეცდომა ან გაქვთ იდეა რუკის გასაუმჯობესებლად?"
+  "Found a bug, or an idea to improve the map?": "ნახეთ შეცდომა ან გაქვთ იდეა რუკის გასაუმჯობესებლად?",
+  "Cookies and similar technologies": "ქუქი-ფაილები და მსგავსი ტექნოლოგიები",
+  "We use a small amount of browser storage to run the map and to understand how it is used.": "ინტერნეტ-ბრაუზერის მცირე მეხსიერებას ვიყენებთ რუკის სამუშაოდ და მისი გამოყენების გასაგებად.",
+  "Everything below stays on our own servers — no advertising, no third parties, nothing sold.": "ქვემოთ მოყვანილი ყველაფერი რჩება ჩვენს სერვერებზე — არც რეკლამა, არც მესამე პირები, არაფერი იყიდება.",
+  "Essential": "აუცილებელი",
+  "Always active": "ყოველთვის აქტიური",
+  "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.": "გინახავს შენს შესვლას და ინახავს მარშრუტს, რომელიც დაიწყე, მაგრამ ჯერ არ გაგიგზავნია, რათა ის არ დაიკარგოს სიგნალის მოშვებისას. საიტი ამის გარეშე ვერ იმუშავებს.",
+  "Analytics": "ანალიტიკა",
+  "Optional": "არასავალდებულო",
+  "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.": "ინახავს ერთ შემთხვევით ID-ს შენს ბრაუზერში, რათა განვასხვავოთ დამბრუნებული ვიზიტორი ახალისგან და დავინახოთ, ამატებენ თუ არა ადგილების მაძიებლები საკუთარ მარშრუტებს.",
+  "It is not linked to your name, your account or your rides.": "ის არ არის დაკავშირებული შენს სახელთან, ანგარიშთან ან მარშრუტებთან.",
+  "If you decline, we still count page views anonymously — but nothing is stored on your device.": "თუ უარს იტყვი, გვერდების ნახვებს მაინც ავთვლით ანონიმურად — მაგრამ შენს მოწყობილობაზე არაფერი შეინახება.",
+  "Accept all": "ყველაფრის მიღება",
+  "Reject non-essential": "არააუცილებელის უარყოფა",
+  "Privacy policy": "კონფიდენციალურობის პოლიტიკა"
 }

@@ -1188,5 +1188,19 @@
   "Driver stopped on their own": "Vodič sám zastavil",
   "Comments": "Komentáre",
   "Report a bug": "Nahlásiť chybu",
-  "Found a bug, or an idea to improve the map?": "Našli ste chybu alebo máte nápad na vylepšenie mapy?"
+  "Found a bug, or an idea to improve the map?": "Našli ste chybu alebo máte nápad na vylepšenie mapy?",
+  "Cookies and similar technologies": "Súbory cookie a podobné technológie",
+  "We use a small amount of browser storage to run the map and to understand how it is used.": "Na spustenie mapy a pochopenie jej používania používame malé množstvo úložiska prehliadača.",
+  "Everything below stays on our own servers — no advertising, no third parties, nothing sold.": "Všetko uvedené nižšie zostáva na našich vlastných serveroch — žiadna reklama, žiadne tretie strany, nič sa nepredáva.",
+  "Essential": "Nevyhnutné",
+  "Always active": "Vždy aktívne",
+  "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.": "Udržiava vás prihláseného a ukladá jazdu, ktorú ste začali, ale ešte neodoslali, aby prežila stratu signálu. Bez toho stránka nemôže fungovať.",
+  "Analytics": "Analytika",
+  "Optional": "Voliteľné",
+  "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.": "Ukladá vo vašom prehliadači jedno náhodné ID, aby sme dokázali rozlíšiť vráteného návštevníka od nového, a videli, či ľudia, ktorí si vyhľadávajú miesta, niekedy pridajú aj vlastné jazdy.",
+  "It is not linked to your name, your account or your rides.": "Nie je prepojené s vaším menom, účtom ani vašimi jazdami.",
+  "If you decline, we still count page views anonymously — but nothing is stored on your device.": "Ak odmietnete, stále počítame zobrazenia stránok anonymne — ale na vašom zariadení sa nič neukladá.",
+  "Accept all": "Prijať všetko",
+  "Reject non-essential": "Odmietnuť nevyhnutné",
+  "Privacy policy": "Zásady ochrany súkromia"
 }

@@ -1188,5 +1188,19 @@
   "Driver stopped on their own": "ドライバーが自発的に停車",
   "Comments": "コメント",
   "Report a bug": "バグを報告",
-  "Found a bug, or an idea to improve the map?": "バグを見つけた、またはマップ改善のアイデアがありますか？"
+  "Found a bug, or an idea to improve the map?": "バグを見つけた、またはマップ改善のアイデアがありますか？",
+  "Cookies and similar technologies": "Cookieおよび類似の技術について",
+  "We use a small amount of browser storage to run the map and to understand how it is used.": "地図の動作と利用状況の把握のため、少量のブラウザストレージを使用します。",
+  "Everything below stays on our own servers — no advertising, no third parties, nothing sold.": "以下のデータはすべて当サイト自身のサーバーに保存されます。広告はなく、第三者提供もなく、データの販売も一切ありません。",
+  "Essential": "必須",
+  "Always active": "常に有効",
+  "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.": "ログイン状態を維持し、入力中でまだ送信していないヒッチハイクの記録を保存します。そのため、電波が途切れても入力内容が失われません。このサイトはこれなしでは動作できません。",
+  "Analytics": "アナリティクス",
+  "Optional": "任意",
+  "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.": "ブラウザにランダムなIDを1つ保存し、再訪問者と新規訪問者を区別したり、スポットを検索した人が自分のヒッチハイク記録を投稿するかどうかを確認したりするために使用します。",
+  "It is not linked to your name, your account or your rides.": "このIDは、お名前、アカウント、ヒッチハイクの記録と紐付けられることはありません。",
+  "If you decline, we still count page views anonymously — but nothing is stored on your device.": "拒否された場合でも、ページビューは匿名で集計しますが、お使いのデバイスには何も保存されません。",
+  "Accept all": "すべて同意",
+  "Reject non-essential": "必須以外を拒否",
+  "Privacy policy": "プライバシーポリシー"
 }

@@ -1188,5 +1188,19 @@
   "Driver stopped on their own": "Řidič sám zastavil",
   "Comments": "Komentáře",
   "Report a bug": "Nahlásit chybu",
-  "Found a bug, or an idea to improve the map?": "Našli jste chybu nebo máte nápad na vylepšení mapy?"
+  "Found a bug, or an idea to improve the map?": "Našli jste chybu nebo máte nápad na vylepšení mapy?",
+  "Cookies and similar technologies": "Cookies a podobné technologie",
+  "We use a small amount of browser storage to run the map and to understand how it is used.": "K uložení malého množství dat v prohlížeči používáme ke spuštění mapy a k pochopení, jak je využívána.",
+  "Everything below stays on our own servers — no advertising, no third parties, nothing sold.": "Vše níže zůstává na našich vlastních serverech — žádná reklama, žádné třetí strany, nic se neprodává.",
+  "Essential": "Nezbytné",
+  "Always active": "Vždy aktivní",
+  "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.": "Udržuje vás přihlášené a ukládá jízdu, kterou jste zahájili, ale ještě neodeslali, takže přežije ztrátu signálu. Bez toho web nemůže fungovat.",
+  "Analytics": "Analytika",
+  "Optional": "Volitelné",
+  "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.": "Ukládá ve vašem prohlížeči jedno náhodné ID, abychom rozlišili vracejícího se návštěvníka od nového, a viděli, zda lidé, kteří si vyhledávají místa, někdy přidávají i vlastní jízdy.",
+  "It is not linked to your name, your account or your rides.": "Není spojeno s vaším jménem, účtem ani vašimi jízdami.",
+  "If you decline, we still count page views anonymously — but nothing is stored on your device.": "Pokud odmítnete, stále anonymně počítáme zobrazení stránek — ale na vašem zařízení se nic neukládá.",
+  "Accept all": "Přijmout vše",
+  "Reject non-essential": "Odmítnout nepodstatné",
+  "Privacy policy": "Zásady ochrany osobních údajů"
 }

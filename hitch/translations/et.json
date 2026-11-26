@@ -1188,5 +1188,19 @@
   "Driver stopped on their own": "Juht peatus iseäranis",
   "Comments": "Kommentaarid",
   "Report a bug": "Teata veast",
-  "Found a bug, or an idea to improve the map?": "Leidsid vea või ideed, kuidas kaarti paremaks teha?"
+  "Found a bug, or an idea to improve the map?": "Leidsid vea või ideed, kuidas kaarti paremaks teha?",
+  "Cookies and similar technologies": "Küpsised ja sarnased tehnoloogiad",
+  "We use a small amount of browser storage to run the map and to understand how it is used.": "Kasutame väikest hulka brauseri salvestusruumi kaardi töötamiseks ja selle kasutamise mõistmiseks.",
+  "Everything below stays on our own servers — no advertising, no third parties, nothing sold.": "Kõik allpool olev jääb meie enda serveritesse — reklaami pole, kolmandaid osapooli pole, mitte midagi ei müüda.",
+  "Essential": "Olenevad",
+  "Always active": "Alati aktiivne",
+  "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.": "Hoiab sind sisselogituna ja salvestab sõidu, mille oled alustanud, kuid veel esitanud, et see säiliks ka siis, kui side katkeb. Leht ei saa ilma selleta töötada.",
+  "Analytics": "Analüütika",
+  "Optional": "Valikuline",
+  "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.": "Salvestab sinu brauserisse ühe juhusliku ID, et eristada tagasitulevat külastajat uuest, ja näha, kas inimesed, kes otsivad üles peatuskohti, lisavad kunagi ka oma sõite.",
+  "It is not linked to your name, your account or your rides.": "See ei ole seotud sinu nime, konto ega sõitudega.",
+  "If you decline, we still count page views anonymously — but nothing is stored on your device.": "Kui keeldud, loeme lehevaatamisi endiselt anonüümselt — kuid sinu seadmesse ei salvestata mitte midagi.",
+  "Accept all": "Nõustu kõigiga",
+  "Reject non-essential": "Keeldu mitteolenevatest",
+  "Privacy policy": "Privaatsuspoliitika"
 }

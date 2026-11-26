@@ -1188,5 +1188,19 @@
   "Driver stopped on their own": "Vairuotojas pats sustojo",
   "Comments": "Komentarai",
   "Report a bug": "Pranešti apie klaidą",
-  "Found a bug, or an idea to improve the map?": "Radai klaidą arba turi idėją, kaip patobulinti žemėlapį?"
+  "Found a bug, or an idea to improve the map?": "Radai klaidą arba turi idėją, kaip patobulinti žemėlapį?",
+  "Cookies and similar technologies": "Slapukai ir panašios technologijos",
+  "We use a small amount of browser storage to run the map and to understand how it is used.": "Naudojame nedidelį kiekį naršyklės atminties, kad veiktų žemėlapis ir kad suprastume, kaip juo naudojamasi.",
+  "Everything below stays on our own servers — no advertising, no third parties, nothing sold.": "Visi žemiau nurodyti duomenys lieka mūsų pačių serveriuose — jokia reklama, jokių trečiųjų šalių, niekas neparduodama.",
+  "Essential": "Būtini",
+  "Always active": "Visada aktyvūs",
+  "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.": "Išlaiko jūsų prisijungimą ir išsaugo kelionę, kurią pradėjote, bet dar nepateikėte, kad ji neišnyktų praradus ryšį. Be to svetainė negali veikti.",
+  "Analytics": "Analitika",
+  "Optional": "Nebūtina",
+  "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.": "Saugo vieną atsitiktinį ID jūsų naršyklėje, kad galėtume atskirti grįžtantį lankytoją nuo naujo, ir pamatytume, ar žmonės, ieškantys vietų, kada nors prideda ir savo kelionių.",
+  "It is not linked to your name, your account or your rides.": "Jis susietas su jūsų vardu, paskyra ar kelionėmis.",
+  "If you decline, we still count page views anonymously — but nothing is stored on your device.": "Jei atsisakysite, puslapių peržiūras vis tiek skaičiuosime anonimiškai — bet niekas nebus saugoma jūsų įrenginyje.",
+  "Accept all": "Priimti visus",
+  "Reject non-essential": "Atmesti nebūtinus",
+  "Privacy policy": "Privatumo politika"
 }

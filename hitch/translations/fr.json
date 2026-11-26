@@ -1188,5 +1188,19 @@
   "Driver stopped on their own": "Conducteur s'est arrêté de lui-même",
   "Comments": "Commentaires",
   "Report a bug": "Signaler un bug",
-  "Found a bug, or an idea to improve the map?": "Vous avez trouvé un bug, ou une idée pour améliorer la carte ?"
+  "Found a bug, or an idea to improve the map?": "Vous avez trouvé un bug, ou une idée pour améliorer la carte ?",
+  "Cookies and similar technologies": "Cookies et technologies similaires",
+  "We use a small amount of browser storage to run the map and to understand how it is used.": "Nous utilisons une petite quantité de stockage navigateur pour faire fonctionner la carte et comprendre comment elle est utilisée.",
+  "Everything below stays on our own servers — no advertising, no third parties, nothing sold.": "Tout ce qui suit reste sur nos propres serveurs — pas de publicité, pas de tiers, rien n'est vendu.",
+  "Essential": "Essentiels",
+  "Always active": "Toujours actifs",
+  "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.": "Vous garde connecté et enregistre un trajet que vous avez commencé mais pas encore soumis, afin qu'il survive à une perte de signal. Le site ne peut pas fonctionner sans cela.",
+  "Analytics": "Statistiques",
+  "Optional": "Optionnel",
+  "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.": "Stocke un identifiant aléatoire dans votre navigateur afin de distinguer un visiteur qui revient d'un nouveau, et voir si les personnes qui consultent des spots ajoutent parfois leurs propres trajets.",
+  "It is not linked to your name, your account or your rides.": "Il n'est pas lié à votre nom, votre compte ou vos trajets.",
+  "If you decline, we still count page views anonymously — but nothing is stored on your device.": "Si vous refusez, nous comptons toujours les pages vues de manière anonyme — mais rien n'est stocké sur votre appareil.",
+  "Accept all": "Tout accepter",
+  "Reject non-essential": "Refuser les non-essentiels",
+  "Privacy policy": "Politique de confidentialité"
 }
