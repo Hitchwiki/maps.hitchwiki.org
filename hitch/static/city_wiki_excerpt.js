@@ -167,6 +167,28 @@
   // the browser, same pattern as this codebase's other window.* exposures.
   window.__cityWikiExcerpt = { renderExcerpt: renderExcerpt, wikiLink: wikiLink };
 
+  // Most map cities have no English article (the en wiki has ~6.8k articles
+  // against ~15.6k city pages; a 150-page sample on 2026-11-26 found 130
+  // missing), so the nav's "<city> on Hitchwiki" link opened an empty page.
+  // When the API says the article is missing, send that link to the country
+  // article instead, relabelled with the same translated string. English nav
+  // only: other languages already link to a localized wiki search.
+  // Map country names whose English wiki article has another title (checked
+  // against all 138 countries with city pages, 2026-11-26).
+  var COUNTRY_TITLE_ALIASES = { "Korea, South": "South Korea", "Cabo Verde": "Cape Verde" };
+
+  function pointNavLinkAtCountry(data) {
+    if (!data || !data.error || data.error.code !== "missingtitle") return;
+    var a = document.getElementById("hitchwiki-link");
+    if (!a || a.href.indexOf("https://hitchwiki.org/en/index.php?title=") !== 0) return;
+    var country = a.getAttribute("data-country");
+    var label = a.getAttribute("data-country-label");
+    if (!country || !label) return;
+    a.href = wikiLink(COUNTRY_TITLE_ALIASES[country] || country);
+    a.textContent = label;
+    if (window.hmTrack) window.hmTrack("city_wiki_link_to_country", {});
+  }
+
   function init() {
     var container = document.getElementById("city-wiki-excerpt");
     if (!container) return;
@@ -180,7 +202,10 @@
         // No article, a disambiguation page, or a redlink: stay hidden rather
         // than show an error -- ~596 of 27,188 cities have no article at all,
         // and that is an expected, not exceptional, outcome here.
-        if (!data || data.error || !data.parse) return;
+        if (!data || data.error || !data.parse) {
+          pointNavLinkAtCountry(data);
+          return;
+        }
         var wikitext = data.parse.wikitext && data.parse.wikitext["*"];
         if (!wikitext) return;
         var html = renderExcerpt(wikitext, title);
