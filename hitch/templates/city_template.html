@@ -154,7 +154,12 @@
  .map-link {
      position: relative;
      display: inline-block;
+     max-width: 100%;
      text-decoration: none;
+ }
+ /* maps#469: the JS sizes the preview to innerWidth-40, but the article starts ~48px in on phones. */
+ .map-link > div {
+     max-width: 100%;
  }
 
  .map-overlay {
