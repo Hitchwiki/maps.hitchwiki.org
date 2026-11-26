@@ -25,6 +25,12 @@ COUNTRY_ALIASES = {
     "wales": "united kingdom",
     "northern ireland": "united kingdom",
     "uk": "united kingdom",
+    "great britain": "united kingdom",
+    "wales, uk": "united kingdom",
+    "scotland, uk": "united kingdom",
+    "czech republic": "czechia",
+    "south korea": "korea, south",
+    "the netherlands": "netherlands",
 }
 
 
@@ -75,7 +81,8 @@ def resolve_missing_city_page(city_dir, path):
     if len(parts) != 2 or not parts[0].strip() or not parts[1].strip():
         return None
     country_raw, city_raw = parts
-    country_key = fold(country_raw)
+    # "USA (Oregon)", "Spain (Canary Islands)": the country is the part before the brackets.
+    country_key = fold(_strip_disambiguation(country_raw))
     country_key = COUNTRY_ALIASES.get(country_key, country_key)
     country = _find(city_dir, country_key)
     if country is None:
