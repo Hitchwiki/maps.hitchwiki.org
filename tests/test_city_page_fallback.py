@@ -13,6 +13,8 @@ def city_dir(tmp_path):
         "United Kingdom": ["London"],
         "Iran": ["Qazvīn"],
         "Chile": ["Chillán"],
+        "Czechia": ["Brno"],
+        "Korea, South": ["Seoul"],
     }.items():
         (tmp_path / country).mkdir()
         for c in cities:
@@ -29,6 +31,9 @@ def city_dir(tmp_path):
         ("city/United States of America/Madison.html", (301, "/city/United%20States/Madison.html")),
         ("city/United States of America/Richmond (Virginia).html", (301, "/city/United%20States/Richmond.html")),
         ("city/England, UK/London.html", (301, "/city/United%20Kingdom/London.html")),
+        ("city/Czech Republic/Brno.html", (301, "/city/Czechia/Brno.html")),
+        ("city/South Korea/Seoul.html", (301, "/city/Korea%2C%20South/Seoul.html")),
+        ("city/USA (Oregon)/Madison.html", (301, "/city/United%20States/Madison.html")),
         # No page for the place: the country map, temporarily (a ride may create the page).
         ("city/Greece/Kalamata.html", (302, "/country/Greece")),
         ("city/England, UK/Thurrock Services.html", (302, "/country/United%20Kingdom")),
