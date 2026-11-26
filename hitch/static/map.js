@@ -924,6 +924,23 @@ function setupGeocoder() {
     setTimeout(hideSearchRouteChip, 15000);
   }
 
+  // Photon ranks a region above the city it is named after ("Mandalay, Myanmar" -> the
+  // state's centroid, ~110 km from the city). A wiki visitor searching a place name means
+  // the city, so when the top hit is a state/county/region and a city/town/village from the
+  // same answer lies inside that region's extent, land on the settlement. The extent check
+  // keeps "Normandy" on the region instead of jumping to a same-named village elsewhere.
+  function pickSettlementFirst(results) {
+    const top = results[0];
+    const tp = top.properties || {};
+    if (!["state", "county", "region", "district"].includes(tp.type || tp.osm_value)) return top;
+    if (!tp.extent || !top.bbox) return top;
+    const hit = results.slice(1).find(r => {
+      const p = r.properties || {};
+      return p.osm_key === "place" && ["city", "town", "village"].includes(p.osm_value) && top.bbox.contains(r.center);
+    });
+    return hit || top;
+  }
+
   // #search/<query> (linked from the wiki's own search page, ?ref=wiki-search): run the
   // place search for a visitor who has already typed the place once, so they land on the
   // map at it instead of having to type it again. Goes through the same provider and the
@@ -935,6 +952,7 @@ function setupGeocoder() {
     geocoderOpts.geocoder.geocode(q, function (results) {
       geocoderInput.value = "";
       if (!results || !results.length) return;
+      results = [pickSettlementFirst(results)];
       logSearchRequest(results[0]);
       // This can resolve while the initial world-fit zoom animation is still running;
       // Leaflet then drops the setView (or the animation's end overrides it), so a fresh
