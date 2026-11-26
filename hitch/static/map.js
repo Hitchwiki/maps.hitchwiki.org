@@ -19,6 +19,11 @@ var $$ = (e) => document.querySelector(e);
 // Named tr(), not t(): this file already uses `t` all over as a local variable/
 // parameter name (e.g. the wiki-text renderer's `t = t.replace(...)` pipeline),
 // and shadowing a one-letter global there would be an easy, silent bug.
+// maps#732: in these countries drivers are flagged with a palm-down hand wave, not a
+// thumb. The ride form only offers "thumb" as the hand-signal code, so rides logged
+// there carry "thumb" for what was really a wave; show it as the wave.
+const HAND_WAVE_COUNTRIES = new Set(["KZ", "KG"]);
+
 function tr(text, vars) {
   var dict = window.__TRANSLATIONS__ || {};
   var s = window.__LANG__ && window.__LANG__ !== "en" && dict[text] ? dict[text] : text;
@@ -3675,7 +3680,7 @@ function summaryText(data, hists = { wait: null, distance: null }) {
         const ask = (c.shares.ask || 0) + (c.shares["ask-sign"] || 0);
         return `<div class="spot-country-contact">
             <div class="spot-country-contact-label">🤝 ${tr("How drivers are approached in {country}", { country: c.name })}</div>
-            <div>${tr("Thumb {thumb} · Sign {sign} · Ask {ask}", {
+            <div>${(HAND_WAVE_COUNTRIES.has(data.country) ? (v) => tr("🫳 Hand wave {thumb} · Sign {sign} · Ask {ask}", v) : (v) => tr("Thumb {thumb} · Sign {sign} · Ask {ask}", v))({
               thumb: `<button type="button" class="spot-country-method" data-method="thumb">${Math.round(c.shares.thumb * 100)}%</button>`,
               sign: `<button type="button" class="spot-country-method" data-method="sign">${Math.round(c.shares.sign * 100)}%</button>`,
               ask: `<button type="button" class="spot-country-method" data-method="asking">${Math.round(ask * 100)}%</button>`,
