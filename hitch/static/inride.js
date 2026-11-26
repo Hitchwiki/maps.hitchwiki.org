@@ -761,6 +761,8 @@
       ra: j && j.returnAskArm ? j.returnAskArm : "na",
       // #1292: star-optional arm on the Got a Ride sheet (ctrl|opt|na).
       ro: j && j.ratingOptArm ? j.ratingOptArm : "na",
+      // EXP-1200: at-spot-check arm (ask|ctl|skipped_near|na).
+      ac: j && j.atCheck ? j.atCheck : "na",
     };
   }
 
@@ -830,6 +832,9 @@
       // Till 2026-11-24: the planned route this journey followed, kept so the after-trip ask is about this route even
       // if another one is looked up on the way.
       planRoute: planTag.plan !== "none" ? planRouteOf() : null,
+      // EXP-1200: the at-spot-check arm this journey started under, so got-ride/gave-up can be
+      // split by arm (it was only on journey_started, so rides-per-start could not be read).
+      atCheck: atCheckLabel || "na",
     });
     // Entry point of the in-ride funnel. This is a second, separate contribution
     // path from the /ride form — a journey that reaches Finish or Give up submits
