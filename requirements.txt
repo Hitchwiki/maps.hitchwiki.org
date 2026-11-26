@@ -1,7 +1,7 @@
 argon2_cffi==23.1.0
 bleach==6.4.0
 dash==2.18.2
-datasets==3.2.0
+datasets==5.0.1
 Flask-Mailman==1.1.1
 Flask-Security==5.6.2
 Flask-SQLAlchemy==3.1.1
