@@ -12,7 +12,6 @@ already has: the generated files themselves.
 """
 
 import os
-import re
 import unicodedata
 from urllib.parse import quote
 
@@ -28,8 +27,17 @@ COUNTRY_ALIASES = {
     "uk": "united kingdom",
 }
 
-# "Richmond (Virginia)" -> "Richmond": the wiki disambiguates titles, GeoNames doesn't.
-_PAREN = re.compile(r"\s*\([^)]*\)\s*$")
+
+def _strip_disambiguation(name):
+    """ "Richmond (Virginia)" -> "Richmond": the wiki disambiguates titles, GeoNames doesn't.
+
+    Plain string ops, not a regex: this runs on the request path, and CodeQL flagged the
+    regex as polynomial on crafted input.
+    """
+    name = name.rstrip()
+    if name.endswith(")") and "(" in name:
+        return name[: name.rindex("(")].strip()
+    return name
 
 
 def fold(text):
@@ -74,7 +82,7 @@ def resolve_missing_city_page(city_dir, path):
         return None
 
     country_path = os.path.join(city_dir, country)
-    for candidate in (fold(city_raw), fold(_PAREN.sub("", city_raw))):
+    for candidate in (fold(city_raw), fold(_strip_disambiguation(city_raw))):
         if not candidate:
             continue
         city = _find(country_path, candidate, ".html")
