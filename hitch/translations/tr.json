@@ -1188,5 +1188,19 @@
   "Driver stopped on their own": "Şoför kendi isteğiyle durdu",
   "Comments": "Yorumlar",
   "Report a bug": "Hata bildir",
-  "Found a bug, or an idea to improve the map?": "Bir hata mı buldun, yoksa haritayı geliştirmek için bir fikrin mi var?"
+  "Found a bug, or an idea to improve the map?": "Bir hata mı buldun, yoksa haritayı geliştirmek için bir fikrin mi var?",
+  "Cookies and similar technologies": "Çerezler ve benzer teknolojiler",
+  "We use a small amount of browser storage to run the map and to understand how it is used.": "Haritayı çalıştırmak ve nasıl kullanıldığını anlamak için tarayıcı depolama alanınızda az miktarda yer kullanıyoruz.",
+  "Everything below stays on our own servers — no advertising, no third parties, nothing sold.": "Aşağıdaki her şey kendi sunucularımızda kalır — reklam yok, üçüncü taraf yok, hiçbir şey satılmaz.",
+  "Essential": "Zorunlu",
+  "Always active": "Her zaman etkin",
+  "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.": "Oturumunuzu açık tutar ve başlatıp henüz göndermediğiniz bir yolculuğu kaydeder; böylece sinyal kaybetseniz bile yolculuk kaybolmaz. Site bu olmadan çalışamaz.",
+  "Analytics": "Analitik",
+  "Optional": "İsteğe bağlı",
+  "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.": "Geri dönen ziyaretçiyi yeni ziyaretçiden ayırt edebilmek ve spotlara bakan kişilerin kendi yolculuklarını ekleyip eklemediğini görebilmek için tarayıcınızda rastgele bir kimlik saklar.",
+  "It is not linked to your name, your account or your rides.": "Adınız, hesabınız veya yolculuklarınızla ilişkilendirilmez.",
+  "If you decline, we still count page views anonymously — but nothing is stored on your device.": "Reddettiğinizde sayfa görüntülemelerini yine de anonim olarak sayarız — ancak cihazınızda hiçbir şey saklanmaz.",
+  "Accept all": "Tümünü kabul et",
+  "Reject non-essential": "Zorunlu olmayanları reddet",
+  "Privacy policy": "Gizlilik politikası"
 }

@@ -1188,5 +1188,19 @@
   "Driver stopped on their own": "Kierowca zatrzymał się sam",
   "Comments": "Komentarze",
   "Report a bug": "Zgłoś błąd",
-  "Found a bug, or an idea to improve the map?": "Znalazłeś błąd lub masz pomysł na ulepszenie mapy?"
+  "Found a bug, or an idea to improve the map?": "Znalazłeś błąd lub masz pomysł na ulepszenie mapy?",
+  "Cookies and similar technologies": "Pliki cookies i podobne technologie",
+  "We use a small amount of browser storage to run the map and to understand how it is used.": "Używamy niewielkiej ilości pamięci przeglądarki, aby uruchomić mapę i zrozumieć, jak jest używana.",
+  "Everything below stays on our own servers — no advertising, no third parties, nothing sold.": "Wszystko poniżej pozostaje na naszych własnych serwerach — żadnych reklam, żadnych podmiotów trzecich, nic nie jest sprzedawane.",
+  "Essential": "Niezbędne",
+  "Always active": "Zawsze aktywne",
+  "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.": "Utrzymuje Cię zalogowanego i zapisuje przejazd, który rozpocząłeś(-aś), ale jeszcze nie wysłałeś(-aś), dzięki czemu przetrwa utratę sygnału. Strona nie może działać bez tego.",
+  "Analytics": "Statystyki",
+  "Optional": "Opcjonalne",
+  "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.": "Zapisuje jeden losowy identyfikator w Twojej przeglądarce, dzięki czemu możemy odróżnić powracającego odwiedzającego od nowego oraz sprawdzić, czy osoby wyszukujące miejsca dodają kiedyś własne przejazdy.",
+  "It is not linked to your name, your account or your rides.": "Nie jest powiązany z Twoim imieniem, kontem ani przejazdami.",
+  "If you decline, we still count page views anonymously — but nothing is stored on your device.": "Jeśli odmówisz, nadal anonimowo liczymy odsłony stron — ale nic nie jest zapisywane na Twoim urządzeniu.",
+  "Accept all": "Zaakceptuj wszystkie",
+  "Reject non-essential": "Odrzuć niezbędne",
+  "Privacy policy": "Polityka prywatności"
 }

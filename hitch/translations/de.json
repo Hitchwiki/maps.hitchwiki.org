@@ -1188,5 +1188,19 @@
   "Driver stopped on their own": "Fahrer hat von selbst angehalten",
   "Comments": "Kommentare",
   "Report a bug": "Fehler melden",
-  "Found a bug, or an idea to improve the map?": "Hast du einen Fehler gefunden oder eine Idee, die Karte zu verbessern?"
+  "Found a bug, or an idea to improve the map?": "Hast du einen Fehler gefunden oder eine Idee, die Karte zu verbessern?",
+  "Cookies and similar technologies": "Cookies und ähnliche Technologien",
+  "We use a small amount of browser storage to run the map and to understand how it is used.": "Wir nutzen eine kleine Menge Browserspeicher, um die Karte zu betreiben und zu verstehen, wie sie genutzt wird.",
+  "Everything below stays on our own servers — no advertising, no third parties, nothing sold.": "Alles unten bleibt auf unseren eigenen Servern — keine Werbung, keine Drittanbieter, nichts wird verkauft.",
+  "Essential": "Notwendig",
+  "Always active": "Immer aktiv",
+  "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.": "Hält dich angemeldet und speichert eine Fahrt, die du gestartet, aber noch nicht abgeschickt hast, damit sie einen Signalverlust übersteht. Die Seite kann ohne dies nicht funktionieren.",
+  "Analytics": "Statistiken",
+  "Optional": "Optional",
+  "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.": "Speichert eine zufällige ID in deinem Browser, damit wir einen wiederkehrenden Besucher von einem neuen unterscheiden können und sehen, ob Leute, die nach Spots suchen, irgendwann eigene Fahrten hinzufügen.",
+  "It is not linked to your name, your account or your rides.": "Sie ist nicht mit deinem Namen, deinem Konto oder deinen Fahrten verknüpft.",
+  "If you decline, we still count page views anonymously — but nothing is stored on your device.": "Wenn du ablehnst, zählen wir Seitenaufrufe weiterhin anonym — aber auf deinem Gerät wird nichts gespeichert.",
+  "Accept all": "Alle akzeptieren",
+  "Reject non-essential": "Nicht notwendige ablehnen",
+  "Privacy policy": "Datenschutzerklärung"
 }

@@ -1188,5 +1188,19 @@
   "Driver stopped on their own": "L'autista si è fermato di sua iniziativa",
   "Comments": "Commenti",
   "Report a bug": "Segnala un bug",
-  "Found a bug, or an idea to improve the map?": "Hai trovato un bug o un'idea per migliorare la mappa?"
+  "Found a bug, or an idea to improve the map?": "Hai trovato un bug o un'idea per migliorare la mappa?",
+  "Cookies and similar technologies": "Cookie e tecnologie simili",
+  "We use a small amount of browser storage to run the map and to understand how it is used.": "Usiamo una piccola quantità di memoria del browser per far funzionare la mappa e capire come viene utilizzata.",
+  "Everything below stays on our own servers — no advertising, no third parties, nothing sold.": "Tutto ciò che segue resta sui nostri stessi server — nessuna pubblicità, nessun soggetto terzo, nulla viene venduto.",
+  "Essential": "Essenziali",
+  "Always active": "Sempre attivi",
+  "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.": "Ti mantiene connesso e salva un passaggio che hai iniziato ma non ancora inviato, così non si perde se perdi il segnale. Il sito non può funzionare senza.",
+  "Analytics": "Analisi",
+  "Optional": "Facoltativo",
+  "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.": "Memorizza un ID casuale nel tuo browser per distinguere un visitatore di ritorno da uno nuovo, e vedere se le persone che cercano punti aggiungono poi i propri passaggi.",
+  "It is not linked to your name, your account or your rides.": "Non è collegato al tuo nome, al tuo account o ai tuoi passaggi.",
+  "If you decline, we still count page views anonymously — but nothing is stored on your device.": "Se rifiuti, contiamo comunque le visualizzazioni di pagina in forma anonima — ma nulla viene memorizzato sul tuo dispositivo.",
+  "Accept all": "Accetta tutto",
+  "Reject non-essential": "Rifiuta i non essenziali",
+  "Privacy policy": "Informativa sulla privacy"
 }

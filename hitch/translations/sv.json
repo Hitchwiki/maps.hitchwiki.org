@@ -1188,5 +1188,19 @@
   "Driver stopped on their own": "Föraren stannade på egen initiativ",
   "Comments": "Kommentarer",
   "Report a bug": "Rapportera ett fel",
-  "Found a bug, or an idea to improve the map?": "Hittade ett fel, eller en idé för att förbättra kartan?"
+  "Found a bug, or an idea to improve the map?": "Hittade ett fel, eller en idé för att förbättra kartan?",
+  "Cookies and similar technologies": "Cookies och liknande tekniker",
+  "We use a small amount of browser storage to run the map and to understand how it is used.": "Vi använder en liten mängd webbläsarlagring för att driva kartan och för att förstå hur den används.",
+  "Everything below stays on our own servers — no advertising, no third parties, nothing sold.": "Allt nedan finns kvar på våra egna servrar — ingen reklam, inga tredje parter, inget som säljs.",
+  "Essential": "Nödvändiga",
+  "Always active": "Alltid aktiva",
+  "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.": "Håller dig inloggad och sparar en resa som du har påbörjat men ännu inte skickat in, så att den överlever en tappad anslutning. Webbplatsen kan inte fungera utan detta.",
+  "Analytics": "Statistik",
+  "Optional": "Valfritt",
+  "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.": "Lagrar ett slumpmässigt ID i din webbläsare så att vi kan skilja en återkommande besökare från en ny, och se om personer som letar upp platser någon gång lägger till egna resor.",
+  "It is not linked to your name, your account or your rides.": "Det kopplas inte till ditt namn, ditt konto eller dina resor.",
+  "If you decline, we still count page views anonymously — but nothing is stored on your device.": "Om du tackar nej räknar vi fortfarande sidvisningar anonymt — men inget lagras på din enhet.",
+  "Accept all": "Acceptera alla",
+  "Reject non-essential": "Avvisa icke-nödvändiga",
+  "Privacy policy": "Integritetspolicy"
 }

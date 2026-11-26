@@ -1188,5 +1188,19 @@
   "Driver stopped on their own": "Шофьорът спря по собствена инициатива",
   "Comments": "Коментари",
   "Report a bug": "Докладвай грешка",
-  "Found a bug, or an idea to improve the map?": "Намери грешка или имаш идея за подобрение на картата?"
+  "Found a bug, or an idea to improve the map?": "Намери грешка или имаш идея за подобрение на картата?",
+  "Cookies and similar technologies": "Бисквитки и подобни технологии",
+  "We use a small amount of browser storage to run the map and to understand how it is used.": "Използваме малко количество хранилище на браузъра, за да работи картата и да разберем как се използва.",
+  "Everything below stays on our own servers — no advertising, no third parties, nothing sold.": "Всичко по-долу остава на нашите собствени сървъри — без реклама, без трети страни, нищо не се продава.",
+  "Essential": "Съществени",
+  "Always active": "Винаги активни",
+  "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.": "Поддържа влизането ви в профила и запазва пътуване, което сте започнали, но все още не сте изпратили, така че то не се губи при загуба на сигнал. Сайтът не може да работи без това.",
+  "Analytics": "Аналитика",
+  "Optional": "По избор",
+  "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.": "Съхранява един случаен идентификатор във вашия браузър, за да можем да различим завръщащ се посетител от нов и да видим дали хората, които търсят места, някога добавят и собствени пътувания.",
+  "It is not linked to your name, your account or your rides.": "Той не е свързан с вашето име, профила или пътуванията ви.",
+  "If you decline, we still count page views anonymously — but nothing is stored on your device.": "Ако откажете, все пак броим прегледите на страниците анонимно — но нищо не се съхранява на вашето устройство.",
+  "Accept all": "Приемам всички",
+  "Reject non-essential": "Отхвърлям несъществените",
+  "Privacy policy": "Политика за поверителност"
 }

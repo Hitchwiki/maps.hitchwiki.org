@@ -1188,5 +1188,19 @@
   "Driver stopped on their own": "Voznik je ustavil po lastni pobudi",
   "Comments": "Komentarji",
   "Report a bug": "Prijavi napako",
-  "Found a bug, or an idea to improve the map?": "Ste našli napako ali imate idejo za izboljšavo zemljevida?"
+  "Found a bug, or an idea to improve the map?": "Ste našli napako ali imate idejo za izboljšavo zemljevida?",
+  "Cookies and similar technologies": "Piškotki in podobne tehnologije",
+  "We use a small amount of browser storage to run the map and to understand how it is used.": "Za delovanje zemljevida in razumevanje njegove uporabe uporabljamo majhno količino prostora v shrambi brskalnika.",
+  "Everything below stays on our own servers — no advertising, no third parties, nothing sold.": "Vse spodaj ostaja na naših lastnih strežnikih — brez oglaševanja, brez tretjih oseb, ničesar ne prodajamo.",
+  "Essential": "Bistveni",
+  "Always active": "Vedno aktivni",
+  "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.": "Ohranja vašo prijavo in shrani prevoz, ki ste ga začeli, a še niste objavili, tako da preživi izgubo signala. Brez tega spletna stran ne more delovati.",
+  "Analytics": "Analitika",
+  "Optional": "Neobvezno",
+  "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.": "V vašem brskalniku shrani eno naključni ID, da lahko ločimo povratnega obiskovalca od novega, in vidimo, ali ljudje, ki si ogledujejo točke, kdaj dodajo svoje prevoze.",
+  "It is not linked to your name, your account or your rides.": "Ni povezan z vašim imenom, računom ali prevozi.",
+  "If you decline, we still count page views anonymously — but nothing is stored on your device.": "Če to zavoljete, še vedno anonimno štejemo ogled strani — vendar se v vaši napravi nič ne shrani.",
+  "Accept all": "Sprejmi vse",
+  "Reject non-essential": "Zavrni nebistveno",
+  "Privacy policy": "Pravilnik o zasebnosti"
 }

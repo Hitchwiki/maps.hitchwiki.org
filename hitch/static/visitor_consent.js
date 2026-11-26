@@ -126,6 +126,25 @@
 
   var banner = null;
 
+  // Page-language text for the banner (window.__CONSENT_T__ is set in base.html).
+  function L(key) {
+    var m = window.__CONSENT_T__;
+    return (m && typeof m[key] === "string" && m[key]) || key;
+  }
+  function E(key) {
+    return L(key).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  // Shown/answered counts per page language. An event stores nothing on the device,
+  // so it is sent whatever the answer (a denied visitor is still counted storage-free).
+  function track(name, data) {
+    try {
+      if (window.umami && typeof window.umami.track === "function") window.umami.track(name, data);
+    } catch (e) {}
+  }
+  function lang() {
+    return (document.documentElement.getAttribute("lang") || "").slice(0, 5);
+  }
+
   function hide() {
     if (banner && banner.parentNode) banner.parentNode.removeChild(banner);
     banner = null;
@@ -164,38 +183,44 @@
     banner = document.createElement("div");
     banner.id = "hm-consent";
     banner.setAttribute("role", "dialog");
-    banner.setAttribute("aria-label", "Cookies and similar technologies");
+    banner.setAttribute("aria-label", L("Cookies and similar technologies"));
     // The familiar two-category consent layout, but the descriptions have to stay
     // literally true. In particular the analytics row says what happens when you
     // decline: page views are still counted, storage-free. A generic "Reject" that
     // silently kept full tracking would be the dark pattern this text avoids.
+    // Text comes from window.__CONSENT_T__ (base.html, server-side t()), escaped here.
     banner.innerHTML =
-      "<h2>Cookies and similar technologies</h2>" +
-      "<p>We use a small amount of browser storage to run the map and to understand how it is used. " +
-      "Everything below stays on our own servers — no advertising, no third parties, nothing sold.</p>" +
+      "<h2>" + E("Cookies and similar technologies") + "</h2>" +
+      "<p>" + E("We use a small amount of browser storage to run the map and to understand how it is used.") + " " +
+      E("Everything below stays on our own servers — no advertising, no third parties, nothing sold.") + "</p>" +
       '<div class="hm-cat">' +
-      '<div class="hm-cat-head"><span class="hm-cat-name">Essential</span>' +
-      '<span class="hm-cat-state">Always active</span></div>' +
-      '<p class="hm-cat-desc">Keeps you signed in and saves a ride you have started but not yet ' +
-      "submitted, so it survives losing signal. The site cannot work without this.</p></div>" +
+      '<div class="hm-cat-head"><span class="hm-cat-name">' + E("Essential") + "</span>" +
+      '<span class="hm-cat-state">' + E("Always active") + "</span></div>" +
+      '<p class="hm-cat-desc">' +
+      E("Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.") +
+      "</p></div>" +
       '<div class="hm-cat">' +
-      '<div class="hm-cat-head"><span class="hm-cat-name">Analytics</span>' +
-      '<span class="hm-cat-state">Optional</span></div>' +
-      '<p class="hm-cat-desc">Stores one random ID in your browser so we can tell a returning ' +
-      "visitor from a new one, and see whether people who look up spots ever add their own rides. " +
-      "It is not linked to your name, your account or your rides. " +
-      "If you decline, we still count page views anonymously — but nothing is stored on your device.</p></div>" +
+      '<div class="hm-cat-head"><span class="hm-cat-name">' + E("Analytics") + "</span>" +
+      '<span class="hm-cat-state">' + E("Optional") + "</span></div>" +
+      '<p class="hm-cat-desc">' +
+      E("Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.") + " " +
+      E("It is not linked to your name, your account or your rides.") + " " +
+      E("If you decline, we still count page views anonymously — but nothing is stored on your device.") +
+      "</p></div>" +
       '<div class="hm-consent-actions">' +
-      '<button type="button" class="hm-consent-yes">Accept all</button>' +
-      '<button type="button" class="hm-consent-no">Reject non-essential</button>' +
-      '<a href="/privacy">Privacy policy</a>' +
+      '<button type="button" class="hm-consent-yes">' + E("Accept all") + "</button>" +
+      '<button type="button" class="hm-consent-no">' + E("Reject non-essential") + "</button>" +
+      '<a href="/privacy">' + E("Privacy policy") + "</a>" +
       "</div>";
     document.body.appendChild(banner);
 
+    track("consent_shown", { lang: lang() });
     banner.querySelector(".hm-consent-yes").addEventListener("click", function () {
+      track("consent_choice", { choice: "granted", lang: lang() });
       window.hmVisitorConsent.grant();
     });
     banner.querySelector(".hm-consent-no").addEventListener("click", function () {
+      track("consent_choice", { choice: "denied", lang: lang() });
       window.hmVisitorConsent.deny();
     });
     // "Reject" must be reachable without a mouse and dismissible like any dialog.

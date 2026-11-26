@@ -1188,5 +1188,19 @@
   "Driver stopped on their own": "A sofőr magától megállt",
   "Comments": "Hozzászólások",
   "Report a bug": "Hiba bejelentése",
-  "Found a bug, or an idea to improve the map?": "Találtál egy hibát, vagy van ötleted a térkép fejlesztésére?"
+  "Found a bug, or an idea to improve the map?": "Találtál egy hibát, vagy van ötleted a térkép fejlesztésére?",
+  "Cookies and similar technologies": "Sütik és hasonló technológiák",
+  "We use a small amount of browser storage to run the map and to understand how it is used.": "A térkép működtetéséhez és a használat megértéséhez kis mennyiségű böngészőtárolót használunk.",
+  "Everything below stays on our own servers — no advertising, no third parties, nothing sold.": "Minden az alábbiakban leírt adat a saját szervereinken marad – nincs reklám, nincsenek harmadik felek, semmit sem adunk el.",
+  "Essential": "Alapvető",
+  "Always active": "Mindig aktív",
+  "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.": "Bejelentkezve tart, és elmenti a elkezdett, de még be nem küldtt utazást, hogy az elveszett jelzés esetén se vesszen el. Enélkül az oldal nem működik.",
+  "Analytics": "Statisztikák",
+  "Optional": "Opcionális",
+  "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.": "Egy véletlenszerű azonosítót tárol a böngésződben, hogy megkülönböztessük a visszatérő látogatót az újtól, és lássuk, hogy a helyeket megkereső emberek közül valaki hozzáad-e saját utazást.",
+  "It is not linked to your name, your account or your rides.": "Ez nem kapcsolódik a nevedhez, a fiókodhoz vagy az utazásaidhoz.",
+  "If you decline, we still count page views anonymously — but nothing is stored on your device.": "Ha elutasítod, az oldalletöltéseket továbbra is névtelenül számoljuk – de semmi nem kerül tárolásra az eszközödön.",
+  "Accept all": "Mindet elfogadom",
+  "Reject non-essential": "Nem alapvetők elutasítása",
+  "Privacy policy": "Adatvédelmi nyilatkozat"
 }

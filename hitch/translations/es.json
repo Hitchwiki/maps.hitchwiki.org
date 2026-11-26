@@ -1188,5 +1188,19 @@
   "Driver stopped on their own": "El conductor se detuvo por su cuenta",
   "Comments": "Comentarios",
   "Report a bug": "Reportar un error",
-  "Found a bug, or an idea to improve the map?": "¿Encontraste un error o tienes una idea para mejorar el mapa?"
+  "Found a bug, or an idea to improve the map?": "¿Encontraste un error o tienes una idea para mejorar el mapa?",
+  "Cookies and similar technologies": "Cookies y tecnologías similares",
+  "We use a small amount of browser storage to run the map and to understand how it is used.": "Usamos una pequeña cantidad de almacenamiento del navegador para ejecutar el mapa y entender cómo se utiliza.",
+  "Everything below stays on our own servers — no advertising, no third parties, nothing sold.": "Todo lo que aparece a continuación permanece en nuestros propios servidores: sin publicidad, sin terceros, nada se vende.",
+  "Essential": "Esenciales",
+  "Always active": "Siempre activas",
+  "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.": "Mantiene tu sesión iniciada y guarda un viaje que hayas empezado pero aún no enviado, para que no se pierda si te quedas sin señal. El sitio no puede funcionar sin esto.",
+  "Analytics": "Analítica",
+  "Optional": "Opcional",
+  "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.": "Guarda un ID aleatorio en tu navegador para distinguir a un visitante que vuelve de uno nuevo, y ver si las personas que consultan puntos llegan a añadir sus propios viajes.",
+  "It is not linked to your name, your account or your rides.": "No está vinculado a tu nombre, tu cuenta ni tus viajes.",
+  "If you decline, we still count page views anonymously — but nothing is stored on your device.": "Si lo rechazas, seguimos contando las visitas a páginas de forma anónima, pero no se guarda nada en tu dispositivo.",
+  "Accept all": "Aceptar todo",
+  "Reject non-essential": "Rechazar lo no esencial",
+  "Privacy policy": "Política de privacidad"
 }

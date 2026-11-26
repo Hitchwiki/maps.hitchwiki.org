@@ -19,6 +19,9 @@
        which is what lets a consented visitor's very first pageview carry their
        durable id. Calling identify() after load would leave that pageview in a
        different session from the rest of the visit. #}
+    {# Banner text in the page language; visitor_consent.js falls back to the English key. #}
+    {% set consent_t = {} %}{% for k in ["Cookies and similar technologies", "We use a small amount of browser storage to run the map and to understand how it is used.", "Everything below stays on our own servers — no advertising, no third parties, nothing sold.", "Essential", "Always active", "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.", "Analytics", "Optional", "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.", "It is not linked to your name, your account or your rides.", "If you decline, we still count page views anonymously — but nothing is stored on your device.", "Accept all", "Reject non-essential", "Privacy policy"] %}{% set _ = consent_t.update({k: t(k)}) %}{% endfor %}
+    <script>window.__CONSENT_T__ = {{ consent_t|tojson }};</script>
     <script src="/static/visitor_consent.js"></script>
     {# The /1p/ proxy is a single point of failure that nothing here could see
        fail. On 2026-08-09 it started answering /1p/script.js with a 404 on this

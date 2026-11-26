@@ -1188,5 +1188,19 @@
   "Driver stopped on their own": "Kuljettaja pysähtyi omasta aloitteestaan",
   "Comments": "Kommentit",
   "Report a bug": "Ilmoita virheestä",
-  "Found a bug, or an idea to improve the map?": "Löysitkö virheen tai idean kartan parantamiseksi?"
+  "Found a bug, or an idea to improve the map?": "Löysitkö virheen tai idean kartan parantamiseksi?",
+  "Cookies and similar technologies": "Evästeet ja vastaavat teknologiat",
+  "We use a small amount of browser storage to run the map and to understand how it is used.": "Käytämme pientä määrää selaintallennustilaa kartan pyörittämiseen ja sen käytön ymmärtämiseen.",
+  "Everything below stays on our own servers — no advertising, no third parties, nothing sold.": "Kaikki alla oleva pysyy omilla palvelimillamme — ei mainontaa, ei kolmansia osapuolia, mitään ei myydä.",
+  "Essential": "Välttämättömät",
+  "Always active": "Aina käytössä",
+  "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.": "Pitää sinut kirjautuneena ja tallentaa kyydin, jonka olet aloittanut mutta ei vielä lähettänyt, jotta se säilyy vaikka yhteys katkeaisi. Sivusto ei toimi ilman tätä.",
+  "Analytics": "Analytiikka",
+  "Optional": "Valinnainen",
+  "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.": "Tallentaa yhden satunnaisen tunnisteen selaimeesi, jotta voimme erottaa palaavan kävijän uudesta ja nähdä, lisäävätkö paikkoja katsoneet ihmiset koskaan omia kyytejään.",
+  "It is not linked to your name, your account or your rides.": "Sitä ei yhdistetä nimeesi, tiliisi tai kyyteihisi.",
+  "If you decline, we still count page views anonymously — but nothing is stored on your device.": "Jos kieltäydyt, laskemme sivun katselut silti anonyymisti — mutta laitteellesi ei tallenneta mitään.",
+  "Accept all": "Hyväksy kaikki",
+  "Reject non-essential": "Hylkää ei-välttämättömät",
+  "Privacy policy": "Tietosuojakäytäntö"
 }

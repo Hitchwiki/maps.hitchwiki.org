@@ -1188,5 +1188,19 @@
   "Driver stopped on their own": "Sjåføren stoppet på eget initiativ",
   "Comments": "Kommentarer",
   "Report a bug": "Rapporter en feil",
-  "Found a bug, or an idea to improve the map?": "Fant en feil, eller har du en idé til å forbedre kartet?"
+  "Found a bug, or an idea to improve the map?": "Fant en feil, eller har du en idé til å forbedre kartet?",
+  "Cookies and similar technologies": "Informasjonskapsler og lignende teknologier",
+  "We use a small amount of browser storage to run the map and to understand how it is used.": "Vi bruker en liten mengde lagring i nettleseren for å drive kartet og forstå hvordan det brukes.",
+  "Everything below stays on our own servers — no advertising, no third parties, nothing sold.": "Alt nedenfor lagres på våre egne servere — ingen reklame, ingen tredjeparter, ingenting som selges.",
+  "Essential": "Nødvendig",
+  "Always active": "Alltid aktiv",
+  "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.": "Holder deg innlogget og lagrer en tur du har startet, men ikke sendt inn ennå, slik at den overlever tap av dekning. Siden kan ikke fungere uten dette.",
+  "Analytics": "Statistikk",
+  "Optional": "Valgfritt",
+  "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.": "Lagrer en tilfeldig ID i nettleseren din slik at vi kan skille en gjenganger fra en ny besøkende, og se om folk som slår opp steder noen gang legger til egne turer.",
+  "It is not linked to your name, your account or your rides.": "Den er ikke knyttet til navnet ditt, kontoen din eller turene dine.",
+  "If you decline, we still count page views anonymously — but nothing is stored on your device.": "Hvis du avslår, teller vi fortsatt sidevisninger anonymt — men ingenting lagres på enheten din.",
+  "Accept all": "Godta alle",
+  "Reject non-essential": "Avslå ikke-nødvendige",
+  "Privacy policy": "Personvernerklæring"
 }

@@ -1188,5 +1188,19 @@
   "Driver stopped on their own": "Autovadītājs apstājās pats",
   "Comments": "Komentāri",
   "Report a bug": "Ziņot par kļūdu",
-  "Found a bug, or an idea to improve the map?": "Atradāt kļūdu vai ideju, kā uzlabot karti?"
+  "Found a bug, or an idea to improve the map?": "Atradāt kļūdu vai ideju, kā uzlabot karti?",
+  "Cookies and similar technologies": "Sīkdatnes un līdzīgas tehnoloģijas",
+  "We use a small amount of browser storage to run the map and to understand how it is used.": "Mēs izmantojam nelielu daudzumu pārlūka atmiņas, lai darbinātu karti un saprastu, kā tā tiek izmantota.",
+  "Everything below stays on our own servers — no advertising, no third parties, nothing sold.": "Viss zemāk esošais paliek mūsu pašu serveros — bez reklāmām, bez trešajām pusēm, nekas netiek pārdots.",
+  "Essential": "Būtiskie",
+  "Always active": "Vienmēr aktīvi",
+  "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.": "Uztur tevi pieteikto un saglabā braucienu, kuru esi uzsācis, bet vēl neiesniedzis, lai tas nepazustu, ja zūd signāls. Vietne bez tā nevar strādāt.",
+  "Analytics": "Analītika",
+  "Optional": "Neobligāti",
+  "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.": "Saglabā vienu gadījuma ID tavā pārlūkā, lai mēs varētu atšķirt atgriežosies apmeklētāju no jauna un redzētu, vai cilvēki, kas meklē punktus, kādreiz pievieno arī savus braucienus.",
+  "It is not linked to your name, your account or your rides.": "Tas nav saistīts ar tavu vārdu, kontu vai braucieniem.",
+  "If you decline, we still count page views anonymously — but nothing is stored on your device.": "Ja atsakies, mēs joprojām anonīmi skaitām lapas skatījumus — bet tavā ierīcē nekas netiek saglabāts.",
+  "Accept all": "Piekrist visam",
+  "Reject non-essential": "Noraidīt nebūtiskos",
+  "Privacy policy": "Privātuma politika"
 }

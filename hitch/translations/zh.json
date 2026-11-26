@@ -1188,5 +1188,19 @@
   "Driver stopped on their own": "司机自行停车",
   "Comments": "评论",
   "Report a bug": "报告错误",
-  "Found a bug, or an idea to improve the map?": "发现了错误，或者有改进地图的想法？"
+  "Found a bug, or an idea to improve the map?": "发现了错误，或者有改进地图的想法？",
+  "Cookies and similar technologies": "Cookie 和类似技术",
+  "We use a small amount of browser storage to run the map and to understand how it is used.": "我们使用少量浏览器存储来运行地图并了解其使用情况。",
+  "Everything below stays on our own servers — no advertising, no third parties, nothing sold.": "以下所有数据仅保存在我们自己的服务器上——没有广告，没有第三方，不出售任何信息。",
+  "Essential": "必要",
+  "Always active": "始终启用",
+  "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.": "保持您的登录状态，并保存您已开始但尚未提交的行程，即使失去信号也不会丢失。没有它网站无法运行。",
+  "Analytics": "分析",
+  "Optional": "可选",
+  "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.": "在您的浏览器中存储一个随机 ID，以便我们区分回访者和新访客，并了解查看搭车点的人是否也会添加自己的行程。",
+  "It is not linked to your name, your account or your rides.": "它不会与您的姓名、账户或行程关联。",
+  "If you decline, we still count page views anonymously — but nothing is stored on your device.": "如果您拒绝，我们仍会匿名统计页面浏览量——但不会在您的设备上存储任何内容。",
+  "Accept all": "全部接受",
+  "Reject non-essential": "拒绝非必要项",
+  "Privacy policy": "隐私政策"
 }

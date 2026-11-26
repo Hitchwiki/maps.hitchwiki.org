@@ -1188,5 +1188,19 @@
   "Driver stopped on their own": "Жолооч өөрөө зогссон",
   "Comments": "Сэтгэгдэл",
   "Report a bug": "Алдаа мэдэгдэх",
-  "Found a bug, or an idea to improve the map?": "Алдаа олдсон уу, эсвэл газрын зураг сайжруулах санаа байна уу?"
+  "Found a bug, or an idea to improve the map?": "Алдаа олдсон уу, эсвэл газрын зураг сайжруулах санаа байна уу?",
+  "Cookies and similar technologies": "Күүки ба ижил төстэй технологиуд",
+  "We use a small amount of browser storage to run the map and to understand how it is used.": "Бид газрын зургийг ажиллуулах болон хэрэглэгдэж буйг ойлгохын тулд хөтчийн бага хэмжээний санах ойг ашигладаг.",
+  "Everything below stays on our own servers — no advertising, no third parties, nothing sold.": "Доорх бүх зүйл бидний өөрсдийн серверт хадгалагдана — сурталчилгаа байхгүй, гуравдагч этгээд байхгүй, юу ч зарахгүй.",
+  "Essential": "Шаардлагатай",
+  "Always active": "Үргэлж идэвхтэй",
+  "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.": "Таныг нэвтэрсэн хэвээр байлгаж, та эхлүүлсэн боловч одоогоор илгээгээгүй аялалаа хадгалдаг тул дохио алдагдсан ч алга болдоггүй. Энэгүйгээр сайт ажиллах боломжгүй.",
+  "Analytics": "Статистик",
+  "Optional": "Сонголттой",
+  "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.": "Бид буцаж ирсэн зочныг шинээс ялгах, мөн газруудыг хайсан хүмүүс өөрсдийн аялалаа нэмдэг эсэхийг харахын тулд таны хөтөчид нэг санамсаргүй ID хадгалдаг.",
+  "It is not linked to your name, your account or your rides.": "Энэ нь таны нэр, бүртгэл эсвэл аялалтай холбогддоггүй.",
+  "If you decline, we still count page views anonymously — but nothing is stored on your device.": "Хэрэв та татгалзвал бид хуудасны үзэлтийг нэрээ нууцлан тоолсоор байна — гэхдээ таны төхөөрөмжид юу ч хадгалагдахгүй.",
+  "Accept all": "Бүгдийг зөвшөөрөх",
+  "Reject non-essential": "Шаардлагагүйг татгалзах",
+  "Privacy policy": "Нууцлалын бодлого"
 }

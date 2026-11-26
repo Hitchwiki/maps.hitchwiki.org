@@ -1188,5 +1188,19 @@
   "Driver stopped on their own": "Водій зупинився сам",
   "Comments": "Коментарі",
   "Report a bug": "Повідомити про помилку",
-  "Found a bug, or an idea to improve the map?": "Знайшли помилку або маєте ідею, як покращити мапу?"
+  "Found a bug, or an idea to improve the map?": "Знайшли помилку або маєте ідею, як покращити мапу?",
+  "Cookies and similar technologies": "Файли cookie та подібні технології",
+  "We use a small amount of browser storage to run the map and to understand how it is used.": "Ми використовуємо невеликий обсяг сховища браузера, щоб працювала карта і щоб розуміти, як нею користуються.",
+  "Everything below stays on our own servers — no advertising, no third parties, nothing sold.": "Усе, що наведено нижче, зберігається на наших власних серверах — без реклами, без третіх осіб, нічого не продається.",
+  "Essential": "Необхідні",
+  "Always active": "Завжди активні",
+  "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.": "Зберігає ваш сеанс і поїздку, яку ви почали, але ще не надіслали, щоб вона не зникла при втраті сигналу. Без цього сайт не може працювати.",
+  "Analytics": "Аналітика",
+  "Optional": "Необов'язково",
+  "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.": "Зберігає один випадковий ідентифікатор у вашому браузері, щоб ми могли відрізнити повторного відвідувача від нового, і бачити, чи додають користувачі, які переглядають локації, власні поїздки.",
+  "It is not linked to your name, your account or your rides.": "Він не пов'язаний з вашим ім'ям, акаунтом чи вашими поїздками.",
+  "If you decline, we still count page views anonymously — but nothing is stored on your device.": "Якщо ви відмовитеся, ми все одно анонімно рахуємо перегляди сторінок — але на вашому пристрої нічого не зберігається.",
+  "Accept all": "Прийняти всі",
+  "Reject non-essential": "Відхилити необов'язкові",
+  "Privacy policy": "Політика приватності"
 }

@@ -1188,5 +1188,19 @@
   "Driver stopped on their own": "Șoferul a oprit de bunăvoie",
   "Comments": "Comentarii",
   "Report a bug": "Raportează o eroare",
-  "Found a bug, or an idea to improve the map?": "Ai găsit o eroare sau ai o idee pentru îmbunătățirea hărții?"
+  "Found a bug, or an idea to improve the map?": "Ai găsit o eroare sau ai o idee pentru îmbunătățirea hărții?",
+  "Cookies and similar technologies": "Cookie-uri și tehnologii similare",
+  "We use a small amount of browser storage to run the map and to understand how it is used.": "Folosim o cantitate mică de stocare în browser pentru a rula harta și pentru a înțelege cum este folosită.",
+  "Everything below stays on our own servers — no advertising, no third parties, nothing sold.": "Tot ce urmează rămâne pe serverele noastre — fără publicitate, fără terți, nimic vândut.",
+  "Essential": "Esențiale",
+  "Always active": "Mereu active",
+  "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.": "Te menține autentificat și salvează o cursă pe care ai început-o dar nu ai trimis-o încă, astfel încât să supraviețuiască pierderii semnalului. Site-ul nu poate funcționa fără aceasta.",
+  "Analytics": "Statistici",
+  "Optional": "Opțional",
+  "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.": "Stochează un ID aleatoriu în browserul tău pentru a putea distinge un vizitator care revine de unul nou și pentru a vedea dacă persoanele care caută puncte de autostop își adaugă vreodată propriile curse.",
+  "It is not linked to your name, your account or your rides.": "Nu este legat de numele tău, de contul tău sau de cursele tale.",
+  "If you decline, we still count page views anonymously — but nothing is stored on your device.": "Dacă refuzi, numărăm totuși vizualizările de pagini în mod anonim — dar nimic nu este stocat pe dispozitivul tău.",
+  "Accept all": "Acceptă tot",
+  "Reject non-essential": "Respinge cele neesențiale",
+  "Privacy policy": "Politica de confidențialitate"
 }

@@ -1188,5 +1188,19 @@
   "Driver stopped on their own": "Ο οδηγός σταμάτησε μόνος του",
   "Comments": "Σχόλια",
   "Report a bug": "Αναφορά σφάλματος",
-  "Found a bug, or an idea to improve the map?": "Βρήκες σφάλμα ή έχεις ιδέα για τη βελτίωση του χάρτη;"
+  "Found a bug, or an idea to improve the map?": "Βρήκες σφάλμα ή έχεις ιδέα για τη βελτίωση του χάρτη;",
+  "Cookies and similar technologies": "Cookies και παρόμοιες τεχνολογίες",
+  "We use a small amount of browser storage to run the map and to understand how it is used.": "Χρησιμοποιούμε μια μικρή ποσότητα αποθήκευσης του προγράμματος περιήγησης για να λειτουργεί ο χάρτης και για να κατανοούμε πώς χρησιμοποιείται.",
+  "Everything below stays on our own servers — no advertising, no third parties, nothing sold.": "Όλα τα παρακάτω παραμένουν στους δικούς μας διακομιστές — καμία διαφήμιση, κανένας τρίτος, τίποτα που πωλείται.",
+  "Essential": "Απαραίτητα",
+  "Always active": "Πάντα ενεργά",
+  "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.": "Σας κρατά συνδεδεμένο και αποθηκεύει μια διαδρομή που έχετε ξεκινήσει αλλά δεν έχετε υποβάλει ακόμη, ώστε να μην χαθεί αν χάσετε σήμα. Ο ιστότοπος δεν μπορεί να λειτουργήσει χωρίς αυτό.",
+  "Analytics": "Στατιστικά χρήσης",
+  "Optional": "Προαιρετικά",
+  "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.": "Αποθηκεύει ένα τυχαίο αναγνωριστικό στο πρόγραμμα περιήγησής σας ώστε να ξεχωρίζουμε έναν επισκέπτη που επιστρέφει από έναν νέο, και να βλέπουμε αν όσοι αναζητούν σημεία προσθέτουν ποτέ τις δικές τους διαδρομές.",
+  "It is not linked to your name, your account or your rides.": "Δεν συνδέεται με το όνομά σας, τον λογαριασμό σας ή τις διαδρομές σας.",
+  "If you decline, we still count page views anonymously — but nothing is stored on your device.": "Αν αρνηθείτε, εξακολουθούμε να μετράμε τις προβολές σελίδων ανώνυμα — αλλά τίποτα δεν αποθηκεύεται στη συσκευή σας.",
+  "Accept all": "Αποδοχή όλων",
+  "Reject non-essential": "Απόρριψη μη απαραίτητων",
+  "Privacy policy": "Πολιτική απορρήτου"
 }

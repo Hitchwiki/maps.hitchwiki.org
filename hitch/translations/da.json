@@ -1188,5 +1188,19 @@
   "Driver stopped on their own": "Chaufføren stoppede af sig selv",
   "Comments": "Kommentarer",
   "Report a bug": "Rapportér en fejl",
-  "Found a bug, or an idea to improve the map?": "Har du fundet en fejl eller har du en idé til at forbedre kortet?"
+  "Found a bug, or an idea to improve the map?": "Har du fundet en fejl eller har du en idé til at forbedre kortet?",
+  "Cookies and similar technologies": "Cookies og lignende teknologier",
+  "We use a small amount of browser storage to run the map and to understand how it is used.": "Vi bruger en lille mængde browserlager til at drive kortet og til at forstå, hvordan det bruges.",
+  "Everything below stays on our own servers — no advertising, no third parties, nothing sold.": "Alt nedenunder forbliver på vores egne servere — ingen reklamer, ingen tredjeparter, intet sælges.",
+  "Essential": "Nødvendige",
+  "Always active": "Altid aktive",
+  "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.": "Holder dig logget ind og gemmer en tur, du har startet, men endnu ikke indsendt, så den overlever, hvis du mister signalet. Siden kan ikke fungere uden dette.",
+  "Analytics": "Statistik",
+  "Optional": "Valgfri",
+  "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.": "Gemmer et tilfældigt ID i din browser, så vi kan kende en tilbagevendende besøgende fra en ny, og se, om folk, der slår op efter steder, nogensinde tilføjer deres egne ture.",
+  "It is not linked to your name, your account or your rides.": "Det er ikke knyttet til dit navn, din konto eller dine ture.",
+  "If you decline, we still count page views anonymously — but nothing is stored on your device.": "Hvis du afslår, tæller vi stadig sidevisninger anonymt — men der gemmes intet på din enhed.",
+  "Accept all": "Acceptér alle",
+  "Reject non-essential": "Afvis ikke-nødvendige",
+  "Privacy policy": "Privatlivspolitik"
 }

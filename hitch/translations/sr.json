@@ -1188,5 +1188,19 @@
   "Driver stopped on their own": "Vozač je stao na svoju inicijativu",
   "Comments": "Komentari",
   "Report a bug": "Prijavi grešku",
-  "Found a bug, or an idea to improve the map?": "Pronašao/la si grešku ili imaš ideju za poboljšanje mape?"
+  "Found a bug, or an idea to improve the map?": "Pronašao/la si grešku ili imaš ideju za poboljšanje mape?",
+  "Cookies and similar technologies": "Kolačići i slične tehnologije",
+  "We use a small amount of browser storage to run the map and to understand how it is used.": "Koristimo malu količinu prostora za skladištenje u pregledaču da bismo pokrenuli mapu i razumeli kako se koristi.",
+  "Everything below stays on our own servers — no advertising, no third parties, nothing sold.": "Sve dole ostaje na našim sopstvenim serverima — bez reklama, bez trećih strana, ništa se ne prodaje.",
+  "Essential": "Neophodno",
+  "Always active": "Uvek aktivno",
+  "Keeps you signed in and saves a ride you have started but not yet submitted, so it survives losing signal. The site cannot work without this.": "Održava vas prijavljenim i čuva vožnju koju ste započeli, a još niste poslali, tako da preživi gubitak signala. Sajt ne može raditi bez ovoga.",
+  "Analytics": "Analitika",
+  "Optional": "Opciono",
+  "Stores one random ID in your browser so we can tell a returning visitor from a new one, and see whether people who look up spots ever add their own rides.": "Čuva jedan slučajan ID u vašem pregledaču kako bismo razlikovali povratnog posetioca od novog i videli da li ljudi koji traže mesta ikada dodaju svoje vožnje.",
+  "It is not linked to your name, your account or your rides.": "Nije povezano sa vašim imenom, nalogom ili vožnjama.",
+  "If you decline, we still count page views anonymously — but nothing is stored on your device.": "Ako odbijete, i dalje anonimno brojimo pregleda stranica — ali ništa se ne čuva na vašem uređaju.",
+  "Accept all": "Prihvati sve",
+  "Reject non-essential": "Odbiji neophodno",
+  "Privacy policy": "Politika privatnosti"
 }
