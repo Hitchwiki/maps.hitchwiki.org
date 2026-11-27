@@ -955,6 +955,23 @@
   journeyFlow.giveUp = function () {
     const j = journeyStore.get(); if (!j) return;
     const waitMin = Math.round(journeyStore.currentWaitMs(j, Date.now()) / 60000);
+    // 0-1 min give-ups are mostly button try-outs and would be published as a failure at this spot (#1694):
+    // offer the existing "mistake, don't save" exit first. Existing strings only.
+    if (waitMin <= 1 && !journeyFlow._giveUpConfirmed) {
+      journeyUI.dialog({
+        title: T("Wasn't picked up"),
+        body: "",
+        centered: true,
+        actions: [
+          { label: T("Wasn't picked up"), cls: "inr-ghost", onClick: function () {
+            journeyFlow._giveUpConfirmed = true;
+            try { journeyFlow.giveUp(); } finally { journeyFlow._giveUpConfirmed = false; }
+          } },
+          { label: T("No, it was a mistake — don't save"), cls: "inr-grey", onClick: function () { journeyFlow._discardCancel(j); } },
+        ],
+      });
+      return;
+    }
     // Tracked inside the sheet callback, not before it: opening the give-up sheet
     // and then backing out of it is not giving up, and counting it as such would
     // overstate the failure rate.
