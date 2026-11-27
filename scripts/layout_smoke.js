@@ -14,7 +14,10 @@ const views = [[360, 740], [390, 844], [768, 1024], [1280, 800]];
   const b = await chromium.launch(); let bad = 0;
   for (const p of paths) for (const [w, h] of views) {
     const pg = await b.newPage({ viewport: { width: w, height: h } });
-    const resp = await pg.goto(base + p, { waitUntil: "domcontentloaded", timeout: 45000 }).catch(() => null);
+    const go = () => pg.goto(base + p, { waitUntil: "domcontentloaded", timeout: 45000 }).catch(() => null);
+    let resp = await go();
+    // A deploy restart gives ~30 s of 502s (first CI run, 2026-11-27); retry twice before calling it a finding.
+    for (let i = 0; i < 2 && (!resp || resp.status() >= 500); i++) { await pg.waitForTimeout(30000); resp = await go(); }
     await pg.waitForTimeout(2500);
     // Open every collapsed widget (e.g. "Show all options" lists) so hidden content gets checked too.
     for (const el of await pg.locator("button[aria-expanded=false]").all()) await el.click({ timeout: 1000 }).catch(() => {});
