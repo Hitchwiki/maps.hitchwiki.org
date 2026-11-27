@@ -22,7 +22,8 @@ jobs:
           node-version: "20"
       - name: Install Playwright Chromium
         run: |
-          npm ci --no-audit --no-fund
+          # package-lock.json is not tracked, so npm ci cannot run; install just the pinned range.
+          npm install --no-save --no-audit --no-fund "playwright@^1.62.1"
           npx playwright install --with-deps chromium
       - name: Layout smoke against https://maps.hitchwiki.org
         run: node scripts/layout_smoke.js --base https://maps.hitchwiki.org
