@@ -1,0 +1,28 @@
+name: layout-smoke
+
+# Read-only. Daily (and on demand), opens the live site's main pages, including the after-save
+# overlays and the ride form, in headless Chromium at four screen sizes and fails when text spills
+# out of its box, a page scrolls sideways, or a page errors. #469: catch weird-looking parts before a human does.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '41 7 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install Playwright Chromium
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Layout smoke against https://maps.hitchwiki.org
+        run: node scripts/layout_smoke.js --base https://maps.hitchwiki.org
