@@ -5126,8 +5126,13 @@ function addPledgeStopsLink(note, surface) {
   const arm = nonDe ? (window.hmVariant || function (_n, v) { return v[0]; })("pledge-stops-dest-v1", ["bench", "map"]) : "de";
   a.href = arm === "map" ? "/?mapmode=hitchhikers&ref=pledge_" + surface : "/mitfahrbank?ref=pledge_" + surface;
   a.textContent = tr("Hitchhikers near you");
-  a.style.cssText = "display:block;margin-top:6px;";
-  a.onclick = function () { hmTrack("driver_pledge_stops_link_clicked", { surface: surface, arm: arm }); };
+  // Race-banner pledgers tap this as a primary button (25/65 = 38% in 28 d); wiki_arrival sees a text link (16/139 = 12%).
+  // Sticky 50/50 on the style, same surface-agnostic event with a `style` prop.
+  const styleArm = (window.hmVariant || function (_n, v) { return v[0]; })("pledge-stops-style-v1", ["link", "button"]);
+  a.style.cssText = styleArm === "button"
+    ? "display:block;margin-top:8px;padding:8px 12px;border-radius:4px;background:#C99416;color:#fff;text-align:center;text-decoration:none;font-weight:600;"
+    : "display:block;margin-top:6px;";
+  a.onclick = function () { hmTrack("driver_pledge_stops_link_clicked", { surface: surface, arm: arm, style: styleArm }); };
   note.appendChild(a);
   // #1333: second link into the live route planner's driver view.
   const d = document.createElement("a");
