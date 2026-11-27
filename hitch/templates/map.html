@@ -136,11 +136,16 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
     }
 
     var HINT_KEY = isAndroid ? 'androidAppHintDismissedAt' : 'installHintDismissedAt';
+    // IDEAS #1724: `source` says which moment showed the hint. 'install_hint' = on landing;
+    // 'after_save' = right after a browser ride save (installed-shell users submit ~4x per session).
+    var source = 'install_hint';
+    var AFTER_SAVE_KEY = 'installAfterSaveShownAt';
 
-    try {
-        var dismissedAt = parseInt(localStorage.getItem(HINT_KEY) || '0', 10);
-        if (dismissedAt && Date.now() - dismissedAt < REAPPEAR_MS) return;
-    } catch (e) { /* localStorage may be unavailable; show anyway */ }
+    var dismissedAt = 0;
+    try { dismissedAt = parseInt(localStorage.getItem(HINT_KEY) || '0', 10); } catch (e) { /* show anyway */ }
+    // The landing hint keeps its 30-day quiet period. A dismissal no longer ends the whole
+    // script, because the after-save offer below has its own rules.
+    var landingSuppressed = !!(dismissedAt && Date.now() - dismissedAt < REAPPEAR_MS);
 
     var textEl = document.getElementById('install-hint-text');
     var titleEl = document.getElementById('install-hint-title');
@@ -169,7 +174,7 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
 
     actionBtn.addEventListener('click', function () {
         if (isAndroid) {
-            if (window.hmTrack) window.hmTrack('play_store_clicked', { source: 'install_hint' });
+            if (window.hmTrack) window.hmTrack('play_store_clicked', { source: source });
             window.open(PLAY_URL, '_blank', 'noopener');
             dismiss();
             return;
@@ -184,7 +189,8 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
 
     function dismiss(e) {
         if (!isAndroid && e && e.type === 'click' && e.currentTarget && e.currentTarget.id === 'install-hint-close' && window.hmTrack) {
-            window.hmTrack('install_hint_dismissed', { os: isIOS ? 'ios' : 'other', arm: iosArm });
+            // after_save is reported as its own arm so the EXP-1346 iOS timing test is not contaminated.
+            window.hmTrack('install_hint_dismissed', { os: isIOS ? 'ios' : 'other', arm: source === 'after_save' ? 'after_save' : iosArm });
         }
         hint.hidden = true;
         try { localStorage.setItem(HINT_KEY, String(Date.now())); } catch (e) {}
@@ -196,13 +202,15 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
     // the consent state is answered (poll, give up after 60 s so the hint is never lost entirely).
     function showHint() {
         hint.hidden = false;
-        if (isAndroid && window.hmTrack) window.hmTrack('play_store_shown', { source: 'install_hint' });
+        if (isAndroid && window.hmTrack) window.hmTrack('play_store_shown', { source: source });
         // Install-path telemetry for the non-Android hint (iOS Add-to-Home-Screen text, desktop).
-        if (!isAndroid && window.hmTrack) window.hmTrack('install_hint_shown', { os: isIOS ? 'ios' : 'other', arm: iosArm });
+        if (!isAndroid && window.hmTrack) window.hmTrack('install_hint_shown', { os: isIOS ? 'ios' : 'other', arm: source === 'after_save' ? 'after_save' : iosArm });
     }
     var waited = 0;
     // Small delay so the hint doesn't fight with map load (and the consent box exists).
     function start() { setTimeout(function waitForConsent() {
+        // The after-save offer already showed this page load, so the pending landing hint stands down.
+        if (source === 'after_save') return;
         var consentOpen = window.hmVisitorConsent && window.hmVisitorConsent.state() === 'unset';
         // .inride-scrim = any modal dialog (race banner, welcome back, ...): don't sit on top of it.
         if ((consentOpen || document.querySelector('.inride-scrim')) && waited < 60000) {
@@ -211,8 +219,30 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
         }
         showHint();
     }, 1500); }
-    if (iosArm === 'after_use') document.addEventListener('hm:useful', start, { once: true });
-    else start();
+    if (!landingSuppressed) {
+        if (iosArm === 'after_use') document.addEventListener('hm:useful', start, { once: true });
+        else start();
+    }
+
+    // IDEAS #1724: after a ride save, offer the app on phones. It shows at most once per 30 days,
+    // not within 7 days of a landing-hint dismissal, not while the hint is already up, and on
+    // Android not when the browser reports the Play app is already installed.
+    document.addEventListener('hm:ride_saved_closed', function () {
+        if (!(isAndroid || isIOS) || !hint.hidden) return;
+        try {
+            var last = parseInt(localStorage.getItem(AFTER_SAVE_KEY) || '0', 10);
+            if (last && Date.now() - last < REAPPEAR_MS) return;
+        } catch (e) { return; }
+        if (dismissedAt && Date.now() - dismissedAt < 7 * 24 * 60 * 60 * 1000) return;
+        function go() {
+            source = 'after_save';
+            try { localStorage.setItem(AFTER_SAVE_KEY, String(Date.now())); } catch (e) {}
+            setTimeout(showHint, 600);
+        }
+        if (isAndroid && navigator.getInstalledRelatedApps) {
+            navigator.getInstalledRelatedApps().then(function (apps) { if (!(apps && apps.length)) go(); }).catch(go);
+        } else go();
+    });
 })();
 
 // Play Store button: Android only, and not inside the installed app itself. Kept
