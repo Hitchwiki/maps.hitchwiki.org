@@ -5545,7 +5545,10 @@ const SIGNUP_PROMPT_SEEN_KEY = "signupPromptSeen";
 const INVITE_PROMPT_SEEN_KEY = "invitePromptSeen";
 // The co-hitchhiker invite is the one nudge worth repeating: it targets a
 // different travel companion each time, not the same undecided anonymous user.
-const INVITE_PROMPT_MAX_AGE_DAYS = 90;
+// #512: 90 days showed it ~3 times in 28 days against 41 rides saved with an anonymous
+// companion. Companions are stored only as "Anonymous", so "once per companion" can't be
+// keyed; a two-week cooldown is the closest proxy (a new trip, usually a new person).
+const INVITE_PROMPT_MAX_AGE_DAYS = 14;
 
 function promptSeen(key, maxAgeDays) {
   try {
@@ -5636,12 +5639,15 @@ function showInvitePromptOverlay(opts) {
   logSignupPrompt("co-hitchhiker-invite", "shown");
   overlay.style.display = "flex";
 
-  // The invite carries the inviter's name so a sign-up arriving through it is
-  // attributable in the access log.
-  const url =
-    window.location.origin +
-    "/login" +
-    (window.USERNAME ? "?invite=" + encodeURIComponent(window.USERNAME) : "");
+  // #512: same landing as the success overlay's invite button: the map, not /login (only
+  // 7% of login-page views get past it), with ?ref= counted by base.html as referred_via
+  // and the #1363 personal code so landings/joins are attributable. No username carried.
+  let url = window.location.origin + "/?ref=co_hitchhiker";
+  const inviteUrlReady = (window.hmInviteInfo ? window.hmInviteInfo() : Promise.resolve(null))
+    .then(function (info) {
+      if (info && info.code && window.hmWithInvite) url = window.hmWithInvite(url, info.code);
+    })
+    .catch(function () { /* the link works without a code */ });
   const shareBtn = $$("#invite-prompt-share");
   const done = function () {
     overlay.style.display = "none";
@@ -5649,6 +5655,7 @@ function showInvitePromptOverlay(opts) {
   };
 
   shareBtn.onclick = async function () {
+    await inviteUrlReady;
     try {
       if (navigator.share) {
         await navigator.share({ title: tr("Join me on Hitchwiki Maps"), url: url });

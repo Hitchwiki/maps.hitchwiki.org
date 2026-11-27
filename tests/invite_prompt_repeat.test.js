@@ -28,7 +28,7 @@ function helpers(store) {
   const block =
     SOURCE.slice(
       keysStart,
-      SOURCE.indexOf("\n", SOURCE.indexOf("INVITE_PROMPT_MAX_AGE_DAYS = 90")),
+      SOURCE.indexOf("\n", SOURCE.indexOf("INVITE_PROMPT_MAX_AGE_DAYS = ")),
     ) +
     "\n" +
     SOURCE.slice(fnStart, fnEnd) +
@@ -42,7 +42,7 @@ function helpers(store) {
   return new Function("localStorage", "Date", block)(localStorage, Date);
 }
 
-test("the invite prompt returns after 90 days, unlike the permanent anon marker", () => {
+test("the invite prompt returns after 14 days (#512), unlike the permanent anon marker", () => {
   const store = {};
   const h = helpers(store);
 
@@ -57,14 +57,14 @@ test("the invite prompt returns after 90 days, unlike the permanent anon marker"
   );
 
   // Rewind the stored stamp past the window.
-  store[h.INVITE_PROMPT_SEEN_KEY] = String(Date.now() - 91 * 86400000);
+  store[h.INVITE_PROMPT_SEEN_KEY] = String(Date.now() - 15 * 86400000);
   assert.strictEqual(
     h.promptSeen(h.INVITE_PROMPT_SEEN_KEY, h.INVITE_PROMPT_MAX_AGE_DAYS),
     false,
   );
 
-  // 89 days is still inside the window.
-  store[h.INVITE_PROMPT_SEEN_KEY] = String(Date.now() - 89 * 86400000);
+  // 13 days is still inside the window.
+  store[h.INVITE_PROMPT_SEEN_KEY] = String(Date.now() - 13 * 86400000);
   assert.strictEqual(
     h.promptSeen(h.INVITE_PROMPT_SEEN_KEY, h.INVITE_PROMPT_MAX_AGE_DAYS),
     true,
