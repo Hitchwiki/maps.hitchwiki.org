@@ -927,10 +927,12 @@ window.__WEEKDAYS__ = {{ client_weekdays_json()|safe }};
         {{ feedback_widget("success-overlay", t("Ride saved — thank you!"), allow_email=(not is_logged_in)) }}
         {# #591/#677: invite at the moment of need, as a button right under the thank-you.
            As a plain sentence below eight other notes it got 0 clicks of ~636 saves/28d. #}
-        <p class="success-chat-invite"><a class="success-chat-btn" href="{{ GENERAL_CHAT_URL }}" target="_blank" rel="noopener" data-chat-place="ride_saved">{{ t("Join our Matrix chat") }}</a>
         {# #512: invites are a key KPI. The co-hitchhiker prompt fires only when an anonymous co-hitchhiker was added
-           (10 shows / 28d, 0 invites), so every saver (anonymous too: the link needs no account) gets it here. #}
-        <button type="button" id="success-invite-btn" class="success-chat-btn" style="margin-left:6px;cursor:pointer;">{{ t("Send invite link") }}</button></p>
+           (10 shows / 28d, 0 invites), so every saver (anonymous too: the link needs no account) gets it here.
+           #1729 / EXP-1244 kill branch: 1 invite share vs 351 saves in 28d with the invite second, so the
+           invite now comes first and the chat link second. Order only; no wording changed. #}
+        <p class="success-chat-invite"><button type="button" id="success-invite-btn" class="success-chat-btn" style="margin-right:6px;cursor:pointer;">{{ t("Send invite link") }}</button>
+        <a class="success-chat-btn" href="{{ GENERAL_CHAT_URL }}" target="_blank" rel="noopener" data-chat-place="ride_saved">{{ t("Join our Matrix chat") }}</a></p>
         <!-- Filled in by showTripCreated() when a tracked journey's rides were grouped
              into a trip. Hidden otherwise, and for a single-ride journey. -->
         {# #1178: journey uploads (104/28d) never saw the "first ride ever?" question the /ride form asks.
