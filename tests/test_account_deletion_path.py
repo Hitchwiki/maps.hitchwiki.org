@@ -10,9 +10,11 @@ USER_BLUEPRINT = (ROOT / "hitch" / "blueprints" / "user.py").read_text()
 
 
 assert '@app.route("/delete-account")' in APP
-assert "play.hitchwiki@gmail.com" in PAGE
-assert "Never send your password" in PAGE
-assert "systems we control" in PAGE
+# Self-serve, whole-account only (maps#753): no e-mail route, no partial requests.
+assert "mailto:" not in PAGE
+assert "particular data" not in PAGE
+assert 'action="/delete-account"' in PAGE
+assert "/login?next=/delete-account" in PAGE
 assert 'href="/delete-account"' in PRIVACY
 assert 'href="/delete-account"' in PROFILE
 # The main /account/<username> profile page had its own "Delete my account" link

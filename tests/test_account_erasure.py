@@ -1,17 +1,18 @@
 import pytest
 
-from hitch.models import Follow, Notification, RideLike, Trip, TripRide, User
+from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON
+from hitch.models import Follow, Notification, RideLike, RideReport, Trip, TripRide, User
 
 
 @pytest.fixture(autouse=True)
 def _cleanup(app, db):
     yield
     db.session.rollback()
-    for model in (Follow, Notification, TripRide, Trip, RideLike):
+    for model in (Follow, Notification, TripRide, Trip, RideLike, RideReport):
         db.session.query(model).delete()
-    db.session.query(User).filter(
-        (User.email.like("%@example.org")) | (User.email.like("deleted-%@deleted.invalid"))
-    ).delete(synchronize_session=False)
+    db.session.query(User).filter((User.email.like("%@example.org")) | (User.email.like("deleted-%@deleted.invalid"))).delete(
+        synchronize_session=False
+    )
     db.session.commit()
 
 
@@ -81,3 +82,25 @@ def test_erase_scrubs_account_and_keeps_other_users(app, db, client):
 
     # the old session no longer works
     assert client.get("/me.json").status_code in (401, 302, 200)
+
+
+def test_erase_keeps_the_persons_own_ride_deletions(app, db, client):
+    # A deleted ride is hidden only by its owner_deleted report; erasing the account must
+    # not bring those rides back onto the map, while reports on others' rides do go.
+    a = _user(db, "erase_c", "c@example.org")
+    db.session.add_all(
+        [
+            RideReport(ride_d_tag="mine", user_id=a.id, reason=OWNER_DELETE_REASON),
+            RideReport(ride_d_tag="theirs", user_id=a.id, reason="advertising"),
+        ]
+    )
+    db.session.commit()
+    aid = a.id
+
+    _login(client, a)
+    r = client.post("/delete-account", data={"confirm_username": "erase_c"})
+    assert r.status_code == 303 and "done=1" in r.headers["Location"]
+
+    db.session.expire_all()
+    left = {(rr.ride_d_tag, rr.reason) for rr in db.session.query(RideReport).filter_by(user_id=aid)}
+    assert left == {("mine", OWNER_DELETE_REASON)}

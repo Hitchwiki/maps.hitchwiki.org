@@ -149,6 +149,36 @@ class HitchhikingDataStandardToNostrPoster:
 
         return d_tag
 
+    def delete(self, event_id: str, d_tag: str, wait: bool = True) -> str:
+        """Publish a NIP-09 deletion request (kind 5) for one of our ride events.
+
+        Only meaningful for events signed with this poster's key: relays and our own
+        fetch_nostr_incremental honour a deletion only from the original author. The `e`
+        tag names the exact version we hold; the `a` tag names the addressable ride
+        (kind:pubkey:d), so a relay that keeps several versions drops all of them.
+        Returns the deletion event's id.
+        """
+        event = Event(
+            kind=5,
+            created_at=int(time.time()),
+            content="Deleted by the ride's hitchhiker on maps.hitchwiki.org",
+            pubkey=self.pubkey_hex,
+            id=None,
+            sig=None,
+            tags=[
+                ["e", event_id],
+                ["a", f"{self.event_kind}:{self.pubkey_hex}:{d_tag}"],
+                ["k", str(self.event_kind)],
+            ],
+        )
+        event.sign(self.private_key_hex)
+        self.pending_event_ids.add(event.id)
+        self.relay_manager.publish_event(event)
+        self.relay_manager.run_sync()
+        if wait:
+            self.last_flush_accepted = self.flush()
+        return event.id
+
     def flush(self) -> bool:
         """Give the relays their moment to answer, then drain the OK notices.
 

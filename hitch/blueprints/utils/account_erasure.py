@@ -11,6 +11,7 @@ in, the e-mail address and every profile field are gone, and the username is fre
 import secrets
 
 from hitch.blueprints.utils.profile_images import delete_uploaded_image
+from hitch.blueprints.utils.report_ride import OWNER_DELETE_REASON
 from hitch.extensions import db
 from hitch.models import (
     Follow,
@@ -73,15 +74,16 @@ def erase_account(user):
         (PushSubscription, PushSubscription.user_id),
         (RideLike, RideLike.user_id),
         (RideComment, RideComment.user_id),
-        (RideReport, RideReport.user_id),
     ):
         db.session.query(model).filter(column == uid).delete(synchronize_session=False)
-    db.session.query(Follow).filter((Follow.follower_id == uid) | (Follow.followed_id == uid)).delete(
+    # Reports on other people's rides go, but an owner_deleted row is how a ride the person
+    # deleted *stays* deleted (the Nostr event can't be recalled, so that row is the only
+    # thing hiding it). Erasing those resurrected every ride they had removed by hand.
+    db.session.query(RideReport).filter(RideReport.user_id == uid, RideReport.reason != OWNER_DELETE_REASON).delete(
         synchronize_session=False
     )
-    db.session.query(Message).filter((Message.sender_id == uid) | (Message.recipient_id == uid)).delete(
-        synchronize_session=False
-    )
+    db.session.query(Follow).filter((Follow.follower_id == uid) | (Follow.followed_id == uid)).delete(synchronize_session=False)
+    db.session.query(Message).filter((Message.sender_id == uid) | (Message.recipient_id == uid)).delete(synchronize_session=False)
 
     trip_ids = [row[0] for row in db.session.query(Trip.id).filter(Trip.user_id == uid).all()]
     if trip_ids:

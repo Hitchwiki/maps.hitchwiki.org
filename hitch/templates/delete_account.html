@@ -7,39 +7,33 @@
   <p><a href="/">← Back to Hitchwiki Maps</a></p>
   <h1>Delete your Hitchwiki Maps account and data</h1>
 
+  {# Deletion is self-serve and all-or-nothing (maps#753): no e-mail route, no partial
+     requests. Single fields can already be cleared on the profile page, single rides on
+     their own ride page. #}
   {% if request.args.get('done') %}
   <p><strong>Your account and personal data have been deleted.</strong> Published rides stay (see below).</p>
   {% elif current_user.is_authenticated %}
-  <h2>Delete it yourself, right now</h2>
   <p>This removes your e-mail address, profile, followers, messages, notifications, trips, likes,
     comments and push subscriptions from this server, frees your username, and logs you out.
     It cannot be undone. <strong>The rides you published stay</strong>, because they are already on
-    Nostr relays we do not control (see "Limits" below).</p>
+    Nostr relays we do not control (see "Published rides" below).</p>
   {% if request.args.get('error') == 'confirm' %}<p style="color:#b00"><strong>That did not match your username. Nothing was deleted.</strong></p>{% endif %}
   <form method="post" action="/delete-account">
     <label>Type your username (<code>{{ current_user.username }}</code>) to confirm:
       <input name="confirm_username" autocomplete="off" required></label>
     <button type="submit" style="color:#fff;background:#b00;border:0;padding:.4rem .8rem;border-radius:4px">Delete my account and data</button>
   </form>
-  <h2>Or ask by e-mail</h2>
+  {% else %}
+  <p><a href="/login?next=/delete-account">Log in</a> to delete your account. Deletion is done by
+    you, here, and always removes the whole account and all personal data listed above.</p>
   {% endif %}
-  <p>To request deletion, email
-    <a href="mailto:play.hitchwiki@gmail.com?subject=Hitchwiki%20Maps%20account%20deletion%20request">play.hitchwiki@gmail.com</a>
-    with the subject <strong>Hitchwiki Maps account deletion request</strong>.
-  </p>
-  <p>Include the username and email address connected to your account so we can
-    identify it. <strong>Never send your password.</strong> We may reply to the
-    account email to verify that the request is yours.</p>
 
-  <h2>What the request covers</h2>
-  <p>We will remove your account and associated personal data from systems we
-    control. Tell us if you want only particular data deleted instead.</p>
-
-  <h2>Limits for published ride data</h2>
-  <p>Ride data is published openly and to Nostr relays. We will remove it from
-    systems we control and make a best-effort deletion request to the relays we
-    use, but we cannot delete copies already downloaded, mirrored, archived, or
-    held by third parties. The <a href="/privacy">Privacy Policy</a> explains
-    this limitation before you submit a ride.</p>
+  <h2>Published rides</h2>
+  <p>Ride data is published openly to Nostr relays, so deleting your account does not remove your
+    rides. To remove a ride, delete it on its own ride page <strong>before</strong> deleting your
+    account: it disappears from the map, and for rides published by Hitchwiki Maps we also send a
+    deletion request to the relays. We cannot delete copies already downloaded, mirrored, archived,
+    or held by third parties. The <a href="/privacy">Privacy Policy</a> explains this limitation
+    before you submit a ride.</p>
 </main>
 {% endblock %}

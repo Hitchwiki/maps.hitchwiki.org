@@ -98,7 +98,7 @@ from hitch.blueprints.utils.ride_images import (
     valid_draft_token,
 )
 from hitch.blueprints.utils.ride_ip_log import get_client_ip, log_ride_ip
-from hitch.blueprints.utils.ride_sources import THIS_NOSTR_SOURCE, ride_is_replaceable, ride_source
+from hitch.blueprints.utils.ride_sources import THIS_NOSTR_SOURCE, our_ride_pubkeys, ride_is_replaceable, ride_source
 from hitch.blueprints.utils.route_feedback_log import log_route_feedback, log_route_label
 from hitch.blueprints.utils.route_outcome_log import OUTCOMES, log_route_outcome
 from hitch.blueprints.utils.route_request_log import log_route_request
@@ -1535,11 +1535,14 @@ def ride_detail(d_tag):
 
 @main_bp.route("/delete-ride/<d_tag>", methods=["POST"])
 def delete_ride(d_tag):
-    """Let any of a ride's hitchhikers hide it, including rides imported from other sources.
+    """Let any of a ride's hitchhikers delete it, including rides imported from other sources.
 
-    The event lives on the Nostr relays and cannot be recalled, so "delete" here means a
-    single RideReport row with OWNER_DELETE_REASON, which show.py treats as sufficient to
-    drop the ride from every generated map file (no reporter threshold).
+    Two layers. A RideReport row with OWNER_DELETE_REASON hides the ride locally — show.py
+    treats one such row as sufficient to drop it from every generated map file — and works
+    for any ride. On top, when the event is signed with a key we hold, a NIP-09 deletion
+    request goes to the relays so the ride leaves our Nostr systems too (the incremental
+    fetch then drops the row). The local row stays regardless: other relays may ignore the
+    request, and the weekly full fetch must not bring the ride back if ours does.
     """
     if current_user.is_anonymous:
         return redirect(f"/login?next=/ride/{d_tag}")
@@ -1558,7 +1561,27 @@ def delete_ride(d_tag):
     else:
         db.session.add(RideReport(ride_d_tag=d_tag, user_id=current_user.id, reason=OWNER_DELETE_REASON))
     db.session.commit()
+    _request_nostr_deletion(ride)
     return redirect(f"/ride/{d_tag}")
+
+
+def _request_nostr_deletion(ride):
+    """Send a NIP-09 deletion for `ride` if we signed it; never fails the request.
+
+    A ride another platform signed can't be deleted by us (NIP-09 is author-only), so it
+    stays hidden by the local row alone. A relay failure is logged, not raised: the ride
+    is already off the map via the RideReport row.
+    """
+    if (ride.pubkey or "").lower() not in our_ride_pubkeys():
+        return
+    try:
+        poster = HitchhikingDataStandardToNostrPoster()
+        try:
+            poster.delete(ride.id, ride.d)
+        finally:
+            poster.close()
+    except Exception:
+        current_app.logger.exception("NIP-09 deletion for ride %s failed", ride.d)
 
 
 @main_bp.route("/claim-ride/<d_tag>", methods=["POST"])
