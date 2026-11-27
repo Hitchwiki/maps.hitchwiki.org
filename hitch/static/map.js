@@ -5273,6 +5273,7 @@ function renderDriverPledgeNudge() {
     localStorage.setItem(DRIVER_PLEDGE_MADE_KEY, "1");
     noteDriverPledgeTime("success_overlay");
     btn.style.display = "none";
+    dismiss.remove();
     note.textContent = tr("Pledge made — thank you.");
     addPledgeStopsLink(note, "success_overlay");
     note.style.display = "block";
@@ -7476,6 +7477,13 @@ function isWikiReaderRef(r) {
 }
 // IDEAS #1259: spot-seekers (infobox links) get the same card in a 50/50 test; arm is sticky per device.
 const WIKI_SEEKER_REFS = ["wiki_infobox_pin", "wiki_infobox_map", "wiki_infobox_here"];
+// IDEAS #1719: a visitor who arrived to plan or search (wiki city trip box ?from=, #routing,
+// #search/, legacy #dir/) came for a route, so the unasked card must not sit on top of it.
+function arrivedWithPlannerIntent() {
+  return /^\/(?:[a-z]{2,3}\/)?dir\//.test(location.pathname) ||
+    /^#(?:dir\/|routing|search\/)/.test(location.hash) ||
+    new URLSearchParams(location.search).has("from");
+}
 function maybeShowNewsletterPledge() {
   let wanted = false;
   let surface = "newsletter";
@@ -7493,7 +7501,7 @@ function maybeShowNewsletterPledge() {
     if (!wanted && isWikiReaderRef(lref) &&
         !localStorage.getItem(DRIVER_PLEDGE_MADE_KEY) &&
         !localStorage.getItem("hmWikiArrivalPledgeShown") &&
-        !/^\/(?:[a-z]{2,3}\/)?dir\//.test(location.pathname)) {
+        !arrivedWithPlannerIntent()) {
       wanted = true;
       surface = "wiki_arrival";
       localStorage.setItem("hmWikiArrivalPledgeShown", "1");
@@ -7501,7 +7509,7 @@ function maybeShowNewsletterPledge() {
     if (!wanted && WIKI_SEEKER_REFS.indexOf(lref) !== -1 &&
         !localStorage.getItem(DRIVER_PLEDGE_MADE_KEY) &&
         !localStorage.getItem("hmWikiSeekerPledgeShown") &&
-        !/^\/(?:[a-z]{2,3}\/)?dir\//.test(location.pathname)) {
+        !arrivedWithPlannerIntent()) {
       let arm = localStorage.getItem("hmWikiSeekerPledgeArm");
       if (!arm) {
         arm = Math.random() < 0.5 ? "show" : "ctrl";
@@ -7549,6 +7557,20 @@ function maybeShowNewsletterPledge() {
     };
     box.appendChild(close);
   };
+  // IDEAS #1719: the unasked card had no way out except pledging, and on a phone it sits over the
+  // start bar. An always-visible x closes it (the once-per-device flag is already set above).
+  const dismiss = document.createElement("button");
+  dismiss.type = "button";
+  dismiss.setAttribute("aria-label", tr("Close"));
+  dismiss.textContent = "\u00d7";
+  dismiss.style.cssText = "position:absolute;top:2px;right:6px;border:0;background:none;font-size:20px;line-height:1;cursor:pointer;color:#666;";
+  const shownAt = Date.now();
+  dismiss.onclick = function () {
+    hmTrack("driver_pledge_dismissed", { surface: surface, ms: Date.now() - shownAt });
+    box.remove();
+  };
+  box.style.paddingTop = "22px";
+  box.appendChild(dismiss);
   box.appendChild(btn);
   box.appendChild(note);
   document.body.appendChild(box);
