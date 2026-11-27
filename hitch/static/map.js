@@ -4826,6 +4826,9 @@ function showSuccessOverlay(opts) {
     overlay.style.display = "none";
     document.removeEventListener("keydown", onKey);
     lastTripCreated = null; // the note has been seen; the next journey brings its own
+    // IDEAS #1724: a browser saver has just shown they log rides. The install hint in map.html
+    // listens for this and offers the app once the success screen (already five asks) is gone.
+    document.dispatchEvent(new CustomEvent("hm:ride_saved_closed"));
   };
   const onKey = function (e) {
     if (e.key === "Escape") close("esc");
